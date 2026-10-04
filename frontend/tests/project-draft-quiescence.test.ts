@@ -39,4 +39,30 @@ it("holds project admission from drain through the Close response", async () => 
   expect(close.canCommit()).toBe(true);
   close.finish();
   expect(quiescence.isClosing("project")).toBe(false);
+  expect(close.canCommit()).toBe(false);
+});
+
+it("commits a no-writer project never loaded in this tab", async () => {
+  const quiescence = createProjectDraftQuiescence();
+  quiescence.register("current", "draft", async () => false);
+  const close = quiescence.beginClose("other");
+  await expect(close.drain()).resolves.toBe(true);
+  expect(close.canCommit()).toBe(true);
+  close.finish();
+});
+
+it("force discard is project-scoped and never calls save", async () => {
+  const quiescence = createProjectDraftQuiescence();
+  const calls: string[] = [];
+  quiescence.register("first", "draft", async () => { calls.push("save"); return false; }, {
+    discardUnsent: async () => { calls.push("discard-first"); }, retainOnUnmount: true,
+  });
+  quiescence.register("second", "draft", async () => true, { discardUnsent: async () => { calls.push("discard-second"); } });
+  const close = quiescence.beginClose("first");
+  await close.discardUnsent();
+  expect(calls).toEqual(["discard-first"]);
+  expect(quiescence.isClosing("first")).toBe(true);
+  await expect(close.drain()).resolves.toBe(true);
+  expect(close.canCommit()).toBe(true);
+  close.finish();
 });

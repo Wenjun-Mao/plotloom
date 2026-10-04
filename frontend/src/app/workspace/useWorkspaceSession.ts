@@ -169,8 +169,9 @@ export function useWorkspaceSession() {
   const acceptProjectLoad = useCallback((incoming: WorkspaceProjectLoad) => {
     serverDrafts.current = new Map(
       incoming.drafts
-        .filter((draft): draft is AuthoringDraft & { editorScope: DraftScope } => isDraftScope(draft.editorScope))
-        .map((draft) => [authoringDraftKey(incoming.project.id, draft.editorScope), draft]),
+        .map((draft) => [isDraftScope(draft.editorScope)
+          ? authoringDraftKey(incoming.project.id, draft.editorScope)
+          : `${incoming.project.id}:${draft.editorScope}:${draft.entityId}`, draft]),
     );
     updateSnapshot((current) => ({
       ...current,

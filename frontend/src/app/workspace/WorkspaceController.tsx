@@ -23,6 +23,8 @@ import { useProjectDirectory } from "./useProjectDirectory";
 import { useProjectInitialization } from "./useProjectInitialization";
 import { useProjectLifecycle } from "./useProjectLifecycle";
 import { createProjectDraftQuiescence } from "../../features/authoring/projectDraftQuiescence";
+import { createReviewDraftStore } from "../../features/authoring/reviewDraftStore";
+import { ReviewDraftContext } from "../../features/authoring/ReviewDraftContext";
 import { useRunCommands } from "./useRunCommands";
 import { useRunSession } from "./useRunSession";
 import { useTextProviderProfiles } from "./useTextProviderProfiles";
@@ -47,6 +49,15 @@ export default function WorkspaceController() {
   const [portableSnapshotsEnabled, setPortableSnapshotsEnabled] = useState(false);
   const durableDraftsEnabledRef = useRef(false);
   const mediaDraftQuiescence = useRef(createProjectDraftQuiescence()).current;
+  const reviewDraftStore = useMemo(() => createReviewDraftStore(mediaDraftQuiescence, window.sessionStorage), [mediaDraftQuiescence]);
+  const loadedDrafts = session.serverDrafts.current;
+  useEffect(() => {
+    const projectId = session.project.id;
+    return () => { if (projectId) reviewDraftStore.leave(projectId); };
+  }, [session.project.id, reviewDraftStore]);
+  useEffect(() => {
+    if (durableDraftsEnabled && session.project.id && session.connection === "connected") reviewDraftStore.hydrate(session.project.id, [...loadedDrafts.values()]);
+  }, [durableDraftsEnabled, session.project.id, session.connection, loadedDrafts, reviewDraftStore]);
   const profiles = useTextProviderProfiles(setBusy, setError, messageFrom);
   const directory = useProjectDirectory(messageFrom);
   const { pollRun, loadTraceEvidence } = useRunSession({ session, setError, describeError: messageFrom });
@@ -103,7 +114,7 @@ export default function WorkspaceController() {
     commitStage: authoring.commitStage,
     discardCurrentAuthoringDraft: authoring.discardCurrentAuthoringDraft,
     mediaDraftQuiescence,
-    directory: { close: directory.closeDirectory, refresh: directory.refresh, setError: directory.setError },
+    directory: { open: directory.openDirectory, close: directory.closeDirectory, refresh: directory.refresh, setError: directory.setError },
     openProject: (projectId) => workspaceNavigation.requestNavigation({ project: projectId, stage: "brief" }),
     startBlank: initialization.startBlankProject,
     explicitProjectClose: explicitProjectCloseEnabled,
@@ -259,10 +270,11 @@ export default function WorkspaceController() {
 
   if (session.onboarding) return <>
     <WelcomeOnboarding onBlank={startBlank} onSample={openSample} onDirectory={directory.openDirectory} />
-    {directory.open && <ProjectDirectoryDialog projects={directory.projects} showArchived={directory.showArchived} error={directory.error} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "brief" }); }} onAction={lifecycle.mutate} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
+    {directory.open && <ProjectDirectoryDialog projects={directory.projects} currentProjectId={project.id} notice={lifecycle.closeNotice} busy={Boolean(lifecycle.closingProjectId || lifecycle.snapshottingProjectId)} showArchived={directory.showArchived} error={directory.error} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "brief" }); }} onAction={lifecycle.mutate} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
+    {lifecycle.confirmation}
   </>;
 
-  return <div className="app-shell">
+  return <ReviewDraftContext.Provider value={{ store: reviewDraftStore, quiescence: mediaDraftQuiescence, projectId: project.id || "", revision: project.revision, enabled: durableDraftsEnabled }}><div className="app-shell">
     <a className="skip-link" href="#workspace-main">跳到工作区</a>
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark">PL</div><div><strong>Plotloom</strong><small>叙织 · PIPELINE WORKBENCH</small></div></div>
@@ -273,7 +285,7 @@ export default function WorkspaceController() {
       {specialistsOpen && <SpecialistSettingsDialog onClose={() => setSpecialistsOpen(false)} />}
     </aside>
     <div className="workspace-shell">
-      <header className="topbar"><div className="topbar-actions">{projectClosing ? <Badge tone="accent">正在关闭项目</Badge> : projectSnapshotting ? <Badge tone="accent">正在创建恢复快照</Badge> : projectReadOnly && <Badge tone="warning">归档只读</Badge>}{running && <Spinner label={runProgress?.failedStage ? stageLabels[runProgress.failedStage] : "Pipeline"} />}{playUrl && <a className="button quiet" href={playUrl}>播放故事</a>}<Button variant="quiet" disabled={!project.id || connection === "loading" || projectClosing || projectSnapshotting} onClick={requestProjectRefresh}>刷新服务器版本</Button>{portableSnapshotsEnabled && <Button variant="quiet" disabled={!project.id || projectReadOnly || connection === "loading"} onClick={() => void lifecycle.createSnapshot()}>{projectSnapshotting ? "正在创建恢复快照…" : "创建恢复快照"}</Button>}{staleCount > 0 && <Button variant="quiet" disabled={projectReadOnly} onClick={() => setRebuildOpen(true)}>{staleCount} 个阶段待重建</Button>}{toolbarHint && <span className="toolbar-prerequisite" role="note">{toolbarHint}</span>}<details className="topbar-technical-status"><summary>服务状态</summary><div>{durableDraftsEnabled && <Badge tone={authoring.durableDraftStatus === "saved" ? "ok" : authoring.durableDraftStatus === "failed" || authoring.durableDraftStatus === "conflict" ? "danger" : authoring.durableDraftStatus === "saving" ? "accent" : "warning"}>草稿：{authoring.durableDraftStatus === "saving" ? "正在保存" : authoring.durableDraftStatus === "saved" ? "已保存" : authoring.durableDraftStatus === "failed" ? "保存失败" : authoring.durableDraftStatus === "conflict" ? "冲突" : "等待编辑"}</Badge>}<Badge tone={connection === "connected" ? "ok" : connection === "loading" ? "accent" : "warning"}>Plotloom 服务：{connection === "connected" ? "已连接" : connection === "loading" ? "连接中" : "未连接"}</Badge><Badge tone={profiles.profileDraft.readiness?.state === "available" ? "ok" : ["unreachable", "authentication_failed", "model_mismatch", "capability_mismatch"].includes(profiles.profileDraft.readiness?.state || "unverified") ? "danger" : "warning"}>文本后端：{profiles.profileDraft.readiness?.state || "unverified"} · {profiles.profileDraft.profileId} · {profiles.profileDraft.readiness?.reasonCode || "readiness.not_checked"}{profiles.profileDraft.readiness?.observedAt ? ` · ${new Date(profiles.profileDraft.readiness.observedAt).toLocaleString()}` : " · 未检测"}</Badge>{lifecycle.latestSnapshot && lifecycle.latestSnapshot.projectId === project.id && <small title={lifecycle.latestSnapshot.location}>恢复快照已完成：{lifecycle.latestSnapshot.location}</small>}</div></details></div></header>
+      <header className="topbar"><div className="topbar-actions">{projectClosing ? <Badge tone="accent">正在关闭项目</Badge> : projectSnapshotting ? <Badge tone="accent">正在创建恢复快照</Badge> : projectReadOnly && <Badge tone="warning">归档只读</Badge>}{running && <Spinner label={runProgress?.failedStage ? stageLabels[runProgress.failedStage] : "Pipeline"} />}{explicitProjectCloseEnabled && <Button variant="quiet" disabled={!project.id || projectReadOnly || connection !== "connected" || busy} onClick={() => void lifecycle.saveAndCloseCurrent()}>保存并关闭项目</Button>}{playUrl && <a className="button quiet" href={playUrl}>播放故事</a>}<Button variant="quiet" disabled={!project.id || connection === "loading" || projectClosing || projectSnapshotting} onClick={requestProjectRefresh}>刷新服务器版本</Button>{portableSnapshotsEnabled && <Button variant="quiet" disabled={!project.id || projectReadOnly || connection === "loading"} onClick={() => void lifecycle.createSnapshot()}>{projectSnapshotting ? "正在创建恢复快照…" : "创建恢复快照"}</Button>}{staleCount > 0 && <Button variant="quiet" disabled={projectReadOnly} onClick={() => setRebuildOpen(true)}>{staleCount} 个阶段待重建</Button>}{toolbarHint && <span className="toolbar-prerequisite" role="note">{toolbarHint}</span>}<details className="topbar-technical-status"><summary>服务状态</summary><div>{durableDraftsEnabled && <Badge tone={authoring.durableDraftStatus === "saved" ? "ok" : authoring.durableDraftStatus === "failed" || authoring.durableDraftStatus === "conflict" ? "danger" : authoring.durableDraftStatus === "saving" ? "accent" : "warning"}>草稿：{authoring.durableDraftStatus === "saving" ? "正在保存" : authoring.durableDraftStatus === "saved" ? "已保存" : authoring.durableDraftStatus === "failed" ? "保存失败" : authoring.durableDraftStatus === "conflict" ? "冲突" : "等待编辑"}</Badge>}<Badge tone={connection === "connected" ? "ok" : connection === "loading" ? "accent" : "warning"}>Plotloom 服务：{connection === "connected" ? "已连接" : connection === "loading" ? "连接中" : "未连接"}</Badge><Badge tone={profiles.profileDraft.readiness?.state === "available" ? "ok" : ["unreachable", "authentication_failed", "model_mismatch", "capability_mismatch"].includes(profiles.profileDraft.readiness?.state || "unverified") ? "danger" : "warning"}>文本后端：{profiles.profileDraft.readiness?.state || "unverified"} · {profiles.profileDraft.profileId} · {profiles.profileDraft.readiness?.reasonCode || "readiness.not_checked"}{profiles.profileDraft.readiness?.observedAt ? ` · ${new Date(profiles.profileDraft.readiness.observedAt).toLocaleString()}` : " · 未检测"}</Badge>{lifecycle.latestSnapshot && lifecycle.latestSnapshot.projectId === project.id && <small title={lifecycle.latestSnapshot.location}>恢复快照已完成：{lifecycle.latestSnapshot.location}</small>}</div></details></div></header>
       {error && <div className="global-error"><ErrorNotice message={error} /><button aria-label="关闭错误" onClick={() => setError("")}>×</button></div>}
       <div className="workbench-grid">
         <main id="workspace-main">
@@ -290,11 +302,12 @@ export default function WorkspaceController() {
     </div>
     {profiles.settingsOpen && <SettingsDialog profiles={profiles.profiles} selectedProfileId={profiles.selectedProfileId} draft={profiles.profileDraft} sessionKey={profiles.sessionKey} busy={busy} onDraft={(draft) => { profiles.setProfileDraft(draft); profiles.setProfileDirty(true); }} onSessionKey={profiles.setSessionKey} onSelect={profiles.select} onCreate={() => profiles.create(false)} onCopy={() => profiles.create(true)} onDelete={profiles.remove} onActivate={profiles.activate} onAvailability={profiles.setAvailability} onProbe={profiles.probe} onClose={() => profiles.setSettingsOpen(false)} onSave={saveSettings} />}
     {rebuildOpen && <RebuildDialog staleStages={project.staleStages} busy={busy} onClose={() => setRebuildOpen(false)} onRebuild={commands.rebuild} />}
-    {directory.open && <ProjectDirectoryDialog projects={directory.projects} showArchived={directory.showArchived} error={directory.error} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "brief" }); }} onAction={lifecycle.mutate} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
+    {directory.open && <ProjectDirectoryDialog projects={directory.projects} currentProjectId={project.id} notice={lifecycle.closeNotice} busy={Boolean(lifecycle.closingProjectId || lifecycle.snapshottingProjectId)} showArchived={directory.showArchived} error={directory.error} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "brief" }); }} onAction={lifecycle.mutate} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
     {workspaceNavigation.pendingNavigation && !session.unsafeDraft && <DraftNavigationDialog onSave={() => void workspaceNavigation.resolvePendingNavigation("save")} onDiscard={() => void workspaceNavigation.resolvePendingNavigation("discard")} onCancel={() => void workspaceNavigation.resolvePendingNavigation("cancel")} />}
     {lifecycle.pendingArchive && <DraftNavigationDialog closing={lifecycle.pendingArchive.action === "close"} onSave={() => void lifecycle.resolvePendingArchive("save")} onDiscard={() => void lifecycle.resolvePendingArchive("discard")} onCancel={() => void lifecycle.resolvePendingArchive("cancel")} />}
     {recovery.recovery && <DraftRecoveryDialog source={recovery.recovery.source} onRestore={recovery.restore} onDiscard={recovery.discard} />}
     {authoring.draftConflict && <DraftConflictDialog serverReloaded={authoring.draftConflict.serverReloaded} busy={authoring.projectSaving} onReload={() => void recovery.reloadConflict()} onCopy={() => void recovery.copyConflict()} onDiscard={recovery.discardConflict} />}
     {session.unsafeDraft && <UnsafeDraftDialog reason={session.unsafeDraft.reason} onDiscard={discardUnsafeDraft} />}
-  </div>;
+    {lifecycle.confirmation}
+  </div></ReviewDraftContext.Provider>;
 }

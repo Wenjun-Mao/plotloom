@@ -25,7 +25,7 @@ export function useProjectDirectory(describeError: (error: unknown) => string) {
       setError(`无法读取项目目录：${describeError(requestError)}`);
     } finally { if (requestEpoch === epoch.current) setLoading(false); }
   }, [describeError, showArchived]);
-  const openDirectory = useCallback(() => { setOpen(true); void refresh(); }, [refresh]);
+  const openDirectory = useCallback(async () => { setOpen(true); await refresh(); }, [refresh]);
   const closeDirectory = useCallback(() => setOpen(false), []);
   const loadMore = useCallback(() => { if (nextCursor && !loading) void refresh(showArchived, nextCursor, true); }, [loading, nextCursor, refresh, showArchived]);
   return { projects, open, setOpen, showArchived, setShowArchived, error, setError, nextCursor, loading, refresh, openDirectory, closeDirectory, loadMore };

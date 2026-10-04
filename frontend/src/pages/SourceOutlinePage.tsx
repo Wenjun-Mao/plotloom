@@ -13,6 +13,7 @@ import { StoryboardReviewPanel } from "./StoryboardReviewPanel";
 import { deriveRoutes } from "../model";
 import { sourceWorkflowTarget } from "../app/workspace/sourceWorkflowNavigation";
 import { useReviewActivation } from "./useReviewActivation";
+import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
 
 const blankSource: SourceMaterial = {
   kind: "synopsis",
@@ -76,11 +77,18 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
     return () => { if (ownsProject(session)) activeProject.current = { projectId: session.projectId, epoch: session.epoch + 1 }; };
   }, [projectId]); // The project route owns refreshes.
   const { checking, failed, recheck } = useReviewActivation({ projectId, active: focusedTarget === "source", refreshToken, load });
-  const readOnly = ownerReadOnly || checking || failed;
+  const ownerDisabled = ownerReadOnly || checking || failed;
+  const reviewDraft = useReviewEditorDraft(projectId, "source", state ? `source:${state.source?.revision ?? 0}` : "", text => {
+    const recovered = JSON.parse(text) as SourceMaterial;
+    if (typeof recovered.text !== "string" || typeof recovered.title !== "string") throw new Error("来源草稿格式无效，请复制内容后重新填写。");
+    draftDirty.current = true; setDraft(recovered);
+  }, ownerDisabled || busy, () => { draftDirty.current = false; setDraft(state?.source?.material || sourceDraftFromBrief(briefSeed)); });
+  const readOnly = ownerDisabled || reviewDraft.stale;
 
   const updateDraft = (next: SourceMaterial) => {
     draftDirty.current = true;
     setDraft(next);
+    reviewDraft.changed(JSON.stringify(next));
   };
 
   const mutate = async (operation: () => Promise<SourceOutlineReviewState>, savedSource = false) => {
@@ -88,11 +96,12 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
     setBusy(true); setError("");
     try {
       const next = await operation();
-      if (!ownsProject(session)) return;
+      if (!ownsProject(session)) return false;
       setState(next);
-      if (savedSource) { setDraft(next.source?.material || sourceDraftFromBrief(briefSeed)); draftDirty.current = false; }
+      if (savedSource) { setDraft(next.source?.material || sourceDraftFromBrief(briefSeed)); draftDirty.current = false; await reviewDraft.clear(); }
       await recheck();
-    } catch (mutationError) { if (ownsProject(session)) setError(sourceMessage(mutationError)); }
+      return true;
+    } catch (mutationError) { if (ownsProject(session)) setError(sourceMessage(mutationError)); return false; }
     finally { if (ownsProject(session)) setBusy(false); }
   };
 
@@ -112,6 +121,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
       {error && <ErrorNotice message={error} />}
       {!state ? <Spinner /> : <div className="source-outline-grid">
       <article className="panel source-outline-source" data-testid="source-outline-source">
+        {reviewDraft.notice}
         <header><span>已确认的改编内容</span><strong>{state.source ? `改编内容 r${state.source.revision}` : "尚未保存故事内容"}</strong></header>
         <p className="required-legend">* 为必填项。原创故事可直接确认已带入的梗概，无需重写。</p>
         <label>来源类型<select disabled={readOnly || busy} value={draft.kind} onChange={(event) => updateDraft({ ...draft, kind: event.target.value as SourceMaterial["kind"] })}><option value="synopsis">原创故事梗概</option><option value="imported_text">导入故事文本</option><option value="existing_work">既有作品改编</option></select></label>
@@ -151,7 +161,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
         {accepted ? <><small>基于故事内容 r{accepted.sourceRevision} · 候选 {accepted.candidateJobId.slice(0, 11)}</small><details><summary>查看已确认的原始 outline.json</summary><pre>{JSON.stringify(accepted.outline, null, 2)}</pre></details><Button variant="quiet" disabled={readOnly || busy || state.outlineStatus === "reopened"} onClick={() => void mutate(() => plotloomApi.reopenOutline(projectId, accepted.revision))}>重新打开，不替换内容</Button></> : <p className="muted">确认会新建独立的大纲版本；此处绝不从候选静默同步。</p>}
       </article>
 
-      <SectionMapPanel key={projectId}
+      <SectionMapPanel key={projectId} projectId={projectId}
         outline={accepted || null} accepted={state.acceptedSectionMap} status={state.sectionMapStatus}
         staleReasons={state.sectionMapStaleReasons} readOnly={readOnly} busy={busy}
         graphAdmission={state.graphAdmission}
@@ -160,7 +170,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
         routes={state.graphAdmission?.status === "current" && graph?.revision === state.graphAdmission.graphRevision && graph?.contentHash === state.graphAdmission.graphContentHash ? deriveRoutes(graph.payload) : []}
         onSave={(mapping) => {
           if (!state.source || !accepted) return;
-          void mutate(() => plotloomApi.saveSectionMap(projectId, {
+          return mutate(() => plotloomApi.saveSectionMap(projectId, {
             expectedSectionMapRevision: state.acceptedSectionMap?.revision || 0,
             expectedSourceRevision: state.source!.revision,
             expectedOutlineRevision: accepted.revision,

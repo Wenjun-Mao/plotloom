@@ -4,6 +4,7 @@ import { plotloomApi } from "../api";
 import { reconcileFailedSend } from "../features/specialists/reconcileFailedSend";
 import { Button, ErrorNotice, Field, Spinner } from "../components";
 import { AppearanceModeSelector } from "./AppearanceModeSelector";
+import { useExplicitReviewCloseGuard } from "../features/authoring/ReviewDraftContext";
 import { AssetZoomDialog, ManagedAssetImage as AssetPresentation, useBoundedAssetComparison } from "../features/media/references/AppearanceReviewPrimitives";
 import type { AcceptedCastRevision, CastReviewState, CharacterImportedAppearance, CharacterReferenceDecision, CharacterReferenceProposal, ManagedAsset, VisualWorkbench } from "../types";
 
@@ -135,6 +136,8 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importLabel, setImportLabel] = useState("");
   const [importOrigin, setImportOrigin] = useState("");
+  useExplicitReviewCloseGuard(projectId, `character_reference:${subject.id}`, Boolean(direction || importLabel || importOrigin || importFile), busy,
+    () => { setDirection(""); setImportLabel(""); setImportOrigin(""); setImportFile(null); }, "角色图片想法或导入输入");
   const active = useRef(true); const sessionRef = useRef(session);
   const operationOwner = useRef(0);
   sessionRef.current = session;

@@ -27,7 +27,7 @@ test.describe("project-folder Close", () => {
 
     await page.getByRole("button", { name: "当前项目 · 切换" }).click();
     const closeResponse = waitForCloseResponse(page, projectId);
-    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
     expect((await closeResponse).ok()).toBeTruthy();
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
     await page.getByRole("navigation", { name: "创作流程" }).getByRole("link", { name: "来源与大纲" }).click();
@@ -66,7 +66,7 @@ test.describe("project-folder Close", () => {
       await draftStarted;
       await page.getByLabel("片名").fill(draftTitle);
       await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
       await expect(page.getByRole("heading", { name: "保存草稿并关闭项目？" })).toBeVisible();
       closeResponse = waitForCloseResponse(page, projectId);
       await page.getByRole("button", { name: "保存草稿并关闭" }).click();
@@ -108,7 +108,7 @@ test.describe("project-folder Close", () => {
 
     try {
       await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
       await closeStarted;
       await expect(page.getByText("正在关闭项目", { exact: true })).toBeVisible();
       await expect(page.getByLabel("片名")).toBeDisabled();
@@ -136,7 +136,7 @@ test.describe("project-folder Close", () => {
       await draftHold.started;
       await page.getByLabel("片名").fill("this draft must be discarded from project storage");
       await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
       closeResponse = waitForCloseResponse(page, projectId);
       await page.getByRole("button", { name: "丢弃" }).click();
     } finally {
@@ -174,7 +174,7 @@ test.describe("project-folder Close", () => {
       await draftHold.started;
       await page.getByLabel("片名").fill(draftTitle);
       await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
       await page.getByRole("button", { name: "保存草稿并关闭" }).click();
     } finally {
       draftHold.release();
@@ -225,7 +225,7 @@ test.describe("project-folder Close", () => {
       await draftStarted;
       await page.getByRole("button", { name: "当前项目 · 切换" }).click();
       closeResponse = waitForCloseResponse(page, projectId);
-      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
     } finally {
       releaseDraft();
     }
@@ -263,7 +263,7 @@ test.describe("project-folder Close", () => {
 
     await page.getByRole("button", { name: "当前项目 · 切换" }).click();
     const closeResponse = waitForCloseResponse(page, projectId);
-    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
     expect((await closeResponse).ok()).toBeTruthy();
     await expectClosedDirectoryRow(page, projectId);
     await page.evaluate(() => sessionStorage.clear());
@@ -295,7 +295,7 @@ test.describe("project-folder Close", () => {
     await direction.fill("");
     await page.getByRole("button", { name: "当前项目 · 切换" }).click();
     const closeResponse = waitForCloseResponse(page, projectId);
-    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
     expect((await closeResponse).ok()).toBeTruthy();
     await page.evaluate(() => sessionStorage.clear());
 

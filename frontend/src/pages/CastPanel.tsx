@@ -8,6 +8,7 @@ import { CastInferenceNotes } from "./CastInferenceNotes";
 import { castTextPresentation } from "./cast-text-presentation";
 import { hasValidCastDesign } from "./cast-design-validation";
 import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskActions";
+import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
 
 type CastPanelProps = {
   projectId: string; readOnly: boolean; state: CastReviewState | undefined; loadError: string;
@@ -16,18 +17,30 @@ type CastPanelProps = {
 };
 
 export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError, onState, onRefresh, onInvalidate, onTransitionComplete }: CastPanelProps) {
-  const readOnly = ownerReadOnly || Boolean(loadError);
+  const ownerDisabled = ownerReadOnly || Boolean(loadError);
   const [assignment, setAssignment] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [editedCast, setEditedCast] = useState<Record<string, unknown>>({});
+  const draftDirty = useRef(false);
+  const draftBasis = useRef("");
+  useEffect(() => { draftDirty.current = false; setEditedCast({}); }, [projectId]);
+  const basis = state?.candidate?.status === "ready" ? `cast:${state.candidate.jobId}` : state?.acceptedCast ? `cast:${state.acceptedCast.revision}:${state.acceptedCast.contentHash}:${state.status}` : "";
+  const reviewDraft = useReviewEditorDraft(projectId, "cast", basis, text => {
+    const recovered = JSON.parse(text) as Record<string, unknown>;
+    if (!Array.isArray(recovered?.characters)) throw new Error("角色草稿格式无效，请复制内容后重新填写。");
+    draftDirty.current = true; draftBasis.current = basis; setEditedCast(recovered);
+  }, ownerDisabled || busy, () => { draftDirty.current = false; draftBasis.current = ""; setEditedCast(structuredClone(state?.candidate?.cast ?? state?.acceptedCast?.cast ?? {})); });
+  const readOnly = ownerDisabled || reviewDraft.stale;
   const operationOwner = useRef(0); const active = useRef(true); const projectRef = useRef(projectId);
   projectRef.current = projectId;
   useEffect(() => { active.current = true; return () => { active.current = false; operationOwner.current += 1; }; }, []);
   useEffect(() => {
     const editable = state?.candidate?.status === "ready" ? state.candidate.cast : state?.status === "reopened" ? state.acceptedCast?.cast : undefined;
-    if (editable) setEditedCast(structuredClone(editable));
-  }, [state?.candidate?.jobId, state?.candidate?.status, state?.acceptedCast?.revision, state?.status]);
+    if (editable && (!draftDirty.current || (!reviewDraft.stale && draftBasis.current !== basis))) {
+      draftDirty.current = false; draftBasis.current = basis; setEditedCast(structuredClone(editable));
+    }
+  }, [state?.candidate?.jobId, state?.candidate?.status, state?.acceptedCast?.revision, state?.status, basis, reviewDraft.stale]);
 
   const isCurrent = (capturedProject: string, capturedOwner: number) => active.current && projectRef.current === capturedProject && operationOwner.current === capturedOwner;
   const act = <T,>(operation: () => Promise<T>, applyResult?: (result: T) => void, invalidatesSession = false, refreshAfterFailure = false) => {
@@ -36,7 +49,7 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
     setBusy(true); setError("");
     void operation().then(async (result) => {
       if (!isCurrent(capturedProject, capturedOwner)) return;
-      if (isCastState(result)) onState(result);
+      if (isCastState(result)) { if (result.status === "accepted") { draftDirty.current = false; await reviewDraft.clear(); } onState(result); }
       else { applyResult?.(result); await onRefresh(); }
     }).catch(async (reason: unknown) => {
       if (!isCurrent(capturedProject, capturedOwner)) return;
@@ -61,16 +74,17 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
   const taskLabel = loadError ? "无法刷新角色设定" : state.status === "stale" ? "上下文已过期" : state.status === "reopened" ? "角色设定正在编辑" : candidate?.status === "ready" ? "待审核角色设定" : candidate?.status === "prepared" ? "角色任务已准备" : accepted ? `已接受角色设定 r${accepted.revision}` : "尚无角色提案";
   const castCharacters = charactersOf(editedCast);
   const canConfirm = hasValidCastDesign(castCharacters);
-  const updateDirection: CastDirectionChange = (index, group, key, value) => setEditedCast((current) => ({
-    ...current,
-    characters: charactersOf(current).map((character, candidateIndex) => candidateIndex === index ? { ...character, [group]: { ...(group === "reviewNotes" ? { sourceNotes: "", performanceGuidance: "" } : {}), ...record(character[group]), [key]: value } } : character),
-  }));
+  const updateDirection: CastDirectionChange = (index, group, key, value) => {
+    const next = { ...editedCast, characters: charactersOf(editedCast).map((character, candidateIndex) => candidateIndex === index ? { ...character, [group]: { ...(group === "reviewNotes" ? { sourceNotes: "", performanceGuidance: "" } : {}), ...record(character[group]), [key]: value } } : character) };
+    draftDirty.current = true; draftBasis.current = basis; setEditedCast(next); reviewDraft.changed(JSON.stringify(next));
+  };
   const saveAccepted = () => canConfirm && state.status !== "stale" && act(() => plotloomApi.acceptCastCandidate(projectId, {
     jobId: candidate!.jobId, expectedCastRevision: candidate!.expectedCastRevision, binding: candidate!.binding, cast: editedCast,
     consumerMappings: castCharacters.map((character) => ({ castCharacterId: String(character.id), consumerCharacterId: String(character.id) })),
   }), undefined, true);
 
   return <article className="panel cast-panel" data-testid="cast-review">
+    {reviewDraft.notice}
     <header className="cast-panel-heading"><div><span className="eyebrow">角色设定</span><h2>{taskLabel}</h2></div><span className={`reference-state ${state.status === "stale" ? "historical" : state.status === "accepted" ? "selected" : "candidate"}`}>{loadError ? "无法刷新" : state.status === "stale" ? "需更新" : state.status === "accepted" ? "已确认" : state.status === "reopened" ? "编辑中" : candidate?.status === "ready" ? "待审核" : candidate?.status === "prepared" ? "待发送" : "待准备"}</span></header>
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
     {accepted && <AcceptedCastSummary accepted={accepted} current={!loadError && state.status === "accepted"} onEdit={() => act(() => plotloomApi.reopenCast(projectId, accepted.revision), undefined, true)} disabled={readOnly || busy || state.status === "reopened"} />}

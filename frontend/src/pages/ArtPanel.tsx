@@ -7,6 +7,7 @@ import { ArtReport } from "./ArtReport";
 import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskActions";
 import { useReviewActivation } from "./useReviewActivation";
 import { StageGuide } from "../components/StageGuide";
+import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
 
 type EditorProps = { disabled: boolean; draft: string; setDraft: (value: string) => void };
 type ProjectSession = { projectId: string; epoch: number };
@@ -68,6 +69,9 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
   }, [projectId, load]);
   const { checking, failed, recheck } = useReviewActivation({ projectId, active, refreshToken, load });
   const readOnly = ownerReadOnly || checking || failed;
+  const reviewDraft = useReviewEditorDraft(projectId, "art", authorityKey(draftAuthority(state)), text => {
+    setDraftBase(draftAuthority(state)); draftDirty.current = true; setDraft(text);
+  }, readOnly || busy, () => { draftDirty.current = false; const authority = draftAuthority(state); setDraftBase(authority); setDraft(authority?.value.art ? JSON.stringify(authority.value.art, null, 2) : ""); });
   useEffect(() => {
     // Refresh may invalidate draft authority, but only an explicit author
     // decision can discard dirty text or adopt another candidate/head.
@@ -93,21 +97,22 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
   const currentAuthority = draftAuthority(state);
   const draftMatches = Boolean(draftBase && authorityKey(draftBase) === authorityKey(currentAuthority));
   const retained = Boolean(draftDirty.current && draftBase && (!draftMatches || state.status === "stale" || (draftBase.kind === "accepted" && state.status !== "reopened")));
-  const editDraft = (next: string) => { draftDirty.current = next !== JSON.stringify(draftBase?.value.art, null, 2); setDraft(next); };
-  const adoptCurrent = () => { draftDirty.current = false; setDraftBase(currentAuthority); setDraft(currentAuthority?.value.art ? JSON.stringify(currentAuthority.value.art, null, 2) : ""); };
+  const editDraft = (next: string) => { draftDirty.current = next !== JSON.stringify(draftBase?.value.art, null, 2); setDraft(next); reviewDraft.changed(next); };
+  const adoptCurrent = () => { draftDirty.current = false; setDraftBase(currentAuthority); setDraft(currentAuthority?.value.art ? JSON.stringify(currentAuthority.value.art, null, 2) : ""); void reviewDraft.clear(); };
   const heading = checking ? "正在刷新" : failed ? "无法刷新" : state.status === "stale" ? "上下文已过期" : state.status === "reopened" ? "美术设定正在编辑" : candidate?.status === "ready" ? "待审核美术设定" : candidate?.status === "prepared" ? "美术任务已准备" : accepted ? `已接受 r${accepted.revision}` : "尚无美术候选";
   const prepare = () => { if (!renderStyle) return; const session = activeProject.current; setBusy(true); setError(""); void plotloomApi.prepareArtCandidate(session.projectId, renderStyle).then(async result => { if (ownsProject(session)) { setAssignment(result.assignment); await recheck(); } }).catch(reason => { if (ownsProject(session)) setError(reason instanceof Error ? reason.message : "准备美术任务失败。"); }).finally(() => { if (ownsProject(session)) setBusy(false); }); };
   const accept = () => {
     if (!draftMatches || draftBase?.kind !== "candidate" || state.status === "stale") return;
     const art = parsed(); const base = draftBase.value;
-    if (art) act(() => plotloomApi.acceptArtCandidate(projectId, { jobId: base.jobId, expectedArtRevision: base.expectedArtRevision, binding: base.binding, art }), () => { draftDirty.current = false; });
+    if (art) act(() => plotloomApi.acceptArtCandidate(projectId, { jobId: base.jobId, expectedArtRevision: base.expectedArtRevision, binding: base.binding, art }), () => { draftDirty.current = false; void reviewDraft.clear(); });
   };
   const save = () => {
     if (!draftMatches || draftBase?.kind !== "accepted" || state.status !== "reopened") { setError("草稿绑定已过期，请先明确舍弃草稿或采用当前版本。"); return; }
     const art = parsed(); const base = draftBase.value;
-    if (art) act(() => plotloomApi.saveReopenedArt(projectId, { expectedArtRevision: base.revision, binding: base.binding, art }), () => { draftDirty.current = false; });
+    if (art) act(() => plotloomApi.saveReopenedArt(projectId, { expectedArtRevision: base.revision, binding: base.binding, art }), () => { draftDirty.current = false; void reviewDraft.clear(); });
   };
   return <article id="art" className="panel cast-panel art-panel" data-testid="art-review">
+    {reviewDraft.notice}
     <header><span>美术参考</span><strong>{heading}</strong></header>
     {failed && <Button variant="quiet" onClick={() => void recheck()}>重试加载美术参考</Button>}
     <p>先由文字创作助手整理地点和道具设定，供你审核。确认设定后，再为场景和道具制作参考图片。这一步不会生成图片。</p>

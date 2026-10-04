@@ -63,7 +63,7 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
     response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/close`,
   );
-  await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+  await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目", exact: true }).click();
   expect((await closeResponse).ok()).toBeTruthy();
   const sourceHome = path.join(workbench.outputsRoot!, (await readdir(workbench.outputsRoot!)).find((item) => item.endsWith(`__${projectId}`))!);
   // The closed folder is deliberately lost before restore. macOS can report an

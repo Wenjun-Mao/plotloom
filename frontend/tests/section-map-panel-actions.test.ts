@@ -1,7 +1,10 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { SectionMapPanel } from "../src/pages/SectionMapPanel";
+import { ReviewDraftContext } from "../src/features/authoring/ReviewDraftContext";
+import { createProjectDraftQuiescence } from "../src/features/authoring/projectDraftQuiescence";
+import { createReviewDraftStore } from "../src/features/authoring/reviewDraftStore";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -74,4 +77,31 @@ it("keeps continuation unavailable for a mismatched admission, source edits, bus
   expect(button("继续：角色设定").disabled).toBe(true);
   await render({ graphReady: true, readOnly: true });
   expect(button("继续：角色设定").disabled).toBe(true);
+});
+
+it("never submits an old section-map buffer under a refreshed outline binding", async () => {
+  sessionStorage.clear();
+  const q = createProjectDraftQuiescence(); const store = createReviewDraftStore(q, sessionStorage);
+  const draft = structuredClone(mapping); draft.sections[0]!.summary = "old-authority edit";
+  store.update("project", "section_map", 1, "map:2:outline:3", JSON.stringify(draft));
+  const save = vi.fn().mockResolvedValue(true);
+  const show = (currentOutline: typeof outline) => act(async () => root.render(createElement(ReviewDraftContext.Provider, {
+    value: { store, quiescence: q, projectId: "project", revision: 1, enabled: true },
+    children: createElement(SectionMapPanel, { projectId: "project", outline: currentOutline, accepted, status: "current", staleReasons: [],
+      graphAdmission: admission, graphReady: true, sourceDirty: false, routes: [], readOnly: false, busy: false,
+      onSave: save, onInstall: () => undefined, onContinue: () => undefined }),
+  })));
+  await show(outline);
+  expect(button("保存修改").disabled).toBe(false);
+  await show({ ...outline, revision: 3, contentHash: "new-outline" });
+  expect(host.textContent).toContain("保留草稿的版本已变化");
+  expect(button("保存修改").disabled).toBe(true);
+  expect(button("应用到故事路线").disabled).toBe(true);
+  expect(button("继续：角色设定").disabled).toBe(true);
+  await act(async () => button("保存修改").click());
+  expect(save).not.toHaveBeenCalled();
+  await act(async () => button("丢弃保留草稿").click());
+  expect(store.get("project", "section_map")).toBeUndefined();
+  expect(host.querySelector<HTMLTextAreaElement>("textarea")!.value).toBe(mapping.sections[0]!.summary);
+  sessionStorage.clear();
 });

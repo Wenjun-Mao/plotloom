@@ -25,6 +25,7 @@ from ...exceptions import (
 )
 from ...validation import STORYBOARD_GATE_SET_VERSION, validate_stage_payload
 from ..codec import _stored_utc, stable_hash
+from ...review_drafts import ReviewBufferPayload
 from ..schema import (
     ApprovalDecisionRow, AuthoringDraftRow, EntityRevisionRow, GateResultRow,
     GenerationRunRow, GenerationWorkUnitRow, ManagedAssetRow, MediaTaskRow,
@@ -198,6 +199,8 @@ class ProjectDraftPersistence:
             return VisualIntentDraftPayload.model_validate(payload).model_dump(mode="json", by_alias=True)
         if editor_scope == "image_direction":
             return ImageDirectionDraftPayload.model_validate(payload).model_dump(mode="json", by_alias=True)
+        if editor_scope == "review_buffer":
+            return ReviewBufferPayload.model_validate(payload).model_dump(mode="json", by_alias=True)
         stage = StageName(editor_scope)
         return stage_payload_model(stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION).model_validate(
             payload
@@ -209,7 +212,7 @@ class ProjectDraftPersistence:
         project: ProjectRow,
         editor_scope: AuthoringDraftScope,
     ) -> int:
-        if editor_scope == "brief":
+        if editor_scope in {"brief", "review_buffer"}:
             return project.revision
         if editor_scope in {"visual_intent", "image_direction"}:
             return self._access.rows.stage(session, project.id, StageName.STORYBOARD).revision
@@ -238,6 +241,8 @@ class ProjectDraftPersistence:
         """CAS one bounded editor buffer against its exact canonical owner."""
 
         validated_payload = self._validate_authoring_draft_payload(editor_scope, payload)
+        if editor_scope == "review_buffer" and entity_id != validated_payload["editor"]:
+            raise ValueError("review draft identity does not match its editor")
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
             self._access.guards.active(project)

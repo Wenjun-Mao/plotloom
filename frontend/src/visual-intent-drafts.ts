@@ -13,6 +13,7 @@ type DurableWriterState = {
   serverReady: boolean;
   serverConflict: boolean;
   requestEpoch: number;
+  abandoning?: boolean;
 };
 const storageKey = "plotloom:visual-intent-drafts:v1";
 const fields = ["identityIntent", "compositionIntent", "styleIntent", "sourceRefs"] as const;
@@ -101,6 +102,7 @@ export function useVisualIntentDraft(
       return;
     }
     writerState.serverRevision = 0;
+    writerState.abandoning = false;
     writerState.acknowledgedPayload = undefined;
     writerState.persistence = undefined;
     writerState.serverConflict = false;
@@ -158,6 +160,7 @@ export function useVisualIntentDraft(
     return () => { cancelled = true; };
   }, [activeWriterKey, assetId, baseCanonicalRevision, baseId, entityId, key, projectId, serverDraftsEnabled, shotId, writerKey, writerState]);
   const flush = useCallback(async (): Promise<boolean> => {
+    if (writerState.abandoning) return false;
     if (!serverDraftsEnabled || !projectId || !shotId || !assetId || !baseCanonicalRevision || !entry) return true;
     if (writerState.timer !== undefined) {
       window.clearTimeout(writerState.timer);
@@ -166,6 +169,7 @@ export function useVisualIntentDraft(
     if (!writerState.serverReady || writerState.serverConflict) return false;
     const existing = writerState.persistence;
     if (existing) await existing;
+    if (writerState.abandoning) return false;
     if (writerState.serverConflict) return false;
     const payload = {
       assetId,
@@ -224,7 +228,19 @@ export function useVisualIntentDraft(
     if (!quiescence || !serverDraftsEnabled || !projectId || !shotId || !assetId) return;
     // A dirty draft remains an admitted project writer when its particular
     // form unmounts. Switching shots must not hide it from a later Close.
-    return quiescence.register(projectId, `visual_intent:${entityId}`, flush, { retainOnUnmount: dirty });
+    return quiescence.register(projectId, `visual_intent:${entityId}`, flush, {
+      retainOnUnmount: dirty,
+      discardUnsent: async () => {
+        writerState.abandoning = true;
+        if (writerState.timer !== undefined) window.clearTimeout(writerState.timer);
+        writerState.timer = undefined;
+        await writerState.persistence;
+        writerState.requestEpoch += 1;
+        const local = readDrafts(); delete local[key];
+        window.sessionStorage.setItem(storageKey, JSON.stringify(local));
+        setDrafts(current => { const next = { ...current }; delete next[key]; return next; });
+      },
+    });
   }, [assetId, dirty, entityId, flush, projectId, quiescence, serverDraftsEnabled, shotId]);
   useEffect(() => {
     if (!Object.keys(drafts).length) return;

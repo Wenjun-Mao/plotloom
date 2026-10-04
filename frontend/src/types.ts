@@ -692,7 +692,7 @@ export interface ProjectResource {
 }
 
 /** One bounded server-acknowledged editor draft in project.sqlite3. */
-export type AuthoringDraftScope = "brief" | ServerStageName | "visual_intent" | "image_direction";
+export type AuthoringDraftScope = "brief" | ServerStageName | "visual_intent" | "image_direction" | "review_buffer";
 export interface AuthoringDraft {
   projectId: string;
   editorScope: AuthoringDraftScope;

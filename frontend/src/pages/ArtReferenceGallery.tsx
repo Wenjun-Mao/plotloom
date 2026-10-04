@@ -8,6 +8,7 @@ import { specialistsApi } from "../features/specialists/api";
 import { reconcileFailedSend } from "../features/specialists/reconcileFailedSend";
 import { ArtReferencePreparation } from "./ArtReferencePreparation";
 import { artSubjects, defaultImageRequirements, record, studyStatus, subjectKey } from "./artReferencePresentation";
+import { useExplicitReviewCloseGuard } from "../features/authoring/ReviewDraftContext";
 
 type Candidate = ArtReferenceProposal["deliveries"][number]["candidates"][number] & {
   delivery: ArtReferenceProposal["deliveries"][number]; study: ArtReferenceProposal;
@@ -38,6 +39,12 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
   const ownsSession = (session: { key: string; epoch: number }) => activeSession.current === session;
   const [busySession, setBusySession] = useState<{ key: string; epoch: number }>();
   const studyBusy = busy || busySession === activeSession.current;
+  const requirementsDirty = drafts.session === sessionKey && Object.entries(drafts.values).some(([key, draft]) => {
+    const latest = studies.find(study => `${study.subjectType}:${study.subjectId}` === key && study.current);
+    return record(latest?.request.frozenSnapshot).renderDirection !== draft.value;
+  });
+  useExplicitReviewCloseGuard(projectId, "art_reference_requirements", requirementsDirty, busySession === activeSession.current,
+    () => setDrafts({ session: sessionKey, values: {} }), "环境与道具的图片任务要求");
   const subjects = useMemo(() => artSubjects(art), [art]);
   useEffect(() => {
     if (subjects.length && !subjects.some((subject) => subjectKey(subject) === selectedSubjectKey)) setSelectedSubjectKey(subjectKey(subjects[0]!));

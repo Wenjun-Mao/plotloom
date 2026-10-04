@@ -116,7 +116,7 @@ test.describe("M1-B0 real project journeys", () => {
     await page.getByLabel("显示归档项目").check();
     await expect(projectItem(page, title)).toContainText("已归档 · 只读");
     await projectItem(page, title).getByRole("button", { name: "恢复" }).click();
-    await expect(projectItem(page, title)).toContainText("活动中");
+    await expect(projectItem(page, title)).toContainText("当前项目");
 
     await projectItem(page, title).getByRole("button", { name: "归档" }).click();
     await expect(projectItem(page, title).getByRole("button", { name: "永久删除" })).toBeVisible();

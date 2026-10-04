@@ -103,6 +103,7 @@ AuthoringDraftScope = Literal[
     "storyboard",
     "visual_intent",
     "image_direction",
+    "review_buffer",
 ]
 
 

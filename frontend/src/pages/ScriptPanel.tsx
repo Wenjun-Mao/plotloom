@@ -6,6 +6,7 @@ import { ManualTaskAssignment } from "./ManualTaskAssignment";
 import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskActions";
 import { useReviewActivation } from "./useReviewActivation";
 import { StageGuide } from "../components/StageGuide";
+import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
 
 type ProjectSession = { projectId: string; epoch: number };
 
@@ -45,6 +46,12 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
   }, [projectId, load]);
   const { checking, failed, recheck } = useReviewActivation({ projectId, active, refreshToken, load });
   const readOnly = ownerReadOnly || checking || failed;
+  const acceptedHead = state?.acceptedScript;
+  const reviewDraft = useReviewEditorDraft(projectId, "script", acceptedHead ? `script:${acceptedHead.revision}:${acceptedHead.contentHash}:${state?.status}` : "", text => {
+    const recovered = JSON.parse(text) as { sectionId: string; text: string };
+    if (typeof recovered.sectionId !== "string" || typeof recovered.text !== "string" || !acceptedHead?.binding.sectionBindings.some(item => item.sectionId === recovered.sectionId)) throw new Error("章节草稿无法匹配，请复制内容后重新填写。");
+    setSectionId(recovered.sectionId); setDraft(recovered.text); setDraftBase(acceptedHead); draftDirty.current = true;
+  }, readOnly || busy, () => { draftDirty.current = false; setSectionId(""); setDraft(""); setDraftBase(null); });
   useEffect(() => {
     // Dirty text keeps the revision/binding under which the author started.
     // A refreshed head can invalidate saving, but cannot discard that work.
@@ -77,13 +84,14 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
   const draftMatches = Boolean(draftBase && accepted && draftBase.revision === accepted.revision && draftBase.contentHash === accepted.contentHash);
   const retained = Boolean(draftDirty.current && draftBase && (state.status !== "reopened" || !draftMatches));
   const selectSection = (nextSectionId: string) => {
+    if (draftDirty.current && nextSectionId !== sectionId) { setError("请先保存或舍弃当前章节修改，再切换章节。"); return; }
     setSectionId(nextSectionId);
     setDraft(episodeForSection(script, nextSectionId));
     setDraftBase(accepted); draftDirty.current = false;
   };
-  const editDraft = (next: string) => { draftDirty.current = next !== episodeForSection(draftBase?.script || null, sectionId); setDraft(next); };
-  const discardDraft = () => { draftDirty.current = false; setSectionId(""); setDraft(""); setDraftBase(null); };
-  const adoptCurrent = () => { if (accepted) { draftDirty.current = false; setDraftBase(accepted); setDraft(episodeForSection(accepted.script, sectionId)); } };
+  const editDraft = (next: string) => { draftDirty.current = next !== episodeForSection(draftBase?.script || null, sectionId); setDraft(next); reviewDraft.changed(JSON.stringify({ sectionId, text: next })); };
+  const discardDraft = () => { draftDirty.current = false; setSectionId(""); setDraft(""); setDraftBase(null); void reviewDraft.clear(); };
+  const adoptCurrent = () => { if (accepted) { draftDirty.current = false; setDraftBase(accepted); setDraft(episodeForSection(accepted.script, sectionId)); void reviewDraft.clear(); } };
   const save = () => {
     if (!draftBase || !draftMatches || state.status !== "reopened") { setError("草稿绑定已过期，请先明确舍弃草稿或采用当前章节。"); return; }
     try {
@@ -100,6 +108,7 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
   };
   const reportJobId = candidate?.status === "ready" ? candidate.jobId : accepted?.candidateJobId;
   return <article id="script" className="panel cast-panel" data-testid="script-review">
+    {reviewDraft.notice}
     <header><span>剧本</span><strong>{checking ? "正在刷新" : failed ? "无法刷新" : heading(state)}</strong></header>
     {failed && <Button variant="quiet" onClick={() => void recheck()}>重试加载剧本</Button>}
     <p>根据已确认的故事分支编写开场和两个结局；每次观看只会经过其中一个结局。</p>

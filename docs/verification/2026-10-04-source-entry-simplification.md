@@ -1,7 +1,7 @@
 # Original source entry and separate V1 reference
 
 Status: scoped implementation complete, reviewed, published and activated;
-all local gates passed, with full remote CI still in progress. Not creator
+all local and full remote gates passed. Not creator
 usability or creative acceptance. Scope: the owner's request to remove repeated
 Source work before continuing the new-project walkthrough, with the Chinese
 manual explicitly deferred. Contract: [ADR 0112](../adr/0112-original-source-direction-and-outline-settings.md).
@@ -48,7 +48,7 @@ source writes or live-data interaction.
 | Wheel build and installed-wheel smoke | Passed |
 | Focused creator/source browser checks | 33 passed |
 | Full unfiltered local browser run | 140 passed in 15.1 minutes, one worker |
-| Full remote CI | [Run 37222001076](https://github.com/Wenjun-Mao/plotloom/actions/runs/37222001076), in progress on the exact runtime candidate, `browser_grep=.*` |
+| Full remote CI | [Run 37222001076](https://github.com/Wenjun-Mao/plotloom/actions/runs/37222001076), completed successfully on the exact runtime candidate, `browser_grep=.*` |
 | Whitespace | Passed |
 
 ## Normal activation and preservation

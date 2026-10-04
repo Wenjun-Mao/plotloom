@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, RequiredMark } from "../components";
 import type { AcceptedOutlineRevision, AcceptedSectionMapRevision, SectionMap, SourceMapGraphAdmission } from "../types";
 import type { StoryRoute } from "../model";
+import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
 
 const blankMap = (): SectionMap => ({
   sections: [
@@ -22,16 +23,31 @@ function cloneMap(mapping?: AcceptedSectionMapRevision): SectionMap {
 }
 
 export function SectionMapPanel({
-  outline, accepted, status, staleReasons, graphAdmission, graphReady, sourceDirty, routes, readOnly, busy, onSave, onInstall, onContinue,
+  projectId = "", outline, accepted, status, staleReasons, graphAdmission, graphReady, sourceDirty, routes, readOnly, busy, onSave, onInstall, onContinue,
 }: {
   outline: AcceptedOutlineRevision | null; accepted: AcceptedSectionMapRevision | null;
+  projectId?: string;
   status: "missing" | "current" | "stale"; staleReasons: string[]; graphAdmission: SourceMapGraphAdmission | null; graphReady: boolean; sourceDirty: boolean; routes: StoryRoute[]; readOnly: boolean; busy: boolean;
-  onSave: (mapping: SectionMap) => void;
+  onSave: (mapping: SectionMap) => void | Promise<boolean>;
   onInstall: () => void;
   onContinue: () => void;
 }) {
-  const [mapping, setMapping] = useState<SectionMap>(() => cloneMap(accepted || undefined));
-  useEffect(() => setMapping(cloneMap(accepted || undefined)), [accepted?.revision]);
+  const [mapping, applyMapping] = useState<SectionMap>(() => cloneMap(accepted || undefined));
+  const mappingDirty = useRef(false);
+  const basis = outline ? `map:${outline.revision}:${outline.contentHash}:${accepted?.revision ?? 0}` : "";
+  const reviewDraft = useReviewEditorDraft(projectId, "section_map", basis, text => {
+    const recovered = JSON.parse(text) as SectionMap;
+    if (!Array.isArray(recovered.sections) || !Array.isArray(recovered.choice?.outcomes)) throw new Error("故事分支草稿格式无效，请复制内容后重新填写。");
+    mappingDirty.current = true; applyMapping(recovered);
+  }, readOnly || busy, () => { mappingDirty.current = false; applyMapping(cloneMap(accepted || undefined)); });
+  const setMapping = (update: (value: SectionMap) => SectionMap) => {
+    const next = update(mapping); mappingDirty.current = true; applyMapping(next); reviewDraft.changed(JSON.stringify(next));
+  };
+  useEffect(() => { if (!mappingDirty.current) applyMapping(cloneMap(accepted || undefined)); }, [accepted?.revision]);
+  const saveMapping = async () => {
+    if (readOnly || busy || reviewDraft.stale) return;
+    if (await onSave(mapping) === true) { mappingDirty.current = false; await reviewDraft.clear(); }
+  };
   const updateSection = (index: number, key: "sectionId" | "title" | "summary", value: string) => {
     setMapping(current => ({ ...current, sections: current.sections.map((section, i) => i === index ? { ...section, [key]: value } : section) }));
   };
@@ -44,7 +60,7 @@ export function SectionMapPanel({
     mapping.sections.every(section => section.sectionId.trim() && section.title.trim() && section.summary.trim()) &&
     mapping.choice.outcomes.every(outcome => outcome.outcomeId.trim() && outcome.label.trim() && outcome.consequence.trim() && outcome.endingSectionId),
   );
-  const dirty = Boolean(accepted && JSON.stringify(mapping) !== JSON.stringify(accepted.mapping));
+  const dirty = JSON.stringify(mapping) !== JSON.stringify(cloneMap(accepted || undefined));
   const admissionMatchesMap = Boolean(
     accepted && graphAdmission?.status === "current"
     && graphAdmission.sectionMapRevision === accepted.revision
@@ -52,11 +68,12 @@ export function SectionMapPanel({
   );
   const routeInstalled = status === "current" && admissionMatchesMap && graphReady;
   const applied = routeInstalled && !dirty;
-  const saveDisabled = readOnly || busy || !complete || Boolean(accepted && !dirty && status !== "stale");
-  const applyDisabled = readOnly || busy || !accepted || dirty || status !== "current" || applied;
-  const continueDisabled = readOnly || busy || dirty || sourceDirty || !applied;
+  const saveDisabled = readOnly || busy || reviewDraft.stale || !complete || Boolean(accepted && !dirty && status !== "stale");
+  const applyDisabled = readOnly || busy || reviewDraft.stale || !accepted || dirty || status !== "current" || applied;
+  const continueDisabled = readOnly || busy || reviewDraft.stale || dirty || sourceDirty || !applied;
 
   return <article className="panel section-map" data-testid="section-map">
+    {reviewDraft.notice}
     <header><span>故事分支</span><strong>{status === "current" ? `当前 r${accepted?.revision}` : status === "stale" ? `需要重新检查 r${accepted?.revision}` : "尚未保存"}</strong></header>
     <p>在这里编辑故事章节和观众选择。保存不会自动生成剧本或视频；应用会创建或更新故事路线。当前支持一个选择、两个结局。</p>
     <small className="required-legend">* 为必填项；章节与路径标识默认已填写，保存后保持不变。</small>
@@ -84,7 +101,7 @@ export function SectionMapPanel({
       <section className="section-map-actions" aria-label="故事分支操作">
         <div className="section-map-action">
           <div><strong>{accepted ? "保存修改" : "保存故事分支"}</strong><p>{status === "stale" ? "请重新确认当前内容并保存，以绑定最新故事内容和大纲。" : accepted ? "保存当前修改；未修改时无需再次保存。" : "保存章节、选项和对应结局；不会自动生成剧本或视频。"}</p></div>
-          <Button variant={!accepted || dirty || status === "stale" ? "primary" : "quiet"} disabled={saveDisabled} onClick={() => onSave(mapping)}>{busy ? "正在保存…" : accepted ? "保存修改" : "保存故事分支"}</Button>
+          <Button variant={!accepted || dirty || status === "stale" ? "primary" : "quiet"} disabled={saveDisabled} onClick={() => void saveMapping()}>{busy ? "正在保存…" : accepted ? "保存修改" : "保存故事分支"}</Button>
         </div>
         {accepted && <div className="section-map-action">
           <div><strong>应用到故事路线</strong><p>{dirty ? "请先保存修改，才能应用故事路线。" : status !== "current" ? "故事分支需要重新检查后才能应用。" : applied ? "当前故事路线已使用此版本，无需再次应用。" : "应用后将创建或更新故事路线，不会生成剧本或视频。更新现有路线后，后续内容可能需要重新检查。"}</p></div>

@@ -111,7 +111,7 @@ test.describe("F3A production art review", () => {
     await expect(scene.getByRole("img", { name: "Beacon room 当前查看图片" })).toBeVisible();
     await scene.getByRole("button", { name: "放大查看" }).click();
     await expect(page.getByRole("dialog", { name: "放大查看环境或道具图片" })).toBeVisible();
-    await page.getByRole("button", { name: "关闭" }).click();
+    await page.getByRole("dialog", { name: "放大查看环境或道具图片", exact: true }).getByRole("button", { name: "关闭", exact: true }).click();
 
     for (const index of [1, 3]) await studies.getByRole("button", { name: `加入 mock-candidate-${index}.png` }).click();
     await expect(studies.getByTestId("art-reference-comparison")).toContainText("并排比较 · 2 张");

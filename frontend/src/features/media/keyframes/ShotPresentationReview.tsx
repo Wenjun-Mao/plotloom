@@ -71,7 +71,10 @@ export function ShotPresentationReview({ projectId, shotId, approval, storyboard
   }, [dirty, fingerprint, state, storageKey]);
   useEffect(() => {
     if (!quiescence) return;
-    return quiescence.register(projectId, `shot_presentation:${shotId}`, async () => !dirty && !busy, { retainOnUnmount: dirty || busy });
+    return quiescence.register(projectId, `shot_presentation:${shotId}`, async () => !dirty && !busy, {
+      retainOnUnmount: dirty || busy,
+      discardUnsent: async () => { window.sessionStorage.removeItem(storageKey); },
+    });
   }, [quiescence, projectId, shotId, dirty, busy]);
   useEffect(() => {
     if (!dirty) return;

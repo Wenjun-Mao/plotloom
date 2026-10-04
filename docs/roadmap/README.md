@@ -52,13 +52,18 @@ proven retirements. It does not authorize broad cleanup or contract redesign.
 
 Technical plans, ADRs, and receipts remain supporting references; they do not independently expand current scope.
 
+The approved [project save-and-close](2026-10-04-project-save-close.md) adds
+recoverable author drafts and an explicitly confirmed force exit without
+deletion or cancellation. Its implementation is in progress.
+
 The [source entry simplification](2026-10-04-source-entry-simplification.md)
 is complete for the creator's new-project walkthrough. It removes redundant
 original-story direction and carries Brief settings into outline tasks. V1 is
 a separate reference service; the Chinese manual update is deferred until the
 owner's same-day changes settle.
 Its [verification receipt](../verification/2026-10-04-source-entry-simplification.md)
-records local full gates and normal activation; full remote CI remains pending.
+records local full gates and normal activation; full remote CI also passed on
+the exact source-entry runtime candidate.
 
 The [creator UI polish and self-guided workflow](2026-10-03-creator-ui-polish.md)
 implementation and Chinese manual are complete. The owner-approved ten-hour

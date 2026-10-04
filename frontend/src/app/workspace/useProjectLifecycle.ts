@@ -1,13 +1,15 @@
 import { useRef, useState } from "react";
-import { plotloomApi } from "../../api";
+import { ApiError, plotloomApi } from "../../api";
+import { useConfirmation } from "../../confirmation";
 import { discardDraft, hasDraft, type DraftScope } from "../../draft-registry";
 import { messageFrom, stageForPage } from "./contracts";
 import type { ProjectListItem, ProjectSnapshotReceipt, ServerStageName, WorkspaceProject } from "../../types";
 import type { WorkspaceSession } from "./useWorkspaceSession";
 import type { ProjectDraftQuiescence } from "../../features/authoring/projectDraftQuiescence";
 
-type LifecycleAction = "archive" | "restore" | "duplicate" | "delete" | "close" | "open";
+export type LifecycleAction = "archive" | "restore" | "duplicate" | "delete" | "close" | "open" | "force_close";
 type LifecycleSession = Pick<WorkspaceSession, "project" | "activePage" | "capture" | "isCurrent" | "acceptCanonicalProject">;
+type LifecycleTarget = Pick<ProjectListItem, "id" | "brief" | "revision" | "lifecycleRevision">;
 
 /** Owns directory lifecycle commands and the archive-after-draft decision. */
 export function useProjectLifecycle({
@@ -30,7 +32,7 @@ export function useProjectLifecycle({
   commitStage: <T>(stage: ServerStageName, content: T) => Promise<void>;
   discardCurrentAuthoringDraft: (scope: DraftScope) => Promise<boolean>;
   mediaDraftQuiescence: ProjectDraftQuiescence;
-  directory: { close: () => void; refresh: () => Promise<void>; setError: (error: string) => void };
+  directory: { open: () => Promise<void>; close: () => void; refresh: () => Promise<void>; setError: (error: string) => void };
   openProject: (projectId: string) => void;
   startBlank: () => void;
   explicitProjectClose: boolean;
@@ -42,28 +44,48 @@ export function useProjectLifecycle({
   const [closingProjectId, setClosingProjectId] = useState<string | undefined>();
   const [snapshottingProjectId, setSnapshottingProjectId] = useState<string | undefined>();
   const [latestSnapshot, setLatestSnapshot] = useState<ProjectSnapshotReceipt | undefined>();
+  const [closeNotice, setCloseNotice] = useState("");
+  const confirmation = useConfirmation(session.project.id || "directory");
   const perform = async (
-    item: ProjectListItem,
+    item: LifecycleTarget,
     action: LifecycleAction,
     closeDraftDisposition?: "save" | "discard",
   ) => {
     const operation = session.capture();
     let closeAttempt: ReturnType<ProjectDraftQuiescence["beginClose"]> | undefined;
     try {
-      if (action === "close" || action === "open") {
+      if (action === "close" || action === "force_close" || action === "open") {
         if (!explicitProjectClose) return;
-        if (action === "close") {
+        if (action === "close" || action === "force_close") {
           // This admission begins before either disposition or drain and stays
           // active until the Close response settles. It protects the requesting
           // client from stranding a late edit behind a closed project.
           closeAttempt = mediaDraftQuiescence.beginClose(item.id);
           setClosingProjectId(item.id);
+          setCloseNotice("");
+          if (action === "force_close") {
+            await closeAttempt.discardUnsent();
+            const exitsWorkspace = session.project.id === item.id;
+            let notice = "项目已关闭，已保存内容仍可重新打开。";
+            try { await plotloomApi.closeProject(item.id); }
+            catch (error) {
+              const busy = error instanceof ApiError && (error.details as { code?: string } | undefined)?.code === "project_busy";
+              notice = busy
+                ? exitsWorkspace ? "已退出工作区；后台任务继续运行。项目尚未安全关闭，可稍后重试。" : "后台任务继续运行；项目尚未安全关闭，可稍后重试。"
+                : exitsWorkspace ? "已退出工作区，但未能确认安全关闭。已保存内容和后台任务未删除，请稍后检查项目状态。" : "未能确认项目已安全关闭。已保存内容和后台任务未删除，请稍后检查项目状态。";
+            }
+            if (!session.isCurrent(operation)) return;
+            if (exitsWorkspace) startBlank();
+            await directory.refresh();
+            setCloseNotice(notice);
+            return;
+          }
           const scope = stageForPage(session.activePage);
           if (closeDraftDisposition === "discard" && (!scope || !await discardCurrentAuthoringDraft(scope))) {
             throw new Error("当前草稿未能安全丢弃；项目仍保持打开状态。");
           }
           if (!await closeAttempt.drain() || !closeAttempt.canCommit()) {
-            throw new Error("媒体草稿未保存；项目仍保持打开状态。");
+            throw new Error("编辑草稿未能保存；项目仍保持打开状态。请重试，或确认丢弃未保存修改后强制关闭。");
           }
           if (!closeAttempt.canCommit()) throw new Error("项目草稿仍在更新；请重试关闭。");
           await plotloomApi.closeProject(item.id);
@@ -116,6 +138,16 @@ export function useProjectLifecycle({
   };
   const mutate = async (item: ProjectListItem, action: LifecycleAction) => {
     if (session.project.id && mediaDraftQuiescence.isClosing(session.project.id)) return;
+    if (closingProjectId || snapshottingProjectId) return;
+    if (action === "force_close") {
+      confirmation.requestConfirmation({
+        title: "强制关闭项目",
+        message: "丢弃本标签页尚未保存的修改；已保存内容不会删除，后台任务继续运行。",
+        details: `${item.brief.title || "未命名项目"}\n如果后台任务仍在运行，只退出工作区，不解除任务占用，也不标记为已安全关闭。`,
+        action: () => perform(item, "force_close"),
+      });
+      return;
+    }
     const scope = stageForPage(session.activePage);
     if ((action === "archive" || action === "close") && item.id === session.project.id && scope && hasDraft(session.project, scope)) { setPendingArchive({ item, action }); return; }
     await perform(item, action);
@@ -163,5 +195,15 @@ export function useProjectLifecycle({
       setSnapshottingProjectId((current) => current === projectId ? undefined : current);
     }
   };
-  return { pendingArchive, mutate, resolvePendingArchive, closingProjectId, snapshottingProjectId, latestSnapshot, createSnapshot };
+  const saveAndCloseCurrent = async () => {
+    if (!session.project.id || closingProjectId || snapshottingProjectId) return;
+    const operation = session.capture();
+    const target = { ...session.project, id: session.project.id, lifecycleRevision: session.project.lifecycleRevision ?? session.project.revision };
+    // Directory inspection holds a server project lease. Finish that read
+    // before asking the exclusive Close gate; it must not race or erase errors.
+    await directory.open();
+    if (!session.isCurrent(operation)) return;
+    await perform(target, "close", "save");
+  };
+  return { pendingArchive, mutate, resolvePendingArchive, closingProjectId, snapshottingProjectId, latestSnapshot, createSnapshot, saveAndCloseCurrent, closeNotice, confirmation: confirmation.confirmation };
 }

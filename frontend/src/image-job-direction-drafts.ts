@@ -17,6 +17,7 @@ type DurableWriterState = {
   serverReady: boolean;
   serverConflict: boolean;
   requestEpoch: number;
+  abandoning?: boolean;
 };
 const imageJobStorageKey = "plotloom:image-job-direction-drafts:v1";
 
@@ -92,6 +93,7 @@ export function useImageJobDirectionDraft(
       return;
     }
     writerState.serverRevision = 0;
+    writerState.abandoning = false;
     writerState.acknowledgedPayload = undefined;
     writerState.persistence = undefined;
     writerState.serverConflict = false;
@@ -128,6 +130,7 @@ export function useImageJobDirectionDraft(
   }, [activeWriterKey, baseCanonicalRevision, contextId, entityId, key, projectId, serverDraftsEnabled, shotId, targetId, writerKey, writerState]);
 
   const flush = useCallback(async (): Promise<boolean> => {
+    if (writerState.abandoning) return false;
     if (!serverDraftsEnabled || !projectId || !shotId || !baseCanonicalRevision || !entry) return true;
     if (writerState.timer !== undefined) {
       window.clearTimeout(writerState.timer);
@@ -136,6 +139,7 @@ export function useImageJobDirectionDraft(
     if (!writerState.serverReady || writerState.serverConflict) return false;
     const existing = writerState.persistence;
     if (existing) await existing;
+    if (writerState.abandoning) return false;
     if (writerState.serverConflict) return false;
     if (!entry.value.trim()) {
       const expectedDraftRevision = writerState.serverRevision;
@@ -220,7 +224,19 @@ export function useImageJobDirectionDraft(
   }, [baseCanonicalRevision, entry, flush, projectId, serverConflict, serverDraftsEnabled, serverReady, shotId, writerState]);
   useEffect(() => {
     if (!quiescence || !serverDraftsEnabled || !projectId || !shotId) return;
-    return quiescence.register(projectId, `image_direction:${entityId}`, flush, { retainOnUnmount: dirty });
+    return quiescence.register(projectId, `image_direction:${entityId}`, flush, {
+      retainOnUnmount: dirty,
+      discardUnsent: async () => {
+        writerState.abandoning = true;
+        if (writerState.timer !== undefined) window.clearTimeout(writerState.timer);
+        writerState.timer = undefined;
+        await writerState.persistence;
+        writerState.requestEpoch += 1;
+        const local = readImageJobDrafts(); delete local[key];
+        window.sessionStorage.setItem(imageJobStorageKey, JSON.stringify(local));
+        setDrafts(current => { const next = { ...current }; delete next[key]; return next; });
+      },
+    });
   }, [dirty, entityId, flush, projectId, quiescence, serverDraftsEnabled, shotId]);
   useEffect(() => {
     if (!Object.keys(drafts).length) return;

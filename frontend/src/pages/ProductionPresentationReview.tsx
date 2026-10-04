@@ -17,9 +17,10 @@ export function splitPresentationSpans(spans: PresentationSpan[], start: number,
 }
 
 /** Every source fragment stays visible; semantic ownership is an explicit review. */
-export function ProductionPresentationReview({ projectId, proposal, disabled, accepted, onSaved, onDirty, onBusy }: {
+export function ProductionPresentationReview({ projectId, proposal, disabled, accepted, onSaved, onDirty, onEdited, onBusy }: {
   projectId: string; proposal: ProductionBridgeProposal; disabled: boolean; accepted: boolean;
   onSaved: (state: ProductionBridgeState) => void; onDirty: (dirty: boolean) => void; onBusy: (busy: boolean) => void;
+  onEdited?: () => void;
 }) {
   const pkg = proposal.presentation;
   const [entries, setEntries] = useState<Record<string, PresentationSpan[]>>({});
@@ -38,11 +39,13 @@ export function ProductionPresentationReview({ projectId, proposal, disabled, ac
   useEffect(() => { onDirty(dirty && !accepted); }, [dirty, accepted]);
   if (!pkg) return <p>此历史提案没有呈现归属审阅；请准备当前来源的新提案。</p>;
   const change = (id: string, index: number, update: Partial<PresentationSpan>) => {
+    onEdited?.();
     setEntries(current => ({ ...current, [id]: current[id].map((span, position) => position === index ? { ...span, ...update } : span) }));
     setConfirmed(false);
   };
   const split = (source: PresentationSource) => {
     if (!selection || selection.id !== source.id || selection.end <= selection.start) return;
+    onEdited?.();
     setEntries(current => ({ ...current, [source.id]: splitPresentationSpans(current[source.id], selection.start, selection.end) })); setConfirmed(false); setSelection(undefined);
   };
   const complete = pkg.sources.every(source => entries[source.id]?.every(span => span.role !== "unassigned" && (span.role !== "physical" || span.rendering.trim()) && (!["runtime_choice", "review_only"].includes(span.role) || span.reason.trim())));
