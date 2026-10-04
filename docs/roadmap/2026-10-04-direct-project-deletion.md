@@ -1,6 +1,8 @@
 # Direct project deletion
 
-Status: Owner-approved implementation, 2026-10-04.
+Status: Implemented, independently reviewed, locally qualified, published and
+activated on normal 8841, 2026-10-04. Full remote CI is running; creator usability
+acceptance is separate. See the [completion receipt](../verification/2026-10-04-direct-project-deletion.md).
 
 ## Outcome and sequence
 

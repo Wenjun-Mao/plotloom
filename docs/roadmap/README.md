@@ -53,8 +53,12 @@ proven retirements. It does not authorize broad cleanup or contract redesign.
 Technical plans, ADRs, and receipts remain supporting references; they do not independently expand current scope.
 
 The owner-approved [direct project deletion](2026-10-04-direct-project-deletion.md)
-is in progress: visible typed consent for active, archived, closed and
-media-bearing projects, with the existing quiescence and ownership guards.
+is reviewed, locally qualified, published and activated on normal 8841: visible
+typed consent for active, archived, closed and media-bearing projects, with the
+existing quiescence and ownership guards. Its
+[receipt](../verification/2026-10-04-direct-project-deletion.md) records unchanged
+normal-project evidence and the exact-source remote CI run, still in progress.
+Creator usability acceptance is separate.
 A broader contract audit is proposed, not started by this assignment.
 
 The approved [project save-and-close](2026-10-04-project-save-close.md) adds
