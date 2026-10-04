@@ -71,7 +71,7 @@ the exact creation schema rather than bypassing validation.
 ### Snapshot test ordering
 
 The snapshot trace shows draft rehydration reads overlapping the exclusive
-snapshot: two GETs start00:29:27.825Z, the last finishes28.007Z; snapshot POST
+snapshot: two GETs start00:43:27.825Z, the last finishes28.007Z; snapshot POST
 starts27.937Z and returns409 `project_busy` at28.006Z. Local selection-button
 readiness does not prove those read leases have finished.
 
@@ -86,7 +86,8 @@ The existing full snapshot/restore journey retains all persistence assertions.
 - Frontend unit suite:421 passed/56 files; app and E2E types passed.
 - Production build passed with the existing large-chunk advisory. Checked static
   bytes are unchanged because only browser-test code/configuration changed.
-- Enumeration:133 supported cases in42 files, including both new API cases.
+- Enumeration:133 supported cases in42 files, including both new API cases;
+  file-level shards enumerate67/25 files and66/17 files.
 - The actual read-only Sol/Medium final finds no concrete blocker: exact
   assertions, same-file regression ordering, route-drain dependency and the
   snapshot's finite network quiescence remain sound. It confirms the retained
@@ -99,6 +100,85 @@ The existing full snapshot/restore journey retains all persistence assertions.
 
 ## Release result
 
-Pending. No full-browser acceptance or completed implementation claim yet.
+Stable repair `11a113ee625c75767a5e63eb3e70c87e80ded0ec` is committed and
+pushed to `origin/main`; the source checkout was clean and aligned afterward.
+Fresh unfiltered [run37166752916](https://github.com/Wenjun-Mao/plotloom/actions/runs/37166752916)
+started at2026-10-04T01:01:45Z on that exact SHA and ended in failure.
+Non-browser job111331132004 passed in12m49s; both browser shards started
+at01:14:39Z. No browser result is inferred from that non-browser success.
+Its log confirms1062 backend tests (one existing warning),421 frontend tests,
+both build/static and wheel/installed-wheel smoke gates. Browser shard2,
+job111333141214, passed all66 cases in9.7m with no failed/flaky/skipped cases;
+the job completed in11m4s and uploaded results/report11290327176/11290232249.
+Shard1/job111333141200 ended with2 persistent failures,1 flaky and64 passed
+in23.2m; its job finished in24m26s. Results/report11290647744/11290277173 are
+retained on GitHub, and the failed shard's results are copied under
+`.local/unattended-2026-10-02/ci-37166752916/shard-1/`.
+No full-browser acceptance or completed implementation claim yet.
 No further provider jobs, media changes, owner sound acceptance, normal backend
 restart or original schema upgrade are implied by this test repair.
+
+## Handoff preservation audit · 01:05 UTC
+
+Both8851 and normal8841 `/healthz` report OK. The read-only specialist view
+reports `busy=false`, `activeTasks=[]`; all17 video jobs remain ingested, with
+12 selected/current playback segments. Exact segment IDs match the real-media
+receipt, and every segment retains inFrame0/outFrame60,24fps,2.5-second video
+and audio endpoints,80,000 presented samples/32kHz and832×480 dimensions.
+
+Cast/Art/Script/Storyboard source review remain accepted without candidates or
+stale reasons. The bridge remains accepted/current, installed Bible/beats/
+storyboard r1, with no simulation label; the current storyboard Approval remains
+bound to that exact revision. The actual browser is left at opening1/5,
+`尚未选择`, ready to play, and marked as a user-facing deliverable.
+
+`evidence/manager-11a113e-handoff-original.json` compares byte-identically with
+the window preflight:73 table facts,67 file hashes and7 API projections. No
+normal backend restart/schema migration is inferred from the owner's test-copy
+selection authority. The isolated backend/static remain the verified93002f4
+runtime; this subsequent candidate changes tests/docs only and rebuilds to
+identical shipped bytes, so no additional activation is necessary.
+
+## Second terminal reassessment · 01:46 UTC
+
+The earlier packageVersion5, summary locator, snapshot ordering and mutable
+fixture isolation steps now pass; this does not turn the failed run green.
+Later assertions expose two additional current-contract transitions:
+
+- Image intent save succeeded: POST201 returns original asset57532aec and
+  exact revision2/sourceRefs at01:26:14.350Z. The following ready workbench
+  read has that intent and no reviewed bindings. ADR0103 deliberately clears
+  retained selection on an authoritative binding removal; the r2 editor is
+  therefore absent, not evidence that persistence failed. The test now asserts
+  the exact save response and removed binding, explicitly retains the original
+  again through its normal unpressed candidate control, then inspects r2. Late
+  frozen-refinement inapplicability/no-publication checks remain unchanged.
+- Imported-still retry queried the old open disclosure before its storyboard
+  PATCH settled (trace804432.712 versus804487.862). The canonical revision key
+  then remounted the page with collapsed disclosures. The first attempt did
+  reopen keyframes, but later queried a preparation card without reopening its
+  separate disclosure. Await exact successful storyboard PATCH/revision2 and
+  the normal enabled Save control before opening the new keyframe disclosure;
+  reapproval/missing-three checks stay, then reopen preparation before retaining
+  the candidate. The source's `finishSave` occurs after canonical acceptance
+  and awaited refreshed Approval, making that control a supported boundary.
+
+The one flaky Close case also has an exact readiness race: Close200 at
+01:35:56.379Z precedes a directory GET starting56.416Z, retained unfinished
+with status−1 when the test restarts its server. Its row therefore remains
+active without a Reopen button. All three Close→restart sequences in that file
+now require the exact closed-row label and visible normal Reopen control before
+stopping the backend. Restart, cache clearing and exact durable-draft recovery
+assertions remain. No proxy-error cause or production persistence defect is
+claimed from that interrupted read alone.
+
+The actual Sol/High read-only final confirms both disclosure mechanisms and
+the Close ordering; no execution or edits are attributed to it. Root owns all
+repairs. These are test transitions, not authorization to retain a stale binding,
+rewrite media, clear a lease, force a click, extend deadlines or skip a case.
+The actual independent Sol/Medium final finds no concrete blocker in the three
+specs: the unpressed candidate, post-`finishSave` control and refreshed closed
+row establish the required boundaries without weakening behavior. Inspection
+only, no execution. E2E types/build/static-drift/diff checks pass; production
+and unit-test bytes are unchanged from the latest1062/421-test CI receipt.
+A fresh unfiltered run remains required.

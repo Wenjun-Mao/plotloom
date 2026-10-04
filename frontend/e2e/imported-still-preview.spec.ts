@@ -98,7 +98,17 @@ test.describe("P0 imported still preview journey", () => {
     // repaint and block a reviewed selection until the normal reapproval.
     await page.getByRole("button", { name: "编辑镜头细节", exact: true }).click();
     await page.getByLabel("标题").fill("门开（P0 reapproval check）");
+    const savedBoardResponse = page.waitForResponse((response) =>
+      response.request().method() === "PATCH" && new URL(response.url()).pathname ===
+        `/api/v2/projects/${projectId}/stages/storyboard`,
+    );
     await page.getByRole("button", { name: "保存分镜" }).click();
+    const savedBoard = await savedBoardResponse;
+    expect(savedBoard.ok(), await savedBoard.text()).toBeTruthy();
+    expect(await savedBoard.json()).toMatchObject({ stage: "storyboard", revision: 2 });
+    // Save completion includes canonical remount and refreshed Approval reads.
+    // Open the new revision's disclosure, not the old instance still in flight.
+    await expect(page.getByRole("button", { name: "保存分镜", exact: true })).toBeEnabled();
     await openMediaKeyframes(page);
     await expect(page.getByTestId("select-reviewed-keyframe")).toBeDisabled();
     await expect(page.getByText("需要当前 storyboard Approval", { exact: false })).toBeVisible();
@@ -106,6 +116,7 @@ test.describe("P0 imported still preview journey", () => {
     await page.getByRole("button", { name: "批准当前分镜" }).click();
     await expect(page.getByText("当前批准：P0 reapproval reviewer", { exact: true })).toBeVisible();
     await expect(page.getByText("尚缺 3 个审核关键帧", { exact: false })).toBeVisible();
+    await openMediaPreparation(page);
     await cards.nth(1).getByTestId(/^keep-candidate-/).click();
     await expect(page.getByText(/已保存 r1/)).toBeVisible();
     await page.getByLabel("审核兼容性说明").fill("Reapproved board compatibility is explicit, not inherited.");

@@ -76,6 +76,7 @@ test.describe("project-folder Close", () => {
     expect((await closeResponse).ok()).toBeTruthy();
     await page.unroute("**/api/v2/projects/*/authoring-drafts");
 
+    await expectClosedDirectoryRow(page, projectId);
     await workbench.restartBackend();
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
     await expect(page.getByText("发现未保存草稿", { exact: true })).toBeVisible();
@@ -230,6 +231,7 @@ test.describe("project-folder Close", () => {
     }
     expect((await closeResponse).ok()).toBeTruthy();
     await page.unroute("**/api/v2/projects/*/authoring-drafts");
+    await expectClosedDirectoryRow(page, projectId);
     await page.evaluate(() => sessionStorage.clear());
 
     await workbench.restartBackend();
@@ -263,6 +265,7 @@ test.describe("project-folder Close", () => {
     const closeResponse = waitForCloseResponse(page, projectId);
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
     expect((await closeResponse).ok()).toBeTruthy();
+    await expectClosedDirectoryRow(page, projectId);
     await page.evaluate(() => sessionStorage.clear());
 
     await workbench.restartBackend();
@@ -303,6 +306,14 @@ test.describe("project-folder Close", () => {
     expect(await drafts.json()).toEqual([]);
   });
 });
+
+async function expectClosedDirectoryRow(page: import("@playwright/test").Page, projectId: string): Promise<void> {
+  // Close responds before directory refresh. Finish this read before restart
+  // so the test cannot interrupt its own persisted Open/recovery controls.
+  const row = page.locator(`.directory-item[data-project-id="${projectId}"]`);
+  await expect(row).toContainText("已关闭 · 可安全复制");
+  await expect(row.getByRole("button", { name: "重新打开" })).toBeVisible();
+}
 
 async function openMediaWorkbench(page: import("@playwright/test").Page): Promise<void> {
   const tools = page.getByRole("navigation", { name: "编辑与工具" });

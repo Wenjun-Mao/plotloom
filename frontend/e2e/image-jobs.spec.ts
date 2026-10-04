@@ -372,7 +372,22 @@ test.describe("P1 self-contained specialist image brief", () => {
     await page
       .getByTestId("visual-intent-source-refs")
       .fill("retained P0 image fixture revised after sent refinement");
+    const revisedIntentResponse = page.waitForResponse((response) =>
+      response.request().method() === "POST" && new URL(response.url()).pathname ===
+        `/api/v2/projects/${projectId}/managed-assets/${originalCandidate}/visual-intents`,
+    );
     await page.getByTestId("save-visual-intent").click();
+    const revisedIntent = await revisedIntentResponse;
+    expect(revisedIntent.status()).toBe(201);
+    expect(await revisedIntent.json()).toMatchObject({
+      assetId: originalCandidate, revision: 2,
+      intent: { sourceRefs: ["retained P0 image fixture revised after sent refinement"] },
+    });
+    // A ready binding removal clears retention (ADR 0103), unlike read
+    // withdrawal. Explicitly keep the original again to inspect its saved r2.
+    await expect(page.getByTestId("current-reviewed-keyframe")).toHaveCount(0);
+    await expect(page.getByTestId(`keep-candidate-${originalCandidate}`)).toHaveAttribute("aria-pressed", "false");
+    await page.getByTestId(`keep-candidate-${originalCandidate}`).click();
     await expect(page.getByText(/已保存 r2/)).toBeVisible();
     await writeDelivery(
       staleRefinementPackage.packagePath,

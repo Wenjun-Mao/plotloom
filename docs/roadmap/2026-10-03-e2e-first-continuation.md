@@ -178,6 +178,10 @@ the [browser closeout](../verification/2026-10-04-e2e-browser-closeout.md)
 records the owning-layer repairs and preserved failure evidence. The new
 API-only isolation regression passes both cases, frontend passes421 tests,
 both type checks/build pass, and133 supported cases enumerate in42 files.
+Repair11a113e's full run passes the non-browser gate and all66 shard2 cases,
+but shard1 exposes two later transition failures and one Close/readiness flaky
+case. The same browser-closeout record owns those precise diagnoses and the
+next bounded repair; no complete release is implied by the passed gates.
 Step6 remains open until the repaired candidate passes the full unfiltered
 gate, closeout records are pushed and the
 existing reporting heartbeat is paused. No further media generation,
