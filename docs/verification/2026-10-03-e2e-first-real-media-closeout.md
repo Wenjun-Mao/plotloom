@@ -380,5 +380,44 @@ passes421 frontend tests/56 files, both type checks, the deterministic build,
 scoped API Ruff and diff checks. Sol/Medium's actual independent final reports
 no concrete publication blocker. Rebuilt `workbench.js` SHA is
 `70b352e2921b5a01c35da42296e94fdd1c789158661a95333cbb0a685c0628db`.
-The full local backend suite and unfiltered browser candidate gate are pending;
-these local results are not represented as release acceptance.
+The full local backend suite passes1062 tests (one existing deprecation warning)
+in292.77 seconds. Implementation
+`93002f4da53d2c8f0db067667998309edbb6e7a7` is pushed on clean retained `main`;
+the unfiltered [candidate run37164168705](https://github.com/Wenjun-Mao/plotloom/actions/runs/37164168705)
+targets that exact SHA. Its non-browser and shard2 gates passed, but shard1
+failed; this candidate does not establish full release acceptance.
+
+At a confirmed quiet specialist checkpoint (`busy=false`, no active tasks),
+root restarted only isolated8851/8852 against the same retained data roots.
+Served bundle SHA matches the new build. Natural opening → question → home4/4
+playback finished with `ended=true`,2.5-second endpoint, paused/readyState4 and
+no error; restart returned to frame0, paused, empty choice history. The original
+`manager-93002f4-original` capture still matches all73 table facts,67 file hashes
+and7 projections against this window's preflight. Normal8841 was not restarted.
+
+The alternate café route also ended naturally at3/3 with the same native
+endpoint/error observations. `93002f4-home-route-proof.jpg` and
+`93002f4-cafe-route-proof.jpg` preserve the fresh CUA captures; their hashes
+match the earlier identical ending views. Returning to the creator retained
+B2's selected/current segment and its authored draft presentation r1. Both
+original and segment players reserved `832 / 480` with `objectFit=contain`
+while `readyState=0`, and remained exactly440×253.84375 and406×234.2265625
+after metadata reached `readyState=4` with832×480 media dimensions. This is
+actual layout evidence, not proof of the unrelated historical click cause.
+`93002f4-b2-review-proof.jpg` has SHA-256
+`d2eee6252c111027144a9b25a8c0c40c1bb34ae5a144d300d7e4a766ae40fed2`.
+No generate/reselect/reject control was used during this recheck. The standalone
+player is left ready at opening1/5 with no choice history as a deliverable.
+
+Candidate CI's non-browser job111323579176 passed in13m16s:1062 backend tests
+(one warning),421 frontend tests/56 files, types, archived reader, static-drift,
+wheel and installed-wheel smoke. Unfiltered browser shard2 (job111325613114)
+passed all65 tests in7.9m with no failures, skips or flaky retries; the job
+completed in8m59s and uploaded report/results11288938529/11289122626.
+Shard1 ended with3 persistent failures,3 flaky and60 passed, with retained
+report/results11289173476/11289078612. The
+[browser closeout](2026-10-04-e2e-browser-closeout.md) owns exact failure
+diagnoses, the test-lifetime repair and the next candidate's release result.
+A fresh read after returning to
+the workbench reports17 ingested jobs and12 selected/current jobs/segments;
+their segment IDs,0–60 frame ranges and verified timing remain unchanged.

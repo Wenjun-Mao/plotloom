@@ -41,13 +41,18 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
   // The mutation response precedes the workbench refresh that releases its
   // local writer. Snapshotting must begin after that refresh, not alongside it.
   await expect(selectionButton).toBeEnabled();
+  // Writer readiness does not mean the draft rehydration GETs have finished.
+  // The exclusive snapshot must not race this browser's remaining read leases.
+  await page.waitForLoadState("networkidle");
 
   const snapshotResponse = page.waitForResponse((response) =>
     response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/snapshots`,
   );
   await page.getByRole("button", { name: "创建恢复快照" }).click();
-  const snapshot = await (await snapshotResponse).json() as { location: string; snapshotId: string };
+  const snapshotResult = await snapshotResponse;
+  expect(snapshotResult.ok(), await snapshotResult.text()).toBeTruthy();
+  const snapshot = await snapshotResult.json() as { location: string; snapshotId: string };
   await expect(page.getByText("恢复快照已完成：", { exact: false })).toContainText(snapshot.location);
 
   // The snapshot was captured while this project remained open. Close only
@@ -87,9 +92,8 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
   await navigateToSecondaryTool(page, "分镜工作台");
   await openMediaPreparation(page);
   await expect(page.getByAltText(/Imported candidate/)).toBeVisible();
-  // The worker-scoped fixture can serve later project-folder tests. Its public
-  // restart helper intentionally defaults to these original paths, so restore
-  // that baseline after proving the isolated installation.
+  // The explicit restart helper still returns this journey to its original
+  // installation after proving the isolated restore.
   await workbench.restartBackend();
 });
 

@@ -180,7 +180,7 @@ test.describe("P1 self-contained specialist image brief", () => {
     );
     expect(originalRequest).toMatchObject({
       schemaVersion: 3,
-      packageVersion: 4,
+      packageVersion: 5,
       jobId: original.id,
     });
     expect(originalRequest.references).toEqual(

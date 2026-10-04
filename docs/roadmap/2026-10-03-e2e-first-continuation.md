@@ -164,8 +164,21 @@ their reports/results are preserved and current-control fixture repairs retain
 the supported assertions without increasing deadlines. Root also reproduced
 known busy-home misclassification and repaired identity-before-admission
 (ADR0110), and reserved verified video review geometry before metadata. Focused
-storage/recovery and frontend regressions pass; independent final review,
-rebuilt UI activation and fresh full candidate CI remain ahead. Step6
-remains open until the complete result is reviewed, closeout records are pushed
-and the existing reporting heartbeat is paused. No further media generation,
+storage/recovery and frontend regressions pass. Independently reviewed candidate
+`93002f4da53d2c8f0db067667998309edbb6e7a7` is pushed;1062 backend and421 frontend
+tests pass locally, with both type checks and fresh static. Only the quiet
+isolated runtime was activated; both real routes ended naturally again, and
+the review geometry stayed stable before/after metadata. The original baseline
+still matches. The unfiltered
+[candidate run37164168705](https://github.com/Wenjun-Mao/plotloom/actions/runs/37164168705)
+passed its non-browser job and all65 shard2 browser tests without retries.
+Shard1 ended with3 persistent failures,3 flaky and60 passed. Exact traces
+identify three stale test expectations and shared mutable fixture state;
+the [browser closeout](../verification/2026-10-04-e2e-browser-closeout.md)
+records the owning-layer repairs and preserved failure evidence. The new
+API-only isolation regression passes both cases, frontend passes421 tests,
+both type checks/build pass, and133 supported cases enumerate in42 files.
+Step6 remains open until the repaired candidate passes the full unfiltered
+gate, closeout records are pushed and the
+existing reporting heartbeat is paused. No further media generation,
 normal backend activation or final-film/sound acceptance is implied.

@@ -263,7 +263,7 @@ test("retains separate exercise and ready-to-use synthetic segment walkthrough p
   for (const width of [1440, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     for (const disclosure of await page.locator("details.workbench-support").all()) {
-      if (!await disclosure.evaluate((element) => (element as HTMLDetailsElement).open)) await disclosure.locator("summary").click();
+      if (!await disclosure.evaluate((element) => (element as HTMLDetailsElement).open)) await disclosure.locator(":scope > summary").click();
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
   }

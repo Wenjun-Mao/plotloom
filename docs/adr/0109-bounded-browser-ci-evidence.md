@@ -42,3 +42,27 @@ Browser installation is repeated per runner. File-level shard balance can be
 uneven; actual runtime and reports, not test counts, determine future tuning.
 Cancellation or setup failure can still prevent browser evidence. Preserve the
 failed run and diagnose concrete assertions before another full release run.
+
+## Mutable runtime isolation amendment · 2026-10-04
+
+Run37164168705 proves cross-test state leakage: an unresolved held native send
+left the worker-scoped dispatch reservation active; another test restarted into
+`outputs/after-package-conflict`, so a later test created its project there and
+then reset to the fixture's original root during restart, producing a real404.
+These are fixture-lifetime defects, not permission to clear production leases
+or classify missing homes as temporarily available.
+
+The whole mutable FastAPI/provider/data-root workbench is test-scoped. Normal
+within-test restart and persistence assertions retain their exact roots; no
+lease is released from cancellation or idle state. The shared page explicitly
+depends on that workbench, so its held-route release/drain completes before
+the backend is stopped. Browser contexts remain test-scoped; runner worker
+count, retries and deadlines are unchanged. More setup work is an accepted
+cost of isolation. A retained fixture parent still preserves requested evidence.
+The fixture explicitly retains the45-second setup/teardown budget formerly
+inherited by the worker fixture from the suite configuration; moving scope
+does not subtract startup time from existing shorter journey budgets.
+Do not restore worker sharing by introducing ad-hoc state resets or weakened
+dispatch ownership; regress the scope and dependency ordering explicitly.
+
+This uses [Playwright fixture scope and execution order](https://playwright.dev/docs/test-fixtures#execution-order).

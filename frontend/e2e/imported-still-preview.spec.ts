@@ -99,6 +99,7 @@ test.describe("P0 imported still preview journey", () => {
     await page.getByRole("button", { name: "编辑镜头细节", exact: true }).click();
     await page.getByLabel("标题").fill("门开（P0 reapproval check）");
     await page.getByRole("button", { name: "保存分镜" }).click();
+    await openMediaKeyframes(page);
     await expect(page.getByTestId("select-reviewed-keyframe")).toBeDisabled();
     await expect(page.getByText("需要当前 storyboard Approval", { exact: false })).toBeVisible();
     await page.getByLabel("审核人标签").fill("P0 reapproval reviewer");

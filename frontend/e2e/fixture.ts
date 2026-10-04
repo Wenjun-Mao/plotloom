@@ -26,7 +26,7 @@ export type Workbench = {
 
 type FrontendMode = "vite" | "checked-static";
 
-type WorkbenchWorkerFixtures = {
+type WorkbenchFixtures = {
   workbench: Workbench;
 };
 
@@ -43,8 +43,11 @@ export const test = createWorkbenchTest("vite");
 export const checkedStaticTest = createWorkbenchTest("checked-static");
 
 function createWorkbenchTest(frontendMode: FrontendMode) {
-  return base.extend<{}, WorkbenchWorkerFixtures>({
-  page: async ({ page }, use) => {
+  return base.extend<WorkbenchFixtures>({
+  page: async ({ page, workbench }, use) => {
+    // Own the backend before the page: route draining must finish before its
+    // test-owned runtime is stopped. No global dispatch/root state is shared.
+    void workbench;
     await usePageWithDrainedRoutes(page, use);
   },
   workbench: [async ({}, use) => {
@@ -140,7 +143,7 @@ function createWorkbenchTest(frontendMode: FrontendMode) {
         }
       }
     }
-  }, { scope: "worker" }],
+  }, { scope: "test", timeout: 45_000 }],
   });
 }
 
