@@ -1,8 +1,8 @@
 # Eight-hour E2E-first creator continuation
 
 Status: completed for the revised E2E-first scope on 2026-10-04; owner authorized
-with Relay Direct on 2026-10-03. New owner listening and final-film approval remain
-separate, pending decisions.
+with Relay Direct on 2026-10-03. Individual-cut owner listening is now complete;
+final-film approval remains a separate decision.
 Manager: `01a04525-e907-7630-9640-78790d69e8ae`.
 Starting source: `e65830033edf248d22e7a6d8286f0c65e1c29698`, clean `main`.
 
@@ -47,6 +47,11 @@ source ownership, dispatch safety and truthful evidence boundaries of the
   in the isolated copy to test both routes. Record that scope in attributed
   reviews; new sound acceptance remains pending owner listening. Selection is
   not final-production approval.
+- Subsequently, after hearing the six exact selected cuts, the owner said
+  “all six sound good” on October3 Toronto. The linked real-media receipt now
+  records appended A2/A3/B1–B4 listening approvals, unchanged segment hashes
+  and preserved earlier review history. All12 selected cuts have individual
+  owner sound approval; no additional final-film or assembled-route verdict.
 
 ## Ordered work
 
@@ -211,7 +216,9 @@ the CI-tested implementation SHA is not relabeled as that later documentation
 commit. Completion is within the hard02:43:28Z window, with no new provider or
 native assignment after the02:13:28Z submission boundary.
 
-Next owner action: listen to A2/A3/B1–B4 in the isolated player. Their provisional
-visual/technical selections do not accept sound. Original/normal backend
+At closeout, listening to A2/A3/B1–B4 remained the next owner action; the owner
+has since completed that review and approved all six cuts' sound, recorded in
+the linked receipt. Their visual/technical and final-film boundaries remain.
+Original/normal backend
 activation and its additive schema upgrade remain unapproved and unperformed;
 final-film polishing is deferred, not silently accepted.

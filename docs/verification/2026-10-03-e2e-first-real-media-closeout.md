@@ -4,7 +4,8 @@ Owner authority: [eight-hour continuation](../roadmap/2026-10-03-e2e-first-conti
 starting 2026-10-03 18:43:28 UTC. The outcome is a usable complete creator/player
 journey with acceptable media, not final-film approval. The owner expressly
 authorized labeled provisional selections in the isolated copy and kept new
-sound acceptance pending personal listening. This receipt supplements the
+sound acceptance pending personal listening initially. The owner listening
+follow-up below now accepts the six exact remaining cuts. This receipt supplements the
 earlier [reference/script/storyboard loop](2026-10-02-stage23-live-completion.md).
 
 Source candidate starts at `e65830033edf248d22e7a6d8286f0c65e1c29698` on retained
@@ -63,12 +64,12 @@ after final isolated backend activation: **12 selected / 12 current**.
 | C4 | `vj_dd35c39fd80241c08c5d772e913427cd` | `8a7d7670-05f9-4bb5-8a11-f6f5918573ea` | Prior owner visual/sound review |
 | C5 | `vj_76a72a982acb44058115e67aa963d523` | `4d75aa82-2929-4a09-9bfa-499c5da00413` | Prior owner visual/sound review |
 | A1 | `vj_177a64801d574581b42698d2308b19a6` | `9c0561ab-f133-412b-8682-476a9c420f14` | Prior owner visual/sound review |
-| A2 | `vj_c30ca3742a6f4d9ab4a4f60c0e91ad08` | `e65d7e1d-138a-494e-bdb1-4bd780d7e26a` | Owner accepts following camera; provisional selection, new sound pending |
-| A3 | `vj_ded2a1acb90e4ebfadc20ba58ba6d265` | `27256d30-7715-429d-aa78-61ef6a540bae` | Provisional visual/technical selection; new sound pending |
-| B1 | `vj_4c0cb2112d6f4e82b4bba18fb75e50af` | `819da93e-0851-4451-b756-86e991cdf0c2` | Owner accepts wider geography; provisional selection, new sound pending |
-| B2 | `vj_4f61075ac4de4f26abf8d55c8de6ec69` | `2ad3b943-569d-4e74-ad73-f3da1b4bb944` | New canonical popped-out draft; provisional, new sound pending |
-| B3 | `vj_8498e30b3ae44f34a9c81c9b5bc9b2a2` | `61168c76-ecdf-497b-95d5-9bdca3edc7a8` | New canonical send state; provisional, new sound pending |
-| B4 | `vj_4946a84ef11043fc985da24237fc6489` | `062d8f5d-48f1-4f1c-be9a-588348c0f0e6` | Provisional visual/technical selection; new sound pending |
+| A2 | `vj_c30ca3742a6f4d9ab4a4f60c0e91ad08` | `e65d7e1d-138a-494e-bdb1-4bd780d7e26a` | Owner accepts following camera and sound; final-film approval separate |
+| A3 | `vj_ded2a1acb90e4ebfadc20ba58ba6d265` | `27256d30-7715-429d-aa78-61ef6a540bae` | Provisional visual/technical selection; owner sound approved |
+| B1 | `vj_4c0cb2112d6f4e82b4bba18fb75e50af` | `819da93e-0851-4451-b756-86e991cdf0c2` | Owner accepts wider geography and sound; final-film approval separate |
+| B2 | `vj_4f61075ac4de4f26abf8d55c8de6ec69` | `2ad3b943-569d-4e74-ad73-f3da1b4bb944` | New canonical popped-out draft; provisional visual selection, owner sound approved |
+| B3 | `vj_8498e30b3ae44f34a9c81c9b5bc9b2a2` | `61168c76-ecdf-497b-95d5-9bdca3edc7a8` | New canonical send state; provisional visual selection, owner sound approved |
+| B4 | `vj_4946a84ef11043fc985da24237fc6489` | `062d8f5d-48f1-4f1c-be9a-588348c0f0e6` | Provisional visual/technical selection; owner sound approved |
 
 Five fresh H3 jobs were submitted once each: B1, A3, B2, B4, B3. A2 reused
 its retained owner-viewed retry without changing original bytes. All five
@@ -447,3 +448,28 @@ C1–C5/A1 keep prior owner visual/sound approval. A2/A3/B1–B4 remain provisio
 with owner listening pending; no final-film approval is inferred. The isolated
 copy is retained. Normal backend activation/schema migration remain a separate,
 unanswered owner choice, not an action performed during this closeout.
+
+## Owner listening follow-up · October 3, 22:40 Toronto
+
+After the six exact selected2.5-second MP4s with native audio were presented
+inline, the owner replied **“all six sound good”**. Their local hashes matched
+the current managed segments before presentation. The supported segment-select
+API on isolated8851 appended attributed listening approvals while reconfirming
+the same segment IDs/hashes; no original/job/request/media bytes were rewritten.
+Record timestamps are2026-10-04T02:40:18.959–02:40:21.007Z, not an invented
+timestamp for the owner's message.
+
+| Cut | Appended review ID | Selection revision |
+| --- | --- | --- |
+| A2 | `bd992946-0b03-4b54-8753-db800122ba57` | 3 |
+| A3 | `2f3d6c94-097e-4364-8770-00da2bb125a7` | 2 |
+| B1 | `561a2b11-396b-4dff-a69b-84aad400c331` | 2 |
+| B2 | `78378c73-34d2-419e-b0e4-c7a9026170b2` | 2 |
+| B3 | `1c7ea2f3-6cc9-4197-ad66-0fc561c3f2ff` | 2 |
+| B4 | `d45f3050-c419-4239-92c2-bb04db16baea` | 2 |
+
+A fresh read verifies12 selected/current segments, the same six hashes and
+all earlier reviews preserved (A2 reject → reopen → provisional select → owner
+listening approval). All12 selected cuts now have owner individual-cut sound
+approval. This does not infer new final-film visual approval, assembled-route
+sound approval, regeneration authority or normal-project activation.

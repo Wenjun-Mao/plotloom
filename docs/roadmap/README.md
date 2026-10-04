@@ -83,8 +83,10 @@ routes, with a full unfiltered release gate on `e835d0f`. The
 [real-media receipt](../verification/2026-10-03-e2e-first-real-media-closeout.md)
 and [browser closeout](../verification/2026-10-04-e2e-browser-closeout.md)
 separate owner approvals, provisional selections and executed verification.
-The reporting heartbeat is paused; A2/A3/B1–B4 listening, final-film polish and
-normal backend/schema activation remain pending owner decisions. The revised
+The reporting heartbeat is paused. The owner subsequently listened to
+A2/A3/B1–B4 and approved all six cuts' sound; all12 selected clips now have
+individual sound approval. Final-film polish and normal backend/schema
+activation remain pending owner decisions. The revised
 criterion superseded creative stopping criteria, not dispatch/source safety or
 original-project preservation.
 Test-copy provisional decisions

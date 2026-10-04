@@ -237,3 +237,9 @@ routes are covered, owner listening for A2/A3/B1–B4 remains pending, and no
 normal backend restart/schema upgrade or final-film acceptance is implied.
 Historical stall/click causes expressly marked unproven above remain unproven;
 this green current-contract gate does not invent a diagnosis for them.
+
+The owner subsequently completed the six-cut listening review and said
+“all six sound good” on October3 Toronto. The real-media receipt records the
+appended isolated-copy approvals; the earlier pending boundary above is
+historical, not the current individual-cut sound status. No code/CI/media
+bytes changed for that acceptance follow-up.
