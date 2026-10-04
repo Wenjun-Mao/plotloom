@@ -571,4 +571,5 @@ def test_prepared_outline_publication_blocks_permanent_delete_of_historical_arch
             project_id,
             expected_lifecycle_revision=archived.lifecycle_revision,
             confirmation_title=title,
+            expected_project_revision=archived.revision,
         )

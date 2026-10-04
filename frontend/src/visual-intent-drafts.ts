@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { plotloomApi } from "./api";
 import type { ProjectDraftQuiescence } from "./features/authoring/projectDraftQuiescence";
+import { discardMediaDraftEntry, useMediaDraftErasure } from "./features/authoring/projectDraftCache";
 
 export type IntentDraft = { identityIntent: string; compositionIntent: string; styleIntent: string; sourceRefs: string };
 type Entry = { baseId: string | null; value: IntentDraft };
@@ -14,6 +15,7 @@ type DurableWriterState = {
   serverConflict: boolean;
   requestEpoch: number;
   abandoning?: boolean;
+  suspended?: boolean;
 };
 const storageKey = "plotloom:visual-intent-drafts:v1";
 const fields = ["identityIntent", "compositionIntent", "styleIntent", "sourceRefs"] as const;
@@ -68,6 +70,7 @@ export function useVisualIntentDraft(
   quiescence?: ProjectDraftQuiescence,
 ) {
   const [drafts, setDrafts] = useState<Drafts>(readDrafts);
+  useMediaDraftErasure(storageKey, setDrafts);
   const [storageFailed, setStorageFailed] = useState(false);
   const [serverRevision, setServerRevision] = useState(0);
   const [serverReady, setServerReady] = useState(false);
@@ -160,7 +163,7 @@ export function useVisualIntentDraft(
     return () => { cancelled = true; };
   }, [activeWriterKey, assetId, baseCanonicalRevision, baseId, entityId, key, projectId, serverDraftsEnabled, shotId, writerKey, writerState]);
   const flush = useCallback(async (): Promise<boolean> => {
-    if (writerState.abandoning) return false;
+    if (writerState.abandoning || writerState.suspended) return false;
     if (!serverDraftsEnabled || !projectId || !shotId || !assetId || !baseCanonicalRevision || !entry) return true;
     if (writerState.timer !== undefined) {
       window.clearTimeout(writerState.timer);
@@ -169,7 +172,7 @@ export function useVisualIntentDraft(
     if (!writerState.serverReady || writerState.serverConflict) return false;
     const existing = writerState.persistence;
     if (existing) await existing;
-    if (writerState.abandoning) return false;
+    if (writerState.abandoning || writerState.suspended) return false;
     if (writerState.serverConflict) return false;
     const payload = {
       assetId,
@@ -230,15 +233,23 @@ export function useVisualIntentDraft(
     // form unmounts. Switching shots must not hide it from a later Close.
     return quiescence.register(projectId, `visual_intent:${entityId}`, flush, {
       retainOnUnmount: dirty,
+      suspendWrites: async () => {
+        writerState.suspended = true;
+        if (writerState.timer !== undefined) window.clearTimeout(writerState.timer);
+        writerState.timer = undefined;
+        await writerState.persistence;
+        return () => {
+          writerState.suspended = false;
+          if (!writerState.abandoning) writerState.timer = window.setTimeout(() => { writerState.timer = undefined; void flush(); }, 750);
+        };
+      },
       discardUnsent: async () => {
         writerState.abandoning = true;
         if (writerState.timer !== undefined) window.clearTimeout(writerState.timer);
         writerState.timer = undefined;
         await writerState.persistence;
         writerState.requestEpoch += 1;
-        const local = readDrafts(); delete local[key];
-        window.sessionStorage.setItem(storageKey, JSON.stringify(local));
-        setDrafts(current => { const next = { ...current }; delete next[key]; return next; });
+        discardMediaDraftEntry(storageKey, key);
       },
     });
   }, [assetId, dirty, entityId, flush, projectId, quiescence, serverDraftsEnabled, shotId]);

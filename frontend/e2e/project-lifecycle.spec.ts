@@ -125,17 +125,17 @@ test.describe("M1-B0 real project journeys", () => {
     page.on("request", (request) => {
       if (new URL(request.url()).pathname.endsWith("/permanent-delete")) permanentDeleteRequests += 1;
     });
-    page.once("dialog", async (dialog) => {
-      expect(dialog.type()).toBe("prompt");
-      expect(dialog.message()).toContain(title);
-      await dialog.accept(`${title} wrong`);
-    });
     await projectItem(page, title).getByRole("button", { name: "永久删除" }).click();
-    await expect(page.getByRole("alert")).toContainText("片名不匹配");
+    const consent = page.getByRole("alertdialog", { name: "永久删除项目" });
+    await consent.getByLabel("输入完整片名以确认删除").fill(`${title} wrong`);
+    await expect(consent.getByRole("button", { name: "确认永久删除项目" })).toBeDisabled();
     expect(permanentDeleteRequests).toBe(0);
-
-    page.once("dialog", (dialog) => dialog.accept(title));
+    await consent.getByRole("button", { name: "取消" }).click();
     await projectItem(page, title).getByRole("button", { name: "永久删除" }).click();
+    await expect(consent.getByLabel("输入完整片名以确认删除")).toHaveValue("");
+    await consent.getByLabel("输入完整片名以确认删除").fill(title);
+    await consent.getByRole("button", { name: "确认永久删除项目" }).click();
+    await expect(consent).not.toBeVisible();
     await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
     await expect(page.getByLabel("片名")).toHaveValue("");
     expect(permanentDeleteRequests).toBe(1);

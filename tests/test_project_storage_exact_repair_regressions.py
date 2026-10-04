@@ -481,6 +481,7 @@ def test_project_folder_permanent_delete_removes_terminal_repair_lineage_leaf_fi
         project.id,
         expected_lifecycle_revision=archived.lifecycle_revision,
         confirmation_title=project.brief.title,
+        expected_project_revision=archived.revision,
     )
     with pytest.raises(ProjectStorageError):
         storage.projects.open(project.id)

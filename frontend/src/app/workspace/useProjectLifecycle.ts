@@ -2,6 +2,8 @@ import { useRef, useState } from "react";
 import { ApiError, plotloomApi } from "../../api";
 import { useConfirmation } from "../../confirmation";
 import { discardDraft, hasDraft, type DraftScope } from "../../draft-registry";
+import { discardProjectDraftCaches } from "../../features/authoring/projectDraftCache";
+import type { ReviewDraftStore } from "../../features/authoring/reviewDraftStore";
 import { messageFrom, stageForPage } from "./contracts";
 import type { ProjectListItem, ProjectSnapshotReceipt, ServerStageName, WorkspaceProject } from "../../types";
 import type { WorkspaceSession } from "./useWorkspaceSession";
@@ -19,6 +21,7 @@ export function useProjectLifecycle({
   commitStage,
   discardCurrentAuthoringDraft,
   mediaDraftQuiescence,
+  reviewDraftStore,
   directory,
   openProject,
   startBlank,
@@ -32,6 +35,7 @@ export function useProjectLifecycle({
   commitStage: <T>(stage: ServerStageName, content: T) => Promise<void>;
   discardCurrentAuthoringDraft: (scope: DraftScope) => Promise<boolean>;
   mediaDraftQuiescence: ProjectDraftQuiescence;
+  reviewDraftStore: ReviewDraftStore;
   directory: { open: () => Promise<void>; close: () => void; refresh: () => Promise<void>; setError: (error: string) => void };
   openProject: (projectId: string) => void;
   startBlank: () => void;
@@ -42,6 +46,7 @@ export function useProjectLifecycle({
   const duplicateKeys = useRef(new Map<string, string>());
   const [pendingArchive, setPendingArchive] = useState<{ item: ProjectListItem; action: "archive" | "close" } | undefined>();
   const [closingProjectId, setClosingProjectId] = useState<string | undefined>();
+  const [deletingProjectId, setDeletingProjectId] = useState<string | undefined>();
   const [snapshottingProjectId, setSnapshottingProjectId] = useState<string | undefined>();
   const [latestSnapshot, setLatestSnapshot] = useState<ProjectSnapshotReceipt | undefined>();
   const [closeNotice, setCloseNotice] = useState("");
@@ -120,13 +125,6 @@ export function useProjectLifecycle({
         duplicateKeys.current.delete(identity);
         directory.close();
         openProject(duplicate.project.id);
-      } else {
-        const title = item.brief.title || item.id;
-        const confirmed = window.prompt(`输入完整片名“${title}”以永久删除`, "");
-        if (confirmed !== title) { directory.setError("片名不匹配；未发送永久删除请求。"); return; }
-        await plotloomApi.permanentlyDeleteProject(item.id, item.lifecycleRevision ?? item.revision, confirmed);
-        if (!session.isCurrent(operation)) return;
-        if (session.project.id === item.id) startBlank();
       }
       if (session.isCurrent(operation)) await directory.refresh();
     } catch (error) {
@@ -136,9 +134,47 @@ export function useProjectLifecycle({
       if (closeAttempt) setClosingProjectId((current) => current === item.id ? undefined : current);
     }
   };
+  const performDelete = async (item: LifecycleTarget) => {
+    const operation = session.capture();
+    const attempt = mediaDraftQuiescence.beginClose(item.id);
+    setClosingProjectId(item.id); setDeletingProjectId(item.id); setCloseNotice("");
+    try {
+      // Failed admission must keep unsent input. Do not drain new typing or
+      // discard anything until the owning server confirms whole-home erasure.
+      await attempt.suspendWrites();
+      await plotloomApi.permanentlyDeleteProject(item.id, item.lifecycleRevision ?? item.revision, item.revision, item.brief.title);
+      let cleanupError: unknown;
+      try {
+        try { await attempt.discardUnsent(); }
+        finally {
+          try { discardProjectDraftCaches(item.id); }
+          finally { reviewDraftStore.eraseProject(item.id); }
+        }
+      } catch (error) { cleanupError = error; }
+      if (session.isCurrent(operation) && session.project.id === item.id) startBlank();
+      await directory.refresh();
+      setCloseNotice(cleanupError ? "项目已永久删除，但本标签页的草稿缓存未能完全清除。请关闭此标签页，不要恢复该项目的旧草稿。" : "项目已永久删除；其他项目、外部原文件和恢复快照未删除。");
+    } catch (error) {
+      const rejected = error instanceof ApiError && [404, 409, 422].includes(error.status);
+      directory.setError(rejected ? `无法删除：${messageFrom(error)}` : `删除结果未确认，请检查项目目录后再操作：${messageFrom(error)}`);
+    } finally {
+      attempt.finish(); setClosingProjectId(undefined); setDeletingProjectId(undefined);
+    }
+  };
   const mutate = async (item: ProjectListItem, action: LifecycleAction) => {
     if (session.project.id && mediaDraftQuiescence.isClosing(session.project.id)) return;
     if (closingProjectId || snapshottingProjectId) return;
+    if (action === "delete") {
+      const target = { ...item, brief: { ...item.brief } };
+      confirmation.requestConfirmation({
+        title: "永久删除项目",
+        message: "永久删除该项目的故事内容、草稿、图片、视频和任务记录，无法撤销。正在运行或结果不明的任务会阻止删除。",
+        details: `${target.brief.title}\n项目版本 r${target.revision} · 生命周期 r${target.lifecycleRevision ?? target.revision}\n不删除其他项目、外部原文件、导出的恢复快照或供应商账号设置。`,
+        challenge: { expected: target.brief.title, label: "输入完整片名以确认删除", hint: `请原样输入：${target.brief.title}` },
+        action: () => performDelete(target),
+      });
+      return;
+    }
     if (action === "force_close") {
       confirmation.requestConfirmation({
         title: "强制关闭项目",
@@ -205,5 +241,5 @@ export function useProjectLifecycle({
     if (!session.isCurrent(operation)) return;
     await perform(target, "close", "save");
   };
-  return { pendingArchive, mutate, resolvePendingArchive, closingProjectId, snapshottingProjectId, latestSnapshot, createSnapshot, saveAndCloseCurrent, closeNotice, confirmation: confirmation.confirmation };
+  return { pendingArchive, mutate, resolvePendingArchive, closingProjectId, deletingProjectId, snapshottingProjectId, latestSnapshot, createSnapshot, saveAndCloseCurrent, closeNotice, confirmation: confirmation.confirmation };
 }

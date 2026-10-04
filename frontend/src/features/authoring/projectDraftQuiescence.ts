@@ -8,9 +8,16 @@
 export type ProjectDraftFlush = () => Promise<boolean>;
 export interface ProjectCloseAttempt {
   drain(): Promise<boolean>;
+  suspendWrites(): Promise<void>;
   discardUnsent(): Promise<void>;
   canCommit(): boolean;
   finish(): void;
+}
+
+export interface ProjectDraftWriterOptions {
+  retainOnUnmount?: boolean;
+  discardUnsent?: () => Promise<void>;
+  suspendWrites?: () => Promise<() => void>;
 }
 
 export interface ProjectDraftQuiescence {
@@ -18,7 +25,7 @@ export interface ProjectDraftQuiescence {
     projectId: string,
     writerId: string,
     flush: ProjectDraftFlush,
-    options?: { retainOnUnmount?: boolean; discardUnsent?: () => Promise<void> },
+    options?: ProjectDraftWriterOptions,
   ): () => void;
   flush(projectId: string): Promise<boolean>;
   beginClose(projectId: string): ProjectCloseAttempt;
@@ -26,7 +33,7 @@ export interface ProjectDraftQuiescence {
 }
 
 export function createProjectDraftQuiescence(): ProjectDraftQuiescence {
-  const writers = new Map<string, Map<string, { flush: ProjectDraftFlush; retainOnUnmount: boolean; discardUnsent?: () => Promise<void> }>>();
+  const writers = new Map<string, Map<string, ProjectDraftWriterOptions & { flush: ProjectDraftFlush }>>();
   const revisions = new Map<string, number>();
   const closing = new Set<string>();
   const revise = (projectId: string) =>
@@ -42,7 +49,7 @@ export function createProjectDraftQuiescence(): ProjectDraftQuiescence {
         projectWriters = new Map();
         writers.set(projectId, projectWriters);
       }
-      projectWriters.set(writerId, { flush, retainOnUnmount: options?.retainOnUnmount === true, discardUnsent: options?.discardUnsent });
+      projectWriters.set(writerId, { ...options, flush });
       revise(projectId);
       return () => {
         const current = writers.get(projectId);
@@ -72,7 +79,17 @@ export function createProjectDraftQuiescence(): ProjectDraftQuiescence {
       closing.add(projectId);
       let drainedRevision: number | undefined;
       let finished = false;
+      let resumeWrites: (() => void)[] = [];
       return {
+        async suspendWrites() {
+          if (finished) throw new Error("project close is already finished");
+          // Delete must wait for admitted writes without saving or discarding
+          // newer typing. A rejected deletion resumes these exact queues.
+          const results = await Promise.allSettled([...writers.get(projectId)?.values() ?? []].map(writer => writer.suspendWrites?.()));
+          for (const result of results) if (result.status === "fulfilled" && result.value) resumeWrites.push(result.value);
+          const failed = results.find(result => result.status === "rejected");
+          if (failed?.status === "rejected") throw failed.reason;
+        },
         async drain() {
           if (finished) return false;
           const projectWriters = writers.get(projectId);
@@ -88,6 +105,7 @@ export function createProjectDraftQuiescence(): ProjectDraftQuiescence {
         },
         async discardUnsent() {
           if (finished) throw new Error("project close is already finished");
+          resumeWrites = [];
           await Promise.all([...writers.get(projectId)?.values() ?? []].map(writer => writer.discardUnsent?.()));
           writers.delete(projectId);
           revise(projectId);
@@ -97,6 +115,8 @@ export function createProjectDraftQuiescence(): ProjectDraftQuiescence {
           if (finished) return;
           finished = true;
           closing.delete(projectId);
+          for (const resume of resumeWrites) resume();
+          resumeWrites = [];
         },
       };
     },

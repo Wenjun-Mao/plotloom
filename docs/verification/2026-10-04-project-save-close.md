@@ -1,7 +1,7 @@
 # Project save-and-close and force exit
 
 Status: scoped implementation reviewed, locally qualified, published and
-activated. Full remote CI remains in progress. Creator usability acceptance
+activated. Full remote CI passed. Creator usability acceptance
 remains separate.
 
 Scope: the owner's approved save-and-close fix and directory force-close,
@@ -70,7 +70,7 @@ Runtime candidate: `c61d0195d7492d84837a8ef669bbe836dfb4d7a0`, published to
 | Focused save/force-close and lifecycle browser checks | 19 passed |
 | Full unfiltered browser run | 153 passed in 8.4 minutes, two workers |
 | Whitespace | Passed |
-| Full remote CI | [Run 37233109002](https://github.com/Wenjun-Mao/plotloom/actions/runs/37233109002), in progress on the exact runtime candidate, `browser_grep=.*` |
+| Full remote CI | [Run 37233109002](https://github.com/Wenjun-Mao/plotloom/actions/runs/37233109002), completed successfully on the exact runtime candidate, `browser_grep=.*` |
 
 Checked bundle SHA-256:
 `ba7043fb86a96a35cf384916640e28ecd821c233ea70054ba6b1c019e131f1b9`.
@@ -129,4 +129,4 @@ that old runtime should be copied before the creator refreshes it.
 
 Scoped implementation stops here. The next product step is the owner's
 continued new-project walkthrough, not additional automatic UI redesign or
-manual synchronization. Pending remote CI is not represented as a passed gate.
+manual synchronization.

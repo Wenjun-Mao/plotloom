@@ -71,6 +71,7 @@ class ProjectDuplicateRequest(LifecycleRequest):
 
 
 class ProjectPermanentDeleteRequest(LifecycleRequest):
+    expected_project_revision: int = Field(ge=1)
     confirmation_title: str = Field(min_length=1, max_length=200)
 
     @field_validator("confirmation_title")

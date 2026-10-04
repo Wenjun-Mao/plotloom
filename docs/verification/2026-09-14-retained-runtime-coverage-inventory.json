@@ -110,7 +110,7 @@
       ]
     },
     "tests/test_production_project_folder_runtime.py::test_production_runtime_owns_archive_duplicate_and_media_free_deletion": {
-      "source_sha256": "ce05b176528a0066fde26f382235261158aa2106e3ce55bc67ffc0159298de9c",
+      "source_sha256": "dcb78bed069d1d0d85d5071a405f1a3aca2afeca14845417686077c8e3e94861",
       "assertions": [
         "created.status_code == 201",
         "archived.status_code == 200",
@@ -141,7 +141,7 @@
       ]
     },
     "tests/test_production_project_folder_runtime.py::test_production_runtime_rejects_lifecycle_transitions_with_manual_publications": {
-      "source_sha256": "bee0ae7ec287dffdaa7d6dd9faabd7e7c3d090ab81107ef1511060bc675e4d48",
+      "source_sha256": "12a92ee072ed949517a00aa9f26f0e84c20e8155702be7f078a5752ad87b9fa5",
       "assertions": [
         "created.status_code == 201",
         "archive.status_code == 409",
@@ -469,7 +469,7 @@
       ]
     },
     "tests/test_project_storage_exact_repair_regressions.py::test_project_folder_permanent_delete_removes_terminal_repair_lineage_leaf_first": {
-      "source_sha256": "dde06d965f37507b44d3e332d2b36ef61ad39a7713b9481cfc34072ddf62ed90",
+      "source_sha256": "3dbda497ca73f40d41aec0644adad60aa8cf7e708063c34fccfce94da7662db0",
       "assertions": [
         "raises: pytest.raises(ProjectStorageError)"
       ]
@@ -7246,7 +7246,7 @@
         "tests/test_production_project_folder_runtime.py::test_production_runtime_owns_archive_duplicate_and_media_free_deletion",
         "tests/test_production_project_folder_runtime.py::test_production_runtime_rejects_lifecycle_transitions_with_manual_publications"
       ],
-      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "mapping_note": "ADR 0114 supersedes only the public archive-first prerequisite; it does not claim the historical only-archived rejection is retained. Listed replacements still cover archived deletion, lifecycle and manual-publication refusal, and not-found after erasure; tests/test_direct_project_deletion.py additionally covers all three directory states and project-owned media. Historical baseline assertions are preserved.",
       "review_status": "verified"
     },
     {

@@ -11,7 +11,7 @@ const developmentStillPaths = ["01-arrival.png", "02-keys.png", "03-pressure.png
 test.describe("P0 imported still preview journey", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("persists an explicit reviewed intent, refreshes applicability, and refuses deletion", async ({ page, request, workbench }, testInfo) => {
+  test("persists an explicit reviewed intent, refreshes applicability, and deletes its owned media", async ({ page, request, workbench }, testInfo) => {
     const projectId = await createCanonicalProject(request, workbench.apiOrigin);
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
     await navigateToSecondaryTool(page, "分镜工作台");
@@ -129,16 +129,16 @@ test.describe("P0 imported still preview journey", () => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await expect(page.getByRole("heading", { name: "从一个项目开始" })).toBeVisible();
     const project = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}`);
-    const projectBody = await project.json() as { lifecycleRevision: number; brief: { title: string } };
+    const projectBody = await project.json() as { revision: number; lifecycleRevision: number; brief: { title: string } };
     const archived = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/archive`, {
       data: { expectedLifecycleRevision: projectBody.lifecycleRevision },
     });
     expect(archived.ok(), `${archived.status()} ${await archived.text()}`).toBeTruthy();
     const deletion = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/permanent-delete`, {
-      data: { expectedLifecycleRevision: projectBody.lifecycleRevision + 1, confirmationTitle: projectBody.brief.title },
+      data: { expectedLifecycleRevision: projectBody.lifecycleRevision + 1, expectedProjectRevision: projectBody.revision, confirmationTitle: projectBody.brief.title },
     });
-    expect(deletion.status()).toBe(409);
-    expect((await deletion.json()) as { code: string }).toMatchObject({ code: "project_managed_assets_present" });
+    expect(deletion.status(), await deletion.text()).toBe(204);
+    expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}`)).status()).toBe(404);
   });
 });
 

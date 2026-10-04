@@ -315,8 +315,8 @@ class ApplicationProjectLifecycleLedger:
             initialization_token=None,
         )
 
-    def forget_project_run_routes(self, project_id: str) -> None:
-        """Remove disposable run indexes once their canonical home is erased."""
+    def forget_project(self, project_id: str) -> None:
+        """Remove only erased-project indexes in one installation transaction."""
 
         with self._write() as connection:
             run_ids = [
@@ -326,19 +326,16 @@ class ApplicationProjectLifecycleLedger:
                     (project_id,),
                 ).fetchall()
             ]
-            if not run_ids:
-                return
-            placeholders = ", ".join("?" for _ in run_ids)
-            connection.execute(
-                f"DELETE FROM application_frozen_profile_run_references WHERE run_id IN ({placeholders})",
-                run_ids,
-            )
+            if run_ids:
+                placeholders = ", ".join("?" for _ in run_ids)
+                connection.execute(
+                    f"DELETE FROM application_frozen_profile_run_references WHERE run_id IN ({placeholders})",
+                    run_ids,
+                )
             connection.execute(
                 "DELETE FROM application_run_routes WHERE project_id = ?", (project_id,)
             )
 
-    def forget_project(self, project_id: str) -> None:
-        with self._write() as connection:
             connection.execute(
                 "DELETE FROM application_project_duplicate_requests "
                 "WHERE source_project_id = ? OR target_project_id = ?",

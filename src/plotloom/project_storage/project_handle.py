@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-import shutil
 from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -285,19 +284,16 @@ class ProjectStore(ProjectCreativeHandoffs):
                 self._access_lease.close()
                 self._access_lease = None
 
-    def remove_home(self) -> None:
-        """Erase this closed archival home while retaining its exclusive lease."""
-
-        if self._access_lease is None or self._access_lease.mode != "exclusive":
-            raise ProjectStorageConflictError(
-                "project deletion requires an exclusive project lease"
-            )
-        self.repository.close()
+    def remove_home(self, *, outputs_root: Path) -> None:
+        """Retain the exclusive lease throughout the whole-home erasure."""
+        from .deletion import remove_owned_home
         try:
-            shutil.rmtree(self.home)
+            remove_owned_home(
+                self.home, outputs_root=outputs_root, manifest=self.manifest,
+                lease=self._access_lease, close_repository=self.repository.close,
+            )
         finally:
-            self._access_lease.close()
-            self._access_lease = None
+            self.close()
 
     def project(self) -> Project:
         try:

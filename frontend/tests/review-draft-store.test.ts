@@ -87,3 +87,16 @@ it("leaving a project requires explicit recovery on reopen", () => {
   expect(store.get("a", "source")?.editing).toBe(false);
   store.restore("a", "source"); expect(store.get("a", "source")?.editing).toBe(true);
 });
+
+it("deletion suspension joins an existing receipt but preserves newer typing until admission", async () => {
+  const q = createProjectDraftQuiescence(); const store = createReviewDraftStore(q, sessionStorage);
+  let release!: (draft: AuthoringDraft) => void;
+  const save = vi.spyOn(plotloomApi, "saveAuthoringDraft").mockImplementationOnce(() => new Promise(resolve => { release = resolve; })).mockResolvedValue(receipt("new", 2));
+  store.update("a", "source", 1, "source:0", "old"); const saving = store.flush("a", "source");
+  store.update("a", "source", 1, "source:0", "new");
+  const deletion = q.beginClose("a"); const suspended = deletion.suspendWrites();
+  release(receipt("old")); await suspended; await expect(saving).resolves.toBe(false);
+  expect(save).toHaveBeenCalledOnce(); expect(store.get("a", "source")?.payload.text).toBe("new");
+  deletion.finish(); await expect(store.flush("a", "source")).resolves.toBe(true);
+  expect(save).toHaveBeenCalledTimes(2);
+});

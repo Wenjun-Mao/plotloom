@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { createProjectDraftQuiescence } from "../src/features/authoring/projectDraftQuiescence";
 
 it("drains only the requested project's writers", async () => {
@@ -65,4 +65,26 @@ it("force discard is project-scoped and never calls save", async () => {
   await expect(close.drain()).resolves.toBe(true);
   expect(close.canCommit()).toBe(true);
   close.finish();
+});
+
+it("suspends only the deletion target and resumes on rejection without saving or discarding", async () => {
+  const q = createProjectDraftQuiescence();
+  const flush = vi.fn(async () => true), discard = vi.fn(async () => undefined), resume = vi.fn();
+  const other = vi.fn(async () => resume);
+  q.register("a", "draft", flush, { discardUnsent: discard, suspendWrites: async () => resume });
+  q.register("b", "draft", flush, { suspendWrites: other });
+  const attempt = q.beginClose("a"); await attempt.suspendWrites();
+  expect(flush).not.toHaveBeenCalled(); expect(discard).not.toHaveBeenCalled(); expect(other).not.toHaveBeenCalled();
+  attempt.finish(); attempt.finish(); expect(resume).toHaveBeenCalledOnce();
+});
+
+it("resumes settled suspensions after another writer fails and never resumes erased queues", async () => {
+  const q = createProjectDraftQuiescence(); const resume = vi.fn();
+  q.register("a", "one", async () => true, { suspendWrites: async () => resume });
+  q.register("a", "two", async () => true, { suspendWrites: async () => { throw new Error("writer failed"); } });
+  const failed = q.beginClose("a"); await expect(failed.suspendWrites()).rejects.toThrow("writer failed");
+  failed.finish(); expect(resume).toHaveBeenCalledOnce();
+  q.register("b", "draft", async () => true, { suspendWrites: async () => resume });
+  const erased = q.beginClose("b"); await erased.suspendWrites(); await erased.discardUnsent(); erased.finish();
+  expect(resume).toHaveBeenCalledOnce();
 });

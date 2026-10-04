@@ -43,6 +43,7 @@ export function useAuthoringDraftAutosave({
   const draftAutosaveTimers = useRef(new Map<string, number>());
   const draftAutosaveFlights = useRef(new Map<string, Promise<boolean>>());
   const abandonedProjects = useRef(new Set<string>());
+  const suspendedProjects = useRef(new Set<string>());
   useEffect(() => { if (project.id) abandonedProjects.current.delete(project.id); }, [project.id]);
   const flushAuthoringDraft = useCallback(async (scope: DraftScope): Promise<boolean> => {
     if (!durableDraftsEnabledRef.current || !project.id || project.archivedAt) return true;
@@ -55,7 +56,7 @@ export function useAuthoringDraftAutosave({
     // Drain to a stable local revision.  Joining one flight is insufficient:
     // typing can create a newer session record while that request is in flight.
     while (true) {
-      if (abandonedProjects.current.has(project.id)) return false;
+      if (abandonedProjects.current.has(project.id) || suspendedProjects.current.has(project.id)) return false;
       const local = getDraft(project, scope);
       if (!local) return true;
       const existingFlight = draftAutosaveFlights.current.get(key);
@@ -101,7 +102,7 @@ export function useAuthoringDraftAutosave({
 
   const scheduleAuthoringDraftAutosave = useCallback((scope: DraftScope) => {
     if (!durableDraftsEnabledRef.current || !project.id) return;
-    if (abandonedProjects.current.has(project.id)) return;
+    if (abandonedProjects.current.has(project.id) || suspendedProjects.current.has(project.id)) return;
     const key = authoringDraftKey(project.id, scope);
     const existingTimer = draftAutosaveTimers.current.get(key);
     if (existingTimer !== undefined) window.clearTimeout(existingTimer);
@@ -116,6 +117,21 @@ export function useAuthoringDraftAutosave({
     draftAutosaveTimers.current.clear();
   }, []);
 
+  const suspendProjectDraftWrites = useCallback(async () => {
+    const projectId = project.id;
+    if (!projectId) return () => undefined;
+    suspendedProjects.current.add(projectId);
+    for (const [key, timer] of draftAutosaveTimers.current) {
+      if (!key.startsWith(`${projectId}:`)) continue;
+      window.clearTimeout(timer); draftAutosaveTimers.current.delete(key);
+    }
+    await Promise.all([...draftAutosaveFlights.current].filter(([key]) => key.startsWith(`${projectId}:`)).map(([, flight]) => flight));
+    return () => {
+      suspendedProjects.current.delete(projectId);
+      for (const record of findProjectDrafts(projectId)) scheduleAuthoringDraftAutosave(record.scope);
+    };
+  }, [project.id, scheduleAuthoringDraftAutosave]);
+
   const discardUnsentProjectDrafts = useCallback(async () => {
     if (!project.id) return;
     abandonedProjects.current.add(project.id);
@@ -127,5 +143,5 @@ export function useAuthoringDraftAutosave({
     // Acknowledged rows stay in the project. Only this tab's safety buffers go.
     for (const record of findProjectDrafts(project.id)) discardDraftRecord(record);
   }, [project.id]);
-  return { flushAuthoringDraft, scheduleAuthoringDraftAutosave, discardUnsentProjectDrafts };
+  return { flushAuthoringDraft, scheduleAuthoringDraftAutosave, discardUnsentProjectDrafts, suspendProjectDraftWrites };
 }

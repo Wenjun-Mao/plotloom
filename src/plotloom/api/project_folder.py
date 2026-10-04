@@ -501,6 +501,7 @@ def create_project_folder_authoring_app(
     ) -> None:
         storage.lifecycle.permanently_delete(
             project_id,
+            expected_project_revision=body.expected_project_revision,
             expected_lifecycle_revision=body.expected_lifecycle_revision,
             confirmation_title=body.confirmation_title,
         )

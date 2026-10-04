@@ -56,3 +56,13 @@ their explicit assertion records in the same inventory.
 Project bootstrap coverage also asserts canonical-prefix installation,
 idempotent replay and conflict, retryable same-key contention while the first
 initializer owns its application lease, and recovery after that lease expires.
+
+On 2026-10-04, ADR 0114 superseded the archive-first prerequisite in the public
+whole-folder deletion contract. The historical baseline assertions remain
+unchanged. Updated request bodies add the exact Brief revision to the three
+existing replacement tests; their executable assertions are unchanged and
+their current-source fingerprints were reviewed again. Terminal-job refusal,
+explicit consent, exact project identity and absence after deletion remain
+current. Direct active/archived/closed and media-owned deletion are additionally
+covered by `tests/test_direct_project_deletion.py`; this is not a claim that the
+historical archive-first rejection still applies to the current public endpoint.

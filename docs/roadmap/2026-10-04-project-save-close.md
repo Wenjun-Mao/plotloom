@@ -1,7 +1,7 @@
 # Project save-and-close
 
 Status: Reviewed, locally qualified, published and activated, 2026-10-04.
-Full remote CI remains in progress; creator usability acceptance is separate.
+Full remote CI passed; creator usability acceptance is separate.
 
 Completion: [verification receipt](../verification/2026-10-04-project-save-close.md)
 binds runtime `c61d019` to 1,088 Python, 464 frontend unit and 153 full unfiltered

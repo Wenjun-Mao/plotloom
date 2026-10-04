@@ -10,10 +10,10 @@ let root: Root;
 let host: HTMLDivElement;
 const operation = vi.fn<() => void | Promise<void>>();
 const descriptors = ["showModal", "close"].map(name => Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, name));
-function Harness({ identity = "job:revision1", disabled = false }: { identity?: string; disabled?: boolean }) {
+function Harness({ identity = "job:revision1", disabled = false, challenge = false }: { identity?: string; disabled?: boolean; challenge?: boolean }) {
   const { requestConfirmation, confirmation } = useConfirmation(identity, disabled);
   return createElement("div", null,
-    createElement("button", { onClick: () => requestConfirmation({ title: "拒绝原片", message: "保留证据并撤销选择", details: identity, action: operation }) }, "request"), confirmation);
+    createElement("button", { onClick: () => requestConfirmation({ title: "拒绝原片", message: "保留证据并撤销选择", details: identity, ...(challenge ? { challenge: { expected: "完整片名", label: "输入片名", hint: "完全匹配" } } : {}), action: operation }) }, "request"), confirmation);
 }
 async function render(identity = "job:revision1", disabled = false) {
   await act(async () => root.render(createElement(Harness, { identity, disabled })));
@@ -74,4 +74,22 @@ it("keeps browser-native confirmation out of creator source", () => {
     return readdirSync(directory, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? scan(resolve(directory, entry.name)) : /\.tsx?$/.test(entry.name) ? [resolve(directory, entry.name)] : []);
   }
   for (const path of scan(resolve("src"))) expect(readFileSync(path, "utf8"), path).not.toMatch(/\b(?:window\.)?confirm\s*\(/);
+});
+
+it("requires exact typed consent and resets it for every new request", async () => {
+  await act(async () => root.render(createElement(Harness, { challenge: true })));
+  await open(); expect(confirmButton().disabled).toBe(true);
+  const type = async (value: string) => {
+    const input = dialog().querySelector<HTMLInputElement>("input")!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  };
+  await type("完整片名 "); expect(confirmButton().disabled).toBe(true);
+  await type("完整片名"); expect(confirmButton().disabled).toBe(false);
+  await act(async () => dialog().querySelector<HTMLButtonElement>("button")!.click());
+  await open(); expect(dialog().querySelector<HTMLInputElement>("input")!.value).toBe("");
+  expect(confirmButton().disabled).toBe(true); expect(operation).not.toHaveBeenCalled();
+  await type("完整片名"); await act(async () => confirmButton().click()); expect(operation).toHaveBeenCalledOnce();
 });

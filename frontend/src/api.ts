@@ -229,9 +229,9 @@ export class PlotloomApiClient {
     });
   }
 
-  permanentlyDeleteProject(projectId: string, expectedLifecycleRevision: number, confirmationTitle: string): Promise<void> {
+  permanentlyDeleteProject(projectId: string, expectedLifecycleRevision: number, expectedProjectRevision: number, confirmationTitle: string): Promise<void> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/permanent-delete`, {
-      method: "POST", body: JSON.stringify({ expectedLifecycleRevision, confirmationTitle }),
+      method: "POST", body: JSON.stringify({ expectedLifecycleRevision, expectedProjectRevision, confirmationTitle }),
     });
   }
 

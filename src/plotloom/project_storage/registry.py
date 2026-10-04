@@ -12,7 +12,6 @@ from ..domain import (
     ProjectBrief,
     ProjectCreation,
     ProjectDuplicateResult,
-    ProjectLifecycleStatus,
     InitialStage,
     STAGE_ORDER,
     StageName,
@@ -22,7 +21,6 @@ from ..domain import (
 )
 from ..exceptions import (
     InvalidTransitionError,
-    ProjectManagedAssetsPresentError,
     RevisionConflictError,
 )
 from .format import (
@@ -40,6 +38,7 @@ from .format import (
 )
 from .project_handle import ProjectStore
 from .project_home import ProjectHome, find_project_home
+from .deletion import permanently_delete_home
 from .recovery_validation import database_state
 from .video_candidate_transition import (
     ProjectSchemaTransitionRequiredError,
@@ -438,37 +437,17 @@ class ProjectDirectoryRegistry:
         self,
         project_id: str,
         *,
+        expected_project_revision: int,
         expected_lifecycle_revision: int,
         confirmation_title: str,
     ) -> None:
-        """Remove one archived, media-free home after exact confirmation."""
-
-        store = self._exclusive_store(project_id)
-        removed = False
-        try:
-            project = store.project()
-            if project.lifecycle_revision != expected_lifecycle_revision:
-                raise RevisionConflictError(
-                    "project-lifecycle",
-                    expected_lifecycle_revision,
-                    project.lifecycle_revision,
-                )
-            if project.lifecycle_status != ProjectLifecycleStatus.ARCHIVED:
-                raise InvalidTransitionError(
-                    "only archived projects can be permanently deleted"
-                )
-            if confirmation_title != project.brief.title:
-                raise InvalidTransitionError(
-                    "confirmation title does not match the project title"
-                )
-            self._require_lifecycle_quiescence(store)
-            if store.media.list_managed_assets(project_id):
-                raise ProjectManagedAssetsPresentError()
-            store.remove_home()
-            removed = True
-        finally:
-            if not removed:
-                store.close()
+        permanently_delete_home(
+            self._exclusive_store(project_id),
+            outputs_root=self.outputs_root,
+            expected_project_revision=expected_project_revision,
+            expected_lifecycle_revision=expected_lifecycle_revision,
+            confirmation_title=confirmation_title,
+        )
 
     def _project_home(self, project_id: str) -> ProjectHome:
         return find_project_home(self.outputs_root, project_id)

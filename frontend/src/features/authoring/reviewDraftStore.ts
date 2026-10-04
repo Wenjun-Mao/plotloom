@@ -14,6 +14,7 @@ export function createReviewDraftStore(quiescence: ProjectDraftQuiescence, stora
   const remote = new Map<string, AuthoringDraft>();
   const flights = new Map<string, Promise<boolean>>();
   const abandoning = new Set<string>();
+  const suspended = new Set<string>();
   const listeners = new Set<() => void>();
   let version = 0;
   let storageFailed = false;
@@ -37,6 +38,12 @@ export function createReviewDraftStore(quiescence: ProjectDraftQuiescence, stora
   const register = (projectId: string, editor: ReviewEditor) => {
     quiescence.register(projectId, `review_buffer:${editor}`, () => flush(projectId, editor), {
       retainOnUnmount: true,
+      suspendWrites: async () => {
+        const key = keyFor(projectId, editor);
+        suspended.add(key);
+        await flights.get(key);
+        return () => { suspended.delete(key); };
+      },
       discardUnsent: async () => {
         const key = keyFor(projectId, editor);
         abandoning.add(key);
@@ -49,7 +56,7 @@ export function createReviewDraftStore(quiescence: ProjectDraftQuiescence, stora
   const flush = async (projectId: string, editor: ReviewEditor): Promise<boolean> => {
     const key = keyFor(projectId, editor);
     while (entries.has(key)) {
-      if (abandoning.has(key)) return false;
+      if (abandoning.has(key) || suspended.has(key)) return false;
       const flight = flights.get(key);
       if (flight) { if (!await flight) return false; continue; }
       const entry = entries.get(key)!;
@@ -76,6 +83,12 @@ export function createReviewDraftStore(quiescence: ProjectDraftQuiescence, stora
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     snapshot: () => version,
     storageFailed: () => storageFailed,
+    eraseProject(projectId: string) {
+      for (const key of entries.keys()) if (key.startsWith(`${projectId}:`)) entries.delete(key);
+      for (const key of remote.keys()) if (key.startsWith(`${projectId}:`)) remote.delete(key);
+      persistLocal();
+      if (storageFailed) throw new Error("项目已删除，但本地审阅草稿缓存未能清除");
+    },
     hydrate(projectId: string, drafts: AuthoringDraft[]) {
       if (quiescence.isClosing(projectId)) return;
       for (const key of abandoning) if (key.startsWith(`${projectId}:`)) abandoning.delete(key);

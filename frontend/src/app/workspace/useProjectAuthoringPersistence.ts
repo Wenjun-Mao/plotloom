@@ -48,7 +48,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
   const [draftConflict, setDraftConflict] = useState<DraftConflictState | undefined>();
   const [restoredDraft, setRestoredDraft] = useState<{ scope: DraftScope; payload: unknown; source: "server" | "session" | "reconcile" } | undefined>();
 
-  const { flushAuthoringDraft, scheduleAuthoringDraftAutosave, discardUnsentProjectDrafts } = useAuthoringDraftAutosave({
+  const { flushAuthoringDraft, scheduleAuthoringDraftAutosave, discardUnsentProjectDrafts, suspendProjectDraftWrites } = useAuthoringDraftAutosave({
     project: input.session.project,
     durableDraftsEnabledRef: input.durableDraftsEnabled,
     serverAuthoringDrafts: input.session.serverDrafts,
@@ -68,9 +68,10 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     const projectId = input.session.project.id;
     if (!projectId) return;
     return input.draftQuiescence.register(projectId, "authoring", flushProjectAuthoringDrafts, {
+      suspendWrites: suspendProjectDraftWrites,
       discardUnsent: async () => { await discardUnsentProjectDrafts(); currentDraft.current = undefined; },
     });
-  }, [flushProjectAuthoringDrafts, discardUnsentProjectDrafts, input.draftQuiescence, input.session.project.id]);
+  }, [flushProjectAuthoringDrafts, discardUnsentProjectDrafts, suspendProjectDraftWrites, input.draftQuiescence, input.session.project.id]);
 
   const cancelSave = useCallback(() => {
     saveInFlight.current = false;

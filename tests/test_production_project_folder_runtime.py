@@ -288,6 +288,7 @@ def test_production_runtime_owns_archive_duplicate_and_media_free_deletion(
             json={
                 "expectedLifecycleRevision": 2,
                 "confirmationTitle": "The wrong project title",
+                "expectedProjectRevision": archived_duplicate.json()["revision"],
             },
         )
         assert wrong_confirmation.status_code == 409
@@ -297,6 +298,7 @@ def test_production_runtime_owns_archive_duplicate_and_media_free_deletion(
             json={
                 "expectedLifecycleRevision": 2,
                 "confirmationTitle": duplicate_body["title"],
+                "expectedProjectRevision": archived_duplicate.json()["revision"],
             },
         )
         assert deleted.status_code == 204
@@ -355,6 +357,7 @@ def test_production_runtime_rejects_lifecycle_transitions_with_manual_publicatio
                 json={
                     "expectedLifecycleRevision": 2,
                     "confirmationTitle": FIXED_CHINESE_BRIEF.title,
+                    "expectedProjectRevision": archived.json()["revision"],
                 },
             )
         assert deletion.status_code == 409

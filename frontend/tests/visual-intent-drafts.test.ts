@@ -34,6 +34,37 @@ beforeEach(() => {
 });
 afterEach(async () => { vi.restoreAllMocks(); await act(async () => root.unmount()); host.remove(); });
 
+it.each(["visual", "direction"])("suspends %s writes until failed deletion resumes or successful deletion discards", async kind => {
+  vi.useFakeTimers();
+  try {
+    vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
+    const save = vi.spyOn(plotloomApi, "saveAuthoringDraft").mockResolvedValue({ draftRevision: 1 } as never);
+    const q = createProjectDraftQuiescence();
+    if (kind === "visual") { await render({ durable: true, quiescence: q }); await edit("unsent visual"); }
+    else { await renderDirection({ durable: true, quiescence: q }); await act(async () => directionEditor.update("unsent direction")); }
+    const failed = q.beginClose("project"); await failed.suspendWrites();
+    await act(async () => vi.advanceTimersByTimeAsync(1000)); expect(save).not.toHaveBeenCalled();
+    failed.finish(); await act(async () => vi.advanceTimersByTimeAsync(1000)); expect(save).toHaveBeenCalledOnce();
+    const erased = q.beginClose("project"); await erased.suspendWrites(); await act(async () => erased.discardUnsent()); erased.finish();
+    await act(async () => vi.advanceTimersByTimeAsync(1000)); expect(save).toHaveBeenCalledOnce();
+    expect(kind === "visual" ? editor.dirty : directionEditor.dirty).toBe(false);
+  } finally { vi.useRealTimers(); }
+});
+
+it.each(["visual", "direction"])("another mounted %s editor cannot resurrect an erased retained writer", async kind => {
+  vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
+  const q = createProjectDraftQuiescence();
+  const mount = (project: string) => kind === "visual" ? render({ project, durable: true, quiescence: q }) : renderDirection({ project, durable: true, quiescence: q });
+  const update = (value: string) => kind === "visual" ? edit(value) : act(async () => directionEditor.update(value));
+  await mount("a"); await update("deleted draft");
+  await act(async () => root.unmount()); root = createRoot(host);
+  await mount("b"); await update("neighbor draft");
+  const erase = q.beginClose("a"); await erase.suspendWrites(); await act(async () => erase.discardUnsent()); erase.finish();
+  await update("new neighbor draft");
+  const cache = sessionStorage.getItem(kind === "visual" ? "plotloom:visual-intent-drafts:v1" : "plotloom:image-job-direction-drafts:v1");
+  expect(cache).not.toContain("deleted draft"); expect(cache).toContain("new neighbor draft");
+});
+
 it("retains separate drafts across shots, candidates, projects, and remounts in session storage only", async () => {
   await render(); await edit("my draft");
   for (const props of [{ shot: "other" }, { asset: "other" }, { project: "other" }]) {

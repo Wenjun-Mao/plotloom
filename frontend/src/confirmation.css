@@ -2,3 +2,6 @@
 .confirmation-dialog::backdrop { background: rgb(0 0 0 / 65%); }
 .confirmation-dialog h2 { margin-top: 0; }
 .confirmation-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 12px var(--mono); }
+.confirmation-challenge { display: grid; gap: 8px; margin: 20px 0; }
+.confirmation-challenge input { width: 100%; }
+.confirmation-challenge small { color: var(--muted); }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { plotloomApi } from "./api";
 import type { ProjectDraftQuiescence } from "./features/authoring/projectDraftQuiescence";
+import { discardMediaDraftEntry, useMediaDraftErasure } from "./features/authoring/projectDraftCache";
 
 export type ImageJobDraftTarget =
   | { kind: "original" }
@@ -18,6 +19,7 @@ type DurableWriterState = {
   serverConflict: boolean;
   requestEpoch: number;
   abandoning?: boolean;
+  suspended?: boolean;
 };
 const imageJobStorageKey = "plotloom:image-job-direction-drafts:v1";
 
@@ -61,6 +63,7 @@ export function useImageJobDirectionDraft(
   quiescence?: ProjectDraftQuiescence,
 ) {
   const [drafts, setDrafts] = useState<ImageJobDrafts>(readImageJobDrafts);
+  useMediaDraftErasure(imageJobStorageKey, setDrafts);
   const [storageFailed, setStorageFailed] = useState(false);
   const [serverRevision, setServerRevision] = useState(0);
   const [serverReady, setServerReady] = useState(false);
@@ -130,7 +133,7 @@ export function useImageJobDirectionDraft(
   }, [activeWriterKey, baseCanonicalRevision, contextId, entityId, key, projectId, serverDraftsEnabled, shotId, targetId, writerKey, writerState]);
 
   const flush = useCallback(async (): Promise<boolean> => {
-    if (writerState.abandoning) return false;
+    if (writerState.abandoning || writerState.suspended) return false;
     if (!serverDraftsEnabled || !projectId || !shotId || !baseCanonicalRevision || !entry) return true;
     if (writerState.timer !== undefined) {
       window.clearTimeout(writerState.timer);
@@ -139,7 +142,7 @@ export function useImageJobDirectionDraft(
     if (!writerState.serverReady || writerState.serverConflict) return false;
     const existing = writerState.persistence;
     if (existing) await existing;
-    if (writerState.abandoning) return false;
+    if (writerState.abandoning || writerState.suspended) return false;
     if (writerState.serverConflict) return false;
     if (!entry.value.trim()) {
       const expectedDraftRevision = writerState.serverRevision;
@@ -226,15 +229,23 @@ export function useImageJobDirectionDraft(
     if (!quiescence || !serverDraftsEnabled || !projectId || !shotId) return;
     return quiescence.register(projectId, `image_direction:${entityId}`, flush, {
       retainOnUnmount: dirty,
+      suspendWrites: async () => {
+        writerState.suspended = true;
+        if (writerState.timer !== undefined) window.clearTimeout(writerState.timer);
+        writerState.timer = undefined;
+        await writerState.persistence;
+        return () => {
+          writerState.suspended = false;
+          if (!writerState.abandoning) writerState.timer = window.setTimeout(() => { writerState.timer = undefined; void flush(); }, 750);
+        };
+      },
       discardUnsent: async () => {
         writerState.abandoning = true;
         if (writerState.timer !== undefined) window.clearTimeout(writerState.timer);
         writerState.timer = undefined;
         await writerState.persistence;
         writerState.requestEpoch += 1;
-        const local = readImageJobDrafts(); delete local[key];
-        window.sessionStorage.setItem(imageJobStorageKey, JSON.stringify(local));
-        setDrafts(current => { const next = { ...current }; delete next[key]; return next; });
+        discardMediaDraftEntry(imageJobStorageKey, key);
       },
     });
   }, [dirty, entityId, flush, projectId, quiescence, serverDraftsEnabled, shotId]);

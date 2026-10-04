@@ -39,7 +39,7 @@ describe("PlotloomApiClient", () => {
     await client.archiveProject("p1", 4);
     await client.restoreProject("p1", 5);
     await client.duplicateProject("p1", 6, undefined, "duplicate-key");
-    await client.permanentlyDeleteProject("p1", 7, "Moon City");
+    await client.permanentlyDeleteProject("p1", 7, 3, "Moon City");
 
     const calls = fetcher.mock.calls as unknown as Array<[string, RequestInit]>;
     expect(calls.map(([url]) => url)).toEqual([
@@ -48,7 +48,7 @@ describe("PlotloomApiClient", () => {
     ]);
     expect(JSON.parse(String(calls[0][1].body))).toEqual({ expectedLifecycleRevision: 4 });
     expect(new Headers(calls[2][1].headers).get("Idempotency-Key")).toBe("duplicate-key");
-    expect(JSON.parse(String(calls[3][1].body))).toEqual({ expectedLifecycleRevision: 7, confirmationTitle: "Moon City" });
+    expect(JSON.parse(String(calls[3][1].body))).toEqual({ expectedLifecycleRevision: 7, expectedProjectRevision: 3, confirmationTitle: "Moon City" });
   });
 
   it("creates and reads a server-owned snapshot without sending a browser path", async () => {
