@@ -78,3 +78,15 @@ it("invalidates pending deletion when a retained proposal arrives without a new 
   expect(dialog()).toBeNull(); await click(oldConfirm); expect(single).not.toHaveBeenCalled();
   expect(button("删除可清理的未选择候选")).toBeUndefined();
 });
+
+it("reserves original review geometry from the verified probe before metadata loads", async () => {
+  vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [{
+    ...candidate("geometry"),
+    observed: { durationSeconds: 8, width: 576, height: 1024, videoCodec: "h264", audioCodec: "aac" },
+  }] });
+  await render();
+  const player = host.querySelector<HTMLVideoElement>('[data-testid="video-job-player-geometry"]')!;
+  expect(player.readyState).toBe(0);
+  expect(player.style.aspectRatio).toBe("576 / 1024");
+  expect(player.style.objectFit).toBe("contain");
+});

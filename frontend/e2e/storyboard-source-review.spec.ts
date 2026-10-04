@@ -84,8 +84,8 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     expect((await json(request.get(root))).candidate).toBeNull();
   });
 
-  test("upstream edits refuse prepared re-copy and ready replay/acceptance; cancelled stale review can be replaced", async ({ page, request, workbench }) => {
-    const id = await createScriptProject(request, workbench.apiOrigin, "stale");
+  test("upstream edits refuse prepared re-copy; cancellation permits a source-current replacement", async ({ page, request, workbench }) => {
+    const id = await createScriptProject(request, workbench.apiOrigin, "stale-prepared");
     const root = endpoint(workbench.apiOrigin, id);
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
     const panel = page.getByTestId("storyboard-review");
@@ -96,6 +96,19 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     await page.reload(); await expect(panel).toContainText("上下文已过期");
     await panel.getByRole("button", { name: "取消此任务" }).click();
     await expect(panel.getByRole("button", { name: "准备分镜任务" })).toBeEnabled();
+    const next = await prepare(page, panel, id);
+    expect(next.binding.scriptRevision).toBe(2);
+    await expect(panel.getByRole("button", { name: "取消此任务" })).toBeEnabled();
+  });
+
+  test("upstream edits refuse ready replay/acceptance and invalidate accepted review; stale review can be replaced", async ({ page, request, workbench }) => {
+    const id = await createScriptProject(request, workbench.apiOrigin, "stale-ready-accepted");
+    const root = endpoint(workbench.apiOrigin, id);
+    // Begin at the same r2 source as the prepared-replacement journey, while
+    // keeping its repeated hydration work outside this distinct ready-state case.
+    await changeScript(request, workbench.apiOrigin, id);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
+    const panel = page.getByTestId("storyboard-review");
     const next = await prepare(page, panel, id);
     await writeDelivery(next); await refresh(page, panel, id, next.jobId);
     await changeScript(request, workbench.apiOrigin, id);

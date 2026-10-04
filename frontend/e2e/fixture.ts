@@ -5,6 +5,7 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { usePageWithDrainedRoutes } from "./page-route-lifecycle";
 
 const configDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(configDirectory, "../..");
@@ -43,6 +44,9 @@ export const checkedStaticTest = createWorkbenchTest("checked-static");
 
 function createWorkbenchTest(frontendMode: FrontendMode) {
   return base.extend<{}, WorkbenchWorkerFixtures>({
+  page: async ({ page }, use) => {
+    await usePageWithDrainedRoutes(page, use);
+  },
   workbench: [async ({}, use) => {
     // A deliberately requested retained fixture keeps its isolated project
     // bytes for attended inspection; ordinary test runs still clean up.

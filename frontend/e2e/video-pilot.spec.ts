@@ -1,4 +1,5 @@
 import { openMediaPreparation, openMediaKeyframes } from "./workbench-controls";
+import { freezeReviewedFixtureDirections } from "./video_backends/minimax_h3/review-directions";
 import { expect, test, type Workbench } from "./fixture";
 import { demoProject } from "../src/demo";
 import path from "node:path";
@@ -14,7 +15,7 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, proje
   const allowLetterbox = panel.getByLabel("允许黑边画布（保留当前横幅构图）");
   if (!await allowLetterbox.isChecked()) await allowLetterbox.check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
-  await panel.getByRole("button", { name: "生成另一候选（冻结当前审核关键帧）" }).click();
+  await freezeReviewedFixtureDirections(panel);
   await panel.getByRole("button", { name: "提交一次" }).click();
   const reconcilePost = page.waitForResponse((response) => {
     const pathname = new URL(response.url()).pathname;
@@ -100,10 +101,11 @@ async function prepareSelectedPair(
   const firstJobId = await ingestAndSelectOfflineCandidate(page, panel, projectId, 24);
 
   // The adjoining fixture follows the same authored review/selection path.
-  // It reuses the explicitly retained local still; the distinct candidate is
-  // the separately ingested, reviewed video job for the adjoining shot.
-  await page.getByLabel("编辑镜头 双键升起").click();
+  // Retention is scoped to a shot; explicitly retain the same fixture asset
+  // for the adjoining shot rather than inheriting the prior shot's draft.
+  await page.getByLabel("当前媒体镜头").selectOption("shot_03");
   await expect(page.locator(".shot-workbench-heading")).toContainText("双键升起");
+  await page.getByTestId(/^keep-candidate-/).click();
   await page.getByLabel("审核兼容性说明").fill("Current approved adjoining shot keyframe.");
   await page.getByTestId("select-reviewed-keyframe").click();
   const secondJobId = await ingestAndSelectOfflineCandidate(page, panel, projectId, 0);

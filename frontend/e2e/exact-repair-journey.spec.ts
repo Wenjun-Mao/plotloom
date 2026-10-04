@@ -78,6 +78,7 @@ test("repairs exactly one late scene-beats shard through the real browser and pu
   expect((await approvalResponse).status()).toBe(201);
 
   await page.reload();
+  await page.getByRole("button", { name: "查看分镜批准", exact: true }).click();
   await expect(page.getByText("当前批准：Exact repair browser reviewer", { exact: true })).toBeVisible();
   const persistedRepair = await json<{ parentRunId: string | null; kind: string }>(await request.get(`${workbench.apiOrigin}/api/v2/runs/${repairRun.id}`));
   expect(persistedRepair).toMatchObject({ parentRunId: sourceRun.id, kind: "repair" });

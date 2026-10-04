@@ -1,4 +1,5 @@
-import { openMediaPreparation } from "./workbench-controls";
+import { openMediaPreparation, openMediaKeyframes } from "./workbench-controls";
+import { freezeReviewedFixtureDirections } from "./video_backends/minimax_h3/review-directions";
 import { expect, test, type Workbench } from "./fixture";
 import { demoProject } from "../src/demo";
 import path from "node:path";
@@ -57,6 +58,7 @@ async function createAndApprove(page: Page, request: APIRequestContext, workbenc
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await expect(page.getByTestId("video-pilot-panel")).toBeVisible();
   await openMediaPreparation(page);
+  await openMediaKeyframes(page);
 
   await page.getByLabel("来源声明").fill("Synthetic offline browser fixture; not creator-approved source media.");
   await page.getByTestId("managed-image-upload").setInputFiles(still);
@@ -88,6 +90,7 @@ async function createAndApprove(page: Page, request: APIRequestContext, workbenc
 async function selectEndingKeyframe(page: Page, request: APIRequestContext, workbench: Workbench, projectId: string) {
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard&entity=shot%3Ashot_09#shot-keyframe-review`);
   await openMediaPreparation(page);
+  await openMediaKeyframes(page);
   await page.getByLabel("来源声明").fill("Synthetic offline ending still; isolated fixture data only.");
   const importResponse = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/managed-assets`);
@@ -127,7 +130,7 @@ async function ingestEightSecondOriginal(page: Page, request: APIRequestContext,
   const letterbox = panel.getByLabel("允许黑边画布（保留当前横幅构图）");
   if (!await letterbox.isChecked()) await letterbox.check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
-  await panel.getByRole("button", { name: "生成另一候选（冻结当前审核关键帧）" }).click();
+  await freezeReviewedFixtureDirections(panel);
   await panel.getByRole("button", { name: "提交一次" }).click();
   const reconcile = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname.startsWith(`/api/v2/projects/${projectId}/video-jobs/`)

@@ -161,9 +161,7 @@ detail and end/start pose differences remain explicit cut-review questions.
 Do not claim an absent cross-shot image reference or bind an unsuitable image
 merely to unlock refinement.
 
-## Quality choice: development versus production review
-
-### Reviewed popped-out draft treatment · 2026-10-03
+## Reviewed popped-out draft treatment · 2026-10-03
 
 The owner found the isolated B2 trial's large, front-facing popped-out Chinese
 message readable and its slight wobble acceptable as walking motion. For the
@@ -187,6 +185,8 @@ quality effect or universal H3 Chinese-text capability is established.
 Historical failed jobs and the independent trial remain unchanged. The owner
 now prioritizes a usable E2E workflow with acceptable media; final-film polish
 and new sound acceptance remain separate reviews.
+
+## Quality choice: development versus production review
 
 On 2026-09-25 the director clarified that earlier visual defects were mainly
 shaking: intermittent in their quality 1/2/3 tests and largely resolved with

@@ -31,12 +31,15 @@ test.describe("project-folder authoring drafts", () => {
       }
       await route.continue();
     });
-    await page.getByLabel("片名").fill("E2E：传输中的较早草稿");
-    await firstDraftRequestStarted;
     const coalescedTitle = "E2E：传输中继续输入的最终草稿";
-    await page.getByLabel("片名").fill(coalescedTitle);
-    await page.waitForTimeout(800);
-    releaseFirstDraftRequest?.();
+    try {
+      await page.getByLabel("片名").fill("E2E：传输中的较早草稿");
+      await firstDraftRequestStarted;
+      await page.getByLabel("片名").fill(coalescedTitle);
+      await page.waitForTimeout(800);
+    } finally {
+      releaseFirstDraftRequest?.();
+    }
     await expect(page.getByText("草稿：已保存", { exact: true })).toBeVisible();
     await expect.poll(async () => (await workbenchRequest(
       workbench.apiOrigin, `/api/v2/projects/${projectId}/authoring-drafts`,
@@ -90,11 +93,14 @@ test.describe("project-folder authoring drafts", () => {
       await route.continue();
     });
     const durableSave = waitForBriefSave(page, projectId, durableTitle);
-    await page.getByRole("button", { name: "保存修改" }).click();
-    await canonicalSaveStarted;
-    const canonicalWhileSaveHeld = await workbenchRequest(workbench.apiOrigin, `/api/v2/projects/${projectId}`);
-    expect(canonicalWhileSaveHeld.brief.title).toBe(coalescedTitle);
-    releaseCanonicalSave();
+    try {
+      await page.getByRole("button", { name: "保存修改" }).click();
+      await canonicalSaveStarted;
+      const canonicalWhileSaveHeld = await workbenchRequest(workbench.apiOrigin, `/api/v2/projects/${projectId}`);
+      expect(canonicalWhileSaveHeld.brief.title).toBe(coalescedTitle);
+    } finally {
+      releaseCanonicalSave();
+    }
     await expectBriefSave(durableSave, durableTitle);
     await page.unroute(projectEndpoint);
     await expect(page.getByLabel("片名")).toHaveValue(durableTitle);

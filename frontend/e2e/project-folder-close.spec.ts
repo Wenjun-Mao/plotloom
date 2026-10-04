@@ -60,15 +60,19 @@ test.describe("project-folder Close", () => {
 
     // Do not wait for the idle timer. Close must drain this queued local
     // authoring buffer without treating a durable receipt as canonical Save.
-    await page.getByLabel("片名").fill("E2E：传输中的较早草稿");
-    await draftStarted;
-    await page.getByLabel("片名").fill(draftTitle);
-    await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
-    await expect(page.getByRole("heading", { name: "保存草稿并关闭项目？" })).toBeVisible();
-    const closeResponse = waitForCloseResponse(page, projectId);
-    await page.getByRole("button", { name: "保存草稿并关闭" }).click();
-    releaseDraft();
+    let closeResponse!: ReturnType<typeof waitForCloseResponse>;
+    try {
+      await page.getByLabel("片名").fill("E2E：传输中的较早草稿");
+      await draftStarted;
+      await page.getByLabel("片名").fill(draftTitle);
+      await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+      await expect(page.getByRole("heading", { name: "保存草稿并关闭项目？" })).toBeVisible();
+      closeResponse = waitForCloseResponse(page, projectId);
+      await page.getByRole("button", { name: "保存草稿并关闭" }).click();
+    } finally {
+      releaseDraft();
+    }
     expect((await closeResponse).ok()).toBeTruthy();
     await page.unroute("**/api/v2/projects/*/authoring-drafts");
 
@@ -101,16 +105,17 @@ test.describe("project-folder Close", () => {
       await route.continue();
     });
 
-    await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
-    await closeStarted;
-
-    await expect(page.getByText("正在关闭项目", { exact: true })).toBeVisible();
-    await expect(page.getByLabel("片名")).toBeDisabled();
-    const stageNavigation = page.getByRole("navigation", { name: "创作流程" }).getByRole("link", { name: "来源与大纲" });
-    await expect(stageNavigation).toBeDisabled();
-
-    releaseClose();
+    try {
+      await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+      await closeStarted;
+      await expect(page.getByText("正在关闭项目", { exact: true })).toBeVisible();
+      await expect(page.getByLabel("片名")).toBeDisabled();
+      const stageNavigation = page.getByRole("navigation", { name: "创作流程" }).getByRole("link", { name: "来源与大纲" });
+      await expect(stageNavigation).toBeDisabled();
+    } finally {
+      releaseClose();
+    }
     await expect(page.getByText("正在关闭项目", { exact: true })).not.toBeVisible();
     await page.unroute("**/api/v2/projects/*/close");
   });
@@ -124,15 +129,18 @@ test.describe("project-folder Close", () => {
     const projectId = new URL(page.url()).searchParams.get("project")!;
     const canonicalTitle = await page.getByLabel("片名").inputValue();
     const draftHold = await holdFirstAuthoringDraft(page);
-    await page.getByLabel("片名").fill("earlier draft before discard");
-    await draftHold.started;
-    await page.getByLabel("片名").fill("this draft must be discarded from project storage");
-
-    await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
-    const closeResponse = waitForCloseResponse(page, projectId);
-    await page.getByRole("button", { name: "丢弃" }).click();
-    draftHold.release();
+    let closeResponse!: ReturnType<typeof waitForCloseResponse>;
+    try {
+      await page.getByLabel("片名").fill("earlier draft before discard");
+      await draftHold.started;
+      await page.getByLabel("片名").fill("this draft must be discarded from project storage");
+      await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+      closeResponse = waitForCloseResponse(page, projectId);
+      await page.getByRole("button", { name: "丢弃" }).click();
+    } finally {
+      draftHold.release();
+    }
     expect((await closeResponse).ok()).toBeTruthy();
     await page.unroute("**/api/v2/projects/*/authoring-drafts");
     await page.evaluate(() => sessionStorage.clear());
@@ -153,9 +161,6 @@ test.describe("project-folder Close", () => {
     const projectId = new URL(page.url()).searchParams.get("project")!;
     const draftTitle = "Close failure keeps this durable draft";
     const draftHold = await holdFirstAuthoringDraft(page);
-    await page.getByLabel("片名").fill("earlier draft before Close failure");
-    await draftHold.started;
-    await page.getByLabel("片名").fill(draftTitle);
     let markCloseFailed!: () => void;
     const closeFailed = new Promise<void>((resolve) => { markCloseFailed = resolve; });
     await page.route("**/api/v2/projects/*/close", async (route) => {
@@ -163,10 +168,16 @@ test.describe("project-folder Close", () => {
       await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ detail: "close transport unavailable" }) });
     });
 
-    await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
-    await page.getByRole("button", { name: "保存草稿并关闭" }).click();
-    draftHold.release();
+    try {
+      await page.getByLabel("片名").fill("earlier draft before Close failure");
+      await draftHold.started;
+      await page.getByLabel("片名").fill(draftTitle);
+      await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+      await page.getByRole("button", { name: "保存草稿并关闭" }).click();
+    } finally {
+      draftHold.release();
+    }
     await closeFailed;
     await expect(page.getByLabel("片名")).toHaveValue(draftTitle);
     await expect.poll(async () => (await fetch(`${workbench.apiOrigin}/api/v2/projects/${projectId}`)).status).toBe(200);
@@ -207,12 +218,16 @@ test.describe("project-folder Close", () => {
       await route.continue();
     });
     const durableSource = "queued media direction survives Close";
-    await page.getByTestId("visual-intent-source-refs").fill(durableSource);
-    await draftStarted;
-    await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-    const closeResponse = waitForCloseResponse(page, projectId);
-    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
-    releaseDraft();
+    let closeResponse!: ReturnType<typeof waitForCloseResponse>;
+    try {
+      await page.getByTestId("visual-intent-source-refs").fill(durableSource);
+      await draftStarted;
+      await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+      closeResponse = waitForCloseResponse(page, projectId);
+      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+    } finally {
+      releaseDraft();
+    }
     expect((await closeResponse).ok()).toBeTruthy();
     await page.unroute("**/api/v2/projects/*/authoring-drafts");
     await page.evaluate(() => sessionStorage.clear());

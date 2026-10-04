@@ -43,12 +43,16 @@ test.describe("P0 imported still preview journey", () => {
     await page.getByLabel("审核兼容性说明").fill("The retained still matches the approved first-shot composition.");
     await page.getByTestId("select-reviewed-keyframe").click();
 
-    await page.getByRole("button", { name: "编辑镜头 压力下坠" }).click();
+    await page.getByLabel("当前媒体镜头").selectOption("shot_02");
+    await cards.nth(0).getByTestId(/^keep-candidate-/).click();
+    await page.getByLabel("审核兼容性说明").fill("The retained fixture still is explicitly reviewed for the second shot.");
     await page.getByTestId("select-reviewed-keyframe").click();
-    await page.getByRole("button", { name: "编辑镜头 P0 静止余波" }).click();
+    await page.getByLabel("当前媒体镜头").selectOption("shot_p0_03");
+    await cards.nth(0).getByTestId(/^keep-candidate-/).click();
+    await page.getByLabel("审核兼容性说明").fill("The retained fixture still is explicitly reviewed for the third shot.");
     await page.getByTestId("select-reviewed-keyframe").click();
     await expect(page.getByText("所有镜头已有当前审核关键帧", { exact: false })).toBeVisible();
-    await page.getByRole("button", { name: "编辑镜头 门开" }).click();
+    await page.getByLabel("当前媒体镜头").selectOption("shot_01");
     await page.getByTestId("preview-subset-length").selectOption("3");
     await page.getByTestId("create-still-preview").click();
     await expect(page.getByTestId("still-animatic")).toBeVisible();
@@ -78,7 +82,7 @@ test.describe("P0 imported still preview journey", () => {
 
     // A replacement is explicit, makes the former receipt stale, and permits
     // a new current receipt after the creator freezes the replacement.
-    await page.getByRole("button", { name: "编辑镜头 门开" }).click();
+    await page.getByLabel("当前媒体镜头").selectOption("shot_01");
     await openMediaPreparation(page);
     await cards.nth(1).getByTestId(/^keep-candidate-/).click();
     await page.getByTestId("visual-intent-source-refs").fill("development session image · fixture B");
@@ -92,6 +96,7 @@ test.describe("P0 imported still preview journey", () => {
 
     // A real authored-board edit removes the approval; the workbench must
     // repaint and block a reviewed selection until the normal reapproval.
+    await page.getByRole("button", { name: "编辑镜头细节", exact: true }).click();
     await page.getByLabel("标题").fill("门开（P0 reapproval check）");
     await page.getByRole("button", { name: "保存分镜" }).click();
     await expect(page.getByTestId("select-reviewed-keyframe")).toBeDisabled();

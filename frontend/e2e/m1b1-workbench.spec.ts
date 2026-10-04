@@ -125,7 +125,8 @@ test.describe("M1-B1 canonical workbench journey", () => {
 
     await navigateToStage(page, "05 分镜工作台");
     const action = "E2E M1-B1：阮星跨过气密门，确认控制室仍有一条可审计的选择。";
-    await page.getByLabel("动作", { exact: true }).fill(action);
+    await page.getByRole("button", { name: "编辑镜头细节", exact: true }).click();
+    await page.getByRole("textbox", { name: "动作", exact: true }).fill(action);
     await expect(page.getByLabel("镜头 ID")).toHaveValue("shot_01");
     await page.getByLabel("镜头 ID").press("Tab");
 
@@ -175,7 +176,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
     await savePatchedStage(page, projectId, "storyboard", "保存分镜");
     await page.reload();
     await expect(page.getByLabel("镜头 ID")).toHaveValue("shot_01");
-    await expect(page.getByLabel("动作", { exact: true })).toHaveValue(action);
+    await expect(page.getByRole("textbox", { name: "动作", exact: true })).toHaveValue(action);
     await expect(page.getByRole("group", { name: "AudioPlan" }).getByLabel("描述")).toHaveValue("E2E：气密门密封声与通风系统低鸣");
     await expect(page.getByRole("group", { name: "镜头要求的实体状态" }).getByLabel("状态")).toHaveValue("focused");
     await expect(page.locator('[data-entity-key="link:shot_01:b1"]').getByLabel("覆盖权重")).toHaveValue("0.9");
@@ -198,7 +199,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
     await expect(page.getByLabel("姓名")).toHaveValue("阮星");
 
     await navigateToStage(page, "05 分镜工作台");
-    await expect(page.getByLabel("动作", { exact: true })).toHaveValue(action);
+    await expect(page.getByRole("textbox", { name: "动作", exact: true })).toHaveValue(action);
     await page.getByLabel("审核人标签").fill("E2E local workbench reviewer");
     const approval = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/storyboard-approval`);

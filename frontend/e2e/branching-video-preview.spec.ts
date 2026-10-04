@@ -152,7 +152,10 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
   const shotNames = ["门开", "双键升起", "城市醒来", "舱门开启"];
   const jobIds: string[] = [];
   for (const [index, shotName] of shotNames.entries()) {
-    if (index > 0) await page.getByLabel(`编辑镜头 ${shotName}`).click();
+    if (index > 0) {
+      await page.getByLabel("当前媒体镜头").selectOption(project.storyboard.shots[index].id);
+      await page.getByTestId(/^keep-candidate-/).click();
+    }
     await page.getByLabel("审核兼容性说明").fill(`Current approved ${shotName} fixture keyframe.`);
     const selectedKeyframeResponse = page.waitForResponse((response) => (
       response.request().method() === "POST"

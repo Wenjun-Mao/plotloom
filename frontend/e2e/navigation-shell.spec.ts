@@ -58,16 +58,20 @@ test.describe("M1-B0 query navigation shell", () => {
       await route.continue();
     });
 
-    await page.reload();
-    await expect(page.getByTestId("workspace-hydrating")).toBeVisible();
-    await page.getByText("编辑与工具", { exact: true }).click();
-    await expect(page.getByRole("navigation", { name: "编辑与工具" }).getByRole("button", { name: "故事圣经", exact: true })).toBeDisabled();
-    await expect(page).toHaveURL(new RegExp(`project=${escapeRegex(projectId)}&stage=storyboard`));
-
-    releaseProjectResponse?.();
+    try {
+      await page.reload();
+      await expect(page.getByTestId("workspace-hydrating")).toBeVisible();
+      await page.getByText("编辑与工具", { exact: true }).click();
+      await expect(page.getByRole("navigation", { name: "编辑与工具" }).getByRole("button", { name: "故事圣经", exact: true })).toBeDisabled();
+      await expect(page).toHaveURL((url) => url.searchParams.get("project") === projectId
+        && url.searchParams.get("stage") === "storyboard");
+    } finally {
+      releaseProjectResponse?.();
+    }
     await expect(page.getByTestId("workspace-hydrating")).not.toBeVisible();
     await navigateToSecondaryTool(page, "故事圣经");
-    await expect(page).toHaveURL(new RegExp(`project=${escapeRegex(projectId)}&stage=bible`));
+    await expect(page).toHaveURL((url) => url.searchParams.get("project") === projectId
+      && url.searchParams.get("stage") === "bible");
     await expect(page.getByRole("heading", { name: "故事圣经" })).toBeVisible();
     await expect(page.locator(".project-switcher")).toContainText("月城余晖");
     await expect(page.locator(".project-switcher")).not.toContainText(projectId);
@@ -89,11 +93,13 @@ test.describe("M1-B0 query navigation shell", () => {
       await route.continue();
     });
 
-    await page.reload();
-    await expect(page.getByTestId("workspace-hydrating")).toBeVisible();
-    await expect(page.getByLabel("审核人标签")).not.toBeVisible();
-
-    releaseProjectResponse?.();
+    try {
+      await page.reload();
+      await expect(page.getByTestId("workspace-hydrating")).toBeVisible();
+      await expect(page.getByLabel("审核人标签")).not.toBeVisible();
+    } finally {
+      releaseProjectResponse?.();
+    }
     await expect(page.getByTestId("workspace-hydrating")).not.toBeVisible();
     await expect(page.getByRole("heading", { name: "分镜工作台" })).toBeVisible();
     await expect(page.getByLabel("审核人标签")).toBeVisible();
@@ -112,8 +118,4 @@ async function persistSampleProject(page: import("@playwright/test").Page, front
   const projectId = new URL(page.url()).searchParams.get("project");
   expect(projectId).toBeTruthy();
   return projectId!;
-}
-
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

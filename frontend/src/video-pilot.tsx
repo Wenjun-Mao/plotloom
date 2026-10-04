@@ -15,6 +15,7 @@ import { VideoEndFrameChoice } from "./video-end-frame";
 import { useConfirmation } from "./confirmation";
 import { h3Timing } from "./video-backends/minimax-h3-timing";
 import { shotLabel } from "./shot-label";
+import { verifiedVideoGeometry } from "./features/media/verified-video-geometry";
 
 type FrozenShot = { id?: string; title?: string; action?: string; sceneId?: string; order?: number };
 
@@ -391,7 +392,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
         <pre>{JSON.stringify(job.snapshot.request || {}, null, 2)}</pre>
         {job.reviews.map((review) => <small key={review.id}>审阅：{review.decision === "select" ? "选择" : review.decision === "reopen" ? "重新开放审阅" : "拒绝"}{review.reviewer ? ` · ${review.reviewer}` : ""}{review.note ? ` · ${review.note}` : ""}</small>)}
       </details>
-      {job.state === "ingested" && projectId && <video controls preload="metadata" src={plotloomApi.videoJobMediaUrl(projectId, job.id)} data-testid={`video-job-player-${job.id}`} onPlay={(event) => document.querySelectorAll<HTMLVideoElement>("[data-testid^='video-job-player-']").forEach((video) => { if (video !== event.currentTarget) video.pause(); })} />}
+      {job.state === "ingested" && projectId && <video controls preload="metadata" style={verifiedVideoGeometry(job.observed)} src={plotloomApi.videoJobMediaUrl(projectId, job.id)} data-testid={`video-job-player-${job.id}`} onPlay={(event) => document.querySelectorAll<HTMLVideoElement>("[data-testid^='video-job-player-']").forEach((video) => { if (video !== event.currentTarget) video.pause(); })} />}
       <div className="button-row">
         {job.state === "prepared" && <Button disabled={readOnly} onClick={() => void act(() => plotloomApi.submitVideoJob(projectId!, job.id), "提交未完成")}>提交一次</Button>}
         {(job.state === "submitted" || job.state === "retrieve_needed") && <Button disabled={readOnly} onClick={() => void act(() => plotloomApi.reconcileVideoJob(projectId!, job.id), "获取结果未完成")}>获取结果</Button>}

@@ -181,16 +181,18 @@ test("returns from the secondary workbench after an awaited offline project load
     await retryRequest;
     await route.continue();
   });
-  await workflow.getByRole("link", { name: "美术参考" }).click();
-  await expect(page).toHaveURL(new RegExp(`project=${projectId}&stage=source#art$`));
-  await expect.poll(() => heldRetry).toBeTruthy();
-  await expect(page.locator(".project-switcher strong")).toHaveText("F5A workflow-offline-return");
-  await expect(page.locator(".source-outline-page")).toHaveAttribute("data-project-id", projectId);
-  await expect(page.getByTestId("workspace-hydrating")).toHaveCount(0);
-  await expect(page.getByTestId("art-review")).toBeVisible();
-  await expect(page.locator(".editor-host")).toHaveAttribute("disabled", "");
-
-  releaseRetry?.();
+  try {
+    await workflow.getByRole("link", { name: "美术参考" }).click();
+    await expect(page).toHaveURL(new RegExp(`project=${projectId}&stage=source#art$`));
+    await expect.poll(() => heldRetry).toBeTruthy();
+    await expect(page.locator(".project-switcher strong")).toHaveText("F5A workflow-offline-return");
+    await expect(page.locator(".source-outline-page")).toHaveAttribute("data-project-id", projectId);
+    await expect(page.getByTestId("workspace-hydrating")).toHaveCount(0);
+    await expect(page.getByTestId("art-review")).toBeVisible();
+    await expect(page.locator(".editor-host")).toHaveAttribute("disabled", "");
+  } finally {
+    releaseRetry?.();
+  }
   await expect(page.getByRole("alert")).toHaveCount(0);
   await expect(page.locator(".editor-host")).not.toHaveAttribute("disabled", "");
   await page.unroute(`**/api/v2/projects/${projectId}`);

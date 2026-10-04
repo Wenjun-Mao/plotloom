@@ -70,3 +70,35 @@ default explicitly. Its omission made exact first-save roundtrip checks differ
 after backend serialization; the seed, not a permissive comparator, owns the
 repair. Serialized-bootstrap regression coverage retains the exact stage
 payload assertion and introduces no authored text or ownership change.
+
+H3 media journeys must use the same source read, faithful English direction
+review, complete prompt preview and explicit freeze as the current H3 UI. The
+non-H3 direct-freeze button is not an H3 setup shortcut. Synthetic fixtures
+share the reviewed-direction helper without changing source text, admission,
+selection, persistence or native playback assertions.
+
+The shared page fixture owns route-handler teardown: after the test body, it
+removes routes and awaits pending handlers before Playwright disposes the
+request context. Use [`unrouteAll({ behavior: "wait" })`](https://playwright.dev/docs/api/class-page#page-unroute-all),
+not error suppression; held-response cases must release their owned gates.
+Lifecycle regressions cover waiting, test failure and drain failure. Reload
+persistency first establishes a hydrated owner. Prepared and ready/accepted
+stale-review journeys are separate cases with unchanged assertions/deadlines,
+so repeated hydration does not consume another state transition's entire
+assertion budget.
+
+Shot changes intentionally clear retained-image draft ownership (ADR0103).
+Multi-shot fixtures must retain their chosen asset again and explicitly review
+compatibility, not inherit another shot's temporary retention. Approved-board
+reloads use the named review control before checking collapsed detail. Query
+identity assertions compare parsed parameters, not parameter order; textareas
+use their accessible textbox names rather than wrapper-label text that includes
+the initial textarea contents.
+
+The active image journey follows the native specialist `/send` receipt and
+immutable package/delivery checks. Removed clipboard controls and an already
+skipped retired Story-Bible proposal test are not current product contracts.
+Original/refinement delivery, frozen context/reference/provenance, stale-intent
+inapplicability, tamper rejection and historic reference ownership remain tested.
+The tampered terminal error retains its dispatch reservation as production
+requires; fixture cleanup does not pretend that rejection released it.

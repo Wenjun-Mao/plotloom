@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
@@ -40,6 +39,7 @@ from .format import (
     parse_project_manifest,
 )
 from .project_handle import ProjectStore
+from .project_home import ProjectHome, find_project_home
 from .recovery_validation import database_state
 from .video_candidate_transition import (
     ProjectSchemaTransitionRequiredError,
@@ -51,14 +51,6 @@ from .operational_state import (
     ProjectClosedError,
     close_blockers,
 )
-
-
-@dataclass(frozen=True)
-class ProjectHome:
-    """One discovered project directory and its immutable manifest."""
-
-    path: Path
-    manifest: ProjectManifest
 
 
 class ProjectDirectoryRegistry:
@@ -479,29 +471,7 @@ class ProjectDirectoryRegistry:
                 store.close()
 
     def _project_home(self, project_id: str) -> ProjectHome:
-        matches = [
-            home for home in self.discover() if home.manifest.project_id == project_id
-        ]
-        if not matches:
-            # A rejected manifest must remain diagnosable by its known project
-            # identity. In particular, format-9 is not silently hidden as a
-            # missing folder: callers receive its reset-required admission
-            # failure before any schema-opening path can mutate it.
-            for candidate in self.outputs_root.iterdir():
-                manifest_path = candidate / PROJECT_MANIFEST_FILENAME
-                if candidate.is_symlink() or not candidate.is_dir() or manifest_path.is_symlink() or not manifest_path.is_file():
-                    continue
-                raw = _read_json(manifest_path)
-                if raw.get("projectId") == project_id or raw.get("project_id") == project_id:
-                    parse_project_manifest(raw)
-            raise ProjectStorageError(
-                f"project not found in outputs root: {project_id}"
-            )
-        if len(matches) > 1:
-            raise ProjectStorageCorruptionError(
-                f"multiple project homes share identity: {project_id}"
-            )
-        return matches[0]
+        return find_project_home(self.outputs_root, project_id)
 
     def _exclusive_store(self, project_id: str) -> ProjectStore:
         home = self._project_home(project_id)

@@ -89,7 +89,7 @@ test.describe("first-save project bootstrap", () => {
     await navigateToSecondaryTool(page, "分镜工作台");
     await page.getByRole("button", { name: "编辑镜头细节" }).click();
     const action = "E2E：刷新后仍能看到这条已持久化的分镜动作。";
-    await page.getByLabel("动作", { exact: true }).fill(action);
+    await page.getByRole("textbox", { name: "动作", exact: true }).fill(action);
     const created = captureProjectCreate(page);
     await page.getByRole("button", { name: "保存分镜" }).click();
     const createRequest = await created;
@@ -120,7 +120,7 @@ test.describe("first-save project bootstrap", () => {
     await expectServiceStatus(page, "Plotloom 服务：已连接");
     await navigateToSecondaryTool(page, "分镜工作台");
     await page.getByRole("button", { name: "编辑镜头细节" }).click();
-    await expect(page.getByLabel("动作", { exact: true })).toHaveValue(action);
+    await expect(page.getByRole("textbox", { name: "动作", exact: true })).toHaveValue(action);
   });
 
   test("retains an unsaved Story Bible draft and reuses its idempotency key after a transient create failure", async ({ page, workbench }) => {

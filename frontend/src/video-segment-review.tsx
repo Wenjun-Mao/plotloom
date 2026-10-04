@@ -3,6 +3,7 @@ import type { VideoJob, VideoSegment } from "./types";
 import { ApiError, plotloomApi } from "./api";
 import { Button } from "./components";
 import { useConfirmation } from "./confirmation";
+import { verifiedVideoGeometry } from "./features/media/verified-video-geometry";
 
 function authoredUnits(job: VideoJob): number | null {
   const binding = job.snapshot.sourceTiming;
@@ -148,7 +149,7 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
       </select>
     </label>}
     {chosen && <div className="segment-preview-step" id={`video-segment-preview-${job.id}`}>
-      <video key={chosen.id} controls preload="metadata" src={plotloomApi.videoSegmentPreviewUrl(projectId, chosen.id)}
+      <video key={chosen.id} controls preload="metadata" style={verifiedVideoGeometry(job.observed)} src={plotloomApi.videoSegmentPreviewUrl(projectId, chosen.id)}
         data-testid={`video-segment-preview-${chosen.id}`}
         onPlay={(event) => document.querySelectorAll<HTMLVideoElement>("[data-testid^='video-job-player-'], [data-testid^='video-segment-preview-']").forEach((video) => { if (video !== event.currentTarget) video.pause(); })} />
       <small>{chosen.selected ? "已选择片段 · 正用于故事" : "待审片段 · 尚未用于故事"}；{chosen.inFrame}–{chosen.outFrame} 帧。请检查对白、动作、字幕和首尾声音是否完整。</small>

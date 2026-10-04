@@ -144,6 +144,17 @@ the real Linux and Mac probes verify the same strict presented-sample contract.
 
 ## First slice, alternatives and decision boundary
 
+### Stable review layout from verified dimensions (2026-10-04)
+
+Original and segment review players reserve their aspect ratio from the admitted
+take's measured width/height before native browser metadata loads, with contain
+fitting and the existing responsive bounds. Browser metadata must not introduce
+a second layout authority that moves adjacent editing controls. Invalid/missing
+probe dimensions are not invented. This does not crop/re-encode media or change
+timing, approval or selection. UI regressions check both players before metadata.
+A CI trace shows metadata-driven player expansion; it does not establish that
+expansion alone caused the historical successful-click/no-request failure.
+
 Approved first implementation: build the probe/segment/selection contract and minimal Chinese review UI for current 24-fps H3 6/8-second authored shots; use qualified 8-second requests as possible source takes for six-second windows, while preserving exact source timing and all existing Approval/reference/keyframe, dispatch and quality gates. The creator may choose **any contiguous exact-duration in/out window** with its sound, inspect the final derivative, and explicitly confirm the selected take/window; the system must not claim that a human watched it merely because a control was clicked. Show separately “原稿镜头时长”, “后端请求时长”, “实测原片”, and “已审核播放片段”; label an 8-second request as *candidate material for a six-second segment*, not as an exact match. Block with a clear reason for no Approval, stale source/selection, no qualified request, missing frames/audio, non-frame-aligned shot, unreviewed window, mismatched probe, or clipped creative content. A six-second catalog entry must not be introduced on the assumption that `158/24` equals six.
 
 - Reauthor F5/canonical shots to 5/8 seconds: simplest mechanically, but changes accepted story pacing and may invalidate source bindings, dialogue budgets, approvals, and 26 U4 cuts. Requires a distinct author creative decision; never automatic.

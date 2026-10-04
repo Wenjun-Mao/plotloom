@@ -147,3 +147,25 @@ The [real-media closeout receipt](../verification/2026-10-03-e2e-first-real-medi
 owns exact media identities, hashes, actual UI coverage and acceptance limits.
 Final-film polish and owner listening are subsequent reviews, not unfinished
 scope silently accepted by this checkpoint.
+
+## Release verification checkpoint
+
+Implementation `24d9acc5af7346bdbcfdf26e2976731072ce5bd3` is pushed on retained
+`main`. The final bundle has been loaded in the real isolated player; both
+routes again ended naturally, and the original baseline still matches. The
+source/static, sample-seed roundtrip and browser-control repairs retain their
+independent reviews and regression assertions. Local frontend now passes414
+tests; the backend production change passed1054 before the three CI contract
+guards were added. The unfiltered
+[release run37160134124](https://github.com/Wenjun-Mao/plotloom/actions/runs/37160134124)
+has passed its non-browser job (1057 backend and414 frontend tests, types,
+static-drift, archived reader and wheel/smoke). Both browser shards failed;
+their reports/results are preserved and current-control fixture repairs retain
+the supported assertions without increasing deadlines. Root also reproduced
+known busy-home misclassification and repaired identity-before-admission
+(ADR0110), and reserved verified video review geometry before metadata. Focused
+storage/recovery and frontend regressions pass; independent final review,
+rebuilt UI activation and fresh full candidate CI remain ahead. Step6
+remains open until the complete result is reviewed, closeout records are pushed
+and the existing reporting heartbeat is paused. No further media generation,
+normal backend activation or final-film/sound acceptance is implied.

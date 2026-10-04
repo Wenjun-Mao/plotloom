@@ -89,11 +89,14 @@ test("pending or failed activation reads retain evidence but cannot enable stale
     await held;
     await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ detail: "held currentness read failed" }) });
   });
-  await navigate(page, "分镜评审");
-  await expect(storyboard).toContainText("正在刷新");
-  await expect(storyboard.getByRole("button", { name: "准备分镜任务" })).toBeDisabled();
-  await expect(storyboard.getByRole("button", { name: "准备投产提案" })).toBeDisabled();
-  release();
+  try {
+    await navigate(page, "分镜评审");
+    await expect(storyboard).toContainText("正在刷新");
+    await expect(storyboard.getByRole("button", { name: "准备分镜任务" })).toBeDisabled();
+    await expect(storyboard.getByRole("button", { name: "准备投产提案" })).toBeDisabled();
+  } finally {
+    release();
+  }
   await expect(storyboard).toContainText("无法刷新");
   await expect(storyboard.getByRole("button", { name: "准备分镜任务" })).toBeDisabled();
   await page.unroute(url);

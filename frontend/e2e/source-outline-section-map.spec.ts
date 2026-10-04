@@ -67,7 +67,7 @@ test("installs the accepted Tide Light map into canonical routes, then survives 
   expect(writes).toEqual([]);
 
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source`);
-
+  await expect(page.getByTestId("section-map")).toContainText("当前 r1");
   await page.reload();
   await expect(page.getByTestId("section-map")).toContainText("当前 r1");
   await expect(page.getByTestId("section-map-route-cards")).toContainText("供电码头 → 结局 A");

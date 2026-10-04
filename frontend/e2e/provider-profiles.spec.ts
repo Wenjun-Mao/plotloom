@@ -133,11 +133,14 @@ test("merges availability without losing an unsaved profile draft, session key, 
   await page.route("**/api/v2/text-provider-profiles/default/availability", holdAvailability);
   const disabled = page.waitForResponse((response) => response.request().method() === "PUT"
     && new URL(response.url()).pathname.endsWith("/text-provider-profiles/default/availability"));
-  await page.getByRole("button", { name: "停用后端" }).click();
-  await upstreamReceivedPromise;
-  await page.getByLabel("文本模型").fill("draft-model-during-toggle");
-  await page.getByLabel("此 Profile 的临时 API Key").fill("draft-key-during-toggle");
-  releaseAvailabilityResponse();
+  try {
+    await page.getByRole("button", { name: "停用后端" }).click();
+    await upstreamReceivedPromise;
+    await page.getByLabel("文本模型").fill("draft-model-during-toggle");
+    await page.getByLabel("此 Profile 的临时 API Key").fill("draft-key-during-toggle");
+  } finally {
+    releaseAvailabilityResponse();
+  }
   expect((await disabled).ok()).toBeTruthy();
   await page.unroute("**/api/v2/text-provider-profiles/default/availability", holdAvailability);
 
