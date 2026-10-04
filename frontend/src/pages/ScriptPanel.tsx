@@ -5,11 +5,12 @@ import type { AcceptedScriptRevision, ScriptCandidate, ScriptReviewState } from 
 import { ManualTaskAssignment } from "./ManualTaskAssignment";
 import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskActions";
 import { useReviewActivation } from "./useReviewActivation";
+import { StageGuide } from "../components/StageGuide";
 
 type ProjectSession = { projectId: string; epoch: number };
 
 /** F4 reviews one upstream JSON authority and permits only bound episode replacement. */
-export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true, refreshToken }: { projectId: string; readOnly: boolean; active?: boolean; refreshToken?: unknown }) {
+export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true, refreshToken, onContinue }: { projectId: string; readOnly: boolean; active?: boolean; refreshToken?: unknown; onContinue?: () => void }) {
   const [state, setState] = useState<ScriptReviewState>();
   const [assignment, setAssignment] = useState("");
   const [error, setError] = useState("");
@@ -30,7 +31,7 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
       const next = await plotloomApi.getScript(session.projectId);
       if (owns(session) && isCurrent()) { setState(next); return true; }
     } catch (reason) {
-      if (owns(session) && isCurrent()) setError(reason instanceof Error ? reason.message : "Unable to load script.");
+      if (owns(session) && isCurrent()) setError(reason instanceof Error ? reason.message : "无法读取剧本。");
     }
     return false;
   }, [projectId]);
@@ -58,7 +59,7 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
       onSuccess?.(result);
       await recheck();
     }).catch(reason => {
-      if (owns(session)) setError(reason instanceof Error ? reason.message : "Script operation failed.");
+      if (owns(session)) setError(reason instanceof Error ? reason.message : "剧本操作失败。");
     }).finally(() => {
       // Ownership remains held through response settlement; invalidation on
       // unmount/project switch makes this a deliberate no-op afterwards.
@@ -102,7 +103,9 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
     <header><span>剧本</span><strong>{checking ? "正在刷新" : failed ? "无法刷新" : heading(state)}</strong></header>
     {failed && <Button variant="quiet" onClick={() => void recheck()}>重试加载剧本</Button>}
     <p>根据已确认的故事分支编写开场和两个结局；每次观看只会经过其中一个结局。</p>
-    <div className="notice warning">上游格式和时长限制仍会检查；冻结章节与完整路径的时长上限继续适用。</div>
+    <StageGuide next={onContinue && <Button variant="quiet" disabled={checking || failed || busy || draftDirty.current || state.status !== "accepted" || !accepted} onClick={onContinue}>继续：分镜评审</Button>}>
+      {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : busy ? "正在处理剧本任务，请稍候。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃章节修改，再继续分镜。" : state.status === "stale" ? "故事或美术设定已变化，请更新并确认剧本。" : state.status === "accepted" && accepted ? "完整剧本已确认。下一步准备分镜评审；切换页面不会自动生成镜头或媒体。" : candidate?.status === "ready" ? "阅读候选剧本，确认开场、选择和结局表达，再确认使用。" : "准备剧本任务并发送给文字创作助手。返回的剧本须先审阅，再确认使用。"}
+    </StageGuide>
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
     {!candidate && state.status !== "reopened" && <Button variant="primary" disabled={readOnly || busy} onClick={prepare}>准备剧本任务</Button>}
     {candidate?.status === "prepared" && <SpecialistTaskActions projectId={projectId} stage="script" jobId={candidate.jobId} disabled={readOnly || busy} sendDisabled={state.status === "stale"} onDelivered={recheck} />}
@@ -176,8 +179,9 @@ function episodeForSection(script: Record<string, unknown> | null, sectionId: st
 
 function heading(state: ScriptReviewState): string {
   if (state.status === "stale") return "上下文已过期";
-  if (state.acceptedScript) return `已确认 r${state.acceptedScript.revision}`;
+  if (state.status === "reopened") return "剧本正在编辑";
   if (state.candidate?.status === "ready") return "待审阅";
   if (state.candidate?.status === "prepared") return "任务已准备";
+  if (state.acceptedScript) return `已确认 r${state.acceptedScript.revision}`;
   return "尚无剧本候选";
 }

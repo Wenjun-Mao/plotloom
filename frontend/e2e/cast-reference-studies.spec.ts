@@ -108,7 +108,7 @@ test.describe("F2B cast-owned reference studies", () => {
     await expect(page.locator(".topbar-technical-status")).not.toHaveAttribute("open", "");
     await expect(page.getByText("readiness.not_checked", { exact: false })).not.toBeVisible();
     await expect(page.locator(".project-switcher")).not.toContainText(projectId);
-    await expect(panel).toContainText("必须明确发送给 specialist");
+    await expect(panel).toContainText("必须明确发送给图像生成助手");
     // U3 admits this cast-only project before it has any reference image. It
     // must not reach for a Bible, screenplay, or storyboard to fill the gap.
     const emptyGallery = page.getByTestId("character-reference-gallery");
@@ -654,10 +654,10 @@ async function writeCastDelivery(prepared: any): Promise<void> {
 
 async function copyProposalFromBrowser(page: import("@playwright/test").Page, projectId: string, proposalId: string): Promise<PackagePaths> {
   const proposalCard = page.locator(`[data-proposal-id="${proposalId}"]`);
-  await expect(proposalCard.getByRole("button", { name: "发送给 specialist" })).toBeEnabled();
+  await expect(proposalCard.getByRole("button", { name: "发送给图像生成助手" })).toBeEnabled();
   const copied = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/character-reference-proposals/${proposalId}/send`);
-  await proposalCard.getByRole("button", { name: "发送给 specialist" }).click();
+  await proposalCard.getByRole("button", { name: "发送给图像生成助手" }).click();
   const response = await copied;
   expect(response.ok(), await response.text()).toBeTruthy();
   return response.json() as Promise<PackagePaths>;
@@ -675,7 +675,7 @@ async function prepareProposalFromBrowser(
   await panel.getByRole("button", { name: "创建提案" }).click();
   expect((await prepared).status()).toBe(201);
   const latest = await latestProposal(request, apiOrigin, projectId);
-  await expect(panel.locator(`[data-proposal-id="${latest.id}"]`).getByRole("button", { name: "发送给 specialist" })).toBeEnabled();
+  await expect(panel.locator(`[data-proposal-id="${latest.id}"]`).getByRole("button", { name: "发送给图像生成助手" })).toBeEnabled();
   return latest;
 }
 

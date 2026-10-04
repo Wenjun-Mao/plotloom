@@ -165,11 +165,11 @@ test.describe("P1 self-contained specialist image brief", () => {
     await expect(page.getByTestId(`image-job-${original.id}`)).toBeVisible();
     const originalPackage = await sendImageJob(page, projectId, original.id);
     await expect(page.getByTestId(`image-job-${original.id}`)).toContainText(
-      "已发送给专用 specialist",
+      "已发送给图像生成助手",
     );
     await page.getByTestId(`refresh-image-job-${original.id}`).click();
     await expect(page.getByTestId(`image-job-${original.id}`)).toContainText(
-      "尚未收到 delivery",
+      "尚未收到交付",
     );
     expect(
       (await imageJob(request, workbench.apiOrigin, projectId, original.id)).deliveries,
@@ -422,7 +422,7 @@ test.describe("P1 self-contained specialist image brief", () => {
     });
     await expect(
       page.getByTestId(`image-job-${staleRefinement.id}`),
-    ).toContainText("INAPPLICABLE");
+    ).toContainText("不适用（历史）");
 
     // A delivery with a changed manifest must be rejected through the same
     // browser Refresh path; absence is the only non-error waiting state.

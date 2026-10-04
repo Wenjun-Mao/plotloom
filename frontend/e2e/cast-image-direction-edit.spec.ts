@@ -65,7 +65,7 @@ test("explicitly edits all cast image directions, cancels safely, and freezes th
   const gallery = page.getByTestId("character-reference-gallery");
   await gallery.getByLabel("想法").fill("Explicit new photographic reference");
   await gallery.getByRole("button", { name: "创建提案" }).click();
-  await expect(gallery.getByRole("button", { name: "发送给 specialist" })).toBeEnabled();
+  await expect(gallery.getByRole("button", { name: "发送给图像生成助手" })).toBeEnabled();
   const proposals = await getJson<any>(request.get(`${endpoint}/character-reference-proposals`));
   expect(proposals.proposals[0].request.frozenSnapshot.acceptedCast.image).toEqual(directions);
 });

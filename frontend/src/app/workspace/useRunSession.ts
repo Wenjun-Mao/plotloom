@@ -30,10 +30,15 @@ export function useRunSession({ session, setError, describeError }: {
   }, [invalidateTraceRequests, session]);
 
   useEffect(() => session.registerNavigationCleanup(invalidateTraceRequests), [invalidateTraceRequests, session.registerNavigationCleanup]);
-  useEffect(() => () => {
-    disposed.current = true;
-    invalidateTraceRequests();
-    pollingEpochs.current.clear();
+  useEffect(() => {
+    // StrictMode replays setup after cleanup. A replayed observer must be live;
+    // a real unmount must still reject held progress and error responses.
+    disposed.current = false;
+    return () => {
+      disposed.current = true;
+      invalidateTraceRequests();
+      pollingEpochs.current.clear();
+    };
   }, [invalidateTraceRequests]);
 
   const pollRun = useCallback(async (runId: string, projectId = session.route.project) => {
@@ -44,14 +49,14 @@ export function useRunSession({ session, setError, describeError }: {
       let keepPolling = true;
       while (keepPolling && !disposed.current) {
         const progress = await plotloomApi.getRunProgress(runId);
-        if (!session.isCurrent(operation)) return;
+        if (disposed.current || !session.isCurrent(operation)) return;
         session.acceptRunProgress(runId, progress);
         keepPolling = progress.status === "queued" || progress.status === "running" || progress.status === "cancel_requested";
         if (keepPolling) await new Promise((resolve) => window.setTimeout(resolve, 1400));
       }
-      if (projectId && session.isCurrent(operation)) await session.reloadCanonicalProject(projectId, operation.epoch);
+      if (projectId && !disposed.current && session.isCurrent(operation)) await session.reloadCanonicalProject(projectId, operation.epoch);
     } catch (error) {
-      if (session.isCurrent(operation)) setError(describeError(error));
+      if (!disposed.current && session.isCurrent(operation)) setError(describeError(error));
     } finally {
       if (pollingEpochs.current.get(runId) === operation.epoch) pollingEpochs.current.delete(runId);
     }

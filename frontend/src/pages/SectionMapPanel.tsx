@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button } from "../components";
+import { Button, RequiredMark } from "../components";
 import type { AcceptedOutlineRevision, AcceptedSectionMapRevision, SectionMap, SourceMapGraphAdmission } from "../types";
 import type { StoryRoute } from "../model";
 
@@ -59,24 +59,25 @@ export function SectionMapPanel({
   return <article className="panel section-map" data-testid="section-map">
     <header><span>故事分支</span><strong>{status === "current" ? `当前 r${accepted?.revision}` : status === "stale" ? `需要重新检查 r${accepted?.revision}` : "尚未保存"}</strong></header>
     <p>在这里编辑故事章节和观众选择。保存不会自动生成剧本或视频；应用会创建或更新故事路线。当前支持一个选择、两个结局。</p>
+    <small className="required-legend">* 为必填项；章节与路径标识默认已填写，保存后保持不变。</small>
     {status === "stale" && <div className="notice warning"><strong>故事分支需要重新检查</strong><span>{staleReasons.join("；") || "故事内容或已确认大纲已变化。请按当前大纲复核后另存。"}</span></div>}
     {!outline ? <p className="muted">先确认一个大纲，再建立章节与分支。</p> : <>
       <small>绑定来源 r{outline.sourceRevision} · outline r{outline.revision} · {outline.contentHash.slice(0, 12)}</small>
       <div className="section-map-sections">
         {mapping.sections.map((section, index) => <fieldset key={index}><legend>{section.ending ? `结局 ${index}` : "选择发生的章节"}</legend>
           <label>稳定章节 ID<input disabled={readOnly || busy || Boolean(accepted)} value={section.sectionId} onChange={event => updateSection(index, "sectionId", event.target.value)} /></label>
-          <label>章节标题<input disabled={readOnly || busy} value={section.title} onChange={event => updateSection(index, "title", event.target.value)} /></label>
-          <label>章节摘要<textarea disabled={readOnly || busy} value={section.summary} onChange={event => updateSection(index, "summary", event.target.value)} rows={3} /></label>
+          <label><span>章节标题<RequiredMark /></span><input aria-required="true" disabled={readOnly || busy} value={section.title} onChange={event => updateSection(index, "title", event.target.value)} /></label>
+          <label><span>章节摘要<RequiredMark /></span><textarea aria-required="true" disabled={readOnly || busy} value={section.summary} onChange={event => updateSection(index, "summary", event.target.value)} rows={3} /></label>
         </fieldset>)}
       </div>
       <fieldset className="section-map-choice"><legend>观众选择</legend>
         <label>选择 ID<input disabled={readOnly || busy || Boolean(accepted)} value={mapping.choice.choiceId} onChange={event => setMapping(current => ({ ...current, choice: { ...current.choice, choiceId: event.target.value } }))} /></label>
         <label>发生章节<select disabled={readOnly || busy || Boolean(accepted)} value={mapping.choice.sectionId} onChange={event => setMapping(current => ({ ...current, choice: { ...current.choice, sectionId: event.target.value } }))}>{mapping.sections.filter(section => !section.ending).map(section => <option key={section.sectionId} value={section.sectionId}>{section.title || section.sectionId}</option>)}</select></label>
-        <label>选择问题<textarea disabled={readOnly || busy} value={mapping.choice.prompt} onChange={event => setMapping(current => ({ ...current, choice: { ...current.choice, prompt: event.target.value } }))} rows={2} /></label>
+        <label><span>选择问题<RequiredMark /></span><textarea aria-required="true" disabled={readOnly || busy} value={mapping.choice.prompt} onChange={event => setMapping(current => ({ ...current, choice: { ...current.choice, prompt: event.target.value } }))} rows={2} /></label>
         {mapping.choice.outcomes.map((outcome, index) => <div className="section-map-outcome" key={index}><strong>路径 {index + 1}</strong>
           <label>路径 ID<input disabled={readOnly || busy || Boolean(accepted)} value={outcome.outcomeId} onChange={event => updateOutcome(index, "outcomeId", event.target.value)} /></label>
-          <label>选项文字<input disabled={readOnly || busy} value={outcome.label} onChange={event => updateOutcome(index, "label", event.target.value)} /></label>
-          <label>选择后的发展<textarea disabled={readOnly || busy} value={outcome.consequence} onChange={event => updateOutcome(index, "consequence", event.target.value)} rows={2} /></label>
+          <label><span>选项文字<RequiredMark /></span><input aria-required="true" disabled={readOnly || busy} value={outcome.label} onChange={event => updateOutcome(index, "label", event.target.value)} /></label>
+          <label><span>选择后的发展<RequiredMark /></span><textarea aria-required="true" disabled={readOnly || busy} value={outcome.consequence} onChange={event => updateOutcome(index, "consequence", event.target.value)} rows={2} /></label>
           <label>对应结局<select disabled={readOnly || busy || Boolean(accepted)} value={outcome.endingSectionId} onChange={event => updateOutcome(index, "endingSectionId", event.target.value)}>{endingSections.map(section => <option key={section.sectionId} value={section.sectionId}>{section.title || section.sectionId}</option>)}</select></label>
         </div>)}
       </fieldset>

@@ -72,8 +72,16 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
       || session.needsCanonicalRefresh(next.project)
     ) {
       void loadProject(next.project, epoch);
+    } else if (
+      !session.runSelectionPending
+      && session.run?.projectId === next.project
+      && ["queued", "running", "cancel_requested"].includes(session.run.status)
+    ) {
+      // Navigation invalidates the old observer. Continue reading the existing
+      // run under this route's epoch; do not reload/resume or resubmit it.
+      void pollRun(session.run.id, next.project);
     }
-  }, [clearDraftRouteState, loadProject, session]);
+  }, [clearDraftRouteState, loadProject, pollRun, session]);
 
   const requestNavigation = useCallback((next: {
     project: string;

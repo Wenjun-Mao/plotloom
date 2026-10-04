@@ -104,19 +104,19 @@ export function CharacterReferencesPanel({
         data-testid="character-reference-panel"
       >
         <div className="section-title">
-          <span>Character references · P1.5</span>
+          <span>角色身份参考</span>
           <strong>
-            Creator decision → role-mapped generation → recorded visual review
+            选择参考图 → 为镜头生成图片 → 记录人物视觉复核
           </strong>
         </div>
         <p className="muted">
-          身份参考是项目内、可撤销且版本化的决定。它不改写角色
-          canon，也不替代镜头的状态、服装、构图或叙事事实；只有当前
-          Shot.characterIds 会进入 image job。
+          身份参考用于保持同一人物的外观，可更新或撤销。它不改写已确认的角色设定，
+          也不替代每个镜头的状态、服装、构图和剧情；图片任务只采用当前镜头中人物的参考图。
         </p>
         <div className="field-grid two compact">
-          <Field label="角色">
+          <Field label="角色" required>
             <select
+              aria-required="true"
               data-testid="reference-character"
               value={referenceCharacterId}
               disabled={readOnly || busy}
@@ -129,8 +129,9 @@ export function CharacterReferencesPanel({
               ))}
             </select>
           </Field>
-          <Field label="主身份参考">
+          <Field label="主身份参考" required>
             <select
+              aria-required="true"
               data-testid="reference-primary-asset"
               value={referencePrimaryAssetId}
               disabled={readOnly || busy}
@@ -170,8 +171,9 @@ export function CharacterReferencesPanel({
                 ))}
             </select>
           </Field>
-          <Field label="审阅者">
+          <Field label="审阅者" required>
             <input
+              aria-required="true"
               data-testid="reference-reviewer"
               value={referenceReviewer}
               disabled={readOnly || busy}
@@ -179,8 +181,9 @@ export function CharacterReferencesPanel({
             />
           </Field>
         </div>
-        <Field label="选择说明">
+        <Field label="选择说明" required>
           <textarea
+            aria-required="true"
             data-testid="reference-notes"
             rows={2}
             value={referenceNotes}
@@ -233,16 +236,16 @@ export function CharacterReferencesPanel({
                               projectId,
                               asset.id,
                             )}
-                            alt={`${character.name} ${index === 0 ? "primary" : "complementary"} identity reference`}
+                            alt={`${character.name} ${index === 0 ? "主身份参考图" : "补充身份参考图"}`}
                           />
                           <figcaption>
-                            {index === 0 ? "primary" : `complementary ${index}`}{" "}
+                            {index === 0 ? "主参考图" : `补充参考图 ${index}`}{" "}
                             · {asset.id.slice(0, 8)}
                           </figcaption>
                         </figure>
                       ) : (
                         <small key={assetId}>
-                          Frozen asset {assetId.slice(0, 8)} is unavailable.
+                          无法读取参考素材 {assetId.slice(0, 8)}。
                         </small>
                       );
                     })}
@@ -255,15 +258,15 @@ export function CharacterReferencesPanel({
                   {character.name} ·{" "}
                   {decision?.current
                     ? `r${decision.referenceRevision}`
-                    : mediaReadPhase === "ready" ? "missing" : "状态未知"}
+                    : mediaReadPhase === "ready" ? "尚未选择" : "状态未知"}
                 </strong>
                 <small>
                   {decision?.notes ??
-                    (mediaReadPhase === "ready" ? "P1.5 image job 会在准备时拒绝可见角色缺少参考的镜头。" : "读取完成前不会开放参考选择或图片请求。")}
+                    (mediaReadPhase === "ready" ? "为有人物的镜头准备图片任务前，须先选择该人物的参考图。" : "读取完成前不会开放参考选择或图片请求。")}
                 </small>
                 {acceptedCast && (
                   <small data-testid={`cast-linked-reference-${character.id}`}>
-                    接受的 cast · {acceptedCast.castCharacterId} · r
+                    已确认角色 · {acceptedCast.castCharacterId} · r
                     {acceptedCast.revision} · {acceptedCast.contentHash?.slice(0, 12)}
                   </small>
                 )}

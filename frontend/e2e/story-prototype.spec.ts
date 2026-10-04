@@ -91,6 +91,33 @@ test("refuses a stale storyboard locally while retaining the current screenplay"
   await expect(prototype.getByTestId("storyboard-unavailable")).toContainText("当前没有可阅读的已确认分镜评审");
 });
 
+test("shows pending storyboard reads distinctly and retries fatal reader errors without writes", async ({ page, request, workbench }) => {
+  const id = await createScriptProject(request, workbench.apiOrigin, "story-prototype-read-recovery");
+  let rejectScriptRead = true;
+  await page.route(`**/api/v2/projects/${id}/script`, async route => {
+    if (rejectScriptRead) { await route.fulfill({ status: 503, json: { detail: "暂时无法读取剧本" } }); }
+    else await route.continue();
+  });
+  let finishStoryboard!: () => void;
+  const held = new Promise<void>(resolve => { finishStoryboard = resolve; });
+  await page.route(`**/api/v2/projects/${id}/storyboard-source-review`, async route => { await held; await route.continue(); });
+  const writes: string[] = [];
+  page.on("request", request => { if (request.url().includes("/api/v2/") && request.method() !== "GET") writes.push(request.method()); });
+  try {
+    await page.goto(`${workbench.frontendOrigin}/v2/?view=story-prototype&project=${id}`);
+    await expect(page.getByRole("heading", { name: "暂时无法阅读故事" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "返回创作流程", exact: true })).toBeVisible();
+    rejectScriptRead = false;
+    await page.getByRole("button", { name: "重新读取故事" }).click();
+    await expect(page.getByTestId("story-prototype")).toBeVisible();
+    await expect(page.getByRole("button", { name: "分镜 · 正在检查" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "分镜 · 当前不可读" })).toHaveCount(0);
+    finishStoryboard();
+    await expect(page.getByRole("button", { name: "分镜 · 当前不可读" })).toBeVisible();
+    expect(writes).toEqual([]);
+  } finally { finishStoryboard(); }
+});
+
 async function multiSceneCandidates() {
   const [cast, art, script] = await Promise.all([fixture("cast.json"), fixture("art.json"), fixture("script.json")]);
   cast.characters.push({ id: "watcher", name: "Ilan", reviewNotes: { sourceNotes: "Appearance is proposed", performanceGuidance: "" }, persona: { personality: ["Careful"],  appearance: "Oilskin coat and a harbor lantern", arc: "Keeps the dock visible", motivation: "Bring boats in safely" }, voice: { timbre: "Low and careful" } });

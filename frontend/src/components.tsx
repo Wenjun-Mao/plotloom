@@ -2,8 +2,8 @@ import type { HTMLAttributes, PropsWithChildren, ReactNode } from "react";
 import type { ServerStageName } from "./types";
 import { stageLabels } from "./model";
 
-export function Button({ variant = "default", className = "", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "default" | "primary" | "danger" | "quiet" }) {
-  return <button {...props} className={`button ${variant} ${className}`.trim()} />;
+export function Button({ variant = "default", className = "", busy, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "default" | "primary" | "danger" | "quiet"; busy?: boolean }) {
+  return <button {...props} aria-busy={busy || undefined} className={`button ${variant} ${className}`.trim()} />;
 }
 
 export function Panel({ children, className = "", ...props }: PropsWithChildren<HTMLAttributes<HTMLElement>>) {
@@ -31,8 +31,12 @@ export function StageStatus({ staleStages, stage }: { staleStages: ServerStageNa
     : <Badge tone="ok">{stageLabels[stage]}已同步</Badge>;
 }
 
-export function Field({ label, hint, children }: PropsWithChildren<{ label: string; hint?: string }>) {
-  return <label className="field"><span>{label}</span>{children}{hint && <small>{hint}</small>}</label>;
+export function RequiredMark() {
+  return <span className="required-mark" aria-hidden="true"> *</span>;
+}
+
+export function Field({ label, hint, required, children }: PropsWithChildren<{ label: string; hint?: string; required?: boolean }>) {
+  return <label className="field"><span>{label}{required && <RequiredMark />}</span>{children}{hint && <small>{hint}</small>}</label>;
 }
 
 export function JsonPreview({ value }: { value: unknown }) {

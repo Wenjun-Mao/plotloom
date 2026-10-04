@@ -58,7 +58,7 @@ test.describe("P0 imported still preview journey", () => {
     await expect(page.getByTestId("still-animatic")).toBeVisible();
     await page.getByTestId("animatic-play-pause").click();
     await page.getByTestId("animatic-seek").fill("2");
-    await expect(page.getByText("shot_p0_03 · 2000ms", { exact: false })).toBeVisible();
+    await expect(page.getByText("shot_p0_03 · 2000 毫秒", { exact: false })).toBeVisible();
 
     const beforeRestart = await captureRestartEvidence(request, workbench.apiOrigin, projectId);
     // This terminates the owned FastAPI process and starts a new one with the
@@ -89,9 +89,9 @@ test.describe("P0 imported still preview journey", () => {
     await page.getByTestId("save-visual-intent").click();
     await page.getByLabel("审核兼容性说明").fill("The replacement still matches the approved first-shot composition.");
     await page.getByTestId("select-reviewed-keyframe").click();
-    await expect(page.getByText("STALE", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("已过期", { exact: true }).first()).toBeVisible();
     await page.getByTestId("create-still-preview").click();
-    await expect(page.getByText("CURRENT", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("当前可用", { exact: true }).first()).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath("p0-imported-still-preview-1440x900.png"), animations: "disabled" });
 
     // A real authored-board edit removes the approval; the workbench must
@@ -111,7 +111,7 @@ test.describe("P0 imported still preview journey", () => {
     await expect(page.getByRole("button", { name: "保存分镜", exact: true })).toBeEnabled();
     await openMediaKeyframes(page);
     await expect(page.getByTestId("select-reviewed-keyframe")).toBeDisabled();
-    await expect(page.getByText("需要当前 storyboard Approval", { exact: false })).toBeVisible();
+    await expect(page.getByText("请先批准当前分镜；导入、比较和意图细化仍可继续。", { exact: true })).toBeVisible();
     await page.getByLabel("审核人标签").fill("P0 reapproval reviewer");
     await page.getByRole("button", { name: "批准当前分镜" }).click();
     await expect(page.getByText("当前批准：P0 reapproval reviewer", { exact: true })).toBeVisible();

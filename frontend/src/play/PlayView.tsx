@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { plotloomApi } from "../api";
 import { BranchingVideoPreview } from "../branching-video-preview";
-import { ErrorNotice, Spinner } from "../components";
+import { Button, ErrorNotice, Spinner } from "../components";
 import type { SceneBeatPlan, StoryGraph, Storyboard, VideoJob } from "../types";
 
 type PlayData = {
@@ -26,6 +26,7 @@ export function PlayView() {
   const projectId = new URLSearchParams(window.location.search).get("project") || "";
   const [data, setData] = useState<PlayData>();
   const [error, setError] = useState("");
+  const [readRevision, setReadRevision] = useState(0);
 
   useEffect(() => {
     if (!projectId) {
@@ -54,16 +55,16 @@ export function PlayView() {
       setError(reason instanceof Error ? reason.message : "无法加载播放内容。");
     });
     return () => controller.abort();
-  }, [projectId]);
+  }, [projectId, readRevision]);
 
   return <main className="play-shell" data-testid="play-view">
     <header className="play-header">
-      <a className="brand" href={projectId ? workbenchUrl(projectId) : "?stage=brief"}><div className="brand-mark">PL</div><div><strong>Plotloom</strong><small>PLAY VIEW</small></div></a>
+      <a className="brand" href={projectId ? workbenchUrl(projectId) : "?stage=brief"}><div className="brand-mark">PL</div><div><strong>Plotloom</strong><small>故事播放</small></div></a>
       {projectId && <a className="button quiet" href={workbenchUrl(projectId)}>返回工作台</a>}
     </header>
     <section className="play-stage">
-      {error ? <ErrorNotice message={error} /> : !data ? <div className="play-loading"><Spinner label="正在加载故事" /></div> : <>
-        <span className="eyebrow">Interactive story</span>
+      {error ? <><ErrorNotice message={error} />{projectId && <Button variant="quiet" onClick={() => setReadRevision(value => value + 1)}>重新读取播放内容</Button>}</> : !data ? <div className="play-loading"><Spinner label="正在加载故事" /></div> : <>
+        <span className="eyebrow">互动故事</span>
         <h1>{data.title}</h1>
         <p>从开场开始；故事会在分歧处停下，等待你的选择。</p>
         <BranchingVideoPreview projectId={projectId} jobs={data.jobs} storyboard={data.storyboard} sceneBeats={data.sceneBeats} graph={data.graph} title="故事播放" restartLabel="从头开始" />

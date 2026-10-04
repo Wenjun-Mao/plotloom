@@ -6,6 +6,7 @@ import { ArtReferenceGallery } from "./ArtReferenceGallery";
 import { ArtReport } from "./ArtReport";
 import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskActions";
 import { useReviewActivation } from "./useReviewActivation";
+import { StageGuide } from "../components/StageGuide";
 
 type EditorProps = { disabled: boolean; draft: string; setDraft: (value: string) => void };
 type ProjectSession = { projectId: string; epoch: number };
@@ -22,7 +23,7 @@ function authorityKey(authority: ArtDraftAuthority | null): string {
 }
 
 /** F3A owns text review; the distinct F3B study surface owns reference bytes. */
-export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, refreshToken }: { projectId: string; readOnly: boolean; active?: boolean; refreshToken?: unknown }) {
+export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, refreshToken, onContinue }: { projectId: string; readOnly: boolean; active?: boolean; refreshToken?: unknown; onContinue?: () => void }) {
   const [state, setState] = useState<ArtReviewState>();
   const [studies, setStudies] = useState<ArtReferenceProposal[]>([]);
   const [referenceDecisions, setReferenceDecisions] = useState<ArtReferenceDecision[]>([]);
@@ -50,7 +51,7 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
       ]);
       if (ownsProject(session) && isCurrent()) { setState(next); setStudies(referenceStudies.proposals); setReferenceDecisions(decisions.decisions); setReferenceStates(decisions.states); return true; }
     } catch (reason) {
-      if (ownsProject(session) && isCurrent()) setError(reason instanceof Error ? reason.message : "Unable to load art studies.");
+      if (ownsProject(session) && isCurrent()) setError(reason instanceof Error ? reason.message : "无法读取美术参考。");
     }
     return false;
   }, [projectId]);
@@ -80,7 +81,7 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
     const session = activeProject.current;
     setBusy(true); setError("");
     void operation().then(async result => { if (ownsProject(session)) { onSuccess?.(result); await recheck(); } }).catch(reason => {
-      if (ownsProject(session)) setError(reason instanceof Error ? reason.message : "Art operation failed.");
+      if (ownsProject(session)) setError(reason instanceof Error ? reason.message : "美术操作失败。");
     }).finally(() => { if (ownsProject(session)) setBusy(false); });
   };
   const parsed = () => { try { return JSON.parse(draft) as Record<string, unknown>; } catch { setError("art.json 必须是有效 JSON。"); return undefined; } };
@@ -94,8 +95,8 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
   const retained = Boolean(draftDirty.current && draftBase && (!draftMatches || state.status === "stale" || (draftBase.kind === "accepted" && state.status !== "reopened")));
   const editDraft = (next: string) => { draftDirty.current = next !== JSON.stringify(draftBase?.value.art, null, 2); setDraft(next); };
   const adoptCurrent = () => { draftDirty.current = false; setDraftBase(currentAuthority); setDraft(currentAuthority?.value.art ? JSON.stringify(currentAuthority.value.art, null, 2) : ""); };
-  const heading = checking ? "正在刷新" : failed ? "无法刷新" : state.status === "stale" ? "上下文已过期" : accepted ? `已接受 r${accepted.revision}` : candidate?.status === "ready" ? "可审核" : candidate?.status === "prepared" ? "美术任务已准备" : "尚无美术候选";
-  const prepare = () => { if (!renderStyle) return; const session = activeProject.current; setBusy(true); setError(""); void plotloomApi.prepareArtCandidate(session.projectId, renderStyle).then(async result => { if (ownsProject(session)) { setAssignment(result.assignment); await recheck(); } }).catch(reason => { if (ownsProject(session)) setError(reason instanceof Error ? reason.message : "Art preparation failed."); }).finally(() => { if (ownsProject(session)) setBusy(false); }); };
+  const heading = checking ? "正在刷新" : failed ? "无法刷新" : state.status === "stale" ? "上下文已过期" : state.status === "reopened" ? "美术设定正在编辑" : candidate?.status === "ready" ? "待审核美术设定" : candidate?.status === "prepared" ? "美术任务已准备" : accepted ? `已接受 r${accepted.revision}` : "尚无美术候选";
+  const prepare = () => { if (!renderStyle) return; const session = activeProject.current; setBusy(true); setError(""); void plotloomApi.prepareArtCandidate(session.projectId, renderStyle).then(async result => { if (ownsProject(session)) { setAssignment(result.assignment); await recheck(); } }).catch(reason => { if (ownsProject(session)) setError(reason instanceof Error ? reason.message : "准备美术任务失败。"); }).finally(() => { if (ownsProject(session)) setBusy(false); }); };
   const accept = () => {
     if (!draftMatches || draftBase?.kind !== "candidate" || state.status === "stale") return;
     const art = parsed(); const base = draftBase.value;
@@ -110,12 +111,15 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
     <header><span>美术参考</span><strong>{heading}</strong></header>
     {failed && <Button variant="quiet" onClick={() => void recheck()}>重试加载美术参考</Button>}
     <p>先由文字创作助手整理地点和道具设定，供你审核。确认设定后，再为场景和道具制作参考图片。这一步不会生成图片。</p>
+    <StageGuide next={onContinue && <Button variant="quiet" disabled={checking || failed || busy || draftDirty.current || state.status !== "accepted" || !accepted} onClick={onContinue}>继续：剧本</Button>}>
+      {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : busy ? "正在处理美术任务，请稍候。" : retained ? "保留了基于旧版本的美术草稿。请在下方明确舍弃，或用当前版本替换草稿，再继续剧本。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃美术修改，再继续剧本。" : state.status === "stale" ? "上游内容已变化，请更新并确认美术设定。" : state.status === "accepted" && accepted ? "地点与道具设定已确认。可按需制作参考图，也可继续编写剧本；进入下一步不会自动生成图片。" : "选择美术风格，准备并发送文字任务，再审核返回的地点与道具设定。"}
+    </StageGuide>
     {(candidate?.binding.renderContract || accepted?.binding.renderContract) && <p>美术风格：{(candidate?.binding.renderContract || accepted?.binding.renderContract)?.preset.label}</p>}
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
     {!candidate && state.status !== "reopened" && <><label>美术风格 *<select aria-label="美术风格" required value={renderStyle} disabled={readOnly || busy} onChange={event => setRenderStyle(event.target.value as ArtRenderStyle | "")}><option value="">请选择风格</option><option value="live-action">真人写实</option><option value="realistic">半写实厚涂</option><option value="ghibli">吉卜力动画</option></select></label><p>此选择用于新的美术任务，不会修改已接受的角色设定或图片。</p><Button variant="primary" disabled={readOnly || busy || !renderStyle} onClick={prepare}>准备美术设定任务</Button></>}
     {candidate?.status === "prepared" && state.status !== "stale" && <SpecialistTaskActions projectId={projectId} stage="art" jobId={candidate.jobId} disabled={readOnly || busy} onDelivered={recheck} />}
     {candidate && <CandidateReview candidate={candidate} projectId={projectId} readOnly={readOnly} busy={busy} stale={state.status === "stale" || !draftMatches} draft={draft} setDraft={editDraft} cancel={() => act(() => plotloomApi.cancelArtCandidate(projectId, candidate.jobId))} accept={accept} />}
-    {accepted && <><small>已接受 hash {accepted.contentHash.slice(0, 12)}；文本与报告可审阅，参考图片在下方单独显示。</small><ArtReferenceGallery projectId={projectId} art={accepted.art} acceptedRevision={accepted.revision} acceptedContentHash={accepted.contentHash} studies={studies} decisions={referenceDecisions} decisionStates={referenceStates} readOnly={readOnly} busy={busy} setAssignment={setAssignment} refresh={recheck} />{accepted.candidateJobId && <ArtReport key={`${projectId}:${accepted.candidateJobId}`} projectId={projectId} jobId={accepted.candidateJobId} />}{state.status !== "reopened" && <Editor disabled draft={JSON.stringify(accepted.art, null, 2)} setDraft={editDraft} />}<Button variant="quiet" disabled={readOnly || busy || state.status === "reopened" || state.status === "stale"} onClick={() => act(() => plotloomApi.reopenArt(projectId, accepted.revision))}>重新打开美术提案</Button></>}
+    {accepted && <><small>已接受内容标识 {accepted.contentHash.slice(0, 12)}；文本与报告可审阅，参考图片在下方单独显示。</small><ArtReferenceGallery projectId={projectId} art={accepted.art} acceptedRevision={accepted.revision} acceptedContentHash={accepted.contentHash} studies={studies} decisions={referenceDecisions} decisionStates={referenceStates} readOnly={readOnly} busy={busy} setAssignment={setAssignment} refresh={recheck} />{accepted.candidateJobId && <ArtReport key={`${projectId}:${accepted.candidateJobId}`} projectId={projectId} jobId={accepted.candidateJobId} />}{state.status !== "reopened" && <Editor disabled draft={JSON.stringify(accepted.art, null, 2)} setDraft={editDraft} />}<Button variant="quiet" disabled={readOnly || busy || state.status === "reopened" || state.status === "stale"} onClick={() => act(() => plotloomApi.reopenArt(projectId, accepted.revision))}>重新打开美术提案</Button></>}
     {accepted && state.status === "reopened" && !retained && <><Editor disabled={readOnly || busy} draft={draft} setDraft={editDraft} /><Button variant="primary" disabled={readOnly || busy || !draftMatches} onClick={save}>保存重新打开的美术</Button></>}
     {retained && draftBase && <section aria-label="保留的未保存美术草稿">
       <p>保留的未保存美术草稿基于{draftBase.kind === "accepted" ? `美术 r${draftBase.value.revision}` : "原候选"}。当前上下文已变化，保存已停用；原草稿不会自动替换为新版本。</p>
@@ -130,9 +134,9 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
 }
 
 function CandidateReview({ candidate, projectId, readOnly, busy, stale, draft, setDraft, cancel, accept }: { candidate: ArtCandidate; projectId: string; readOnly: boolean; busy: boolean; stale: boolean; draft: string; setDraft: (value: string) => void; cancel: () => void; accept: () => void }) {
-  return <><small>冻结 source r{candidate.binding.sourceRevision} · cast r{candidate.binding.castRevision} · sections {candidate.binding.sectionIds.join(" · ")}</small>
+  return <><small>绑定来源 r{candidate.binding.sourceRevision} · 角色 r{candidate.binding.castRevision} · 章节 {candidate.binding.sectionIds.join(" · ")}</small>
     {candidate.status === "prepared" && <Button variant="danger" disabled={readOnly || busy} onClick={cancel}>取消此任务</Button>}
-    {candidate.status === "ready" && <>{candidate.reportAvailable && <ArtReport key={`${projectId}:${candidate.jobId}`} projectId={projectId} jobId={candidate.jobId} />}<Editor disabled={readOnly || busy || stale} draft={draft} setDraft={setDraft} /><Button variant="primary" disabled={readOnly || busy || stale} onClick={accept}>显式接受此美术提案</Button><Button variant="danger" disabled={readOnly || busy} onClick={cancel}>拒绝并取消此美术提案</Button></>}
+    {candidate.status === "ready" && <>{candidate.reportAvailable && <ArtReport key={`${projectId}:${candidate.jobId}`} projectId={projectId} jobId={candidate.jobId} />}<Editor disabled={readOnly || busy || stale} draft={draft} setDraft={setDraft} /><Button variant="primary" disabled={readOnly || busy || stale} onClick={accept}>确认使用此美术提案</Button><Button variant="danger" disabled={readOnly || busy} onClick={cancel}>拒绝并取消此美术提案</Button></>}
   </>;
 }
 

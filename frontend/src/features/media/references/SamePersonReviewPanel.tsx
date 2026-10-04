@@ -58,14 +58,12 @@ export function SamePersonReviewPanel({
           aria-label="跨镜头同一人物视觉复核"
         >
           <strong>
-            跨镜头同一人物视觉复核 · required before still preview
+            跨镜头同一人物视觉复核
           </strong>
           <p className="muted">
-            逐一查看此候选冻结的 primary/complementary
-            身份参考与当前候选。这里记录的是具名审阅者的视觉判断；Codex
-            engineering/visual assessment 必须明确写作 Codex，不能冒充
-            human/product
-            decision。此复核不使用人脸识别，也不替代服装、道具或镜头状态的作者权威。
+            创建连续静帧预览前，逐一比较此候选与任务冻结的主参考图和补充参考图。
+            记录实际审阅者的视觉判断；由 Codex 完成的技术或视觉检查，审阅者须写为
+            Codex，不能记作真人的创作确认。此复核不使用人脸识别，也不替代作者对服装、道具和镜头状态的设定。
           </p>
           <div
             className="frozen-review-comparison"
@@ -79,12 +77,12 @@ export function SamePersonReviewPanel({
                       projectId,
                       selectedBinding.assetId,
                     )}
-                    alt="selected candidate under review"
+                    alt="正在复核的候选图片"
                   />
                   <strong>候选 · {selectedBinding.assetId.slice(0, 8)}</strong>
                 </>
               ) : (
-                <small>Selected candidate bytes are unavailable.</small>
+                <small>无法读取当前候选图片，请先检查素材。</small>
               )}
             </article>
             {selectedIdentityMapping.flatMap((mapping) =>
@@ -102,25 +100,25 @@ export function SamePersonReviewPanel({
                           projectId,
                           frozenAsset.id,
                         )}
-                        alt={`${mapping.characterId} frozen ${index === 0 ? "primary" : "complementary"} reference`}
+                        alt={`${mapping.characterId} 任务冻结的${index === 0 ? "主参考图" : "补充参考图"}`}
                       />
                     ) : (
                       <small>
-                        Frozen asset {asset.assetId.slice(0, 8)} is unavailable.
+                        无法读取任务冻结的素材 {asset.assetId.slice(0, 8)}。
                       </small>
                     )}
                     <strong>
                       {mapping.characterId} ·{" "}
-                      {index === 0 ? "primary" : `complementary ${index}`} · r
+                      {index === 0 ? "主参考图" : `补充参考图 ${index}`} · r
                       {mapping.referenceRevision}
                     </strong>
                     <small>
-                      frozen decision {mapping.referenceDecisionId.slice(0, 8)}{" "}
+                      冻结的参考选择 {mapping.referenceDecisionId.slice(0, 8)}{" "}
                       · {asset.originalHash.slice(0, 12)}
                     </small>
                     {mapping.acceptedCast && (
                       <small>
-                        accepted cast {mapping.acceptedCast.castCharacterId} · r
+                        已确认角色 {mapping.acceptedCast.castCharacterId} · r
                         {mapping.acceptedCast.revision} · {mapping.acceptedCast.contentHash.slice(0, 12)}
                       </small>
                     )}
@@ -130,14 +128,15 @@ export function SamePersonReviewPanel({
             )}
           </div>
           <div className="field-grid two compact">
-            <Field label="审阅者（Codex 或 creator/product reviewer）">
+            <Field label="审阅者（姓名或 Codex）" required>
               <input
+                aria-required="true"
                 value={samePersonReviewer}
                 disabled={readOnly || busy}
                 onChange={(event) => setSamePersonReviewer(event.target.value)}
               />
             </Field>
-            <Field label="当前引用">
+              <Field label="本任务的身份参考">
               <input
                 readOnly
                 value={selectedIdentityMapping
@@ -172,12 +171,13 @@ export function SamePersonReviewPanel({
                     )
                   }
                 >
-                  <option value="pass">pass</option>
-                  <option value="fail">fail</option>
+                  <option value="pass">通过</option>
+                  <option value="fail">不通过</option>
                 </select>
               </Field>
-              <Field label="身份对比说明">
+              <Field label="身份对比说明" required>
                 <input
+                  aria-required="true"
                   value={comparison.identityNotes}
                   disabled={readOnly || busy}
                   onChange={(event) =>
@@ -191,8 +191,9 @@ export function SamePersonReviewPanel({
                   }
                 />
               </Field>
-              <Field label="镜头状态说明">
+              <Field label="镜头状态说明" required>
                 <input
+                  aria-required="true"
                   value={comparison.stateNotes}
                   disabled={readOnly || busy}
                   onChange={(event) =>
@@ -208,8 +209,9 @@ export function SamePersonReviewPanel({
               </Field>
             </div>
           ))}
-          <Field label="复核备注">
+          <Field label="复核备注" required>
             <textarea
+              aria-required="true"
               rows={2}
               value={samePersonNotes}
               disabled={readOnly || busy}
@@ -221,11 +223,11 @@ export function SamePersonReviewPanel({
             <small className="notice">
               当前复核{" "}
               {currentReviewByBinding.get(selectedBinding.id)?.id.slice(0, 8)}{" "}
-              已覆盖此 keyframe；身份引用或审核 keyframe 变化时会自动过期。
+              已覆盖此关键帧；身份参考或已审核关键帧变化时会自动过期。
             </small>
           ) : (
             <div className="notice warning">
-              此身份感知 keyframe 尚无当前复核，因此不能进入 still animatic。
+              此关键帧尚无当前人物复核，完成复核后才能纳入连续静帧预览。
             </div>
           )}
           {workbench.samePersonReviews.reviews
@@ -234,8 +236,8 @@ export function SamePersonReviewPanel({
             )
             .map((item) => (
               <small className="notice" key={item.id}>
-                历史/已过期复核 {item.id.slice(0, 8)} · reviewer {item.reviewer}{" "}
-                · frozen references remain inspectable above.
+                历史或已过期复核 {item.id.slice(0, 8)} · 审阅者 {item.reviewer}{" "}
+                · 仍可在上方查看任务冻结的参考图。
               </small>
             ))}
           <div className="button-row">

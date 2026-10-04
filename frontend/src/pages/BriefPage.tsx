@@ -1,11 +1,13 @@
 import { useState } from "react";
 import type { ProjectBrief, StoryBible, StoryGraph } from "../types";
 import { Button, Field, PageHeader, Panel } from "../components";
+import { StageGuide } from "../components/StageGuide";
 
 type BriefPageProps = {
   value: ProjectBrief;
   hasSavedProject: boolean;
   saving: boolean;
+  readOnly?: boolean;
   onSave: (brief: ProjectBrief) => Promise<unknown>;
   onSaveAndContinue: (brief: ProjectBrief) => Promise<void>;
   onDraftChange?: (brief: ProjectBrief) => void;
@@ -26,7 +28,7 @@ const defaultWorkingTitle = "未命名故事";
  * The brief remains the canonical input. This page only composes its first two
  * canonical downstream stages into a review; it does not own proposal state.
  */
-export function BriefPage({ value, hasSavedProject, saving, onSave, onSaveAndContinue, onDraftChange, bible, graph, proposalRunning = false, proposalReady = true, storyboardRunning = false, onGenerateProposal, onGenerateStoryboard, onReviewStage, onContinueToPlanning }: BriefPageProps) {
+export function BriefPage({ value, hasSavedProject, saving, readOnly = false, onSave, onSaveAndContinue, onDraftChange, bible, graph, proposalRunning = false, proposalReady = true, storyboardRunning = false, onGenerateProposal, onGenerateStoryboard, onReviewStage, onContinueToPlanning }: BriefPageProps) {
   const [draft, setDraft] = useState(value);
   const set = <K extends keyof ProjectBrief>(key: K, next: ProjectBrief[K]) => setDraft((current) => {
     const updated = { ...current, [key]: next };
@@ -34,7 +36,9 @@ export function BriefPage({ value, hasSavedProject, saving, onSave, onSaveAndCon
   });
   const numeric = <K extends keyof ProjectBrief>(key: K, raw: string) => set(key, Number(raw) as ProjectBrief[K]);
   const canonicalDraft = (): ProjectBrief => ({ ...draft, title: draft.title.trim() || defaultWorkingTitle });
-  const canSave = !saving && Boolean(draft.synopsis.trim()) && Number.isInteger(draft.targetPlaythroughSeconds) && draft.targetPlaythroughSeconds >= 3;
+  const validDuration = Number.isInteger(draft.targetPlaythroughSeconds) && draft.targetPlaythroughSeconds >= 3;
+  const canSave = !readOnly && !saving && Boolean(draft.synopsis.trim()) && validDuration;
+  const saveHint = readOnly ? "项目当前只读，无法保存修改。" : saving ? "正在保存，请稍候。" : !draft.synopsis.trim() ? "填写故事梗概后即可保存；片名可稍后补充。" : !validDuration ? "目标游玩时长需填写至少 3 秒的整数。" : hasSavedProject ? "保存修改不会覆盖已确认的来源内容。" : "保存后进入来源与大纲，继续完善故事内容。";
   const hasProposal = Boolean(bible?.logline && graph?.nodes.length);
   const decisions = graph?.nodes.filter((node) => node.kind === "decision") || [];
   const endings = graph?.nodes.filter((node) => node.kind === "ending") || [];
@@ -43,14 +47,18 @@ export function BriefPage({ value, hasSavedProject, saving, onSave, onSaveAndCon
   const choiceSources = (graph?.nodes || []).filter((node) => choiceEdges.some((edge) => edge.sourceNodeId === node.id));
   const choicesFor = (nodeId: string) => choiceEdges.filter((edge) => edge.sourceNodeId === nodeId);
   return <div className="page">
-    <PageHeader title="项目简报" description={hasSavedProject ? "保存对项目简报的修改；保存后留在本页，已有来源不会被覆盖。" : "保存后进入来源与大纲；片名和梗概会成为可编辑草稿，不会自动接受或生成内容。"} actions={hasSavedProject
-      ? <Button variant="primary" disabled={!canSave} onClick={() => void onSave(canonicalDraft())}>{saving ? "保存中…" : "保存修改"}</Button>
-      : <Button variant="primary" disabled={!canSave} onClick={() => void onSaveAndContinue(canonicalDraft())}>{saving ? "保存中…" : "保存并继续到来源"}</Button>} />
-    <div className="two-column wide-left">
+    <PageHeader title="项目简报" description={hasSavedProject ? "修改项目的创作目标；保存后留在本页，已有来源不会被覆盖。" : "先写一个梗概，再进入来源与大纲。保存不会自动生成或确认故事内容。"} actions={<div className="page-action-group">
+      {hasSavedProject
+        ? <Button variant="primary" busy={saving} disabled={!canSave} aria-describedby="brief-save-hint" onClick={() => void onSave(canonicalDraft())}>{saving ? "保存中…" : "保存修改"}</Button>
+        : <Button variant="primary" busy={saving} disabled={!canSave} aria-describedby="brief-save-hint" onClick={() => void onSaveAndContinue(canonicalDraft())}>{saving ? "保存中…" : "保存并继续到来源"}</Button>}
+      <p id="brief-save-hint" className="action-prerequisite">{saveHint}</p>
+    </div>} />
+    <StageGuide title="从故事想法开始">写清主角、处境和观众要做的选择。高级设置可保留默认值，后续仍可调整。</StageGuide>
+    <div className="two-column wide-left brief-layout">
       <Panel className="form-card">
-        <div className="section-title"><span>Required input</span><strong>从一个梗概开始</strong></div>
+        <div className="section-title"><strong>故事想法</strong><p className="required-legend">* 为必填项；其他信息可稍后完善。</p></div>
         <Field label="片名"><input placeholder={defaultWorkingTitle} value={draft.title} onChange={(event) => set("title", event.target.value)} /><small>可选工作片名；留空时保存为“未命名故事”。</small></Field>
-        <Field label="故事梗概"><textarea rows={5} value={draft.synopsis} onChange={(event) => set("synopsis", event.target.value)} /></Field>
+        <Field label="故事梗概" required><textarea aria-required="true" rows={5} placeholder="主角遇到了什么？观众可以替主角做什么选择？不同选择会带来怎样的结局？" value={draft.synopsis} onChange={(event) => set("synopsis", event.target.value)} /></Field>
         <div className="field-grid two">
           <Field label="类型"><input value={draft.genre || ""} onChange={(event) => set("genre", event.target.value)} /></Field>
           <Field label="视觉风格"><input value={draft.visualStyle || ""} onChange={(event) => set("visualStyle", event.target.value)} /></Field>
@@ -58,20 +66,20 @@ export function BriefPage({ value, hasSavedProject, saving, onSave, onSaveAndCon
         <div className="field-grid three">
           <Field label="语言"><select value={draft.language} onChange={(event) => set("language", event.target.value)}><option value="zh-CN">简体中文</option><option value="en-US">English</option></select></Field>
           <Field label="画幅"><select value={draft.aspectRatio} onChange={(event) => set("aspectRatio", event.target.value)}><option>16:9</option><option>9:16</option><option>1:1</option></select></Field>
-          <Field label="目标游玩时长（秒）"><input type="number" min={3} value={draft.targetPlaythroughSeconds} onChange={(event) => numeric("targetPlaythroughSeconds", event.target.value)} /><small>至少 3 秒；这是创作目标，不是生成后时长的承诺。</small></Field>
+          <Field label="目标游玩时长（秒）" required><input aria-required="true" type="number" min={3} value={draft.targetPlaythroughSeconds} onChange={(event) => numeric("targetPlaythroughSeconds", event.target.value)} /><small>至少 3 秒；这是创作目标，不是最终播放时长的承诺。</small></Field>
         </div>
       </Panel>
       <div className="stack">
         <Panel className="form-card">
           <details>
             <summary>高级生产范围设置</summary>
-            <p className="event-detail">仅在需要时调整结构与镜头偏好；旧项目保留原有严格规则，新项目默认仅提示偏离。</p>
+            <p className="action-prerequisite">按需调整分支规模和镜头偏好；不确定时保留默认值。现有项目的规则不会因打开此处而改变。</p>
           <div className="field-grid two">
-            <Field label="每路径决定数"><input type="number" min={1} value={draft.decisionPointsPerPath} onChange={(event) => numeric("decisionPointsPerPath", event.target.value)} /></Field>
+            <Field label="每条路线的选择次数"><input type="number" min={1} value={draft.decisionPointsPerPath} onChange={(event) => numeric("decisionPointsPerPath", event.target.value)} /></Field>
             <Field label="结局数"><input type="number" min={1} value={draft.endingCount} onChange={(event) => numeric("endingCount", event.target.value)} /></Field>
-            <Field label="节点预算"><input type="number" min={3} value={draft.nodeBudget} onChange={(event) => numeric("nodeBudget", event.target.value)} /></Field>
-            <Field label="最大出度"><input type="number" min={1} max={6} value={draft.maxOutDegree} onChange={(event) => numeric("maxOutDegree", event.target.value)} /></Field>
-            <Field label="期望汇合数"><input type="number" min={0} value={draft.desiredJoinCount} onChange={(event) => numeric("desiredJoinCount", event.target.value)} /></Field>
+            <Field label="故事节点总量"><input type="number" min={3} value={draft.nodeBudget} onChange={(event) => numeric("nodeBudget", event.target.value)} /></Field>
+            <Field label="单个节点的最多后续分支"><input type="number" min={1} max={6} value={draft.maxOutDegree} onChange={(event) => numeric("maxOutDegree", event.target.value)} /></Field>
+            <Field label="期望分支汇合次数"><input type="number" min={0} value={draft.desiredJoinCount} onChange={(event) => numeric("desiredJoinCount", event.target.value)} /></Field>
           </div>
           <div className="range-summary"><span>每场分镜</span><strong>{draft.shotsPerSceneMin}–{draft.shotsPerSceneMax}</strong></div>
           <div className="field-grid two compact">
@@ -83,10 +91,10 @@ export function BriefPage({ value, hasSavedProject, saving, onSave, onSaveAndCon
         </Panel>
       </div>
     </div>
-    {onGenerateProposal && <Panel className="brief-alternate-workflow"><strong>其他工作流：旧版故事提案</strong><p>{hasSavedProject ? "直接从简报生成 Story Bible 和剧情图；若要审阅来源与大纲，请从左侧创作流程打开。" : "直接从简报生成 Story Bible 和剧情图；若要先审阅来源与大纲，请使用上方“保存并继续到来源”。"}</p><Button variant="quiet" disabled={!canSave || proposalRunning} onClick={() => void onGenerateProposal(canonicalDraft())}>{proposalRunning ? "正在生成提案…" : "生成故事提案"}</Button></Panel>}
+    {onGenerateProposal && <Panel className="brief-alternate-workflow"><details><summary>其他工作流：旧版故事提案</summary><p>{hasSavedProject ? "直接从简报生成故事设定与分支图。通常请从左侧“来源与大纲”开始，逐步审阅并确认。" : "直接从简报生成故事设定与分支图。通常请先使用上方“保存并继续到来源”，逐步审阅并确认。"}</p><Button variant="quiet" busy={proposalRunning} disabled={!canSave || proposalRunning} onClick={() => void onGenerateProposal(canonicalDraft())}>{proposalRunning ? "正在生成提案…" : "生成故事提案"}</Button>{!canSave && <p className="action-prerequisite">{saveHint}</p>}</details></Panel>}
     {hasProposal && bible && graph && <div className="stack proposal-review" data-testid="story-proposal-review">
       <Panel>
-        <div className="section-title"><span>Reviewable proposal</span><strong>{bible.logline}</strong></div>
+        <div className="section-title"><span>待审阅的故事提案</span><strong>{bible.logline}</strong></div>
         <p>{bible.premise}</p>
         <div className="field-grid two">
           <div><strong>人物</strong><ul>{bible.characters.map((character) => <li key={character.id}>{character.name}{character.role ? ` · ${character.role}` : ""}{character.goal ? `：${character.goal}` : ""}</li>)}</ul></div>
@@ -94,16 +102,16 @@ export function BriefPage({ value, hasSavedProject, saving, onSave, onSaveAndCon
         </div>
       </Panel>
       <Panel>
-        <div className="section-title"><span>Branches and endings</span><strong>{decisions.length} 个决定 · {endings.length} 个结局</strong></div>
+        <div className="section-title"><span>分支与结局</span><strong>{decisions.length} 个选择点 · {endings.length} 个结局</strong></div>
         {choiceSources.length ? <ul>{choiceSources.map((node) => <li key={node.id}><strong>{node.title}</strong>：{node.summary}<ul>{choicesFor(node.id).map((edge) => { const target = graphNodes.get(edge.targetNodeId); return <li key={edge.id}><strong>{edge.choiceText || "未命名选择"}</strong> → {target?.kind === "ending" ? "结局：" : "节点："}<strong>{target?.title || edge.targetNodeId}</strong>{target?.summary ? `：${target.summary}` : ""}</li>; })}</ul></li>)}</ul> : <p>此提案尚未定义选择节点。</p>}
         {endings.length ? <ul>{endings.map((node) => <li key={node.id}><strong>{node.title}</strong>：{node.summary}</li>)}</ul> : <p>此提案尚未定义结局。</p>}
       </Panel>
       <Panel>
-        <div className="section-title"><span>Production scope</span><strong>Story Bible 与剧情 DAG 已审阅</strong></div>
+        <div className="section-title"><span>后续创作</span><strong>故事设定与分支图</strong></div>
         <p>已推导：{graph.nodes.length} 个叙事节点、{graph.edges.filter((edge) => edge.kind === "choice").length} 个选择、{endings.length} 个结局。场景与分镜仅在下方明确请求后生成；媒体不在本步骤内。</p>
         <p>计划目标：每条路径约 {draft.targetPlaythroughSeconds} 秒、每场偏好 {draft.shotsPerSceneMin}–{draft.shotsPerSceneMax} 个镜头（{draft.shotCountPolicy === "strict" ? "严格限制" : "超出时提示"}）；这些不是成本或实际时长估算。</p>
-        {!proposalReady && <p className="event-detail">提案的上游内容已变更。请重新生成 Story Bible 与剧情 DAG 后，再进入分镜规划；不会覆盖任何下游内容。</p>}
-        <div className="button-row"><Button variant="quiet" onClick={() => onReviewStage?.("bible")}>细化人物与设定</Button><Button variant="quiet" onClick={() => onReviewStage?.("graph")}>细化分支与结局</Button>{onContinueToPlanning && <Button variant="quiet" disabled={!proposalReady} onClick={onContinueToPlanning}>进入场景编辑</Button>}{onGenerateStoryboard && <Button variant="primary" disabled={!proposalReady || saving || storyboardRunning} onClick={() => void onGenerateStoryboard()}>{storyboardRunning ? "正在生成场景与分镜…" : "生成可编辑场景与分镜"}</Button>}</div>
+        {!proposalReady && <p className="event-detail">提案的上游内容已变更。请重新生成故事设定与分支图后，再进入分镜规划；不会覆盖任何下游内容。</p>}
+        <div className="button-row"><Button variant="quiet" onClick={() => onReviewStage?.("bible")}>细化人物与设定</Button><Button variant="quiet" onClick={() => onReviewStage?.("graph")}>细化分支与结局</Button>{onContinueToPlanning && <Button variant="quiet" disabled={!proposalReady} onClick={onContinueToPlanning}>进入场景编辑</Button>}{onGenerateStoryboard && <Button variant="primary" busy={storyboardRunning} disabled={readOnly || !proposalReady || saving || storyboardRunning} onClick={() => void onGenerateStoryboard()}>{storyboardRunning ? "正在生成场景与分镜…" : "生成可编辑场景与分镜"}</Button>}</div>
       </Panel>
     </div>}
   </div>;

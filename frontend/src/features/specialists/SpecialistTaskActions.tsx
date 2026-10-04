@@ -8,6 +8,7 @@ export function SpecialistTaskActions({ projectId, stage, jobId, disabled, sendD
   const [task, setTask] = useState<SpecialistTask>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [readRevision, setReadRevision] = useState(0);
   const callback = useRef(onDelivered); callback.current = onDelivered;
   const generation = useRef(0);
   const operation = useRef(false);
@@ -17,7 +18,7 @@ export function SpecialistTaskActions({ projectId, stage, jobId, disabled, sendD
     const load = () => { void specialistsApi.status(projectId, stage, jobId).then(value => { if (generation.current === owner) setTask(value); }).catch(reason => { if (generation.current === owner) setError(String(reason)); }); };
     load(); window.addEventListener("plotloom-specialists-changed", load);
     return () => { generation.current++; window.removeEventListener("plotloom-specialists-changed", load); };
-  }, [projectId, stage, jobId]);
+  }, [projectId, stage, jobId, readRevision]);
   const act = async (send = false) => {
     if (disabled || operation.current || (send && sendDisabled)) return;
     const owner = generation.current; operation.current = true; setBusy(true); setError("");
@@ -38,10 +39,12 @@ export function SpecialistTaskActions({ projectId, stage, jobId, disabled, sendD
     const timer = window.setTimeout(() => { void act(); }, 3000);
     return () => window.clearTimeout(timer);
   });
-  return <section aria-label="助手任务"><p role="status">{task ? labels[task.state] : "正在读取任务状态…"}</p>
+  return <section aria-label="助手任务"><p role="status">{task ? labels[task.state] : error ? "无法读取任务状态，请重试。" : "正在读取任务状态…"}</p>
     {task && !task.configured && task.state === "prepared" && <p>请先打开侧栏的「生成助手设置」，填写文字创作助手的聊天 ID。</p>}
-    <div className="button-row">{task?.state === "prepared" && <Button variant="primary" disabled={disabled || sendDisabled || busy || !task.configured} onClick={() => void act(true)}>发送给文字创作助手</Button>}
-      <Button disabled={disabled || busy || !task} onClick={() => void act()}>检查任务结果</Button></div>
+    <div className="button-row">{task?.state === "prepared" && <Button variant="primary" busy={busy} disabled={disabled || sendDisabled || busy || !task.configured} onClick={() => void act(true)}>{busy ? "正在处理任务…" : "发送给文字创作助手"}</Button>}
+      <Button busy={busy} disabled={disabled || busy || !task} onClick={() => void act()}>{busy ? "正在检查…" : "检查任务结果"}</Button>
+      {!task && error && <Button variant="quiet" onClick={() => setReadRevision(value => value + 1)}>重试读取任务状态</Button>}</div>
+    {sendDisabled && <small>来源上下文已变化，请更新当前提案后再发送。</small>}
     <small>页面打开时会自动检查已发送任务。交付后仍需你审核确认；取消提案不会中止助手执行。</small>
     {error && <ErrorNotice message={error} />}
   </section>;

@@ -299,7 +299,7 @@ export function ManagedMediaWorkbench({
       data-testid="managed-media-workbench"
     >
       <div className="section-title">
-        <span>Shot media workbench</span>
+        <span>为当前镜头制作并审核图片和视频</span>
         <strong>镜头媒体工作台</strong>
       </div>
       {projectId && selectedShot && mediaDraftsEnabled && <ShotPresentationReview

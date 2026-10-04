@@ -103,3 +103,32 @@ it("settles a deferred explicit F3B reference choice after unmount without a sta
   expect([getArt.mock.calls.length, getStudies.mock.calls.length, getDecisions.mock.calls.length]).toEqual(before);
   expect(host.querySelector('[role="alert"]')).toBeNull();
 });
+
+it("guides recovery of a retained dirty Art draft before a newer accepted result", async () => {
+  let current = { ...artState("old"), status: "reopened" as ArtReviewState["status"] };
+  vi.spyOn(plotloomApi, "getArt").mockImplementation(async () => current);
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
+  const onContinue = vi.fn();
+  await act(async () => root.render(createElement(ArtPanel, { projectId: "old", readOnly: false, refreshToken: 1, onContinue })));
+  const editor = host.querySelector<HTMLTextAreaElement>("details.art-json-editor textarea:not(:disabled)")!;
+  const dirty = `${editor.value}\n `;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set?.call(editor, dirty);
+    editor.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(host.querySelector(".stage-guide")?.textContent).toContain("先保存或明确舍弃美术修改");
+  current = { ...current, status: "accepted", acceptedArt: { ...current.acceptedArt!, revision: 2, contentHash: "new-head" } };
+  await act(async () => root.render(createElement(ArtPanel, { projectId: "old", readOnly: false, refreshToken: 2, onContinue })));
+  const guide = host.querySelector(".stage-guide")!;
+  expect(guide.textContent).toContain("保留了基于旧版本的美术草稿");
+  expect(guide.textContent).not.toContain("可继续编写剧本");
+  expect(host.querySelector<HTMLTextAreaElement>('[aria-label="保留的美术草稿"]')?.value).toBe(dirty);
+  const continuation = [...host.querySelectorAll("button")].find(button => button.textContent === "继续：剧本")!;
+  expect(continuation.disabled).toBe(true);
+  const discard = [...host.querySelectorAll("button")].find(button => button.textContent === "舍弃美术草稿")!;
+  await act(async () => discard.click());
+  expect(guide.textContent).toContain("可继续编写剧本");
+  expect(continuation.disabled).toBe(false);
+  expect(onContinue).not.toHaveBeenCalled();
+});

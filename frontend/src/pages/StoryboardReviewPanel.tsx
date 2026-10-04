@@ -7,6 +7,7 @@ import { ProductionBridgePanel } from "./ProductionBridgePanel";
 import { ManualTaskAssignment } from "./ManualTaskAssignment";
 import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskActions";
 import { useReviewActivation } from "./useReviewActivation";
+import { StageGuide } from "../components/StageGuide";
 
 /** F5A preserves upstream review evidence; it deliberately cannot create product shots. */
 export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOpenShot, active: visible = true, refreshToken }: { projectId: string; readOnly: boolean; onOpenShot?: (shotId: string) => boolean | void; active?: boolean; refreshToken?: unknown }) {
@@ -56,8 +57,8 @@ export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOp
   return <article id="storyboard-review" className="panel cast-panel" data-testid="storyboard-review">
     <header><span>分镜评审</span><strong>{checking ? "正在刷新" : failed ? "无法刷新" : reviewLabel(state)}</strong></header>
     {failed && <Button variant="quiet" onClick={() => void recheck()}>重试加载分镜评审</Button>}
-    <p>原始 storyboard.json 和上游报告是与已确认剧本绑定的评审证据，不是 Plotloom 的 shots、播放内容、媒体提示词或投产许可。</p>
-    <div className="notice warning">不会创建 SceneBeats/Bible 投影、选择参考、H3 调度或时长变更。</div>
+    <StageGuide>{checking ? "正在核对当前分镜评审，请稍候。" : failed ? "读取失败，请先重试；暂时不能修改或投产。" : busy ? "正在处理分镜任务，请稍候。" : state.status === "stale" ? "剧本或其他上游内容已变化，请更新分镜评审后再投产；旧方案仍保留供参考。" : state.status === "accepted" && acceptedReview ? "分镜评审已确认。请在下方审阅投产提案；确认投产后才能进入正式镜头的媒体制作。" : candidate?.status === "ready" ? "审阅候选中每个镜头的动作、对白和预计时长，再确认使用。" : candidate?.status === "prepared" ? "分镜任务已准备。发送给文字创作助手，结果返回后再审核。" : "先确认剧本，再准备并发送分镜任务。这里不会自动生成图片或视频。"}</StageGuide>
+    <p className="action-prerequisite">本页保留与已确认剧本对应的原始分镜方案。分镜评审确认与正式镜头投产是两个独立步骤；确认评审不会自动投产或生成媒体。</p>
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
     {!candidate && <div className="button-row"><label>评审镜头上限（秒）<select value={maxCutSeconds} disabled={readOnly || busy} onChange={event => setMaxCutSeconds(Number(event.target.value))}>{[8, 10, 12, 15].map(seconds => <option key={seconds} value={seconds}>{seconds}</option>)}</select></label><Button variant="primary" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.prepareStoryboardSourceReviewCandidate(projectId, maxCutSeconds), result => setAssignment(result.assignment))}>准备分镜任务</Button></div>}
     {candidate && <small>冻结评审时长：单镜头 {candidate.binding.reviewMinCutSeconds}–{candidate.binding.reviewMaxCutSeconds} 秒；分段上限 {candidate.binding.reviewMaxSegmentSeconds} 秒。</small>}

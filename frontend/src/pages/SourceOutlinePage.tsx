@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, plotloomApi } from "../api";
-import { Button, ErrorNotice, Spinner } from "../components";
+import { Button, ErrorNotice, RequiredMark, Spinner } from "../components";
+import { StageGuide } from "../components/StageGuide";
 import type { ProjectBrief, SourceMaterial, SourceOutlineReviewState, StoryGraph } from "../types";
 import { SectionMapPanel } from "./SectionMapPanel";
 import { OutlineAssignment } from "./OutlineAssignment";
@@ -32,7 +33,7 @@ function sourceMessage(error: unknown) {
   return error instanceof Error ? error.message : "来源与大纲操作失败。";
 }
 
-export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnly, navigationTarget = "", refreshToken, onOpenShot, onContinueToCharacters }: { projectId: string; briefSeed: Pick<ProjectBrief, "title" | "synopsis">; readOnly: boolean; navigationTarget?: string; refreshToken?: unknown; onOpenShot?: (shotId: string) => void; onContinueToCharacters?: () => void }) {
+export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnly, navigationTarget = "", refreshToken, onOpenShot, onContinueToCharacters, onContinueToScript, onContinueToStoryboard }: { projectId: string; briefSeed: Pick<ProjectBrief, "title" | "synopsis">; readOnly: boolean; navigationTarget?: string; refreshToken?: unknown; onOpenShot?: (shotId: string) => void; onContinueToCharacters?: () => void; onContinueToScript?: () => void; onContinueToStoryboard?: () => void }) {
   const [state, setState] = useState<SourceOutlineReviewState>();
   const [draft, setDraft] = useState<SourceMaterial>(blankSource);
   const [busy, setBusy] = useState(false);
@@ -98,21 +99,25 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
   const candidate = state?.candidate;
   const accepted = state?.acceptedOutline;
   const canSave = !readOnly && !busy && Boolean(draft.title.trim() && draft.text.trim() && draft.adaptationIntent.trim());
+  const sourceHint = checking ? "正在读取当前版本。" : failed ? "读取失败，请先重试刷新。" : ownerReadOnly ? "项目当前只读。" : busy ? "正在处理，请稍候。" : !draft.title.trim() || !draft.text.trim() || !draft.adaptationIntent.trim() ? "请填写标题、故事内容和改编意图，再确认改编内容。" : "确认只保存故事来源；生成大纲需要下方单独准备并发送任务。";
 
   return <section id="source" className="page source-outline-page" data-project-id={loadedProjectId || projectId}>
+    {error && focusedTarget !== "source" && <ErrorNotice message={error} />}
     <section className="source-workflow-source" hidden={focusedTarget !== "source"} aria-labelledby="source-workflow-heading">
       <header className="page-header"><div><h1 id="source-workflow-heading">来源与大纲</h1><p>填写故事来源，审阅大纲，并确定分支路线。</p></div><Button variant="quiet" disabled={busy || checking} onClick={() => void recheck()}>刷新</Button></header>
+      <StageGuide>{failed ? "无法读取当前进度，请先刷新重试；保留内容不代表版本已核实。" : checking || !state ? "正在读取故事来源和当前进度。" : state.outlineStatus === "reopened" ? "大纲已重新打开。请准备新候选并确认；保留的旧大纲不会自动替换。" : candidate?.status === "ready" ? "先阅读候选大纲，再确认使用；随后设置开场、选择和两个结局。" : candidate?.status === "prepared" ? "大纲任务已准备。发送给文字创作助手，结果返回后再审核。" : state.graphAdmission?.status === "current" ? "故事分支已应用。可在下方继续角色设定；此操作只切换页面，不会生成内容。" : accepted ? "大纲已确认。请在下方完善故事分支，保存后应用到故事路线。" : state.source ? "故事来源已确认。下一步准备大纲任务，再发送给文字创作助手。" : "先确认故事来源，再准备大纲任务。* 为必填项，确认内容不会自动启动生成。"}</StageGuide>
       {error && <ErrorNotice message={error} />}
       {!state ? <Spinner /> : <div className="source-outline-grid">
       <article className="panel source-outline-source" data-testid="source-outline-source">
         <header><span>已确认的改编内容</span><strong>{state.source ? `改编内容 r${state.source.revision}` : "尚未保存故事内容"}</strong></header>
-        <label>来源类型<select disabled={readOnly || busy} value={draft.kind} onChange={(event) => updateDraft({ ...draft, kind: event.target.value as SourceMaterial["kind"] })}><option value="synopsis">梗概（发展为来源故事）</option><option value="imported_text">导入文字 / treatment</option><option value="existing_work">既有作品改编</option></select></label>
-        <label>标题<input disabled={readOnly || busy} value={draft.title} onChange={(event) => updateDraft({ ...draft, title: event.target.value })} /></label>
-        <label>故事内容<textarea disabled={readOnly || busy} value={draft.text} onChange={(event) => updateDraft({ ...draft, text: event.target.value })} rows={10} /></label>
-        <label>改编意图<textarea disabled={readOnly || busy} value={draft.adaptationIntent} onChange={(event) => updateDraft({ ...draft, adaptationIntent: event.target.value })} rows={3} /></label>
+        <p className="required-legend">* 为必填项。请说明故事如何改编成互动短片。</p>
+        <label>来源类型<select disabled={readOnly || busy} value={draft.kind} onChange={(event) => updateDraft({ ...draft, kind: event.target.value as SourceMaterial["kind"] })}><option value="synopsis">梗概（发展为来源故事）</option><option value="imported_text">导入故事文本</option><option value="existing_work">既有作品改编</option></select></label>
+        <label><span>标题<RequiredMark /></span><input aria-required="true" disabled={readOnly || busy} value={draft.title} onChange={(event) => updateDraft({ ...draft, title: event.target.value })} /></label>
+        <label><span>故事内容<RequiredMark /></span><textarea aria-required="true" disabled={readOnly || busy} value={draft.text} onChange={(event) => updateDraft({ ...draft, text: event.target.value })} rows={10} /></label>
+        <label><span>改编意图<RequiredMark /></span><textarea aria-required="true" placeholder="例如：保留一个观众选择和两个结局，以角色动作和少量对白推进。" disabled={readOnly || busy} value={draft.adaptationIntent} onChange={(event) => updateDraft({ ...draft, adaptationIntent: event.target.value })} rows={3} /></label>
         <label>允许的原创补充（可选）<textarea disabled={readOnly || busy} value={draft.inventedAdditions || ""} onChange={(event) => updateDraft({ ...draft, inventedAdditions: event.target.value || null })} rows={3} /></label>
-        <Button variant="primary" disabled={!canSave} onClick={() => void mutate(() => plotloomApi.saveSourceMaterial(projectId, state.source?.revision || 0, draft), true)}>{busy ? "正在保存…" : "确认改编内容"}</Button>
-        <p>将以这些内容和创作方向为依据，生成大纲。本次确认不会启动生成。</p>
+        <Button variant="primary" busy={busy} aria-describedby="source-save-hint" disabled={!canSave} onClick={() => void mutate(() => plotloomApi.saveSourceMaterial(projectId, state.source?.revision || 0, draft), true)}>{busy ? "正在保存…" : "确认改编内容"}</Button>
+        <p id="source-save-hint" className="action-prerequisite">{sourceHint}</p>
       </article>
 
       <article className="panel source-outline-candidate" data-testid="source-outline-candidate">
@@ -138,7 +143,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
       <article className="panel source-outline-accepted" data-testid="source-outline-accepted">
         <header><span>已确认的大纲</span><strong>{accepted ? `已确认 r${accepted.revision}` : "尚未确认"}</strong></header>
         <p>当前状态：{state.outlineStatus === "accepted" ? "已确认" : state.outlineStatus === "reopened" ? "已重新打开，需新的候选" : state.outlineStatus === "candidate_ready" ? "待审阅" : "缺失"}</p>
-        {accepted ? <><small>基于故事内容 r{accepted.sourceRevision} · 候选 {accepted.candidateJobId.slice(0, 11)}</small><details><summary>查看已确认的原始 outline.json</summary><pre>{JSON.stringify(accepted.outline, null, 2)}</pre></details><Button variant="quiet" disabled={readOnly || busy || state.outlineStatus === "reopened"} onClick={() => void mutate(() => plotloomApi.reopenOutline(projectId, accepted.revision))}>重新打开，不替换内容</Button></> : <p className="muted">确认会新建不可变的大纲 revision；此处绝不从候选静默同步。</p>}
+        {accepted ? <><small>基于故事内容 r{accepted.sourceRevision} · 候选 {accepted.candidateJobId.slice(0, 11)}</small><details><summary>查看已确认的原始 outline.json</summary><pre>{JSON.stringify(accepted.outline, null, 2)}</pre></details><Button variant="quiet" disabled={readOnly || busy || state.outlineStatus === "reopened"} onClick={() => void mutate(() => plotloomApi.reopenOutline(projectId, accepted.revision))}>重新打开，不替换内容</Button></> : <p className="muted">确认会新建独立的大纲版本；此处绝不从候选静默同步。</p>}
       </article>
 
       <SectionMapPanel key={projectId}
@@ -179,14 +184,14 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
     </section>
     <section className="source-workflow-focus" hidden={focusedTarget !== "art"} aria-labelledby="art-workflow-heading">
       <header className="page-header"><div><h1 id="art-workflow-heading">美术参考</h1><p>审阅地点、道具及其可复用参考。</p></div></header>
-      <ArtPanel projectId={projectId} readOnly={ownerReadOnly} active={focusedTarget === "art"} refreshToken={refreshToken} />
+      <ArtPanel projectId={projectId} readOnly={ownerReadOnly} active={focusedTarget === "art"} refreshToken={refreshToken} onContinue={onContinueToScript && (() => { if (draftDirty.current) { setError("故事内容有未保存修改，请先确认或放弃修改。"); return; } onContinueToScript(); })} />
     </section>
     <section className="source-workflow-focus" hidden={focusedTarget !== "script"} aria-labelledby="script-workflow-heading">
-      <header className="page-header"><div><h1 id="script-workflow-heading">剧本</h1><p>审阅当前完整 pilot，或编辑允许修改的稳定章节。</p></div></header>
-      <ScriptPanel projectId={projectId} readOnly={ownerReadOnly} active={focusedTarget === "script"} refreshToken={refreshToken} />
+      <header className="page-header"><div><h1 id="script-workflow-heading">剧本</h1><p>审阅完整剧本，按需修改开场或结局章节。</p></div></header>
+      <ScriptPanel projectId={projectId} readOnly={ownerReadOnly} active={focusedTarget === "script"} refreshToken={refreshToken} onContinue={onContinueToStoryboard && (() => { if (draftDirty.current) { setError("故事内容有未保存修改，请先确认或放弃修改。"); return; } onContinueToStoryboard(); })} />
     </section>
     <section className="source-workflow-focus" hidden={focusedTarget !== "storyboard-review"} aria-labelledby="storyboard-review-workflow-heading">
-      <header className="page-header"><div><h1 id="storyboard-review-workflow-heading">分镜评审</h1><p>审阅与已接受剧本绑定的 storyboard 证据。</p></div></header>
+      <header className="page-header"><div><h1 id="storyboard-review-workflow-heading">分镜评审</h1><p>将已确认剧本拆成镜头，审阅后准备投产。</p></div></header>
       <StoryboardReviewPanel projectId={projectId} readOnly={ownerReadOnly} active={focusedTarget === "storyboard-review"} refreshToken={refreshToken} onOpenShot={(shotId) => {
         if (draftDirty.current) return false;
         onOpenShot?.(shotId);

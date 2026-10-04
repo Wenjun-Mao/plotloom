@@ -16,6 +16,7 @@ import { useConfirmation } from "./confirmation";
 import { h3Timing } from "./video-backends/minimax-h3-timing";
 import { shotLabel } from "./shot-label";
 import { verifiedVideoGeometry } from "./features/media/verified-video-geometry";
+import { isCurrentVideoSelection, videoNextAction } from "./features/media/video-next-action";
 
 type FrozenShot = { id?: string; title?: string; action?: string; sceneId?: string; order?: number };
 
@@ -61,7 +62,7 @@ export function selectedRouteVideos(
   const selectedByShotId = new Map<string, VideoJob[]>();
   jobs.forEach((job) => {
     const frozen = frozenShot(job);
-    if (job.state !== "ingested" || !job.current || !job.selected || !job.playbackSegment?.current || !job.playbackSegment.selected || !frozen.id || !frozen.sceneId) return;
+    if (!isCurrentVideoSelection(job) || !frozen.id || !frozen.sceneId) return;
     selectedByShotId.set(frozen.id, [...(selectedByShotId.get(frozen.id) || []), job]);
   });
   const sequence = routeShots.flatMap(({ shot, sceneId }) => (
@@ -290,13 +291,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   const segmentAnchorJobId = navigationJob?.id;
   const hasReviewableSegment = Boolean(navigationJob?.segments?.some((segment) => segment.current)
     && navigationJob?.current && navigationJob?.reviews.at(-1)?.decision !== "reject");
-  const nextAction = visibleJobs.some((job) => job.selected)
-    ? "当前镜头已有用于故事的片段；可在下方检查路径预览。"
-    : visibleJobs.some((job) => job.state === "ingested" && job.segments?.some((segment) => segment.current))
-      ? "下一步：听看待审片段，再明确确认用于故事。"
-      : visibleJobs.some((job) => job.state === "ingested")
-        ? "下一步：从原片选择连续帧，生成待审片段。"
-        : "下一步：展开准备区，检查关键帧与视频请求。";
+  const nextAction = videoNextAction(visibleJobs, shot?.durationUnits);
   // State refreshes are asynchronous. Never use an old project's retained
   // jobs to construct URLs under the newly selected project identity.
   const selectedSequence = selectedRouteVideos(jobs.filter((job) => job.projectId === projectId), storyboard, sceneBeats, graph, routeId);

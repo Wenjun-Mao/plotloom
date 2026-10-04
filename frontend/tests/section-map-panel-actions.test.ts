@@ -36,6 +36,12 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); })
 
 it("requires a saved clean map before applying and enables save after an edit", async () => {
   await render();
+  const required = host.querySelectorAll("[aria-required='true']");
+  expect(required).toHaveLength(11);
+  for (const control of required) {
+    expect(control.closest("label")?.querySelector(".required-mark")?.getAttribute("aria-hidden")).toBe("true");
+    expect(control.hasAttribute("required")).toBe(false);
+  }
   expect(button("保存修改").disabled).toBe(true);
   expect(button("应用到故事路线").disabled).toBe(false);
   const title = host.querySelector<HTMLInputElement>("input[value='开场']")!;

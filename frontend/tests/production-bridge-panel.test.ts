@@ -209,22 +209,26 @@ it("opens only a current installed bridge cut without writing project state", as
   accepted.status = "accepted";
   accepted.installedStageRevisions = { story_bible: 1, scene_beats: 1, storyboard: 1 };
   accepted.installedStoryboardCurrent = true;
-  accepted.proposal!.cuts = [{ shotId: "opening-s1-c1", sectionId: "opening", episode: 1, sceneIndex: 1, seconds: 6, source: { segmentIndex: 1, segmentSceneIndex: 1, cutIndex: 1 } }];
+  accepted.proposal!.cuts = [{ shotId: "not-navigable" }, { shotId: "opening-s1-c1", sectionId: "opening", episode: 1, sceneIndex: 1, seconds: 6, source: { segmentIndex: 1, segmentSceneIndex: 1, cutIndex: 1 } }];
   const get = vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(accepted);
   const accept = vi.spyOn(plotloomApi, "acceptProductionBridge");
   const onOpenShot = vi.fn();
   await render("opening", onOpenShot); await settle();
-  await act(async () => button("在分镜工作台打开 opening-s1-c1").click());
+  await act(async () => button("继续：打开第一个镜头").click());
   expect(onOpenShot).toHaveBeenCalledExactlyOnceWith("opening-s1-c1");
+  await act(async () => button("在分镜工作台打开 opening-s1-c1").click());
+  expect(onOpenShot).toHaveBeenCalledTimes(2);
   expect(get).toHaveBeenCalledTimes(1);
   expect(accept).not.toHaveBeenCalled();
 
   get.mockResolvedValue({ ...accepted, installedStoryboardCurrent: false });
   await render("drifted", onOpenShot); await settle();
   expect(button("在分镜工作台打开 opening-s1-c1")).toBeUndefined();
-  expect(host.textContent).toContain("来源镜头直达已暂停");
+  expect(button("继续：打开第一个镜头")).toBeUndefined();
+  expect(host.textContent).toContain("这里的镜头直达已暂停");
 
   get.mockResolvedValue({ ...accepted, status: "stale", staleReasons: ["source changed"] });
   await render("other", onOpenShot); await settle();
   expect(button("在分镜工作台打开 opening-s1-c1")).toBeUndefined();
+  expect(button("继续：打开第一个镜头")).toBeUndefined();
 });

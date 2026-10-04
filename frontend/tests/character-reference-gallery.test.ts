@@ -159,6 +159,11 @@ it("does not refresh an old image mutation after reopening invalidates its cast 
   vi.spyOn(plotloomApi, "reopenCast").mockResolvedValue({ ...response.cast, status: "reopened" } as any);
 
   await renderProject("project");
+  for (const label of ["图片标签", "来源声明", "PNG 或 JPEG", "想法"]) {
+    const field = [...host.querySelectorAll(".character-reference-review label")].find(item => item.querySelector("span")?.textContent === `${label} *`)!;
+    expect(field.querySelector("input,textarea")?.getAttribute("aria-required")).toBe("true");
+    expect(field.querySelector("input,textarea")?.hasAttribute("required")).toBe(false);
+  }
   await act(async () => { button("选用当前图片").click(); await Promise.resolve(); });
   expect(button("编辑角色设定").disabled).toBe(false);
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
@@ -183,11 +188,11 @@ it("does not retain an in-flight specialist send from a cast session invalidated
 
   proposal.deliveries = []; proposal.state = "prepared";
   await renderProject("project");
-  await act(async () => { button("发送给 specialist").click(); await Promise.resolve(); });
+  await act(async () => { button("发送给图像生成助手").click(); await Promise.resolve(); });
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).toContain("角色文字正在更新");
-  expect(button("发送给 specialist").disabled).toBe(true);
+  expect(button("发送给图像生成助手").disabled).toBe(true);
   await act(async () => { copied.resolve({}); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).not.toContain("角色参考操作失败");
@@ -206,11 +211,11 @@ it("reads the exported character handoff after a wake warning and preserves that
     throw new Error(warning);
   });
   await renderProject("project");
-  await act(async () => button("发送给 specialist").click());
+  await act(async () => button("发送给图像生成助手").click());
   await flushReact();
   expect(send).toHaveBeenCalledTimes(1);
   expect(host.textContent).toContain(warning);
-  expect([...host.querySelectorAll("button")].some((entry) => entry.textContent === "发送给 specialist")).toBe(false);
+  expect([...host.querySelectorAll("button")].some((entry) => entry.textContent === "发送给图像生成助手")).toBe(false);
   expect(vi.mocked(plotloomApi.getCharacterReferenceProposals).mock.calls.length).toBeGreaterThan(1);
 });
 

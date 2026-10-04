@@ -7,6 +7,7 @@ test("Brief save continues to an editable Source draft without starting the lega
   await page.getByLabel("故事梗概").fill("雨刚停，林遥在车站檐下决定去海堤还是旧街。");
   await expect(page.locator(".page-header .button")).toHaveCount(1);
   await expect(page.getByRole("button", { name: "保存修改" })).toHaveCount(0);
+  await page.getByText("其他工作流：旧版故事提案", { exact: true }).click();
   await expect(page.getByRole("button", { name: "生成故事提案" })).toBeVisible();
   await page.getByRole("button", { name: "保存并继续到来源" }).click();
   await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
@@ -23,7 +24,7 @@ test("Brief save continues to an editable Source draft without starting the lega
   await page.getByLabel("改编意图").fill("保留一个选择和两个结局。");
   await expect(page.getByLabel("归属 / 署名声明")).toHaveCount(0);
   await expect(page.getByLabel("使用权或许可声明")).toHaveCount(0);
-  await expect(page.getByText("将以这些内容和创作方向为依据，生成大纲。本次确认不会启动生成。", { exact: true })).toBeVisible();
+  await expect(page.getByText("确认只保存故事来源；生成大纲需要下方单独准备并发送任务。", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "确认改编内容" }).click();
   await expect(page.getByText("改编内容 r1", { exact: true })).toBeVisible();
   const saved = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/source-outline`)).json();
@@ -78,7 +79,8 @@ test("saved Brief offers only Save Changes and remains on Brief", async ({ page,
   await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
   await expect(page.locator(".page-header .button")).toHaveCount(1);
   await expect(page.getByRole("button", { name: "保存并继续到来源" })).toHaveCount(0);
-  await expect(page.getByText("若要审阅来源与大纲，请从左侧创作流程打开。", { exact: false })).toBeVisible();
+  await page.getByText("其他工作流：旧版故事提案", { exact: true }).click();
+  await expect(page.getByText("通常请从左侧“来源与大纲”开始，逐步审阅并确认。", { exact: false })).toBeVisible();
   await page.getByLabel("片名").fill("已保存项目的新片名");
   const patch = page.waitForResponse((response) => response.request().method() === "PATCH"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}`);
@@ -110,6 +112,7 @@ test("Brief actions reject a target below the script workflow minimum", async ({
   await page.getByLabel("目标游玩时长（秒）").fill("2");
   await expect(page.getByRole("button", { name: "保存修改" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "保存并继续到来源" })).toBeDisabled();
+  await page.getByText("其他工作流：旧版故事提案", { exact: true }).click();
   await expect(page.getByRole("button", { name: "生成故事提案" })).toBeDisabled();
   await page.getByLabel("目标游玩时长（秒）").fill("3");
   await expect(page.getByRole("button", { name: "保存并继续到来源" })).toBeEnabled();

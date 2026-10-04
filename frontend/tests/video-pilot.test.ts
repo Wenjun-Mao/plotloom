@@ -5,6 +5,7 @@ import { VideoPilotPanel, selectedRouteVideos } from "../src/video-pilot";
 import { BranchingVideoPreview, branchingPreviewManifest } from "../src/branching-video-preview";
 import { VideoSegmentReview } from "../src/video-segment-review";
 import { plotloomApi } from "../src/api";
+import { isCurrentVideoSelection, videoNextAction } from "../src/features/media/video-next-action";
 import type { ManagedAsset, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBackend, VideoJob } from "../src/types";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -43,6 +44,29 @@ function selectedJob(id: string, order: number, overrides: Partial<VideoJob> = {
     ...overrides,
   };
 }
+
+it("only recommends playback for current selected segments matching the authored duration", () => {
+  const current = selectedJob("current", 1);
+  expect(isCurrentVideoSelection(current)).toBe(true);
+  expect(videoNextAction([current], 6_000)).toContain("检查路径预览");
+  expect(videoNextAction([current], 5_000)).toContain("时长与当前镜头不一致");
+  for (const historical of [
+    { ...current, current: false },
+    { ...current, playbackSegment: { ...current.playbackSegment!, current: false } },
+    { ...current, playbackSegment: { ...current.playbackSegment!, selected: false } },
+  ]) {
+    expect(isCurrentVideoSelection(historical)).toBe(false);
+    expect(videoNextAction([historical], 6_000)).not.toContain("检查路径预览");
+  }
+});
+
+it("guides current unselected segments to review and rejected history to recovery", () => {
+  const current = selectedJob("current", 1);
+  const pending = { ...current, selected: false, playbackSegment: null, segments: [{ ...current.playbackSegment!, selected: false }] };
+  expect(videoNextAction([pending], 6_000)).toContain("听看待审片段");
+  expect(videoNextAction([{ ...pending, reviews: [{ id: "r", reviewer: "", note: "", decision: "reject", createdAt: "2026-10-04T00:00:00Z" }] }], 6_000)).toContain("被拒绝");
+  expect(videoNextAction([], 6_000)).toContain("检查关键帧与视频请求");
+});
 
 function routeContext(shotIds: string[], sceneId = "scene"): { storyboard: Storyboard; sceneBeats: SceneBeatPlan; graph: StoryGraph; routeId: string } {
   return {

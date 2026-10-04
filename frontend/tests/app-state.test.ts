@@ -522,7 +522,7 @@ describe("App project/editor rehydration", () => {
 
     expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("保留草稿");
     expect(window.location.search).toBe("?stage=brief");
-    expect(document.body.textContent).toContain("unsaved teaching draft");
+    expect(document.body.textContent).toContain("尚未保存的项目草稿");
     expect(button("保存并继续到来源").disabled).toBe(false);
 
     await act(async () => button("保存并继续到来源").click());

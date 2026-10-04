@@ -4,6 +4,7 @@ import { Button, ErrorNotice, Spinner } from "../components";
 import type { ProductionBridgeIntentEntry, ProductionBridgeState } from "../types";
 import { ProductionPresentationReview } from "./ProductionPresentationReview";
 import { bridgeCut } from "../production-bridge-handoff";
+import { StageGuide } from "../components/StageGuide";
 
 const proposalKey = (projectId: string, state: ProductionBridgeState) => {
   const proposal = state.proposal;
@@ -113,6 +114,7 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { pro
   </section>;
   const proposal = state.proposal;
   const unsaved = intentDirty || draftConflict || presentationDirty;
+  const firstCut = proposal?.cuts.map(bridgeCut).find(cut => cut !== undefined);
   const activeJob = job?.status === "queued" || job?.status === "dispatched";
   return <section className="panel cast-panel" data-testid="production-bridge">
     <header><span>投产提案</span><strong>{state.status === "accepted" ? "投产提案已确认" : state.status === "stale" ? "上下文已过期" : "待确认"}</strong></header>
@@ -148,9 +150,11 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { pro
       <p>确认后，将建立后续制作使用的场景与镜头数据；不会自动生成图片或视频。</p>
       {state.status !== "accepted" && <Button variant="primary" disabled={readOnly || busy || !proposal.installable || unsaved} onClick={() => run(() => plotloomApi.acceptProductionBridge(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash }))}>确认投产提案</Button>}
       {state.status !== "accepted" && !proposal.installable && <p>请先完成戏剧意图与呈现归属审阅，并显式解决项目规划冲突；系统不会拆分场次或静默改写规则。</p>}
-      {state.status === "accepted" && <p>{state.installedStoryboardCurrent
-        ? "投产提案已确认。可在上方选择镜头进入既有分镜工作台；分镜审核、参考选择、关键帧与媒体准备仍须分别完成。"
-        : "投产提案已确认，但确认时的分镜版本不再是当前版本；请在既有分镜工作台核对当前镜头，来源镜头直达已暂停。"}</p>}
+      {state.status === "accepted" && <StageGuide next={state.installedStoryboardCurrent && state.staleReasons.length === 0 && firstCut && onOpenShot && <Button variant="primary" onClick={() => { if (onOpenShot(firstCut.shotId) === false) setError("来源文字仍有未保存的编辑；请先保存或明确放弃，再打开投产镜头。"); }}>继续：打开第一个镜头</Button>}>
+        {state.installedStoryboardCurrent
+          ? "投产提案已确认。打开镜头后，依次完成分镜审核、参考选择、关键帧审核与视频片段审核。也可展开“查看场次与镜头”选择其他镜头。"
+          : "投产提案已确认，但当时的分镜已不是当前版本。请在分镜工作台核对当前镜头；这里的镜头直达已暂停。"}
+      </StageGuide>}
     </>}
     {error && <ErrorNotice message={userFacingBridgeMessage(error)} />}
   </section>;

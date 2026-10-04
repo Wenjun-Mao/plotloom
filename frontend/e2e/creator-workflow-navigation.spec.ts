@@ -30,7 +30,7 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await expect(workflow.getByRole("link", { name: "美术参考" })).toHaveAttribute("aria-current", "step");
   await expect(workflow.getByRole("link", { name: "剧本" })).not.toHaveAttribute("aria-current", "step");
 
-  await workflow.getByRole("link", { name: "剧本" }).click();
+  await page.getByRole("button", { name: "继续：剧本", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=source#script$`));
   await expect(page.getByRole("heading", { name: "剧本", exact: true })).toBeVisible();
   await expect(page.locator("h1:visible")).toHaveCount(1);
@@ -51,7 +51,7 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await expect(page.getByRole("heading", { name: "剧本", exact: true })).toBeVisible();
   await expect(page.getByTestId("script-review")).toBeVisible();
 
-  await workflow.getByRole("link", { name: "分镜评审" }).click();
+  await page.getByRole("button", { name: "继续：分镜评审", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=source#storyboard-review$`));
   await expect(page.getByRole("heading", { name: "分镜评审", exact: true })).toBeVisible();
   await expect(page.locator("h1:visible")).toHaveCount(1);
@@ -107,7 +107,7 @@ test("keeps missing and stale F5A review explanations at their source-bound owne
   await expect(review).toContainText("上下文已过期");
   await expect(review).toContainText("已确认剧本 r");
   await expect(review).not.toContainText("F4 script r");
-  await expect(review).toContainText("不是 Plotloom 的 shots、播放内容、媒体提示词或投产许可");
+  await expect(review).toContainText("确认评审不会自动投产或生成媒体");
 });
 
 test("keeps an independent owner usable when the aggregate source read fails", async ({ page, request, workbench }) => {

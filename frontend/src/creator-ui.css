@@ -1,0 +1,132 @@
+/* Shared creator roles. Technical disclosures and narrative reading may use
+   deliberately denser/richer styles; routine form metadata is not a status. */
+:root {
+  --type-page: clamp(26px, 2.3vw, 36px);
+  --type-section: 18px;
+  --type-body: 14px;
+  --type-label: 13px;
+  --type-support: 12px;
+  --space-card: 20px;
+  --space-section: 20px;
+  --space-field: 14px;
+  --dim: #94a0b2;
+}
+
+.page { width: min(1500px, 100%); min-height: calc(100vh - 58px); padding: clamp(22px, 3vw, 42px); margin: 0 auto; }
+.page-header { display: flex; gap: 24px; align-items: flex-end; justify-content: space-between; padding-bottom: 20px; border-bottom: 1px solid var(--line); margin-bottom: var(--space-section); }
+.page-header > div:first-child { min-width: 0; }
+.page-header h1 { margin: 0; font-size: var(--type-page); letter-spacing: -.01em; line-height: 1.3; }
+.page-header p { max-width: 730px; margin: 10px 0 0; color: var(--muted); }
+.page-actions { display: flex; flex: 0 0 auto; gap: 10px; align-items: flex-end; }
+.page-actions .field { min-width: 260px; margin: 0; }
+.page-action-group { max-width: 310px; }
+.eyebrow, .section-title span { display: block; margin-bottom: 6px; color: var(--muted); font: 500 var(--type-support)/1.5 var(--sans); letter-spacing: normal; text-transform: none; }
+.section-title { margin-bottom: 16px; }
+.section-title strong { display: block; font-size: var(--type-section); font-weight: 600; }
+
+.panel { border: 1px solid var(--line); border-radius: 8px; background: rgba(17,21,27,.96); }
+.form-card { padding: var(--space-card); }
+.stack { display: grid; gap: var(--space-field); align-content: start; }
+.two-column { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.two-column.wide-left { grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr); }
+.field-grid { display: grid; gap: 12px; }
+.field-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.field-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.field-grid.compact { gap: 8px; }
+.field { display: block; margin-bottom: var(--space-field); color: var(--muted); font-size: var(--type-label); }
+.field > span, .modal-card label > span { display: block; margin-bottom: 6px; }
+.field small { display: block; margin-top: 6px; color: var(--dim); font-size: var(--type-support); line-height: 1.6; }
+.required-mark { color: var(--text); font-weight: 600; }
+.required-legend, .action-prerequisite { color: var(--muted); font-size: var(--type-support); line-height: 1.6; }
+.action-prerequisite { margin: 8px 0 0; }
+.brief-layout { margin-bottom: var(--space-section); }
+.brief-alternate-workflow { padding: var(--space-card); margin-top: var(--space-section); }
+.brief-alternate-workflow summary { font-size: var(--type-label); font-weight: 600; }
+.brief-alternate-workflow p { margin: 12px 0; color: var(--muted); }
+.proposal-review { margin-top: var(--space-section); }
+.proposal-review > .panel { padding: var(--space-card); }
+.form-card details > summary { font-size: var(--type-label); font-weight: 600; }
+.range-summary { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; margin-bottom: 10px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: var(--type-label); }
+.range-summary strong { color: var(--text); font: 600 var(--type-label)/1.5 var(--sans); }
+
+.button { min-height: 38px; padding: 8px 13px; border: 1px solid var(--line-strong); border-radius: 5px; color: var(--text); background: var(--panel-2); font: 600 var(--type-label)/1.4 var(--sans); }
+.button:not(:disabled):hover { border-color: var(--muted); background: var(--panel-2); filter: brightness(1.1); }
+.button.primary { border-color: var(--accent); color: #1d160b; background: var(--accent); }
+.button.primary:not(:disabled):hover { background: var(--accent-2); }
+.button.danger { border-color: rgba(229,121,125,.5); color: var(--danger); background: rgba(229,121,125,.06); }
+.button.quiet { color: var(--text); background: var(--panel-2); }
+.button:disabled { border-color: var(--line); border-style: dashed; color: #8792a2; background: var(--panel-3); cursor: not-allowed; opacity: 1; filter: none; box-shadow: none; }
+.button[aria-busy="true"] { cursor: progress; }
+
+.stage-guide { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; margin: 0 0 var(--space-section); border: 1px solid var(--line); border-radius: 7px; background: var(--panel-3); }
+.stage-guide strong { font-size: var(--type-label); font-weight: 600; }
+.stage-guide-content { margin-top: 4px; color: var(--muted); font-size: var(--type-label); line-height: 1.6; }
+.stage-guide-content p { margin: 0; }
+.stage-guide-next { flex: 0 0 auto; }
+.stage-guide-next .button { white-space: normal; }
+.source-outline-grid .panel > header span, .cast-panel > header span { color: var(--muted); font: 500 var(--type-support)/1.5 var(--sans); letter-spacing: normal; text-transform: none; }
+.source-outline-grid .panel > header strong, .cast-panel > header strong { font-size: var(--type-section); font-weight: 600; }
+.source-outline-grid label, .cast-panel label { font-size: var(--type-label); }
+.source-outline-grid small, .cast-panel small { font-size: var(--type-support); }
+.source-outline-grid .panel { padding: var(--space-card); }
+.source-outline-grid .panel p { margin: 0; }
+.cast-panel-heading h2 { font-size: var(--type-section); font-weight: 600; }
+.cast-panel > header:not(.cast-panel-heading) { display: grid; gap: 5px; }
+.cast-panel > header > strong { font-size: var(--type-section); font-weight: 600; }
+.accepted-cast-grid dt, .cast-inference-notes dt { font-size: var(--type-support); }
+.character-reference-review .reference-gallery-intro h2, .character-reference-review .reference-subject-heading h2,
+.character-reference-review .reference-alternatives h3 { font-size: var(--type-section); line-height: 1.4; letter-spacing: normal; }
+.art-reference-gallery > header span { color: var(--muted); font: 500 var(--type-support)/1.5 var(--sans); }
+.art-reference-gallery > header > small, .art-reference-gallery > p { font-size: var(--type-support); }
+.characters-page .page-header h1 { font-size: var(--type-page); }
+.project-switcher span, .project-switcher small, .sidebar-footer small { font: 500 var(--type-support)/1.5 var(--sans); letter-spacing: normal; text-transform: none; }
+.creator-workflow-heading, .workspace-tools-navigation > summary { font: 600 var(--type-label)/1.5 var(--sans); letter-spacing: normal; }
+.sidebar nav button strong, .creator-workflow-links strong { font-size: var(--type-label); }
+.topbar-technical-status > summary, .workspace-technical-details > summary { font: 500 var(--type-support)/1.5 var(--sans); }
+/* An expanded diagnostic disclosure must not float above authoring actions.
+   Let it occupy the toolbar, and scroll with the page while it is open. */
+.topbar:has(.topbar-technical-status[open]) { position: relative; }
+.topbar-technical-status[open] { flex-basis: 100%; min-width: 0; }
+.topbar-technical-status > div { position: static; min-width: 0; max-width: 100%; margin-top: 8px; }
+.topbar-technical-status .badge { white-space: normal; overflow-wrap: anywhere; }
+.topbar-technical-status small { font-size: var(--type-support); }
+.toolbar-prerequisite { color: var(--muted); font-size: var(--type-support); }
+.welcome-card h1 { font-size: var(--type-page); line-height: 1.3; letter-spacing: normal; }
+.creator-workflow-navigation.unavailable, .sidebar nav button small { font-size: var(--type-support); }
+.modal-card header span, .modal-body label, .modal-body small { font: 500 var(--type-support)/1.6 var(--sans); letter-spacing: normal; text-transform: none; }
+.modal-card header h2 { font-size: var(--type-section); }
+fieldset legend, .structured-editor legend, .section-map legend { color: var(--muted); font: 600 var(--type-label)/1.5 var(--sans); letter-spacing: normal; text-transform: none; }
+.modal-body > fieldset { min-width: 0; padding: 14px; margin: 16px 0; border: 1px solid var(--line); border-radius: 6px; }
+.cast-forms legend { color: var(--text); font: 600 var(--type-section)/1.5 var(--sans); letter-spacing: normal; text-transform: none; }
+.cast-technical summary, .cast-assignment summary { color: var(--muted); font: 600 var(--type-support)/1.5 var(--sans); }
+.reference-state, .badge, .video-workflow-nav { font: 600 var(--type-support)/1.5 var(--sans); letter-spacing: normal; }
+.reference-subjects > span, .reference-subjects small, .reference-gallery-cast-state span,
+.reference-alternatives > header small, .reference-card-body > small,
+.reference-instructions summary, .reference-technical summary, .reference-history summary,
+.video-workflow-header small, .video-job-card > small, .story-playback-section > small,
+.managed-media-workbench small, .image-job-panel small, .preview-history button { font-size: var(--type-support); }
+/* Reading has an intentional narrative scale, but navigation and metadata use
+   the same legible creator roles as the editing workspace. */
+.prototype-workflow-return, .branch-node span, .branch-choice .choice-label,
+.screenplay-heading span, .screenplay-heading small, .screenplay-terminal span,
+.scene-heading div, .script-row > span, .script-row small,
+.storyboard-episode-heading span, .storyboard-episode-heading small,
+.storyboard-segment header span, .storyboard-segment header > small,
+.cut-index, .cut-frame span, .cut-frame small, .storyboard-cut dt, .storyboard-cut dd,
+.generation-instructions summary, .prototype-report summary, .prototype-details summary { font: 500 var(--type-support)/1.5 var(--sans); letter-spacing: normal; text-transform: none; }
+.prototype-version span { font: 600 var(--type-label)/1.5 var(--sans); }
+.prototype-version small { font-size: var(--type-support); }
+
+@media (max-width: 1120px) {
+  .two-column.wide-left { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .page { padding: 18px 12px 34px; }
+  .page-header { display: block; }
+  .page-actions { margin-top: 15px; flex-wrap: wrap; }
+  .page-actions .field { min-width: min(260px, 100%); flex: 1; }
+  .two-column, .field-grid.three { grid-template-columns: 1fr; }
+  .stage-guide { flex-direction: column; align-items: stretch; }
+  .stage-guide-next { align-self: start; }
+  .form-card, .brief-alternate-workflow { padding: 16px; }
+}

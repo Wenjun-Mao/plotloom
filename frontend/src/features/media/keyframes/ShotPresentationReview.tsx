@@ -103,8 +103,8 @@ export function ShotPresentationReview({ projectId, shotId, approval, storyboard
       {bufferFailed && <p role="alert">会话草稿暂时无法保存，请保持本页打开并保存审阅。</p>}
       {dirty && <Button variant="quiet" onClick={() => { stamp.current = { sourceHash: state.source.sourceHash, revision: state.revision }; setDraftStale(false); applyDraft(initialDraft(state, shotId)); }}>放弃草稿，载入当前呈现</Button>}
       <details><summary>原始动作与构图</summary><blockquote>{state.source.shot.action}</blockquote><blockquote>{state.source.shot.composition}</blockquote></details>
-      {(Object.keys(labels) as Array<keyof PhysicalPresentation>).map(field => <Field key={field} label={labels[field]}>
-        <textarea aria-label={`呈现调整 ${labels[field]}`} value={physical[field]} onChange={event => { setPhysical({ ...physical, [field]: event.target.value }); setConfirmed(false); }} />
+      {(Object.keys(labels) as Array<keyof PhysicalPresentation>).map(field => <Field key={field} label={labels[field]} required={["action", "composition", "cameraMovement"].includes(field)}>
+        <textarea aria-required={["action", "composition", "cameraMovement"].includes(field) || undefined} aria-label={`呈现调整 ${labels[field]}`} value={physical[field]} onChange={event => { setPhysical({ ...physical, [field]: event.target.value }); setConfirmed(false); }} />
       </Field>)}
       <Field label="消息呈现"><select aria-label="消息呈现" value={mode} onChange={event => { setMode(event.target.value as MessagePresentation); setConfirmed(false); }}>
         <option value="source">保持来源中的呈现</option><option value="popped_out_draft">弹出预览：完整未发送草稿，正在撰写或检查</option><option value="popped_out_send">弹出预览：独立发送动作与清楚的已发送状态</option>
@@ -114,7 +114,7 @@ export function ShotPresentationReview({ projectId, shotId, approval, storyboard
       {state.source.literalOptions.map(option => <label key={pointerKey(option)}><input type="checkbox" checked={literals.some(item => pointerKey(item) === pointerKey(option))} onChange={event => {
         setLiterals(event.target.checked ? [...literals, { shotId: option.shotId, index: option.index }] : literals.filter(item => pointerKey(item) !== pointerKey(option))); setConfirmed(false);
       }} />{option.text} · {option.shotId}<small>来源 {option.sourceContentHash.slice(0, 12)}</small></label>)}
-      <Field label="调整理由"><textarea aria-label="呈现调整理由" value={reason} onChange={event => { setReason(event.target.value); setConfirmed(false); }} /></Field>
+      <Field label="调整理由" required><textarea aria-required="true" aria-label="呈现调整理由" value={reason} onChange={event => { setReason(event.target.value); setConfirmed(false); }} /></Field>
       <label><input type="checkbox" checked={confirmed} disabled={!valid} onChange={event => setConfirmed(event.target.checked)} />我已核对来源与调整：故事含义保留，文字准确且不发声，草稿与发送状态明确。</label>
       <Button disabled={!valid || !confirmed || busy} onClick={() => void save()}>保存此镜头的呈现审阅</Button>
     </fieldset>}

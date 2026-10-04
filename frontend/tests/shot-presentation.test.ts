@@ -42,6 +42,9 @@ it("reviews exact source pointers and explicit complete-draft treatment before s
       effectiveShot: { ...shot, ...review.physical }, review },
   }));
   await act(async () => root.render(panel()));
+  expect(host.querySelectorAll("textarea[aria-required='true']")).toHaveLength(4);
+  expect(host.querySelector("textarea[aria-label='呈现调整 视觉意图']")?.hasAttribute("aria-required")).toBe(false);
+  expect(host.querySelector("textarea[aria-label='呈现调整 动态意图']")?.hasAttribute("aria-required")).toBe(false);
   await textarea("呈现调整 实际动作", "Review the complete unsent draft.");
   await textarea("呈现调整理由", "Author approved a popped-out draft preview.");
   const select = host.querySelector<HTMLSelectElement>("select[aria-label='消息呈现']")!;

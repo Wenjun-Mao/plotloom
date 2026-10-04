@@ -224,7 +224,7 @@ test.describe("F3A production art review", () => {
     const candidate = JSON.parse(await editor.inputValue()) as Record<string, unknown>;
     const acceptedCandidate = withSummary(candidate, "Author accepted wording, distinct from the original specialist candidate.");
     await editor.fill(JSON.stringify(acceptedCandidate, null, 2));
-    await panel.getByRole("button", { name: "显式接受此美术提案" }).click();
+    await panel.getByRole("button", { name: "确认使用此美术提案" }).click();
     await expect(panel).toContainText("已接受 r1");
 
     // The editable candidate has become immutable canon. It must remain

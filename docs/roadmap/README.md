@@ -52,6 +52,15 @@ proven retirements. It does not authorize broad cleanup or contract redesign.
 
 Technical plans, ADRs, and receipts remain supporting references; they do not independently expand current scope.
 
+The owner has requested a plan for the
+[creator UI polish and self-guided workflow](2026-10-03-creator-ui-polish.md).
+The owner approved a ten-hour Goal Mode pass, ordered around the creator's tasks and handoffs, with
+workflow-wide typography/spacing/actions, Chinese wording and next-step guidance.
+The owner permits direct normal-installation UI iteration while sleeping;
+existing data/media remain protected. The pass started at October 3, 23:57:07
+Toronto and ends no later than October 4, 09:57:07 Toronto. The Chinese Creator's
+Manual follows the stable UI checkpoint; final-film polishing remains separate.
+
 The [bounded unattended walkthrough plan](2026-10-02-unattended-creator-walkthrough.md)
 was approved for the creator's eight-hour absence, extended by two hours at
 13:18 UTC, then extended for verification/deployment/handoff until 17:00 UTC.

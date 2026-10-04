@@ -19,6 +19,7 @@ export function StoryPrototypePage() {
   const projectId = new URLSearchParams(window.location.search).get("project") || "";
   const [data, setData] = useState<PrototypeData>();
   const [error, setError] = useState("");
+  const [readRevision, setReadRevision] = useState(0);
   const [selectedRouteId, setSelectedRouteId] = useState("");
   const [selectedNodeId, setSelectedNodeId] = useState("");
   const [readerMode, setReaderMode] = useState<ReaderMode>("screenplay");
@@ -62,7 +63,7 @@ export function StoryPrototypePage() {
       })
       .catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : "无法读取故事原型。"); });
     return () => { active = false; };
-  }, [projectId]);
+  }, [projectId, readRevision]);
 
   const routes = useMemo(() => data ? derivePrototypeRoutes(data.graph, data.accepted.binding.sectionBindings) : [], [data]);
   const selectedRoute = routes.find((route) => route.id === selectedRouteId) || routes[0];
@@ -82,7 +83,7 @@ export function StoryPrototypePage() {
   };
 
   if (!projectId) return <PrototypeShell><section className="prototype-empty"><strong>需要一个项目</strong><p>从已有已确认剧本和分镜评审的项目打开此只读阅读页：在地址中加入 <code>?view=story-prototype&amp;project=…</code>。</p></section></PrototypeShell>;
-  if (error) return <PrototypeShell><ErrorNotice message={error} /></PrototypeShell>;
+  if (error) return <PrototypeShell><section className="prototype-empty"><WorkflowReturn projectId={projectId} /><h1>暂时无法阅读故事</h1><ErrorNotice message={error} /><button className="button quiet" onClick={() => setReadRevision(value => value + 1)}>重新读取故事</button></section></PrototypeShell>;
   if (!data || !selectedRoute) return <PrototypeShell><div className="prototype-loading"><Spinner label="正在读取故事和剧本" /></div></PrototypeShell>;
 
   const selectedEpisode = episodeForSection(data.script, selectedNode);
@@ -98,7 +99,7 @@ export function StoryPrototypePage() {
         <div className="prototype-version"><strong>当前阅读内容</strong><span>已确认剧本{storyboardState.status === "available" ? " / 已确认分镜评审" : ""}</span><small>这里不会更改内容、生成素材或将分镜转为产品镜头。</small></div>
       </section>
       <BranchMap graph={data.graph} routes={routes} selectedRoute={selectedRoute} selectedNode={selectedNode} onNode={chooseNode} onRoute={setSelectedRouteId} />
-      <ReaderTabs mode={readerMode} storyboardAvailable={storyboardState.status === "available"} onMode={setReaderMode} />
+      <ReaderTabs mode={readerMode} storyboardStatus={storyboardState.status} onMode={setReaderMode} />
       {readerMode === "screenplay" ? <ScreenplayReader graph={data.graph} script={data.script} names={data.names} route={selectedRoute} selectedNode={selectedNode} selectedEpisode={selectedEpisode} onFocus={chooseNode} /> : <StoryboardStage graph={data.graph} script={data.script} names={data.names} route={selectedRoute} state={storyboardState} onFocus={chooseNode} projectId={projectId} />}
       <footer className="prototype-boundary"><strong>阅读边界</strong><span>分镜中的时长是评审用预计时长，不代表实际音频或成片时长。此页只用于阅读当前绑定的故事、剧本和分镜评审，不能在这里保存、生成或投产。</span></footer>
       <details className="prototype-details"><summary>技术详情</summary><dl><div><dt>剧本版本</dt><dd>r{data.accepted.revision}</dd></div>{storyboardState.status === "available" && <><div><dt>分镜评审版本</dt><dd>r{storyboardState.review.revision}</dd></div><div><dt>内容标识</dt><dd>{storyboardState.review.contentHash}</dd></div></>}<div><dt>故事版本</dt><dd>r{data.accepted.binding.graphRevision}</dd></div><div><dt>章节对应</dt><dd>{data.accepted.binding.sectionBindings.map((item) => `${item.sectionId} → E${item.episode.toString().padStart(2, "0")}`).join(" · ")}</dd></div></dl></details>
@@ -106,8 +107,8 @@ export function StoryPrototypePage() {
   </PrototypeShell>;
 }
 
-function ReaderTabs({ mode, storyboardAvailable, onMode }: { mode: ReaderMode; storyboardAvailable: boolean; onMode: (mode: ReaderMode) => void }) {
-  return <nav className="reader-tabs" aria-label="阅读内容"><button type="button" className={mode === "screenplay" ? "selected" : ""} aria-pressed={mode === "screenplay"} onClick={() => onMode("screenplay")}>剧本</button><button type="button" className={mode === "storyboard" ? "selected" : ""} aria-pressed={mode === "storyboard"} onClick={() => onMode("storyboard")}>分镜{!storyboardAvailable ? " · 当前不可读" : ""}</button></nav>;
+function ReaderTabs({ mode, storyboardStatus, onMode }: { mode: ReaderMode; storyboardStatus: StoryboardState["status"]; onMode: (mode: ReaderMode) => void }) {
+  return <nav className="reader-tabs" aria-label="阅读内容"><button type="button" className={mode === "screenplay" ? "selected" : ""} aria-pressed={mode === "screenplay"} onClick={() => onMode("screenplay")}>剧本</button><button type="button" className={mode === "storyboard" ? "selected" : ""} aria-pressed={mode === "storyboard"} onClick={() => onMode("storyboard")}>分镜{storyboardStatus === "loading" ? " · 正在检查" : storyboardStatus === "unavailable" ? " · 当前不可读" : ""}</button></nav>;
 }
 
 function ScreenplayReader({ graph, script, names, route, selectedNode, selectedEpisode, onFocus }: { graph: StoryGraph; script: PrototypeScript; names: PrototypeNames; route: PrototypeRoute; selectedNode: string; selectedEpisode: PrototypeEpisode | undefined; onFocus: (id: string) => void }) {
