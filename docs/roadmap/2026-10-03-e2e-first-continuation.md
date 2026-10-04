@@ -1,6 +1,8 @@
 # Eight-hour E2E-first creator continuation
 
-Status: active, owner authorized with Relay Direct on 2026-10-03.
+Status: completed for the revised E2E-first scope on 2026-10-04; owner authorized
+with Relay Direct on 2026-10-03. New owner listening and final-film approval remain
+separate, pending decisions.
 Manager: `01a04525-e907-7630-9640-78790d69e8ae`.
 Starting source: `e65830033edf248d22e7a6d8286f0c65e1c29698`, clean `main`.
 
@@ -186,3 +188,30 @@ Step6 remains open until the repaired candidate passes the full unfiltered
 gate, closeout records are pushed and the
 existing reporting heartbeat is paused. No further media generation,
 normal backend activation or final-film/sound acceptance is implied.
+
+## Completed closeout · 02:24 UTC
+
+All six ordered steps are covered. The real copy contains12 selected/current
+clips, both routes have played naturally through their endings, and the player
+is left ready at the opening. The full unfiltered
+[release run37169099225](https://github.com/Wenjun-Mao/plotloom/actions/runs/37169099225)
+passed on `e835d0f3a2cd8daa52257503c8d1dd1b810d32e2` at02:23:16Z:1062 backend,
+421 frontend/56 files and133 E2E cases/42 files, with no browser failures,
+flaky retries or skips. Types, archived reader, static-drift, wheel and
+installed-wheel smoke passed. Exact failures, owning-layer fixes, independent
+reviews and terminal artifacts remain in the linked browser closeout.
+
+The final original capture still matches all73 table facts,67 file hashes and
+7 projections. Isolated specialists are idle, the bridge is current, and the
+served production bundle remains the verified93002f4 build; later commits are
+test/docs-only. The existing continuation heartbeat was paused through the
+app and its persisted `PAUSED` state verified at02:24 UTC. This completion
+record and its linked receipts are published as a documentation-only closeout;
+the CI-tested implementation SHA is not relabeled as that later documentation
+commit. Completion is within the hard02:43:28Z window, with no new provider or
+native assignment after the02:13:28Z submission boundary.
+
+Next owner action: listen to A2/A3/B1–B4 in the isolated player. Their provisional
+visual/technical selections do not accept sound. Original/normal backend
+activation and its additive schema upgrade remain unapproved and unperformed;
+final-film polishing is deferred, not silently accepted.

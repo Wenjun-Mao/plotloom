@@ -98,7 +98,7 @@ The existing full snapshot/restore journey retains all persistence assertions.
   candidate is never promoted retroactively; per-test startup cost is measured
   by the next full run rather than assumed to fit its bounds.
 
-## Release result
+## First repair result (failed)
 
 Stable repair `11a113ee625c75767a5e63eb3e70c87e80ded0ec` is committed and
 pushed to `origin/main`; the source checkout was clean and aligned afterward.
@@ -114,7 +114,8 @@ Shard1/job111333141200 ended with2 persistent failures,1 flaky and64 passed
 in23.2m; its job finished in24m26s. Results/report11290647744/11290277173 are
 retained on GitHub, and the failed shard's results are copied under
 `.local/unattended-2026-10-02/ci-37166752916/shard-1/`.
-No full-browser acceptance or completed implementation claim yet.
+At that checkpoint there was no full-browser acceptance or completed
+implementation claim.
 No further provider jobs, media changes, owner sound acceptance, normal backend
 restart or original schema upgrade are implied by this test repair.
 
@@ -182,3 +183,57 @@ row establish the required boundaries without weakening behavior. Inspection
 only, no execution. E2E types/build/static-drift/diff checks pass; production
 and unit-test bytes are unchanged from the latest1062/421-test CI receipt.
 A fresh unfiltered run remains required.
+
+The reviewed follow-up is pushed as
+`e835d0f3a2cd8daa52257503c8d1dd1b810d32e2` on clean aligned retained `main`.
+Unfiltered [run37169099225](https://github.com/Wenjun-Mao/plotloom/actions/runs/37169099225)
+started at01:48:01Z on that exact SHA; at launch its result was pending. No media or
+production bytes changed, so the verified isolated runtime remains untouched.
+Non-browser job111338210743 passed in13m58s:1062 backend tests (one existing
+warning),421 frontend tests/56 files, types, archived reader, static-drift,
+wheel and installed-wheel smoke. Browser shard2/job111340246772 completed
+successfully at02:11:28Z in9m23s:66 passed in8.4m, with no failed/flaky/skipped
+cases. Results/report11291096383/11291156255 are retained on GitHub. Shard1
+remains running at this checkpoint; its result determines full closure.
+
+## Final preservation audit · 02:11 UTC
+
+`evidence/manager-e835d0f-final-original.json` compares byte-identically with
+the window preflight:73 table facts,67 file hashes and7 API projections.
+Both8841/8851 health checks report OK. The isolated specialist view is idle
+(`busy=false`, no active tasks); all17 video jobs are ingested and the exact
+12 selected segments remain current with the receipt's identities,0–60 frame
+ranges,24fps,2.5-second endpoints,80,000 samples/32kHz and832×480 dimensions.
+The bridge remains accepted/current with Bible/beats/storyboard r1 and no
+stale reasons or simulation label. The actual browser remains ready at
+opening1/5, `尚未选择`, normal `播放当前` control, and is marked as a deliverable.
+No additional production/media/project write was made during this audit.
+
+## Terminal release acceptance · 02:23 UTC
+
+Unfiltered [run37169099225](https://github.com/Wenjun-Mao/plotloom/actions/runs/37169099225)
+completed successfully at2026-10-04T02:23:16Z on exact source
+`e835d0f3a2cd8daa52257503c8d1dd1b810d32e2`. Browser shard1/job111340246738
+passed all67 cases in20.2m, completing its job in21m10s at02:23:15Z.
+The repaired image-intent, imported-still and all Close cases pass on their
+first attempt. Together with shard2's66 cases, all133 supported E2E cases in
+42 files pass, including the two API-only isolation regressions; no failures,
+flaky retries or skips. The required non-browser gates above also pass.
+The unchanged one-worker/shard and fixture/test/global/step/job limits suffice;
+the longer shard's per-test stack cost is measured here, not waived.
+
+Shard1 results/report11291395951/11291475883 and shard2 results/report
+11291096383/11291156255 remain on that run. Prior failed evidence is preserved
+and is not rewritten as successful. The tested source is pushed on retained
+`main`; the follow-up closeout commit contains only roadmap/verification prose
+and does not change production, test or checked static bytes. No new full CI
+result is claimed for that documentation-only tip.
+
+The existing `creator-walkthrough-reporting-guard` heartbeat was paused through
+the app at02:24 UTC; the tool returned `PAUSED` and the persisted state matches.
+Its prompt, cadence, name and target chat were preserved. The real-media receipt
+and completed roadmap own the usable copy and acceptance boundaries: both real
+routes are covered, owner listening for A2/A3/B1–B4 remains pending, and no
+normal backend restart/schema upgrade or final-film acceptance is implied.
+Historical stall/click causes expressly marked unproven above remain unproven;
+this green current-contract gate does not invent a diagnosis for them.

@@ -421,3 +421,29 @@ diagnoses, the test-lifetime repair and the next candidate's release result.
 A fresh read after returning to
 the workbench reports17 ingested jobs and12 selected/current jobs/segments;
 their segment IDs,0–60 frame ranges and verified timing remain unchanged.
+
+## Completed E2E-first release · 02:24 UTC
+
+The full unfiltered
+[release run37169099225](https://github.com/Wenjun-Mao/plotloom/actions/runs/37169099225)
+passed on `e835d0f3a2cd8daa52257503c8d1dd1b810d32e2`:1062 backend tests,
+421 frontend/56 files and133 E2E cases/42 files (including two API-only fixture
+isolation regressions). Both browser shards passed without failed/flaky/skipped
+cases; types, archived reader, build/static-drift, wheel and installed-wheel
+smoke also passed. The linked browser closeout preserves both preceding failed
+candidates, exact diagnostic boundaries, serial repairs and independent finals.
+This later documentation-only receipt does not change the CI-tested SHA or
+the verified production/runtime bytes.
+
+The final `manager-e835d0f-final-original` capture is byte-identical with the
+preflight:73 table facts,67 file hashes and7 API projections. Both local services
+are healthy, isolated specialists are idle, and all17 ingested jobs/12 current
+selected segments retain the identities and timing above. The actual player
+is left ready at opening1/5 with no choice history and marked as a deliverable.
+The continuation heartbeat is verified paused through the app.
+
+This closes the authorized usable E2E-first pass within its eight-hour window.
+C1–C5/A1 keep prior owner visual/sound approval. A2/A3/B1–B4 remain provisional
+with owner listening pending; no final-film approval is inferred. The isolated
+copy is retained. Normal backend activation/schema migration remain a separate,
+unanswered owner choice, not an action performed during this closeout.

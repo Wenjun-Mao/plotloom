@@ -78,8 +78,15 @@ The owner subsequently authorized an
 The current priority is a usable complete creator workflow with acceptable
 real media; final-production polish is deferred. A2's following camera, B1's
 wider geography and the B2 popped-out reply treatment are visually approved.
-This is the active window and supersedes the earlier creative stopping criteria,
-not dispatch/source safety or original-project preservation.
+That E2E-first scope is now complete:12 current real-media clips and both actual
+routes, with a full unfiltered release gate on `e835d0f`. The
+[real-media receipt](../verification/2026-10-03-e2e-first-real-media-closeout.md)
+and [browser closeout](../verification/2026-10-04-e2e-browser-closeout.md)
+separate owner approvals, provisional selections and executed verification.
+The reporting heartbeat is paused; A2/A3/B1–B4 listening, final-film polish and
+normal backend/schema activation remain pending owner decisions. The revised
+criterion superseded creative stopping criteria, not dispatch/source safety or
+original-project preservation.
 Test-copy provisional decisions
 and removal of fixed generation caps and blanket video/remote/provider/redesign
 exclusions are approved. The run launched at 2026-10-02 05:34:18 UTC; its plan owns the current
