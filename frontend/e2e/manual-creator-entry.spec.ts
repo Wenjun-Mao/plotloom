@@ -15,13 +15,13 @@ test("Brief save continues to an editable Source draft without starting the lega
   if (!projectId) throw new Error("Brief save did not create a project");
   await expect(page.getByLabel("标题")).toHaveValue("雨停以后");
   await expect(page.getByLabel("故事内容")).toHaveValue("雨刚停，林遥在车站檐下决定去海堤还是旧街。");
-  await expect(page.getByLabel("改编意图")).toHaveValue("");
+  await expect(page.getByLabel("补充创作要求（可选）")).toHaveValue("");
+  await expect(page.getByRole("button", { name: "确认改编内容" })).toBeEnabled();
   expect((await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/source-outline`)).json()).source).toBeNull();
 
   await page.getByLabel("故事内容").fill("作者尚未保存的本地来源草稿。");
   await page.getByRole("button", { name: "刷新", exact: true }).click();
   await expect(page.getByLabel("故事内容")).toHaveValue("作者尚未保存的本地来源草稿。");
-  await page.getByLabel("改编意图").fill("保留一个选择和两个结局。");
   await expect(page.getByLabel("归属 / 署名声明")).toHaveCount(0);
   await expect(page.getByLabel("使用权或许可声明")).toHaveCount(0);
   await expect(page.getByText("确认只保存故事来源；生成大纲需要下方单独准备并发送任务。", { exact: true })).toBeVisible();
@@ -33,6 +33,7 @@ test("Brief save continues to an editable Source draft without starting the lega
     text: "作者尚未保存的本地来源草稿。",
     attribution: null,
     rightsDeclaration: null,
+    adaptationIntent: "",
   });
 });
 

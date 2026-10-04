@@ -27,6 +27,13 @@ not a backend job, a review decision, or permission to edit canon.
   `candidateFilename` (`outline.json`, `cast.json`, `art.json`, `script.json`,
   or `storyboard.json`). The HTML report is derived from that JSON; it is never
   an editable authority.
+- For an `outline` request with `inputs/outline-settings.json`, use its frozen
+  author-owned format, language, genre, visual direction, route-duration target
+  and scope. Confirmed `source` owns title and story facts. A blank original
+  synopsis `adaptationIntent` means no additional creative requirement; do not
+  demand a rewritten source, re-ask supplied settings, or invent an intention.
+  Report conflicts or genuinely missing parameters instead of silently
+  overriding source or settings. Do not reinterpret an older frozen package.
 - For a `characters` candidate, preserve every established `characters[].id`.
   Each ID must be nonblank and unique. This is Plotloom's narrow receiving
   extension to the upstream shape: do not invent a replacement identity store

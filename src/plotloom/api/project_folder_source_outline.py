@@ -9,6 +9,7 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import HTMLResponse
 
 from ..creative_handoff_contracts import CreativeHandoffRequest
+from ..outline_settings import OUTLINE_SETTINGS_FILENAME, outline_settings
 from ..source_outline_contracts import (
     OutlineAcceptRequest,
     OutlineCandidate,
@@ -84,12 +85,21 @@ def register_project_folder_source_outline_routes(
                 stage="outline",
                 expected_stage_revision=state.accepted_outline.revision if state.accepted_outline else 0,
                 source=state.source.material.model_dump(mode="json", by_alias=True),
-                input_artifacts={},
+                input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(store.project().brief)},
                 creative_brief=(
                     "Create one reviewable upstream outline.json candidate from the accepted "
                     "author source. Preserve the adaptation intent and any supplied attribution "
                     "or rights metadata without inventing missing claims. Do not claim approval, "
                     "rights clearance, or edit project canon."
+                    " Read inputs/outline-settings.json for the author's saved language, genre, "
+                    "visual style, aspect ratio, route-duration target and production scope; "
+                    "do not ask the author to retype them. Source owns the title and story "
+                    "facts; the settings artifact is not another story source. A blank "
+                    "adaptationIntent on an original synopsis means no additional creative "
+                    "direction, not permission to invent one. Report conflicts between "
+                    "explicit source direction and saved settings instead of silently "
+                    "overriding either. The duration is a route target, not guaranteed "
+                    "generated footage; shot-count advice/limits retain their stated policy."
                 ),
             )
             candidate = store.prepare_outline_candidate(request)

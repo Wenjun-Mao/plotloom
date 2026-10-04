@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
+from plotloom.outline_settings import OUTLINE_SETTINGS_FILENAME, outline_settings
 from plotloom.project_storage.composition import ProjectFolderStorage
 from tests.test_project_storage_art import _accepted_f4_script, _deliver_stage
 from tests.test_specialist_settings import configured
@@ -28,6 +29,7 @@ def prepare(store, stage, job=None):
             job_id=job, project_id=store.manifest.project_id, stage=stage,
             section_id="story", expected_stage_revision=state.accepted_outline.revision,
             source=state.source.material.model_dump(mode="json", by_alias=True),
+            input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(store.project().brief)},
             creative_brief="Terminal reconciliation fixture, never creative acceptance.",
         )
         candidate = store.prepare_outline_candidate(request)

@@ -51,7 +51,7 @@ for (const width of [1440, 1920, 1280, 390]) {
     await expect(page.getByText("草稿：等待编辑", { exact: true })).toBeVisible();
     await save.click();
     await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
-    await expect(page.getByLabel("改编意图")).toHaveAttribute("aria-required", "true");
+    await expect(page.getByLabel("补充创作要求（可选）")).not.toHaveAttribute("aria-required", "true");
     const source = page.getByTestId("source-outline-source");
     expect(await source.evaluate(element => parseFloat(getComputedStyle(element).paddingLeft))).toBeGreaterThanOrEqual(16);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);

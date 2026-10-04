@@ -12,6 +12,7 @@ from sqlalchemy import update
 
 from plotloom.creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import canonical_json
+from plotloom.outline_settings import OUTLINE_SETTINGS_FILENAME, outline_settings
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.source_outline_contracts import (
     BranchOutcome, OutlineAcceptRequest,
@@ -21,7 +22,7 @@ from plotloom.source_outline_contracts import (
 )
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import ProjectLifecycleStatus, StageName, StageStatus, utc_now
-from plotloom.domain import InitialStage
+from plotloom.domain import InitialStage, brief_for_new_project
 from plotloom.exceptions import (
     InvalidTransitionError,
     ProjectBusyError as LifecycleProjectBusyError,
@@ -60,7 +61,7 @@ def _request(
         stage="outline",
         expected_stage_revision=expected_outline_revision,
         source=source.model_dump(mode="json", by_alias=True),
-        input_artifacts={},
+        input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(brief_for_new_project(FIXED_CHINESE_BRIEF))},
         creative_brief="Produce one upstream-shaped review candidate only.",
     )
 

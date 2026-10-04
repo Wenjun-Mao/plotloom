@@ -33,7 +33,7 @@ function sourceMessage(error: unknown) {
   return error instanceof Error ? error.message : "来源与大纲操作失败。";
 }
 
-export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnly, navigationTarget = "", refreshToken, onOpenShot, onContinueToCharacters, onContinueToScript, onContinueToStoryboard }: { projectId: string; briefSeed: Pick<ProjectBrief, "title" | "synopsis">; readOnly: boolean; navigationTarget?: string; refreshToken?: unknown; onOpenShot?: (shotId: string) => void; onContinueToCharacters?: () => void; onContinueToScript?: () => void; onContinueToStoryboard?: () => void }) {
+export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnly, navigationTarget = "", refreshToken, onOpenShot, onContinueToCharacters, onContinueToScript, onContinueToStoryboard }: { projectId: string; briefSeed: ProjectBrief; readOnly: boolean; navigationTarget?: string; refreshToken?: unknown; onOpenShot?: (shotId: string) => void; onContinueToCharacters?: () => void; onContinueToScript?: () => void; onContinueToStoryboard?: () => void }) {
   const [state, setState] = useState<SourceOutlineReviewState>();
   const [draft, setDraft] = useState<SourceMaterial>(blankSource);
   const [busy, setBusy] = useState(false);
@@ -98,8 +98,11 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
 
   const candidate = state?.candidate;
   const accepted = state?.acceptedOutline;
-  const canSave = !readOnly && !busy && Boolean(draft.title.trim() && draft.text.trim() && draft.adaptationIntent.trim());
-  const sourceHint = checking ? "正在读取当前版本。" : failed ? "读取失败，请先重试刷新。" : ownerReadOnly ? "项目当前只读。" : busy ? "正在处理，请稍候。" : !draft.title.trim() || !draft.text.trim() || !draft.adaptationIntent.trim() ? "请填写标题、故事内容和改编意图，再确认改编内容。" : "确认只保存故事来源；生成大纲需要下方单独准备并发送任务。";
+  const needsAdaptationGoal = draft.kind !== "synopsis";
+  const missingSource = !draft.title.trim() || !draft.text.trim();
+  const missingGoal = needsAdaptationGoal && !draft.adaptationIntent.trim();
+  const canSave = !readOnly && !busy && !missingSource && !missingGoal;
+  const sourceHint = checking ? "正在读取当前版本。" : failed ? "读取失败，请先重试刷新。" : ownerReadOnly ? "项目当前只读。" : busy ? "正在处理，请稍候。" : missingSource ? "请填写标题和故事内容，再确认改编内容。" : missingGoal ? "请填写改编目标，说明如何将原作改编成互动短片。" : "确认只保存故事来源；生成大纲需要下方单独准备并发送任务。";
 
   return <section id="source" className="page source-outline-page" data-project-id={loadedProjectId || projectId}>
     {error && focusedTarget !== "source" && <ErrorNotice message={error} />}
@@ -110,11 +113,13 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
       {!state ? <Spinner /> : <div className="source-outline-grid">
       <article className="panel source-outline-source" data-testid="source-outline-source">
         <header><span>已确认的改编内容</span><strong>{state.source ? `改编内容 r${state.source.revision}` : "尚未保存故事内容"}</strong></header>
-        <p className="required-legend">* 为必填项。请说明故事如何改编成互动短片。</p>
-        <label>来源类型<select disabled={readOnly || busy} value={draft.kind} onChange={(event) => updateDraft({ ...draft, kind: event.target.value as SourceMaterial["kind"] })}><option value="synopsis">梗概（发展为来源故事）</option><option value="imported_text">导入故事文本</option><option value="existing_work">既有作品改编</option></select></label>
+        <p className="required-legend">* 为必填项。原创故事可直接确认已带入的梗概，无需重写。</p>
+        <label>来源类型<select disabled={readOnly || busy} value={draft.kind} onChange={(event) => updateDraft({ ...draft, kind: event.target.value as SourceMaterial["kind"] })}><option value="synopsis">原创故事梗概</option><option value="imported_text">导入故事文本</option><option value="existing_work">既有作品改编</option></select></label>
         <label><span>标题<RequiredMark /></span><input aria-required="true" disabled={readOnly || busy} value={draft.title} onChange={(event) => updateDraft({ ...draft, title: event.target.value })} /></label>
         <label><span>故事内容<RequiredMark /></span><textarea aria-required="true" disabled={readOnly || busy} value={draft.text} onChange={(event) => updateDraft({ ...draft, text: event.target.value })} rows={10} /></label>
-        <label><span>改编意图<RequiredMark /></span><textarea aria-required="true" placeholder="例如：保留一个观众选择和两个结局，以角色动作和少量对白推进。" disabled={readOnly || busy} value={draft.adaptationIntent} onChange={(event) => updateDraft({ ...draft, adaptationIntent: event.target.value })} rows={3} /></label>
+        <p className="action-prerequisite">{needsAdaptationGoal ? "填写本次要改编的原作内容；下方说明要保留什么、如何调整。" : "已从项目简报带入故事梗概。可直接使用，也可按需补充细节。"}</p>
+        <label><span>{needsAdaptationGoal ? "改编目标" : "补充创作要求（可选）"}{needsAdaptationGoal && <RequiredMark />}</span><textarea aria-required={needsAdaptationGoal ? "true" : undefined} placeholder={needsAdaptationGoal ? "例如：保留原作的核心冲突，改成一个观众选择和两个结局。" : "如有额外偏好可填写，例如不用旁白；没有可留空。"} disabled={readOnly || busy} value={draft.adaptationIntent} onChange={(event) => updateDraft({ ...draft, adaptationIntent: event.target.value })} rows={3} /></label>
+        <p className="action-prerequisite">大纲任务会自动使用简报中已保存的语言、类型、视觉风格、画幅、目标时长和生产范围，无需在这里重复填写。</p>
         <label>允许的原创补充（可选）<textarea disabled={readOnly || busy} value={draft.inventedAdditions || ""} onChange={(event) => updateDraft({ ...draft, inventedAdditions: event.target.value || null })} rows={3} /></label>
         <Button variant="primary" busy={busy} aria-describedby="source-save-hint" disabled={!canSave} onClick={() => void mutate(() => plotloomApi.saveSourceMaterial(projectId, state.source?.revision || 0, draft), true)}>{busy ? "正在保存…" : "确认改编内容"}</Button>
         <p id="source-save-hint" className="action-prerequisite">{sourceHint}</p>

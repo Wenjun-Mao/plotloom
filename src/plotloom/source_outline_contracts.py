@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from .canonical_schema import (
     StoryEdgeV2,
@@ -31,16 +31,27 @@ class SourceMaterial(CamelModel):
     text: str = Field(min_length=1, max_length=1_000_000)
     attribution: str | None = Field(default=None, max_length=4_000)
     rights_declaration: str | None = Field(default=None, max_length=4_000)
-    adaptation_intent: str = Field(min_length=1, max_length=8_000)
+    adaptation_intent: str = Field(default="", max_length=8_000)
     invented_additions: str | None = Field(default=None, max_length=8_000)
 
-    @field_validator("title", "text", "adaptation_intent")
+    @field_validator("title", "text")
     @classmethod
     def require_nonblank(cls, value: str) -> str:
         value = value.strip()
         if not value:
             raise ValueError("source fields must not be blank")
         return value
+
+    @field_validator("adaptation_intent")
+    @classmethod
+    def trim_direction(cls, value: str) -> str:
+        return value.strip()
+
+    @model_validator(mode="after")
+    def require_imported_adaptation_goal(self) -> "SourceMaterial":
+        if self.kind != "synopsis" and not self.adaptation_intent:
+            raise ValueError("imported stories require an explicit adaptation goal")
+        return self
 
     @field_validator("attribution", "rights_declaration")
     @classmethod

@@ -18,7 +18,7 @@ test("installs the accepted Tide Light map into canonical routes, then survives 
 
   await page.getByLabel("标题").fill("潮汐灯");
   await page.getByLabel("故事内容").fill("气象站员林澈在风暴前发现电缆只能供给码头或灯塔；被困水手正等待她的决定。");
-  await page.getByLabel("改编意图").fill("保留一处电缆选择，清楚呈现两条互斥结局。");
+  await page.getByLabel("补充创作要求（可选）").fill("保留一处电缆选择，清楚呈现两条互斥结局。");
   await page.getByRole("button", { name: "确认改编内容" }).click();
   const preparedResponse = page.waitForResponse(response => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/source-outline/candidates`);
