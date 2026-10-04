@@ -54,7 +54,11 @@ Technical plans, ADRs, and receipts remain supporting references; they do not in
 
 The approved [Workspace Home control](2026-10-04-workspace-home.md) is a bounded
 navigation add-on: the brand returns to onboarding through the existing draft
-gate without closing projects or cancelling work. Delivery is in progress.
+gate without closing projects or cancelling work. It is reviewed, locally
+qualified, published and verified on normal 8841. Its
+[receipt](../verification/2026-10-04-workspace-home.md) records the focused checks
+and unchanged normal data; full remote CI is running. Creator usability
+acceptance is separate.
 
 The owner-approved [direct project deletion](2026-10-04-direct-project-deletion.md)
 is reviewed, locally qualified, published and activated on normal 8841: visible
