@@ -1,7 +1,8 @@
 # Journey-first creator UI polish: verification and finding dispositions
 
-Status: implementation/manual and all local release gates passed; remote CI
-pending publication. Not human usability acceptance.
+Status: scoped implementation and Chinese manual complete. All local release
+gates and full remote CI passed for published runtime candidate `e0a4f66`.
+Not human usability or creative acceptance.
 Scope: [approved plan](../roadmap/2026-10-03-creator-ui-polish.md), ten-hour Goal
 window, direct normal-installation iteration and Chinese manual after stable UI.
 Contract: [ADR 0111](../adr/0111-journey-first-creator-presentation.md).
@@ -160,11 +161,14 @@ and unavailable retrieval for unknown outcomes; both were corrected. Follow-up
 confirmed the substantive fixes and requested the literal `outcome_unknown`
 state alongside its Chinese gloss; root source-checked and added that match.
 All 39 local links in the manual, creator entrypoint and docs index resolve.
+The last comparable Brief review also aligned the manual's generic guide
+description with its actual heading, “从故事想法开始”, rather than claiming
+every page literally says “本步指引”. No controls or runtime behavior changed.
 Native file-panel preview was requested; the app returned `queued`, so this
 receipt does not claim the owner has seen it. Colleague feedback remains human
 acceptance, not a completed check here.
 
-## Checks and remaining delivery
+## Checks and delivery
 
 | Check | Actual result |
 | --- | --- |
@@ -180,7 +184,7 @@ acceptance, not a completed check here.
 | Focused browser findings / viewport additions | Seven original failures and four viewport cases passed |
 | Navigation-delta repeated browser check | 21 passed: exact repair and Brief workflow, each repeated three times |
 | Final full unfiltered local browser gate | 138 passed in 14.6 minutes against frozen navigation-delta source/static |
-| Full remote CI on pushed candidate | Not yet dispatched |
+| Full remote CI on pushed runtime candidate | Passed on `e0a4f66`; verify and both 69-test browser shards succeeded |
 
 Current normal bundle SHA-256:
 
@@ -194,6 +198,24 @@ skips, weakened behavior assertions or timeout increases. The final locked
 Python rerun passed 1062 tests in 328.61 seconds. The normal served assets and
 preservation capture were checked again after the last live reload; all matched.
 
-Remaining delivery: scoped commit/push, full remote CI and exact tested/pushed
-revision. A fresh remote divergence check passed. The owner's later
-uncoached walkthrough and colleagues' manual use are still human acceptance.
+## Published qualification and remaining acceptance
+
+Runtime and manual candidate `e0a4f66c5e2eecbbcbd19da595fc456a6531eb70` was
+committed and pushed to `origin/main` with a clean checkout and no divergence.
+[Full CI run 37182786670](https://github.com/Wenjun-Mao/plotloom/actions/runs/37182786670)
+used `browser_grep=.*`; all jobs passed, with the last completing at
+2026-10-04 07:00:48 UTC.
+Verification took 13m9s; browser shards passed 69 tests each, for all 138 tests.
+The remote Python suite passed 1062 tests with the existing deprecation warning;
+the installed-wheel smoke and checked-bundle guard passed. CI's platform
+deprecation notices did not skip or replace any checks. No workflow changed.
+
+This documentation closeout changes no runtime or static bytes. The normal
+installation serves the qualified assets directly from the checkout; no
+backend restart or media transfer was needed. The final pushed documentation
+revision and its own full CI result are reported in the manager's handoff.
+
+The scoped implementation/manual outcome is complete. The owner's later
+uncoached walkthrough and colleagues' manual use remain human acceptance.
+Further film-quality improvement, real generation and installing the completed
+copy into normal remain separate work, not implied by this UI qualification.

@@ -1,6 +1,7 @@
 # Creator UI polish and self-guided workflow
 
-Status: **implementation approved and active** under the owner's Goal Mode.
+Status: **scoped implementation and Chinese manual complete**, with qualified
+runtime candidate `e0a4f66`. Human usability acceptance remains pending.
 Prepared October 3, 2026, Toronto time, using Relay Brainstorm and Plan.
 Baseline: clean retained `main` at `a6507cb734c7d8674851badf86a0ac2215cafa01`.
 Approved allowance: **ten hours maximum**, starting 2026-10-04 03:57:07 UTC
@@ -256,8 +257,8 @@ or approval state to stage demonstrations. Preserve the retained completed copy
 without using it as this pass's interactive iteration environment. No new
 deployment service, compatibility layer or automatic backup machinery is needed.
 
-Normal frontend iteration and final publication are permitted for this approved
-scope; the ten-hour implementation run is active.
+Normal frontend iteration and final publication were permitted for this approved
+scope under the ten-hour implementation window.
 No backend/schema change or restart is expected; seek direction for a
 demonstrated need beyond this scope.
 Do not transfer the finished story into normal, change specialist settings or
@@ -270,3 +271,19 @@ screenshots, a usable normal UI, the verified Chinese Creator's Manual and expli
 items. Stop when the scoped checks pass and handoff is saved, or report a
 concrete blocker. The active Goal owns continuation; do not create duplicate
 reporting automations or infer broader production authority from the time budget.
+
+## Completion
+
+The [verification and finding-disposition record](../verification/2026-10-04-creator-ui-polish.md)
+records the complete covered journey, supplied Brief examples, broader
+typography/Chinese audit, owner-layer recovery corrections and independent
+reviews. All 452 unit, 1062 Python and 138 unfiltered local browser tests passed.
+Published runtime `e0a4f66` passed full remote verification and both browser
+shards; normal assets and original/copy preservation checks matched exactly.
+The [Chinese Creator's Manual](../creator/manual.zh-CN.md) includes reviewed
+screenshots, a two-ending example and safe recovery instructions.
+
+No original story, media or approval was changed; H3 stays disabled in normal.
+The owner's uncoached attempt and Chinese-speaking colleagues' feedback remain
+the human usability check. Final-film polishing and further production are
+not part of this completed implementation scope.
