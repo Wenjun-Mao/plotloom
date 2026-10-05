@@ -67,8 +67,7 @@ test("leaving during directory inspection abandons the pending close without cle
   try {
     await page.getByRole("button", { name: "保存并关闭项目", exact: true }).click(); await started;
     await page.getByRole("button", { name: "新建空白项目", exact: true }).click();
-    await page.locator(".workspace-tools-navigation summary").click();
-    await page.getByRole("navigation", { name: "编辑与工具", exact: true }).getByRole("button", { name: "项目简报", exact: true }).click();
+    await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
     await page.getByLabel("片名").fill("新的工作区不会被旧关闭清空");
     release();
     // Let the held inspection settle without another API read competing with

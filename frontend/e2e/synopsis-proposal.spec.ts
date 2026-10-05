@@ -216,11 +216,7 @@ async function generateLegacyProposal(page: Page): Promise<void> {
 }
 
 async function openBriefTool(page: Page): Promise<void> {
-  const tools = page.locator(".workspace-tools-navigation");
-  if (!(await tools.evaluate((element) => (element as HTMLDetailsElement).open))) {
-    await tools.locator("summary").click();
-  }
-  await page.getByRole("navigation", { name: "编辑与工具" }).getByRole("button", { name: "项目简报" }).click();
+  await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
 }
 
 async function configurePublicNoAuthProfile(request: APIRequestContext, apiOrigin: string, providerOrigin: string): Promise<void> {

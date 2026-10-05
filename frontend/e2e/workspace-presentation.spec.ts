@@ -1,6 +1,6 @@
 import { expect, test } from "./fixture";
 
-const secondaryTools = ["项目简报", "故事圣经", "剧情 DAG", "场景节拍", "分镜工作台", "运行轨迹", "隔离修复"];
+const secondaryTools = ["故事圣经", "剧情 DAG", "场景节拍", "分镜工作台", "运行轨迹", "隔离修复"];
 
 async function expectCompactCreatorGap(page: import("@playwright/test").Page) {
   const workflow = page.getByRole("navigation", { name: "创作流程" });
@@ -24,6 +24,7 @@ test("keeps creator links compact and gives secondary tools one matching heading
   await page.setViewportSize({ width: 1440, height: 900 });
   await expectCompactCreatorGap(page);
   await expect(tools).not.toBeVisible();
+  await expect(page.getByRole("button", { name: "项目简报与创作设置", exact: false })).toBeVisible();
 
   await toolsSummary.click();
   await expect(tools).toBeVisible();

@@ -68,7 +68,7 @@ test("existing Source content and optional declarations survive a later source e
   });
 });
 
-test("saved Brief offers only Save Changes and remains on Brief", async ({ page, request, workbench }) => {
+test("saved Brief saves in place and offers an explicit return to Source", async ({ page, request, workbench }) => {
   await page.goto(`${workbench.frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "创建空白项目" }).click();
   await page.getByLabel("故事梗概").fill("一个已保存项目仍可编辑简报。");
@@ -78,7 +78,8 @@ test("saved Brief offers only Save Changes and remains on Brief", async ({ page,
   if (!projectId) throw new Error("project was not saved");
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=brief`);
   await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
-  await expect(page.locator(".page-header .button")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "保存修改", exact: true })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "返回来源与大纲", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "保存并继续到来源" })).toHaveCount(0);
   await page.getByText("其他工作流：旧版故事提案", { exact: true }).click();
   await expect(page.getByText("通常请从左侧“来源与大纲”开始，逐步审阅并确认。", { exact: false })).toBeVisible();

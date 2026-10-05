@@ -57,6 +57,10 @@ test("returns to the current Brief and rejects a branch proposal frozen before s
     await page.keyboard.press("Escape");
     await help.click();
     await expect(tooltip).toBeVisible();
+    const bounds = await tooltip.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
     await page.screenshot({ path: info.outputPath(`brief-${width}.png`), fullPage: true });
     await page.keyboard.press("Escape");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

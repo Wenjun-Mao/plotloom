@@ -183,6 +183,9 @@ fieldset legend, .structured-editor legend, .section-map legend { color: var(--m
 .context-help > button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .context-help > [role="tooltip"] { display: block; position: absolute; z-index: 15; top: 32px; right: 0; width: min(280px, 70vw); padding: 14px; border: 1px solid var(--line-strong); border-radius: 8px; background: #171b24; color: var(--text); box-shadow: 0 8px 22px #0008; font-size: 14px; line-height: 1.65; }
 .context-help > [role="tooltip"][hidden] { display: none; }
+@media (max-width: 720px) {
+  .context-help > [role="tooltip"] { position: fixed; top: auto; bottom: 24px; left: 16px; right: 16px; width: auto; }
+}
 .project-brief-navigation { display: grid; gap: .35rem; padding: .85rem; text-align: left; color: var(--text); border: 1px solid var(--line); border-radius: .7rem; background: var(--panel); }
 .project-brief-navigation small { color: var(--muted); font-size: .78rem; line-height: 1.4; }
 .project-brief-navigation.active { border-color: var(--accent); }

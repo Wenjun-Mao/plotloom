@@ -17,7 +17,7 @@ test.describe("M1-B0 query navigation shell", () => {
     if (!(await toolsNavigation.isVisible())) {
       await page.getByText("编辑与工具", { exact: true }).click();
     }
-    await toolsNavigation.getByRole("button", { name: "项目简报", exact: true }).click();
+    await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
     await expect(page).toHaveURL(/stage=brief/);
     await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
 
