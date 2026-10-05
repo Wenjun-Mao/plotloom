@@ -192,11 +192,11 @@
 .repair-message { padding: 12px; border-left: 3px solid var(--danger); color: var(--muted); background: rgba(229,121,125,.07); }
 .repair-panel h3 { margin-top: 22px; font-size: 12px; }
 .repair-panel .code-block { min-height: 140px; max-height: 250px; margin-bottom: 17px; }
-.modal { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; }
+.modal { position: fixed; z-index: 100; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding: 20px; }
 .modal-backdrop { position: absolute; inset: 0; width: 100%; border: 0; background: rgba(2,4,7,.86); backdrop-filter: blur(8px); }
-.modal-card { position: relative; display: grid; width: min(680px, 96vw); max-height: 92vh; grid-template-rows: auto minmax(0,1fr) auto; border: 1px solid var(--line-strong); border-radius: 12px; overflow: hidden; background: var(--panel); box-shadow: 0 30px 100px rgba(0,0,0,.6); }
-.modal-card.compact { width: min(520px, 96vw); }
-.directory-dialog { width: min(760px, 96vw); }
+.modal-card { position: relative; display: grid; width: min(680px, 100%); min-width: 0; max-height: min(92dvh, calc(100dvh - 40px)); grid-template-rows: auto minmax(0,1fr) auto; border: 1px solid var(--line-strong); border-radius: 12px; overflow: hidden; background: var(--panel); box-shadow: 0 30px 100px rgba(0,0,0,.6); }
+.modal-card.compact { width: min(520px, 100%); }
+.directory-dialog { width: min(760px, 100%); }
 .directory-onboarding { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .directory-onboarding label { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; }
 .directory-onboarding input { width: auto; }
@@ -220,4 +220,10 @@
   .graph-workspace { grid-template-columns: 170px minmax(0, 1fr) 300px; align-items: start; }
   .graph-entity-navigator { max-height: calc(100vh - 180px); position: sticky; top: 78px; }
   .graph-workspace .node-inspector { grid-column: auto; position: sticky; top: 78px; max-height: calc(100vh - 100px); border-width: 0 0 0 1px; }
+}
+
+@media (max-width: 620px) {
+  .directory-item { flex-direction: column; align-items: stretch; }
+  .directory-actions { justify-content: flex-start; }
+  .modal-card header > button { min-width: 44px; min-height: 44px; }
 }

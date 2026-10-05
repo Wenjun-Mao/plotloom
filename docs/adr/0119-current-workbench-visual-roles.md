@@ -22,7 +22,8 @@ role declarations are consolidated into their original rule. The four-line
 cascade patch. Page composition uses explicit semantic classes: Brief directions
 share columns where space allows; Source separates authoring/task work from
 full-width accepted reading; the existing graph inspector stays beside the
-canvas only when its actual workspace width supports it. Narrow layouts stack.
+canvas only when its actual workspace width supports it. Narrow layouts stack. Overlay cards size against their padded container, not
+the viewport; directory identity sits above wrapping actions on narrow screens.
 
 Reject a token-only/font-shrink pass and a copied demo workflow: neither repairs
 page composition. Routes, controls, state ownership, prompt/API contracts,

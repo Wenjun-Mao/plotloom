@@ -4,6 +4,14 @@ import type { Page } from "@playwright/test";
 
 async function fitsViewport(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  for (const card of await page.locator(".modal-card, .confirmation-dialog").all()) {
+    if (!await card.isVisible()) continue;
+    const bounds = await card.boundingBox();
+    const viewport = page.viewportSize()!;
+    expect(bounds!.x).toBeGreaterThanOrEqual(0); expect(bounds!.y).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(viewport.height);
+  }
   const readability = await page.evaluate(() => {
     const luminance = (value: string) => {
       const channels = value.match(/[\d.]+/g)!.slice(0, 3).map(Number).map(n => {
