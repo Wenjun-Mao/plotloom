@@ -1,12 +1,14 @@
 # Plotloom roadmap entrypoint
 
 The owner-approved [creator UI batch for the next walkthrough](2026-10-04-creator-ui-batch.md)
-is ready for serial Relay implementation on the retained checkout. It covers
+is implemented, independently reviewed, fully locally qualified, published and
+activated on normal 8841 at runtime candidate `79693f1`. It covers
 grouped presets, task waiting/recovery, accepted reports and revision clarity,
-structured branch drafts, and cross-journey consistency. Normal-service downtime
-is permitted; existing projects and work remain protected. The Chinese manual
-and Relay documentation cleanup are deferred separately. Implementation,
-qualification, activation and the owner's new walkthrough remain pending.
+Brief-driven branch drafts through production/player, and cross-journey consistency.
+The [delivery receipt](../verification/2026-10-04-creator-ui-batch.md) records
+unchanged owner project rows/files, protected settings/credentials and full remote
+CI in progress. The owner's new walkthrough remains the product acceptance step;
+the Chinese manual and Relay documentation cleanup remain deferred separately.
 
 The owner-approved [six current-contract repairs](2026-10-04-current-contract-repairs.md)
 are implemented, independently reviewed, fully locally qualified and published

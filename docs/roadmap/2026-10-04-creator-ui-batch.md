@@ -1,6 +1,6 @@
 # Creator UI batch for the next walkthrough
 
-Status: **implementation in progress; owner approved Brief-driven topology expansion before qualification**.
+Status: **implemented, independently reviewed, fully locally qualified, published and activated; owner walkthrough pending**.
 Approved October 4, 2026, Toronto time. Baseline: retained clean `main` at
 `a5f353835b9d6e6834da862205d89925ae1e17bf`.
 
@@ -187,4 +187,5 @@ when the owner tries the new walkthrough; test counts alone do not establish it.
 - Added visible same-project Brief navigation and draft-gated return to Source. Structural edits preserve confirmed source/outline evidence while invalidating dependent proposals; the fresh-project browser checks cover editing settings, stale rejection and a new frozen proposal.
 - Independent review found implicit continuation forks and a receiving-capacity mismatch. Planner v2 makes each viewer choice explicit and searches within the receiving option bound without rewriting author settings. Focused topology, branch and full downstream integration checks pass.
 - V1 剧情树 was investigated read-only by the manager as a product reference: zoom/pan/fullscreen, node/media details, shot expansion and display-only dragging. Its useful taste is a shared spatial overview of reconvergence. Existing Plotloom canonical GraphPage already has graph navigation; reader route cards repeat shared nodes. Open follow-up: whether a creator-facing overview should reuse the accepted canonical graph. This reference does not authorize a new graph editor in this batch or production imports from V1.
-- Full release gates, independent stable review, publication and activation remain pending.
+- Final runtime candidate `79693f1` passed 1,150 Python tests, 509 frontend tests and the full unfiltered 167-test browser gate, plus types, checked static, prompt reader and wheel checks. Independent review closed all concrete findings. Published to `origin/main` and activated through the supported lifecycle on normal 8841; both projects' rows/files and protected settings/credentials compare unchanged. [Delivery receipt](../verification/2026-10-04-creator-ui-batch.md) records exact revisions, preservation and CI.
+- Full remote CI is running on the exact runtime candidate. The next product acceptance is the owner's new-project walkthrough; live branch-prose/media quality and the captured graphical-overview follow-up are not claimed as accepted.
