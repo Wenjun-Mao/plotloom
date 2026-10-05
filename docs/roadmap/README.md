@@ -3,8 +3,8 @@
 The owner-approved [six current-contract repairs](2026-10-04-current-contract-repairs.md)
 are implemented, independently reviewed, fully locally qualified and published
 at runtime candidate `0aff7dd`. The [receipt](../verification/2026-10-04-current-contract-repairs.md)
-separates full remote CI (queued), coordinated normal-runtime activation and
-creator acceptance.
+records owner-approved normal 8841 activation with unchanged project captures;
+full remote CI remains in progress, and creator acceptance remains separate.
 
 The current delivery authority is [Playable MVP milestones](2026-09-17-playable-mvp-milestones.md).
 It owns the approved sequence, release boundary, acceptance criteria and progress.

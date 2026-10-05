@@ -3,8 +3,8 @@
 Status: Owner approved; implementation complete, independently reviewed and fully
 locally qualified. Runtime candidate `0aff7dd49325f7424341d6007f083739bf96aadc`
 is published from retained `main` baseline `fa8e80c9122fc20189a1f30dd1f12ea040db5070`.
-Full remote CI is queued; manager-coordinated normal activation and creator
-acceptance remain separate. One source owner; manager independently reviews
+Full remote CI is in progress. Owner-approved normal 8841 activation completed
+with preservation checks; creator acceptance remains separate. One source owner; manager independently reviews
 evidence. Relay worker `01a1095b-7d81-7751-9603-25c5454e45b6` reports to
 `01a04525-e907-7630-9640-78790d69e8ae`.
 
@@ -51,5 +51,11 @@ browser tests, types/build/checked static, API F401, frozen sync, archived promp
 reader and wheel/install smoke. See the [verification receipt](../verification/2026-10-04-current-contract-repairs.md)
 for root causes, exact candidate, evidence and limitations. Full remote
 [CI 37248436763](https://github.com/Wenjun-Mao/plotloom/actions/runs/37248436763)
-is queued on the runtime candidate. The worker did not restart normal 8841 or
-alter retained data/bindings; activation is handed back to the manager.
+is in progress on the runtime candidate. The worker did not restart normal 8841
+or alter retained data/bindings. After the owner approved a walkthrough pause,
+the manager reviewed the handoff, reran 121 Python and 33 frontend checks and
+activated through the supported launcher on October 4, 20:56 Toronto. Both normal
+project captures are byte-identical before/after, the native bridge is available,
+and the current outline candidate remains unsent. The verification receipt owns
+the exact runtime/container and preservation evidence; no live creator or media
+acceptance is implied.

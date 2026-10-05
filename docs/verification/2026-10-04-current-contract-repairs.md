@@ -1,10 +1,12 @@
 # Six current-contract repairs
 
-Status: implemented, independently reviewed, fully locally qualified and published.
-Full remote CI is queued; normal-runtime activation remains a manager checkpoint.
+Status: implemented, independently reviewed, fully locally qualified, published
+and activated on normal 8841 after owner approval. Full remote CI is in progress;
+creator usability and creative acceptance remain separate.
 Delivery authority: [approved assignment](../roadmap/2026-10-04-current-contract-repairs.md).
 Baseline: `fa8e80c9122fc20189a1f30dd1f12ea040db5070`, retained `main`.
-Runtime activation and creator acceptance are separate manager checkpoints.
+The normal activation result is recorded below; fixture verification does not
+establish creator acceptance.
 
 ## Root causes and delivered contracts
 
@@ -66,16 +68,63 @@ Ignored local logs: `.local/relay/contract-repairs-2026-10-04/`.
 | Wheel build / installed-wheel smoke | Passed |
 | Focused browser repairs and lifecycle | 8 passed |
 | Full unfiltered browser gate | 166 passed in 8.9 minutes, two workers; no filter/skips/assertion weakening |
-| Remote CI | [Run 37248436763](https://github.com/Wenjun-Mao/plotloom/actions/runs/37248436763), queued on exact runtime candidate at `2026-10-05T00:40:39Z` (October 4 Toronto), full `browser_grep=.*` |
+| Remote CI | [Run 37248436763](https://github.com/Wenjun-Mao/plotloom/actions/runs/37248436763), started on exact runtime candidate at `2026-10-05T00:40:39Z` (October 4 Toronto), full `browser_grep=.*`; still in progress at the activation checkpoint |
 | Whitespace and remote divergence | Passed; remote had no divergent commits before normal push |
 
 ## Activation and acceptance boundary
 
-Implementation and fixture verification do not establish normal-runtime
-activation or creator usability/creative/media acceptance. Normal 8841 was not
-restarted; the manager must coordinate activation against the normal installation
-and preservation evidence. The retained 8851 copy, specialist bindings,
+The worker delivery did not restart normal 8841. The owner subsequently approved
+activation while pausing the walkthrough; the manager activated it as recorded
+below. Implementation, fixture verification and backend activation do not
+establish creator usability/creative/media acceptance. The retained 8851 copy, specialist bindings,
 credentials, owner projects/media, H3, Narrative Forge V1 and Chinese manual were
 not changed. Disposable fixture directories provide the execution evidence;
 there were no generation/provider calls or new paid-provider fallbacks.
 Existing records provide no task-level usage/cost delta, so none is claimed.
+
+## Owner approved normal activation
+
+On October 4, 2026, the owner said to proceed with backend activation and could
+wait. Before activation, the manager independently reviewed the scoped changes
+and reran 121 Python and 33 frontend checks, all passing. The initial Python
+collection invocation referenced a nonexistent filename and ran no tests;
+corrected invocations used the existing native safety and image settlement
+suites. The read-only handoff review is retained in
+`.local/relay/contract-repairs-manager-2026-10-04/review.json`.
+
+The existing native registry was idle (`busy: false`, `activeTasks: []`). The
+supported `uv run --locked python services/creator_workbench/manage.py start
+--data-root .local/creator-walkthrough` completed successfully, recreated the
+normal container and verified the native bridge. No service launcher, deployment
+shape, schema, project data or provider configuration was changed. The deployment
+checkout was `53631ce76e22cf301c2057c7db90af923f66c15d`; its executable source is
+the qualified `0aff7dd` candidate, with only delivery documentation intervening.
+
+- Container: `0f819ea546c4ed55760b8a219cc95422117f937a2250da432df199d1fb8c28a5`.
+- Image: `sha256:cbad1d8b9e6bea8dc280acbc94d0236dc361280c600ea91427c128122613b876`.
+- Start: `2026-10-05T00:56:47.467999574Z` (October 4, 20:56 Toronto).
+- Container health and `/healthz`: healthy / `status: ok`.
+- OpenAPI exposes the new boolean `ProductionBridgeState.hasInstallation`,
+  confirming the restarted API loaded the repaired response contract.
+- Served `/v2/workbench.js` matches checked SHA-256
+  `94479fdd2f219a17241181bc9e5d8616f16a07102f53416cc2216ec5759c6c11`.
+
+The existing read-only capture helper produced byte-identical preservation
+records under `.local/source-entry-2026-10-04/`:
+`before-current-contract-activation.json` and
+`after-current-contract-activation.json`. `cmp` passed; both SHA-256 values are
+`a35a717f3cb2b79840c28a978453641f056a85ec971d240951068c92141134c8`.
+These cover both normal projects, all 74 table projections per project, seven API
+projections per project, all captured project-home file hashes (13 for
+风里的纸飞机 and 67 for 雨停以后), and specialist settings. Deployment configuration
+and the existing bridge credential hash also remain unchanged. This is captured
+row/projection/file equality, not whole-SQLite-file byte equality.
+
+风里的纸飞机 remains at source r1 and retained outline r1 with
+`outlineStatus: reopened`; candidate `ch_fe401cbcb93c43208035a42d8e9ce51d` remains `prepared` and
+unsent. 雨停以后 retains accepted outline r1. The native registry remains idle;
+the video budget remains unconfigured with no attempts. No send, cancel,
+acceptance, lifecycle mutation, reset, copy, deletion or H3 activation was used.
+The creator's browser tab was not refreshed or operated; unsaved browser input
+and the deferred Chinese manual were left untouched. Backend checks do not
+claim fresh live browser or creator usability acceptance.
