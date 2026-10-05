@@ -1,5 +1,11 @@
 # Plotloom roadmap entrypoint
 
+The owner-approved [sketch-led visual system](2026-10-04-sketch-led-visual-system.md)
+applies the new design reference's whole visual language to the current Plotloom
+interface. It is a separate implementation assignment, not another icon-only
+polish pass or authorization to build the new graph-centred workflow. Existing
+behavior, data and dispatch safety remain the delivered baseline.
+
 The owner-approved [creator UI batch for the next walkthrough](2026-10-04-creator-ui-batch.md)
 is implemented, independently reviewed, fully locally qualified, published and
 activated on normal 8841 at runtime candidate `79693f1`. It covers
