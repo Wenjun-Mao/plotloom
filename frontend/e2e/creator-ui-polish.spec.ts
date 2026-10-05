@@ -13,7 +13,7 @@ for (const width of [1440, 1920, 1280, 390]) {
     await expect(page.getByLabel("片名")).not.toHaveAttribute("aria-required", "true");
     await expect(page.getByText("REQUIRED INPUT")).toHaveCount(0);
     await expect(page.locator(".brief-alternate-workflow button")).not.toBeVisible();
-    const structure = page.locator(".brief-layout details");
+    const structure = page.locator(".brief-settings details");
     const structureSummary = page.getByText("剧情结构与分镜", { exact: true });
     const decisions = page.getByLabel("每次完整播放的选择次数", { exact: true });
     await expect(structure).toHaveAttribute("open", "");

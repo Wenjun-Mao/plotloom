@@ -82,7 +82,7 @@ it("opens Brief structure and shots by default without changing retained setting
     onSave: vi.fn(async () => {}), onSaveAndContinue: vi.fn(async () => {}),
     onDraftChange: vi.fn(), onGenerateProposal: vi.fn(async () => {}) };
   await act(async () => root.render(createElement(BriefPage, briefProps)));
-  const structure = host.querySelector<HTMLDetailsElement>(".brief-layout details")!;
+  const structure = host.querySelector<HTMLDetailsElement>(".brief-settings details")!;
   expect(structure.querySelector("summary")?.textContent).toBe("剧情结构与分镜");
   expect(structure.open).toBe(true);
   expect([...structure.querySelectorAll("input")].map(input => input.value)).toEqual(["3", "4", "16", "4", "2", "2", "5"]);

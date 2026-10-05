@@ -10,6 +10,7 @@ test("unchanged original synopsis confirms without direction and freezes existin
   await page.getByLabel("故事梗概").fill(synopsis);
   await expect(page.getByRole("region", { name: "类型", exact: true })).toContainText("尚未选择");
   await page.getByRole("button", { name: "科幻", exact: true }).click();
+  await page.getByText("添加题材背景自定义", { exact: true }).click();
   await page.getByLabel("题材背景自定义", { exact: true }).fill("小院传奇");
   await page.getByLabel("题材背景自定义", { exact: true }).press("Enter");
   await page.getByRole("button", { name: "真人写实", exact: true }).click();

@@ -28,7 +28,7 @@ export function ContextHelp({ label, children }: { label: string; children: stri
     <button type="button" aria-label={`说明：${label}`} aria-describedby={id} aria-expanded={open} onFocus={() => update({ focused: true }, true)} onBlur={() => update({ focused: false })} onClick={event => {
       if (open && active.pinned) { close(); event.currentTarget.blur(); }
       else update({ pinned: true }, true);
-    }} onKeyDown={event => { if (event.key === "Escape") { close(); event.currentTarget.blur(); } }}>?</button>
+    }} onKeyDown={event => { if (event.key === "Escape") { close(); event.currentTarget.blur(); } }}>ⓘ</button>
     <span role="tooltip" id={id} hidden={!open}>{children}</span>
   </span>;
 }

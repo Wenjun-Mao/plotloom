@@ -63,15 +63,15 @@ export function BriefPage({ value, hasSavedProject, saving, readOnly = false, on
         <div className="section-title"><strong>故事想法</strong><p className="required-legend">* 为必填项；其他信息可稍后完善。</p></div>
         <Field label="片名"><input placeholder={defaultWorkingTitle} value={draft.title} onChange={(event) => set("title", event.target.value)} /><small>可选工作片名；留空时保存为“未命名故事”。</small></Field>
         <Field label="故事梗概" required><textarea aria-required="true" rows={5} placeholder="主角遇到了什么？观众可以替主角做什么选择？不同选择会带来怎样的结局？" value={draft.synopsis} onChange={(event) => set("synopsis", event.target.value)} /></Field>
-        <DirectionPresets label="类型" groups={genreGroups} selections={draft.genreSelections || []} detail={draft.genre || ""} disabled={readOnly || saving} onSelections={value => set("genreSelections", value)} onDetail={value => set("genre", value)} />
-        <DirectionPresets label="视觉风格" groups={visualGroups} selections={draft.visualStyleSelections || []} detail={draft.visualStyle || ""} disabled={readOnly || saving} onSelections={value => set("visualStyleSelections", value)} onDetail={value => set("visualStyle", value)} />
+        <div className="brief-directions"><DirectionPresets label="类型" groups={genreGroups} selections={draft.genreSelections || []} detail={draft.genre || ""} disabled={readOnly || saving} onSelections={value => set("genreSelections", value)} onDetail={value => set("genre", value)} />
+        <DirectionPresets label="视觉风格" groups={visualGroups} selections={draft.visualStyleSelections || []} detail={draft.visualStyle || ""} disabled={readOnly || saving} onSelections={value => set("visualStyleSelections", value)} onDetail={value => set("visualStyle", value)} /></div>
         <div className="field-grid three">
           <Field label="语言"><select value={draft.language} onChange={(event) => set("language", event.target.value)}><option value="zh-CN">简体中文</option><option value="en-US">English</option></select></Field>
           <Field label="画幅"><select value={draft.aspectRatio} onChange={(event) => set("aspectRatio", event.target.value)}><option>16:9</option><option>9:16</option><option>1:1</option></select></Field>
           <Field label="目标游玩时长（秒）" required><input aria-required="true" type="number" min={3} value={draft.targetPlaythroughSeconds} onChange={(event) => numeric("targetPlaythroughSeconds", event.target.value)} /><small>至少 3 秒；这是创作目标，不是最终播放时长的承诺。</small></Field>
         </div>
       </Panel>
-      <div className="stack">
+      <div className="stack brief-settings">
         <Panel className="form-card">
           <details open>
             <summary>剧情结构与分镜</summary>
