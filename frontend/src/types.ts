@@ -10,10 +10,14 @@ export interface ValidationIssue {
   message: string;
 }
 
+export type DirectionSelection = { group: "subject" | "narrative" | "representation" | "treatment" | "lighting"; value: string };
+
 export interface ProjectBrief {
   title: string;
   synopsis: string;
   genre: string | null;
+  genreSelections?: DirectionSelection[];
+  visualStyleSelections?: DirectionSelection[];
   visualStyle: string | null;
   language: string;
   aspectRatio: string;
@@ -1297,8 +1301,9 @@ export interface SourceOutlineReviewState {
 
 export interface StorySection { sectionId: string; title: string; summary: string; ending: boolean; }
 export interface BranchOutcome { outcomeId: string; label: string; consequence: string; endingSectionId: string; }
-export interface SectionChoice { choiceId: string; sectionId: string; prompt: string; outcomes: [BranchOutcome, BranchOutcome]; }
-export interface SectionMap { sections: StorySection[]; choice: SectionChoice; }
+export interface SectionChoice { choiceId: string; sectionId: string; prompt: string; outcomes: BranchOutcome[]; }
+export interface SourceTopology { startNodeId: string; topologyHash: string; structuralParameters: Record<string, number>; nodes: Array<{ id: string; kind: "start" | "scene" | "decision" | "join" | "ending" }>; edges: Array<{ id: string; sourceNodeId: string; targetNodeId: string; kind: "choice" | "continuation" }>; joins: Array<{ id: string; joinNodeId: string; incomingNodeIds: string[] }>; [key: string]: unknown; }
+export interface SectionMap { sections: StorySection[]; choice: SectionChoice | null; topology?: SourceTopology | null; choices?: SectionChoice[]; joinReconciliations?: Record<string, string>; }
 export interface AcceptedSectionMapRevision {
   revision: number; sourceRevision: number; outlineRevision: number; outlineContentHash: string;
   contentHash: string; mapping: SectionMap; acceptedAt: string;
@@ -1344,7 +1349,17 @@ export interface ProductionBridgeIntentPackage { suggestionOrigin: "none" | "mod
 export interface PresentationSpan { start: number; end: number; role: "unassigned" | "physical" | "visible_text" | "runtime_choice" | "review_only" | "dialogue"; rendering: string; reason: string; }
 export interface PresentationSource { id: string; kind: "action" | "composition" | "dialogue"; targetId: string; coordinates: Record<string, unknown>; sourceHash: string; sourceText: string; spans: PresentationSpan[]; }
 export interface RuntimeChoice { choiceId: string; sectionId: string; prompt: string; outcomes: Array<{ outcomeId: string; label: string; endingSectionId: string; consequence: string }>; }
-export interface ProductionPresentation { version: 1; reviewed: boolean; sourceHash: string; sources: PresentationSource[]; runtimeChoice: RuntimeChoice; frozenEvidence: Record<string, unknown>; }
+export type RuntimeChoices = RuntimeChoice | { choices: RuntimeChoice[] };
+export interface ProductionPresentation { version: 1; reviewed: boolean; sourceHash: string; sources: PresentationSource[]; runtimeChoice: RuntimeChoices; frozenEvidence: Record<string, unknown>; }
 export interface ProductionBridgeProposal { presentation?: ProductionPresentation | null; revision: number; contentHash: string; inputs: Record<string, unknown>; intentPackage: ProductionBridgeIntentPackage; scenes: Array<Record<string, unknown>>; cuts: Array<Record<string, unknown>>; conflicts: ProductionBridgeConflict[]; advisories: ProductionBridgeConflict[]; installable: boolean; preparedAt: string; }
 export interface ProductionBridgeIntentJob { id: string; status: "queued" | "dispatched" | "ready" | "stale" | "failed" | "cancelled" | "outcome_unknown"; proposalRevision: number; proposalContentHash: string; profileId: string; profileVersion: number; promptVersion: string; createdAt: string; updatedAt: string; errorCode: string | null; errorMessage: string | null; resultProposalRevision: number | null; providerRequestId: string | null; responseHash: string | null; }
-export interface ProductionBridgeState { hasInstallation: boolean; runtimeChoice?: RuntimeChoice | null; proposal: ProductionBridgeProposal | null; status: "missing" | "ready" | "accepted" | "stale"; staleReasons: string[]; installedStageRevisions: Record<string, number> | null; installedStoryboardCurrent: boolean; intentJob?: ProductionBridgeIntentJob | null; simulationLabel?: string | null; }
+export interface ProductionBridgeState { hasInstallation: boolean; runtimeChoice?: RuntimeChoices | null; proposal: ProductionBridgeProposal | null; status: "missing" | "ready" | "accepted" | "stale"; staleReasons: string[]; installedStageRevisions: Record<string, number> | null; installedStoryboardCurrent: boolean; intentJob?: ProductionBridgeIntentJob | null; simulationLabel?: string | null; }
+
+
+export type BranchSuggestion = {
+  nodes: Array<{ id: string; title: string; summary: string }>;
+  choices: Array<{ nodeId: string; question: string; options: Array<{ id: string; label: string; consequence: string }> }>;
+  joins: Array<{ id: string; reconciliation: string }>;
+  clarifications: string[];
+};
+export type BranchTaskState = { candidate: { jobId: string; status: string; suggestion: BranchSuggestion | null } | null; staleReasons: string[]; plannedTopology: SourceTopology | null; infeasibleReason: string | null };

@@ -10,11 +10,13 @@ from fastapi.responses import HTMLResponse
 
 from ..creative_handoff_contracts import CreativeHandoffRequest
 from ..outline_settings import OUTLINE_SETTINGS_FILENAME, outline_settings
+from ..source_structures import planned_structure
 from ..source_outline_contracts import (
     OutlineAcceptRequest,
     OutlineCandidate,
     OutlineCandidatePreparation,
     OutlineReopenRequest,
+    OutlineReturnRequest,
     SectionMapGraphInstallRequest,
     SectionMapSaveRequest,
     SourceOutlineReviewState,
@@ -85,8 +87,9 @@ def register_project_folder_source_outline_routes(
                 stage="outline",
                 expected_stage_revision=state.accepted_outline.revision if state.accepted_outline else 0,
                 source=state.source.material.model_dump(mode="json", by_alias=True),
-                input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(store.project().brief)},
+                input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(store.project().brief), "story-topology.json": planned_structure(project_id, store.project().brief).model_dump(mode="json", by_alias=True)},
                 creative_brief=(
+                    "Read inputs/story-topology.json: trusted code planned the feasible Brief structure. Author prose around every viewer choice, distinct ending and reconvergence without altering topology or treating episodes as route nodes. "
                     "Create one reviewable upstream outline.json candidate from the accepted "
                     "author source. Preserve the adaptation intent and any supplied attribution "
                     "or rights metadata without inventing missing claims. Do not claim approval, "
@@ -209,3 +212,30 @@ def register_project_folder_source_outline_routes(
     ) -> SourceOutlineReviewState:
         with opened_project(project_id) as store:
             return store.install_section_map_graph(body)
+
+
+    @app.post("/api/v2/projects/{project_id}/source-outline/return", response_model=SourceOutlineReviewState)
+    def return_to_accepted(project_id: str, body: OutlineReturnRequest):
+        with opened_project(project_id) as store:
+            return store.return_to_accepted_outline(body)
+
+    @app.get("/api/v2/projects/{project_id}/branch-suggestions")
+    def branch_state(project_id: str):
+        with opened_project(project_id) as store:
+            return store.branch_state()
+
+    @app.post("/api/v2/projects/{project_id}/branch-suggestions", status_code=201)
+    def prepare_branch(project_id: str):
+        with opened_project(project_id) as store:
+            store.prepare_branch_candidate()
+            return store.branch_state()
+
+    @app.get("/api/v2/projects/{project_id}/branch-suggestions/{job_id}/draft")
+    def branch_draft(project_id: str, job_id: str):
+        with opened_project(project_id) as store:
+            return store.branch_draft(job_id)
+
+    @app.post("/api/v2/projects/{project_id}/branch-suggestions/{job_id}/cancel")
+    def cancel_branch(project_id: str, job_id: str):
+        with opened_project(project_id) as store:
+            return store.cancel_branch_candidate(job_id)

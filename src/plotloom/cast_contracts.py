@@ -23,7 +23,7 @@ class CastBinding(CamelModel):
     section_map_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     graph_revision: int = Field(ge=1)
     graph_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
-    section_ids: list[str] = Field(min_length=3, max_length=3)
+    section_ids: list[str] = Field(min_length=1, max_length=128)
 
     @field_validator("section_ids")
     @classmethod

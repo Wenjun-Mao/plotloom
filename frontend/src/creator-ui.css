@@ -137,3 +137,52 @@ fieldset legend, .structured-editor legend, .section-map legend { color: var(--m
   .stage-guide-next { align-self: start; }
   .form-card, .brief-alternate-workflow { padding: 16px; }
 }
+
+/* ADR 0117 creator directions, branch review and observable assistant delivery. */
+.direction-presets { display: grid; gap: 12px; margin: 24px 0; min-width: 0; }
+.direction-presets h2 { margin: 0; font-size: 20px; }
+.direction-presets h2 small { color: var(--muted); font-size: 13px; font-weight: 400; }
+.direction-presets fieldset { padding: 14px; margin: 0; min-width: 0; border: 1px solid var(--line); border-radius: 8px; }
+.direction-presets legend { padding: 0 6px; font: 600 14px var(--sans); color: var(--muted); }
+.preset-options, .preset-selections { display: flex; flex-wrap: wrap; gap: 8px; }
+.preset-options [aria-pressed="true"], .preset-selections .button { border-color: var(--accent); color: var(--accent); background: rgba(233,180,91,.08); }
+.preset-custom { display: flex; gap: 8px; margin-top: 12px; }
+.preset-custom input { flex: 1; min-width: 0; }
+.specialist-task-actions { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; }
+.specialist-task-actions > strong { font-size: 16px; line-height: 1.5; }
+.specialist-task-actions .spinner, .specialist-task-actions small { font-size: 14px; line-height: 1.6; }
+.specialist-task-actions .button-row { margin: 0; }
+.branch-suggestion { padding: 18px; border: 1px solid var(--line); border-radius: 8px; margin: 18px 0; }
+.branch-suggestion h3, .branch-suggestion h4 { margin: 0 0 10px; }
+.branch-suggestion h3 { font-size: 20px; }
+.branch-suggestion h4 { font-size: 16px; }
+.branch-suggestion-preview { margin-top: 18px; }
+.branch-suggestion-preview p { white-space: pre-wrap; }
+.branch-suggestion-preview .field-grid > section { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 6px; }
+.section-map .section-map-sections legend, .section-map-choice > legend { font: 600 18px var(--sans); color: var(--text); text-transform: none; letter-spacing: normal; }
+.section-map .section-map-choice > label, .section-map .section-map-outcome label { font-size: 14px; }
+.section-map details { margin: 10px 0; overflow-wrap: anywhere; }
+.section-map details summary { font-size: 13px; color: var(--muted); cursor: pointer; }
+.section-map .section-map-outcome > strong { font-size: 18px; }
+/* Equivalent narrative roles in the remaining journey use the same readable scale. */
+.accepted-cast-grid dt, .cast-forms label, .art-reference-gallery > p, .reference-history p,
+.reference-parent, .shot-copy p, .stale-reasons, .managed-media-workbench > .muted { font-size: 14px; line-height: 1.6; }
+.art-reference-gallery > header strong { font-size: 20px; }
+.art-reference-gallery .reference-instructions summary, .reference-technical summary, .reference-history summary { font-size: 13px; }
+.media-controls .button { font-size: 13px; padding-inline: 10px; }
+@media (max-width: 620px) {
+  .preset-custom { flex-wrap: wrap; }.preset-custom input { flex-basis: 100%; }
+  .branch-suggestion .field-grid.two { grid-template-columns: 1fr; }
+  .branch-suggestion, .specialist-task-actions { padding: 14px; }
+}
+.structural-setting { display: grid; gap: 8px; min-width: 0; }
+.structural-setting > div { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
+.context-help { position: relative; display: inline-block; margin: 0; flex-shrink: 0; }
+.context-help > button { display: grid; width: 25px; height: 25px; place-items: center; border: 1px solid var(--line-strong); border-radius: 50%; cursor: pointer; font: 600 14px var(--sans); list-style: none; }
+
+.context-help > button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.context-help > [role="tooltip"] { display: block; position: absolute; z-index: 15; top: 32px; right: 0; width: min(280px, 70vw); padding: 14px; border: 1px solid var(--line-strong); border-radius: 8px; background: #171b24; color: var(--text); box-shadow: 0 8px 22px #0008; font-size: 14px; line-height: 1.65; }
+.context-help > [role="tooltip"][hidden] { display: none; }
+.project-brief-navigation { display: grid; gap: .35rem; padding: .85rem; text-align: left; color: var(--text); border: 1px solid var(--line); border-radius: .7rem; background: var(--panel); }
+.project-brief-navigation small { color: var(--muted); font-size: .78rem; line-height: 1.4; }
+.project-brief-navigation.active { border-color: var(--accent); }

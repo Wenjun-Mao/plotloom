@@ -10,6 +10,9 @@ test("installs the accepted Tide Light map into canonical routes, then survives 
   await page.getByRole("button", { name: "创建空白项目" }).click();
   await page.getByLabel("片名").fill("潮汐灯");
   await page.getByLabel("故事梗概").fill("气象站员林澈必须决定有限电缆为码头还是灯塔供电。");
+  await page.getByLabel("每次完整播放的选择次数", { exact: true }).fill("1");
+  await page.getByLabel("不同结局的数量", { exact: true }).fill("2");
+  await page.getByLabel("分支汇合次数", { exact: true }).fill("0");
   await page.getByRole("button", { name: "保存并继续到来源" }).click();
   await expect(page).toHaveURL(/[?&]project=/);
   const projectId = new URL(page.url()).searchParams.get("project");
@@ -26,24 +29,29 @@ test("installs the accepted Tide Light map into canonical routes, then survives 
   const prepared = await preparedResponse;
   expect(prepared.ok()).toBeTruthy();
   await writeFixtureOutline(await prepared.json() as PreparedOutline);
-  await page.getByRole("button", { name: "检查任务结果" }).click();
+  await page.getByRole("button", { name: "立即检查" }).click();
   await expect(page.getByText("待审阅")).toBeVisible();
   await expect(page.getByText("确认后，将以这份大纲继续设计分支和剧本；不会自动生成后续内容。", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "确认使用此大纲", exact: true }).click();
-  await expect(page.getByText("已确认 r1")).toBeVisible();
+  await expect(page.getByText("已确认 r1", { exact: true })).toBeVisible();
 
   const map = page.getByTestId("section-map");
+  await map.getByRole("button", { name: "自行填写当前结构草稿" }).click();
   const sections = map.locator(".section-map-sections fieldset");
+  for (const [index, title] of ["共同开场", "供电选择", "结局 A", "结局 B"].entries()) {
+    await sections.nth(index).getByLabel("章节标题").fill(title);
+    await sections.nth(index).getByLabel("章节摘要").fill("林澈在风暴前确认行动与后果。");
+  }
   await sections.nth(0).getByLabel("章节摘要").fill("林澈在气象站确认电缆只够维持一个地点。 ");
   await sections.nth(1).getByLabel("章节摘要").fill("码头有电，水手靠岸；灯塔熄灭。 ");
   await sections.nth(2).getByLabel("章节摘要").fill("灯塔有电，水手跟随灯光自救；码头停摆。 ");
-  await map.getByLabel("选择问题").fill("把有限电力送往哪里？");
+  await map.getByLabel("播放时显示的问题").fill("把有限电力送往哪里？");
   const outcomes = map.locator(".section-map-outcome");
   await outcomes.nth(0).getByLabel("选项文字").fill("供电码头");
-  await outcomes.nth(0).getByLabel("选择后的发展").fill("码头恢复照明，灯塔变暗。 ");
+  await outcomes.nth(0).getByLabel("选择后的剧情").fill("码头恢复照明，灯塔变暗。 ");
   await outcomes.nth(1).getByLabel("选项文字").fill("供电灯塔");
-  await outcomes.nth(1).getByLabel("选择后的发展").fill("灯塔照亮航道，码头停电。 ");
-  await page.getByRole("button", { name: "保存故事分支" }).click();
+  await outcomes.nth(1).getByLabel("选择后的剧情").fill("灯塔照亮航道，码头停电。 ");
+  await page.getByRole("button", { name: "确认并保存故事分支" }).click();
   await expect(map.getByText("当前 r1")).toBeVisible();
   await expect(map.getByRole("button", { name: "保存修改" })).toBeDisabled();
   await expect(outcomes.nth(0).getByLabel("选项文字")).toHaveValue("供电码头");
@@ -71,10 +79,10 @@ test("installs the accepted Tide Light map into canonical routes, then survives 
   await page.reload();
   await expect(page.getByTestId("section-map")).toContainText("当前 r1");
   await expect(page.getByTestId("section-map-route-cards")).toContainText("供电码头 → 结局 A");
-  await expect(page.getByTestId("section-map").locator(".section-map-outcome").nth(0).getByLabel("选择后的发展")).toHaveValue("码头恢复照明，灯塔变暗。 ");
+  await expect(page.getByTestId("section-map").locator(".section-map-outcome").nth(0).getByLabel("选择后的剧情")).toHaveValue("码头恢复照明，灯塔变暗。 ");
   await workbench.restartBackend();
   await page.reload();
-  await expect(page.getByTestId("section-map").locator(".section-map-outcome").nth(1).getByLabel("选择后的发展")).toHaveValue("灯塔照亮航道，码头停电。 ");
+  await expect(page.getByTestId("section-map").locator(".section-map-outcome").nth(1).getByLabel("选择后的剧情")).toHaveValue("灯塔照亮航道，码头停电。 ");
   await expect(page.getByTestId("section-map-route-cards")).toContainText("供电灯塔 → 结局 B");
 });
 

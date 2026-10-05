@@ -50,7 +50,7 @@ test("switches route-focused screenplay and matching storyboard without appendin
   const prototype = page.getByTestId("story-prototype");
   await expect(prototype.getByTestId("route-reader")).toContainText("Beacon first.");
   await expect(prototype.getByTestId("storyboard-reader")).toHaveCount(0);
-  await prototype.getByRole("button", { name: /选择：Light the dock/ }).click();
+  await prototype.getByRole("button", { name: /播放路线 .*Light the dock/ }).click();
   await expect(prototype.getByTestId("route-reader")).toContainText("Dock first.");
   await prototype.getByRole("button", { name: "分镜" }).click();
   const storyboard = prototype.getByTestId("storyboard-reader");

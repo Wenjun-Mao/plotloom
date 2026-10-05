@@ -43,7 +43,7 @@ for (const stage of ["cast", "script"] as const) {
     const browserUrl = `${workbench.frontendOrigin}/v2/?project=${id}&stage=${stage === "cast" ? "characters" : "source#script"}`;
     await page.goto(browserUrl);
     const panel = page.getByTestId(`${stage}-review`);
-    await expect(panel.getByRole("button", { name: ready ? (stage === "cast" ? "接受这份角色设定" : "确认使用此剧本") : "发送给文字创作助手" })).toBeEnabled();
+    await expect(panel.getByRole("button", { name: ready ? (stage === "cast" ? "确认使用此角色设定" : "确认使用此剧本") : "发送给文字创作助手" })).toBeEnabled();
     await invalidate(request, workbench.apiOrigin, id, stage);
     const state = await json(request.get(url));
     expect(state[stage === "cast" ? "acceptedCast" : "acceptedScript"]).toBeNull();
@@ -51,10 +51,10 @@ for (const stage of ["cast", "script"] as const) {
     await page.reload();
     await expect(panel).toContainText("上下文已过期");
     if (ready) {
-      await expect(panel.getByRole("button", { name: stage === "cast" ? "接受这份角色设定" : "确认使用此剧本" })).toBeDisabled();
+      await expect(panel.getByRole("button", { name: stage === "cast" ? "确认使用此角色设定" : "确认使用此剧本" })).toBeDisabled();
     } else {
       await expect(panel.getByRole("button", { name: "发送给文字创作助手" })).toBeDisabled();
-      await expect(panel.getByRole("button", { name: "检查任务结果" })).toBeEnabled();
+      await expect(panel.getByRole("button", { name: "立即检查" })).toBeEnabled();
       await expect(panel.getByRole("button", { name: "取消此任务", exact: true })).toBeEnabled();
     }
     expect(sends()).toBe(0);
@@ -79,7 +79,7 @@ for (const stage of ["cast", "script"] as const) {
     await writeDelivery(prepared, stage === "cast" ? "characters" : stage, await fixture(`${stage}.json`));
     await json(request.post(`${url}/candidates/${prepared.jobId}/refresh`));
     await page.reload();
-    const accept = panel.getByRole("button", { name: stage === "cast" ? "接受这份角色设定" : "确认使用此剧本" });
+    const accept = panel.getByRole("button", { name: stage === "cast" ? "确认使用此角色设定" : "确认使用此剧本" });
     await expect(accept).toBeEnabled();
     expect((await json(request.get(url)))[acceptedKey]).toEqual(retained);
     await accept.click();

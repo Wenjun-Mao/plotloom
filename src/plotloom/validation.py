@@ -21,7 +21,7 @@ from .domain import (
     StoryBible,
     Storyboard,
     StoryGraph,
-    StoryNodeKind,
+    StoryNodeKind, StoryEdgeKind,
 )
 from .canonical_schema import (
     DialogueCue,
@@ -176,6 +176,8 @@ def validate_story_graph(
         )
 
     for node_id, targets in adjacency.items():
+        if len(targets) > 1 and any(edge.source_node_id == node_id and edge.kind != StoryEdgeKind.CHOICE for edge in graph.edges):
+            issues.append(_issue("implicit_continuation_branch", f"nodes.{node_id}", "every runtime branch must use explicit choice edges"))
         if len(targets) > brief.max_out_degree:
             issues.append(
                 _issue(
@@ -303,7 +305,7 @@ def validate_story_graph(
         while path_stack:
             node_id, decision_count, path = path_stack.pop()
             node = nodes_by_id[node_id]
-            next_count = decision_count + int(node.kind == StoryNodeKind.DECISION)
+            next_count = decision_count + int(any(edge.source_node_id == node_id and edge.kind == StoryEdgeKind.CHOICE for edge in graph.edges))
             next_path = (*path, node_id)
             if node.kind == StoryNodeKind.ENDING:
                 if next_count != brief.decision_points_per_path:

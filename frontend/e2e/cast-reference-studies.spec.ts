@@ -34,7 +34,7 @@ test.describe("F2B cast-owned reference studies", () => {
     const { projectId } = await createCastReadyProject(request, workbench.apiOrigin, "session-sync");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const cast = page.getByTestId("cast-review");
-    await expect(cast.getByRole("button", { name: "接受这份角色设定" })).toBeEnabled();
+    await expect(cast.getByRole("button", { name: "确认使用此角色设定" })).toBeEnabled();
     const appearanceLabel = cast.locator("label").filter({ hasText: "外观" });
     const labelBox = await appearanceLabel.boundingBox();
     const starBox = await appearanceLabel.locator("span").boundingBox();
@@ -48,17 +48,17 @@ test.describe("F2B cast-owned reference studies", () => {
     expect(temperamentBox).not.toBeNull();
     expect(Math.abs(appearanceBox!.y - temperamentBox!.y)).toBeLessThan(2);
     await cast.getByLabel("外观").fill("  ");
-    await expect(cast.getByRole("button", { name: "接受这份角色设定" })).toBeDisabled();
+    await expect(cast.getByRole("button", { name: "确认使用此角色设定" })).toBeDisabled();
     await expect(cast.getByRole("alert")).toContainText("请填写角色外观");
     await cast.getByLabel("外观").fill("Rain-dark hair and a weathered beacon coat");
     await cast.getByLabel("性格特点 1", { exact: true }).fill("  ");
-    await expect(cast.getByRole("button", { name: "接受这份角色设定" })).toBeDisabled();
+    await expect(cast.getByRole("button", { name: "确认使用此角色设定" })).toBeDisabled();
     await expect(cast.getByRole("alert")).toContainText("请至少填写一个性格特点");
     await cast.getByLabel("性格特点 1", { exact: true }).fill("Careful");
 
     const accepting = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/accept`);
-    await cast.getByRole("button", { name: "接受这份角色设定" }).click();
+    await cast.getByRole("button", { name: "确认使用此角色设定" }).click();
     expect((await accepting).ok()).toBeTruthy();
     const gallery = page.getByTestId("character-reference-gallery");
     await expect(gallery).toContainText("已接受角色 r1");
@@ -553,7 +553,7 @@ async function createAcceptedCastOnlyProject(request: Api, apiOrigin: string, la
 async function createCastReadyProject(request: Api, apiOrigin: string, label: string): Promise<{ projectId: string; castPrepared: any; readyCast: any }> {
   const created = await request.post(`${apiOrigin}/api/v2/projects`, {
     headers: { "Idempotency-Key": `f2b-cast-only-${label}-${Date.now()}` },
-    data: { brief: { ...demoProject.brief, title: `F2B cast-only ${label}` } },
+    data: { brief: { ...demoProject.brief, decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, title: `F2B cast-only ${label}` } },
   });
   const projectId = (await getJson<{ id: string }>(created)).id;
   const saved = await request.put(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/source`, {

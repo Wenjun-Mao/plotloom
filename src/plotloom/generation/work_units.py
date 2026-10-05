@@ -1850,6 +1850,9 @@ def compile_work_unit_request(
         schema=schema,
         story_graph_topology=story_graph_topology,
     )
+    if work_unit.stage == StageName.STORY_BIBLE:
+        variables["project_input"] = brief.generation_input()
+
     active_renderer = renderer or PromptRenderer()
     rendered = active_renderer.render(prompt_id, variables)
     join_state_requirements = (

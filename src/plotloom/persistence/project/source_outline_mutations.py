@@ -200,6 +200,29 @@ class SourceOutlineMutations:
             head.updated_at = utc_now()
             return self._owner._state_in_session(session, project_id, head)
 
+    def return_to_accepted(self, project_id, request):
+        with self._access.leases.lifecycle_write() as session:
+            self._access.guards.active(self._access.rows.project(session, project_id))
+            head = self._owner._head(session, project_id, create=True)
+            if (head.outline_revision != request.expected_outline_revision
+                    or head.source_revision != request.expected_source_revision
+                    or head.candidate_job_id != request.expected_candidate_job_id):
+                raise InvalidTransitionError("当前来源、大纲或候选已变化，请刷新后再决定。")
+            state = self._owner._state_in_session(session, project_id, head)
+            outline = state.accepted_outline
+            if (head.outline_status != "reopened" or outline is None
+                    or outline.source_revision != head.source_revision
+                    or outline.content_hash != request.expected_outline_content_hash):
+                raise InvalidTransitionError("保留的大纲已不适用于当前来源，请审阅并确认新的候选。")
+            if head.candidate_job_id:
+                candidate = session.get(SourceOutlineCandidateRow, head.candidate_job_id)
+                if candidate and candidate.status in {"prepared", "ready"}:
+                    candidate.status = "cancelled"
+            head.candidate_job_id = None
+            head.outline_status = "accepted"
+            head.updated_at = utc_now()
+            return self._owner._state_in_session(session, project_id, head)
+
     def cancel_candidate(self, project_id: str, job_id: str) -> SourceOutlineReviewState:
         """Durably discard one manual publication before it can install canon."""
 

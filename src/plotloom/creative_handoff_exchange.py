@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import stat
 import subprocess
 from dataclasses import dataclass
@@ -106,7 +107,7 @@ class CreativeHandoffExchange:
 
     @staticmethod
     def _candidate_filename(stage: str) -> str:
-        return {"outline": "outline.json", "characters": "cast.json", "art": "art.json", "script": "script.json", "storyboard": "storyboard.json"}[stage]
+        return {"branches": "branches.json", "outline": "outline.json", "characters": "cast.json", "art": "art.json", "script": "script.json", "storyboard": "storyboard.json"}[stage]
 
     @staticmethod
     def _pinned_execution(stage: str) -> dict[str, str]:
@@ -114,6 +115,7 @@ class CreativeHandoffExchange:
 
         repository = Path(__file__).resolve().parents[2]
         submodule = repository / "third_party" / "shuohao-skills"
+        stage = "outline" if stage == "branches" else stage
         upstream_skill = repository / "third_party" / "shuohao-skills" / "skills" / f"novel-{stage}" / "SKILL.md"
         specialist_skill = repository / ".agents" / "skills" / "plotloom-shuohao-specialist" / "SKILL.md"
         if not upstream_skill.is_file() or not specialist_skill.is_file():
@@ -183,7 +185,7 @@ class CreativeHandoffExchange:
             capture_output=True, check=False,
         )
         upstream = subprocess.run(
-            ["git", "-C", str(repository / "third_party" / "shuohao-skills"), "show", f"{upstream_revision}:skills/novel-{request.stage}/SKILL.md"],
+            ["git", "-C", str(repository / "third_party" / "shuohao-skills"), "show", f"{upstream_revision}:skills/novel-{'outline' if request.stage == 'branches' else request.stage}/SKILL.md"],
             capture_output=True, check=False,
         )
         if specialist.returncode != 0 or upstream.returncode != 0:
@@ -204,7 +206,7 @@ class CreativeHandoffExchange:
             "requestHash": frozen_hash,
             "candidateFilename": candidate_filename,
             "reportFilename": "report.html",
-            "upstreamSkillPath": f"third_party/shuohao-skills/skills/novel-{request.stage}/SKILL.md",
+            "upstreamSkillPath": f"third_party/shuohao-skills/skills/novel-{'outline' if request.stage == 'branches' else request.stage}/SKILL.md",
             "executionPin": execution_pin_for_request(request, execution_pin),
         }
         character_id_instruction = (
@@ -213,12 +215,22 @@ class CreativeHandoffExchange:
             if request.stage == "characters"
             else ""
         )
+        branch_candidate = shlex.quote(str(self._job_root(request.job_id) / "delivery" / "branches.json"))
+        branch_request = shlex.quote(str(self._job_root(request.job_id) / "package" / "request.json"))
+        branch_report = shlex.quote(str(self._job_root(request.job_id) / "delivery" / "report.html"))
+        branch_instruction = (
+            "For branches, upstream outline is narrative guidance only. Output strictly inputs/branch-schema.json; "
+            "Preserve every planned node, choice-option and join ID and order from source.topology. Do not emit an upstream outline or invent topology. "
+            f"From the repository root, run uv run --locked python scripts/branch_suggestion.py validate {branch_candidate} --request {branch_request}, then "
+            f"uv run --locked python scripts/branch_suggestion.py render {branch_candidate} --request {branch_request} > {branch_report}. Disclose ambiguous proposals in clarifications. "
+            if request.stage == "branches" else ""
+        )
         instructions = (
             "Read request.json, each inputs/*.json file, and the pinned upstream skill path. "
             f"Write the stage-shaped candidate JSON to the sibling ../delivery/{candidate_filename}, then derive "
             "../delivery/report.html from that candidate. Never create package/delivery. Finally publish "
             "../delivery/completion.json once. "
-            f"{character_id_instruction}"
+            f"{character_id_instruction}{branch_instruction}"
             "This is a candidate only: do not edit project canon, approvals, selections, or request files.\n"
         ).encode()
         template = canonical_json({

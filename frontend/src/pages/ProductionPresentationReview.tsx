@@ -51,7 +51,7 @@ export function ProductionPresentationReview({ projectId, proposal, disabled, ac
   const complete = pkg.sources.every(source => entries[source.id]?.every(span => span.role !== "unassigned" && (span.role !== "physical" || span.rendering.trim()) && (!["runtime_choice", "review_only"].includes(span.role) || span.reason.trim())));
   return <details open data-testid="production-presentation-review"><summary>实体画面、可见文字与选择界面：整包归属审阅</summary>
     <p>原始剧本与分镜保持不变。逐项核对所有动作、限制与文字；混合描述可选中文本后拆分；只有被拆开的片段需要重新填写归属，其他编辑保持不变。播放器负责提问和按钮；画面内文字须保留原文且不发声。预留区域不代表已有文字合成器，实际媒体仍须检查。</p>
-    <p>播放器选择：{pkg.runtimeChoice.prompt} · {pkg.runtimeChoice.outcomes.map(outcome => outcome.label).join(" / ")}</p>
+    {("choices" in pkg.runtimeChoice ? pkg.runtimeChoice.choices : [pkg.runtimeChoice]).map(choice => <p key={choice.choiceId}>播放器选择：{choice.prompt} · {choice.outcomes.map(outcome => outcome.label).join(" / ")}</p>)}
     {pkg.sources.map(source => <fieldset key={source.id} disabled={disabled || busy || accepted}>
       <legend>{source.kind === "composition" ? "构图" : source.kind === "dialogue" ? "对白" : "动作"} · {source.targetId}</legend>
       <textarea aria-label={`原始来源 ${source.id}`} readOnly value={source.sourceText} onSelect={event => {

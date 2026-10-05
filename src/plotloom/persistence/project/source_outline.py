@@ -22,6 +22,7 @@ from ...source_outline_contracts import (
     SourceOutlineReviewState,
     SourceRevision,
     compile_section_map_graph,
+    validate_section_map_graph,
 )
 from ..schema import (
     SourceOutlineCandidateRow,
@@ -205,7 +206,7 @@ class ProjectSourceOutlinePersistence:
         return self._mutations.accept_candidate(project_id, request)
 
     def save_section_map(self, project_id: str, request: SectionMapSaveRequest) -> SourceOutlineReviewState:
-        """Accept one author-reviewed binary map bound to the exact outline revision."""
+        """Accept one author-reviewed structure bound to the exact outline revision."""
 
         request.mapping.validate_links()
         with self._access.leases.lifecycle_write() as session:
@@ -213,6 +214,14 @@ class ProjectSourceOutlinePersistence:
             self._access.guards.active(project)
             outline_head = self._head(session, project_id, create=True)
             section_map_head = self._section_map_head(session, project_id, create=True)
+            from ...domain import ProjectBrief
+            graph = compile_section_map_graph(request.mapping)
+            brief = ProjectBrief.model_validate(project.brief)
+            validate_section_map_graph(graph, brief)
+            if request.mapping.topology is not None:
+                from ...source_structures import planned_structure
+                if request.mapping.topology != planned_structure(project_id, brief):
+                    raise InvalidTransitionError("剧情结构已不符合当前简报，请重新准备建议。")
             if section_map_head.revision != request.expected_section_map_revision:
                 raise RevisionConflictError("source-outline section map", request.expected_section_map_revision, section_map_head.revision)
             if outline_head.source_revision != request.expected_source_revision:
@@ -233,6 +242,9 @@ class ProjectSourceOutlinePersistence:
                 raise RevisionConflictError("source-outline outline content", 0, 1)
             prior_mapping = self._section_map_for_head(session, project_id, section_map_head)
             if prior_mapping is not None:
+                from ..schema import ProductionBridgeAdmissionRow
+                if prior_mapping.mapping.topology != request.mapping.topology and session.get(ProductionBridgeAdmissionRow, project_id) is not None:
+                    raise InvalidTransitionError("此项目已安装投产，当前流程不能替换其剧情结构。已保存内容与媒体仍保留。")
                 self._assert_map_ids_unchanged(prior_mapping.mapping, request.mapping)
             payload = request.mapping.model_dump(mode="json", by_alias=True)
             now = utc_now()
@@ -284,6 +296,11 @@ class ProjectSourceOutlinePersistence:
             if graph_head.revision and (admission is None or admission.graph_revision != graph_head.revision):
                 raise InvalidTransitionError("the current canonical graph is not source-map-owned and cannot be overwritten")
             graph = compile_section_map_graph(mapping.mapping)
+            from ...domain import ProjectBrief
+            validate_section_map_graph(graph, ProjectBrief.model_validate(project.brief))
+            from ..schema import ProductionBridgeAdmissionRow
+            if session.get(ProductionBridgeAdmissionRow, project_id) is not None:
+                raise InvalidTransitionError("已安装的投产内容受到保护；当前工作流不支持替换其剧情结构。")
             now = utc_now()
             installed = self._canonical.install_source_map_graph_in_session(
                 session, project, graph, expected_revision=request.expected_graph_revision, now=now
@@ -408,6 +425,13 @@ class ProjectSourceOutlinePersistence:
 
     @staticmethod
     def _assert_map_ids_unchanged(previous: Any, next_mapping: Any) -> None:
+        if previous.topology is not None or next_mapping.topology is not None:
+            # A new explicitly reviewed structure may replace the source map;
+            # graph installation separately protects installed production.
+            if previous.topology == next_mapping.topology:
+                if [section.section_id for section in previous.sections] != [section.section_id for section in next_mapping.sections]:
+                    raise InvalidTransitionError("planned section identities cannot change")
+            return
         if [section.section_id for section in previous.sections] != [section.section_id for section in next_mapping.sections]:
             raise InvalidTransitionError("section IDs are immutable after the first accepted section map")
         if previous.choice.choice_id != next_mapping.choice.choice_id:

@@ -188,7 +188,7 @@ for (const stage of ["script", "storyboard"] as const) for (const ready of [fals
       await expect(panel.getByRole("button", { name: stage === "script" ? "拒绝并取消此剧本" : "拒绝并取消此评审" })).toBeEnabled();
     } else {
       await expect(panel.getByRole("button", { name: "发送给文字创作助手" })).toBeDisabled();
-      await expect(panel.getByRole("button", { name: "检查任务结果" })).toBeEnabled();
+      await expect(panel.getByRole("button", { name: "立即检查" })).toBeEnabled();
       await expect(panel.getByRole("button", { name: "取消此任务", exact: true })).toBeEnabled();
     }
     expect(sends()).toBe(0);

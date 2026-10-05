@@ -21,7 +21,7 @@ test.describe("project-folder Close", () => {
     await page.getByLabel("补充创作要求（可选）").fill("验证取消、关闭和重新打开的持久化边界。");
     await page.getByRole("button", { name: "确认改编内容" }).click();
     await page.getByRole("button", { name: "准备大纲任务" }).click();
-  await expect(page.getByText(/^任务已准备 ·/)).toBeVisible();
+  await expect(page.getByText(/^等待助手交付 · 发送状态见下方 ·/)).toBeVisible();
     await page.getByRole("button", { name: "取消此任务" }).click();
     await expect(page.getByText("已取消")).toBeVisible();
 

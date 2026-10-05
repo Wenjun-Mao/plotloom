@@ -83,7 +83,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
     if (typeof recovered.text !== "string" || typeof recovered.title !== "string") throw new Error("来源草稿格式无效，请复制内容后重新填写。");
     draftDirty.current = true; setDraft(recovered);
   }, ownerDisabled || busy, () => { draftDirty.current = false; setDraft(state?.source?.material || sourceDraftFromBrief(briefSeed)); });
-  const readOnly = ownerDisabled || reviewDraft.stale;
+  const readOnly = ownerDisabled || reviewDraft.stale || focusedTarget !== "source";
 
   const updateDraft = (next: SourceMaterial) => {
     draftDirty.current = true;
@@ -116,8 +116,8 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
   return <section id="source" className="page source-outline-page" data-project-id={loadedProjectId || projectId}>
     {error && focusedTarget !== "source" && <ErrorNotice message={error} />}
     <section className="source-workflow-source" hidden={focusedTarget !== "source"} aria-labelledby="source-workflow-heading">
-      <header className="page-header"><div><h1 id="source-workflow-heading">来源与大纲</h1><p>填写故事来源，审阅大纲，并确定分支路线。</p></div><Button variant="quiet" disabled={busy || checking} onClick={() => void recheck()}>刷新</Button></header>
-      <StageGuide>{failed ? "无法读取当前进度，请先刷新重试；保留内容不代表版本已核实。" : checking || !state ? "正在读取故事来源和当前进度。" : state.outlineStatus === "reopened" ? "大纲已重新打开。请准备新候选并确认；保留的旧大纲不会自动替换。" : candidate?.status === "ready" ? "先阅读候选大纲，再确认使用；随后设置开场、选择和两个结局。" : candidate?.status === "prepared" ? "大纲任务已准备。发送给文字创作助手，结果返回后再审核。" : state.graphAdmission?.status === "current" ? "故事分支已应用。可在下方继续角色设定；此操作只切换页面，不会生成内容。" : accepted ? "大纲已确认。请在下方完善故事分支，保存后应用到故事路线。" : state.source ? "故事来源已确认。下一步准备大纲任务，再发送给文字创作助手。" : "先确认故事来源，再准备大纲任务。* 为必填项，确认内容不会自动启动生成。"}</StageGuide>
+      <header className="page-header"><div><h1 id="source-workflow-heading">来源与大纲</h1><p>确认故事来源，阅读大纲，再审阅剧情分支与结局。</p></div><Button variant="quiet" disabled={busy || checking} onClick={() => void recheck()}>刷新</Button></header>
+      <StageGuide>{failed ? "无法读取当前进度，请先刷新重试；保留内容不代表版本已核实。" : checking || !state ? "正在读取故事来源和当前进度。" : state.outlineStatus === "reopened" ? "已开始新的修订轮次。可以准备并单独发送新候选，也可以返回保留的有效大纲。" : candidate?.status === "ready" ? "先阅读候选大纲，再确认使用；随后准备完整的剧情分支建议，审阅后确认。" : candidate?.status === "prepared" ? "大纲任务尚未交付；发送、等待和检查状态见下方任务区。" : state.graphAdmission?.status === "current" ? "故事分支已应用。可在下方继续角色设定；此操作只切换页面，不会生成内容。" : accepted ? "大纲已确认。请在下方准备剧情分支建议，审阅确认后应用到故事路线。" : state.source ? "故事来源已确认。下一步准备大纲任务，再发送给文字创作助手。" : "先确认故事来源，再准备大纲任务。* 为必填项，确认内容不会自动启动生成。"}</StageGuide>
       {error && <ErrorNotice message={error} />}
       {!state ? <Spinner /> : <div className="source-outline-grid">
       <article className="panel source-outline-source" data-testid="source-outline-source">
@@ -136,7 +136,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
       </article>
 
       <article className="panel source-outline-candidate" data-testid="source-outline-candidate">
-        <header><span>大纲候选</span><strong>{candidate ? `${candidate.status === "ready" ? "待审阅" : candidate.status === "accepted" ? "已确认" : candidate.status === "cancelled" ? "已取消" : "任务已准备"} · ${candidate.jobId.slice(0, 11)}` : "尚无候选"}</strong></header>
+        <header><span>大纲候选</span><strong>{candidate ? `${candidate.status === "ready" ? "待审阅" : candidate.status === "accepted" ? "已确认" : candidate.status === "cancelled" ? "已取消" : "等待助手交付 · 发送状态见下方"} · ${candidate.jobId.slice(0, 11)}` : "尚无候选"}</strong></header>
         <p>候选只能来自当前已确认的改编内容和大纲版本；它不会自动替换已确认内容。</p>
         {(!candidate || candidate.status === "cancelled") && <Button variant="primary" disabled={readOnly || busy || !state.source} onClick={() => {
           setBusy(true); setError("");
@@ -158,15 +158,25 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
 
       <article className="panel source-outline-accepted" data-testid="source-outline-accepted">
         <header><span>已确认的大纲</span><strong>{accepted ? `已确认 r${accepted.revision}` : "尚未确认"}</strong></header>
-        <p>当前状态：{state.outlineStatus === "accepted" ? "已确认" : state.outlineStatus === "reopened" ? "已重新打开，需新的候选" : state.outlineStatus === "candidate_ready" ? "待审阅" : "缺失"}</p>
-        {accepted ? <><small>基于故事内容 r{accepted.sourceRevision} · 候选 {accepted.candidateJobId.slice(0, 11)}</small><details><summary>查看已确认的原始 outline.json</summary><pre>{JSON.stringify(accepted.outline, null, 2)}</pre></details><Button variant="quiet" disabled={readOnly || busy || state.outlineStatus === "reopened"} onClick={() => void mutate(() => plotloomApi.reopenOutline(projectId, accepted.revision))}>重新打开，不替换内容</Button></> : <p className="muted">确认会新建独立的大纲版本；此处绝不从候选静默同步。</p>}
+        <p>当前状态：{state.outlineStatus === "accepted" ? "已确认" : state.outlineStatus === "reopened" ? "修订轮次已打开，旧版本保留" : state.outlineStatus === "candidate_ready" ? "待审阅" : "缺失"}</p>
+        {accepted ? <>
+          <small>基于故事内容 r{accepted.sourceRevision} · 已确认 r{accepted.revision}</small>
+          <OutlineReport key={`${projectId}:accepted:${accepted.revision}:${accepted.candidateJobId}`} outline={accepted.outline} acceptedRevision={accepted.revision} url={plotloomApi.outlineCandidateReportUrl(projectId, accepted.candidateJobId)} />
+          <details><summary>技术详情：已确认的原始数据与身份</summary><p>{accepted.candidateJobId} · {accepted.contentHash}</p><pre>{JSON.stringify(accepted.outline, null, 2)}</pre></details>
+          {state.outlineStatus !== "reopened" ? <><Button variant="quiet" disabled={readOnly || busy} onClick={() => void mutate(() => plotloomApi.reopenOutline(projectId, accepted.revision))}>开始新一轮大纲修订</Button><p className="action-prerequisite">保留当前大纲；下一步需要单独准备、发送并确认新候选。</p></> : <>
+            <Button variant="quiet" disabled={readOnly || busy || accepted.sourceRevision !== state.source?.revision} onClick={() => void mutate(() => plotloomApi.returnToAcceptedOutline(projectId, { expectedOutlineRevision: accepted.revision, expectedSourceRevision: state.source!.revision, expectedOutlineContentHash: accepted.contentHash, expectedCandidateJobId: candidate?.jobId || null }))}>返回保留的已确认大纲</Button>
+            <p className="action-prerequisite">{accepted.sourceRevision !== state.source?.revision ? "来源已变化，旧大纲只能阅读；请确认新的候选。" : "放弃本轮候选，继续使用保留的大纲。已发送任务仍可能执行，其结果不会替换内容。"}</p>
+          </>}
+        </> : <p className="muted">确认后会保存独立的大纲版本，供后续阅读和创作。</p>}
       </article>
 
       <SectionMapPanel key={projectId} projectId={projectId}
+        structureKey={JSON.stringify(briefSeed)}
         outline={accepted || null} accepted={state.acceptedSectionMap} status={state.sectionMapStatus}
         staleReasons={state.sectionMapStaleReasons} readOnly={readOnly} busy={busy}
         graphAdmission={state.graphAdmission}
         graphReady={Boolean(state.graphAdmission?.status === "current" && graph?.revision === state.graphAdmission.graphRevision && graph?.contentHash === state.graphAdmission.graphContentHash)}
+        outlineCurrent={state.outlineStatus === "accepted"}
         sourceDirty={draftDirty.current}
         routes={state.graphAdmission?.status === "current" && graph?.revision === state.graphAdmission.graphRevision && graph?.contentHash === state.graphAdmission.graphContentHash ? deriveRoutes(graph.payload) : []}
         onSave={(mapping) => {

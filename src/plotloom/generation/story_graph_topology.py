@@ -39,7 +39,7 @@ from ..join_state_values import (
 from .json_schema import explicit_presence_json_schema, inline_local_json_references
 
 
-STORY_GRAPH_TOPOLOGY_VERSION = "story_graph_topology.v1"
+STORY_GRAPH_TOPOLOGY_VERSION = "story_graph_topology.v2"
 STORY_GRAPH_CONTENT_FILL_SCHEMA_ID = "story_graph_content_fill.v4"
 DEFAULT_MAX_DOWNSTREAM_WORK_UNITS = 128
 _STRUCTURAL_PARAMETER_KEYS = frozenset(
@@ -152,6 +152,7 @@ def plan_story_graph_topology(
     project_id: str,
     brief: ProjectBrief,
     max_downstream_work_units: int = DEFAULT_MAX_DOWNSTREAM_WORK_UNITS,
+    max_options_per_choice: int | None = None,
 ) -> StoryGraphTopology:
     """Find the smallest deterministic DAG satisfying the graph part of a brief.
 
@@ -200,7 +201,9 @@ def plan_story_graph_topology(
             "nodeBudget cannot contain the start, endings, decisions, and joins",
         )
 
-    shape = _find_minimum_shape(brief, limit)
+    # Receiving capacity narrows the search, never the frozen author parameters.
+    search_brief = brief if max_options_per_choice is None else brief.model_copy(update={"max_out_degree": min(brief.max_out_degree, max_options_per_choice)})
+    shape = _find_minimum_shape(search_brief, limit)
     if shape is None:
         raise StoryGraphTopologyError(
             "topology.node_budget_too_small" if limit == brief.node_budget else budget_code,
@@ -259,7 +262,7 @@ def _find_minimum_shape(brief: ProjectBrief, limit: int) -> _Shape | None:
                 state.width,
                 brief.ending_count,
                 min_out=_minimum_out_degree(state.kind),
-                max_out=brief.max_out_degree,
+                max_out=_maximum_out_degree(state.kind, brief),
                 join_targets=0,
             )
         ):
@@ -292,7 +295,7 @@ def _find_minimum_shape(brief: ProjectBrief, limit: int) -> _Shape | None:
                         state.width,
                         target_width,
                         min_out=_minimum_out_degree(state.kind),
-                        max_out=brief.max_out_degree,
+                        max_out=_maximum_out_degree(state.kind, brief),
                         join_targets=joins_added,
                     ):
                         continue
@@ -325,6 +328,10 @@ def _find_minimum_shape(brief: ProjectBrief, limit: int) -> _Shape | None:
     return None
 
 
+def _maximum_out_degree(kind: StoryNodeKind, brief: ProjectBrief) -> int:
+    return brief.max_out_degree if kind == StoryNodeKind.DECISION else 1
+
+
 def _minimum_out_degree(kind: StoryNodeKind) -> int:
     return 2 if kind == StoryNodeKind.DECISION else 1
 
@@ -354,7 +361,7 @@ def _reconstruct_shape(
             source.width,
             target.width,
             min_out=_minimum_out_degree(source.kind),
-            max_out=brief.max_out_degree,
+            max_out=_maximum_out_degree(source.kind, brief),
             join_targets=join_count,
         )
         if transition is None:  # defensive: DP and constructor share one contract
@@ -365,7 +372,7 @@ def _reconstruct_shape(
         terminal.width,
         brief.ending_count,
         min_out=_minimum_out_degree(terminal.kind),
-        max_out=brief.max_out_degree,
+        max_out=_maximum_out_degree(terminal.kind, brief),
         join_targets=0,
     )
     if ending_transition is None:
@@ -843,6 +850,13 @@ def _validate_topology_semantics(topology: StoryGraphTopology) -> None:
         raise ValueError("structuralParameters must contain the canonical graph constraints")
 
     nodes_by_id = {node.id: node for node in topology.nodes}
+    for node in topology.nodes:
+        outgoing = [edge for edge in topology.edges if edge.source_node_id == node.id]
+        if node.kind != StoryNodeKind.DECISION and len(outgoing) > 1:
+            raise ValueError("non-decision topology nodes cannot fork continuations")
+        expected_kind = StoryEdgeKind.CHOICE if node.kind == StoryNodeKind.DECISION else StoryEdgeKind.CONTINUATION
+        if any(edge.kind != expected_kind for edge in outgoing):
+            raise ValueError("topology edge kind must match its explicit decision role")
     incoming: dict[str, set[str]] = {node.id: set() for node in topology.nodes}
     for edge in topology.edges:
         if edge.source_node_id in nodes_by_id and edge.target_node_id in nodes_by_id:

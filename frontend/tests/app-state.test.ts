@@ -1102,7 +1102,7 @@ describe("App project/editor rehydration", () => {
     window.history.replaceState(null, "", `/?project=${projectId}&stage=brief`);
     await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
     await flush();
-    expect(document.querySelector(".sidebar nav button.active")?.textContent).toContain("项目简报");
+    expect(document.querySelector(".project-brief-navigation[aria-current=page]")?.textContent).toContain("项目简报");
     expect(document.querySelector(".context-panel")?.textContent).toContain("放弃运行选择项目");
     expect(document.querySelector('[data-testid="workspace-hydrating"]')).toBeNull();
     expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("放弃运行选择项目");

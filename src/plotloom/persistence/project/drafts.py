@@ -68,6 +68,18 @@ class ProjectDraftPersistence:
         self, session: Session, project_id: str, before: ProjectBrief,
         after: ProjectBrief, now: datetime,
     ) -> None:
+        structural_fields = {"decision_points_per_path", "ending_count", "node_budget", "max_out_degree", "desired_join_count"}
+        if any(getattr(before, name) != getattr(after, name) for name in structural_fields):
+            from ..schema import SourceOutlineSectionMapHeadRow, SourceOutlineGraphAdmissionRow
+            mapping = session.get(SourceOutlineSectionMapHeadRow, project_id)
+            if mapping and mapping.revision:
+                mapping.status = "stale"
+                mapping.stale_reasons = ["剧情结构设置已变化，请按当前简报重新审阅分支。"]
+                mapping.updated_at = now
+            admission = session.get(SourceOutlineGraphAdmissionRow, project_id)
+            if admission:
+                admission.status = "stale"
+                admission.stale_reasons = ["剧情结构设置已变化，请重新确认分支与故事路线。"]
         for stage in self._brief_dependent_stages(before, after):
             head = self._access.rows.stage(session, project_id, stage)
             if head.status != StageStatus.MISSING.value:

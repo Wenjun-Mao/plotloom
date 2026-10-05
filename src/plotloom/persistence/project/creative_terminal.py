@@ -18,6 +18,7 @@ from .creative_execution_pins import execution_pin_for_candidate
 
 CANDIDATE_ROWS = {
     "outline": SourceOutlineCandidateRow,
+    "branches": SourceOutlineCandidateRow,
     "characters": CastCandidateRow,
     "art": ArtCandidateRow,
     "script": ScriptCandidateRow,

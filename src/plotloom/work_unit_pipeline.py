@@ -1774,7 +1774,7 @@ class DurableWorkUnitRunner:
             }
         return {
             "aspectRatio": brief.aspect_ratio,
-            "visualStyle": brief.visual_style,
+            "visualStyle": brief.visual_direction,
             "shotsPerSceneMin": brief.shots_per_scene_min,
             "shotsPerSceneMax": brief.shots_per_scene_max,
             "shotCountPolicy": brief.shot_count_policy,

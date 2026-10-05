@@ -30,12 +30,15 @@ Named profiles govern text generation only. Image and video tasks continue to
 freeze their own global public settings; a text-profile selection neither
 selects nor overrides a media provider, model, endpoint, or credential policy.
 
-New Story Graph runs freeze a deterministic `story_graph_topology.v1` plan before
+New Story Graph runs freeze a deterministic topology plan before
 provider dispatch. Plotloom owns node and edge identities, kinds, endpoints,
 start, endings, and joins. The model fills only narrative copy, choice effects,
 and join semantics. The binder requires an exact ID set, reconstructs the
 canonical graph, and still runs every existing graph validator. A structurally
 infeasible brief fails before any provider call.
+
+ADR 0118 advances new planning to `story_graph_topology.v2`, forbidding implicit
+continuation forks so every runtime choice belongs to the frozen decision count.
 
 Scene Beats and Storyboard shards expose only response-local aliases (for
 example `localSceneId`, `localBeatId`, and `localShotId`). The trusted binder

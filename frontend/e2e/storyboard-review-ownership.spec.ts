@@ -60,7 +60,7 @@ for (const transition of ["A-B-A", "unmount"] as const) {
           if (operation !== "load") {
             if (operation === "copy") await page.getByTestId("storyboard-review").getByText("查看任务说明（手动方式）", { exact: true }).click();
             await page.getByTestId("storyboard-review").getByRole("button", {
-              name: operation === "copy" ? "恢复分镜任务" : "检查任务结果",
+              name: operation === "copy" ? "恢复分镜任务" : "立即检查",
             }).click();
           }
           await started;

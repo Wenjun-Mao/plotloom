@@ -39,7 +39,7 @@ export function endpoint(origin: string, projectId: string): string {
 }
 export async function createScriptProject(request: APIRequestContext, origin: string, label: string, candidates: Partial<Record<"cast" | "art" | "script", unknown>> = {}, stages: readonly ("cast" | "art" | "script")[] = ["cast", "art", "script"]): Promise<string> {
   const root = `${origin}/api/v2/projects`;
-  const created = await json(request.post(root, { headers: { "Idempotency-Key": `f5a-${label}-${Date.now()}` }, data: { brief: { ...demoProject.brief, title: `F5A ${label}`, targetPlaythroughSeconds: 180 } } }));
+  const created = await json(request.post(root, { headers: { "Idempotency-Key": `f5a-${label}-${Date.now()}` }, data: { brief: { ...demoProject.brief, decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, title: `F5A ${label}`, targetPlaythroughSeconds: 180 } } }));
   const id = created.id;
   const url = `${root}/${id}`;
   const source = await json(request.put(`${url}/source-outline/source`, { data: { expectedSourceRevision: 0, material: {
@@ -96,7 +96,7 @@ export async function prepare(page: Page, panel: Locator, id: string): Promise<P
 }
 export async function refresh(page: Page, panel: Locator, id: string, jobId: string): Promise<void> {
   const response = page.waitForResponse(r => r.request().method() === "POST" && new URL(r.url()).pathname === `/api/v2/projects/${id}/specialist-tasks/storyboard/${jobId}/check`);
-  await panel.getByRole("button", { name: "检查任务结果" }).click();
+  await panel.getByRole("button", { name: "立即检查" }).click();
   await json(await response);
   await expect(panel.getByRole("button", { name: "确认此分镜评审方案" })).toBeEnabled();
 }

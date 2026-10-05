@@ -82,6 +82,33 @@ def test_new_outline_preparation_refuses_missing_and_stale_settings(tmp_path: Pa
         store.close()
 
 
+def test_structured_directions_survive_reopen_and_reach_frozen_outline_inputs(tmp_path: Path):
+    brief = ProjectBrief.model_validate({**FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True),
+        "genreSelections": [{"group": "subject", "value": "科幻"}, {"group": "narrative", "value": "港口传奇"}],
+        "visualStyleSelections": [{"group": "representation", "value": "真人写实"}, {"group": "lighting", "value": "暖色"}],
+        "genre": "保留原有自由文本", "visualStyle": "真实空间里的温暖灯光"})
+    storage = _storage(tmp_path)
+    store = storage.projects.create(brief)
+    project_id = store.manifest.project_id
+    store.close()
+    reopened = storage.projects.open(project_id)
+    try:
+        retained = reopened.project().brief
+        assert retained.genre_selections == brief.genre_selections
+        assert retained.visual_style_selections == brief.visual_style_selections
+        assert retained.genre == brief.genre and retained.visual_style == brief.visual_style
+        material = _material()
+        reopened.save_source_material(expected_source_revision=0, material=material)
+        request = _request(project_id, material, brief=retained)
+        reopened.prepare_outline_candidate(request)
+        settings = request.input_artifacts[OUTLINE_SETTINGS_FILENAME]
+        assert settings["genre"] == "科幻；港口传奇；保留原有自由文本"
+        assert settings["visualStyle"] == "真人写实；暖色；真实空间里的温暖灯光"
+        assert settings["genreSelections"] == brief.generation_input()["genreSelections"]
+    finally:
+        reopened.close()
+
+
 @pytest.mark.parametrize("delivered", [False, True])
 def test_brief_change_blocks_old_outline_delivery_or_acceptance(tmp_path: Path, delivered: bool) -> None:
     store = _storage(tmp_path).projects.create(FIXED_CHINESE_BRIEF)

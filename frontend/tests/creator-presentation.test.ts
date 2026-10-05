@@ -125,14 +125,14 @@ it("retains accepted cast on failed refresh but suspends mutations until a succe
 
 it("makes a reopened or prepared task prominent rather than claiming its retained result is complete", async () => {
   await renderCast({ status: "reopened", acceptedCast: accepted, candidate: null, staleReasons: [] });
-  expect(host.querySelector("h2")?.textContent).toBe("角色设定正在编辑");
+  expect(host.querySelector("h2")?.textContent).toBe("角色设定修订轮次已打开");
   expect(host.textContent).toContain("保留的已接受角色");
   await renderCast({ status: "prepared", acceptedCast: accepted, staleReasons: [], candidate: {
     jobId: "new-job", expectedCastRevision: 1, binding: accepted.binding, status: "prepared", cast: null,
     deliveryId: null, manifestHash: null, reportAvailable: false, createdAt: "2026-10-04T00:00:00Z", deliveredAt: null,
   } });
-  expect(host.querySelector("h2")?.textContent).toBe("角色任务已准备");
-  expect(host.querySelector(".reference-state")?.textContent).toBe("待发送");
+  expect(host.querySelector("h2")?.textContent).toBe("角色任务尚未交付");
+  expect(host.querySelector(".reference-state")?.textContent).toBe("任务未交付");
 });
 
 it.each(["ready", "prepared"] as const)("labels a stale %s cast candidate as needing an update", async (status) => {
@@ -143,6 +143,6 @@ it.each(["ready", "prepared"] as const)("labels a stale %s cast candidate as nee
   } });
   expect(host.querySelector("h2")?.textContent).toBe("上下文已过期");
   expect(host.querySelector(".reference-state")?.textContent).toBe("需更新");
-  const mutation = [...host.querySelectorAll("button")].find(button => button.textContent === (status === "ready" ? "接受这份角色设定" : "发送给文字创作助手"));
+  const mutation = [...host.querySelectorAll("button")].find(button => button.textContent === (status === "ready" ? "确认使用此角色设定" : "发送给文字创作助手"));
   expect(mutation?.disabled).toBe(true);
 });

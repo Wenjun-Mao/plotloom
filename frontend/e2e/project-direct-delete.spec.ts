@@ -41,7 +41,7 @@ test("busy deletion retains partial source input and does not cancel a prepared 
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${target.id}&stage=source`);
   await page.getByRole("button", { name: "确认改编内容" }).click();
   await page.getByRole("button", { name: "准备大纲任务" }).click();
-  await expect(page.getByText(/^任务已准备 ·/)).toBeVisible();
+  await expect(page.getByText(/^等待助手交付 · 发送状态见下方 ·/)).toBeVisible();
   const before = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${target.id}/source-outline`)).json();
   await page.getByLabel("故事内容").fill("这段尚未确认的编辑必须保留。");
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();

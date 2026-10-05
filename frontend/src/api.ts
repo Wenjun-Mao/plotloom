@@ -645,6 +645,23 @@ export class PlotloomApiClient {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/accept`, { method: "POST", body: JSON.stringify(body) });
   }
 
+  getBranchSuggestions(projectId: string): Promise<import("./types").BranchTaskState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/branch-suggestions`);
+  }
+  prepareBranchSuggestions(projectId: string): Promise<import("./types").BranchTaskState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/branch-suggestions`, { method: "POST" });
+  }
+  getBranchDraft(projectId: string, jobId: string): Promise<SectionMap> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/branch-suggestions/${encodeURIComponent(jobId)}/draft`);
+  }
+  cancelBranchSuggestions(projectId: string, jobId: string): Promise<import("./types").BranchTaskState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/branch-suggestions/${encodeURIComponent(jobId)}/cancel`, { method: "POST" });
+  }
+
+  returnToAcceptedOutline(projectId: string, request: { expectedOutlineRevision: number; expectedSourceRevision: number; expectedOutlineContentHash: string; expectedCandidateJobId: string | null }): Promise<SourceOutlineReviewState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/return`, { method: "POST", body: JSON.stringify(request) });
+  }
+
   reopenOutline(projectId: string, expectedOutlineRevision: number): Promise<SourceOutlineReviewState> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/reopen`, { method: "POST", body: JSON.stringify({ expectedOutlineRevision }) });
   }

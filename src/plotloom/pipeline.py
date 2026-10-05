@@ -722,7 +722,7 @@ class PipelineEngine(GenerationEngine):
         canonical: dict[StageName, Any],
         instructions: str | None,
     ) -> dict[str, Any]:
-        brief_data = brief.model_dump(mode="json", by_alias=True)
+        brief_data = brief.generation_input()
         extra = {"runInstructions": instructions} if instructions else {}
         if stage == StageName.STORY_BIBLE:
             return {
@@ -758,7 +758,7 @@ class PipelineEngine(GenerationEngine):
             "scene_beats": canonical[StageName.SCENE_BEATS],
             "storyboard_constraints": {
                 "aspectRatio": brief.aspect_ratio,
-                "visualStyle": brief.visual_style,
+                "visualStyle": brief.visual_direction,
                 "shotsPerSceneMin": brief.shots_per_scene_min,
                 "shotsPerSceneMax": brief.shots_per_scene_max,
                 "shotCountPolicy": brief.shot_count_policy,

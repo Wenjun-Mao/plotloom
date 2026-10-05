@@ -127,7 +127,7 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { pro
   return <section className="panel cast-panel" data-testid="production-bridge">
     <header><span>投产提案</span><strong>{state.status === "accepted" ? "投产提案已确认" : state.status === "stale" ? "上下文已过期" : "待确认"}</strong></header>
     {state.simulationLabel && <div className="notice warning" data-testid="bridge-fake-banner">{state.simulationLabel}</div>}
-    <p>将已接受的故事、剧本与分镜证据整理成待审阅的投产提案。戏剧意图须单独推断或由作者填写；这里不会批准镜头、选择参考、创建资产或发起媒体任务。</p>
+    <p>将已确认的故事、剧本与分镜证据整理成待审阅的投产提案。戏剧意图须单独推断或由作者填写；这里不会批准镜头、选择参考、创建资产或发起媒体任务。</p>
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
     {canPrepare && <><Button variant="primary" disabled={readOnly || busy || localEdits || unresolvedJob} onClick={() => run(() => plotloomApi.prepareProductionBridge(projectId), true, true)}>{proposal ? "重新准备投产提案" : "准备投产提案"}</Button>
       {proposal && <p>按当前来源新建提案，保留旧版本；戏剧意图与呈现归属需要重新审阅。{localEdits ? "请先复制所需文字，再明确放弃本地编辑。" : unresolvedJob ? "仍有执行中或结果不明的意图任务，暂不能重新准备。" : ""}</p>}
@@ -136,7 +136,7 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { pro
       <p><small>提案 r{proposal.revision} · {proposal.scenes.length} 个场次 · {proposal.cuts.length} 个镜头</small></p>
       {proposal.conflicts.map((conflict, index) => <div className="notice warning" key={`${conflict.code}-${index}`}>{userFacingBridgeMessage(conflict.message)}</div>)}
       {proposal.advisories?.map((advisory, index) => <div className="notice" key={`${advisory.code}-${index}`}>{advisory.message}</div>)}
-      <details><summary>查看场次与镜头</summary><ul>{proposal.scenes.map((scene, index) => <li key={String(scene.sceneId ?? index)}>{String(scene.sectionId)} / 第 {String(scene.episode)} 集 / 场次 {String(scene.sceneIndex)}：{String(scene.cutCount)} 个镜头</li>)}</ul><ul>{proposal.cuts.map((raw, index) => {
+      <details><summary>查看场次与镜头</summary><ul>{proposal.scenes.map((scene, index) => <li key={String(scene.sceneId ?? index)}>{String(scene.sectionId)} / 第 {String(scene.episode)} 结构条目 / 场次 {String(scene.sceneIndex)}：{String(scene.cutCount)} 个镜头</li>)}</ul><ul>{proposal.cuts.map((raw, index) => {
         const cut = bridgeCut(raw);
         return <li key={String(raw.shotId ?? index)}>{String(raw.shotId)} · {String(raw.seconds)} 秒{cut && state.status === "accepted" && state.staleReasons.length === 0 && state.installedStoryboardCurrent === true && onOpenShot && <Button variant="quiet" onClick={() => { if (onOpenShot(cut.shotId) === false) setError("来源文字仍有未保存的编辑；请先保存或明确放弃，再打开投产镜头。"); }}>在分镜工作台打开 {cut.shotId}</Button>}</li>;
       })}</ul></details>
@@ -151,7 +151,7 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { pro
         <p><small>{proposal.intentPackage.suggestionOrigin === "model_inference.v1" ? "模型建议仅供审阅，来源与目标由系统绑定。" : "来源摘录仅是证据，不是已完成的戏剧意图。"} 可逐项修改并保存整包；确认仅适用于当前提案。</small></p>
         {draftConflict && <div className="notice warning">服务器已有新提案；未保存的本地编辑仍在此保留。请复制所需文字后，明确载入新提案。</div>}
         {draftConflict && <Button onClick={() => adopt(state)}>载入新提案并放弃本地编辑</Button>}
-        {intentEntries.map((entry, index) => <label key={entry.id} className="bridge-intent-field"><span>{entry.targetKind === "scene_objective" ? "场次目标" : "节拍目的"} · 第 {index + 1} 项 <small>（第 {String(entry.sourceCoordinates.episode)} 集 / 场次 {String(entry.sourceCoordinates.sceneIndex)}）</small></span><textarea disabled={readOnly || busy || state.status === "accepted" || draftConflict} value={entry.text} onChange={event => setIntentEntries(current => current.map((item, itemIndex) => itemIndex === index ? { ...item, text: event.target.value } : item))} /><small>来源摘录：{entry.sourceExcerpt}</small>{entry.suggestedText !== null && <small>模型原始建议：{entry.suggestedText}</small>}</label>)}
+        {intentEntries.map((entry, index) => <label key={entry.id} className="bridge-intent-field"><span>{entry.targetKind === "scene_objective" ? "场次目标" : "节拍目的"} · 第 {index + 1} 项 <small>（第 {String(entry.sourceCoordinates.episode)} 结构条目 / 场次 {String(entry.sourceCoordinates.sceneIndex)}）</small></span><textarea disabled={readOnly || busy || state.status === "accepted" || draftConflict} value={entry.text} onChange={event => setIntentEntries(current => current.map((item, itemIndex) => itemIndex === index ? { ...item, text: event.target.value } : item))} /><small>来源摘录：{entry.sourceExcerpt}</small>{entry.suggestedText !== null && <small>模型原始建议：{entry.suggestedText}</small>}</label>)}
         {state.status !== "accepted" && <Button disabled={readOnly || busy || !intentDirty || draftConflict || intentEntries.some(entry => !entry.text.trim())} onClick={() => run(() => plotloomApi.updateProductionBridgeIntent(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash, entries: intentEntries.map(entry => ({ id: entry.id, text: entry.text })) }), true)}>保存戏剧意图整包</Button>}
         {state.status !== "accepted" && unsaved && <p><small>当前编辑未保存或提案已变化；保存并刷新前，不能确认投产提案。</small></p>}
       </details>
@@ -159,6 +159,7 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { pro
       <details><summary>技术详情（版本、来源与冻结输入）</summary><code>{proposal.contentHash}</code>{job && <p><small>推断任务 {job.id} · 配置 {job.profileId} r{job.profileVersion} · 提示 v{job.promptVersion}</small></p>}{proposal.intentPackage.provenance && <p><small>建议来源任务：{String(proposal.intentPackage.provenance.jobId ?? "")}</small></p>}</details>
       <p>确认后，将建立后续制作使用的场景与镜头数据；不会自动生成图片或视频。</p>
       {state.status !== "accepted" && <Button variant="primary" disabled={readOnly || busy || !proposal.installable || unsaved || state.status === "stale" || state.hasInstallation} onClick={() => run(() => plotloomApi.acceptProductionBridge(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash }))}>确认投产提案</Button>}
+      {state.status !== "accepted" && (readOnly || busy || unsaved || state.hasInstallation) && <p className="action-prerequisite">{readOnly ? "项目当前只读。" : busy ? "正在处理提案，请稍候。" : unsaved ? "请先保存当前编辑，再确认投产。" : "已安装过投产内容；当前工作流不支持替换。"}</p>}
       {state.status !== "accepted" && !proposal.installable && <p>请先完成戏剧意图与呈现归属审阅，并显式解决项目规划冲突；系统不会拆分场次或静默改写规则。</p>}
       {state.status === "accepted" && <StageGuide next={state.installedStoryboardCurrent && state.staleReasons.length === 0 && firstCut && onOpenShot && <Button variant="primary" onClick={() => { if (onOpenShot(firstCut.shotId) === false) setError("来源文字仍有未保存的编辑；请先保存或明确放弃，再打开投产镜头。"); }}>继续：打开第一个镜头</Button>}>
         {state.installedStoryboardCurrent

@@ -94,9 +94,6 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   const playbackJobs = [...manifest.nodes.values()].flatMap(node => node.jobs);
   const bridgeOwned = playbackJobs.some(job => (job.snapshot.sourceTiming as { kind?: string } | undefined)?.kind === "f5_bridge");
   const choiceIdentity = JSON.stringify({ projectId, bridgeOwned, media: playbackJobs.map(job => [job.id, job.snapshot.sourceTiming]), scope: manifest.identity, edges: graph.edges });
-  const choiceRead = useBridgeChoiceRead(projectId, choiceIdentity, bridgeOwned, graph.edges);
-  const runtimeChoice = choiceRead.choice;
-  const choiceReady = !bridgeOwned || choiceRead.status === "ready";
   const player = useRef<HTMLVideoElement>(null);
   const transitionRef = useRef("");
   const handledMediaRef = useRef("");
@@ -104,6 +101,9 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   const mediaFailureRef = useRef<string | null>(null);
   const currentMediaIdentityRef = useRef("");
   const [nodeId, setNodeId] = useState(graph.startNodeId);
+  const choiceRead = useBridgeChoiceRead(projectId, choiceIdentity, bridgeOwned, graph.edges, nodeId);
+  const runtimeChoice = choiceRead.choice;
+  const choiceReady = !bridgeOwned || choiceRead.status === "ready";
   const [episode, setEpisode] = useState(0);
   const [visit, setVisit] = useState(0);
   const [clipIndex, setClipIndex] = useState(0);

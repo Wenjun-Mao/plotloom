@@ -141,7 +141,7 @@ test("force exits while a prepared job remains owned and running-admissible", as
   const id = await newSourceProject(page, workbench.frontendOrigin);
   await page.getByRole("button", { name: "确认改编内容" }).click();
   await page.getByRole("button", { name: "准备大纲任务" }).click();
-  await expect(page.getByText(/^任务已准备 ·/)).toBeVisible();
+  await expect(page.getByText(/^等待助手交付 · 发送状态见下方 ·/)).toBeVisible();
   const before = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`)).json();
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
   await row(page, id).getByRole("button", { name: "强制关闭", exact: true }).click();
@@ -170,7 +170,7 @@ test("force closing another busy project keeps the current workspace and does no
   const other = await newSourceProject(page, workbench.frontendOrigin);
   await page.getByRole("button", { name: "确认改编内容" }).click();
   await page.getByRole("button", { name: "准备大纲任务" }).click();
-  await expect(page.getByText(/^任务已准备 ·/)).toBeVisible();
+  await expect(page.getByText(/^等待助手交付 · 发送状态见下方 ·/)).toBeVisible();
   const before = await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${other}/source-outline`));
   const current = await newSourceProject(page, workbench.frontendOrigin);
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();

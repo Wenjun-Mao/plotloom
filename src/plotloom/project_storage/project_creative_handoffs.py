@@ -34,6 +34,7 @@ class ProjectCreativeHandoffs:
 
         current = {
             "outline": self.outline_candidate_request,
+            "branches": self.branch_candidate_request,
             "characters": self.cast_candidate_request,
             "art": self.art_candidate_request,
             "script": self.script_candidate_request,
@@ -63,3 +64,29 @@ class ProjectCreativeHandoffs:
     def terminal_creative_request(self, stage: CreativeStage, job_id: str) -> CreativeHandoffRequest:
         """Terminal reconciliation only; ordinary handoff guards remain unchanged."""
         return self.repository.creative_terminal.retained_request(self.manifest.project_id, stage, job_id)
+
+
+    def branch_state(self):
+        return self.repository.branches.state(self.manifest.project_id)
+
+    def branch_candidate_request(self, job_id):
+        return self.repository.branches.request(self.manifest.project_id, job_id)
+
+    def admit_branch_delivery(self, delivery):
+        return self.repository.branches.admit(self.manifest.project_id, delivery)
+
+    def prepare_branch_candidate(self):
+        exchange = self.creative_handoff_exchange()
+        request = self.repository.branches.prepare(self.manifest.project_id, exchange)
+        return exchange.write_package(request, self.creative_handoff_execution_pin(request))
+
+    def branch_draft(self, job_id):
+        return self.repository.branches.draft(self.manifest.project_id, job_id)
+
+    def cancel_branch_candidate(self, job_id):
+        self.repository.branches.cancel(self.manifest.project_id, job_id)
+        return self.branch_state()
+
+
+    def return_to_accepted_outline(self, request):
+        return self.repository.source_outline._mutations.return_to_accepted(self.manifest.project_id, request)

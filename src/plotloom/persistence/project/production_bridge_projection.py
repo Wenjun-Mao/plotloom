@@ -57,7 +57,7 @@ class ProductionBridgeProjection:
             return {"id": item["id"], "name": item.get("name") if isinstance(item.get("name"), str) and item["name"].strip() else item["id"], "description": item.get("summary") if isinstance(item.get("summary"), str) else "", "visualAnchors": anchors, "soundAnchors": [], "allowedStates": states, "continuityRules": []}
         locations = [art_entity(item) for item in art.get("scenes", []) if isinstance(item, dict) and isinstance(item.get("id"), str)]
         props = [art_entity(item) for item in art.get("props", []) if isinstance(item, dict) and isinstance(item.get("id"), str)]
-        bible = {"logline": brief.synopsis, "premise": brief.synopsis, "genre": brief.genre or "", "tone": "", "audience": "", "narrativePromise": "", "visualLanguage": brief.visual_style or "", "themes": [], "worldRules": [], "knownFacts": [], "openQuestions": [], "sourceNotes": ["F5 H3 prompt text is review evidence, not provider input."], "characters": characters, "locations": locations, "props": props}
+        bible = {"logline": brief.synopsis, "premise": brief.synopsis, "genre": brief.genre_direction or "", "tone": "", "audience": "", "narrativePromise": "", "visualLanguage": brief.visual_direction or "", "themes": [], "worldRules": [], "knownFacts": [], "openQuestions": [], "sourceNotes": ["F5 H3 prompt text is review evidence, not provider input."], "characters": characters, "locations": locations, "props": props}
         conflicts: list[ProductionBridgeConflict] = []
         advisories: list[ProductionBridgeConflict] = []
         f4_episodes = {item.get("ep"): item for item in script.get("episodes", []) if isinstance(item, dict)}

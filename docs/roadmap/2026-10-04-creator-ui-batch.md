@@ -1,6 +1,6 @@
 # Creator UI batch for the next walkthrough
 
-Status: **owner-approved implementation, awaiting worker dispatch**.
+Status: **implementation in progress; owner approved Brief-driven topology expansion before qualification**.
 Approved October 4, 2026, Toronto time. Baseline: retained clean `main` at
 `a5f353835b9d6e6834da862205d89925ae1e17bf`.
 
@@ -76,8 +76,7 @@ assistant-feedback editing workflow; do not show controls implying those exist.
 
 ### Proposed branches rather than empty route forms
 
-Provide a complete editable draft from the accepted outline: common opening,
-two endings, playback question, option labels, subsequent story and ending links.
+Provide a complete editable draft from the accepted outline: all code-planned story nodes, playback questions, option labels, subsequent story and target links.
 The creator reviews, optionally edits and explicitly confirms it. Manual entry
 remains an option, not the mandatory default path. Existing accepted outlines
 must have a supported way to obtain the draft without regenerating the whole
@@ -96,9 +95,7 @@ not a silent route installation or unexplained blank form.
 Present this as 剧情分支与结局, explaining that viewers choose the protagonist's
 next action during playback. Use clear labels such as 播放时显示的问题,
 选项 A／B, 选择后的剧情 and 对应结局. Manage internal IDs automatically and keep
-them in technical details. The supported topology remains one choice and two
-endings; make broader Brief settings' applicability clear rather than pretending
-to implement arbitrary branching or reconvergence.
+them in technical details. The October 4 owner update supersedes the binary pilot limit: Brief structural settings own the complete Source workflow, including multiple decisions, variable options/endings and requested reconvergence where feasible. Plan topology before binding prose, using the trusted graph planner; reject infeasible combinations without altering them. Count actual viewer choices along each complete playthrough. Label choice buttons 选项 and whole start-to-ending journeys 播放路线. Add accessible Chinese hover/focus/tap help for these settings.
 
 ### Consistency through the remaining journey
 
@@ -172,7 +169,7 @@ boundaries and split oversized responsibilities when extending them.
 
 Do not update the Chinese Creator's Manual yet. Relay documentation duplication
 is a separate captured follow-up. Full project cloning, self-service recovery
-redesign, production replacement after installation, arbitrary story topology,
+redesign, production replacement after installation,
 new paid providers and final-film polishing are not part of this batch.
 
 Stop with a reviewed, verified, published and activated candidate satisfying all
@@ -184,4 +181,10 @@ when the owner tries the new walkthrough; test counts alone do not establish it.
 ## Progress
 
 - Manager consolidated the approved observations and boundaries into this plan.
-- Implementation and qualification have not started at this checkpoint.
+- Worker registered Relay route and captured both normal projects; no unresolved native ownership; normal 8841 stopped through the supported lifecycle. 8851 remains untouched.
+- Implemented structured Brief directions, sequential assistant checks, accepted-report reading and explicit revision return; focused frontend checks passed. Branch advisory task first drafted under the original binary scope; now being extended before qualification.
+- Owner authorized the deeper Brief-driven topology contract, variable options/endings, multiple decisions, reconvergence and accessible setting help. The earlier binary limitation and broader-topology exclusion are superseded for this flow. ADR 0118 owns the extension; retained accepted evidence and installed production are preserved.
+- Added visible same-project Brief navigation and draft-gated return to Source. Structural edits preserve confirmed source/outline evidence while invalidating dependent proposals; the fresh-project browser checks cover editing settings, stale rejection and a new frozen proposal.
+- Independent review found implicit continuation forks and a receiving-capacity mismatch. Planner v2 makes each viewer choice explicit and searches within the receiving option bound without rewriting author settings. Focused topology, branch and full downstream integration checks pass.
+- V1 剧情树 was investigated read-only by the manager as a product reference: zoom/pan/fullscreen, node/media details, shot expansion and display-only dragging. Its useful taste is a shared spatial overview of reconvergence. Existing Plotloom canonical GraphPage already has graph navigation; reader route cards repeat shared nodes. Open follow-up: whether a creator-facing overview should reuse the accepted canonical graph. This reference does not authorize a new graph editor in this batch or production imports from V1.
+- Full release gates, independent stable review, publication and activation remain pending.

@@ -22,7 +22,8 @@ from plotloom.source_outline_contracts import (
 )
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import ProjectLifecycleStatus, StageName, StageStatus, utc_now
-from plotloom.domain import InitialStage, brief_for_new_project
+from plotloom.domain import InitialStage, ProjectBrief, brief_for_new_project
+from plotloom.source_structures import planned_structure
 from plotloom.exceptions import (
     InvalidTransitionError,
     ProjectBusyError as LifecycleProjectBusyError,
@@ -52,7 +53,7 @@ def _storage(tmp_path: Path) -> ProjectFolderStorage:
 
 
 def _request(
-    project_id: str, source: SourceMaterial, expected_outline_revision: int = 0, job_suffix: str = "a",
+    project_id: str, source: SourceMaterial, expected_outline_revision: int = 0, job_suffix: str = "a", brief: ProjectBrief | None = None,
 ) -> CreativeHandoffRequest:
     return CreativeHandoffRequest(
         job_id="ch_" + job_suffix * 32,
@@ -61,7 +62,7 @@ def _request(
         stage="outline",
         expected_stage_revision=expected_outline_revision,
         source=source.model_dump(mode="json", by_alias=True),
-        input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(brief_for_new_project(FIXED_CHINESE_BRIEF))},
+        input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(brief or brief_for_new_project(FIXED_CHINESE_BRIEF)), "story-topology.json": planned_structure(project_id, brief or brief_for_new_project(FIXED_CHINESE_BRIEF)).model_dump(mode="json", by_alias=True)},
         creative_brief="Produce one upstream-shaped review candidate only.",
     )
 
@@ -211,11 +212,11 @@ def test_explicit_recovery_restores_only_a_git_verified_missing_execution_pin(
 
 def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_change(tmp_path: Path) -> None:
     storage = _storage(tmp_path)
-    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"decision_points_per_path": 1, "ending_count": 2, "desired_join_count": 0}))
     try:
         source = _material()
         store.save_source_material(expected_source_revision=0, material=source)
-        request = _request(store.manifest.project_id, source)
+        request = _request(store.manifest.project_id, source, brief=store.project().brief)
         store.prepare_outline_candidate(request)
         store.admit_outline_delivery(_deliver(store, request))
         accepted = store.accept_outline_candidate(OutlineAcceptRequest(
@@ -307,7 +308,7 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
                 mapping=changed_id,
             ))
 
-        replacement_request = _request(project_id, source, expected_outline_revision=1, job_suffix="b")
+        replacement_request = _request(project_id, source, expected_outline_revision=1, job_suffix="b", brief=store.project().brief)
         store.prepare_outline_candidate(replacement_request)
         store.admit_outline_delivery(_deliver(store, replacement_request))
         outline_stale = store.accept_outline_candidate(OutlineAcceptRequest(
@@ -335,7 +336,7 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
 
 
 def test_section_map_rejects_extra_or_unreachable_sections() -> None:
-    with pytest.raises(ValueError, match="at most 3"):
+    with pytest.raises(ValueError, match="exactly one entry section"):
         SectionMap(
             sections=[
                 StorySection(section_id="opening", title="开场", summary="选择开始。"),
@@ -361,9 +362,11 @@ def test_section_map_install_rejects_stale_inputs_and_never_overwrites_an_unrela
         InitialStage(stage=StageName.STORY_GRAPH, payload=normal_graph.model_dump(mode="json", by_alias=True)),
     ))
     try:
+        project = store.project()
+        store.update_brief(project.brief.model_copy(update={"decision_points_per_path": 1, "ending_count": 2, "desired_join_count": 0}), expected_revision=project.revision)
         source = _material()
         store.save_source_material(expected_source_revision=0, material=source)
-        request = _request(store.manifest.project_id, source)
+        request = _request(store.manifest.project_id, source, brief=store.project().brief)
         store.prepare_outline_candidate(request)
         store.admit_outline_delivery(_deliver(store, request))
         accepted = store.accept_outline_candidate(OutlineAcceptRequest(

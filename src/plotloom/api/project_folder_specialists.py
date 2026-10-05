@@ -10,9 +10,10 @@ from ..creative_handoff_contracts import JOB_ID_PATTERN, CreativeHandoffError
 from ..specialist_settings import SpecialistRegistry, SpecialistSettings
 from .project_folder_image_terminal import register_image_terminal_routes
 
-Stage = Literal["outline", "characters", "art", "script", "storyboard"]
+Stage = Literal["outline", "branches", "characters", "art", "script", "storyboard"]
 # Existing stage repositories remain the sole owners of currentness and admission.
 METHODS = {
+    "branches": ("branch_state", "branch_candidate_request", "admit_branch_delivery"),
     "outline": ("source_outline_state", "outline_candidate_request", "admit_outline_delivery"),
     "characters": ("cast_state", "cast_candidate_request", "admit_cast_delivery"),
     "art": ("art_state", "art_candidate_request", "admit_art_delivery"),

@@ -1,11 +1,12 @@
 import { act, createElement, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { OutlineReport } from "../src/pages/OutlineReport";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 it("opens original report with scripts but no same-origin, navigation, forms or download grants", async () => {
+  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true } as Response);
   const host = document.createElement("div");
   document.body.append(host);
   const root = createRoot(host);
@@ -35,6 +36,35 @@ it("opens original report with scripts but no same-origin, navigation, forms or 
   } finally {
     await act(async () => root.unmount());
     host.remove();
-    prototype.showModal = original;
+    prototype.showModal = original; fetch.mockRestore();
+  }
+});
+
+it("retains the exact accepted revision as escaped read-only content when its HTML is missing", async () => {
+  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: false, status: 404 } as Response);
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  const original = HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  const outline = { source: "保留版本", episodes: [{ synopsis: "<script>保留的正文</script>", unknown: "保留的未知字段" }] };
+  const before = JSON.stringify(outline);
+  try {
+    await act(async () => root.render(createElement(OutlineReport, { url: "/accepted-candidate/report", outline, acceptedRevision: 3 })));
+    expect(host.querySelector("button")!.textContent).toBe("阅读已确认大纲");
+    await act(async () => host.querySelector("button")!.click());
+    expect(fetch.mock.calls[0][0]).toBe("/accepted-candidate/report");
+    const dialog = host.querySelector("dialog")!;
+    expect(dialog.textContent).toContain("已确认大纲 r3");
+    expect(dialog.textContent).toContain("HTML 报告不可用");
+    expect(dialog.textContent).toContain("<script>保留的正文</script>");
+    expect(dialog.textContent).toContain("保留的未知字段");
+    expect(dialog.querySelector("iframe, script, textarea, input")).toBeNull();
+    expect(JSON.stringify(outline)).toBe(before);
+  } finally {
+    await act(async () => root.unmount());
+    host.remove();
+    HTMLDialogElement.prototype.showModal = original;
+    fetch.mockRestore();
   }
 });

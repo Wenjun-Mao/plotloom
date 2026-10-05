@@ -62,7 +62,7 @@ export async function createCastReadyProject(
 ): Promise<{ projectId: string; castPrepared: any; readyCast: any }> {
   const created = await request.post(`${apiOrigin}/api/v2/projects`, {
     headers: { "Idempotency-Key": `f2b-cast-only-${label}-${Date.now()}` },
-    data: { brief: { ...demoProject.brief, title: `F2B cast-only ${label}` } },
+    data: { brief: { ...demoProject.brief, decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, title: `F2B cast-only ${label}` } },
   });
   const projectId = (await getJson<{ id: string }>(created)).id;
   const saved = await request.put(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/source`, {

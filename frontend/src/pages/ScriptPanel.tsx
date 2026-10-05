@@ -111,7 +111,7 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
     {reviewDraft.notice}
     <header><span>剧本</span><strong>{checking ? "正在刷新" : failed ? "无法刷新" : heading(state)}</strong></header>
     {failed && <Button variant="quiet" onClick={() => void recheck()}>重试加载剧本</Button>}
-    <p>根据已确认的故事分支编写开场和两个结局；每次观看只会经过其中一个结局。</p>
+    <p>根据已确认的故事结构编写所有章节；每次完整播放依次经过选择、后续剧情与一个结局。</p>
     <StageGuide next={onContinue && <Button variant="quiet" disabled={checking || failed || busy || draftDirty.current || state.status !== "accepted" || !accepted} onClick={onContinue}>继续：分镜评审</Button>}>
       {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : busy ? "正在处理剧本任务，请稍候。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃章节修改，再继续分镜。" : state.status === "stale" ? "故事或美术设定已变化，请更新并确认剧本。" : state.status === "accepted" && accepted ? "完整剧本已确认。下一步准备分镜评审；切换页面不会自动生成镜头或媒体。" : candidate?.status === "ready" ? "阅读候选剧本，确认开场、选择和结局表达，再确认使用。" : "准备剧本任务并发送给文字创作助手。返回的剧本须先审阅，再确认使用。"}
     </StageGuide>
@@ -119,7 +119,7 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
     {!candidate && state.status !== "reopened" && <Button variant="primary" disabled={readOnly || busy} onClick={prepare}>准备剧本任务</Button>}
     {candidate?.status === "prepared" && <SpecialistTaskActions projectId={projectId} stage="script" jobId={candidate.jobId} disabled={readOnly || busy} sendDisabled={state.status === "stale"} onDelivered={recheck} />}
     {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} stale={state.status === "stale"} busy={busy} run={run} />}
-    {candidate?.status === "ready" && <><ScriptJson title="查看待审阅剧本" script={candidate.script} /><p>确认使用此剧本会确认开场和两个结局，不只确认当前显示的章节。</p></>}
+    {candidate?.status === "ready" && <><ScriptJson title="查看待审阅剧本" script={candidate.script} /><p>确认使用此剧本会确认整份故事结构中的所有章节。</p></>}
     {accepted && <AcceptedReview accepted={accepted} projectId={projectId} readOnly={readOnly || state.status === "stale"} busy={busy} status={state.status} retained={retained} sectionId={sectionId} draft={draft} onSelect={selectSection} onDraft={editDraft} onReopen={() => run(() => plotloomApi.reopenScript(projectId, accepted.revision))} onSave={save} />}
     {retained && draftBase && <section aria-label="保留的未保存章节">
       <p>保留的未保存章节基于剧本 r{draftBase.revision} · {sectionId}。当前上下文已变化，保存已停用；原草稿不会自动替换为新版本。</p>
@@ -190,7 +190,7 @@ function heading(state: ScriptReviewState): string {
   if (state.status === "stale") return "上下文已过期";
   if (state.status === "reopened") return "剧本正在编辑";
   if (state.candidate?.status === "ready") return "待审阅";
-  if (state.candidate?.status === "prepared") return "任务已准备";
+  if (state.candidate?.status === "prepared") return "任务尚未交付";
   if (state.acceptedScript) return `已确认 r${state.acceptedScript.revision}`;
   return "尚无剧本候选";
 }

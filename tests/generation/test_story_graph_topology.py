@@ -103,6 +103,15 @@ def test_planner_is_deterministic_minimal_and_domain_valid() -> None:
     assert {edge.id for edge in graph.edges} == {edge.id for edge in first.edges}
 
 
+@pytest.mark.parametrize("settings", [
+    {"decision_points_per_path": 0, "ending_count": 2, "node_budget": 3, "max_out_degree": 2, "desired_join_count": 0},
+    {"decision_points_per_path": 1, "ending_count": 3, "node_budget": 8, "max_out_degree": 2, "desired_join_count": 0},
+])
+def test_planner_never_manufactures_unplanned_viewer_choices(settings):
+    with pytest.raises(StoryGraphTopologyError):
+        plan_story_graph_topology(project_id="no-implicit-forks", brief=_brief(**settings))
+
+
 def test_current_join_missing_fact_is_bound_to_frozen_direct_edges() -> None:
     brief = _brief()
     topology = plan_story_graph_topology(project_id="project-a", brief=brief)

@@ -17,9 +17,9 @@ class ScriptBinding(ArtBinding):
     art_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     target_playthrough_seconds: int = Field(ge=3)
     timing_allocation_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
-    section_bindings: list["ScriptSectionBinding"] = Field(min_length=3, max_length=3)
-    section_duration_caps: list["ScriptSectionDurationCap"] = Field(min_length=3, max_length=3)
-    complete_route_section_ids: list[list[str]] = Field(min_length=2, max_length=2)
+    section_bindings: list["ScriptSectionBinding"] = Field(min_length=1, max_length=128)
+    section_duration_caps: list["ScriptSectionDurationCap"] = Field(min_length=1, max_length=128)
+    complete_route_section_ids: list[list[str]] = Field(min_length=1)
 
 
 class ScriptSectionBinding(CamelModel):

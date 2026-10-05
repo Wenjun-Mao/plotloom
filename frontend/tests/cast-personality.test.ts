@@ -35,7 +35,7 @@ it("edits real personality and temperament while preserving motivation and unrel
   expect(host.querySelector(".cast-inference-notes")?.textContent).toContain("审慎（推断）");
   await change(host.querySelector("input")!, "内敛、审慎");
   await change(host.querySelector("textarea")!, "动作克制");
-  await act(async () => button("接受这份角色设定").click());
+  await act(async () => button("确认使用此角色设定").click());
   const expected = structuredClone(cast);
   expected.characters[0].persona.personality[0] = "内敛、审慎（推断）";
   expected.characters[0].persona.temperament = "动作克制";
@@ -86,7 +86,7 @@ it("associates separate selectable labels with unique controls across characters
 it("keeps the complete original cast when accepting without edits", async () => {
   const accept = vi.spyOn(plotloomApi, "acceptCastCandidate").mockResolvedValue({} as any);
   await render();
-  await act(async () => button("接受这份角色设定").click());
+  await act(async () => button("确认使用此角色设定").click());
   expect(accept.mock.calls[0][1].cast).toEqual(cast);
 });
 
@@ -131,7 +131,7 @@ it("edits separate notes without rewriting descriptions or losing either note", 
   const control = (text: string) => Array.from(host.querySelectorAll("label")).find((label) => label.textContent === text)!.control as HTMLTextAreaElement;
   await change(control("设定依据与补充说明"), "外观为创作补充。");
   await change(control("表演提示"), "两个选择都不演成错误。");
-  await act(async () => button("接受这份角色设定").click());
+  await act(async () => button("确认使用此角色设定").click());
   const result = accept.mock.calls[0][1].cast as any;
   expect(result.characters[0].reviewNotes).toEqual({ sourceNotes: "外观为创作补充。", performanceGuidance: "两个选择都不演成错误。" });
   expect(result.characters[0].persona).toEqual(cast.characters[0].persona);
@@ -150,7 +150,7 @@ it("shows structured notes in the accepted summary and preserves them through re
 it("blocks confirmation until required design is repaired in both edit modes", async () => {
   for (const mode of ["ready", "reopened"]) {
     await render(mode, { characters: [{ id: "C01", persona: { personality: ["（推断）"], appearance: "  " } }] });
-    const submit = button(mode === "ready" ? "接受这份角色设定" : "保存角色修改");
+    const submit = button(mode === "ready" ? "确认使用此角色设定" : "保存角色修改");
     expect(submit.disabled).toBe(true);
     expect(host.textContent).toContain("请至少填写一个性格特点。");
     expect(host.textContent).toContain("请填写角色外观");

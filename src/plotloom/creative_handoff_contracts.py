@@ -14,8 +14,8 @@ from pydantic import Field, field_validator, model_validator
 from .domain import CamelModel, contains_secret_setting, contains_secret_value
 
 
-CREATIVE_STAGES = ("outline", "characters", "art", "script", "storyboard")
-CreativeStage = Literal["outline", "characters", "art", "script", "storyboard"]
+CREATIVE_STAGES = ("outline", "branches", "characters", "art", "script", "storyboard")
+CreativeStage = Literal["outline", "branches", "characters", "art", "script", "storyboard"]
 SHA256_PATTERN = r"^[a-f0-9]{64}$"
 JOB_ID_PATTERN = r"^ch_[a-z0-9]{20,64}$"
 DELIVERY_ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"

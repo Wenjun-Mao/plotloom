@@ -70,7 +70,7 @@ class ProjectArtPersistence:
             ("graph_content_hash", "installed graph"), ("cast_content_hash", "accepted cast"),
         )
         reasons = [f"{label} {'revision' if field.endswith('revision') else 'content'} changed" for field, label in fields if getattr(current, field) != getattr(binding, field)]
-        direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_style
+        direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
         if not art_style_current(binding.render_contract, direction):
             reasons.append("美术风格或项目视觉方向已变更；请重新准备美术任务")
         return reasons + (["section context changed"] if current.section_ids != binding.section_ids else [])
@@ -120,7 +120,7 @@ class ProjectArtPersistence:
             if session.scalar(select(ArtCandidateRow.job_id).where(ArtCandidateRow.project_id == project_id, ArtCandidateRow.status == "prepared").limit(1)):
                 raise InvalidTransitionError("cancel the prepared art specialist publication before changing review state")
             binding, source, outline, mapping, cast = self._context(session, project_id)
-            direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_style
+            direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
             contract = freeze_art_style(render_style, direction)
             binding = binding.model_copy(update={"render_contract": contract})
             request = CreativeHandoffRequest(

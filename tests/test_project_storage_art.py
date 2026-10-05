@@ -19,6 +19,7 @@ from plotloom.cast_contracts import CastAcceptRequest, CastConsumerMapping
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import canonical_json
+from plotloom.source_structures import planned_structure
 from plotloom.outline_settings import OUTLINE_SETTINGS_FILENAME, outline_settings
 from plotloom.exceptions import NotFoundError
 from plotloom.project_storage.composition import ProjectFolderStorage
@@ -74,9 +75,11 @@ def _deliver_stage(store: object, request: CreativeHandoffRequest, filename: str
 
 
 def _prepare_art_context(store: object) -> ArtBinding:
+    project = store.project()
+    store.update_brief(project.brief.model_copy(update={"decision_points_per_path": 1, "ending_count": 2, "desired_join_count": 0}), expected_revision=project.revision)
     source = SourceMaterial(kind="synopsis", title="Tide Light", text="Lin chooses the beacon or dock.", attribution="fixture", rights_declaration="fixture", adaptation_intent="fixture")
     store.save_source_material(expected_source_revision=0, material=source)  # type: ignore[attr-defined]
-    outline_request = CreativeHandoffRequest(job_id="ch_" + "o" * 32, project_id=store.manifest.project_id, section_id="story", stage="outline", expected_stage_revision=0, source=source.model_dump(mode="json", by_alias=True), input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(store.project().brief)}, creative_brief="fixture")  # type: ignore[attr-defined]
+    outline_request = CreativeHandoffRequest(job_id="ch_" + "o" * 32, project_id=store.manifest.project_id, section_id="story", stage="outline", expected_stage_revision=0, source=source.model_dump(mode="json", by_alias=True), input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(store.project().brief), "story-topology.json": planned_structure(store.manifest.project_id, store.project().brief).model_dump(mode="json", by_alias=True)}, creative_brief="fixture")  # type: ignore[attr-defined]
     store.prepare_outline_candidate(outline_request)  # type: ignore[attr-defined]
     store.admit_outline_delivery(_deliver_stage(store, outline_request, "outline.json", {"source": "Tide Light", "episodes": []}, "outline-fixture"))  # type: ignore[attr-defined]
     state = store.accept_outline_candidate(OutlineAcceptRequest(job_id=outline_request.job_id, expected_source_revision=1, expected_outline_revision=0))  # type: ignore[attr-defined]

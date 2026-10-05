@@ -75,7 +75,8 @@ def prepare_presentation(*, inputs: dict, script: dict, storyboard: dict, mappin
                 counters[scene_index] = counters.get(scene_index, 0) + 1
                 add("composition", f"{section}-s{scene_index}-c{counters[scene_index]}", {"stage": "F5", "sectionId": section, "episode": episode["ep"], "sceneIndex": scene_index, "segmentIndex": segment_index, "cutIndex": cut_index}, cut, "frame")
     evidence = {"inputs": inputs, "script": script, "storyboard": storyboard, "sectionMap": mapping}
-    return ProductionPresentation(sources=sources, runtime_choice=mapping["choice"], frozen_evidence=evidence,
+    choices = {"choices": mapping["choices"]} if mapping.get("topology") else mapping["choice"]
+    return ProductionPresentation(sources=sources, runtime_choice=choices, frozen_evidence=evidence,
         source_hash=stable_hash(evidence))
 
 
@@ -110,8 +111,9 @@ def review_presentation(package: ProductionPresentation, request: ProductionPres
             raise ValueError("presentation review omitted source text")
         sources.append(source.model_copy(update={"spans": updates[source.id]}))
     # Runtime wording comes only from the exact frozen author map, never a rendering.
-    if not choice.get("prompt") or len(choice.get("outcomes", [])) != 2:
-        raise ValueError("presentation requires the exact authored binary choice")
+    choices = choice.get("choices", [choice])
+    if any(not item.get("prompt") or len(item.get("outcomes", [])) < 2 for item in choices):
+        raise ValueError("presentation requires every exact authored playback choice")
     return package.model_copy(update={"reviewed": True, "sources": sources})
 
 

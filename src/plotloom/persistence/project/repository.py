@@ -180,6 +180,8 @@ class ProjectSQLiteRepository:
         self._drafts = ProjectDraftPersistence(self._project_access, self._canonical)
         self._workflow = ProjectAuthoringWorkflow(self._project_access, self._drafts, self._canonical)
         self.source_outline = ProjectSourceOutlinePersistence(self._project_access, self._canonical)
+        from .branches import ProjectBranchPersistence
+        self.branches = ProjectBranchPersistence(self._project_access, self.source_outline)
         self.cast = ProjectCastPersistence(self._project_access)
         self.art = ProjectArtPersistence(self._project_access, self.cast)
         self.script = ProjectScriptPersistence(self._project_access, self.art)

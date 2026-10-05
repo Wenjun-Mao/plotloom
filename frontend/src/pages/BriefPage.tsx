@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { ProjectBrief, StoryBible, StoryGraph } from "../types";
 import { Button, Field, PageHeader, Panel } from "../components";
+import { DirectionPresets, genreGroups, visualGroups } from "./DirectionPresets";
+import { ContextHelp } from "../components/ContextHelp";
 import { StageGuide } from "../components/StageGuide";
 
 type BriefPageProps = {
@@ -10,6 +12,7 @@ type BriefPageProps = {
   readOnly?: boolean;
   onSave: (brief: ProjectBrief) => Promise<unknown>;
   onSaveAndContinue: (brief: ProjectBrief) => Promise<void>;
+  onContinueToSource?: () => void;
   onDraftChange?: (brief: ProjectBrief) => void;
   bible?: StoryBible;
   graph?: StoryGraph;
@@ -28,7 +31,7 @@ const defaultWorkingTitle = "未命名故事";
  * The brief remains the canonical input. This page only composes its first two
  * canonical downstream stages into a review; it does not own proposal state.
  */
-export function BriefPage({ value, hasSavedProject, saving, readOnly = false, onSave, onSaveAndContinue, onDraftChange, bible, graph, proposalRunning = false, proposalReady = true, storyboardRunning = false, onGenerateProposal, onGenerateStoryboard, onReviewStage, onContinueToPlanning }: BriefPageProps) {
+export function BriefPage({ value, hasSavedProject, saving, readOnly = false, onSave, onSaveAndContinue, onContinueToSource, onDraftChange, bible, graph, proposalRunning = false, proposalReady = true, storyboardRunning = false, onGenerateProposal, onGenerateStoryboard, onReviewStage, onContinueToPlanning }: BriefPageProps) {
   const [draft, setDraft] = useState(value);
   const set = <K extends keyof ProjectBrief>(key: K, next: ProjectBrief[K]) => setDraft((current) => {
     const updated = { ...current, [key]: next };
@@ -52,17 +55,16 @@ export function BriefPage({ value, hasSavedProject, saving, readOnly = false, on
         ? <Button variant="primary" busy={saving} disabled={!canSave} aria-describedby="brief-save-hint" onClick={() => void onSave(canonicalDraft())}>{saving ? "保存中…" : "保存修改"}</Button>
         : <Button variant="primary" busy={saving} disabled={!canSave} aria-describedby="brief-save-hint" onClick={() => void onSaveAndContinue(canonicalDraft())}>{saving ? "保存中…" : "保存并继续到来源"}</Button>}
       <p id="brief-save-hint" className="action-prerequisite">{saveHint}</p>
+      {hasSavedProject && onContinueToSource && <Button variant="quiet" disabled={saving} onClick={onContinueToSource}>返回来源与大纲</Button>}
     </div>} />
-    <StageGuide title="从故事想法开始">写清主角、处境和观众要做的选择。剧情结构与分镜设置可保留默认值，后续仍可调整。</StageGuide>
+    <StageGuide title={hasSavedProject ? "修改当前项目的创作设置" : "从故事想法开始"}>{hasSavedProject ? "修改结构后，已保存的分支及后续内容需要重新检查；旧内容与媒体仍保留。新任务必须使用当前设置，不会自动重建或替换已安装投产。来源正文独立保存，不随简报梗概改写。" : "写清主角、处境和观众要做的选择。剧情结构与分镜设置可保留默认值，后续仍可调整。"}</StageGuide>
     <div className="two-column wide-left brief-layout">
       <Panel className="form-card">
         <div className="section-title"><strong>故事想法</strong><p className="required-legend">* 为必填项；其他信息可稍后完善。</p></div>
         <Field label="片名"><input placeholder={defaultWorkingTitle} value={draft.title} onChange={(event) => set("title", event.target.value)} /><small>可选工作片名；留空时保存为“未命名故事”。</small></Field>
         <Field label="故事梗概" required><textarea aria-required="true" rows={5} placeholder="主角遇到了什么？观众可以替主角做什么选择？不同选择会带来怎样的结局？" value={draft.synopsis} onChange={(event) => set("synopsis", event.target.value)} /></Field>
-        <div className="field-grid two">
-          <Field label="类型"><input value={draft.genre || ""} onChange={(event) => set("genre", event.target.value)} /></Field>
-          <Field label="视觉风格"><input value={draft.visualStyle || ""} onChange={(event) => set("visualStyle", event.target.value)} /></Field>
-        </div>
+        <DirectionPresets label="类型" groups={genreGroups} selections={draft.genreSelections || []} detail={draft.genre || ""} disabled={readOnly || saving} onSelections={value => set("genreSelections", value)} onDetail={value => set("genre", value)} />
+        <DirectionPresets label="视觉风格" groups={visualGroups} selections={draft.visualStyleSelections || []} detail={draft.visualStyle || ""} disabled={readOnly || saving} onSelections={value => set("visualStyleSelections", value)} onDetail={value => set("visualStyle", value)} />
         <div className="field-grid three">
           <Field label="语言"><select value={draft.language} onChange={(event) => set("language", event.target.value)}><option value="zh-CN">简体中文</option><option value="en-US">English</option></select></Field>
           <Field label="画幅"><select value={draft.aspectRatio} onChange={(event) => set("aspectRatio", event.target.value)}><option>16:9</option><option>9:16</option><option>1:1</option></select></Field>
@@ -73,13 +75,13 @@ export function BriefPage({ value, hasSavedProject, saving, readOnly = false, on
         <Panel className="form-card">
           <details open>
             <summary>剧情结构与分镜</summary>
-            <p className="action-prerequisite">按需调整分支规模和镜头偏好；不确定时保留默认值。现有项目的规则不会因打开此处而改变。</p>
+            <p className="action-prerequisite">这些设置决定完整播放路线的结构。系统先检查可行性，再由助手填入剧情；无法实现的组合会说明原因，不会静默修改设置。镜头偏好用于后续分镜。</p>
           <div className="field-grid two">
-            <Field label="每条路线的选择次数"><input type="number" min={1} value={draft.decisionPointsPerPath} onChange={(event) => numeric("decisionPointsPerPath", event.target.value)} /></Field>
-            <Field label="结局数"><input type="number" min={1} value={draft.endingCount} onChange={(event) => numeric("endingCount", event.target.value)} /></Field>
-            <Field label="故事节点总量"><input type="number" min={3} value={draft.nodeBudget} onChange={(event) => numeric("nodeBudget", event.target.value)} /></Field>
-            <Field label="单个节点的最多后续分支"><input type="number" min={1} max={6} value={draft.maxOutDegree} onChange={(event) => numeric("maxOutDegree", event.target.value)} /></Field>
-            <Field label="期望分支汇合次数"><input type="number" min={0} value={draft.desiredJoinCount} onChange={(event) => numeric("desiredJoinCount", event.target.value)} /></Field>
+            <div className="structural-setting"><div><span>每次完整播放的选择次数</span><ContextHelp label="每次完整播放的选择次数">观众从开场看到结局，途中需要做几次选择；不是每次选择的选项数量。</ContextHelp></div><input aria-label="每次完整播放的选择次数" disabled={readOnly || saving} type="number" min={0} value={draft.decisionPointsPerPath} onChange={event => numeric("decisionPointsPerPath", event.target.value)} /></div>
+            <div className="structural-setting"><div><span>不同结局的数量</span><ContextHelp label="不同结局的数量">故事包含多少个不同结局；多条播放路线可以通往同一个结局。</ContextHelp></div><input aria-label="不同结局的数量" disabled={readOnly || saving} type="number" min={1} value={draft.endingCount} onChange={event => numeric("endingCount", event.target.value)} /></div>
+            <div className="structural-setting"><div><span>剧情节点数量上限</span><ContextHelp label="剧情节点数量上限">整个故事可使用多少个剧情节点，包括开场、发展、选择、汇合和结局；不是分镜镜头数量。</ContextHelp></div><input aria-label="剧情节点数量上限" disabled={readOnly || saving} type="number" min={1} value={draft.nodeBudget} onChange={event => numeric("nodeBudget", event.target.value)} /></div>
+            <div className="structural-setting"><div><span>每次选择的最多选项数</span><ContextHelp label="每次选择的最多选项数">一个选择点最多可以提供几个选项；不是完整播放路线的总数。</ContextHelp></div><input aria-label="每次选择的最多选项数" disabled={readOnly || saving} type="number" min={1} max={6} value={draft.maxOutDegree} onChange={event => numeric("maxOutDegree", event.target.value)} /></div>
+            <div className="structural-setting"><div><span>分支汇合次数</span><ContextHelp label="分支汇合次数">整个故事安排多少个汇合点；分开的播放路线在此汇合，之后共用后续剧情。</ContextHelp></div><input aria-label="分支汇合次数" disabled={readOnly || saving} type="number" min={0} value={draft.desiredJoinCount} onChange={event => numeric("desiredJoinCount", event.target.value)} /></div>
           </div>
           <div className="range-summary"><span>每场分镜</span><strong>{draft.shotsPerSceneMin}–{draft.shotsPerSceneMax}</strong></div>
           <div className="field-grid two compact">

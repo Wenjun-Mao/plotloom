@@ -440,7 +440,7 @@ test.describe("F3A production art review", () => {
     expect(await readFile(path.join(recoveredBody.packagePath, "request.json"))).toEqual(frozenRequest);
     await writeStageDelivery(prepared, "script.json", scriptFixture(), "f4-script", "script");
     const refreshed = page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/specialist-tasks/script/${prepared.jobId}/check`);
-    await panel.getByRole("button", { name: "检查任务结果" }).click();
+    await panel.getByRole("button", { name: "立即检查" }).click();
     expect((await refreshed).ok()).toBeTruthy();
     await panel.getByRole("button", { name: "确认使用此剧本" }).click();
     await expect(panel).toContainText("已确认 r1");
@@ -461,7 +461,7 @@ test.describe("F3A production art review", () => {
 async function createAcceptedCastProject(request: Api, apiOrigin: string, label: string): Promise<string> {
   const created = await request.post(`${apiOrigin}/api/v2/projects`, {
     headers: { "Idempotency-Key": `f3a-art-${label}-${Date.now()}` },
-    data: { brief: { ...demoProject.brief, title: `F3A browser ${label}` } },
+    data: { brief: { ...demoProject.brief, decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, title: `F3A browser ${label}` } },
   });
   const projectId = (await getJson<{ id: string }>(created)).id;
   const source = await getJson<any>(request.put(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/source`, {
@@ -528,7 +528,7 @@ async function prepareFromBrowser(page: import("@playwright/test").Page, panel: 
 async function refreshFromBrowser(page: import("@playwright/test").Page, panel: import("@playwright/test").Locator, projectId: string, jobId: string): Promise<void> {
   const refreshed = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/specialist-tasks/art/${jobId}/check`);
-  await panel.getByRole("button", { name: "检查任务结果" }).click();
+  await panel.getByRole("button", { name: "立即检查" }).click();
   expect((await refreshed).ok()).toBeTruthy();
 }
 

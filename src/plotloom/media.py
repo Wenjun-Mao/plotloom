@@ -538,8 +538,8 @@ class MediaPromptCompiler:
         media_constraints = _public_json(
             {
                 "projectTitle": context.brief.title,
-                "genre": context.brief.genre,
-                "visualStyle": context.brief.visual_style,
+                "genre": context.brief.genre_direction,
+                "visualStyle": context.brief.visual_direction,
                 "language": context.brief.language,
                 "aspectRatio": context.brief.aspect_ratio,
                 "durationSeconds": context.shot.duration_seconds,

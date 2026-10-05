@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
+from plotloom.source_structures import planned_structure
 from plotloom.outline_settings import OUTLINE_SETTINGS_FILENAME, outline_settings
 from plotloom.project_storage.composition import ProjectFolderStorage
 from tests.test_project_storage_art import _accepted_f4_script, _deliver_stage
@@ -23,13 +24,17 @@ def new_job():
 
 def prepare(store, stage, job=None):
     job = job or new_job()
-    if stage == "outline":
+    if stage == "branches":
+        store.prepare_branch_candidate()
+        candidate = store.branch_state().candidate
+        request = store.branch_candidate_request(candidate.job_id)
+    elif stage == "outline":
         state = store.source_outline_state()
         request = CreativeHandoffRequest(
             job_id=job, project_id=store.manifest.project_id, stage=stage,
             section_id="story", expected_stage_revision=state.accepted_outline.revision,
             source=state.source.material.model_dump(mode="json", by_alias=True),
-            input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(store.project().brief)},
+            input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(store.project().brief), "story-topology.json": planned_structure(store.manifest.project_id, store.project().brief).model_dump(mode="json", by_alias=True)},
             creative_brief="Terminal reconciliation fixture, never creative acceptance.",
         )
         candidate = store.prepare_outline_candidate(request)
@@ -43,14 +48,14 @@ def prepare(store, stage, job=None):
 
 
 def cancel(store, stage, job):
-    method = {"outline": store.cancel_outline_candidate, "characters": store.cancel_cast_candidate,
+    method = {"branches": store.cancel_branch_candidate, "outline": store.cancel_outline_candidate, "characters": store.cancel_cast_candidate,
               "art": store.cancel_art_candidate, "script": store.cancel_script_candidate,
               "storyboard": store.cancel_storyboard_review_candidate}[stage]
     return method(job)
 
 
 def delivery(store, request):
-    filename = {"outline": "outline.json", "characters": "cast.json", "art": "art.json",
+    filename = {"branches": "branches.json", "outline": "outline.json", "characters": "cast.json", "art": "art.json",
                 "script": "script.json", "storyboard": "storyboard.json"}[request.stage]
     # Exchange-valid placeholder content. Terminal handling must discard it
     # rather than revive currentness or execute stage validators.
@@ -65,7 +70,7 @@ def ready_delivery(store, request):
         "script": (store.script_state, "accepted_script", "script"),
     }[request.stage]
     content = getattr(getattr(state_method(), accepted_field), payload_field)
-    filename = {"outline": "outline.json", "characters": "cast.json", "art": "art.json", "script": "script.json"}[request.stage]
+    filename = {"branches": "branches.json", "outline": "outline.json", "characters": "cast.json", "art": "art.json", "script": "script.json"}[request.stage]
     return _deliver_stage(store, request, filename, content, "ready-replacement-fixture")
 
 

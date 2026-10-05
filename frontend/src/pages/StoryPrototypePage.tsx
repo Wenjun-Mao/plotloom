@@ -132,11 +132,15 @@ function WorkflowReturn({ projectId }: { projectId: string }) {
 
 function BranchMap({ graph, routes, selectedRoute, selectedNode, onNode, onRoute }: { graph: StoryGraph; routes: PrototypeRoute[]; selectedRoute: PrototypeRoute; selectedNode: string; onNode: (nodeId: string) => void; onRoute: (routeId: string) => void }) {
   const start = graph.nodes.find((node) => node.id === graph.startNodeId);
-  const edges = graph.edges.filter((edge) => edge.sourceNodeId === graph.startNodeId);
-  return <section className="branch-map" aria-labelledby="branch-map-title"><div className="branch-map-heading"><div><span className="eyebrow">分支地图</span><h2 id="branch-map-title">从一个开场，抵达两个不同后果</h2></div><p>选择从故事中来；每张卡都说明选择之后会发生什么。</p></div><div className="branch-canvas">
+  const endings = graph.nodes.filter(node => node.kind === "ending").length;
+  return <section className="branch-map" aria-labelledby="branch-map-title"><div className="branch-map-heading"><div><span className="eyebrow">分支地图</span><h2 id="branch-map-title">{routes.length} 条完整播放路线 · {endings} 个不同结局</h2></div><p>每条路线从开场到一个结局；途中可以经过多次选择与共享剧情。</p></div><div className="branch-canvas">
     {start && <button type="button" className={`branch-node start ${selectedNode === start.id ? "selected" : ""}`} aria-pressed={selectedNode === start.id} onClick={() => onNode(start.id)}><span>开场</span><strong>{start.title}</strong><small>{start.summary}</small></button>}
     <div className="branch-connector" aria-hidden="true"><span className="branch-connector-trunk" /><span className="branch-connector-arm first" /><span className="branch-connector-arm last" /></div>
-    <div className="branch-options">{edges.map((edge) => { const target = graph.nodes.find((node) => node.id === edge.targetNodeId); const route = routes.find((item) => item.sectionIds.at(-1) === edge.targetNodeId); const consequence = typeof edge.stateEffects.sourceMapConsequence === "string" ? edge.stateEffects.sourceMapConsequence : "查看结局的变化。"; return target && route ? <button type="button" key={edge.id} className={`branch-choice ${selectedRoute.id === route.id ? "selected" : ""}`} aria-pressed={selectedRoute.id === route.id} onClick={() => { onRoute(route.id); onNode(target.id); }}><span className="choice-label">选择：{edge.choiceText || target.title}</span><strong>{target.title}</strong><small>后果：{consequence}</small></button> : null; })}</div>
+    <div className="branch-options">{routes.map((route, index) => {
+      const target = graph.nodes.find(node => node.id === route.sectionIds.at(-1));
+      const choices = route.sectionIds.flatMap((id, step) => graph.edges.filter(edge => edge.sourceNodeId === id && edge.targetNodeId === route.sectionIds[step + 1] && edge.kind === "choice"));
+      return target && <button type="button" key={route.id} className={`branch-choice ${selectedRoute.id === route.id ? "selected" : ""}`} aria-pressed={selectedRoute.id === route.id} onClick={() => { onRoute(route.id); onNode(target.id); }}><span className="choice-label">播放路线 {index + 1}：{route.label}</span><strong>{target.title}</strong>{choices.map(edge => <small key={edge.id}>选项：{edge.choiceText} · 后果：{String(edge.stateEffects.sourceMapConsequence || "查看后续剧情。")}</small>)}</button>;
+    })}</div>
   </div></section>;
 }
 

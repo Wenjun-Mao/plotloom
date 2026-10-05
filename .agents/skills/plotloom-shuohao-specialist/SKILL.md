@@ -23,10 +23,22 @@ not a backend job, a review decision, or permission to edit canon.
   candidate and a derived report. F0 trusted Plotloom code owns frozen identity,
   request hashes, candidate admission, and currentness. A later selected owner
   must own review and canonical installation.
+- For `branches`, the pinned outline skill is narrative guidance only. The
+  frozen `inputs/branch-schema.json` defines a complete advisory draft:
+  all planned nodes, choices/options/consequences, join reconciliation and clarifications.
+  Preserve exact IDs and order from frozen source.topology; do not change links, guess episode-to-node
+  mappings or install anything. Propose missing creative details explicitly and
+  disclose ambiguity in clarifications. This receiving contract replaces the
+  upstream outline output/CLI for this task kind only. Validate and derive HTML
+  from the repository root with `uv run --locked python scripts/branch_suggestion.py validate <absolute-branches.json> --request <absolute-package/request.json>`
+  and the same command with `render` redirected to report.html. Both commands
+  check exact frozen topology before using the prose. Never apply this to
+  earlier frozen outline packages.
 - Preserve upstream JSON shapes directly: write only the requested stage's
   `candidateFilename` (`outline.json`, `cast.json`, `art.json`, `script.json`,
   or `storyboard.json`). The HTML report is derived from that JSON; it is never
   an editable authority.
+- For outline requests with inputs/story-topology.json, the Brief-derived code topology owns decisions per playthrough, option limits, endings and joins. Build narrative around this topology; episode numbers are organization, never executable routing.
 - For an `outline` request with `inputs/outline-settings.json`, use its frozen
   author-owned format, language, genre, visual direction, route-duration target
   and scope. Confirmed `source` owns title and story facts. A blank original

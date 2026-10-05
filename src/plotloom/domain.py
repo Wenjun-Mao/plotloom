@@ -9,7 +9,10 @@ from typing import Annotated, Any, Literal
 from urllib.parse import parse_qsl, urlparse
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from .domain_base import CamelModel, to_camel
+from .brief_contracts import DirectionSelection, ProjectBrief, brief_for_new_project
 
 # V2 deliberately lives in a separate module.  The classes below remain the
 # explicit V1 read model for historical revisions; do not add V2 production
@@ -67,22 +70,6 @@ def utc_now() -> datetime:
 
 def new_id() -> str:
     return str(uuid4())
-
-
-def to_camel(value: str) -> str:
-    head, *tail = value.split("_")
-    return head + "".join(part.capitalize() for part in tail)
-
-
-class CamelModel(BaseModel):
-    """Canonical Python models with a strict camelCase HTTP representation."""
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        extra="forbid",
-        validate_assignment=True,
-    )
 
 
 class StageName(str, Enum):
@@ -343,47 +330,6 @@ TERMINAL_MEDIA_TASK_STATUSES: frozenset[MediaTaskStatus] = frozenset(
         MediaTaskStatus.CANCELLED,
     }
 )
-
-
-class ProjectBrief(CamelModel):
-    title: Annotated[str, Field(min_length=1, max_length=200)]
-    synopsis: Annotated[str, Field(min_length=1)]
-    genre: str | None = None
-    visual_style: str | None = None
-    language: str = "zh-CN"
-    aspect_ratio: str = "16:9"
-    target_playthrough_seconds: Annotated[int, Field(ge=1)] = 180
-    decision_points_per_path: Annotated[int, Field(ge=0)] = 2
-    ending_count: Annotated[int, Field(ge=1)] = 3
-    node_budget: Annotated[int, Field(ge=1)] = 10
-    max_out_degree: Annotated[int, Field(ge=1)] = 3
-    desired_join_count: Annotated[int, Field(ge=0)] = 1
-    shots_per_scene_min: Annotated[int, Field(ge=1)] = 2
-    shots_per_scene_max: Annotated[int, Field(ge=1)] = 4
-    # Missing persisted fields belong to pre-ADR-0080 projects and stay strict.
-    shot_count_policy: Literal["strict", "advisory"] = "strict"
-
-    @model_validator(mode="after")
-    def validate_internal_limits(self) -> ProjectBrief:
-        if self.shots_per_scene_min > self.shots_per_scene_max:
-            raise ValueError("shots_per_scene_min must not exceed shots_per_scene_max")
-        if self.ending_count > self.node_budget:
-            raise ValueError("ending_count must not exceed node_budget")
-        return self
-
-    @property
-    def shot_count_is_strict(self) -> bool:
-        return self.shot_count_policy == "strict"
-
-
-def brief_for_new_project(brief: ProjectBrief) -> ProjectBrief:
-    """Stamp the new-project default without reinterpreting stored legacy Briefs."""
-
-    return (
-        brief
-        if "shot_count_policy" in brief.model_fields_set
-        else brief.model_copy(update={"shot_count_policy": "advisory"})
-    )
 
 
 class Character(CamelModel):
