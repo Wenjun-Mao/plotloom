@@ -1,8 +1,10 @@
 # Sketch-led visual system for the current workbench
 
-Status: **owner-approved implementation; not yet implemented or accepted**.
-Approved October 4, 2026, Toronto time. Baseline: clean retained `main`,
-`bbf9c65`; normal 8841 uses executable candidate `79693f1`.
+Status: **implemented, independently reviewed, locally verified, published and
+activated; owner walkthrough acceptance pending; remote CI in progress**.
+Approved October 4, 2026, Toronto time. Approval-time baseline: clean retained
+`main`, `bbf9c65`; normal 8841 then used executable candidate `79693f1`.
+Current activated executable: `7eef6aa`; see the delivery receipt below.
 
 ## Outcome and authority
 
@@ -92,3 +94,15 @@ static activation does not require an unrelated backend/schema change. Keep
 cleanup untouched. Stop at a reviewed, verified, published and activated visual
 candidate ready for the owner's review; do not silently expand to graph-workflow
 implementation.
+
+## Delivery progress
+
+October 5, Toronto: executable candidate `7eef6aa` carries the sketch-led roles
+and page composition across existing routes. Independent read-only review closed
+the mobile disclosure target and inherited modal/container sizing findings.
+The corrected visual/overlay, draft and consent checks and full Python/browser
+gates passed. The exact executable was pushed to `main`, CI was dispatched, and
+normal 8841 is healthy on the qualified bytes. Strict post-activation comparisons
+preserve both owner projects, settings and credential/configuration files. The
+[delivery receipt](../verification/2026-10-04-sketch-led-visual-system.md) records
+exact evidence and keeps remote CI and human acceptance separate.

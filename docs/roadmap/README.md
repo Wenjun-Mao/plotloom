@@ -4,7 +4,11 @@ The owner-approved [sketch-led visual system](2026-10-04-sketch-led-visual-syste
 applies the new design reference's whole visual language to the current Plotloom
 interface. It is a separate implementation assignment, not another icon-only
 polish pass or authorization to build the new graph-centred workflow. Existing
-behavior, data and dispatch safety remain the delivered baseline.
+behavior, data and dispatch safety remain the delivered baseline. The visual
+candidate `7eef6aa` is independently reviewed, locally qualified, pushed and
+activated on healthy normal 8841. Remote CI and owner walkthrough acceptance
+remain pending; the [delivery receipt](../verification/2026-10-04-sketch-led-visual-system.md)
+records the exact checks and preservation evidence.
 
 The owner-approved [creator UI batch for the next walkthrough](2026-10-04-creator-ui-batch.md)
 is implemented, independently reviewed, fully locally qualified, published and
