@@ -1,5 +1,11 @@
 # Plotloom roadmap entrypoint
 
+The owner-approved [six current-contract repairs](2026-10-04-current-contract-repairs.md)
+are implemented, independently reviewed, fully locally qualified and published
+at runtime candidate `0aff7dd`. The [receipt](../verification/2026-10-04-current-contract-repairs.md)
+separates full remote CI (queued), coordinated normal-runtime activation and
+creator acceptance.
+
 The current delivery authority is [Playable MVP milestones](2026-09-17-playable-mvp-milestones.md).
 It owns the approved sequence, release boundary, acceptance criteria and progress.
 The completed U2 route-focused storyboard reader and its 2026-09-20 connector
@@ -67,7 +73,8 @@ existing quiescence and ownership guards. Its
 [receipt](../verification/2026-10-04-direct-project-deletion.md) records unchanged
 normal-project evidence and the exact-source remote CI run, still in progress.
 Creator usability acceptance is separate.
-A broader contract audit is proposed, not started by this assignment.
+The follow-on contract audit led to the six approved current-contract repairs
+recorded above.
 
 The approved [project save-and-close](2026-10-04-project-save-close.md) adds
 recoverable author drafts and an explicitly confirmed force exit without
