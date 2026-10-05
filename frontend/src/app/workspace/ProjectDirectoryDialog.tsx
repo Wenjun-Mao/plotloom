@@ -26,7 +26,7 @@ export function ProjectDirectoryDialog({ projects, currentProjectId, showArchive
           return <article key={item.id} className="directory-item" data-project-id={item.id}>
             <button className="directory-open" disabled={rowBusy} onClick={() => onOpen(item)}><strong>{item.brief.title || "未命名项目"}</strong><small>{closed ? "已关闭 · 可安全复制" : archived ? "已归档 · 只读" : item.id === currentProjectId ? "当前项目" : "可打开"} · r{item.revision} · {new Date(item.updatedAt).toLocaleString()}</small></button>
             <div className="directory-actions">
-              <Button variant="quiet" disabled={rowBusy} onClick={() => void onAction(item, "duplicate")}>复制</Button>
+              <Button variant="quiet" disabled={rowBusy} onClick={() => void onAction(item, "duplicate")}>复制简报与规范内容</Button>
               {closed ? <Button variant="quiet" disabled={rowBusy} onClick={() => void onAction(item, "open")}>重新打开</Button> : archived ? <Button variant="quiet" disabled={rowBusy} onClick={() => void onAction(item, "restore")}>恢复</Button> : <>
                 <Button variant="quiet" disabled={rowBusy} onClick={() => void onAction(item, "archive")}>归档</Button>
                 {explicitProjectClose && <><Button variant="quiet" disabled={rowBusy} onClick={() => void onAction(item, "close")}>保存并关闭项目</Button><Button variant="danger" disabled={rowBusy} onClick={() => void onAction(item, "force_close")}>强制关闭</Button></>}

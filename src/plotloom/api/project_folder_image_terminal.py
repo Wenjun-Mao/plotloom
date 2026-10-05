@@ -36,7 +36,7 @@ def register_image_terminal_routes(app: FastAPI, opened_project: Callable[[str],
     def preview(project_id: str, target: Target, job_id: str):
         with opened_project(project_id) as store:
             outcome = inspect(store, project_id, target, job_id)
-            registry.assert_image_terminal_identity(job_id, outcome["marker"]["taskId"])
+            registry.assert_image_terminal_identity(job_id, outcome["marker"]["taskId"], project_id=project_id, target=target)
             return outcome
 
     @app.post("/api/v2/projects/{project_id}/image-terminal/{target}/{job_id}/settle")

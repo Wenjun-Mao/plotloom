@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from collections.abc import Callable
 from pathlib import Path
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -49,14 +50,25 @@ from .operational_state import (
     ProjectBusyError,
     ProjectClosedError,
     close_blockers,
+    retained_specialist_job_ids,
+    specialist_publication_blockers,
 )
 
 
 class ProjectDirectoryRegistry:
     """Rebuildable project catalog derived only from validated manifests."""
 
-    def __init__(self, outputs_root: Path) -> None:
+    def __init__(self, outputs_root: Path, *, native_ownership: Callable[[str, set[str]], list[str]] | None = None) -> None:
         self.outputs_root = _require_real_directory(outputs_root, label="outputs root")
+        self._native_ownership = native_ownership
+
+    def native_blockers(self, store: ProjectStore) -> list[str]:
+        if self._native_ownership is None:
+            return []
+        return self._native_ownership(store.manifest.project_id, retained_specialist_job_ids(store))
+
+    def specialist_blockers(self, store: ProjectStore) -> list[str]:
+        return specialist_publication_blockers(store) + self.native_blockers(store)
 
     def _new_home(self, project: Project) -> Path:
         directory_name = f"{_utc_folder_timestamp(project.created_at)}__{project.id}"
@@ -271,6 +283,9 @@ class ProjectDirectoryRegistry:
         store = self._exclusive_store(project_id)
         try:
             state, revision = store.repository.operational_state()
+            native = self.native_blockers(store)
+            if native:
+                raise ProjectBusyError("project_busy: " + ", ".join(native))
             if state == "open":
                 blockers = close_blockers(store)
                 if blockers:
@@ -443,6 +458,7 @@ class ProjectDirectoryRegistry:
     ) -> None:
         permanently_delete_home(
             self._exclusive_store(project_id),
+            native_blockers=self.native_blockers,
             outputs_root=self.outputs_root,
             expected_project_revision=expected_project_revision,
             expected_lifecycle_revision=expected_lifecycle_revision,
@@ -461,10 +477,9 @@ class ProjectDirectoryRegistry:
             lease.close()
             raise
 
-    @staticmethod
-    def _require_lifecycle_quiescence(store: ProjectStore) -> None:
+    def _require_lifecycle_quiescence(self, store: ProjectStore) -> None:
         """Apply the same external-publication guard used by folder close."""
 
-        blockers = close_blockers(store)
+        blockers = close_blockers(store) + self.native_blockers(store)
         if blockers:
             raise ProjectBusyError("project_busy: " + ", ".join(blockers))

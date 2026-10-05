@@ -171,6 +171,7 @@ def register_project_folder_image_job_routes(
             )
             exported = []
             image_dispatcher.dispatch(
+                context={"projectId": project_id, "stage": "character-reference"},
                 job_id=proposal_id,
                 package_path=package["packagePath"],
                 delivery_path=package["deliveryPath"],

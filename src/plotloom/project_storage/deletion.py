@@ -27,6 +27,7 @@ def permanently_delete_home(
     expected_project_revision: int,
     expected_lifecycle_revision: int,
     confirmation_title: str,
+    native_blockers: Callable[[ProjectStore], list[str]],
 ) -> None:
     """Admit one exact idle project, independently of Archive and Close."""
     try:
@@ -39,7 +40,7 @@ def permanently_delete_home(
                 raise RevisionConflictError(owner, expected, actual)
         if not confirmation_title.strip() or confirmation_title != project.brief.title:
             raise InvalidTransitionError("confirmation title does not match the project title")
-        blockers = close_blockers(store)
+        blockers = close_blockers(store) + native_blockers(store)
         if blockers:
             raise ProjectBusyError("project_busy: " + ", ".join(blockers))
         # Media records and their immutable bytes share this home. The row-only

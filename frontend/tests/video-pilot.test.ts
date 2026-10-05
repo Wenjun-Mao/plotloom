@@ -761,7 +761,7 @@ it("shows the source-bound question only after opening completion and closes on 
     { outcomeId: "edge-2", endingSectionId: "left", label: "left" },
     { outcomeId: "edge-3", endingSectionId: "right", label: "right" },
   ] };
-  const read = vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ status: "accepted", installedStoryboardCurrent: true, runtimeChoice: sourceChoice } as never);
+  const read = vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ status: "accepted", installedStoryboardCurrent: true, hasInstallation: false, runtimeChoice: sourceChoice } as never);
   const renderFixture = () => root.render(createElement(BranchingVideoPreview, { projectId: "project", jobs: fixture.selected, storyboard: fixture.storyboard, sceneBeats: fixture.sceneBeats, graph: fixture.graph }));
   await act(async () => { renderFixture(); await Promise.resolve(); });
   expect(host.querySelector('[data-testid="branching-choice-question"]')).toBeNull();
@@ -785,7 +785,7 @@ it.each(["stale", "foreign-current"])("canonical choices ignore %s bridge job hi
     current: historyKind !== "stale", selected: historyKind !== "stale",
     snapshot: { shot: { id: "retired-shot", sceneId: "retired-scene" }, sourceTiming: { kind: "f5_bridge" } },
   });
-  const read = vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ status: "accepted", installedStoryboardCurrent: false, runtimeChoice: null } as never);
+  const read = vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ status: "accepted", installedStoryboardCurrent: false, hasInstallation: false, runtimeChoice: null } as never);
   await act(async () => root.render(createElement(BranchingVideoPreview, { projectId: "project", jobs: [...fixture.selected, historical], storyboard: fixture.storyboard, sceneBeats: fixture.sceneBeats, graph: fixture.graph })));
   await act(async () => host.querySelector("video")!.dispatchEvent(new Event("ended", { bubbles: true })));
   expect(host.querySelector('[data-testid="branching-choices"]')?.textContent).toContain("left");

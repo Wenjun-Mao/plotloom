@@ -80,20 +80,17 @@ export function DraftNavigationDialog({ onSave, onDiscard, onCancel, closing = f
   return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="draft-navigation-title"><button className="modal-backdrop" aria-label="继续编辑" onClick={onCancel} /><section className="modal-card compact"><header><div><span>未保存的草稿</span><h2 id="draft-navigation-title">{closing ? "保存草稿并关闭项目？" : "保存当前草稿？"}</h2></div></header><div className="modal-body"><div className="notice warning"><strong>{closing ? "即将关闭项目目录" : "即将切换工作台"}</strong><span>{closing ? "保存会先写入 project.sqlite3；丢弃会以当前 CAS 回执删除这一个草稿。两者都不会替代规范保存或批准。" : "当前阶段有未保存修改。保存会显式写入项目；丢弃只移除本标签页草稿。"}</span></div></div><footer><Button variant="quiet" onClick={onCancel}>取消</Button><Button variant="danger" onClick={onDiscard}>丢弃</Button><Button variant="primary" onClick={onSave}>{closing ? "保存草稿并关闭" : "保存并切换"}</Button></footer></section></div>;
 }
 
-export function DraftRecoveryDialog({ source, onRestore, onDiscard }: { source: DraftRecoverySource; onRestore: () => void; onDiscard: () => void }) {
+export function DraftRecoveryDialog({ source, busy = false, onRestore, onDiscard }: { busy?: boolean; source: DraftRecoverySource; onRestore: () => void; onDiscard: () => void }) {
   const detail = source === "server"
     ? "此草稿已安全保存在项目目录的 project.sqlite3；规范内容尚未改变。"
     : source === "reconcile"
       ? "当前标签页有尚未确认的输入，服务器也有项目草稿。恢复会保留本标签页内容供比较和重新保存。"
       : "此草稿只在当前标签页 sessionStorage 中，尚未得到服务器确认。";
-  return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="draft-recovery-title"><button className="modal-backdrop" aria-label="保留提示" /><section className="modal-card compact"><header><div><span>{source === "server" ? "项目中的草稿" : "恢复当前标签页草稿"}</span><h2 id="draft-recovery-title">发现未保存草稿</h2></div></header><div className="modal-body"><div className="notice"><strong>规范内容保持不变</strong><span>{detail}</span></div></div><footer><Button variant="quiet" onClick={onDiscard}>丢弃草稿</Button><Button variant="primary" onClick={onRestore}>恢复草稿</Button></footer></section></div>;
+  return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="draft-recovery-title"><button className="modal-backdrop" aria-label="保留提示" /><section className="modal-card compact"><header><div><span>{source === "server" ? "项目中的草稿" : "恢复当前标签页草稿"}</span><h2 id="draft-recovery-title">发现未保存草稿</h2></div></header><div className="modal-body"><div className="notice"><strong>规范内容保持不变</strong><span>{detail}</span></div></div><footer><Button variant="quiet" disabled={busy} onClick={onDiscard}>丢弃草稿</Button><Button variant="primary" disabled={busy} onClick={onRestore}>{busy ? "正在核实…" : "恢复草稿"}</Button></footer></section></div>;
 }
 
 export function DraftConflictDialog({ serverReloaded, busy, onReload, onCopy, onDiscard }: { serverReloaded: boolean; busy: boolean; onReload: () => void; onCopy: () => void; onDiscard: () => void }) {
   return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="draft-conflict-title"><button className="modal-backdrop" aria-label="保留提示" /><section className="modal-card compact"><header><div><span>草稿冲突</span><h2 id="draft-conflict-title">草稿版本已过期</h2></div></header><div className="modal-body"><div className="notice warning"><strong>草稿已保护，不会强制覆盖</strong><span>{serverReloaded ? "已重新加载服务器规范版本；冲突草稿仍保留，可复制成独立项目。" : "服务器项目已经更新。可先查看服务器版本，或把当前草稿及其连续阶段前缀复制成新项目。"}</span></div></div><footer><Button variant="quiet" disabled={busy || serverReloaded} onClick={onReload}>{serverReloaded ? "已加载服务器版本" : "重新加载服务器版本"}</Button><Button variant="primary" disabled={busy} onClick={onCopy}>{busy ? "正在复制…" : "复制草稿为新项目"}</Button><Button variant="danger" disabled={busy} onClick={onDiscard}>丢弃冲突草稿</Button></footer></section></div>;
 }
 
-export function UnsafeDraftDialog({ reason, onDiscard }: { reason: "archived" | "unavailable"; onDiscard: () => void }) {
-  const unavailable = reason === "unavailable";
-  return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="unsafe-draft-title"><button className="modal-backdrop" aria-label="保留提示" /><section className="modal-card compact"><header><div><span>草稿安全</span><h2 id="unsafe-draft-title">{unavailable ? "项目不可用，草稿不可恢复" : "归档项目草稿不可恢复"}</h2></div></header><div className="modal-body"><div className="notice warning"><strong>仅可安全丢弃</strong><span>{unavailable ? "项目加载失败或已删除。为避免把草稿写入错误项目，不能恢复或保存此草稿。" : "归档项目为只读。请先恢复项目并从新的服务端版本继续；此标签页草稿不能恢复或保存。"}</span></div></div><footer><Button variant="danger" onClick={onDiscard}>丢弃不可用草稿</Button></footer></section></div>;
-}
+export { UnsafeDraftDialog } from "./UnsafeDraftDialog";

@@ -272,6 +272,7 @@ export default function WorkspaceController() {
 
   if (session.onboarding) return <>
     <WelcomeOnboarding onBlank={startBlank} onSample={openSample} onDirectory={directory.openDirectory} />
+    {lifecycle.duplicateNotice && <div className="notice" role="status"><span>{lifecycle.duplicateNotice}</span><Button onClick={lifecycle.dismissDuplicateNotice}>知道了</Button></div>}
     {directory.open && <ProjectDirectoryDialog projects={directory.projects} currentProjectId={project.id} notice={lifecycle.closeNotice} busy={Boolean(lifecycle.closingProjectId || lifecycle.snapshottingProjectId)} showArchived={directory.showArchived} error={directory.error} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "brief" }); }} onAction={lifecycle.mutate} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
     {lifecycle.confirmation}
   </>;
@@ -304,12 +305,16 @@ export default function WorkspaceController() {
     </div>
     {profiles.settingsOpen && <SettingsDialog profiles={profiles.profiles} selectedProfileId={profiles.selectedProfileId} draft={profiles.profileDraft} sessionKey={profiles.sessionKey} busy={busy} onDraft={(draft) => { profiles.setProfileDraft(draft); profiles.setProfileDirty(true); }} onSessionKey={profiles.setSessionKey} onSelect={profiles.select} onCreate={() => profiles.create(false)} onCopy={() => profiles.create(true)} onDelete={profiles.remove} onActivate={profiles.activate} onAvailability={profiles.setAvailability} onProbe={profiles.probe} onClose={() => profiles.setSettingsOpen(false)} onSave={saveSettings} />}
     {rebuildOpen && <RebuildDialog staleStages={project.staleStages} busy={busy} onClose={() => setRebuildOpen(false)} onRebuild={commands.rebuild} />}
+    {lifecycle.duplicateNotice && <div className="notice" role="status"><span>{lifecycle.duplicateNotice}</span><Button onClick={lifecycle.dismissDuplicateNotice}>知道了</Button></div>}
     {directory.open && <ProjectDirectoryDialog projects={directory.projects} currentProjectId={project.id} notice={lifecycle.closeNotice} busy={Boolean(lifecycle.closingProjectId || lifecycle.snapshottingProjectId)} showArchived={directory.showArchived} error={directory.error} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "brief" }); }} onAction={lifecycle.mutate} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
     {workspaceNavigation.pendingNavigation && !session.unsafeDraft && <DraftNavigationDialog onSave={() => void workspaceNavigation.resolvePendingNavigation("save")} onDiscard={() => void workspaceNavigation.resolvePendingNavigation("discard")} onCancel={() => void workspaceNavigation.resolvePendingNavigation("cancel")} />}
     {lifecycle.pendingArchive && <DraftNavigationDialog closing={lifecycle.pendingArchive.action === "close"} onSave={() => void lifecycle.resolvePendingArchive("save")} onDiscard={() => void lifecycle.resolvePendingArchive("discard")} onCancel={() => void lifecycle.resolvePendingArchive("cancel")} />}
-    {recovery.recovery && <DraftRecoveryDialog source={recovery.recovery.source} onRestore={recovery.restore} onDiscard={recovery.discard} />}
+    {recovery.recovery && <DraftRecoveryDialog source={recovery.recovery.source} busy={recovery.restoring} onRestore={() => void recovery.restore()} onDiscard={recovery.discard} />}
     {authoring.draftConflict && <DraftConflictDialog serverReloaded={authoring.draftConflict.serverReloaded} busy={authoring.projectSaving} onReload={() => void recovery.reloadConflict()} onCopy={() => void recovery.copyConflict()} onDiscard={recovery.discardConflict} />}
-    {session.unsafeDraft && <UnsafeDraftDialog reason={session.unsafeDraft.reason} onDiscard={discardUnsafeDraft} />}
+    {session.unsafeDraft && !session.unsafeDraft.dismissed && <UnsafeDraftDialog reason={session.unsafeDraft.reason} records={findProjectDrafts(session.unsafeDraft.record.projectId)} busy={connection === "loading"} onDiscard={discardUnsafeDraft}
+      onKeep={() => { session.setUnsafeDraft({ ...session.unsafeDraft!, dismissed: true }); workspaceNavigation.continueAfterUnsafeDraft(); }}
+      onRetry={() => { void workspaceNavigation.resolvePendingNavigation("cancel"); void loadProject(session.unsafeDraft!.record.projectId); }} />}
+    {session.unsafeDraft?.dismissed && <div className="notice"><span>草稿已保留，核实项目后才能恢复。</span><Button onClick={() => session.setUnsafeDraft({ ...session.unsafeDraft!, dismissed: false })}>查看保留草稿</Button></div>}
     {lifecycle.confirmation}
   </div></ReviewDraftContext.Provider>;
 }

@@ -117,12 +117,13 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
     const scope = stageForPage(session.activePage);
     const unsafeDraft: UnsafeDraft | undefined = session.unsafeDraft;
     if (
-      unsafeDraft
-      || (session.project.id && (session.project.archivedAt || session.project.lifecycleStatus === "archived") && findProjectDrafts(session.project.id).length)
+      (unsafeDraft && !unsafeDraft.dismissed)
+      || (!unsafeDraft?.dismissed && session.project.id && (session.project.archivedAt || session.project.lifecycleStatus === "archived") && findProjectDrafts(session.project.id).length)
     ) {
       setPendingNavigation(normalized);
       return;
     }
+    if (unsafeDraft?.dismissed) { applyNavigation(normalized); return; }
     if (scope && hasDraft(session.project, scope)) {
       if (drafts.durableEnabled.current && session.project.id) {
         void drafts.flush(scope).then((saved) => {

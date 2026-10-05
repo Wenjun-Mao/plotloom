@@ -51,9 +51,12 @@ export function useWorkspaceProjectLoader(input: ProjectLoaderInput) {
     current.session.beginProjectLoad();
     const isCurrent = () => current.session.isCurrent(operation);
 
+    let missingAuthority = false;
     try {
       const [project, stages, runs, media, drafts] = await Promise.all([
-        plotloomApi.getProject(projectId, request.signal),
+        plotloomApi.getProject(projectId, request.signal).catch(error => {
+          missingAuthority = error instanceof ApiError && error.status === 404; throw error;
+        }),
         plotloomApi.getStages(projectId, request.signal),
         plotloomApi.getProjectRuns(projectId, request.signal),
         plotloomApi.getProjectMediaTasks(projectId, request.signal),
@@ -61,6 +64,7 @@ export function useWorkspaceProjectLoader(input: ProjectLoaderInput) {
           ? plotloomApi.getAuthoringDrafts(projectId, request.signal)
           : Promise.resolve([] as AuthoringDraft[]),
       ]);
+      if (project.id !== projectId) throw new Error("项目响应与当前请求不一致");
       const storyboardHead = stages.stages.find((item) => item.head.stage === "storyboard")?.head;
       const review = storyboardHead?.revision
         ? await plotloomApi.getStoryboardReview(projectId, request.signal).catch(() => null)
@@ -79,7 +83,7 @@ export function useWorkspaceProjectLoader(input: ProjectLoaderInput) {
     } catch (error) {
       if (!isCurrent() || isAbortError(error)) return;
       const stale = findProjectDrafts(projectId)[0];
-      current.session.rejectProjectLoad(stale ? { record: stale, reason: "unavailable" } : undefined);
+      current.session.rejectProjectLoad(stale ? { record: stale, reason: missingAuthority ? "missing" : "temporary" } : undefined);
       current.reportMessage(`无法加载项目 ${projectId}：${messageFrom(error)}。项目未加载；没有回退到示例。`);
     } finally {
       if (controller.current === request) controller.current = undefined;

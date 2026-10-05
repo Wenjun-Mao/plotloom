@@ -35,11 +35,6 @@ from .format import (
 from .operational_state import (
     ProjectAccessLease,
     ProjectBusyError,
-    art_publication_blockers,
-    cast_publication_blockers,
-    script_publication_blockers,
-    storyboard_review_publication_blockers,
-    source_outline_publication_blockers,
 )
 from .recovery_control import (
     ProjectRecoveryControl,
@@ -145,7 +140,7 @@ class ProjectRecoveryService:
         try:
             store = self.registry._exclusive_store(project_id)
             try:
-                blockers = self._specialist_blockers(store)
+                blockers = self.registry.specialist_blockers(store)
                 if blockers:
                     raise ProjectBusyError("project_busy: " + ", ".join(blockers))
                 snapshot_parent = self.outputs_root / ".snapshots" / project_id
@@ -328,19 +323,3 @@ class ProjectRecoveryService:
             return acknowledge_recovery_control(store.home, project_id)
         finally:
             store.close()
-
-    @staticmethod
-    def _specialist_blockers(store: Any) -> list[str]:
-        image_busy = [job for job in store.media.list_image_jobs(store.manifest.project_id) if job.get("state") not in {"delivered", "rejected", "cancelled"}]
-        reference_busy = [proposal for proposal in store.media.list_character_reference_proposals(store.manifest.project_id) if proposal.get("state") not in {"delivered", "rejected", "cancelled"}]
-        art_reference_busy = [proposal for proposal in store.media.list_art_reference_proposals(store.manifest.project_id) if proposal.get("state") not in {"delivered", "rejected", "cancelled"}]
-        return (
-            (["image_publication_active"] if image_busy else [])
-            + (["character_reference_publication_active"] if reference_busy else [])
-            + (["art_reference_publication_active"] if art_reference_busy else [])
-            + source_outline_publication_blockers(store)
-            + cast_publication_blockers(store)
-            + art_publication_blockers(store)
-            + script_publication_blockers(store)
-            + storyboard_review_publication_blockers(store)
-        )

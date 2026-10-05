@@ -128,7 +128,7 @@ def register_project_folder_art_routes(app: FastAPI, opened_project: Callable[[s
             package = store.image_exchange_for(proposal).write_package(
                 job_id=proposal_id, request=proposal["request"], request_hash=proposal["requestHash"], references=[])
             exported = []
-            image_dispatcher.dispatch(job_id=proposal_id, package_path=package["packagePath"], delivery_path=package["deliveryPath"],
+            image_dispatcher.dispatch(context={"projectId": project_id, "stage": "art-reference"}, job_id=proposal_id, package_path=package["packagePath"], delivery_path=package["deliveryPath"],
                 before_send=lambda: exported.append(store.media.mark_art_reference_proposal_exported(project_id, proposal_id, require_prepared=True)))
             return {"proposal": exported[0], **package}
 

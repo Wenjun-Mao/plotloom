@@ -230,7 +230,7 @@ describe("App project/editor rehydration", () => {
     expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("服务器新版本");
   });
 
-  it("offers only discard when an archived project still has a session draft", async () => {
+  it("keeps archived drafts inspectable without restore authority", async () => {
     window.history.replaceState(null, "", "/?project=archived-draft-project");
     window.sessionStorage.setItem("plotloom:workbench-drafts:v1", JSON.stringify({
       "archived-draft-project:brief:7": {
@@ -286,7 +286,7 @@ describe("App project/editor rehydration", () => {
     expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("");
   });
 
-  it("offers only safe discard for drafts whose project cannot be loaded", async () => {
+  it("retains inspectable drafts when project authority is temporarily unavailable", async () => {
     window.history.replaceState(null, "", "/?project=deleted-project");
     window.sessionStorage.setItem("plotloom:workbench-drafts:v1", JSON.stringify({
       "deleted-project:brief:4": {
@@ -299,13 +299,13 @@ describe("App project/editor rehydration", () => {
     await act(async () => root.render(createElement(App)));
     await flush();
 
-    expect(document.body.textContent).toContain("项目不可用，草稿不可恢复");
+    expect(document.body.textContent).toContain("暂时无法核实项目，草稿已保留");
     expect(document.body.textContent).not.toContain("恢复草稿");
     await act(async () => button("丢弃不可用草稿").click());
     expect(window.sessionStorage.getItem("plotloom:workbench-drafts:v1")).not.toContain("deleted-project:brief:4");
   });
 
-  it("routes unavailable-project popstate through discard-only", async () => {
+  it("allows explicit discard of unavailable drafts before popstate", async () => {
     window.history.replaceState(null, "", "/?project=unavailable-pop&stage=brief");
     window.sessionStorage.setItem("plotloom:workbench-drafts:v1", JSON.stringify({
       "unavailable-pop:brief:4": {
@@ -321,7 +321,7 @@ describe("App project/editor rehydration", () => {
     await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
     await flush();
 
-    expect(document.body.textContent).toContain("项目不可用，草稿不可恢复");
+    expect(document.body.textContent).toContain("暂时无法核实项目，草稿已保留");
     expect(document.body.textContent).not.toContain("保存并切换");
     await act(async () => button("丢弃不可用草稿").click());
     await flush();

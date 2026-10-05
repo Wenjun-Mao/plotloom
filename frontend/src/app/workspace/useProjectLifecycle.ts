@@ -4,6 +4,7 @@ import { useConfirmation } from "../../confirmation";
 import { discardDraft, hasDraft, type DraftScope } from "../../draft-registry";
 import { discardProjectDraftCaches } from "../../features/authoring/projectDraftCache";
 import type { ReviewDraftStore } from "../../features/authoring/reviewDraftStore";
+import { stageLabels } from "../../model";
 import { messageFrom, stageForPage } from "./contracts";
 import type { ProjectListItem, ProjectSnapshotReceipt, ServerStageName, WorkspaceProject } from "../../types";
 import type { WorkspaceSession } from "./useWorkspaceSession";
@@ -49,6 +50,7 @@ export function useProjectLifecycle({
   const [deletingProjectId, setDeletingProjectId] = useState<string | undefined>();
   const [snapshottingProjectId, setSnapshottingProjectId] = useState<string | undefined>();
   const [latestSnapshot, setLatestSnapshot] = useState<ProjectSnapshotReceipt | undefined>();
+  const [duplicateNotice, setDuplicateNotice] = useState("");
   const [closeNotice, setCloseNotice] = useState("");
   const confirmation = useConfirmation(session.project.id || "directory");
   const perform = async (
@@ -123,6 +125,9 @@ export function useProjectLifecycle({
         const duplicate = await plotloomApi.duplicateProject(item.id, item.lifecycleRevision ?? item.revision, undefined, key);
         if (!session.isCurrent(operation)) return;
         duplicateKeys.current.delete(identity);
+        const copied = duplicate.copiedThrough ? `项目简报及连续已就绪内容（到${stageLabels[duplicate.copiedThrough]}）` : "仅项目简报";
+        const omitted = duplicate.omittedStages.map(stage => stageLabels[stage]).join("、");
+        setDuplicateNotice(`已创建「${duplicate.project.brief.title}」：复制了${copied}。${omitted ? `未复制的规范阶段：${omitted}。` : ""}来源评审、图片、视频、批准和浏览器草稿未复制；原项目保持不变。`);
         directory.close();
         openProject(duplicate.project.id);
       }
@@ -164,6 +169,16 @@ export function useProjectLifecycle({
   const mutate = async (item: ProjectListItem, action: LifecycleAction) => {
     if (session.project.id && mediaDraftQuiescence.isClosing(session.project.id)) return;
     if (closingProjectId || snapshottingProjectId) return;
+    if (action === "duplicate") {
+      const target = { ...item, brief: { ...item.brief } };
+      confirmation.requestConfirmation({
+        title: "复制简报与规范内容",
+        message: "创建新项目，仅复制项目简报及从首阶段起连续已就绪的规范内容。",
+        details: `${target.brief.title}\n不复制来源与大纲、角色、美术、剧本或分镜的评审记录，也不复制图片、视频、批准或浏览器草稿。原项目保持不变；完成后会列出实际复制范围。`,
+        action: () => perform(target, "duplicate"),
+      });
+      return;
+    }
     if (action === "delete") {
       const target = { ...item, brief: { ...item.brief } };
       confirmation.requestConfirmation({
@@ -241,5 +256,5 @@ export function useProjectLifecycle({
     if (!session.isCurrent(operation)) return;
     await perform(target, "close", "save");
   };
-  return { pendingArchive, mutate, resolvePendingArchive, closingProjectId, deletingProjectId, snapshottingProjectId, latestSnapshot, createSnapshot, saveAndCloseCurrent, closeNotice, confirmation: confirmation.confirmation };
+  return { duplicateNotice, dismissDuplicateNotice: () => setDuplicateNotice(""), pendingArchive, mutate, resolvePendingArchive, closingProjectId, deletingProjectId, snapshottingProjectId, latestSnapshot, createSnapshot, saveAndCloseCurrent, closeNotice, confirmation: confirmation.confirmation };
 }

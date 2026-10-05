@@ -138,13 +138,14 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
       <article className="panel source-outline-candidate" data-testid="source-outline-candidate">
         <header><span>大纲候选</span><strong>{candidate ? `${candidate.status === "ready" ? "待审阅" : candidate.status === "accepted" ? "已确认" : candidate.status === "cancelled" ? "已取消" : "任务已准备"} · ${candidate.jobId.slice(0, 11)}` : "尚无候选"}</strong></header>
         <p>候选只能来自当前已确认的改编内容和大纲版本；它不会自动替换已确认内容。</p>
-        {!candidate && <Button variant="primary" disabled={readOnly || busy || !state.source} onClick={() => {
+        {(!candidate || candidate.status === "cancelled") && <Button variant="primary" disabled={readOnly || busy || !state.source} onClick={() => {
           setBusy(true); setError("");
           const session = activeProject.current;
           void plotloomApi.prepareOutlineCandidate(projectId).then(() => {
             if (ownsProject(session)) return recheck();
           }).catch((prepareError) => { if (ownsProject(session)) setError(sourceMessage(prepareError)); }).finally(() => { if (ownsProject(session)) setBusy(false); });
-        }}>{busy ? "正在准备…" : "准备大纲任务"}</Button>}
+        }}>{busy ? "正在准备…" : candidate?.status === "cancelled" ? "重新准备大纲任务" : "准备大纲任务"}</Button>}
+        {candidate?.status === "cancelled" && <p>使用已确认的来源准备新任务；原任务记录保留，发送与确认仍需单独操作。取消不会解除助手占用。</p>}
         {candidate && <>
           <small>冻结来源 r{candidate.sourceRevision} · 目标已接受大纲 r{candidate.expectedOutlineRevision}</small>
           {candidate.status === "prepared" && <SpecialistTaskActions projectId={projectId} stage="outline" jobId={candidate.jobId} disabled={readOnly || busy} onDelivered={recheck} />}

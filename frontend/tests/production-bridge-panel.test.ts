@@ -11,7 +11,7 @@ let root: Root;
 let host: HTMLDivElement;
 
 const state = (label: string, revision = 1, contentHash = "a".repeat(64), text = "", reviewState: "pending" | "author_saved" | "model_suggested" = "pending", modelSuggestion?: string): ProductionBridgeState => ({
-  status: "ready", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false,
+  status: "ready", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false, hasInstallation: false,
   proposal: {
     revision, contentHash, inputs: {}, scenes: [{ sceneId: `scene-${label}`, sectionId: label, episode: 1, sceneIndex: 1, cutCount: 1 }], cuts: [], conflicts: [], advisories: [], installable: reviewState !== "pending", preparedAt: "2026-09-22T00:00:00Z",
     intentPackage: { suggestionOrigin: reviewState === "model_suggested" || modelSuggestion ? "model_inference.v1" : "none", reviewState, provenance: reviewState === "model_suggested" || modelSuggestion ? { jobId: "fake-job" } : null, entries: [{ id: `entry-${label}`, targetKind: "scene_objective", targetId: `scene-${label}`, sourceCoordinates: { sectionId: label, episode: 1, sceneIndex: 1 }, sourceContentHash: "b".repeat(64), sourceExcerpt: `excerpt-${label}`, suggestedText: reviewState === "model_suggested" ? text : modelSuggestion ?? null, text }] },
@@ -124,7 +124,7 @@ it("ignores a late mutation from the prior project", async () => {
   vi.spyOn(plotloomApi, "prepareProductionBridge").mockReturnValue(priorPrepare.promise);
 
   await render("prior");
-  await act(async () => priorGet.resolve({ status: "missing", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false, proposal: null })); await settle();
+  await act(async () => priorGet.resolve({ status: "missing", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false, hasInstallation: false, proposal: null })); await settle();
   await act(async () => button("准备投产提案").click());
   await render("current");
   await act(async () => { priorPrepare.resolve(state("prior")); currentGet.resolve(state("current")); }); await settle();
@@ -231,4 +231,52 @@ it("opens only a current installed bridge cut without writing project state", as
   await render("other", onOpenShot); await settle();
   expect(button("在分镜工作台打开 opening-s1-c1")).toBeUndefined();
   expect(button("继续：打开第一个镜头")).toBeUndefined();
+});
+
+it("explicitly prepares a fresh stale pre-install proposal and renews semantic review", async () => {
+  const stale = { ...state("stale", 4, "b".repeat(64), "old reviewed intent", "author_saved"), status: "stale" as const, staleReasons: ["Brief changed"] };
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(stale);
+  const fresh = state("fresh", 5, "c".repeat(64));
+  const prepare = vi.spyOn(plotloomApi, "prepareProductionBridge").mockResolvedValue(fresh);
+  const accept = vi.spyOn(plotloomApi, "acceptProductionBridge");
+  await render("project"); await settle();
+  expect(button("确认投产提案").disabled).toBe(true);
+  expect(button("重新准备投产提案").disabled).toBe(false);
+  await act(async () => button("重新准备投产提案").click());
+  expect(prepare).toHaveBeenCalledExactlyOnceWith("project");
+  expect(host.textContent).toContain("提案 r5");
+  expect(button("确认投产提案").disabled).toBe(true);
+  expect(accept).not.toHaveBeenCalled();
+});
+
+it("protects local edits before preparing a replacement proposal", async () => {
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ ...state("local"), status: "stale", staleReasons: ["Source changed"] });
+  const prepare = vi.spyOn(plotloomApi, "prepareProductionBridge").mockRejectedValue(new Error("preparation refused"));
+  await render("project"); await settle();
+  const textarea = host.querySelector("textarea")!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(textarea, "retained local edit");
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(button("重新准备投产提案").disabled).toBe(true);
+  expect(textarea.value).toBe("retained local edit");
+  await act(async () => button("放弃本地编辑，保留已保存提案").click());
+  expect(button("重新准备投产提案").disabled).toBe(false);
+  await act(async () => button("重新准备投产提案").click());
+  expect(host.textContent).toContain("preparation refused");
+  expect(host.textContent).toContain("提案 r1");
+  expect(prepare).toHaveBeenCalledTimes(1);
+});
+
+it.each(["queued", "dispatched", "outcome_unknown"] as const)("does not prepare over unresolved %s intent execution", async status => {
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ ...state("blocked"), status: "stale", intentJob: { id: "job", status } as never });
+  await render("project"); await settle();
+  expect(button("重新准备投产提案").disabled).toBe(true);
+});
+
+it("keeps stale installed projects outside first-install proposal recovery", async () => {
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ ...state("installed"), status: "stale", hasInstallation: true });
+  await render("project"); await settle();
+  expect(button("重新准备投产提案")).toBeUndefined();
+  expect(button("确认投产提案").disabled).toBe(true);
 });

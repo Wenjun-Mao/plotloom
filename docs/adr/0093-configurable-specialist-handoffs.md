@@ -84,3 +84,24 @@ Test local persistence, configuration concurrency, duplicate/ambiguous sends,
 all five text stage bindings, delivery admission without creative acceptance,
 refresh/reload recovery, and same-task busy behavior. Never use live generation
 in deterministic tests. Existing accepted project content remains unchanged.
+
+## Amendment: project lifecycle admission (2026-10-04)
+
+Publication eligibility and native execution ownership are independent. Close,
+Archive, Delete and snapshot admission consult both at the project-folder registry
+boundary. A terminal publication row cannot prove that a queued/unknown native
+attempt stopped. Image sends now retain project/stage context just like text;
+retained project job identities also protect unresolved attempts whose context is
+missing. A different project's occupied slot does not block an idle project.
+
+All sends hold a shared project lease before the installation registry lock;
+transitions hold the exclusive project lease before that same lock. Registry
+operations never acquire project locks. Admission reads both active reservations
+and retained receipts: reservation-only, missing/invalid receipts and pending
+receipts after lease unlink all remain unresolved. Only existing exact validated
+terminal reconciliation may release/tombstone them. Unsent cancellation or a
+failed pre-send guard creates no execution ownership. No idle/cancellation release,
+resend, global-busy shortcut or new terminal-proof protocol is introduced.
+
+Real temporary-store regressions cover all text and image owners, publication
+terminal states, restart/crash windows and competing dispatch/lifecycle admission.

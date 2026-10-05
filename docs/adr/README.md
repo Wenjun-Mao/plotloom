@@ -44,3 +44,5 @@ Two files retain the historical number `0040`; cite each by its full slug and
 link, never by number alone. This index is a navigation aid, not a declaration
 that every unlisted ADR is obsolete or that a past evidence identity should be
 rewritten to match current code. The full decision corpus is this directory.
+
+- [0116 Current-contract recovery and duplicate scope](0116-current-contract-recovery-and-copy-scope.md)

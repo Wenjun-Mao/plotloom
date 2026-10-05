@@ -7,7 +7,7 @@ import { authoringDraftKey, blankWorkspace, headsByStage, newClientDraftOwner, r
 
 export type WorkspaceRoute = ReturnType<typeof routeFromLocation>;
 export type ConnectionState = "loading" | "connected" | "demo" | "blank" | "error";
-export type UnsafeDraft = { record: DraftRecord; reason: "archived" | "unavailable" };
+export type UnsafeDraft = { record: DraftRecord; reason: "archived" | "temporary" | "missing"; dismissed?: boolean };
 export type RouteHistoryMode = "push" | "replace" | "none";
 
 export interface WorkspaceProjectLoad {
@@ -190,6 +190,7 @@ export function useWorkspaceSession() {
       mediaTasks: newestMediaTasksByShot(incoming.media),
       stageHeads: headsByStage(incoming.stages),
       onboarding: false,
+      unsafeDraft: undefined,
     }));
   }, [updateSnapshot]);
   const rejectProjectLoad = useCallback((staleDraft: UnsafeDraft | undefined) => {

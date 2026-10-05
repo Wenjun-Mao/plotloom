@@ -57,3 +57,8 @@ prepared/uncertain jobs, consent cancellation and workspace isolation. Test
 mutation uses disposable fixtures only; the creator's two projects are preserved.
 The Chinese manual stays deferred. A broader read-only review of older contracts
 against the current runtime is a proposed follow-up, not authority for this slice.
+
+The 2026-10-04 ownership amendment to ADR 0093 makes native execution a separate
+project-specific deletion blocker, even after publication cancellation/rejection.
+Delete shares the folder registry's coordinated admission with Close, Archive
+and snapshots; it cannot erase the retained proof needed for exact reconciliation.

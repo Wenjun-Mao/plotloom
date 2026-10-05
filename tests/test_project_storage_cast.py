@@ -22,8 +22,7 @@ from plotloom.creative_handoff_exchange import canonical_json
 from plotloom.domain import utc_now
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.project_storage.composition import ProjectFolderStorage
-from plotloom.project_storage.operational_state import close_blockers
-from plotloom.project_storage.recovery import ProjectRecoveryService
+from plotloom.project_storage.operational_state import close_blockers, specialist_publication_blockers
 from plotloom.source_outline_contracts import (
     AcceptedOutlineRevision, AcceptedSectionMapRevision, SectionChoice, SectionMap,
     SourceMapGraphAdmission, SourceMaterial, SourceOutlineReviewState, SourceRevision,
@@ -204,10 +203,10 @@ def test_cast_reference_proposal_freezes_accepted_subject_without_story_bible(tm
         assert cancelled["state"] == "cancelled"
         assert cancelled["current"] is False
         assert cancelled["cancellationReason"] == "Operator stopped this exploratory handoff before delivery."
-        # Cancellation is terminal even though a late receipt may later be
-        # retained as inapplicable evidence; it cannot strand close/recovery.
+        # Publication cancellation is terminal. Native execution ownership is
+        # checked independently by lifecycle admission when a task was sent.
         assert "character_reference_publication_active" not in close_blockers(store)
-        assert "character_reference_publication_active" not in ProjectRecoveryService._specialist_blockers(store)
+        assert "character_reference_publication_active" not in specialist_publication_blockers(store)
         with pytest.raises(InvalidTransitionError, match="no longer current"):
             store.media.character_reference_proposal_package_sources(
                 store.manifest.project_id, proposal["id"]

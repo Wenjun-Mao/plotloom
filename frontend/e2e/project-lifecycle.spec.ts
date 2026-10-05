@@ -160,13 +160,19 @@ test.describe("M1-B0 real project journeys", () => {
     await page.route("**/api/v2/projects/*/duplicate", duplicateRoute);
     try {
       await openDirectory(page);
-      await projectItem(page, title).getByRole("button", { name: "复制" }).click();
+      await projectItem(page, title).getByRole("button", { name: "复制简报与规范内容" }).click();
+      await expect(page.getByRole("alertdialog")).toContainText("不复制来源与大纲");
+      await page.getByRole("button", { name: "确认复制简报与规范内容", exact: true }).click();
       await expect(page.getByRole("alert")).toContainText("E2E lost duplicate response");
       await expect(projectItem(page, title)).toBeVisible();
 
-      await projectItem(page, title).getByRole("button", { name: "复制" }).click();
+      await projectItem(page, title).getByRole("button", { name: "复制简报与规范内容" }).click();
+      await expect(page.getByRole("alertdialog")).toContainText("不复制来源与大纲");
+      await page.getByRole("button", { name: "确认复制简报与规范内容", exact: true }).click();
       await expect.poll(() => projectIdFromPage(page)).not.toBe(sourceId);
       await expect(page.getByLabel("片名")).toHaveValue(title);
+      await expect(page.getByRole("status").filter({ hasText: "已创建" })).toContainText("仅项目简报");
+      await expect(page.getByRole("status").filter({ hasText: "已创建" })).toContainText("原项目保持不变");
 
       await openDirectory(page);
       const directory = page.getByRole("dialog", { name: "项目目录" });

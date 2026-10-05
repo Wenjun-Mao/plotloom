@@ -136,13 +136,14 @@ class SpecialistRegistry:
             data = self._read()
             self._complete_owned(data, job_id, self._owned_dispatch(data, job_id))
 
-    def assert_image_terminal_identity(self, job_id: str, task_id: str):
+    def assert_image_terminal_identity(self, job_id: str, task_id: str, *, project_id: str, target: str):
         with self.lock():
-            self._image_terminal_dispatch(self._read(), job_id, task_id)
+            self._image_terminal_dispatch(self._read(), job_id, task_id, project_id=project_id, target=target)
 
-    def _image_terminal_dispatch(self, data, job_id, task_id, terminal_record=None):
+    def _image_terminal_dispatch(self, data, job_id, task_id, *, project_id, target, terminal_record=None):
         dispatch = self._owned_dispatch(data, job_id, terminal_record=terminal_record)
-        if dispatch is None or dispatch[0] != task_id or job_id in data.get("jobs", {}):
+        stage = {"image_job": "image", "character_reference_proposal": "character-reference", "art_reference_proposal": "art-reference"}[target]
+        if dispatch is None or dispatch[0] != task_id or data.get("jobs", {}).get(job_id) != {"projectId": project_id, "stage": stage}:
             raise ImageJobError("image_terminal_dispatch_identity", "终止声明不匹配保留的图像发送记录；保留预约。")
         return dispatch
 
@@ -150,7 +151,7 @@ class SpecialistRegistry:
         """Persist validated proof before exact release; never infer termination."""
         with self.lock():
             data = self._read()
-            dispatch = self._image_terminal_dispatch(data, job_id, record["marker"]["taskId"], terminal_record=record)
+            dispatch = self._image_terminal_dispatch(data, job_id, record["marker"]["taskId"], project_id=record["projectId"], target=record["target"], terminal_record=record)
             task_id, receipt, value = dispatch
             prior = value.get("terminalSettlement")
             if prior is not None and prior != record:

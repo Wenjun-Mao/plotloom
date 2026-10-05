@@ -29,7 +29,7 @@ beforeEach(() => {
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
   vi.spyOn(plotloomApi, "getImageJobs").mockResolvedValue({ configured: false, jobs: [exportedJob] });
   vi.spyOn(plotloomApi, "getCharacterReferenceProposals").mockResolvedValue({ configured: false, proposals: [] });
-  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ status: "missing", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false, proposal: null });
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ status: "missing", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false, hasInstallation: false, proposal: null });
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({ enabled: false, qualifiedDurationSeconds: [5, 8] });
   vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
 });

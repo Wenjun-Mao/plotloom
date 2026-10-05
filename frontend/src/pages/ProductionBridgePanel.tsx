@@ -21,6 +21,7 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { pro
   const [state, setState] = useState<ProductionBridgeState>();
   const [intentEntries, setIntentEntries] = useState<ProductionBridgeIntentEntry[]>([]);
   const [presentationDirty, setPresentationDirty] = useState(false);
+  const [presentationEditorNonce, setPresentationEditorNonce] = useState(0);
   const [presentationTouched, setPresentationTouched] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -103,11 +104,11 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { pro
     return () => { stopped = true; clearTimeout(timer); };
   }, [projectId, job?.id, job?.status, busy]);
 
-  const run = (operation: () => Promise<ProductionBridgeState>, adoptResult = false) => {
+  const run = (operation: () => Promise<ProductionBridgeState>, adoptResult = false, resetPresentation = false) => {
     const request = beginRequest();
     setBusy(true); setError("");
     void operation()
-      .then(next => { if (owns(request)) { if (adoptResult) adopt(next); else setState(next); } })
+      .then(next => { if (owns(request)) { if (adoptResult) adopt(next); else setState(next); if (resetPresentation) { setPresentationTouched(false); setPresentationEditorNonce(value => value + 1); } } })
       .catch(reason => { if (owns(request)) setError(reason instanceof Error ? reason.message : "投产提案操作失败。"); })
       .finally(() => { if (owns(request)) setBusy(false); });
   };
@@ -120,12 +121,17 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { pro
   const unsaved = intentDirty || draftConflict || presentationDirty;
   const firstCut = proposal?.cuts.map(bridgeCut).find(cut => cut !== undefined);
   const activeJob = job?.status === "queued" || job?.status === "dispatched";
+  const unresolvedJob = activeJob || job?.status === "outcome_unknown";
+  const localEdits = intentDirty || draftConflict || (presentationTouched && presentationDirty);
+  const canPrepare = state.hasInstallation === false && (!proposal || state.status === "stale");
   return <section className="panel cast-panel" data-testid="production-bridge">
     <header><span>投产提案</span><strong>{state.status === "accepted" ? "投产提案已确认" : state.status === "stale" ? "上下文已过期" : "待确认"}</strong></header>
     {state.simulationLabel && <div className="notice warning" data-testid="bridge-fake-banner">{state.simulationLabel}</div>}
     <p>将已接受的故事、剧本与分镜证据整理成待审阅的投产提案。戏剧意图须单独推断或由作者填写；这里不会批准镜头、选择参考、创建资产或发起媒体任务。</p>
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
-    {!proposal && <Button variant="primary" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.prepareProductionBridge(projectId), true)}>准备投产提案</Button>}
+    {canPrepare && <><Button variant="primary" disabled={readOnly || busy || localEdits || unresolvedJob} onClick={() => run(() => plotloomApi.prepareProductionBridge(projectId), true, true)}>{proposal ? "重新准备投产提案" : "准备投产提案"}</Button>
+      {proposal && <p>按当前来源新建提案，保留旧版本；戏剧意图与呈现归属需要重新审阅。{localEdits ? "请先复制所需文字，再明确放弃本地编辑。" : unresolvedJob ? "仍有执行中或结果不明的意图任务，暂不能重新准备。" : ""}</p>}
+      {proposal && localEdits && <Button disabled={busy || readOnly} onClick={() => { adopt(state); setPresentationTouched(false); setPresentationDirty(false); setPresentationEditorNonce(value => value + 1); }}>放弃本地编辑，保留已保存提案</Button>}</>}
     {proposal && <>
       <p><small>提案 r{proposal.revision} · {proposal.scenes.length} 个场次 · {proposal.cuts.length} 个镜头</small></p>
       {proposal.conflicts.map((conflict, index) => <div className="notice warning" key={`${conflict.code}-${index}`}>{userFacingBridgeMessage(conflict.message)}</div>)}
@@ -149,10 +155,10 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { pro
         {state.status !== "accepted" && <Button disabled={readOnly || busy || !intentDirty || draftConflict || intentEntries.some(entry => !entry.text.trim())} onClick={() => run(() => plotloomApi.updateProductionBridgeIntent(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash, entries: intentEntries.map(entry => ({ id: entry.id, text: entry.text })) }), true)}>保存戏剧意图整包</Button>}
         {state.status !== "accepted" && unsaved && <p><small>当前编辑未保存或提案已变化；保存并刷新前，不能确认投产提案。</small></p>}
       </details>
-      <ProductionPresentationReview projectId={projectId} proposal={proposal} accepted={state.status === "accepted"} disabled={readOnly || busy || activeJob || state.status === "stale" || intentDirty || draftConflict} onSaved={adopt} onDirty={setPresentationDirty} onEdited={() => setPresentationTouched(true)} onBusy={setBusy} />
+      <ProductionPresentationReview key={`${projectId}:${presentationEditorNonce}`} projectId={projectId} proposal={proposal} accepted={state.status === "accepted"} disabled={readOnly || busy || activeJob || state.status === "stale" || intentDirty || draftConflict} onSaved={adopt} onDirty={setPresentationDirty} onEdited={() => setPresentationTouched(true)} onBusy={setBusy} />
       <details><summary>技术详情（版本、来源与冻结输入）</summary><code>{proposal.contentHash}</code>{job && <p><small>推断任务 {job.id} · 配置 {job.profileId} r{job.profileVersion} · 提示 v{job.promptVersion}</small></p>}{proposal.intentPackage.provenance && <p><small>建议来源任务：{String(proposal.intentPackage.provenance.jobId ?? "")}</small></p>}</details>
       <p>确认后，将建立后续制作使用的场景与镜头数据；不会自动生成图片或视频。</p>
-      {state.status !== "accepted" && <Button variant="primary" disabled={readOnly || busy || !proposal.installable || unsaved} onClick={() => run(() => plotloomApi.acceptProductionBridge(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash }))}>确认投产提案</Button>}
+      {state.status !== "accepted" && <Button variant="primary" disabled={readOnly || busy || !proposal.installable || unsaved || state.status === "stale" || state.hasInstallation} onClick={() => run(() => plotloomApi.acceptProductionBridge(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash }))}>确认投产提案</Button>}
       {state.status !== "accepted" && !proposal.installable && <p>请先完成戏剧意图与呈现归属审阅，并显式解决项目规划冲突；系统不会拆分场次或静默改写规则。</p>}
       {state.status === "accepted" && <StageGuide next={state.installedStoryboardCurrent && state.staleReasons.length === 0 && firstCut && onOpenShot && <Button variant="primary" onClick={() => { if (onOpenShot(firstCut.shotId) === false) setError("来源文字仍有未保存的编辑；请先保存或明确放弃，再打开投产镜头。"); }}>继续：打开第一个镜头</Button>}>
         {state.installedStoryboardCurrent

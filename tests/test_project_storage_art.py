@@ -24,8 +24,7 @@ from plotloom.exceptions import NotFoundError
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.project_storage.format import ProjectStorageCorruptionError
 from plotloom.project_storage.operational_state import ProjectBusyError
-from plotloom.project_storage.operational_state import close_blockers
-from plotloom.project_storage.recovery import ProjectRecoveryService
+from plotloom.project_storage.operational_state import close_blockers, specialist_publication_blockers
 from plotloom.project_storage.video_candidate_transition import (
     ProjectSchemaTransitionRequiredError,
     project_schema_status,
@@ -614,7 +613,7 @@ def test_f5a_freezes_current_f4_identity_blocks_lifecycle_and_refuses_late_deliv
             {"sectionId": "opening", "episode": 1}, {"sectionId": "ending-a", "episode": 2}, {"sectionId": "ending-b", "episode": 3},
         ]
         assert "storyboard_review_publication_active" in close_blockers(store)
-        assert "storyboard_review_publication_active" in ProjectRecoveryService._specialist_blockers(store)
+        assert "storyboard_review_publication_active" in specialist_publication_blockers(store)
         store.close()
         with pytest.raises(ProjectBusyError, match="storyboard_review_publication_active"):
             storage.recovery.create_snapshot(project_id)
@@ -685,7 +684,7 @@ def test_f5a_uses_a_distinct_source_review_api_not_the_canonical_storyboard_revi
     assert prepared.json()["assignment"].startswith("Plotloom F5A storyboard review assignment")
     bridge = client.get(f"/api/v2/projects/{project_id}/production-bridge")
     assert bridge.status_code == 200, bridge.text
-    assert bridge.json() == {"proposal": None, "status": "missing", "staleReasons": [], "installedStageRevisions": None, "installedStoryboardCurrent": False, "intentJob": None, "simulationLabel": None, "runtimeChoice": None}
+    assert bridge.json() == {"proposal": None, "status": "missing", "staleReasons": [], "installedStageRevisions": None, "installedStoryboardCurrent": False, "hasInstallation": False, "intentJob": None, "simulationLabel": None, "runtimeChoice": None}
 
 
 def test_f5a_explicit_longer_cut_review_survives_restart_and_preserves_old_policy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

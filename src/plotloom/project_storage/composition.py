@@ -30,8 +30,13 @@ class ProjectFolderStorage:
             raise ProjectStorageConfinementError(
                 "outputs and application data roots must be separate, non-overlapping directories"
             )
-        self.projects = ProjectDirectoryRegistry(outputs_root)
         self.application = ApplicationStore(application_data_root)
+        from ..specialist_ownership import project_execution_blockers
+
+        self.projects = ProjectDirectoryRegistry(
+            outputs_root, native_ownership=lambda project_id, jobs: project_execution_blockers(
+                self.application.root, project_id, jobs),
+        )
         self.lifecycle = ProjectFolderLifecycleService(self.projects, self.application)
         self.recovery = ProjectRecoveryService(self.projects.outputs_root, self.projects)
 

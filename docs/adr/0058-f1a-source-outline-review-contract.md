@@ -67,3 +67,7 @@ it is out of scope here.
   still publish.
 - Rights and attribution are captured verbatim as supplied.  The product makes
   no clearance or ownership assertion from them.
+
+The 2026-10-04 recovery amendment (ADR 0116) exposes new preparation after first
+candidate cancellation, preserving confirmed Source, old candidate/pin history and
+independent native execution ownership (ADR 0093). Preparation never resends or accepts.

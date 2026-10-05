@@ -19,6 +19,6 @@ def register_image_send_route(app: FastAPI, opened_project: Callable, dispatcher
                 references=package_references(store, source["references"], character_roles=True),
             )
             exported = []
-            dispatcher.dispatch(job_id=job_id, package_path=package["packagePath"], delivery_path=package["deliveryPath"],
+            dispatcher.dispatch(context={"projectId": project_id, "stage": "image"}, job_id=job_id, package_path=package["packagePath"], delivery_path=package["deliveryPath"],
                 before_send=lambda: exported.append(store.media.mark_image_job_exported(project_id, job_id, require_prepared=True)))
             return {"job": exported[0], **package}

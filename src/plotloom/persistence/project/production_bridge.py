@@ -169,11 +169,15 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
             )
             job = session.scalar(select(ProductionBridgeIntentJobRow).where(ProductionBridgeIntentJobRow.project_id == project_id).order_by(ProductionBridgeIntentJobRow.created_at.desc(), ProductionBridgeIntentJobRow.id.desc()).limit(1))
             job_view = ProductionBridgeIntentJob(id=job.id, status=job.status, proposal_revision=job.proposal_revision, proposal_content_hash=job.proposal_content_hash, profile_id=job.profile_snapshot["profileId"], profile_version=job.profile_snapshot["profileVersion"], prompt_version=job.prompt_trace["prompt_version"], created_at=job.created_at, updated_at=job.updated_at, error_code=job.error_code, error_message=job.error_message, result_proposal_revision=job.result_proposal_revision, provider_request_id=job.provider_request_id, response_hash=job.response_hash) if job else None
-            return ProductionBridgeState(proposal=proposal, status="stale" if stale else head.status, stale_reasons=stale, installed_stage_revisions=admission.installed_stage_revisions if admission and not stale else None, installed_storyboard_current=installed_storyboard_current, intent_job=job_view, runtime_choice=row.proposal["presentation"]["runtimeChoice"] if row and row.proposal.get("presentation", {}).get("reviewed") and installed_storyboard_current else None)
+            return ProductionBridgeState(proposal=proposal, status="stale" if stale else head.status, stale_reasons=stale, installed_stage_revisions=admission.installed_stage_revisions if admission and not stale else None, installed_storyboard_current=installed_storyboard_current, has_installation=admission is not None, intent_job=job_view, runtime_choice=row.proposal["presentation"]["runtimeChoice"] if row and row.proposal.get("presentation", {}).get("reviewed") and installed_storyboard_current else None)
 
     def prepare(self, project_id: str) -> ProductionBridgeState:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id)); head = self._head(session, project_id)
+            if session.scalar(select(ProductionBridgeAdmissionRow.id).where(ProductionBridgeAdmissionRow.project_id == project_id).limit(1)):
+                raise InvalidTransitionError("production bridge preparation is limited to before first installation")
+            if session.scalar(select(ProductionBridgeIntentJobRow.id).where(ProductionBridgeIntentJobRow.project_id == project_id, ProductionBridgeIntentJobRow.status.in_(("queued", "dispatched", "outcome_unknown"))).limit(1)):
+                raise InvalidTransitionError("unresolved production bridge intent execution prevents fresh preparation")
             inputs, storyboard, script, cast_art = self._context(session, project_id)
             payload, intent_package, conflicts, advisories, scenes, cuts = self._build(session, project_id, inputs=inputs, storyboard=storyboard, script=script, cast_and_art=cast_art)
             presentation = prepare_presentation(inputs=inputs, script=script, storyboard=storyboard, mapping=cast_art["__section_map__"])

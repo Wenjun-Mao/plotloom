@@ -108,6 +108,30 @@ def close_blockers(store: object) -> list[str]:
         blockers.append("nonterminal_media_task")
     if active_video is not None:
         blockers.append("nonterminal_video_job")
+    blockers.extend(specialist_publication_blockers(store))
+    return blockers
+
+
+def retained_specialist_job_ids(store: object) -> set[str]:
+    repository = store.repository
+    project_id = store.manifest.project_id
+    jobs = set()
+    with repository.engine.connect() as connection:
+        for table in ("v2_source_outline_candidates", "v2_cast_candidates", "v2_art_candidates",
+                      "v2_script_candidates", "v2_storyboard_review_candidates"):
+            jobs.update(row[0] for row in connection.exec_driver_sql(
+                f"SELECT job_id FROM {table} WHERE project_id = ?", (project_id,)))
+    for records in (store.media.list_image_jobs(project_id),
+                    store.media.list_character_reference_proposals(project_id),
+                    store.media.list_art_reference_proposals(project_id)):
+        jobs.update(record.get("jobId", record.get("proposalId", record.get("id"))) for record in records)
+    return jobs - {None}
+
+
+def specialist_publication_blockers(store: object) -> list[str]:
+    media = store.media
+    project_id = store.manifest.project_id
+    blockers: list[str] = []
     # Manual image and character-reference packages are filesystem publications.
     # Their exported/prepared states cannot prove the external specialist is idle,
     # so close fails closed until they become delivery/rejection terminal records.
