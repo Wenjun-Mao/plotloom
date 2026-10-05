@@ -8,8 +8,17 @@ test("unchanged original synopsis confirms without direction and freezes existin
   const synopsis = "许宁在小院决定放飞纸飞机，或把它收好后离开。";
   await page.getByLabel("片名").fill("风里的纸飞机");
   await page.getByLabel("故事梗概").fill(synopsis);
-  await page.getByLabel("类型", { exact: true }).fill("生活短片");
-  await page.getByLabel("视觉风格").fill("真人写实，柔和自然光");
+  await expect(page.getByRole("region", { name: "类型", exact: true })).toContainText("尚未选择");
+  await page.getByRole("button", { name: "科幻", exact: true }).click();
+  await page.getByLabel("题材背景自定义", { exact: true }).fill("小院传奇");
+  await page.getByLabel("题材背景自定义", { exact: true }).press("Enter");
+  await page.getByRole("button", { name: "真人写实", exact: true }).click();
+  await page.getByRole("button", { name: "暖色", exact: true }).click();
+  await page.getByRole("button", { name: "移除暖色", exact: true }).click();
+  await expect(page.getByRole("button", { name: "暖色", exact: true })).toHaveAttribute("aria-pressed", "false");
+  await page.getByRole("button", { name: "暖色", exact: true }).click();
+  await page.getByLabel("类型细节（可选）", { exact: false }).fill("生活短片");
+  await page.getByLabel("视觉风格细节（可选）", { exact: false }).fill("真人写实，柔和自然光");
   await page.getByLabel("目标游玩时长（秒）").fill("30");
   await page.getByRole("button", { name: "保存并继续到来源" }).click();
   await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
@@ -26,6 +35,17 @@ test("unchanged original synopsis confirms without direction and freezes existin
   expect(saved.candidate).toBeNull();
   expect(saved.acceptedOutline).toBeNull();
 
+  await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "移除小院传奇", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "移除科幻", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "移除真人写实", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "移除暖色", exact: true })).toBeVisible();
+  await expect(page.getByLabel("类型细节（可选）", { exact: false })).toHaveValue("生活短片");
+  await expect(page.getByLabel("视觉风格细节（可选）", { exact: false })).toHaveValue("真人写实，柔和自然光");
+  await page.getByRole("button", { name: "返回来源与大纲", exact: true }).click();
+  await expect(page.getByLabel("故事内容")).toHaveValue(synopsis);
+
   const prepare = page.waitForResponse(response => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/source-outline/candidates`);
   await page.getByRole("button", { name: "准备大纲任务" }).click();
@@ -38,8 +58,9 @@ test("unchanged original synopsis confirms without direction and freezes existin
   expect(briefSynopsis).toBe(synopsis);
   expect(frozen.source.text).toBe(synopsis);
   expect(frozen.source.adaptationIntent).toBe("");
-  expect(frozen.inputArtifacts["outline-settings.json"]).toEqual(settings);
-  expect(JSON.parse(await readFile(path.join(prepared.packagePath, "inputs", "outline-settings.json"), "utf8"))).toEqual(settings);
+  const generationSettings = { ...settings, genre: "科幻；小院传奇；生活短片", visualStyle: "真人写实；暖色；真人写实，柔和自然光" };
+  expect(frozen.inputArtifacts["outline-settings.json"]).toEqual(generationSettings);
+  expect(JSON.parse(await readFile(path.join(prepared.packagePath, "inputs", "outline-settings.json"), "utf8"))).toEqual(generationSettings);
   expect(settings).toMatchObject({ targetPlaythroughSeconds: 30, genre: "生活短片", visualStyle: "真人写实，柔和自然光" });
   expect((await (await request.get(`${base}/source-outline`)).json()).acceptedOutline).toBeNull();
 });

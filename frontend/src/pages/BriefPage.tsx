@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ProjectBrief, StoryBible, StoryGraph } from "../types";
 import { Button, Field, PageHeader, Panel } from "../components";
 import { DirectionPresets, genreGroups, visualGroups } from "./DirectionPresets";
-import { ContextHelp } from "../components/ContextHelp";
+import { ContextHelp, ContextHelpGroup } from "../components/ContextHelp";
 import { StageGuide } from "../components/StageGuide";
 
 type BriefPageProps = {
@@ -76,13 +76,13 @@ export function BriefPage({ value, hasSavedProject, saving, readOnly = false, on
           <details open>
             <summary>剧情结构与分镜</summary>
             <p className="action-prerequisite">这些设置决定完整播放路线的结构。系统先检查可行性，再由助手填入剧情；无法实现的组合会说明原因，不会静默修改设置。镜头偏好用于后续分镜。</p>
-          <div className="field-grid two">
+          <ContextHelpGroup><div className="field-grid two">
             <div className="structural-setting"><div><span>每次完整播放的选择次数</span><ContextHelp label="每次完整播放的选择次数">观众从开场看到结局，途中需要做几次选择；不是每次选择的选项数量。</ContextHelp></div><input aria-label="每次完整播放的选择次数" disabled={readOnly || saving} type="number" min={0} value={draft.decisionPointsPerPath} onChange={event => numeric("decisionPointsPerPath", event.target.value)} /></div>
             <div className="structural-setting"><div><span>不同结局的数量</span><ContextHelp label="不同结局的数量">故事包含多少个不同结局；多条播放路线可以通往同一个结局。</ContextHelp></div><input aria-label="不同结局的数量" disabled={readOnly || saving} type="number" min={1} value={draft.endingCount} onChange={event => numeric("endingCount", event.target.value)} /></div>
             <div className="structural-setting"><div><span>剧情节点数量上限</span><ContextHelp label="剧情节点数量上限">整个故事可使用多少个剧情节点，包括开场、发展、选择、汇合和结局；不是分镜镜头数量。</ContextHelp></div><input aria-label="剧情节点数量上限" disabled={readOnly || saving} type="number" min={1} value={draft.nodeBudget} onChange={event => numeric("nodeBudget", event.target.value)} /></div>
             <div className="structural-setting"><div><span>每次选择的最多选项数</span><ContextHelp label="每次选择的最多选项数">一个选择点最多可以提供几个选项；不是完整播放路线的总数。</ContextHelp></div><input aria-label="每次选择的最多选项数" disabled={readOnly || saving} type="number" min={1} max={6} value={draft.maxOutDegree} onChange={event => numeric("maxOutDegree", event.target.value)} /></div>
             <div className="structural-setting"><div><span>分支汇合次数</span><ContextHelp label="分支汇合次数">整个故事安排多少个汇合点；分开的播放路线在此汇合，之后共用后续剧情。</ContextHelp></div><input aria-label="分支汇合次数" disabled={readOnly || saving} type="number" min={0} value={draft.desiredJoinCount} onChange={event => numeric("desiredJoinCount", event.target.value)} /></div>
-          </div>
+          </div></ContextHelpGroup>
           <div className="range-summary"><span>每场分镜</span><strong>{draft.shotsPerSceneMin}–{draft.shotsPerSceneMax}</strong></div>
           <div className="field-grid two compact">
             <Field label="最少"><input type="number" min={1} value={draft.shotsPerSceneMin} onChange={(event) => numeric("shotsPerSceneMin", event.target.value)} /></Field>

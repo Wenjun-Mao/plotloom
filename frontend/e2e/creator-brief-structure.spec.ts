@@ -57,6 +57,16 @@ test("returns to the current Brief and rejects a branch proposal frozen before s
     await page.keyboard.press("Escape");
     await help.click();
     await expect(tooltip).toBeVisible();
+    const endingHelp = page.getByLabel("说明：不同结局的数量", { exact: true });
+    await endingHelp.click();
+    await expect(endingHelp).toHaveAttribute("aria-expanded", "true");
+    await help.focus();
+    await expect(tooltip).toBeVisible();
+    await expect(endingHelp).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByRole("tooltip")).toHaveCount(1);
+    await help.click();
+    await expect(tooltip).toBeVisible();
+    await expect(page.getByRole("tooltip")).toHaveCount(1);
     const bounds = await tooltip.boundingBox();
     expect(bounds).not.toBeNull();
     expect(bounds!.x).toBeGreaterThanOrEqual(0);
