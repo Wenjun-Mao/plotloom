@@ -4,13 +4,15 @@ This manual explains the engineering choices behind the Spark H3 stack. It is
 not a client API guide; colleagues who need the typed private API should use
 the [gateway client guide](../../../docs/operations/minimax-h3-gateway-client-guide.md).
 
-The adjacent [runtime adoption manifest](../h3-runtime-038-adoption.v1.yaml)
-records the live image and rollback boundary. The original
+The adjacent [D adoption manifest](../h3-vae-d-adoption.v1.yaml)
+records live precision, mounts and immediate rollback. The
+[September runtime manifest](../h3-runtime-038-adoption.v1.yaml) records the
+unchanged foundation image. The original
 [installation manifest](../h3-current-installation.v1.yaml) is retained historical
 asset/runtime evidence, not today's recipe status. Observed facts remain distinct
 from qualification so that a plausible video cannot hide a configuration mismatch.
 
-**Current status (2026-09-30):** the quality/resolution contract in
+**Current status (2026-10-06):** the quality/resolution contract in
 [ADR 0070](../../../docs/adr/0070-h3-quality-resolution-contract.md) is deployed;
 the early recipe-comparison discussion below is historical rationale, not
 today's outstanding task. Quality 1 defaults to V1.2 Turbo4/Euler/6/3.
@@ -20,6 +22,22 @@ directory remain preserved for rollback. The owner reported no visible quality
 difference across the original pairs. This is not a general quality improvement
 or a fix for Voice Lab's separate CUDA issue. See the
 [adoption receipt](../../../docs/verification/2026-09-30-h3-comfy038-maintenance-adoption.md).
+
+D now adds the official INT8 ConvRot video VAE, explicit **video FP16** and
+`--fast fp16_accumulation` to that same runtime. Global `--bf16-vae` and stock
+audio's FP32 checkpoint/**BF16 computation** stay unchanged. A maintained small
+loader owns the video-only precision and disk-backed clone/reload factory;
+this is not a global dtype monkeypatch. All qualities 1/2/3/8 and Ref2VA share
+it without changing their samplers, shifts, steps or frame conditioning.
+See [ADR 0098](../../../docs/adr/0098-h3-video-only-vae-precision.md) and the
+[D receipt](../../../docs/verification/2026-10-06-h3-vae-d-adoption.md).
+
+The owner saw no quality difference in the three matched A/D pairs. The bounded
+screen's total time improved approximately 8–11% on its two quality-1 clips and
+3% on its Ref2VA clip; these are single-case measurements, not throughput or
+all-quality promises. Official numerical measurements support the choice but
+do not substitute for portrait/voice perception or prove general memory safety.
+The new managed canaries check deployment integrity, not a new creative vote.
 
 ## 1. System boundaries
 
@@ -77,6 +95,7 @@ These two layers are intentionally separate.
 | ComfyUI/Torch/CUDA revisions | FL2VA or another supported H3 family |
 | GPU and attention backend | exact LoRA asset and checksum |
 | BF16 choices and memory reservation | LoRA strength |
+| Video-only FP16/INT8 VAE and `fp16_accumulation` | frozen VAE-policy binding |
 | `--fast fp8_matrix_mult` experiment | steps, video/audio shifts |
 | container image and host mounts | sampler, scheduler, denoise |
 

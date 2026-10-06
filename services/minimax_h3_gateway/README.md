@@ -23,8 +23,10 @@ shared operational boundary: the durable, one-active-inference FIFO.
 For the underlying Spark/ComfyUI engine rather than the gateway API, use the
 [reproducible H3 setup guide](docs/h3-reproducible-setup.md), the
 [H3 rationale and operations manual](docs/h3-rationale-and-operations.md), and
-the secret-free [runtime adoption manifest](h3-runtime-038-adoption.v1.yaml).
-ComfyUI 0.38.0 is live after bounded maintenance adoption, with the original
+the secret-free [D adoption manifest](h3-vae-d-adoption.v1.yaml).
+ComfyUI 0.38.0 is unchanged from its [September foundation](h3-runtime-038-adoption.v1.yaml).
+D adds a maintained video-only FP16/INT8 loader and FP16 accumulation while
+global/audio BF16 remains unchanged; original containers are retained. The original
 0.35 image/container/user directory preserved. The
 [installation inventory](h3-current-installation.v1.yaml) captures historical
 foundation assets; it is not today's runtime or recipe status. New work uses the

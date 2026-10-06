@@ -28,7 +28,11 @@ unsafe or easily stale deployment recipe.
 The underlying Spark/ComfyUI installation is documented separately from this
 gateway runbook: [reproducible setup guide](../../services/minimax_h3_gateway/docs/h3-reproducible-setup.md),
 [rationale and operations manual](../../services/minimax_h3_gateway/docs/h3-rationale-and-operations.md),
-and [current-installation manifest](../../services/minimax_h3_gateway/h3-current-installation.v1.yaml).
+and [current D adoption manifest](../../services/minimax_h3_gateway/h3-vae-d-adoption.v1.yaml).
+The [original installation inventory](../../services/minimax_h3_gateway/h3-current-installation.v1.yaml)
+is historical. D uses the same ComfyUI image with a repository-owned video
+FP16/INT8 loader, global/audio BF16 and `--fast fp16_accumulation`; no public
+creation contract changes. See [ADR 0098](../adr/0098-h3-video-only-vae-precision.md).
 The qualification manifests record the evidence behind the currently admitted
 quality paths. A running H3 container alone is never proof of creative
 acceptance.

@@ -85,6 +85,10 @@ class _Comfy:
 
 def _object_info() -> dict[str, Any]:
     result = {
+        "PlotloomH3VideoVAELoader": {"input": {"required": {
+            "vae_name": [["minimax_h3_video_vae_int8_convrot.safetensors"]],
+            "policy": [["h3-int8-video-fp16-audio-bf16.v1"]],
+        }}},
         "UNETLoader": {"input": {"required": {"unet_name": [[
             "minimax_h3_fl2va_pruned_fp8_scaled.safetensors",
             "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
@@ -157,6 +161,10 @@ def test_voice_multipart_admission_and_frozen_ref2va_graph(tmp_path: Path) -> No
     assert "voiceReferenceSha256" not in client.get(f"/v1/video-jobs/{body['id']}", headers=AUTH).json()
     assert gateway.dispatch_once()["status"] == "submitted"
     graph = comfy.submissions[0]["prompt"]
+    assert graph["105:11"]["class_type"] == "PlotloomH3VideoVAELoader"
+    assert graph["105:11"]["inputs"]["policy"] == "h3-int8-video-fp16-audio-bf16.v1"
+    assert graph["105:24"] == {"class_type": "VAELoader", "inputs": {
+        "vae_name": "minimax_h3_audio_vae_fp32.safetensors"}}
     assert graph["105:6"]["inputs"]["unet_name"] == "minimax_h3_ref2va_pruned_int8_convrot.safetensors"
     assert graph["105:104"]["class_type"] == "MiniMaxH3ReferenceToVideo"
     assert graph["105:104"]["inputs"]["ref_audios.ref_audio_0"] == ["voice_reference_audio", 0]

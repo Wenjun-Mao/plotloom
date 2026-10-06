@@ -1,0 +1,93 @@
+manifestVersion: 1
+kind: minimax_h3_video_only_vae_adoption
+capturedAt: "2026-10-06"
+status: adopted_on_spark
+evidence: ../../docs/verification/2026-10-06-h3-vae-d-adoption.md
+foundation: h3-runtime-038-adoption.v1.yaml
+
+runtime:
+  container: spark-comfyui
+  containerId: 8542065d40cb5226eb50ecfbd838565e264fe8c2b02c0efe604d1af68b68354e
+  imageId: sha256:db0010004575a508b5ac67fb36ea4ab83cf1964a84e70932019749f330c64110
+  comfyCommit: 6b747c0428c343e1417219641db93a4fb7cb69ae
+  comfyVersion: 0.38.0
+  unchangedGpuStack: true
+  policy:
+    attention: sage
+    globalVae: bfloat16
+    unet: bfloat16
+    textEncoder: bfloat16
+    fast: [fp16_accumulation]
+    dynamicVram: true
+    shm: 16g
+    publishedBind: 127.0.0.1:8188
+    restart: unless-stopped
+  modelRoot: /home/wjmao/models/comfyui-h3
+  modelsMountedReadOnly: true
+  userRoot: /home/wjmao/services/spark-comfyui/data/user-v038
+  customNode:
+    name: PlotloomH3VideoVAELoader
+    version: 1
+    releaseRoot: /home/wjmao/services/plotloom-h3-gateway/releases/h3-vae-d-20261006
+    relativePath: services/minimax_h3_gateway/comfy_nodes/plotloom_h3_video_vae
+    mount: /opt/ComfyUI/custom_nodes/plotloom_h3_video_vae
+    readOnly: true
+    loaderSha256: d586f0ec923a4f7c64f6c8353740610f7d0977e8ff48fa83cf432b25363be628
+    initSha256: 873880fc5201198e6c35bbc261bea644b15caa2b43075a37b001b66b97228c55
+
+vae:
+  policyId: h3-int8-video-fp16-audio-bf16.v1
+  video:
+    checkpoint: minimax_h3_video_vae_int8_convrot.safetensors
+    sourceRepository: Comfy-Org/MiniMax-H3
+    sourceRevision: e5eb578a89295337b8ff433a035929ce0279e0b6
+    sourcePath: vae/minimax_h3_video_vae_int8_convrot.safetensors
+    bytes: 2811065184
+    sha256: 52a2c8c73583c86e4f41cdcce3a6ad0ea562987bc0bf3d60a0cef5f5c8e60c0e
+    floatingCompute: float16
+    quantization: int8_convrot
+  audio:
+    checkpoint: minimax_h3_audio_vae_fp32.safetensors
+    storage: float32
+    compute: bfloat16
+    loader: VAELoader
+    unchanged: true
+
+gateway:
+  container: plotloom-h3-gateway
+  imageTag: plotloom-h3-gateway:vae-d-20261006
+  imageId: sha256:f833c3469ea62c94c428ea5d98e0e8236fc317dd6a6721a8a4f7c7d51e6ad692
+  sourceOnlyOverlay: true
+  dependenciesReinstalled: false
+  publicOrdinaryVersion: 6
+  publicVoiceVersion: 1
+  frozenOrdinaryRendererVersion: 4
+  frozenVoiceRendererVersion: 2
+  templateSha256: 9233c8c13940ef4e42c6d148194c991199a6cdb6c1c514b20f51fc4983211a5d
+  qualityRecipesChanged: false
+  coveredQualityBindings: [1, 2, 3, 8]
+  ref2vaBinding: same_video_policy
+
+rollback:
+  comfyContainer: spark-comfyui-bf16-rollback-20261006
+  comfyContainerId: de1852111968ab97c86e2bd1edd76687ee5c6f422e9f88c5747d427f38268bd0
+  comfyImageId: sha256:db0010004575a508b5ac67fb36ea4ab83cf1964a84e70932019749f330c64110
+  gatewayContainer: plotloom-h3-gateway-before-vae-d-20261006
+  gatewayImageId: sha256:39ed1ad84851572b3f36287ae37ea28a700db50edae1e86a285c64927b4ccc78
+  stoppedAndPreserved: true
+  priorFp16VideoCheckpointPreserved: true
+  historicalV035RollbackPreserved: true
+  entrypoint: tools/vae_adoption/deploy.py restore
+
+boundary:
+  qualification: bounded A/D review plus GPU lifecycle and two managed clips
+  notClaimed: general quality, multi-GPU clone, all-quality speed or memory safety
+  plotloomIntegrationAndDirectorContact: held
+  mergeAndPush: held
+
+verification:
+  lifecycle: video_fp16_through_clone_reload_offload_and_audio_bf16
+  managedCanaries: 2_passed_no_replay
+  idleRestart: passed_same_container_identities
+  publishedVoicesAndTakes: unchanged_3_voices_2_takes
+  supportingProof: ../../docs/verification/supporting/h3-vae-d-adoption-20261006.json

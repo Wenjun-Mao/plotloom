@@ -15,9 +15,10 @@ from .profile_catalog import (
     H3Resolution,
     frame_count_for_duration_seconds,
 )
+from .vae_policy import ADOPTED_VAE_POLICY, H3VAEPolicy, bind_vae_policy
 
 VOICE_CONTRACT_VERSION = 1
-VOICE_RENDERER_VERSION = 1
+VOICE_RENDERER_VERSION = 2
 VOICE_MODEL = "minimax_h3_ref2va_pruned_int8_convrot.safetensors"
 VOICE_MODEL_SHA256 = "9255f52b6677845ad238f20dfaafa94727053694127ab7f255c048f0f9365779"
 VOICE_RESOLUTIONS = {
@@ -52,6 +53,7 @@ class VoiceExecution:
     prepared_image_sha256: str
     audio_sha256: str
     prepared_audio_sha256: str
+    vae_policy: H3VAEPolicy = ADOPTED_VAE_POLICY
 
     def snapshot_json(self) -> str:
         payload = {
@@ -76,6 +78,7 @@ class VoiceExecution:
             "preparedImageSha256": self.prepared_image_sha256,
             "audioSha256": self.audio_sha256,
             "preparedAudioSha256": self.prepared_audio_sha256,
+            "vaePolicy": self.vae_policy.snapshot(),
         }
         return json.dumps(payload, sort_keys=True, separators=(",", ":"))
 
@@ -167,6 +170,7 @@ def render_voice_workflow(template: dict[str, Any], *, execution: VoiceExecution
     if sha256(prompt.encode("utf-8")).hexdigest() != execution.prompt_sha256:
         raise ValueError("voice prompt differs from frozen snapshot")
     graph = copy.deepcopy(template)
+    bind_vae_policy(graph, execution.vae_policy)
     graph.pop("105:121")
     graph.pop("105:122")
     graph["105:6"]["inputs"] = {"unet_name": VOICE_MODEL, "weight_dtype": "default"}

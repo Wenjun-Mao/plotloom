@@ -4,14 +4,16 @@ This guide reproduces the local MiniMax-H3 engine that the Plotloom gateway
 uses on Spark. It is deliberately secret-free: it does not contain a Tailnet
 address, bearer value, customer prompt, input image, or generated media.
 
-Use the adjacent [runtime adoption manifest](../h3-runtime-038-adoption.v1.yaml)
-for the live image, user mount and rollback identity. The retained
+Use the adjacent [D adoption manifest](../h3-vae-d-adoption.v1.yaml)
+for the live precision, images, mounts and immediate rollback identity. The
+[September runtime manifest](../h3-runtime-038-adoption.v1.yaml) supplies the
+unchanged ComfyUI/Torch foundation. The retained
 [historical installation manifest](../h3-current-installation.v1.yaml)
 supplies foundation asset hashes, not today's runtime/recipe status. The versioned
 [corrected candidate manifest](../h3-corrected-turbo4-candidate.v1.yaml)
 defines the exact inference recipe to qualify against that runtime.
 
-### Current runtime status · 2026-09-30
+### Current runtime status · 2026-10-06
 
 ComfyUI **0.38.0 is live** at the pinned adoption-manifest image/commit. Five
 initial calls, a CPU decoder-composition regression and a separately approved
@@ -20,6 +22,15 @@ quality or memory-reliability guarantee. Only the stable copied `data/user-v038`
 was migrated; original image/container/`data/user` remain preserved. See the
 [adoption receipt](../../../docs/verification/2026-09-30-h3-comfy038-maintenance-adoption.md).
 Historical manifests and original test evidence are not rewritten.
+
+The adopted D overlay retains that **same image and global `--bf16-vae`**, adds
+`--fast fp16_accumulation`, and mounts one maintained repository-owned
+[video loader](../comfy_nodes/plotloom_h3_video_vae/README.md) read-only. Video
+uses the official INT8 ConvRot checkpoint with FP16 compute; stock audio keeps
+its FP32 checkpoint and BF16 compute. The reload/clone factory preserves this
+split. See [ADR 0098](../../../docs/adr/0098-h3-video-only-vae-precision.md)
+and the [D deployment receipt](../../../docs/verification/2026-10-06-h3-vae-d-adoption.md).
+Do not use global `--fp16-vae`: it would change audio as well.
 
 ## 1. Scope and prerequisites
 
@@ -90,9 +101,10 @@ on a host holding the preserved baseline image, use the checked-in build wrapper
 and verify the result against the adoption manifest. A rebuild may have a
 different Docker image ID; do not promote it merely because the commit matches.
 
-The deployment intentionally has no external custom nodes. Keep
-`comfyui-nodes.list` empty except for comments; MiniMax-H3 is supplied by the
-pinned ComfyUI core revision.
+No third-party custom nodes are installed. Keep `comfyui-nodes.list` empty
+except for comments. MiniMax-H3 is supplied by pinned ComfyUI core; D adds only
+the repository-owned video loader through a read-only release mount. Never
+mount `tools/vae_qualification`: its experimental callback is not production code.
 
 Create the H3-specific mount configuration:
 
@@ -135,6 +147,7 @@ sha256sum \
   diffusion_models/minimax_h3_fl2va_pruned_fp8_scaled.safetensors \
   text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors \
   vae/minimax_h3_video_vae_fp16.safetensors \
+  vae/minimax_h3_video_vae_int8_convrot.safetensors \
   vae/minimax_h3_audio_vae_fp32.safetensors \
   loras/minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors
 ```
@@ -142,6 +155,15 @@ sha256sum \
 Compare the resulting hashes and byte counts with
 [`h3-current-installation.v1.yaml`](../h3-current-installation.v1.yaml). A
 matching filename is not sufficient evidence of matching weights.
+
+For D, download `vae/minimax_h3_video_vae_int8_convrot.safetensors`
+from `Comfy-Org/MiniMax-H3` at revision
+`e5eb578a89295337b8ff433a035929ce0279e0b6`, placing it in `vae/`.
+Its size is **2,811,065,184 bytes** and SHA-256 is
+`52a2c8c73583c86e4f41cdcce3a6ad0ea562987bc0bf3d60a0cef5f5c8e60c0e`.
+Compare this file against the D manifest, not the older installation inventory.
+Retain the original FP16 video checkpoint for rollback; audio and model weights
+are unchanged. The maintained loader checks the video hash before use.
 
 The separately qualified Ref2VA route additionally requires
 `diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors` beneath
@@ -152,9 +174,9 @@ and uses the already listed Qwen3-VL encoder and two VAEs, without a Turbo LoRA.
 
 ## 4. Start the engine with the observed runtime policy
 
-The observed Spark policy uses SageAttention and BF16 for the UNet, text
-encoder, and VAE. It leaves `SPARK_RESERVE_VRAM` unset so ComfyUI uses its own
-default headroom, and uses a loopback-only ComfyUI port:
+The foundation uses SageAttention and BF16 for UNet/text and the global VAE
+default, with `SPARK_RESERVE_VRAM` unset. The following runner command recreates
+the **BF16 rollback foundation only**, not D's node mount or fast argument:
 
 ```sh
 cd /home/wjmao/services/spark-comfyui
@@ -176,12 +198,39 @@ a healthy-looking ComfyUI instance with the runner's default model directory,
 where the H3 assets are invisible and the gateway must reject work with
 `comfy_profile_unavailable`.
 
-Before recreating a container, assert `spark-comfyui:latest` identifies the exact
-adopted image from the manifest. Verify `/opt/ComfyUI/user` resolves to the stable
+Before recreating a container, verify its immutable image ID against the
+manifest; do not depend on mutable `latest`. Verify `/opt/ComfyUI/user` resolves to the stable
 `data/user-v038` host path, not `data/user` or the experiment copy. The live
 container was created with the same runner policy and exact image ID, then
 passed a restart smoke check. The original 0.35 container stays stopped under its
 rollback name. Do not run the two Comfy containers simultaneously.
+
+To reproduce D on a host with that qualified image and prepared directories,
+first stop admission and prove all managed/Comfy work idle. Use a stable source
+release for the node, not a moving checkout. This example assumes the exact
+October 6 release exists; replace only host paths when reproducing elsewhere:
+
+```sh
+docker run -d --name spark-comfyui --restart unless-stopped \
+  --gpus all --shm-size 16g --user 1000:1000 \
+  -p 127.0.0.1:8188:8188 \
+  -e SPARK_BF16=1 -e SPARK_BF16_VAE=1 \
+  -e SPARK_STATIC_VRAM=0 -e SPARK_ATTENTION=sage \
+  --mount type=volume,src=spark-comfyui-cache,dst=/home/comfy/.cache \
+  --mount type=bind,src=/home/wjmao/models/comfyui-h3,dst=/opt/ComfyUI/models,readonly \
+  --mount type=bind,src=/home/wjmao/services/spark-comfyui/data/input,dst=/opt/ComfyUI/input \
+  --mount type=bind,src=/home/wjmao/services/spark-comfyui/data/output,dst=/opt/ComfyUI/output \
+  --mount type=bind,src=/home/wjmao/services/spark-comfyui/data/custom_nodes,dst=/opt/ComfyUI/custom_nodes \
+  --mount type=bind,src=/home/wjmao/services/spark-comfyui/data/user-v038,dst=/opt/ComfyUI/user \
+  --mount type=bind,src=/home/wjmao/services/spark-comfyui/comfyui-nodes.list,dst=/opt/spark/comfyui-nodes.list,readonly \
+  --mount type=bind,src=/home/wjmao/services/plotloom-h3-gateway/releases/h3-vae-d-20261006/services/minimax_h3_gateway/comfy_nodes/plotloom_h3_video_vae,dst=/opt/ComfyUI/custom_nodes/plotloom_h3_video_vae,readonly \
+  sha256:db0010004575a508b5ac67fb36ea4ab83cf1964a84e70932019749f330c64110 \
+  --fast fp16_accumulation
+```
+
+This is a reproduction example, **not** a command to run against an existing
+container name. Preserve the old container and configuration before replacing
+anything. A fresh host lacking the exact image needs new qualification.
 
 Confirm live runtime identity after startup:
 
@@ -197,7 +246,8 @@ curl --fail http://127.0.0.1:8188/object_info > /tmp/comfy-object-info.json
 ```
 
 The object information must advertise `MiniMaxH3ImageToVideo`,
-`MiniMaxH3SigmaShift`, and every file listed in the manifest. This verifies
+`MiniMaxH3SigmaShift`, `PlotloomH3VideoVAELoader`, the policy
+`h3-int8-video-fp16-audio-bf16.v1`, and required assets. This verifies
 availability, not creative quality.
 To enable the optional voice route, also verify
 `MiniMaxH3ReferenceToVideo`, `MiniMaxH3AddGuide`, `LoadAudio`, `LoadImage` and
@@ -282,29 +332,28 @@ H3 comparison. Any such change creates a new runtime candidate.
 - Treat a changed model hash, runner commit, ComfyUI commit, runtime flag, or
   workflow-template hash as a baseline change requiring a fresh smoke test.
 
-### Exact rollback on the current Spark
+### Exact immediate rollback on the current Spark
 
-First stop admission and confirm all Comfy, gateway and Voice Lab generation
-queues are idle. Stop `plotloom-h3-gateway` and the user service
-`plotloom-voice-lab.service`; do not cancel or interrupt active work. The following
-commands assume the preserved rollback container/config still have the exact
-manifest identities and the new preservation name is unused:
+The October 6 baseline pair is `spark-comfyui-bf16-rollback-20261006` plus
+`plotloom-h3-gateway-before-vae-d-20261006`. Restore them together: the new
+gateway requires the maintained D loader, while the prior gateway renders the
+BF16 foundation. Do not start two Comfy workers or reinterpret pending snapshots.
+
+The bounded operator tool verifies persisted gateway/Voice Lab grants, Comfy
+queues, original identities, and published voice/take hashes before replacing
+anything. It refuses unknown/active work rather than canceling it:
 
 ```sh
-cd /home/wjmao/services/spark-comfyui
-docker stop spark-comfyui
-docker rename spark-comfyui spark-comfyui-v038-adopted-20260930
-docker rename spark-comfyui-v035-rollback-20260930 spark-comfyui
-docker tag spark-comfyui:keep-h3-v035-20260930 spark-comfyui:latest
-cp spark-h3-mounts.v035-20260930.conf spark-h3-mounts.conf
-docker start spark-comfyui
+python3 /home/wjmao/services/plotloom-h3-gateway/releases/h3-vae-d-20261006/services/minimax_h3_gateway/tools/vae_adoption/deploy.py restore
 ```
 
-Verify the old exact image/commit, original `data/user` mount, empty Comfy queue
-and `/object_info`. Then start the gateway and Voice Lab again and verify their
-health/readiness plus Qwen Image. Do not downgrade or replace `user-v038`, remove
-either user directory, reset CUDA, reboot, or delete model/experiment assets.
-This procedure preserves the adopted state too; it is not a repeatable updater.
+Inspect its private receipt first; it is a one-maintenance tool, not a reusable
+deployment daemon. It retains D under diagnostic names and restores the original
+pair, mounts, environment and data. Confirm readiness and unchanged identity
+hashes afterwards. The older 0.35 container/user directory remain a **historical**
+second rollback boundary; rolling back to them needs a separately matched
+gateway and catalog disposition, not the immediate procedure above. Do not
+downgrade user directories, reset CUDA, or delete model/experiment assets.
 
 For why the current runtime is organized this way and historical inference
 comparisons, read the

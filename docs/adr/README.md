@@ -34,3 +34,8 @@ records the separately authorized exact-image promotion.
 accepted contract for published-identity performance takes and shared managed
 admission, linked to the owner-approved specialist plan. Runtime adoption needs
 its verification receipt; it does not authorize Plotloom integration.
+
+[ADR 0098](0098-h3-video-only-vae-precision.md) owns maintained video-only FP16
+with the INT8 ConvRot checkpoint, stock audio BF16, reload/clone persistence and
+frozen VAE snapshots. The [D receipt](../verification/2026-10-06-h3-vae-d-adoption.md)
+is the deployment authority, not the historical experimental callback.

@@ -7,6 +7,7 @@ import requests
 
 from .contracts import GatewayError, GatewaySettings
 from .profile_catalog import H3ExecutionProfile, active_lora_files
+from .vae_policy import require_vae_runtime
 from .voice_reference import VOICE_MODEL
 
 
@@ -33,9 +34,12 @@ class ComfyClient:
         required = (
             ("UNETLoader", "unet_name", "minimax_h3_fl2va_pruned_fp8_scaled.safetensors"),
             ("CLIPLoader", "clip_name", "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"),
-            ("VAELoader", "vae_name", "minimax_h3_video_vae_fp16.safetensors"),
             ("VAELoader", "vae_name", "minimax_h3_audio_vae_fp32.safetensors"),
         )
+        try:
+            require_vae_runtime(object_info)
+        except ValueError as error:
+            raise GatewayError("comfy_profile_unavailable", 503) from error
         for node_type, input_name, expected in required:
             try:
                 options = object_info[node_type]["input"]["required"][input_name][0]
@@ -75,6 +79,10 @@ class ComfyClient:
         self._get_json("/system_stats", code="comfy_unavailable")
         object_info = self._get_json("/object_info", code="comfy_profile_unavailable")
         try:
+            require_vae_runtime(object_info)
+        except ValueError as error:
+            raise GatewayError("comfy_voice_profile_unavailable", 503) from error
+        try:
             unets = object_info["UNETLoader"]["input"]["required"]["unet_name"][0]
             clip = object_info["CLIPLoader"]["input"]["required"]["clip_name"][0]
             vaes = object_info["VAELoader"]["input"]["required"]["vae_name"][0]
@@ -86,7 +94,7 @@ class ComfyClient:
             not isinstance(unets, list) or VOICE_MODEL not in unets
             or not isinstance(clip, list) or "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors" not in clip
             or not isinstance(vaes, list)
-            or not {"minimax_h3_video_vae_fp16.safetensors", "minimax_h3_audio_vae_fp32.safetensors"}.issubset(vaes)
+            or "minimax_h3_audio_vae_fp32.safetensors" not in vaes
             or audio != "COMFY_AUTOGROW_V3" or images != "COMFY_AUTOGROW_V3"
             or not {"MiniMaxH3AddGuide", "LoadImage", "LoadAudio", "PrimitiveInt", "KSamplerSelect",
                     "BasicScheduler", "BasicGuider", "SamplerCustomAdvanced"}.issubset(object_info)

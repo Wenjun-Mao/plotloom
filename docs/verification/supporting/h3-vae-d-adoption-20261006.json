@@ -1,0 +1,392 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "sourceBaseline": "e422b4e",
+  "runtime": {
+    "comfyCommit": "6b747c0428c343e1417219641db93a4fb7cb69ae",
+    "precisionFlags": [
+      "--use-sage-attention",
+      "--bf16-unet",
+      "--bf16-text-enc",
+      "--bf16-vae",
+      "--fast",
+      "fp16_accumulation"
+    ],
+    "packages": {
+      "torch": "2.14.0+cu130",
+      "torchvision": "0.29.0+cu130",
+      "torchaudio": "2.11.0+cu130",
+      "sageattention": "2.2.0",
+      "comfy-kitchen": "0.2.36",
+      "comfy-aimdo": "0.5.5"
+    },
+    "nodeHashes": {
+      "loader.py": "d586f0ec923a4f7c64f6c8353740610f7d0977e8ff48fa83cf432b25363be628",
+      "__init__.py": "873880fc5201198e6c35bbc261bea644b15caa2b43075a37b001b66b97228c55"
+    }
+  },
+  "comfyImage": "sha256:db0010004575a508b5ac67fb36ea4ab83cf1964a84e70932019749f330c64110",
+  "gatewayImage": "sha256:f833c3469ea62c94c428ea5d98e0e8236fc317dd6a6721a8a4f7c7d51e6ad692",
+  "lifecycle": {
+    "status": "passed",
+    "checks": [
+      {
+        "label": "initial",
+        "effectiveDtype": "torch.float16",
+        "activations": [
+          {
+            "dtype": "torch.float16",
+            "device": "cuda:0"
+          },
+          {
+            "dtype": "torch.float16",
+            "device": "cuda:0"
+          }
+        ],
+        "finite": true,
+        "shape": [
+          1,
+          1,
+          128,
+          128,
+          3
+        ]
+      },
+      {
+        "label": "nondynamic-clone",
+        "effectiveDtype": "torch.float16",
+        "activations": [
+          {
+            "dtype": "torch.float16",
+            "device": "cuda:0"
+          },
+          {
+            "dtype": "torch.float16",
+            "device": "cuda:0"
+          }
+        ],
+        "finite": true,
+        "shape": [
+          1,
+          1,
+          128,
+          128,
+          3
+        ]
+      },
+      {
+        "label": "same-device-deepclone",
+        "effectiveDtype": "torch.float16",
+        "activations": [
+          {
+            "dtype": "torch.float16",
+            "device": "cuda:0"
+          },
+          {
+            "dtype": "torch.float16",
+            "device": "cuda:0"
+          }
+        ],
+        "finite": true,
+        "shape": [
+          1,
+          1,
+          128,
+          128,
+          3
+        ]
+      },
+      {
+        "label": "after-offload-reload",
+        "effectiveDtype": "torch.float16",
+        "activations": [
+          {
+            "dtype": "torch.float16",
+            "device": "cuda:0"
+          },
+          {
+            "dtype": "torch.float16",
+            "device": "cuda:0"
+          }
+        ],
+        "finite": true,
+        "shape": [
+          1,
+          1,
+          128,
+          128,
+          3
+        ]
+      },
+      {
+        "label": "disk-factory",
+        "effectiveDtype": "torch.float16",
+        "activations": [
+          {
+            "dtype": "torch.float16",
+            "device": "cuda:0"
+          },
+          {
+            "dtype": "torch.float16",
+            "device": "cuda:0"
+          }
+        ],
+        "finite": true,
+        "shape": [
+          1,
+          1,
+          128,
+          128,
+          3
+        ]
+      },
+      {
+        "label": "stock-audio-after-video-lifecycle",
+        "effectiveDtype": "torch.bfloat16",
+        "activations": [
+          {
+            "dtype": "torch.bfloat16",
+            "device": "cuda:0"
+          },
+          {
+            "dtype": "torch.bfloat16",
+            "device": "cuda:0"
+          }
+        ],
+        "finite": true,
+        "shape": [
+          1,
+          3200,
+          2
+        ]
+      }
+    ],
+    "dynamicRuntimeInitialized": true,
+    "policy": "h3-int8-video-fp16-audio-bf16.v1",
+    "fp16Accumulation": true
+  },
+  "liveVaeLoadLines": [
+    "VAE load device: cuda:0, offload device: cpu, dtype: torch.bfloat16",
+    "VAE load device: cuda:0, offload device: cpu, dtype: torch.float16"
+  ],
+  "canaryCap": 2,
+  "acknowledgedPosts": 2,
+  "canaries": [
+    {
+      "case": "portrait",
+      "jobId": "h3_57767740e75a48768f96c6b852189534",
+      "state": "passed",
+      "status": {
+        "id": "h3_57767740e75a48768f96c6b852189534",
+        "status": "succeeded",
+        "inputMode": "image",
+        "generationSubmittedAt": "2026-10-06T21:18:20.069Z",
+        "generationCompletedAt": "2026-10-06T21:20:47.053Z",
+        "generationElapsedMs": 146984,
+        "error": null,
+        "outputReady": true,
+        "quality": 1,
+        "resolution": "704x1280",
+        "aspectPolicy": "reject_mismatch",
+        "seed": 20261006,
+        "requestedDurationSeconds": 5,
+        "frameCount": 124,
+        "actualDurationSeconds": 5.166666666666667
+      },
+      "media": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 704,
+            "height": 1280,
+            "r_frame_rate": "24/1",
+            "nb_frames": "124"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "32000",
+            "r_frame_rate": "0/0",
+            "nb_frames": "163"
+          }
+        ],
+        "format": {
+          "duration": "5.167000"
+        }
+      },
+      "mediaSha256": "4ed181d5ad104e75d4983e8acd90f77d786c3476cbafb071c2641114d7714940",
+      "executionSnapshotHash": "20f93575951de2b46d0d29e6ffb62a752bc952df20e4d762cce5c18d8f8332a4",
+      "vaePolicy": {
+        "audio_checkpoint": "minimax_h3_audio_vae_fp32.safetensors",
+        "audio_compute_dtype": "bfloat16",
+        "fp16_accumulation": true,
+        "loader": "PlotloomH3VideoVAELoader",
+        "loader_version": 1,
+        "policy_id": "h3-int8-video-fp16-audio-bf16.v1",
+        "video_checkpoint": "minimax_h3_video_vae_int8_convrot.safetensors",
+        "video_compute_dtype": "float16",
+        "video_sha256": "52a2c8c73583c86e4f41cdcce3a6ad0ea562987bc0bf3d60a0cef5f5c8e60c0e"
+      }
+    },
+    {
+      "case": "voice",
+      "jobId": "h3_14de80bdf1ed4c07b4fb055348b07153",
+      "state": "passed",
+      "status": {
+        "id": "h3_14de80bdf1ed4c07b4fb055348b07153",
+        "status": "succeeded",
+        "inputMode": "image_voice",
+        "generationSubmittedAt": "2026-10-06T21:25:04.567Z",
+        "generationCompletedAt": "2026-10-06T21:32:30.216Z",
+        "generationElapsedMs": 445649,
+        "error": null,
+        "outputReady": true,
+        "quality": 8,
+        "resolution": "576x1024",
+        "aspectPolicy": "reject_mismatch",
+        "seed": 20260923,
+        "requestedDurationSeconds": 5,
+        "frameCount": 124,
+        "actualDurationSeconds": 5.166666666666667
+      },
+      "media": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 576,
+            "height": 1024,
+            "r_frame_rate": "24/1",
+            "nb_frames": "124"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "32000",
+            "r_frame_rate": "0/0",
+            "nb_frames": "163"
+          }
+        ],
+        "format": {
+          "duration": "5.167000"
+        }
+      },
+      "mediaSha256": "04705e895d1d49f2670d9605fae2dc7824db6c83634137f1b594e25ca47c1bac",
+      "executionSnapshotHash": "c944e9adf8ce35d715d4dcd1ca001413d1f9152536b17a7eb602aeb60fa9ed91",
+      "vaePolicy": {
+        "audio_checkpoint": "minimax_h3_audio_vae_fp32.safetensors",
+        "audio_compute_dtype": "bfloat16",
+        "fp16_accumulation": true,
+        "loader": "PlotloomH3VideoVAELoader",
+        "loader_version": 1,
+        "policy_id": "h3-int8-video-fp16-audio-bf16.v1",
+        "video_checkpoint": "minimax_h3_video_vae_int8_convrot.safetensors",
+        "video_compute_dtype": "float16",
+        "video_sha256": "52a2c8c73583c86e4f41cdcce3a6ad0ea562987bc0bf3d60a0cef5f5c8e60c0e"
+      }
+    }
+  ],
+  "observerRecovery": {
+    "reconciledAcceptedJobIds": [
+      "h3_57767740e75a48768f96c6b852189534",
+      "h3_14de80bdf1ed4c07b4fb055348b07153"
+    ],
+    "retainedPollingError": "ConnectionError",
+    "replayedPosts": 0
+  },
+  "restart": {
+    "status": "passed",
+    "sameContainerIds": true,
+    "idle": true,
+    "health": {
+      "status": "ok",
+      "generationContractVersion": 6,
+      "defaultQuality": 1,
+      "qualities": [
+        1,
+        2,
+        3,
+        8
+      ],
+      "resolutions": [
+        "832x480",
+        "960x544",
+        "1280x704",
+        "576x1024",
+        "608x1088",
+        "704x1280"
+      ],
+      "inputModes": [
+        "image",
+        "text",
+        "image_voice"
+      ],
+      "backends": [
+        "h3_video",
+        "qwen_image"
+      ],
+      "voiceContractVersion": 1,
+      "voiceReferenceReady": true,
+      "voiceResolutions": [
+        "960x544",
+        "576x1024"
+      ],
+      "imageResolutions": [
+        "1024x1024",
+        "832x480",
+        "960x544",
+        "1280x704",
+        "576x1024",
+        "608x1088",
+        "704x1280"
+      ],
+      "queuedJobs": 0,
+      "activeDispatches": 0,
+      "dispatchConcurrency": 1
+    },
+    "voiceIdentitiesUnchanged": true,
+    "voiceCount": 3,
+    "takeCount": 2,
+    "voiceRecordHash": "6a13cc40e2acefe7fff0bf873b5fbcdb2379ef0b85c4e05e76899c4d1a990104",
+    "voiceFilesHash": "6ef246b60afbb93b4aae08a91405ebb6737aad99d8de33e29808df87936ad699",
+    "rollbackPairRetainedStopped": true,
+    "rebootNotPerformed": true
+  },
+  "postRestartJobs": [
+    {
+      "jobId": "h3_57767740e75a48768f96c6b852189534",
+      "succeeded": true,
+      "outputReady": true
+    },
+    {
+      "jobId": "h3_14de80bdf1ed4c07b4fb055348b07153",
+      "succeeded": true,
+      "outputReady": true
+    }
+  ],
+  "qwenImageHealth": true,
+  "voiceLabHealth": true,
+  "containerOomKills": false,
+  "unexpectedContainerRestarts": false,
+  "privateReceipts": {
+    "before.json": "6ffbe984835ebb834d86b6f3c1d4fe519c4f9adc748739f99e27db5a1b282c9d",
+    "lifecycle.json": "709b04edbc5af53b7cf040ffc4b96c4aba0f790d4d37d0ce71edc5cfe5bd7b3c",
+    "lifecycle-dynamic.json": "f817d6d522c96eae4a5cf98ef169f572f2a382ba09eb84352f32d816d41a8fce",
+    "activated.json": "9d2b19c6bded8beec51285346ef6896e1b25638717a925200cb9358f1ac09530",
+    "canaries-before-status-fix.json": "47b8400e92690f922b38abbb0f9ba1693a76f5f238cbca686289955310ad5543",
+    "canaries-after-poll-drop.json": "d3ef08c088d283224b6fc8b9db355c9b7eb385d0fa926bf15edf7b84be0c0aad",
+    "canaries.json": "374d39a002fd269a351529cdeb279aa8e34874b61a1f116d9d09537fb01a0d15",
+    "restart.json": "18e6768d0a3a9bbff4829bd47cec358c5807b82e4492f06d5305c2e007111afc"
+  },
+  "deployedGatewaySourceHashes": {
+    "comfy.py": "c420f9901061129dc0ee197b8d76b733ffb6ea296b027382e4450e51bfc44d39",
+    "profile_catalog.py": "9d7ff3f840e110041adddfeee02963b9489b8454a86eae6561b75cdc576f7ece",
+    "vae_policy.py": "084a8c0a7bbb9de1fc3792e9046d9483ed0fb598ee0fe7a1c0bf328462fab7c5",
+    "voice_reference.py": "1e0a11d9e84851e4be489c5a4fb40af552a33faeeb5e1a8f562914ae4885bb4b",
+    "workflow.py": "6bf0bc6b558ada4f28d79594210edfa6b3d3190e78a7e7d998c3629024fdf436",
+    "profiles/minimax_h3_template_v2.json": "9233c8c13940ef4e42c6d148194c991199a6cdb6c1c514b20f51fc4983211a5d"
+  }
+}

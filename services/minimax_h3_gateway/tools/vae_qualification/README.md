@@ -16,8 +16,11 @@ custom nodes in the production Comfy container.
 - `maintenance.py`: idle admission/grant proof before stopping the managed
   control services; recheck afterwards. Preserve the original stopped Comfy
   container as the exact restoration authority. Never cancel racing work.
-- `__init__.py`: isolated video-only loader and one small component smoke per
-  arm. Retains the audio loader, reload dtype binding and core math unchanged.
+- `__init__.py`: historical isolated loader and one component smoke per arm.
+  Its cached reload callback was later found to pass dtype in a device slot;
+  the original evidence is preserved, but this callback must not be deployed.
+  Production uses [the maintained loader](../../comfy_nodes/plotloom_h3_video_vae/README.md)
+  with independently verified clone/reload semantics and unchanged stock audio.
 - `observer.py`: kernel counters and encoder/decoder pre-hooks prove successful
   dispatch and post-transfer compute precision. CPU entry tensors are staging,
   not GPU execution. Outer VAE synchronized wall time includes model management;

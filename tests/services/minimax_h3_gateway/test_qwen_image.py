@@ -56,6 +56,10 @@ def _comfy_object_info() -> dict[str, object]:
         return {"input": {"required": values}}
 
     return {
+        "PlotloomH3VideoVAELoader": required(
+            vae_name=[["minimax_h3_video_vae_int8_convrot.safetensors"]],
+            policy=[["h3-int8-video-fp16-audio-bf16.v1"]],
+        ),
         "MiniMaxH3ImageToVideo": {"input": {"optional": {"first_frame": ["IMAGE"], "last_frame": ["IMAGE"]}}},
         "PrimitiveInt": {}, "KSamplerSelect": {}, "BasicScheduler": {}, "BasicGuider": {},
         "SamplerCustomAdvanced": {}, "MiniMaxH3SigmaShift": {},

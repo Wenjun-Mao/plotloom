@@ -11,6 +11,7 @@ import json
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from .vae_policy import ADOPTED_VAE_POLICY, H3VAEPolicy
 
 GENERATION_CONTRACT_VERSION = 6
 FRAMES_PER_SECOND = 24
@@ -19,7 +20,7 @@ MAX_DURATION_SECONDS = 15
 FRAME_GRID_INTERVAL = 17
 FRAME_GRID_OFFSET = 5
 DEFAULT_QUALITY = 1
-WORKFLOW_RENDERER_VERSION = 3
+WORKFLOW_RENDERER_VERSION = 4
 
 
 @dataclass(frozen=True)
@@ -53,6 +54,7 @@ class H3ExecutionProfile:
     quality: int
     resolution: H3Resolution
     recipe: H3SamplingRecipe
+    vae_policy: H3VAEPolicy = ADOPTED_VAE_POLICY
 
     @property
     def width(self) -> int:
@@ -74,6 +76,7 @@ class H3ExecutionProfile:
             "height": self.height,
             "fps": FRAMES_PER_SECOND,
             "recipe": asdict(self.recipe),
+            "vaePolicy": self.vae_policy.snapshot(),
         }
 
     def snapshot_json(self) -> str:
@@ -134,12 +137,13 @@ def execution_from_snapshot(value: str) -> H3ExecutionProfile:
     try:
         payload = json.loads(value)
         if not isinstance(payload, dict):
-            raise ValueError
+            raise TypeError
         recipe_payload = payload["recipe"]
         if (
             payload["generationContractVersion"] != GENERATION_CONTRACT_VERSION
             or payload["workflowRendererVersion"] != WORKFLOW_RENDERER_VERSION
             or not isinstance(recipe_payload, dict)
+            or payload.get("vaePolicy") != ADOPTED_VAE_POLICY.snapshot()
         ):
             raise ValueError
         # Do not resolve the stored choice through QUALITY_RECIPES here. A
@@ -164,7 +168,7 @@ def execution_from_snapshot(value: str) -> H3ExecutionProfile:
             for item in (recipe.lora_file, recipe.lora_strength, recipe.video_sigma_shift, recipe.audio_sigma_shift)
         ):
             raise ValueError
-        return H3ExecutionProfile(quality, resolution, recipe)
+        return H3ExecutionProfile(quality, resolution, recipe, H3VAEPolicy(**payload["vaePolicy"]))
     except (KeyError, TypeError, ValueError):
         raise ValueError("invalid frozen H3 execution snapshot") from None
 

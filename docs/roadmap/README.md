@@ -91,5 +91,8 @@ was owner-approved on October 6. All twelve full cells passed the bounded
 technical screen with no replay; baseline services are restored and voices/takes
 unchanged. The execution ledger records two corrected storage/compute observer
 assumptions and measured results. Owner comparative review found very minor
-differences, if any, and no quality difference in the three A/D pairs; production
-adoption remains separately pending.
+differences, if any, and no quality difference in the three A/D pairs.
+The separately approved [D adoption](2026-10-06-h3-vae-adoption.md) fixes the
+experimental reload factory in a maintained loader and retains stock audio BF16.
+Its [deployment receipt](../verification/2026-10-06-h3-vae-d-adoption.md) records
+actual serving/verification status; the earlier twelve-cell evidence is unchanged.

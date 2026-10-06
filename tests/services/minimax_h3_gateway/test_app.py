@@ -67,6 +67,10 @@ def _object_info() -> dict[str, object]:
     result: dict[str, object] = {
         "MiniMaxH3ImageToVideo": {"input": {"optional": {"first_frame": ["IMAGE"], "last_frame": ["IMAGE"]}}},
         "PrimitiveInt": {},
+        "PlotloomH3VideoVAELoader": {"input": {"required": {
+            "vae_name": [["minimax_h3_video_vae_int8_convrot.safetensors"]],
+            "policy": [["h3-int8-video-fp16-audio-bf16.v1"]],
+        }}},
     }
     for node, field, values in (
         ("UNETLoader", "unet_name", ["minimax_h3_fl2va_pruned_fp8_scaled.safetensors"]),
@@ -111,6 +115,15 @@ def _submit_image(client: TestClient, **extra: object) -> dict[str, Any]:
 def test_gateway_catalog_exposes_only_reviewed_quality_and_resolution_choices() -> None:
     assert sorted(QUALITY_RECIPES) == [1, 2, 3, 8]
     assert [item.value for item in RESOLUTIONS] == ["832x480", "960x544", "1280x704", "576x1024", "608x1088", "704x1280"]
+
+
+def test_runtime_adoption_keeps_public_creation_contract_versions(tmp_path: Path, monkeypatch) -> None:
+    client, _ = _client(tmp_path)
+    # This fixture models Comfy only; health also probes the independent Qwen service.
+    monkeypatch.setattr(client.app.state.gateway.qwen, "preflight", lambda: None)
+    health = client.get("/health").json()
+    assert health["generationContractVersion"] == 6
+    assert health["voiceContractVersion"] == 1
 
 
 def test_retired_creation_routes_are_not_registered(tmp_path: Path) -> None:

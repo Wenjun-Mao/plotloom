@@ -8,6 +8,7 @@ from typing import Any
 
 from .naming import is_safe_path_part
 from .profile_catalog import H3ExecutionProfile
+from .vae_policy import bind_vae_policy
 
 
 def load_h3_template() -> dict[str, Any]:
@@ -43,6 +44,7 @@ def render_workflow(
         }.get(value, value)
 
     workflow = replace(workflow)
+    bind_vae_policy(workflow, execution.vae_policy)
     if execution.recipe.topology == "turbo":
         _render_turbo_topology(workflow, execution)
     else:
