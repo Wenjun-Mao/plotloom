@@ -1,6 +1,13 @@
 {
   "schemaVersion": 1,
-  "status": "technical_screen_passed_owner_review_pending",
+  "status": "technical_screen_passed_owner_review_no_quality_difference",
+  "ownerReview": {
+    "date": "2026-10-06",
+    "comparedArms": ["A", "D"],
+    "cases": ["landscape", "portrait", "voice"],
+    "finding": "Very minor differences, if any; no quality difference.",
+    "scope": "Owner comparative review of the three presented pairs, not universal or statistical equivalence."
+  },
   "sourceBaseline": "f1864cd",
   "finalPrivateReceiptSha256": "ebf8b31dabaea5409206d224a6020bba73575b5438d4e294f048d7342e82ae25",
   "restorationProofSha256": "2f07510fd14a46c2f3cb39f91749c4275b3ad540398c38e06274d89918a31875",

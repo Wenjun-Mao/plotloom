@@ -1,10 +1,10 @@
 # H3 VAE qualification — execution ledger
 
-**Status: technical screen passed; owner visual/audio review pending.**
+**Status: technical screen passed; owner comparative quality review complete.**
 All twelve planned full clips passed compute/dispatch, geometry, audio-stream
 and complete decode checks. The exact baseline services are restored and the
 three published voices/two takes are unchanged. No production adoption or
-creative acceptance is claimed. Both stopped precursor receipts are preserved.
+broader creative acceptance is claimed. Both stopped precursor receipts are preserved.
 The owner approved the [four-arm plan](../roadmap/2026-10-06-h3-vae-qualification.md)
 on October 6. Exactly twelve full-generation attempts, no replay, and six small
 component workloads including the two additional authorized cold smokes.
@@ -196,7 +196,8 @@ C's FL2VA decode is materially slower despite real fast-kernel dispatch, so
 the fast flag alone is not recommended. D reduces total time versus A by 11.1%
 (landscape), 8.0% (portrait), and 3.0% (Ref2VA). Its decode is faster and sampled
 host availability is higher; neither proves universal throughput or exact peak
-VRAM savings. Prefer D for owner review, while retaining A pending acceptance.
+VRAM savings. The owner review below supports D for a separate adoption decision;
+A remains live.
 
 ## Final restoration and retained review
 
@@ -227,11 +228,18 @@ tools/tests/docs commit. No shipped backend/frontend code changed; scoped checks
 replace unrelated full frontend/E2E/wheel gates as approved. Usage/cost deltas
 are unavailable from existing records.
 
-## Remaining decision
+## Owner review and remaining decision
 
-Owner comparison of A versus D for intended words, identity/emotion, lip-sync,
-extra speech/subtitles, drift/shaking and tile seams. If acceptable, authorize
-a separate maintainable video-only precision/INT8 adoption—not promotion of
-this experiment shim. Do not change baseline automatically or run a new sweep.
+On 2026-10-06, after being shown the three landscape, portrait and Ref2VA A/D
+pairs, the owner reported: “I see some very minor differences (if at all), no
+quality difference.” Capture this as owner-observed comparative quality
+equivalence on these samples. It is not an exact-pixel claim, separately scored
+speech/emotion assessment, statistical equivalence, or acceptance of every recipe.
+
+Recommendation: adopt D through a separate maintainable video-only FP16/INT8
+policy, retaining unchanged audio precision and the original setup for rollback.
+No further tuning batch is justified without a reported problem. Production
+adoption still needs explicit approval; do not promote the experiment shim or
+change the baseline automatically.
 
 No production promotion, Plotloom edits, director message, merge or push.

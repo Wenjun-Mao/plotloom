@@ -90,5 +90,6 @@ The [video VAE precision/INT8 qualification](2026-10-06-h3-vae-qualification.md)
 was owner-approved on October 6. All twelve full cells passed the bounded
 technical screen with no replay; baseline services are restored and voices/takes
 unchanged. The execution ledger records two corrected storage/compute observer
-assumptions and measured results. Owner visual/audio review is pending; production
-adoption remains separate.
+assumptions and measured results. Owner comparative review found very minor
+differences, if any, and no quality difference in the three A/D pairs; production
+adoption remains separately pending.
