@@ -326,9 +326,9 @@ passes current delivery/pin/provenance/output/stored-manifest receiving checks
 and read-only admission with unchanged preservation. Six isolated existing-method
 checks initially passed6, then final10, exit0, including both project leases,
 exact one-receipt transition, refusal on inflight/temporary/wrong identity/missing
-lock and honest post-effect/evidence-write failure states. Attended Sol/High and
-manager reviews closed both final refinements before execution; the owner then
-authorized only this exact completed-result reconciliation and the prior reset.
+lock and honest post-effect/evidence-write failure states. The owner separately
+authorized only this exact completed-result reconciliation and the prior reset;
+attended Sol/High and manager reviews cleared both final refinements before execution.
 
 Actual optimized completion ran once, exit0: only the exact queued receipt became
 completed. The original237c… capture remains retained; its sole approved file delta
