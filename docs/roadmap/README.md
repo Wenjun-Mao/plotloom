@@ -11,10 +11,11 @@ does not include a general installed-production migration/replacement system.
 G0–G5 is implemented and locally qualified; the
 [integrated receipt](../verification/2026-10-06-graph-workbench-g5.md) records full
 gates and independent reviews. Implementation `c8f59b7` is pushed to `origin/main`;
-full exact-revision remote CI is running. Normal activation
-is held by a retained native queued receipt requiring exact terminal reconciliation;
-project data, media and protected settings remain unchanged. Owner walkthrough
-acceptance is separate; no activation or provider run has begun.
+full exact-revision remote CI has passed verify and its browser shards are running.
+Normal8841 is healthy on the qualified candidate after the exact owner-authorized
+one-receipt reconciliation and scoped demo Graph/map retirement. All other project
+data, media and protected settings are preserved; zero provider dispatches.
+Owner walkthrough acceptance remains separate.
 
 The owner-approved [sketch-led visual system](2026-10-04-sketch-led-visual-system.md)
 applies the new design reference's whole visual language to the current Plotloom

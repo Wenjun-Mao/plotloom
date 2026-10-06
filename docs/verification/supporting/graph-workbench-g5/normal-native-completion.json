@@ -1,0 +1,17 @@
+{
+  "afterAggregate": "396b8d3942a7c6225442f64d66fa39e3b1e40f071e4efa2bae6c9ba3786ca712",
+  "beforeAggregate": "237c63897f538817ee625d83320669310666ea07e2b0117d336e4e68364c5122",
+  "deliveryId": "527a476c-61bc-4926-b91a-627014a09768",
+  "jobId": "ij_627a0a680e784d30985054cde8bfd669",
+  "manifestHash": "edf322edd038a8e6b3e9db13fae9bba143734c4f33f92d8b6bac8592c7f75f78",
+  "onlyChangedFile": "native-image-dispatch/ij_627a0a680e784d30985054cde8bfd669/receipt.json",
+  "outputCount": 1,
+  "projectDatabaseFilesSettingsCredentialsUnchanged": true,
+  "projectId": "ee271b49-f384-414c-9711-452ee6333b84",
+  "providerDispatches": 0,
+  "requestHash": "a16115d681760abbdd161298b8f3ef7ff01f19c744560b41e867e957be22892c",
+  "stage": "character-reference",
+  "state": "completed_verified",
+  "taskId": "01a0c506-84d5-7161-8ae0-2ae914e5d81a",
+  "turnId": "01a0ee49-052a-78c0-bbc0-af17a853f7af"
+}

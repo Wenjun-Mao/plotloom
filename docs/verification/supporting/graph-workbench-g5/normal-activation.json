@@ -1,0 +1,68 @@
+{
+  "activatedAt": "2026-10-06T16:42:23.988127357Z",
+  "activationCheckoutRevision": "892adaf",
+  "containerImage": "sha256:03adcf77d09f0b2d21f76320a49006d99e7ecd4c60adda7991def2dcd37cae3d",
+  "health": {
+    "status": "ok"
+  },
+  "ownerBrowserChanged": false,
+  "pairedApiAndStaticQualification": true,
+  "postActivationEqualsPostReset": true,
+  "preservationAggregate": "2ad5913d7f35ace530add7649b308e891321d67f3fbdbdab48a235b16e1a2033",
+  "projectDatabaseTableCounts": {
+    "2f52cf22-3f4a-4f05-8dc3-4f55e76687b9": 74,
+    "ee271b49-f384-414c-9711-452ee6333b84": 74
+  },
+  "projectFileCounts": {
+    "2f52cf22-3f4a-4f05-8dc3-4f55e76687b9": 17,
+    "ee271b49-f384-414c-9711-452ee6333b84": 67
+  },
+  "projects": {
+    "2f52cf22-3f4a-4f05-8dc3-4f55e76687b9": {
+      "artStatus": "missing",
+      "canonicalGraphRevision": 0,
+      "castStatus": "missing",
+      "currentGraphDraftPersisted": false,
+      "initialGraphAvailable": true,
+      "managedAssetCount": 0,
+      "outlineRevision": 1,
+      "outlineStatus": "reopened",
+      "productionInstalled": false,
+      "scriptStatus": "missing",
+      "sectionMapStatus": "missing",
+      "sourceRevision": 1
+    },
+    "ee271b49-f384-414c-9711-452ee6333b84": {
+      "artStatus": "stale",
+      "canonicalGraphRevision": 0,
+      "castStatus": "stale",
+      "currentGraphDraftPersisted": false,
+      "initialGraphAvailable": true,
+      "managedAssetCount": 4,
+      "outlineRevision": 1,
+      "outlineStatus": "accepted",
+      "productionInstalled": false,
+      "scriptStatus": "missing",
+      "sectionMapStatus": "missing",
+      "sourceRevision": 1
+    }
+  },
+  "protectedFilesUnchanged": 3,
+  "providerDispatches": 0,
+  "remoteCi": {
+    "browserShards": "in_progress",
+    "headSha": "c8f59b77222216f4e2923283606493658f28674f",
+    "runId": 37495692517,
+    "status": "in_progress",
+    "url": "https://github.com/Wenjun-Mao/plotloom/actions/runs/37495692517",
+    "verify": "success"
+  },
+  "sourceManifestSha256": "28e9b376708a2601c1f48041ca38dc2f094c87564b4e3e19ef4ab473bbb9a466",
+  "sourceRevision": "c8f59b77222216f4e2923283606493658f28674f",
+  "specialistsBusy": false,
+  "static": {
+    "workbench.js": "47c7d7073601043c83f2e567efef6319014d401b123de1e6e03f5615a1959dc6",
+    "workbench2.css": "740bf83cf5643e916f98ae353cea8bcba9b7b58ee9625bd6b66443436381a7d1"
+  },
+  "verifiedAt": "2026-10-06T16:44:07Z"
+}

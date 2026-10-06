@@ -1,7 +1,8 @@
 # G5 integrated creator workbench qualification
 
-Status: locally qualified and published; normal activation held by an
-independent retained native execution receipt. Owner acceptance is separate.
+Status: locally qualified, published and activated on healthy normal8841 after
+the exact owner-authorized native reconciliation and demo retirement below.
+Remote browser CI and owner acceptance remain separate.
 G0–G4 evidence remains historical at its
 recorded fingerprints; it is not rewritten as evidence for the final candidate.
 
@@ -194,8 +195,8 @@ permanent G5 image set to39.
 ## All active C/P items
 
 This is the complete evidence mapping, not a waiver list. All local engineering
-gates and independent reviews are closed. Normal activation remains held as
-described below; owner acceptance is separate.
+gates and independent reviews are closed. Normal activation and exact preservation
+readback are verified below; owner acceptance is separate.
 
 | Item | Feature and concrete evidence |
 |---|---|
@@ -237,7 +238,7 @@ described below; owner acceptance is separate.
 | C36 | API stale/double submission; provider deferred receipt tests; OPS actual held Undo selection. |
 | C37 | G0–G4 attended reviews retained; stable G5 Sol/Medium review and manager Sol/High review closed with no concrete blocker, all801 fingerprints independently verified. Manager separately cleared the precise one-test busy-copy delta and its six-case native result. |
 | C38 | DEL clean isolated9/9, opening/Story, exact ACK, no accepted map/run/write, start scroll/closed checks. |
-| C39 | Current801-file source manifest plus static/wheel hashes below; exact normal preservation/reset and activation receipt pending. |
+| C39 | Current801-file source manifest plus static/wheel hashes; exact one-native-receipt / five-DB-row retirement and unchanged postactivation evidence in the linked operation receipts. |
 | C40 | STORY all repeated scenes/actions/dialogue; PROD exact repeated occurrence/cut order and shared node. |
 | C41 | STORY/OWN explicit package prepare/check/cancel/accept/report; API explicit confirm/first installation. |
 | C42 | PROD prose/footage/board drift pauses handoff while retaining records; BRIEF and Script currentness. |
@@ -261,14 +262,10 @@ Implementation revision `c8f59b77222216f4e2923283606493658f28674f` is pushed to
 `origin/main`, with a clean worktree and remote0/0 after publication. The final
 staged diff/static check passed; no force push or unrelated work was used.
 Full unfiltered [remote CI](https://github.com/Wenjun-Mao/plotloom/actions/runs/37495692517)
-is running on that exact revision; its verify job has passed frontend types/unit,
-archived reader and checked production bundle, with Python/distribution and
-browser jobs still pending at the recorded observation. Remote CI is not claimed
-as passed. This receipt's publication follow-up changes documentation only.
-No normal reset, service stop/recreation or provider dispatch has occurred.
-The existing owner browser session was not refreshed or edited. Published static
-files are mounted from the checkout; the running normal backend has not been
-recreated, so this is not normal runtime qualification or activation.
+is running on that exact revision: verify succeeded and both browser shards are
+in progress at16:44:07UTC. Remote CI is not claimed as passed. Docs-only publication
+follow-up `892adaf` preserves the same source/static/wheel candidate. The existing
+owner browser session was not refreshed or edited; zero provider dispatches.
 
 The stable runtime review used source aggregate
 `522ce076d04165149a553f8b76db9d9dae75a0039a355d2427fe72c2df77a6ce`.
@@ -289,8 +286,8 @@ Read-only normal preflight identifies two projects. Only 雨停以后
 binary accepted section map. The manager approved exact guarded retirement of that
 map r1, Graph r1, matching source admission and only unavoidable Graph FK gate/
 approval rows. Both heads become missing/r0; source/outline/Brief/drafts/Script/
-media/settings and all other projects remain protected. Reset stays paused until
-final qualification and quiescence;
+media/settings and all other projects remain protected. Reset was held until
+final qualification and quiescence, now established below;
 no fallback, implicit rewrite or deletion of Script/media/assets is permitted.
 风里的纸飞机 `2f52cf22-3f4a-4f05-8dc3-4f55e76687b9` remains unrelated/protected.
 Specialist busy=false is insufficient alone: queued, running and unknown work,
@@ -306,9 +303,9 @@ and its delivered image/pin/manifest match stored accepted delivery
 These facts do not silently settle native ownership. Current package verification
 finds only a retired deliveryInstruction mismatch; supported Refresh would reject
 it, so no Refresh POST, package rewrite, cancellation or native receipt mutation
-was performed. Exact Graph/map retirement authority does not extend to that
-independent native record. Reconciliation requires separate authority; until
-then, normal reset/service activation stays held.
+was performed during diagnosis. Exact Graph/map retirement authority did not
+extend to that independent native record; reset/activation correctly stayed held
+until the owner separately authorized the exact terminal receipt reconciliation.
 
 Read-only receiving inspection and native guard checks retained full preservation:
 two project DBs (74 tables each),84 project files, application DB/files and three
@@ -327,9 +324,40 @@ source blocker. Ten optimized synthetic guard checks passed, exit0; normal
 quiescence remains blocked. A separate ignored exact terminal-completion helper
 passes current delivery/pin/provenance/output/stored-manifest receiving checks
 and read-only admission with unchanged preservation. Six isolated existing-method
-checks passed, exit0, including exact one-receipt transition and refusal on
-inflight/temporary/wrong identity/missing lock. Its final independent review and
-separate owner permission remain pending; no native completion was performed.
+checks initially passed6, then final10, exit0, including both project leases,
+exact one-receipt transition, refusal on inflight/temporary/wrong identity/missing
+lock and honest post-effect/evidence-write failure states. Attended Sol/High and
+manager reviews closed both final refinements before execution; the owner then
+authorized only this exact completed-result reconciliation and the prior reset.
+
+Actual optimized completion ran once, exit0: only the exact queued receipt became
+completed. The original237c… capture remains retained; its sole approved file delta
+produced fresh reset baseline
+`396b8d3942a7c6225442f64d66fa39e3b1e40f071e4efa2bae6c9ba3786ca712`.
+Supported stop exited0, with identical stopped fingerprints. Actual optimized
+retirement ran once, exit0: exactly three reviewed PK rows removed and two existing
+heads normalized; gate/approval rows0. In-transaction full-row/schema/file delta
+and FK checks passed before commit; both project leases and registry lock remained
+held for exact postcommit readback. No backup, old-contract adapter, replacement
+Graph or automatic acceptance was created.
+
+Supported start/recreate exited0; container healthy at16:42:23UTC and native bridge
+health succeeded. Current typed Graph/Source/Cast/Art/Script/Bridge projections and
+served JS/CSS passed read-only qualification for both projects. Rain retains exact
+source/outline r1, Cast r2/Art r1 and four managed assets; Cast/Art expose computed
+staleness without changing their stored rows. Both missing/r0 Graph heads expose
+current initial draft payloads, with no Root draft written or production installed.
+Wind's existing reopened outline is preserved. The entire postactivation capture
+equals postreset aggregate
+`2ad5913d7f35ace530add7649b308e891321d67f3fbdbdab48a235b16e1a2033`:
+all other rows, schemas,84 project files, application files and three protected
+deployment/credential/settings files are unchanged. The manager independently
+reconstructed the one-file completion and exact five-row retirement boundaries,
+then verified live health, both current Graph endpoints and exact served JS/CSS;
+a fresh independent capture after those reads still equals2ad591… in full.
+Permanent redacted evidence: [native completion](supporting/graph-workbench-g5/normal-native-completion.json),
+[retirement](supporting/graph-workbench-g5/normal-retirement.json),
+[activation/readback](supporting/graph-workbench-g5/normal-activation.json).
 
 Engineering qualification, normal activation and owner usability acceptance are
 separate. Final next action remains a fresh owner walkthrough of the qualified

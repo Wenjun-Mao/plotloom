@@ -454,10 +454,14 @@ scope in ADR 0059 is reference evidence, not an executable contract to retain.
   Python1182, frontend538/76, focused native37 and final full native190 passed;
   types, lock/lint, archived reader, deterministic build, isolated wheel smoke
   and compile gates exited0. Prior failed diagnostics remain recorded. Publication
-  is pushed at `c8f59b7`, with full exact-revision remote CI running. Exact demo
-  Graph/map retirement and normal activation are held by
-  an independent retained native queued receipt, despite global busy=false;
-  no reset, service stop/activation or provider dispatch has occurred. All normal
-  project/application/files/credential fingerprints remain unchanged. Separate
-  authority for exact native terminal reconciliation is required before resuming
-  activation. Owner usability/creative/media acceptance remains separate.
+  is pushed at `c8f59b7`, with full exact-revision remote CI verify passed and
+  browser shards running. An independent retained native queued receipt correctly
+  held activation despite global busy=false. The owner separately authorized its
+  exact completed-result reconciliation; final independent safety review preceded
+  one receipt-only completion, then the exact three-row demo Graph/map/admission
+  retirement and two-head normalization. Normal8841 was recreated and passed
+  paired current API/static readback. All other project/application/asset/schema/
+  credential fingerprints are unchanged; postactivation exactly equals verified
+  postreset. Zero provider dispatches, new Graph acceptance or production installs.
+  Owner usability/creative/media acceptance remains separate; next action is the
+  owner's fresh walkthrough of the qualified current creator workbench.
