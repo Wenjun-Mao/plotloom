@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "status": "technical_screen_passed_owner_review_pending",
+  "sourceBaseline": "f1864cd",
+  "finalPrivateReceiptSha256": "ebf8b31dabaea5409206d224a6020bba73575b5438d4e294f048d7342e82ae25",
+  "restorationProofSha256": "2f07510fd14a46c2f3cb39f91749c4275b3ad540398c38e06274d89918a31875",
+  "runtimeCommit": "6b747c0428c343e1417219641db93a4fb7cb69ae",
+  "runtimeImage": "sha256:db0010004575a508b5ac67fb36ea4ab83cf1964a84e70932019749f330c64110",
+  "casesSha256": "b5971616b3a8edd89e4360000e617c10938ef9675fd5e0923c8e888f3430257b",
+  "assets": [
+    {
+      "name": "landscape.png",
+      "sha256": "f07294d56c0d3468ed3d38432481602a120891e6f9a5bbf4ba48774d18611b71"
+    },
+    {
+      "name": "portrait.png",
+      "sha256": "bc48afbfacaeb91ba2a8b4104bb70e7f41e79649feb78940184b4a2617877f9a"
+    },
+    {
+      "name": "voice.png",
+      "sha256": "4237ad89a723b7f059d3238eb3aca92acc6373d726b07b7161ef7e37af932d10"
+    },
+    {
+      "name": "performance.wav",
+      "sha256": "a780e9db30d4e57982b718d638c5eacbe4932ef867dd7465ae94ebafd20da8b2"
+    },
+    {
+      "name": "minimax_h3_video_vae_fp16.safetensors",
+      "sha256": "7c1f131492e7eddacaac9069a61b81bdd39de5cc96561e677c5eab1cdce5e522"
+    },
+    {
+      "name": "minimax_h3_video_vae_int8_convrot.safetensors",
+      "sha256": "52a2c8c73583c86e4f41cdcce3a6ad0ea562987bc0bf3d60a0cef5f5c8e60c0e"
+    },
+    {
+      "name": "minimax_h3_audio_vae_fp32.safetensors",
+      "sha256": "8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48"
+    },
+    {
+      "name": "minimax_h3_fl2va_pruned_fp8_scaled.safetensors",
+      "sha256": "12944c1f7791637e7de12208aef04da82bd26b95271b1b47d817364315ade993"
+    },
+    {
+      "name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+      "sha256": "9255f52b6677845ad238f20dfaafa94727053694127ab7f255c048f0f9365779"
+    },
+    {
+      "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "sha256": "35a88d51044231fe332301d7a62aa81e3f2cba62febeb446e2c1e3e0ef76f2c6"
+    },
+    {
+      "name": "minimax_h3_fl2v_turbo_4step_v1.2_768p_comfyui_bf16.safetensors",
+      "sha256": "c8168ebc17bbacc4296103dda2fec1ba85b24392fa08cf2bfbcef0cff0dc3cc8"
+    }
+  ],
+  "audioCompute": "bfloat16",
+  "arms": {
+    "A": {
+      "videoCompute": "bfloat16",
+      "checkpoint": "fp16",
+      "fast": false
+    },
+    "B": {
+      "videoCompute": "float16",
+      "checkpoint": "fp16",
+      "fast": false
+    },
+    "C": {
+      "videoCompute": "float16",
+      "checkpoint": "fp16",
+      "fast": true
+    },
+    "D": {
+      "videoCompute": "float16",
+      "checkpoint": "int8_convrot",
+      "fast": true
+    }
+  },
+  "fullGenerationAttempts": 12,
+  "componentWorkloads": 6,
+  "fullReplays": 0,
+  "baselineRestored": true,
+  "publishedVoicesUnchanged": 3,
+  "performanceTakesUnchanged": 2,
+  "productionAdoption": false,
+  "precursorReceiptHashes": [
+    "bc8df98dc802ac594448e4dc6a2717febe84046dce58291b847d84808d12ab91",
+    "c9b7aaa8b0348e3e2d08c4e46f8f62f6f865c846218f11b31e5dc8469c741b3b"
+  ],
+  "mediaContract": {
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "audioSampleRate": 32000,
+    "frames": 124,
+    "fps": 24,
+    "durationSeconds": 5.167
+  },
+  "limitations": "One run per cell; fresh process and component smoke per arm. Landscape is the first full clip, later clips warm; disk/library caches retained. Observer overhead identical; CUDA stage time is not pure kernel time. Host MemAvailable and process RSS overlap on UMA; sampled values are not exact GPU peaks.",
+  "results": [
+    {"arm":"A","caseId":"landscape","state":"passed","submitToObservedCompletionMs":162150,"videoEncode":{"innerCudaMs":374.12896728515625,"outerWallMs":435.91103213839233},"videoDecode":{"innerCudaMs":44514.7265625,"outerWallMs":44537.4278051313},"videoModelManagementMs":76.83596108108759,"kernels":{"video:group_norm_silu_pad3d":812,"outside_vae:rms_rope_split_half_":1,"video:rms_rope_split_half_":2016},"hostMemory":{"samples":162,"minAvailableKiB":31976364,"maxSwapUsedKiB":6382612,"maxSampleGapSeconds":1.0167072829790413,"peakRssKiBByLabel":{"embedding":12484,"qwen_image":65956,"comfy":7495688},"observerFailed":false},"outputSha256":"7d30b5d7cf4cf188288932d3cd496d897de24f0ddbf4c6347af92369e060e748","graphSha256":"b77d48f7002162a4578ac7d52da7f977b685ab0c952157c0f7199ab84b3a2cc7","fullDecode":"passed","dimensions":[1280,704]},
+    {"arm":"A","caseId":"portrait","state":"passed","submitToObservedCompletionMs":150149,"videoEncode":{"innerCudaMs":304.6981506347656,"outerWallMs":345.26460198685527},"videoDecode":{"innerCudaMs":40276.32421875,"outerWallMs":40299.996291985735},"videoModelManagementMs":55.59130688197911,"kernels":{"video:group_norm_silu_pad3d":812,"video:rms_rope_split_half_":1764},"hostMemory":{"samples":150,"minAvailableKiB":29085028,"maxSwapUsedKiB":6382612,"maxSampleGapSeconds":1.0158470519818366,"peakRssKiBByLabel":{"embedding":12484,"qwen_image":65924,"comfy":7531720},"observerFailed":false},"outputSha256":"593557e399db6838656d5b9e5452f321fd1c2ddf51ed45751941d1038f6ac976","graphSha256":"a50384b7ac011fe8ab9fa7ca99cd8931d279cc3b9e9255fc1ebff2a668fa4a0b","fullDecode":"passed","dimensions":[704,1280]},
+    {"arm":"A","caseId":"voice","state":"passed","submitToObservedCompletionMs":466800,"videoEncode":{"innerCudaMs":326.94873046875,"outerWallMs":377.61093117296696},"videoDecode":{"innerCudaMs":28262.013671875,"outerWallMs":28285.106585826725},"videoModelManagementMs":60.55185780860484,"kernels":{"video:group_norm_silu_pad3d":870,"outside_vae:int8_linear":1,"video:rms_rope_split_half_":1260},"hostMemory":{"samples":465,"minAvailableKiB":30427256,"maxSwapUsedKiB":6382612,"maxSampleGapSeconds":1.0167243648320436,"peakRssKiBByLabel":{"embedding":12484,"qwen_image":65924,"comfy":7520552},"observerFailed":false},"outputSha256":"708289119d8a6715c7d0a17ece9f3d0815929e4a47fb07f33d3260e4d4be0bbf","graphSha256":"918b230c04d33b0964c82ad45727e3a24affd31579ac3c032af5d2adc1c1d34b","fullDecode":"passed","dimensions":[576,1024]},
+    {"arm":"B","caseId":"landscape","state":"passed","submitToObservedCompletionMs":159314,"videoEncode":{"innerCudaMs":500.69561767578125,"outerWallMs":562.5040729064494},"videoDecode":{"innerCudaMs":43156.43359375,"outerWallMs":43179.85698301345},"videoModelManagementMs":76.04506402276456,"kernels":{"video:group_norm_silu_pad3d":812,"outside_vae:rms_rope_split_half_":1,"video:rms_rope_split_half_":2016},"hostMemory":{"samples":160,"minAvailableKiB":30818016,"maxSwapUsedKiB":6382612,"maxSampleGapSeconds":1.0142419680487365,"peakRssKiBByLabel":{"embedding":12484,"qwen_image":65860,"comfy":7831932},"observerFailed":false},"outputSha256":"4aa29e478a116d43909a1d111c085694ea43b14f845428b7b15554f59fe37dc0","graphSha256":"19fde598a9c97e95f77a188e1426843f87b01697204ac4013bfddd9b4844d8ab","fullDecode":"passed","dimensions":[1280,704]},
+    {"arm":"B","caseId":"portrait","state":"passed","submitToObservedCompletionMs":147159,"videoEncode":{"innerCudaMs":302.42144775390625,"outerWallMs":344.28351814858615},"videoDecode":{"innerCudaMs":39558.02734375,"outerWallMs":39582.04025798477},"videoModelManagementMs":55.18914689309895,"kernels":{"video:group_norm_silu_pad3d":812,"video:rms_rope_split_half_":1764},"hostMemory":{"samples":148,"minAvailableKiB":27942632,"maxSwapUsedKiB":6382608,"maxSampleGapSeconds":1.0125959981232882,"peakRssKiBByLabel":{"embedding":12484,"qwen_image":65860,"comfy":7862624},"observerFailed":false},"outputSha256":"78e4fd962358d05eaa4f8af1b88b19cd36de5706986bd930a7f1e8edd9609235","graphSha256":"57b9056b483dd9165a26a9091d210dc06722c0c7f5b8cb209fcf75cb19c33258","fullDecode":"passed","dimensions":[704,1280]},
+    {"arm":"B","caseId":"voice","state":"passed","submitToObservedCompletionMs":455040,"videoEncode":{"innerCudaMs":330.7239990234375,"outerWallMs":380.5002220906317},"videoDecode":{"innerCudaMs":23479.462890625,"outerWallMs":23503.05409403518},"videoModelManagementMs":59.74569986574352,"kernels":{"video:group_norm_silu_pad3d":870,"outside_vae:int8_linear":1,"video:rms_rope_split_half_":1260},"hostMemory":{"samples":453,"minAvailableKiB":30436832,"maxSwapUsedKiB":6382608,"maxSampleGapSeconds":1.014393872814253,"peakRssKiBByLabel":{"embedding":12484,"qwen_image":65860,"comfy":7808932},"observerFailed":false},"outputSha256":"0637ad71be13014f5c8d9c7420e44549aac29d35f1df1d178433d3554ef1bbf9","graphSha256":"47fc537913c3fd56f6a2b3adb78644bc60b69f74f4e43511ce2917e8f966aca7","fullDecode":"passed","dimensions":[576,1024]},
+    {"arm":"C","caseId":"landscape","state":"passed","submitToObservedCompletionMs":180158,"videoEncode":{"innerCudaMs":383.4124755859375,"outerWallMs":428.9235689211637},"videoDecode":{"innerCudaMs":61834.61328125,"outerWallMs":61875.623961910605},"videoModelManagementMs":75.75584389269352,"kernels":{"video:group_norm_silu_pad3d":812,"video:fp16_conv3d":84,"outside_vae:rms_rope_split_half_":1,"video:fp16_linear":8064,"video:rms_rope_split_half_":2016},"hostMemory":{"samples":181,"minAvailableKiB":31713740,"maxSwapUsedKiB":6395564,"maxSampleGapSeconds":1.0141736580990255,"peakRssKiBByLabel":{"embedding":12484,"qwen_image":65796,"comfy":7833780},"observerFailed":false},"outputSha256":"d30b8beaad63da58e3c844160a4cbd58c152f3354abacf797c2dd61885226d46","graphSha256":"f972d7c68b5aaac85effecfeffe28cfb41baf749a2f35d4789986a7a46372b8c","fullDecode":"passed","dimensions":[1280,704]},
+    {"arm":"C","caseId":"portrait","state":"passed","submitToObservedCompletionMs":177250,"videoEncode":{"innerCudaMs":299.3187255859375,"outerWallMs":339.7089820355177},"videoDecode":{"innerCudaMs":63369.3359375,"outerWallMs":63393.89682514593},"videoModelManagementMs":55.61732780188322,"kernels":{"video:group_norm_silu_pad3d":812,"video:fp16_conv3d":84,"video:fp16_linear":7056,"video:rms_rope_split_half_":1764},"hostMemory":{"samples":177,"minAvailableKiB":28833056,"maxSwapUsedKiB":6395568,"maxSampleGapSeconds":1.0165092940442264,"peakRssKiBByLabel":{"embedding":12484,"qwen_image":63452,"comfy":7876024},"observerFailed":false},"outputSha256":"b21137334cba54d36a47f6dc171f9cd7a26516d479ca851667453e6bab3d64d9","graphSha256":"68361bdfa35a8bd28c0f5048463519e1f0ae95f374b42b60bbb0bf7b39084669","fullDecode":"passed","dimensions":[704,1280]},
+    {"arm":"C","caseId":"voice","state":"passed","submitToObservedCompletionMs":463787,"videoEncode":{"innerCudaMs":324.7977294921875,"outerWallMs":382.8484050463885},"videoDecode":{"innerCudaMs":29128.623046875,"outerWallMs":29153.757568914443},"videoModelManagementMs":69.23307082615793,"kernels":{"video:group_norm_silu_pad3d":870,"video:fp16_conv3d":90,"outside_vae:int8_linear":1,"video:fp16_linear":5040,"video:rms_rope_split_half_":1260},"hostMemory":{"samples":461,"minAvailableKiB":29559640,"maxSwapUsedKiB":6398140,"maxSampleGapSeconds":1.0286718581337482,"peakRssKiBByLabel":{"embedding":12484,"qwen_image":63452,"comfy":7798604},"observerFailed":false},"outputSha256":"d6c7920230c3d8e4b3c703c0427737eb09300d0bbdcb2572720a11b8182c553b","graphSha256":"06b57a589ca92df74fda69234686b3f4e376689e9720add5fd1eb9f757459ca7","fullDecode":"passed","dimensions":[576,1024]},
+    {"arm":"D","caseId":"landscape","state":"passed","submitToObservedCompletionMs":144129,"videoEncode":{"innerCudaMs":505.31494140625,"outerWallMs":559.098802972585},"videoDecode":{"innerCudaMs":28009.78125,"outerWallMs":28035.88768094778},"videoModelManagementMs":67.19047296792269,"kernels":{"video:group_norm_silu_pad3d":812,"video:fp16_conv3d":84,"outside_vae:rms_rope_split_half_":1,"video:int8_linear":8064,"video:rms_rope_split_half_":2016,"video:int8_attention":2016},"hostMemory":{"samples":145,"minAvailableKiB":33005360,"maxSwapUsedKiB":6399236,"maxSampleGapSeconds":1.0152953481301665,"peakRssKiBByLabel":{"embedding":12420,"qwen_image":63324,"comfy":7903288},"observerFailed":false},"outputSha256":"5b3e446d8e6669ac61f756a74fb349464df4a887f995d459e55c22810b539833","graphSha256":"cd18895dd3743a897c972ab02d9cf6efdf5b11627601fac64c1441ecf85d5aff","fullDecode":"passed","dimensions":[1280,704]},
+    {"arm":"D","caseId":"portrait","state":"passed","submitToObservedCompletionMs":138151,"videoEncode":{"innerCudaMs":301.8214111328125,"outerWallMs":343.5231130570173},"videoDecode":{"innerCudaMs":28343.134765625,"outerWallMs":28369.092114968225},"videoModelManagementMs":57.89142497815192,"kernels":{"video:group_norm_silu_pad3d":812,"video:fp16_conv3d":84,"video:int8_linear":7056,"video:rms_rope_split_half_":1764,"video:int8_attention":1764},"hostMemory":{"samples":139,"minAvailableKiB":31181768,"maxSwapUsedKiB":6399236,"maxSampleGapSeconds":1.011169670149684,"peakRssKiBByLabel":{"embedding":12420,"qwen_image":63324,"comfy":8099760},"observerFailed":false},"outputSha256":"44395aa688674e45e00779c262f80a72404dee56b51d6a9efaeaa43fbb64df30","graphSha256":"dd412b999f78d5bf247a2953381a0cac6f5bf90eb81c44bd904a5adcce16bfef","fullDecode":"passed","dimensions":[704,1280]},
+    {"arm":"D","caseId":"voice","state":"passed","submitToObservedCompletionMs":452817,"videoEncode":{"innerCudaMs":327.17987060546875,"outerWallMs":380.2324589341879},"videoDecode":{"innerCudaMs":14807.30078125,"outerWallMs":14833.516421029344},"videoModelManagementMs":65.3719762340188,"kernels":{"video:group_norm_silu_pad3d":870,"video:fp16_conv3d":90,"outside_vae:int8_linear":1,"video:int8_linear":5040,"video:rms_rope_split_half_":1260,"video:int8_attention":1260},"hostMemory":{"samples":450,"minAvailableKiB":32768392,"maxSwapUsedKiB":6399236,"maxSampleGapSeconds":1.0152038410305977,"peakRssKiBByLabel":{"embedding":12420,"qwen_image":63324,"comfy":8034720},"observerFailed":false},"outputSha256":"f28396eb4db6ffab445b864c49f5035440fb35e1dc50fc2ac7e1912b7753996e","graphSha256":"7b649d3277395b38f2fb0e6c0e0879e74bbcf312bd9590c6dd197c0f22d4b4b6","fullDecode":"passed","dimensions":[576,1024]}
+  ]
+}

@@ -27,7 +27,9 @@ PARAMETER_STORAGE = {
     'A': {'torch.float16', 'torch.bfloat16'},
     'B': {'torch.float16'},
     'C': {'torch.float16'},
-    'D': {'torch.float16', 'torch.int8', 'torch.uint8'},
+    # The pinned INT8 file also stores FP32 biases, normalization/scale values
+    # and quantization metadata; dynamic loading retains some as parameters.
+    'D': {'torch.float16', 'torch.float32', 'torch.int8', 'torch.uint8'},
 }
 AUDIO_PARAMETER_STORAGE = {'torch.float32', 'torch.bfloat16'}
 CASE_IDS = ('landscape', 'portrait', 'voice')

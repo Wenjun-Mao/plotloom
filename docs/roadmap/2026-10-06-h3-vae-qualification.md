@@ -1,15 +1,16 @@
 # H3 video VAE precision and INT8 qualification
 
-**Status:** Owner-approved, implementation started 2026-10-06. The owner approved
-this bounded qualification, including its 12-attempt ceiling. Production adoption
-is not authorized. Results and restoration evidence will be recorded separately.
+**Status:** Technical screen completed 2026-10-06; owner visual/audio review
+pending. All twelve planned full clips passed attributable compute, media and
+memory checks, with zero full-cell replays. Exact baseline services are restored;
+published voices/takes are unchanged. Production adoption is not authorized.
 
-**Execution checkpoint:** one A component smoke ran successfully; the runner
-stopped on a storage-versus-compute dtype validation bug before any full clip.
-The observer contract is corrected and baseline services are restored. See the
-[execution ledger](../verification/2026-10-06-h3-vae-qualification.md). A fresh
-cold-boundary A smoke would exceed the original one-per-arm component cap and
-requires resumed authority; no extra full-generation calls are proposed.
+**Execution checkpoint:** two storage-versus-compute observer assumptions were
+corrected using the pinned checkpoint and actual CUDA activation evidence.
+Stopped receipts were preserved; linked execution roots inherited prior claims
+without resetting the twelve-attempt ceiling. Six small component workloads ran,
+including the two additional cold smokes covered by owner permission. See the
+[execution ledger and measured results](../verification/2026-10-06-h3-vae-qualification.md).
 
 Specialist checkout: `plotloom-h3-ref2va-gateway`, branch
 `codex/h3-ref2va-gateway`, clean starting commit `de6e088`.
@@ -32,7 +33,8 @@ Read-only inspection on 2026-10-06 confirms the live baseline:
   `--fast fp16_accumulation`.
 - Video checkpoint `minimax_h3_video_vae_fp16.safetensors`, 5,207,808,496 bytes;
   audio checkpoint `minimax_h3_audio_vae_fp32.safetensors`.
-- The INT8 video checkpoint is not installed. The current runtime already
+- At planning time the INT8 video checkpoint was not installed; qualification
+  subsequently downloaded and verified it without production selection. The runtime already
   contains the upstream optimization code; no Comfy upgrade is needed here.
 - Quality 1 is V1.2 Turbo4/Euler/6/3; quality 2 is
   V1.0 Turbo4/res_multistep/6/3. Ref2VA uses its separately qualified model/path.
@@ -126,8 +128,11 @@ destination; record global launch differences separately.
 
 **Approved cap: 12 full-generation submission attempts total**, one per
 case×arm. Rejections/failures count too; no automatic replacement or replay.
-Component smokes are separately recorded and bounded to one small workload per
-arm; they do not produce additional full clips or become a tuning sweep.
+Component smokes are separately recorded: the original A smoke is retained,
+and the authorized resumed execution has one small workload per arm. The
+owner's subsequent testing/downtime permission covers one further cold D smoke
+after a checkpoint-storage guard correction (six total including the precursor
+A and preserved first D). They do not produce extra full clips or a tuning sweep.
 
 Respect the [shared dispatch boundary](../adr/0097-published-voice-performance-takes-and-shared-admission.md):
 do not bypass the generation lane because Comfy's queue looks empty. Enter a

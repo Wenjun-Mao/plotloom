@@ -25,6 +25,11 @@ custom nodes in the production Comfy container.
   inference. `load_models_gpu` timing includes any load/offload it performs.
 - `run_arm.py`: exclusive file lock, one smoke then three sole submissions,
   cached-compute refusal, uncertainty-first receipt and full media decode.
+- `review.py`: offline, hash-checked twelve-clip review page, three fixed-frame
+  samples per clip and timing/kernel/memory summary. It submits no GPU requests.
+  Copy the frozen `cases.json`/receipt and hash-matching clips named
+  `<arm>_<case>.mp4` into the local private root, with retained images in
+  `input/`, then run `python review.py --root <local-root>`.
 
 Use a fresh private root, read-only model/input mounts, separate per-arm user and
 output directories, the exact approved image ID and loopback port 8193. Preserve
@@ -43,3 +48,15 @@ No retry switch. Existing, stopped or ambiguous cells cannot be replayed. Unknow
 inference keeps its container until reconciled. Once idle, stop the experiment
 container, start the unchanged baseline, verify queue/health and voice/take
 hashes, then reopen managed dispatch. A completed screen is not adoption.
+
+For the owner-authorized October 6 resumption, the operator created exactly one
+fresh root linked by path/hash to the unchanged stopped precursor. Its original
+zero full-call claims were proven, cases copied byte-for-byte, and all original
+input/model hashes retained. The fresh receipt has the same twelve-call cap;
+do not invoke `freeze.py` again or create another root to replace a failed cell.
+The later INT8 continuation inherits all nine completed ABC full claims and ABC
+smokes, leaving only the three D cells. It preserves the first D component and
+parent stopped receipt, after a D-only FP32-storage guard correction supported
+by the official checkpoint header and observed FP16 CUDA compute. The owner's
+general testing permission covers the sixth total component workload (fresh D);
+the full ceiling is not reset and no extra full clip is allowed.

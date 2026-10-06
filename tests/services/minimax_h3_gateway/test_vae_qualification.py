@@ -20,6 +20,7 @@ def load(name):
 C = load('contract')
 R = load('run_arm')
 M = load('maintenance')
+V = load('review')
 
 
 def case():
@@ -182,6 +183,20 @@ def test_dynamic_storage_is_distinct_from_compute_precision():
         C.validate_observations(values, 'A', smoke=True)
 
 
+def test_official_int8_float32_storage_does_not_allow_float32_compute():
+    values = events('D') + [
+        {'kind': 'kernel', 'vaeKind': 'video', 'kernel': 'fp16_conv3d'},
+        {'kind': 'kernel', 'vaeKind': 'video', 'kernel': 'int8_linear'},
+    ]
+    for entry in values:
+        if entry['kind'] == 'stage' and entry['vaeKind'] == 'video':
+            entry['parameterDtypes'] = {'torch.float16': 252, 'torch.float32': 307}
+    C.validate_observations(values, 'D', smoke=True)
+    values[0]['computeActivations'][0]['dtype'] = 'torch.float32'
+    with pytest.raises(ValueError, match='precision/device'):
+        C.validate_observations(values, 'D', smoke=True)
+
+
 def test_restoration_ignores_mount_order_not_binding_changes():
     original = {'image': 'fixed', 'mounts': [
         {'Destination': '/user', 'Source': '/production-user', 'RW': True},
@@ -190,3 +205,43 @@ def test_restoration_ignores_mount_order_not_binding_changes():
     assert M.canonical_configuration(original) == M.canonical_configuration(reordered)
     reordered['mounts'][0] = {**reordered['mounts'][0], 'RW': True}
     assert M.canonical_configuration(original) != M.canonical_configuration(reordered)
+
+
+def test_review_preserves_timing_scopes_and_memory_views():
+    observations = [
+        {'kind': 'stage', 'vaeKind': 'video', 'operation': 'decode', 'cudaElapsedMs': 11},
+        {'kind': 'outer_stage', 'vaeKind': 'video', 'operation': 'decode', 'synchronizedWallMs': 17},
+        {'kind': 'model_management', 'vaeKind': 'video', 'wallMs': 3},
+        {'kind': 'kernel', 'vaeKind': 'video', 'kernel': 'int8_linear', 'count': 7},
+        {'kind': 'kernel', 'vaeKind': 'video', 'kernel': 'int8_linear', 'count': 2},
+    ]
+    memory = {'minAvailableKiB': 123, 'peakRssKiBByLabel': {'comfy': 987}}
+    item = {'arm': 'D', 'caseId': 'voice', 'state': 'passed', 'elapsedMs': 45,
+            'observations': observations, 'hostMemory': memory, 'outputSha256': 'output',
+            'graphSha256': 'graph', 'fullDecode': 'passed', 'media': {}}
+    value = V.summarize(item)
+    assert value['timing']['video_decode'] == {'calls': 1, 'innerCudaMs': 11, 'outerWallMs': 17}
+    assert value['timing']['video_modelManagementMs'] == 3
+    assert value['kernels'] == {'video:int8_linear': 9}
+    assert value['hostMemory'] == memory
+    assert 'observations' not in value and 'outputPath' not in value
+
+
+def test_review_refuses_incomplete_comparison_before_media_processing(tmp_path):
+    frozen = {'cases': []}
+    C.save(tmp_path / 'cases.json', frozen)
+    C.save(tmp_path / 'receipt.json', {'casesSha256': C.fingerprint(frozen), 'calls': []})
+    with pytest.raises(ValueError, match='twelve ordered'):
+        V.build(tmp_path)
+
+
+def test_review_refuses_changed_copied_input_before_media_processing(tmp_path):
+    (tmp_path / 'input').mkdir()
+    (tmp_path / 'input/landscape.png').write_bytes(b'changed')
+    frozen = {'cases': [], 'assets': [{'path': '/spark/input/landscape.png', 'sha256': 'original'}]}
+    C.save(tmp_path / 'cases.json', frozen)
+    C.save(tmp_path / 'receipt.json', {'casesSha256': C.fingerprint(frozen),
+        'calls': [{'arm': arm, 'caseId': name} for arm in C.ARMS for name in C.CASE_IDS],
+        'smokes': {arm: {'state': 'passed'} for arm in C.ARMS}})
+    with pytest.raises(ValueError, match='Copied frozen input'):
+        V.build(tmp_path)
