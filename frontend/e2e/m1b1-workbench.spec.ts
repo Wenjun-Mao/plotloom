@@ -16,13 +16,16 @@ test.describe("M1-B1 canonical workbench journey", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test("authors, persists, reloads, deep-links, and approves a canonical project", async ({ page, request, workbench }) => {
+    test.setTimeout(90_000);
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开示例项目" }).click();
     await expect(page.getByText("编辑与工具", { exact: true })).toBeVisible();
 
-    // Bootstrap through the final stage so the server receives a contiguous,
-    // valid canonical prefix.  Subsequent writes exercise each individual
-    // editor's ordinary PATCH path rather than relying on API setup.
+    const logline = "E2E：作者保留当前规范路线，编辑节拍与分镜并批准同一份故事。";
+    const visualAnchors = "短黑发、旧工作服、右手绝缘手套\n琥珀读数映在护目镜上";
+    const allowedStates = "focused\nstrained\nresolved";
+    // Bootstrap the valid current prefix. Source-less Graph remains read-only.
+    // Bible changes follow approval to prove their real downstream staleness.
     await navigateToStage(page, "05 分镜工作台");
     const created = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === "/api/v2/projects");
@@ -31,61 +34,12 @@ test.describe("M1-B1 canonical workbench journey", () => {
     await expect(page).toHaveURL(/[?&]project=/);
     const projectId = currentProjectId(page);
 
-    await navigateToStage(page, "02 故事圣经");
-    const logline = "E2E M1-B1：作者在四个规范阶段连续完成并批准同一份故事。";
-    await page.getByLabel("Logline").fill(logline);
-    // The entities remain authored only in the Bible.  Exercise anchors and
-    // the allowed-state vocabulary through its ordinary inspector, then
-    // prove that the selected stable identity survives a document reload.
-    await page.getByTestId("select-character-char_ruanxing").click();
-    const visualAnchors = "短黑发、旧工作服、右手绝缘手套\n琥珀读数映在护目镜上";
-    const allowedStates = "focused\nstrained\nresolved";
-    await page.getByTestId("character-visual-anchors").fill(visualAnchors);
-    await page.getByTestId("character-allowed-states").fill(allowedStates);
-    await savePatchedStage(page, projectId, "story_bible", "保存故事圣经");
-    await page.reload();
-    await expect(page.getByTestId("character-visual-anchors")).toHaveValue(visualAnchors);
-    await expect(page.getByTestId("character-allowed-states")).toHaveValue(allowedStates);
-    await expect(page.getByLabel("稳定 ID")).toHaveValue("char_ruanxing");
-
     await navigateToStage(page, "03 剧情 DAG");
-    // A relationship edit is first made on the durable edge identity.  The
-    // selected edge is a genuine ReactFlow edge, rather than a test-only
-    // backdoor.  It receives a second typed state effect.
-    await selectGraphEntity(page, "edge", "e2");
-    await expect(page.getByLabel("边 ID")).toHaveValue("e2");
-    await page.getByRole("button", { name: "添加效果" }).click();
-    await page.getByLabel("状态键 2").fill("authorProof");
-    await page.getByLabel("状态值 2").fill("retained");
-    await page.getByRole("button", { name: "添加实体状态" }).click();
-    await page.getByLabel("实体状态类型 1").selectOption("character");
-    await page.getByLabel("实体状态 ID 1").fill("char_ruanxing");
-    await page.getByLabel("实体状态值 1").fill("focused");
-
-    // The corresponding join contract is separately addressable and retains
-    // its immutable ID while its authored reconciliation note changes.
-    await selectGraphEntity(page, "node", "join");
-    await page.getByRole("button", { name: "编辑合同 join_contract_1" }).click();
-    await expect(page.getByLabel("合同 ID")).toHaveValue("join_contract_1");
-    const contractNotes = "E2E：合同 ID 保持不变，作者已审阅两条来路。";
-    await page.getByLabel("备注").fill(contractNotes);
-    await savePatchedStage(page, projectId, "story_graph", "保存剧情图");
-    await page.reload();
-    await selectGraphEntity(page, "edge", "e2");
-    const authorProof = page.locator('[data-focus-key="graph:edge:e2:stateEffects.authorProof"]');
-    await expect(authorProof).toHaveValue("authorProof");
-    await expect(authorProof.locator("xpath=following-sibling::input")).toHaveValue("retained");
-    await expect(page.getByLabel("实体状态类型 1")).toHaveValue("character");
-    await expect(page.getByLabel("实体状态 ID 1")).toHaveValue("char_ruanxing");
-    await expect(page.getByLabel("实体状态值 1")).toHaveValue("focused");
-    await selectGraphEntity(page, "node", "join");
-    await page.getByRole("button", { name: "编辑合同 join_contract_1" }).click();
-    await expect(page.getByLabel("备注")).toHaveValue(contractNotes);
+    await expect(page.locator(".canonical-graph-reader")).toContainText("join_contract_1");
+    await expect(page.getByRole("button", { name: "保存剧情图", exact: true })).toHaveCount(0);
 
     await navigateToStage(page, "04 场景节拍");
-    // The graph's newly authored typed effect is a post-edge assignment.  Its
-    // target is scene_memory's first entry, so make that direct boundary
-    // explicit through the ordinary scene editor before saving the aggregate.
+    // Author an explicit scene continuity state through the existing editor.
     await page.getByTestId("scene-card-scene_memory").click();
     const memoryEntry = page.getByTestId("continuity-场景入口连续性");
     await memoryEntry.getByRole("button", { name: "＋ 实体状态" }).click();
@@ -190,7 +144,6 @@ test.describe("M1-B1 canonical workbench journey", () => {
     await expectCanonicalHeads(request, workbench.apiOrigin, projectId);
 
     await navigateToStage(page, "02 故事圣经");
-    await expect(page.getByLabel("Logline")).toHaveValue(logline);
     await page.getByTestId("select-character-char_ruanxing").click();
     await expect(page).toHaveURL(/entity=bible%3Acharacter%3Achar_ruanxing/);
     await expect(page.getByRole("heading", { name: "角色检查器" })).toBeVisible();
@@ -223,30 +176,33 @@ test.describe("M1-B1 canonical workbench journey", () => {
       decision: expect.objectContaining({ decision: "approve", reviewer: "E2E local workbench reviewer" }),
     }));
 
-    // A genuinely invalid author edit must return the server's structured
-    // domain issues to the editor.  This is deliberately after approval so it
-    // cannot be mistaken for a test-only project bootstrap or alter the
-    // approved canonical revision.
-    await navigateToStage(page, "03 剧情 DAG");
-    await page.getByTestId("graph-node-add").click();
-    const invalidGraphSave = captureStagePatchResponse(page, projectId, "story_graph");
-    await page.getByRole("button", { name: "保存剧情图" }).click();
-    expect((await invalidGraphSave).status()).toBe(422);
-    await expect(page.getByText("合同问题", { exact: true })).toBeVisible();
-    const issueButton = page.getByRole("button", { name: /non-ending nodes must have an outgoing edge/ });
-    await expect(issueButton).toBeVisible();
-    await issueButton.click();
-    await expect(page.getByLabel("节点 ID")).toBeVisible();
+    await navigateToStage(page, "02 故事圣经");
+    await page.getByLabel("Logline").fill(logline);
+    await page.getByTestId("select-character-char_ruanxing").click();
+    await page.getByTestId("character-visual-anchors").fill(visualAnchors);
+    await page.getByTestId("character-allowed-states").fill(allowedStates);
+    await savePatchedStage(page, projectId, "story_bible", "保存故事圣经");
+    await page.reload();
+    await expect(page.getByLabel("Logline")).toHaveValue(logline);
+    await expect(page.getByTestId("character-visual-anchors")).toHaveValue(visualAnchors);
+    await expect(page.getByTestId("character-allowed-states")).toHaveValue(allowedStates);
+    await expect(page.getByLabel("稳定 ID")).toHaveValue("char_ruanxing");
+    const staleReview = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/storyboard-review`)).json();
+    expect(staleReview.activeApproval).toBeNull();
+    expect(staleReview.decisions).toContainEqual(expect.objectContaining({ decision: expect.objectContaining({ reviewer: "E2E local workbench reviewer" }) }));
+
+    const stages = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/stages`)).json();
+    const graph = stages.stages.find((item: { head: { stage: string } }) => item.head.stage === "story_graph");
+    const rejected = await request.patch(`${workbench.apiOrigin}/api/v2/projects/${projectId}/stages/story_graph`, { data: { expectedRevision: graph.head.revision, payload: graph.payload } });
+    expect(rejected.status()).toBe(409);
+    expect(await rejected.json()).toMatchObject({ code: "invalid_transition", message: expect.stringContaining("当前来源图草稿") });
+    expect(await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/stages`)).json()).toEqual(stages);
   });
 });
 
 async function navigateToStage(page: Page, name: string): Promise<void> {
   const label = name.replace(/^\d+\s+/, "");
   await navigateToSecondaryTool(page, label);
-}
-
-async function selectGraphEntity(page: Page, kind: "node" | "edge", id: string): Promise<void> {
-  await page.getByTestId(`graph-select-${kind}-${id}`).click();
 }
 
 async function savePatchedStage(page: Page, projectId: string, stage: StageName, label: string): Promise<void> {
@@ -277,7 +233,7 @@ async function expectCanonicalHeads(request: APIRequestContext, apiOrigin: strin
     expect(body.stages.find((candidate) => candidate.head.stage === stage)?.head).toMatchObject({
       stage,
       status: "ready",
-      revision: 2,
+      revision: stage === "story_bible" || stage === "story_graph" ? 1 : 2,
       schemaVersion: 2,
     });
   }

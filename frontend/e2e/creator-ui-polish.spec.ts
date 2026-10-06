@@ -1,6 +1,6 @@
 import { expect, test } from "./fixture";
 
-for (const width of [1440, 1920, 1280, 390]) {
+for (const width of [1440, 1920, 1280]) {
   test(`creator Brief roles and expanded cards remain usable at ${width}px`, async ({ page, workbench }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`${workbench.frontendOrigin}/v2/`);
@@ -46,14 +46,11 @@ for (const width of [1440, 1920, 1280, 390]) {
     expect(layout.size).toBe("13px");
     expect(layout.font).not.toContain("monospace");
     const enabled = page.getByRole("button", { name: "生成助手设置" });
-    // At narrow widths the existing sidebar footer is deliberately collapsed.
-    if (width > 820) {
-      const enabledStyle = await enabled.evaluate(element => ({ color: getComputedStyle(element).color, border: getComputedStyle(element).borderStyle }));
-      const disabledStyle = await save.evaluate(element => ({ color: getComputedStyle(element).color, border: getComputedStyle(element).borderStyle }));
-      expect(enabledStyle.color).not.toBe(disabledStyle.color);
-      expect(disabledStyle.border).toBe("dashed");
-      expect(enabledStyle.border).toBe("solid");
-    }
+    const enabledStyle = await enabled.evaluate(element => ({ color: getComputedStyle(element).color, border: getComputedStyle(element).borderStyle }));
+    const disabledStyle = await save.evaluate(element => ({ color: getComputedStyle(element).color, border: getComputedStyle(element).borderStyle }));
+    expect(enabledStyle.color).not.toBe(disabledStyle.color);
+    expect(disabledStyle.border).toBe("dashed");
+    expect(enabledStyle.border).toBe("solid");
     await page.screenshot({ path: testInfo.outputPath(`brief-expanded-${width}.png`), fullPage: true });
     await page.getByLabel("故事梗概").fill("雨停以后，林遥决定赴约还是回家。");
     await expect(save).toBeEnabled();

@@ -121,7 +121,7 @@ def test_semantically_invalid_output_is_quarantined_without_automatic_repair() -
         {
             "startNodeId": "missing",
             "nodes": [
-                {"id": "end", "title": "结局", "summary": "结束", "kind": "ending"}
+                {"id": "end", "title": "结局", "summary": "结束", "kind": "ending", "footageMode": "footage"}
             ],
             "edges": [],
             "joinContracts": [],
@@ -132,8 +132,8 @@ def test_semantically_invalid_output_is_quarantined_without_automatic_repair() -
         {
             "startNodeId": "start",
             "nodes": [
-                {"id": "start", "title": "开始", "summary": "苏醒", "kind": "start"},
-                {"id": "end", "title": "结局", "summary": "离开", "kind": "ending"},
+                {"id": "start", "title": "开始", "summary": "苏醒", "kind": "start", "footageMode": "footage"},
+                {"id": "end", "title": "结局", "summary": "离开", "kind": "ending", "footageMode": "footage"},
             ],
             "edges": [
                 {
@@ -179,7 +179,7 @@ def test_semantically_invalid_output_is_quarantined_without_automatic_repair() -
     quarantine_id = parent.quarantine_ids[0]
     quarantine = orchestrator.quarantine.get(quarantine_id)
     assert quarantine is not None
-    assert quarantine.schema_id == "story_graph.v4"
+    assert quarantine.schema_id == "story_graph.v5"
     repaired = orchestrator.repair(
         quarantine_id=quarantine_id,
         parent_run_id=parent.run_id,

@@ -60,6 +60,7 @@ export function useProjectLifecycle({
   ) => {
     const operation = session.capture();
     let closeAttempt: ReturnType<ProjectDraftQuiescence["beginClose"]> | undefined;
+    let reads: ReturnType<typeof plotloomApi.suspendProjectReads> | undefined;
     try {
       if (action === "close" || action === "force_close" || action === "open") {
         if (!explicitProjectClose) return;
@@ -68,10 +69,13 @@ export function useProjectLifecycle({
           // active until the Close response settles. It protects the requesting
           // client from stranding a late edit behind a closed project.
           closeAttempt = mediaDraftQuiescence.beginClose(item.id);
+          reads = plotloomApi.suspendProjectReads(item.id);
           setClosingProjectId(item.id);
           setCloseNotice("");
           if (action === "force_close") {
             await closeAttempt.discardUnsent();
+            if (!await reads.settle()) throw new Error("项目读取尚未确认完成；关闭未执行，请等待读取结束后重试。");
+            if (!session.isCurrent(operation)) return;
             const exitsWorkspace = session.project.id === item.id;
             let notice = "项目已关闭，已保存内容仍可重新打开。";
             try { await plotloomApi.closeProject(item.id); }
@@ -81,6 +85,7 @@ export function useProjectLifecycle({
                 ? exitsWorkspace ? "已退出工作区；后台任务继续运行。项目尚未安全关闭，可稍后重试。" : "后台任务继续运行；项目尚未安全关闭，可稍后重试。"
                 : exitsWorkspace ? "已退出工作区，但未能确认安全关闭。已保存内容和后台任务未删除，请稍后检查项目状态。" : "未能确认项目已安全关闭。已保存内容和后台任务未删除，请稍后检查项目状态。";
             }
+            finally { reads.resume(); }
             if (!session.isCurrent(operation)) return;
             if (exitsWorkspace) startBlank();
             await directory.refresh();
@@ -95,7 +100,11 @@ export function useProjectLifecycle({
             throw new Error("编辑草稿未能保存；项目仍保持打开状态。请重试，或确认丢弃未保存修改后强制关闭。");
           }
           if (!closeAttempt.canCommit()) throw new Error("项目草稿仍在更新；请重试关闭。");
-          await plotloomApi.closeProject(item.id);
+          if (!await reads.settle()) throw new Error("项目读取尚未确认完成；关闭未执行，请等待读取结束后重试。");
+          if (!session.isCurrent(operation)) return;
+          if (!closeAttempt.canCommit()) throw new Error("项目草稿仍在更新；请重试关闭。");
+          try { await plotloomApi.closeProject(item.id); }
+          finally { reads.resume(); }
         } else {
           await plotloomApi.openProjectFolder(item.id);
           if (!session.isCurrent(operation)) return;
@@ -135,6 +144,7 @@ export function useProjectLifecycle({
     } catch (error) {
       if (session.isCurrent(operation)) directory.setError(messageFrom(error));
     } finally {
+      reads?.resume();
       closeAttempt?.finish();
       if (closeAttempt) setClosingProjectId((current) => current === item.id ? undefined : current);
     }
@@ -142,12 +152,17 @@ export function useProjectLifecycle({
   const performDelete = async (item: LifecycleTarget) => {
     const operation = session.capture();
     const attempt = mediaDraftQuiescence.beginClose(item.id);
+    let reads: ReturnType<typeof plotloomApi.suspendProjectReads> | undefined;
     setClosingProjectId(item.id); setDeletingProjectId(item.id); setCloseNotice("");
     try {
+      reads = plotloomApi.suspendProjectReads(item.id);
       // Failed admission must keep unsent input. Do not drain new typing or
       // discard anything until the owning server confirms whole-home erasure.
       await attempt.suspendWrites();
-      await plotloomApi.permanentlyDeleteProject(item.id, item.lifecycleRevision ?? item.revision, item.revision, item.brief.title);
+      if (!await reads.settle()) throw new Error("项目读取尚未确认完成；删除未执行，请等待读取结束后重试。");
+      if (!session.isCurrent(operation)) return;
+      try { await plotloomApi.permanentlyDeleteProject(item.id, item.lifecycleRevision ?? item.revision, item.revision, item.brief.title); }
+      finally { reads.resume(); }
       let cleanupError: unknown;
       try {
         try { await attempt.discardUnsent(); }
@@ -163,6 +178,7 @@ export function useProjectLifecycle({
       const rejected = error instanceof ApiError && [404, 409, 422].includes(error.status);
       directory.setError(rejected ? `无法删除：${messageFrom(error)}` : `删除结果未确认，请检查项目目录后再操作：${messageFrom(error)}`);
     } finally {
+      reads?.resume();
       attempt.finish(); setClosingProjectId(undefined); setDeletingProjectId(undefined);
     }
   };
@@ -229,19 +245,28 @@ export function useProjectLifecycle({
   const createSnapshot = async () => {
     const projectId = session.project.id;
     if (!portableSnapshots || !projectId || mediaDraftQuiescence.isClosing(projectId)) return;
+    const operation = session.capture();
     const attempt = mediaDraftQuiescence.beginClose(projectId);
+    let reads: ReturnType<typeof plotloomApi.suspendProjectReads> | undefined;
     setSnapshottingProjectId(projectId);
     try {
+      reads = plotloomApi.suspendProjectReads(projectId);
       // The drain covers this requesting browser's registered queues only.
       // Another client can still have unacknowledged typing outside this copy.
       if (!await attempt.drain() || !attempt.canCommit()) {
         throw new Error("当前标签页的草稿仍在更新；未创建恢复快照。");
       }
-      const receipt = await plotloomApi.createProjectSnapshot(projectId);
+      if (!await reads.settle()) throw new Error("项目读取尚未确认完成；未创建恢复快照，请等待读取结束后重试。");
+      if (!session.isCurrent(operation)) return;
+      if (!attempt.canCommit()) throw new Error("当前标签页的草稿仍在更新；未创建恢复快照。");
+      let receipt: ProjectSnapshotReceipt;
+      try { receipt = await plotloomApi.createProjectSnapshot(projectId); }
+      finally { reads.resume(); }
       if (session.project.id === projectId) setLatestSnapshot(receipt);
     } catch (error) {
       reportError(messageFrom(error));
     } finally {
+      reads?.resume();
       attempt.finish();
       setSnapshottingProjectId((current) => current === projectId ? undefined : current);
     }

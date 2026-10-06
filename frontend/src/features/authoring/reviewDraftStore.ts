@@ -2,7 +2,7 @@ import { plotloomApi } from "../../api";
 import type { AuthoringDraft } from "../../types";
 import type { ProjectDraftQuiescence } from "./projectDraftQuiescence";
 
-export type ReviewEditor = "source" | "section_map" | "cast" | "art" | "script";
+export type ReviewEditor = "source" | "cast" | "art" | "script";
 export type ReviewBuffer = { editor: ReviewEditor; basis: string; text: string };
 type Entry = { payload: ReviewBuffer; baseRevision: number; localRevision: number; editing: boolean; expectedDraftRevision: number };
 type Storage = Pick<globalThis.Storage, "getItem" | "setItem">;
@@ -23,7 +23,7 @@ export function createReviewDraftStore(quiescence: ProjectDraftQuiescence, stora
     const saved = JSON.parse(storage.getItem(storageKey) || "{}");
     for (const [key, item] of Object.entries(saved)) {
       const entry = item as Entry;
-      if (entry?.payload && ["source", "section_map", "cast", "art", "script"].includes(entry.payload.editor)
+      if (entry?.payload && ["source", "cast", "art", "script"].includes(entry.payload.editor)
         && typeof entry.payload.text === "string" && typeof entry.payload.basis === "string" && Number.isInteger(entry.baseRevision)) {
         entries.set(key, { ...entry, editing: false });
       }

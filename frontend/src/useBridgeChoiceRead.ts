@@ -23,7 +23,7 @@ export function useBridgeChoiceRead(projectId: string, identity: string, bridgeO
     void plotloomApi.getProductionBridge(projectId, controller.signal).then(next => {
       if (!current()) return;
       const raw = next.runtimeChoice;
-      const choices = raw ? "choices" in raw ? raw.choices : [raw] : [];
+      const choices = raw ? raw.choices : [];
       const admitted = choices.every(choice => {
       const outgoing = edges.filter(edge => edge.sourceNodeId === choice.sectionId && edge.kind === "choice");
       return choice.outcomes.length >= 2 && new Set(choice.outcomes.map(outcome => outcome.outcomeId)).size === choice.outcomes.length

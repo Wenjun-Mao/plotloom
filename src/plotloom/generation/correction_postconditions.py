@@ -103,11 +103,6 @@ def _join_allowed_differences_satisfied(
     response: Any,
     fact: JoinAllowedDifferencesRepairFact,
 ) -> bool:
-    if (
-        fact.expected_required_state_keys is None
-        or fact.expected_allowed_differences is None
-    ):
-        return False
     join = _unique_collection_item(
         response, "joinContracts", "id", fact.join_contract_id
     )
@@ -121,8 +116,6 @@ def _join_allowed_differences_satisfied(
         join.get("allowedDifferences"), list(fact.expected_allowed_differences)
     ):
         return False
-    if fact.new_required_key_incoming_edges is None:
-        return True
     for state_key_scope in fact.new_required_key_incoming_edges:
         for edge in state_key_scope.incoming_edges:
             selected_edge = _unique_collection_item(

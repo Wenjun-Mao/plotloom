@@ -296,9 +296,8 @@ def _validate_aggregate_semantics(
 ) -> None:
     """Prove V2 cross-record references after deterministic aggregation.
 
-    V1's global validator must stay on the historical read path, so V2
-    aggregation owns the small set of relationships that only become visible
-    after shards are merged.
+    Aggregation checks relationships that become visible only after
+    independently bound fragments are merged.
     """
 
     if stage == StageName.STORY_GRAPH:

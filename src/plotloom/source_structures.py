@@ -23,11 +23,11 @@ def compile_structure(mapping: Any) -> StoryGraphV2:
     options = {option.outcome_id: option for choice in mapping.choices for option in choice.outcomes}
     return StoryGraphV2(
         start_node_id=topology.start_node_id,
-        nodes=[StoryNodeV2(id=node.id, kind=node.kind.value, title=sections[node.id].title, summary=sections[node.id].summary) for node in topology.nodes],
+        nodes=[StoryNodeV2(id=node.id, kind=node.kind.value, title=sections[node.id].title, summary=sections[node.id].summary, footage_mode=sections[node.id].footage_mode) for node in topology.nodes],
         edges=[StoryEdgeV2(id=edge.id, source_node_id=edge.source_node_id, target_node_id=edge.target_node_id,
             kind=edge.kind.value, choice_text=options[edge.id].label if edge.id in options else None,
-            state_effects={"sourceMapChoiceId": edge.source_node_id, "sourceMapOutcomeId": edge.id, "sourceMapConsequence": options[edge.id].consequence} if edge.id in options else {}, entity_state_effects=[]) for edge in topology.edges],
-        join_contracts=[JoinContractV2(id=join.id, join_node_id=join.join_node_id, incoming_node_ids=list(join.incoming_node_ids), required_state_keys=[], allowed_differences=[], reconciliation=mapping.join_reconciliations[join.id], notes="Source structure narrative reconciliation; no invented entity-state effects.") for join in topology.joins],
+            state_effects=edge.state_effects | ({"sourceMapChoiceId": edge.source_node_id, "sourceMapOutcomeId": edge.id, "sourceMapConsequence": options[edge.id].consequence} if edge.id in options else {}), entity_state_effects=edge.entity_state_effects) for edge in topology.edges],
+        join_contracts=[JoinContractV2(id=join.id, join_node_id=join.join_node_id, incoming_node_ids=list(join.incoming_node_ids), required_state_keys=join.required_state_keys, allowed_differences=join.allowed_differences, reconciliation=mapping.join_reconciliations[join.id], notes=join.notes) for join in topology.joins],
     )
 
 
@@ -49,6 +49,4 @@ def complete_routes(graph: StoryGraphV2) -> list[list[str]]:
 
 
 def structure_choices(mapping: Any) -> list[dict[str, Any]]:
-    if mapping.topology is None:
-        return [mapping.choice.model_dump(mode="json", by_alias=True)]
     return [choice.model_dump(mode="json", by_alias=True) for choice in mapping.choices]

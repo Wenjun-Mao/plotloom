@@ -1,3 +1,4 @@
+import { ProjectReportFrame } from "../components/ProjectReportFrame";
 import { useEffect, useId, useRef, useState } from "react";
 import { plotloomApi } from "../api";
 import { Button } from "../components";
@@ -26,11 +27,11 @@ export function ArtReport({ projectId, jobId }: { projectId: string; jobId: stri
         <p>{reportCaveat}</p>
         <button ref={opener} type="button" className="button quiet" onClick={() => setExpanded(true)}>放大阅读报告</button>
       </div>
-      <iframe title="美术设定报告预览" sandbox="" referrerPolicy="no-referrer" src={reportUrl} />
+      <ProjectReportFrame sandbox="" title="美术设定报告预览" referrerPolicy="no-referrer" url={reportUrl} />
     </details>
     {expanded && <dialog ref={dialog} className="review-report-dialog" aria-labelledby={titleId} onClose={close}>
       <header><div><h2 id={titleId}>美术设定报告</h2><p>{reportCaveat}</p></div><Button onClick={() => dialog.current?.close()}>关闭报告</Button></header>
-      <iframe title="美术设定报告内容" sandbox="" referrerPolicy="no-referrer" src={reportUrl} />
+      <ProjectReportFrame sandbox="" title="美术设定报告内容" referrerPolicy="no-referrer" url={reportUrl} />
     </dialog>}
   </>;
 }

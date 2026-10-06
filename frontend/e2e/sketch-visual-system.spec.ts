@@ -1,6 +1,7 @@
 import { expect, test } from "./fixture";
 import { createScriptProject, endpoint, json, writeDelivery } from "./f5a-fixture";
 import type { Page } from "@playwright/test";
+import { createCreatorGraph } from "./fixtures/creator-graph";
 
 async function fitsViewport(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -32,14 +33,14 @@ async function fitsViewport(page: Page) {
   for (const role of readability) { expect(role.size).toBeGreaterThanOrEqual(12); expect(role.contrast).toBeGreaterThanOrEqual(4.5); }
 }
 
-for (const width of [1920, 1280, 390]) {
-  test(`sketch visual journey and protected review states at ${width}px`, async ({ page, request, workbench }, info) => {
+for (const width of [1700, 1280]) {
+  test(`desktop visual journey and protected review states at ${width}px`, async ({ page, request, workbench }, info) => {
     test.setTimeout(120_000);
     await page.setViewportSize({ width, height: 900 });
     const capture = async (name: string) => {
       await fitsViewport(page);
       await page.screenshot({ path: info.outputPath(`${name}-${width}.png`), fullPage: true });
-      if (width === 390) await page.screenshot({ path: info.outputPath(`${name}-${width}-viewport.png`) });
+      await page.screenshot({ path: info.outputPath(`${name}-${width}-viewport.png`) });
     };
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await expect(page.getByRole("heading", { name: "从一个项目开始" })).toBeVisible();
@@ -50,10 +51,6 @@ for (const width of [1920, 1280, 390]) {
     await page.locator(".directory-dialog > footer").getByRole("button", { name: "关闭窗口", exact: true }).click();
     await page.getByRole("button", { name: "创建空白项目" }).click();
     await capture("brief");
-    if (width === 390) {
-      const disclosure = await page.locator(".preset-custom-disclosure > summary").first().boundingBox();
-      expect(disclosure!.height).toBeGreaterThanOrEqual(44);
-    }
     const help = page.getByRole("button", { name: "说明：每次完整播放的选择次数", exact: true });
     await page.keyboard.press("Tab");
     await help.focus();
@@ -62,7 +59,6 @@ for (const width of [1920, 1280, 390]) {
     const box = await tip.boundingBox();
     expect(box!.x).toBeGreaterThanOrEqual(0); expect(box!.x + box!.width).toBeLessThanOrEqual(width);
     expect(await help.evaluate(el => getComputedStyle(el).outlineStyle)).not.toBe("none");
-    if (width === 390) { const hit = await help.boundingBox(); expect(hit!.width).toBeGreaterThanOrEqual(44); expect(hit!.height).toBeGreaterThanOrEqual(44); }
     await capture("help-focus");
     await help.press("Escape"); await expect(tip).toHaveCount(0);
 
@@ -120,45 +116,46 @@ for (const width of [1920, 1280, 390]) {
   });
 }
 
-test("long existing graph keeps selected dirty detail reachable beside its canvas", async ({ page, workbench }, info) => {
-  await page.setViewportSize({ width: 1920, height: 900 });
-  await page.goto(`${workbench.frontendOrigin}/v2/?stage=graph`);
-  await page.getByRole("button", { name: "打开示例项目" }).click();
-  for (let i = 0; i < 18; i++) await page.getByTestId("graph-node-add").click();
-  await page.getByTestId("graph-select-node-memory").click();
-  const title = page.getByLabel("标题", { exact: true });
+test("long current source graph retains selected dirty detail and explicit deletion preview", async ({ page, request, workbench }, info) => {
+  await page.setViewportSize({ width: 1700, height: 900 });
+  const id = await createCreatorGraph(request, workbench.apiOrigin, "visual-long", 6, 12);
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`);
+  await page.getByRole("button", { name: "选择节点 step-6", exact: true }).click();
+  const title = page.getByLabel("章节标题", { exact: true });
   await title.fill("长图中的未保存标题");
   const summary = page.getByLabel("剧情摘要");
   await summary.fill("长内容保留当前选择与作者输入。".repeat(150));
-  await expect(page.locator(".react-flow__node").first()).toBeVisible();
-  expect((await page.locator(".react-flow").boundingBox())!.height).toBeGreaterThan(400);
-  const canvas = await page.locator(".flow-shell").boundingBox();
-  const inspector = await page.locator(".node-inspector").boundingBox();
+  await expect(page.locator("[data-creator-node]")).toHaveCount(24);
+  expect((await page.locator(".creator-chart-scroll").boundingBox())!.height).toBeGreaterThan(2000);
+  const canvas = await page.locator(".creator-chart-scroll").boundingBox();
+  const inspector = await page.locator(".creator-inspector").boundingBox();
   expect(inspector!.x).toBeGreaterThanOrEqual(canvas!.x + canvas!.width - 1);
-  await page.locator(".graph-entity-navigator").evaluate(el => { el.scrollTop = el.scrollHeight; });
+  await page.getByRole("tab", { name: "制作", exact: true }).click();
+  await page.getByRole("tab", { name: "故事", exact: true }).click();
   await expect(title).toHaveValue("长图中的未保存标题");
-  await expect(page.getByLabel("节点 ID")).toHaveValue("memory");
+  await expect(page.locator('.graph-node-details[data-node-id="step-6"]')).toBeVisible();
   await fitsViewport(page);
   await page.screenshot({ path: info.outputPath("long-graph-side-detail.png"), fullPage: true });
   await page.emulateMedia({ reducedMotion: "reduce" });
   expect(await title.evaluate(el => parseFloat(getComputedStyle(el).transitionDuration))).toBeLessThan(0.01);
-  await page.getByRole("button", { name: "删除节点与关联边" }).click();
-  await expect(page.getByRole("dialog", { name: "关系影响确认" })).toBeVisible();
+  await page.getByRole("button", { name: "删除节点…", exact: true }).click();
+  await page.getByRole("button", { name: "仅删除，保留待连接", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "确认结构修改" })).toBeVisible();
   await page.screenshot({ path: info.outputPath("graph-confirmation.png"), fullPage: true });
   await page.getByRole("button", { name: "取消", exact: true }).click();
   await expect(title).toHaveValue("长图中的未保存标题");
 });
 
-test("professional tools and media consent retain the same responsive vocabulary", async ({ page, workbench }, info) => {
+test("professional tools and media consent retain the supported desktop vocabulary", async ({ page, request, workbench }, info) => {
   test.setTimeout(90_000);
-  await page.goto(`${workbench.frontendOrigin}/v2/?stage=graph`);
-  await page.getByRole("button", { name: "打开示例项目" }).click();
+  const id = await createCreatorGraph(request, workbench.apiOrigin, "visual-tools");
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=graph`);
   await page.getByText("编辑与工具", { exact: true }).click();
-  for (const width of [1920, 1280, 390]) {
+  for (const width of [1700, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     for (const label of ["故事圣经", "剧情 DAG", "场景节拍", "分镜工作台", "运行轨迹", "隔离修复"]) {
       await page.getByRole("navigation", { name: "编辑与工具" }).getByRole("button", { name: label, exact: false }).click();
-      await expect(page.getByRole("heading", { name: label, exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: label === "剧情 DAG" ? "剧情图与精确合同" : label, exact: true })).toBeVisible();
       await fitsViewport(page);
       await page.screenshot({ path: info.outputPath(`${label}-${width}.png`), fullPage: true });
     }
@@ -166,9 +163,9 @@ test("professional tools and media consent retain the same responsive vocabulary
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("button", { name: "生成助手设置", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await page.setViewportSize({ width: 390, height: 900 });
+  await page.setViewportSize({ width: 1280, height: 768 });
   await fitsViewport(page);
-  await page.screenshot({ path: info.outputPath("assistant-settings-390.png"), fullPage: true });
+  await page.screenshot({ path: info.outputPath("assistant-settings-1280.png") });
   // Existing real controls with a test-only mutation recorder exercise DOM consent.
   await page.goto(`${workbench.frontendOrigin}/v2/e2e/creator-confirmation-fixture.html`);
   await page.getByRole("region", { name: "Rejection fixture" }).getByRole("button", { name: "拒绝此原片并撤销选择" }).click();
@@ -176,7 +173,7 @@ test("professional tools and media consent retain the same responsive vocabulary
   await expect(consent).toBeVisible();
   await expect(consent.getByRole("button", { name: "取消", exact: true })).toBeFocused();
   await fitsViewport(page);
-  await page.screenshot({ path: info.outputPath("media-consent-390.png"), fullPage: true });
+  await page.screenshot({ path: info.outputPath("media-consent-1280.png") });
   await page.keyboard.press("Escape");
   await expect(page.locator("#fixture-writes")).toHaveText("[]");
 });

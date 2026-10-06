@@ -1,15 +1,13 @@
 """Versioned, provider-neutral authoring schemas.
 
-The original models in :mod:`plotloom.domain` are intentionally retained as
-the V1 read model.  This module owns the non-compatible V2 authoring contract:
-it uses integer time units and never derives structured production semantics
-from V1 free text.
+This module owns the current authoring contract with explicit footage membership
+and integer time units. Retired schemas are not executable.
 """
 
 from __future__ import annotations
 
 from enum import Enum
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
@@ -20,7 +18,7 @@ def _to_camel(value: str) -> str:
 
 
 class V2Model(BaseModel):
-    """Strict V2 wire models, kept separate from the V1 compatibility shape."""
+    """Strict current canonical wire models."""
 
     model_config = ConfigDict(
         alias_generator=_to_camel,
@@ -38,8 +36,7 @@ def _strip_string(value: object) -> object:
 
 # IDs appear in gate identities, dotted issue paths, and persisted rows.  Keep
 # them concise and delimiter-free so an ID always denotes one unambiguous
-# domain entity.  V1 has no such restriction because it is historical read
-# evidence, not current authoring input.
+# domain entity.
 StableId = Annotated[
     str,
     BeforeValidator(_strip_string),
@@ -164,6 +161,15 @@ class StoryNodeV2(V2Model):
     title: Annotated[str, Field(min_length=1)]
     summary: Annotated[str, Field(min_length=1)]
     kind: V2StoryNodeKind
+    footage_mode: Literal["footage", "route_only"]
+
+    @model_validator(mode="after")
+    def require_footage_for_story_content(self) -> "StoryNodeV2":
+        if self.footage_mode == "route_only" and self.kind not in {
+            V2StoryNodeKind.DECISION, V2StoryNodeKind.JOIN,
+        }:
+            raise ValueError("only decision/join nodes may be route-only")
+        return self
 
 
 class RequiredEntityState(V2Model):

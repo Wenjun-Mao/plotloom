@@ -186,6 +186,9 @@ class ProjectDraftPersistence:
 
     @staticmethod
     def _authoring_draft(row: AuthoringDraftRow) -> AuthoringDraft:
+        ProjectDraftPersistence._validate_authoring_draft_identity(row.editor_scope, row.entity_id)
+        if row.editor_scope == "story_graph":
+            ProjectDraftPersistence._validate_authoring_draft_payload(row.editor_scope, row.payload)
         return AuthoringDraft(
             project_id=row.project_id,
             editor_scope=row.editor_scope,
@@ -195,6 +198,11 @@ class ProjectDraftPersistence:
             payload=row.payload,
             updated_at=_stored_utc(row.updated_at),
         )
+
+    @staticmethod
+    def _validate_authoring_draft_identity(editor_scope: AuthoringDraftScope, entity_id: str) -> None:
+        if editor_scope == "story_graph" and entity_id != "root":
+            raise ValueError("the shared story graph draft must use the root identity")
 
     @staticmethod
     def _validate_authoring_draft_payload(
@@ -213,6 +221,9 @@ class ProjectDraftPersistence:
             return ImageDirectionDraftPayload.model_validate(payload).model_dump(mode="json", by_alias=True)
         if editor_scope == "review_buffer":
             return ReviewBufferPayload.model_validate(payload).model_dump(mode="json", by_alias=True)
+        if editor_scope == "story_graph":
+            from ...graph_authoring_drafts import GraphAuthoringDraft
+            return GraphAuthoringDraft.model_validate(payload).model_dump(mode="json", by_alias=True)
         stage = StageName(editor_scope)
         return stage_payload_model(stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION).model_validate(
             payload
@@ -252,6 +263,7 @@ class ProjectDraftPersistence:
     ) -> AuthoringDraft:
         """CAS one bounded editor buffer against its exact canonical owner."""
 
+        self._validate_authoring_draft_identity(editor_scope, entity_id)
         validated_payload = self._validate_authoring_draft_payload(editor_scope, payload)
         if editor_scope == "review_buffer" and entity_id != validated_payload["editor"]:
             raise ValueError("review draft identity does not match its editor")
@@ -300,6 +312,19 @@ class ProjectDraftPersistence:
                     expected_draft_revision,
                     current_draft_revision,
                 )
+            if editor_scope == "story_graph":
+                from ...graph_authoring_drafts import GraphAuthoringDraft
+                from .graph_draft_context import assert_graph_draft_context, assert_graph_draft_seed
+                draft = GraphAuthoringDraft.model_validate(validated_payload)
+                prior = GraphAuthoringDraft.model_validate(row.payload) if row else None
+                if prior is not None:
+                    assert_graph_draft_context(session, self._access, project_id, prior)
+                assert_graph_draft_context(session, self._access, project_id, draft)
+                assert_graph_draft_seed(session, self._access, project_id, draft, prior)
+                from ...graph_edit_safety import assert_edit_safe
+                from ...graph_draft_creation import create_graph_draft
+                baseline = prior or create_graph_draft(binding_hash=draft.binding_hash, seed=draft.mapping.seed_topology)
+                assert_edit_safe(baseline, draft, ProjectBrief.model_validate(project.brief))
             now = utc_now()
             if row is None:
                 row = AuthoringDraftRow(

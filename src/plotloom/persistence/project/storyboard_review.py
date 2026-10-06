@@ -111,6 +111,7 @@ class ProjectStoryboardReviewPersistence:
                 "sectionBindings": [item.model_dump(mode="json", by_alias=True) for item in binding.section_bindings],
                 "sectionDurationCaps": [item.model_dump(mode="json", by_alias=True) for item in binding.section_duration_caps],
                 "completeRouteSectionIds": binding.complete_route_section_ids,
+                "routeOnlySectionIds": binding.route_only_section_ids,
                 "reviewTiming": {
                     "minCutSeconds": binding.review_min_cut_seconds,
                     "maxCutSeconds": binding.review_max_cut_seconds,
@@ -239,7 +240,7 @@ class ProjectStoryboardReviewPersistence:
                 raise ValueError(f"episode {section.episode} exceeds its frozen F4 section duration cap")
             actual[section.section_id] = episode_seconds
         for route in binding.complete_route_section_ids:
-            if sum(actual[section_id] for section_id in route) > binding.target_playthrough_seconds + 0.0001:
+            if sum(0 if section_id in binding.route_only_section_ids else actual[section_id] for section_id in route) > binding.target_playthrough_seconds + 0.0001:
                 raise ValueError("a complete storyboard route exceeds the frozen F4 playthrough maximum")
         root = Path(__file__).resolve().parents[4]
         validator = root / "third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs"

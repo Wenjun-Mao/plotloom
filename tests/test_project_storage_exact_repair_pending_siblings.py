@@ -14,7 +14,7 @@ from plotloom.persistence import stable_hash
 from plotloom.persistence.schema.project_generation import GenerationWorkUnitRow, SealedStageAggregateRow
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from tests.project_storage_exact_repair_support import create_exact_repair, execute_repair, storage
-from tests.project_storage_fixtures import FixtureProvider, fixture_profile
+from tests.project_storage_fixtures import fixed_workload_footage_count, FixtureProvider, fixture_profile
 
 
 class _RejectSceneProvider:
@@ -60,7 +60,7 @@ class _RejectFinalStoryboardProvider:
         prompt = "\n".join(message.content for message in request.messages)
         if "【目标戏剧场景】" in prompt:
             self.storyboard_requests += 1
-            if self.storyboard_requests == 9:
+            if self.storyboard_requests == fixed_workload_footage_count():
                 from plotloom.generation.contracts import ProviderResponse, ProviderUsage
 
                 return ProviderResponse(
@@ -84,7 +84,7 @@ def test_exact_repair_reuses_accepted_siblings_and_executes_frozen_pending_sibli
     tmp_path: Path,
 ) -> None:
     store = storage(tmp_path).projects.create(FIXED_CHINESE_BRIEF)
-    resolver = _SceneResolver(reject_scene_number=8)
+    resolver = _SceneResolver(reject_scene_number=fixed_workload_footage_count() - 1)
     parent = ProjectPipelineExecutor(resolver).execute(
         store, profile=fixture_profile(max_semantic_corrections=0)
     )
@@ -108,7 +108,7 @@ def test_exact_repair_reuses_accepted_siblings_and_executes_frozen_pending_sibli
     completed = execute_repair(store, child.id, resolver)
 
     assert completed.status == RunStatus.SUCCEEDED
-    assert resolver.provider.scene_requests == 10
+    assert resolver.provider.scene_requests == fixed_workload_footage_count() + 1
     child_trace = store.run_trace(child.id)
     child_scene_attempts = [
         attempt for attempt in child_trace.attempts if attempt.stage == StageName.SCENE_BEATS

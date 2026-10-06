@@ -2,7 +2,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { demoProject } from "../src/demo";
-import { GraphPage } from "../src/pages/GraphPage";
+import { CanonicalGraphReader } from "../src/features/graph/CanonicalGraphReader";
 import { SceneBeatsPage } from "../src/pages/SceneBeatsPage";
 import { StoryBiblePage } from "../src/pages/StoryBiblePage";
 import { StoryboardPage } from "../src/pages/StoryboardPage";
@@ -42,13 +42,10 @@ describe("validation issue focus", () => {
     const onEntitySelect = vi.fn();
     const node = demoProject.storyGraph.nodes[0];
 
-    await act(async () => root.render(createElement(GraphPage, {
+    await act(async () => root.render(createElement(CanonicalGraphReader, {
       value: demoProject.storyGraph,
-      stale: false,
-      saving: false,
       issues: [{ code: "NODE_TITLE", path: "nodes.0.title", message: "标题不能为空" }],
       onEntitySelect,
-      onSave: async () => undefined,
     })));
     await settle();
     await settle();
@@ -64,13 +61,10 @@ describe("validation issue focus", () => {
     const edgeIndex = demoProject.storyGraph.edges.findIndex((edge) => "memoryBus" in edge.stateEffects);
     const edge = demoProject.storyGraph.edges[edgeIndex];
 
-    await act(async () => root.render(createElement(GraphPage, {
+    await act(async () => root.render(createElement(CanonicalGraphReader, {
       value: demoProject.storyGraph,
-      stale: false,
-      saving: false,
       issues: [{ code: "STATE_EFFECT", path: `edges.${edgeIndex}.stateEffects.memoryBus`, message: "状态效果不合法" }],
       onEntitySelect,
-      onSave: async () => undefined,
     })));
     await settle();
     await settle();

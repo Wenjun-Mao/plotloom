@@ -65,10 +65,10 @@ function branchingFixture() {
   project.storyGraph = {
     startNodeId: "start",
     nodes: [
-      { id: "start", title: "开始", kind: "start", summary: "离线夹具的第一镜。" },
-      { id: "decision", title: "选择", kind: "decision", summary: "必须明确选择。" },
-      { id: "left", title: "左结局", kind: "ending", summary: "左侧结束。" },
-      { id: "right", title: "右结局", kind: "ending", summary: "右侧结束。" },
+      { id: "start", title: "开始", kind: "start", footageMode: "footage", summary: "离线夹具的第一镜。" },
+      { id: "decision", title: "选择", kind: "decision", footageMode: "footage", summary: "必须明确选择。" },
+      { id: "left", title: "左结局", kind: "ending", footageMode: "footage", summary: "左侧结束。" },
+      { id: "right", title: "右结局", kind: "ending", footageMode: "footage", summary: "右侧结束。" },
     ],
     edges: [
       { id: "to-decision", sourceNodeId: "start", targetNodeId: "decision", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },

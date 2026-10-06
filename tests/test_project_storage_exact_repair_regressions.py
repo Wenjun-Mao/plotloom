@@ -33,7 +33,7 @@ from tests.project_storage_exact_repair_support import (
     execute_repair as _execute_repair,
     storage as _storage,
 )
-from tests.project_storage_fixtures import FixtureProvider, fixture_profile
+from tests.project_storage_fixtures import fixed_workload_footage_count, FixtureProvider, fixture_profile
 
 
 class _RejectFinalStoryboardProvider:
@@ -49,7 +49,7 @@ class _RejectFinalStoryboardProvider:
         prompt = "\n".join(message.content for message in request.messages)
         if "【目标戏剧场景】" in prompt:
             self.storyboard_requests += 1
-            if self.storyboard_requests == 9:
+            if self.storyboard_requests == fixed_workload_footage_count():
                 from plotloom.generation.contracts import ProviderResponse, ProviderUsage
 
                 return ProviderResponse(
@@ -83,7 +83,7 @@ class _RejectFinalSceneThenDownstreamStoryboardProvider:
         prompt = "\n".join(message.content for message in request.messages)
         if "【目标故事节点】" in prompt:
             self.scene_requests += 1
-            if self.scene_requests == 9:
+            if self.scene_requests == fixed_workload_footage_count():
                 from plotloom.generation.contracts import ProviderResponse, ProviderUsage
 
                 return ProviderResponse(
@@ -92,7 +92,7 @@ class _RejectFinalSceneThenDownstreamStoryboardProvider:
                     raw={"choices": [{"message": {"role": "assistant", "content": "{}"}}]},
                     usage=ProviderUsage(input_tokens=1, output_tokens=1),
                 )
-        if "【目标戏剧场景】" in prompt and self.scene_requests > 9:
+        if "【目标戏剧场景】" in prompt and self.scene_requests > fixed_workload_footage_count():
             self.child_storyboard_started = True
             from plotloom.generation.contracts import ProviderResponse, ProviderUsage
 

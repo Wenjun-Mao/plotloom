@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from .art_contracts import ArtBinding
 from .domain import CamelModel
@@ -20,6 +20,21 @@ class ScriptBinding(ArtBinding):
     section_bindings: list["ScriptSectionBinding"] = Field(min_length=1, max_length=128)
     section_duration_caps: list["ScriptSectionDurationCap"] = Field(min_length=1, max_length=128)
     complete_route_section_ids: list[list[str]] = Field(min_length=1)
+    route_only_section_ids: list[str]
+
+    @model_validator(mode="after")
+    def require_exact_footage_membership(self) -> "ScriptBinding":
+        footage_ids = [item.section_id for item in self.section_bindings]
+        route_ids = self.route_only_section_ids
+        if len(set(footage_ids)) != len(footage_ids) or len(set(route_ids)) != len(route_ids):
+            raise ValueError("section footage membership must be unique")
+        if set(footage_ids) & set(route_ids) or set(footage_ids) | set(route_ids) != set(self.section_ids):
+            raise ValueError("footage and route-only membership must exactly cover graph sections")
+        if [item.section_id for item in self.section_duration_caps] != footage_ids:
+            raise ValueError("positive timing caps must exactly match footage sections")
+        if any(section not in self.section_ids for route in self.complete_route_section_ids for section in route):
+            raise ValueError("complete routes must retain only actual graph sections")
+        return self
 
 
 class ScriptSectionBinding(CamelModel):

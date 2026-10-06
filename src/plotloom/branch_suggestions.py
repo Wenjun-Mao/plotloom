@@ -4,6 +4,7 @@ from .domain import CamelModel
 from .generation.story_graph_topology import StoryGraphTopology
 from .source_outline_contracts import SectionMap
 from .source_structures import MAX_SOURCE_OPTIONS
+from .source_graph_structure import structure_from_seed
 
 
 class BranchNode(CamelModel):
@@ -79,8 +80,9 @@ def bind_branches(proposal: BranchSuggestion, topology_data: dict) -> SectionMap
             raise ValueError("every planned option must be supplied exactly once in order")
         choices.append({"choiceId": choice.node_id, "sectionId": choice.node_id, "prompt": choice.question,
             "outcomes": [{"outcomeId": edge.id, "endingSectionId": edge.target_node_id, "label": option.label, "consequence": option.consequence} for edge, option in zip(edges, choice.options, strict=True)]})
-    mapping = SectionMap.model_validate({"topology": topology_data,
-        "sections": [{"sectionId": planned.id, "title": content.title, "summary": content.summary, "ending": planned.kind.value == "ending"} for planned, content in zip(topology.nodes, proposal.nodes, strict=True)],
+    mapping = SectionMap.model_validate({"topology": structure_from_seed(topology).model_dump(mode="json", by_alias=True),
+        "seedTopology": topology_data, "topologyOrigin": "planner",
+        "sections": [{"sectionId": planned.id, "title": content.title, "summary": content.summary, "ending": planned.kind.value == "ending", "footageMode": planned.footage_mode} for planned, content in zip(topology.nodes, proposal.nodes, strict=True)],
         "choices": choices, "joinReconciliations": {join.id: join.reconciliation for join in proposal.joins}})
     mapping.validate_links()
     return mapping

@@ -20,6 +20,7 @@ from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import canonical_json
 from plotloom.domain import utc_now
+from tests.source_graph_fixtures import letter_section_map
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.project_storage.operational_state import close_blockers, specialist_publication_blockers
@@ -35,10 +36,7 @@ def _context(revision: int = 1) -> SourceOutlineReviewState:
     source_hash = f"{revision:x}" * 64
     outline_hash = "b" * 64
     map_hash = "c" * 64
-    mapping = SectionMap(
-        sections=[StorySection(section_id="opening", title="Opening", summary="Lin hears the storm"), StorySection(section_id="beacon", title="Beacon", summary="The beacon stays lit", ending=True), StorySection(section_id="dock", title="Dock", summary="The dock stays lit", ending=True)],
-        choice=SectionChoice(choice_id="power", section_id="opening", prompt="Where?", outcomes=[BranchOutcome(outcome_id="beacon-path", label="Beacon", consequence="Dock dark", ending_section_id="beacon"), BranchOutcome(outcome_id="dock-path", label="Dock", consequence="Beacon dark", ending_section_id="dock")]),
-    )
+    mapping = letter_section_map("cast-fixture", FIXED_CHINESE_BRIEF)
     return SourceOutlineReviewState(source=SourceRevision(revision=revision, content_hash=source_hash[:64], material=material, created_at=utc_now()), candidate=None, accepted_outline=AcceptedOutlineRevision(revision=1, source_revision=revision, candidate_job_id="ch_" + "a" * 32, content_hash=outline_hash, outline={"source": "Tide Light"}, accepted_at=utc_now()), outline_status="accepted", accepted_section_map=AcceptedSectionMapRevision(revision=1, source_revision=revision, outline_revision=1, outline_content_hash=outline_hash, content_hash=map_hash, mapping=mapping, accepted_at=utc_now()), section_map_status="current", section_map_stale_reasons=[], graph_admission=None)
 
 
@@ -61,7 +59,7 @@ def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_p
 
     def bound_context(_session: object, _project_id: str) -> tuple[CastBinding, dict[str, object], dict[str, object], dict[str, object]]:
         assert context.source and context.accepted_outline and context.accepted_section_map
-        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "beacon", "dock"])
+        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "choose", "ending-a", "ending-b"])
         return binding, context.source.material.model_dump(mode="json", by_alias=True), context.accepted_outline.outline, context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True)
 
     store.repository.cast._context = bound_context  # type: ignore[method-assign]
@@ -132,7 +130,7 @@ def test_cancel_reopened_cast_restores_only_current_accepted_authority(tmp_path:
 
     def bound_context(_session: object, _project_id: str) -> tuple[CastBinding, dict[str, object], dict[str, object], dict[str, object]]:
         assert context.source and context.accepted_outline and context.accepted_section_map
-        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "beacon", "dock"])
+        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "choose", "ending-a", "ending-b"])
         return binding, context.source.material.model_dump(mode="json", by_alias=True), context.accepted_outline.outline, context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True)
 
     store.repository.cast._context = bound_context  # type: ignore[method-assign]
@@ -171,7 +169,7 @@ def test_cast_reference_proposal_freezes_accepted_subject_without_story_bible(tm
 
     def bound_context(_session: object, _project_id: str) -> tuple[CastBinding, dict[str, object], dict[str, object], dict[str, object]]:
         assert context.source and context.accepted_outline and context.accepted_section_map
-        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "beacon", "dock"])
+        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "choose", "ending-a", "ending-b"])
         return binding, context.source.material.model_dump(mode="json", by_alias=True), context.accepted_outline.outline, context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True)
 
     store.repository.cast._context = bound_context  # type: ignore[method-assign]
@@ -226,7 +224,7 @@ def test_imported_appearance_is_cast_bound_and_requires_explicit_selection(tmp_p
 
     def bound_context(_session: object, _project_id: str) -> tuple[CastBinding, dict[str, object], dict[str, object], dict[str, object]]:
         assert context.source and context.accepted_outline and context.accepted_section_map
-        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "beacon", "dock"])
+        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "choose", "ending-a", "ending-b"])
         return binding, context.source.material.model_dump(mode="json", by_alias=True), context.accepted_outline.outline, context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True)
 
     store.repository.cast._context = bound_context  # type: ignore[method-assign]

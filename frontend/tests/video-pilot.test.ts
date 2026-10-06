@@ -73,20 +73,24 @@ function routeContext(shotIds: string[], sceneId = "scene"): { storyboard: Story
     graph: {
       startNodeId: "start",
       nodes: [
-        { id: "start", title: "Start", kind: "start", summary: "" },
-        { id: "story-node", title: "Route scene", kind: "scene", summary: "" },
-        { id: "end", title: "End", kind: "ending", summary: "" },
+        { id: "start", title: "Route scene", kind: "start", footageMode: "footage", summary: "Opening footage." },
+        { id: "end", title: "End", kind: "ending", footageMode: "footage", summary: "Ending footage." },
       ],
-      edges: [
-        { id: "first", sourceNodeId: "start", targetNodeId: "story-node", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
-        { id: "last", sourceNodeId: "story-node", targetNodeId: "end", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
-      ],
+      edges: [{ id: "last", sourceNodeId: "start", targetNodeId: "end", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] }],
       joinContracts: [],
     },
-    sceneBeats: { scenes: [{ id: sceneId, storyNodeId: "story-node", title: "Route scene", order: 1 } as SceneBeatPlan["scenes"][number]], beats: [], dialogueCues: [] },
-    storyboard: { shots: shotIds.map((id, index) => ({ id, sceneId, title: id, order: index + 1, durationUnits: 6_000 } as Shot)), shotBeatLinks: [] },
-    routeId: "start/story-node/end",
+    sceneBeats: { scenes: [
+      { id: sceneId, storyNodeId: "start", title: "Route scene", order: 1 },
+      { id: "ending-scene", storyNodeId: "end", title: "Ending", order: 1 },
+    ] as SceneBeatPlan["scenes"], beats: [], dialogueCues: [] },
+    storyboard: { shots: [...shotIds.map((id, index) => ({ id, sceneId, title: id, order: index + 1, durationUnits: 6_000 } as Shot)),
+      { id: "ending-shot", sceneId: "ending-scene", title: "Ending", order: 1, durationUnits: 6_000 } as Shot], shotBeatLinks: [] },
+    routeId: "start/end",
   };
+}
+
+function endingJob(projectId = "project"): VideoJob {
+  return selectedJob("ending-job", 1, { projectId, snapshot: { shot: { id: "ending-shot", sceneId: "ending-scene", order: 1 } } });
 }
 
 function props(projectId: string, shotId: string, sceneId?: string) {
@@ -312,7 +316,7 @@ it("orders consecutive route scenes and excludes a selected sibling branch", () 
   };
   const graph: StoryGraph = {
     startNodeId: "start",
-    nodes: ["start", "common", "decision", "left", "right", "end"].map((id) => ({ id, title: id, kind: nodeKind(id), summary: "" })),
+    nodes: ["start", "common", "decision", "left", "right", "end"].map((id) => ({ id, title: id, kind: nodeKind(id), footageMode: "footage" as const, summary: "" })),
     edges: [
       ["start", "common"], ["common", "decision"], ["decision", "left"], ["decision", "right"], ["left", "end"], ["right", "end"],
     ].map(([sourceNodeId, targetNodeId], index) => ({ id: `${index}`, sourceNodeId, targetNodeId, kind: sourceNodeId === "decision" ? "choice" as const : "continuation" as const, choiceText: null, stateEffects: {}, entityStateEffects: [] })),
@@ -338,9 +342,9 @@ it("orders consecutive route scenes and excludes a selected sibling branch", () 
 
 function branchingFixture() {
   const graph: StoryGraph = {
-    startNodeId: "start",
-    nodes: ["start", "scene", "decision", "left", "right"].map((id) => ({
-      id, title: id, kind: id === "start" ? "start" : id === "decision" ? "decision" : id === "left" || id === "right" ? "ending" : "scene", summary: "",
+    startNodeId: "scene",
+    nodes: ["scene", "decision", "left", "right"].map((id) => ({
+      id, title: id, footageMode: "footage" as const, kind: id === "scene" ? "start" : id === "decision" ? "decision" : id === "left" || id === "right" ? "ending" : "scene", summary: "",
     })),
     edges: [
       ["start", "scene", "continuation"], ["scene", "decision", "continuation"], ["decision", "left", "choice"], ["decision", "right", "choice"],
@@ -349,6 +353,7 @@ function branchingFixture() {
     })),
     joinContracts: [],
   };
+  graph.edges = graph.edges.filter(edge => edge.sourceNodeId !== "start");
   const sceneBeats = { scenes: ["scene", "decision", "left", "right"].map((storyNodeId, index) => ({
     id: `${storyNodeId}-scene`, storyNodeId, title: storyNodeId, order: index + 1,
   })) as SceneBeatPlan["scenes"], beats: [], dialogueCues: [] };
@@ -360,6 +365,59 @@ function branchingFixture() {
   }));
   return { graph, sceneBeats, storyboard, selected };
 }
+
+it("traverses a state-free route-only join without inventing footage", async () => {
+  const fixture = branchingFixture();
+  fixture.graph.nodes.filter(node => node.id === "left" || node.id === "right").forEach(node => { node.kind = "scene"; });
+  fixture.graph.nodes.push(
+    { id: "merge", title: "Merge", kind: "join", footageMode: "route_only", summary: "Routes reunite." },
+    { id: "end", title: "End", kind: "ending", footageMode: "footage", summary: "Ending footage." },
+  );
+  fixture.graph.edges.push(...[["left", "merge"], ["right", "merge"], ["merge", "end"]].map(([sourceNodeId, targetNodeId]) => ({
+    id: `${sourceNodeId}-${targetNodeId}`, sourceNodeId, targetNodeId, kind: "continuation" as const,
+    choiceText: null, stateEffects: {}, entityStateEffects: [],
+  })));
+  fixture.graph.joinContracts.push({ id: "join-merge", joinNodeId: "merge", incomingNodeIds: ["left", "right"],
+    requiredStateKeys: [], allowedDifferences: [], reconciliation: "The paths reunite.", notes: "" });
+  fixture.sceneBeats.scenes.push({ id: "ending-scene", storyNodeId: "end", title: "Ending", order: 1 } as SceneBeatPlan["scenes"][number]);
+  fixture.storyboard.shots.push({ id: "ending-shot", sceneId: "ending-scene", title: "Ending", order: 1, durationUnits: 6_000 } as Shot);
+  fixture.selected.push(endingJob());
+  const manifest = branchingPreviewManifest("project", fixture.selected, fixture.storyboard, fixture.sceneBeats, fixture.graph);
+  expect(manifest.nodes.get("merge")?.jobs).toEqual([]);
+  expect(manifest.nodes.get("merge")?.missingShotTitles).toEqual([]);
+  await act(async () => root.render(createElement(BranchingVideoPreview, {
+    projectId: "project", jobs: fixture.selected, storyboard: fixture.storyboard, sceneBeats: fixture.sceneBeats, graph: fixture.graph,
+  })));
+  const finish = async (id: string) => {
+    const player = host.querySelector(`[data-testid="branching-video-job-${id}"]`) as HTMLVideoElement;
+    expect(player).not.toBeNull();
+    await act(async () => { player.dispatchEvent(new Event("ended", { bubbles: true })); await Promise.resolve(); });
+  };
+  await finish("scene-job");
+  await finish("decision-job");
+  await act(async () => { [...host.querySelectorAll('[data-testid="branching-choices"] button')]
+    .find(button => button.textContent === "left")?.dispatchEvent(new MouseEvent("click", { bubbles: true })); await Promise.resolve(); });
+  await finish("left-job");
+  expect(host.querySelector('[data-testid="branching-video-job-ending-job"]')).not.toBeNull();
+  expect(host.querySelector('[data-testid="branching-video-job-right-job"]')).toBeNull();
+  expect(host.textContent).toContain("选择历史：left");
+});
+
+it("blocks missing mandatory footage in branching and ordered playback", async () => {
+  const fixture = branchingFixture();
+  fixture.sceneBeats.scenes = fixture.sceneBeats.scenes.filter(scene => scene.storyNodeId !== "scene");
+  fixture.storyboard.shots = fixture.storyboard.shots.filter(shot => shot.sceneId !== "scene-scene");
+  const manifest = branchingPreviewManifest("project", fixture.selected, fixture.storyboard, fixture.sceneBeats, fixture.graph);
+  expect(manifest.nodes.get("scene")?.missingShotTitles).toEqual(["scene（缺少已编排场景或镜头）"]);
+  expect(selectedRouteVideos(fixture.selected, fixture.storyboard, fixture.sceneBeats, fixture.graph, "scene/decision/left")?.missingShotTitles)
+    .toContain("scene（缺少已编排场景或镜头）");
+  await act(async () => root.render(createElement(BranchingVideoPreview, {
+    projectId: "project", jobs: fixture.selected, storyboard: fixture.storyboard, sceneBeats: fixture.sceneBeats, graph: fixture.graph,
+  })));
+  expect(host.querySelector('[data-testid="branching-missing-media"]')?.textContent).toContain("缺少已编排场景或镜头");
+  expect(host.querySelector('[data-testid^="branching-video-job"]')).toBeNull();
+  expect(host.querySelector('[data-testid="branching-choices"]')).toBeNull();
+});
 
 it("pins selected media by canonical node order and surfaces missing branching media", () => {
   const fixture = branchingFixture();
@@ -628,16 +686,16 @@ it("does not auto-traverse a canonical decision with one outgoing edge, includin
   expect(host.querySelector('[data-testid="branching-video-job-left-job"]')).toBeNull();
   expect(host.querySelector('[data-testid="branching-choices"]')?.textContent).toContain("left");
 
-  const emptyGraph: StoryGraph = {
-    startNodeId: "decision", nodes: [
-      { id: "decision", title: "Only choice", kind: "decision", summary: "" }, { id: "end", title: "End", kind: "ending", summary: "" },
-    ], edges: [{ id: "only", sourceNodeId: "decision", targetNodeId: "end", kind: "choice", choiceText: "Continue", stateEffects: {}, entityStateEffects: [] }], joinContracts: [],
-  };
+  const emptyGraph = structuredClone(fixture.graph);
+  emptyGraph.startNodeId = "decision";
+  emptyGraph.nodes.find(node => node.id === "decision")!.footageMode = "route_only";
   await act(async () => root.render(createElement(BranchingVideoPreview, {
-    projectId: "project", jobs: [], storyboard: { shots: [], shotBeatLinks: [] }, sceneBeats: { scenes: [], beats: [], dialogueCues: [] }, graph: emptyGraph,
+    projectId: "project", jobs: fixture.selected.filter(job => job.id !== "decision-job"),
+    storyboard: { ...fixture.storyboard, shots: fixture.storyboard.shots.filter(shot => shot.id !== "decision-shot") },
+    sceneBeats: { ...fixture.sceneBeats, scenes: fixture.sceneBeats.scenes.filter(scene => scene.storyNodeId !== "decision") }, graph: emptyGraph,
   })));
   await act(async () => { await Promise.resolve(); });
-  expect(host.querySelector('[data-testid="branching-choices"]')?.textContent).toContain("Continue");
+  expect(host.querySelector('[data-testid="branching-choices"]')?.textContent).toContain("left");
 });
 
 it("pauses replaced session media before a project change can leave it playing", async () => {
@@ -687,13 +745,13 @@ it("scopes selected playback by project, scene, and current selected membership"
   const oldThird = selectedJob("old-third", 3, { projectId: "old", selected: false, snapshot: { shot: { id: "shot-3", title: "Third", sceneId: "scene", order: 3 } } });
   const otherScene = selectedJob("other-scene", 1, { projectId: "old", snapshot: { shot: { id: "other-scene", title: "Other", sceneId: "other", order: 1 } } });
   const newFirst = selectedJob("new-first", 1, { projectId: "new", snapshot: { shot: { id: "new-shot", title: "New", sceneId: "scene", order: 1 } } });
-  let oldJobs = [oldFirst, oldSecond, oldThird, otherScene];
+  let oldJobs = [oldFirst, oldSecond, oldThird, otherScene, endingJob("old")];
   const membershipReview = deferred<unknown>();
   vi.spyOn(plotloomApi, "getVideoJobs").mockImplementation(async (projectId) => ({
-    jobs: projectId === "old" ? oldJobs : [newFirst],
+    jobs: projectId === "old" ? oldJobs : [newFirst, endingJob("new")],
   }));
   vi.spyOn(plotloomApi, "reviewVideoJob").mockImplementation(async () => {
-    oldJobs = [oldFirst, oldSecond, { ...oldThird, selected: true }, otherScene];
+    oldJobs = [oldFirst, oldSecond, { ...oldThird, selected: true }, otherScene, endingJob("old")];
     return membershipReview.promise;
   });
 
@@ -726,7 +784,7 @@ it("scopes selected playback by project, scene, and current selected membership"
 it("autoplays only the next current source, holds the final frame, and reports current rather than stale play rejection", async () => {
   const first = selectedJob("first", 1);
   const second = selectedJob("second", 2);
-  vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [first, second] });
+  vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [first, second, endingJob()] });
   const delayedAutomaticPlay = deferred<void>();
   const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockReturnValueOnce(delayedAutomaticPlay.promise);
 
@@ -745,8 +803,11 @@ it("autoplays only the next current source, holds the final frame, and reports c
 
   const secondPlayer = host.querySelector('[data-testid="video-sequence-job-second"]') as HTMLVideoElement;
   await act(async () => { secondPlayer.dispatchEvent(new Event("ended", { bubbles: true })); await Promise.resolve(); });
-  expect(host.querySelector('[data-testid="video-sequence-job-second"]')).not.toBeNull();
-  expect(play).toHaveBeenCalledTimes(1);
+  const endingPlayer = host.querySelector('[data-testid="video-sequence-job-ending-job"]') as HTMLVideoElement;
+  expect(endingPlayer).not.toBeNull();
+  await act(async () => { endingPlayer.dispatchEvent(new Event("ended", { bubbles: true })); await Promise.resolve(); });
+  expect(host.querySelector('[data-testid="video-sequence-job-ending-job"]')).not.toBeNull();
+  expect(play).toHaveBeenCalledTimes(2);
 
   play.mockRejectedValueOnce(new Error("gesture required"));
   await act(async () => { [...host.querySelectorAll("button")].find((item) => item.textContent === "播放当前")?.click(); await Promise.resolve(); });
@@ -761,7 +822,7 @@ it("shows the source-bound question only after opening completion and closes on 
     { outcomeId: "edge-2", endingSectionId: "left", label: "left" },
     { outcomeId: "edge-3", endingSectionId: "right", label: "right" },
   ] };
-  const read = vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ status: "accepted", installedStoryboardCurrent: true, hasInstallation: false, runtimeChoice: sourceChoice } as never);
+  const read = vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ status: "accepted", installedStoryboardCurrent: true, hasInstallation: false, runtimeChoice: { choices: [sourceChoice] } } as never);
   const renderFixture = () => root.render(createElement(BranchingVideoPreview, { projectId: "project", jobs: fixture.selected, storyboard: fixture.storyboard, sceneBeats: fixture.sceneBeats, graph: fixture.graph }));
   await act(async () => { renderFixture(); await Promise.resolve(); });
   expect(host.querySelector('[data-testid="branching-choice-question"]')).toBeNull();

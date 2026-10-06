@@ -13,12 +13,12 @@ from PIL import Image
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.canonical_schema import CharacterV2
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import StageName
+from plotloom.domain import StageName, RunStatus
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import ProjectFolderStorage, ProjectStore
 from plotloom.persistence.project.cast import ProjectCastPersistence
 
-from tests.project_storage_fixtures import FixtureResolver, fixture_profile
+from tests.project_storage_fixtures import FixtureProvider, FixtureResolver, fixture_profile
 
 
 def _png(color: tuple[int, int, int]) -> bytes:
@@ -30,7 +30,6 @@ def _png(color: tuple[int, int, int]) -> bytes:
 def _install_visible_fixture_character(store: ProjectStore) -> None:
     """Make the fixture's first shot require one explicit identity decision."""
 
-    project_id = store.manifest.project_id
     hero = CharacterV2(
         id="fixture-hero",
         name="Fixture hero",
@@ -44,52 +43,24 @@ def _install_visible_fixture_character(store: ProjectStore) -> None:
         traits=["steady"],
         voice_anchors=[],
     )
-    bible = store.authoring.get_stage_payload(project_id, StageName.STORY_BIBLE)
-    store.update_stage(
-        StageName.STORY_BIBLE,
-        bible.model_copy(update={"characters": [hero]}),
-        expected_revision=store.authoring.get_stage_head(
-            project_id, StageName.STORY_BIBLE
-        ).revision,
-    )
-    graph = store.authoring.get_stage_payload(project_id, StageName.STORY_GRAPH)
-    store.update_stage(
-        StageName.STORY_GRAPH,
-        graph,
-        expected_revision=store.authoring.get_stage_head(
-            project_id, StageName.STORY_GRAPH
-        ).revision,
-    )
-    plan = store.authoring.get_stage_payload(project_id, StageName.SCENE_BEATS)
-    store.update_stage(
-        StageName.SCENE_BEATS,
-        plan.model_copy(
-            update={
-                "scenes": [
-                    scene.model_copy(update={"character_ids": [hero.id]})
-                    for scene in plan.scenes
-                ]
-            }
-        ),
-        expected_revision=store.authoring.get_stage_head(
-            project_id, StageName.SCENE_BEATS
-        ).revision,
-    )
-    storyboard = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
-    store.update_stage(
-        StageName.STORYBOARD,
-        storyboard.model_copy(
-            update={
-                "shots": [
-                    shot.model_copy(update={"character_ids": [hero.id]})
-                    for shot in storyboard.shots
-                ]
-            }
-        ),
-        expected_revision=store.authoring.get_stage_head(
-            project_id, StageName.STORYBOARD
-        ).revision,
-    )
+    class VisibleCharacterProvider(FixtureProvider):
+        def generate(self, request, secret):
+            response = super().generate(request, secret)
+            payload = json.loads(response.raw["choices"][0]["message"]["content"])
+            if "characters" in payload:
+                payload["characters"] = [hero.model_dump(mode="json", by_alias=True)]
+            for scene in payload.get("scenes", []):
+                scene["characterIds"] = [hero.id]
+            for shot in payload.get("shots", []):
+                shot["characterIds"] = [hero.id]
+            return response.model_copy(update={"raw": {
+                "choices": [{"message": {"role": "assistant", "content": json.dumps(payload)}}],
+            }})
+
+    resolver = FixtureResolver()
+    resolver.provider = VisibleCharacterProvider()
+    completed = ProjectPipelineExecutor(resolver).execute(store, profile=fixture_profile())
+    assert completed.status == RunStatus.SUCCEEDED
 
 
 def _direction_draft(

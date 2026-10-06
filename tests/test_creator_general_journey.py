@@ -1,4 +1,5 @@
 """General Source topology reaches every existing downstream contract."""
+from tests.graph_draft_fixtures import graph_draft_revision
 from copy import deepcopy
 import json
 from pathlib import Path
@@ -24,7 +25,7 @@ def test_general_structure_reaches_script_storyboard_and_installed_production(st
     source, outline, mapping = saved.source, saved.accepted_outline, saved.accepted_section_map
     store.install_section_map_graph(SectionMapGraphInstallRequest(expected_source_revision=source.revision, expected_source_content_hash=source.content_hash,
         expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash, expected_section_map_revision=mapping.revision,
-        expected_section_map_content_hash=mapping.content_hash, expected_graph_revision=0))
+        expected_section_map_content_hash=mapping.content_hash, expected_graph_revision=0, expected_graph_draft_revision=graph_draft_revision(store)))
     candidate, request = store.prepare_cast_candidate("ch_" + "c" * 32)
     cast = json.loads((FIXTURES / "cast.json").read_text())
     ready = store.admit_cast_delivery(_deliver_stage(store, request, "cast.json", cast, "general-cast"))
@@ -37,8 +38,8 @@ def test_general_structure_reaches_script_storyboard_and_installed_production(st
     store.accept_art_candidate(ArtAcceptRequest(job_id=candidate.job_id, expected_art_revision=0, binding=ready.binding, art=ready.art))
     candidate, request = store.prepare_script_candidate("ch_" + "s" * 32)
     binding = candidate.binding
-    assert len(binding.section_bindings) == 9 and len(binding.complete_route_section_ids) == 6
-    assert len(request.input_artifacts["outline.json"]["episodes"]) == 9
+    assert len(binding.section_bindings) == 6 and len(binding.complete_route_section_ids) == 6
+    assert len(request.input_artifacts["outline.json"]["episodes"]) == 6
     script = _pilot_script()
     script["sectionBindings"] = [item.model_dump(mode="json", by_alias=True) for item in binding.section_bindings]
     script["episodes"] = [dict(deepcopy(script["episodes"][0]), ep=item.episode) for item in binding.section_bindings]

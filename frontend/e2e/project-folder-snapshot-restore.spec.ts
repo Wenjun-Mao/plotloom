@@ -41,9 +41,15 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
   // The mutation response precedes the workbench refresh that releases its
   // local writer. Snapshotting must begin after that refresh, not alongside it.
   await expect(selectionButton).toBeEnabled();
-  // Writer readiness does not mean the draft rehydration GETs have finished.
-  // The exclusive snapshot must not race this browser's remaining read leases.
-  await page.waitForLoadState("networkidle");
+  // Leave the media owner before the exclusive snapshot: its newly mounted
+  // draft forms still rehydrate after the mutation refresh. A prior navigation
+  // networkidle state does not prove those later requests have settled.
+  await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
+  await expect(page.getByRole("heading", { name: "项目简报", exact: true })).toBeVisible();
+  const recovery = page.getByRole("dialog", { name: "发现未保存草稿" });
+  await expect(recovery).toBeVisible();
+  await recovery.getByRole("button", { name: "恢复草稿", exact: true }).click();
+  await expect(page.getByLabel("片名")).toHaveValue(durableTitle);
 
   const snapshotResponse = page.waitForResponse((response) =>
     response.request().method() === "POST"

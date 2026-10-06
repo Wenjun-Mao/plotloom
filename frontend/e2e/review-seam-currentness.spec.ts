@@ -1,3 +1,4 @@
+import { acknowledgeGraphMapping, graphDraftRevision } from "./fixtures/graph-authoring";
 import { expect, test } from "./fixture";
 import { availableSpecialistWithoutSend, createScriptProject, fixture, json, writeDelivery } from "./f5a-fixture";
 import type { APIRequestContext } from "@playwright/test";
@@ -17,16 +18,17 @@ async function invalidate(request: APIRequestContext, origin: string, id: string
   const graph = (await json(request.get(`${project}/stages`))).stages.find((item: any) => item.head.stage === "story_graph").head;
   const mapping = structuredClone(base.acceptedSectionMap.mapping);
   mapping.sections[0].summary += " Current map context.";
+  const draftRevision = await acknowledgeGraphMapping(request, project, mapping);
   const next = await json(request.put(`${root}/section-map`, { data: {
     expectedSectionMapRevision: base.acceptedSectionMap.revision,
     expectedSourceRevision: base.source.revision, expectedOutlineRevision: base.acceptedOutline.revision,
-    expectedOutlineContentHash: base.acceptedOutline.contentHash, mapping,
+    expectedOutlineContentHash: base.acceptedOutline.contentHash, mapping, expectedGraphDraftRevision: draftRevision,
   } }));
   await json(request.post(`${root}/section-map/install-graph`, { data: {
     expectedSourceRevision: next.source.revision, expectedSourceContentHash: next.source.contentHash,
     expectedOutlineRevision: next.acceptedOutline.revision, expectedOutlineContentHash: next.acceptedOutline.contentHash,
     expectedSectionMapRevision: next.acceptedSectionMap.revision, expectedSectionMapContentHash: next.acceptedSectionMap.contentHash,
-    expectedGraphRevision: graph.revision,
+    expectedGraphRevision: graph.revision, expectedGraphDraftRevision: await graphDraftRevision(request, project),
   } }));
 }
 

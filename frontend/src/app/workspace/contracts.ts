@@ -3,13 +3,14 @@ import { ApiError } from "../../api";
 import type { AuthoringDraft, CanonicalDraftConsumption, ServerStageName, StageEnvelope, StageHead, ValidationIssue, WorkspaceProject } from "../../types";
 import type { DraftScope } from "../../draft-registry";
 
-export type PageId = "source" | "characters" | "brief" | "bible" | "graph" | "beats" | "storyboard" | "trace" | "quarantine";
+export type PageId = "creator" | "source" | "characters" | "brief" | "bible" | "graph" | "beats" | "storyboard" | "trace" | "quarantine";
 export type NavigationTarget = { project: string; stage: PageId; entity: string; run: string; hash: string; history: "push" | "pop"; forceReload?: boolean; home?: boolean };
 export type WorkspaceOperation = { epoch: number; projectId: string; stage: PageId };
 export type DraftRecoverySource = "server" | "session" | "reconcile";
 export type DurableDraftStatus = "idle" | "saving" | "saved" | "failed" | "conflict";
 
 export const navigation: { id: PageId; index: string; label: string; description: string }[] = [
+  { id: "creator", index: "00", label: "创作工作台", description: "故事图与制作详情" },
   { id: "source", index: "01", label: "来源与大纲", description: "来源、候选与接受" },
   { id: "characters", index: "02", label: "角色", description: "文字与外观参考" },
   { id: "brief", index: "03", label: "项目简报", description: "梗概与提案" },
@@ -25,11 +26,19 @@ export const editableStages: ServerStageName[] = ["story_bible", "story_graph", 
 export const authoringDraftKey = (projectId: string, scope: DraftScope) => `${projectId}:${scope}:root`;
 export const sameDraftPayload = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 export function canonicalDraftConsumption(draft: AuthoringDraft | undefined, scope: DraftScope, canonicalRevision: number, payload: unknown): CanonicalDraftConsumption | undefined {
+  if (scope === "story_graph") return undefined;
   if (!draft || draft.baseCanonicalRevision !== canonicalRevision || !sameDraftPayload(draft.payload, payload)) return undefined;
   return { editorScope: scope, entityId: "root", draftRevision: draft.draftRevision };
 }
 export const headsByStage = (stages: StageEnvelope[]) => Object.fromEntries(stages.map((envelope) => [envelope.head.stage, envelope.head])) as Partial<Record<ServerStageName, StageHead>>;
-export function messageFrom(error: unknown): string { return error instanceof ApiError && error.status === 409 ? `项目版本冲突：${error.message}。请刷新后再合并修改。` : error instanceof Error ? error.message : "未知错误"; }
+export function messageFrom(error: unknown): string {
+  if (error instanceof ApiError && error.status === 409) {
+    const code = (error.details as { code?: unknown } | undefined)?.code;
+    if (code === "revision_conflict") return `项目版本冲突：${error.message}。请刷新后再合并修改。`;
+    if (code === "project_busy") return "项目仍有读取、写入或后台任务占用；操作未完成。请等待占用结束后重试。";
+  }
+  return error instanceof Error ? error.message : "未知错误";
+}
 export function validationIssuesFrom(error: unknown): ValidationIssue[] {
   const details = error && typeof error === "object" && "details" in error ? (error as { details?: unknown }).details : undefined;
   const rawIssues = details && typeof details === "object" && "issues" in details ? (details as { issues?: unknown }).issues : undefined;
@@ -38,7 +47,7 @@ export function validationIssuesFrom(error: unknown): ValidationIssue[] {
 }
 export const projectIdFromLocation = () => new URLSearchParams(window.location.search).get("project") || "";
 export const pageFromStage = (stage: string | null): PageId => navigation.some((item) => item.id === stage) ? stage as PageId : "brief";
-export function stageForPage(page: PageId): DraftScope | undefined { return page === "brief" ? "brief" : page === "bible" ? "story_bible" : page === "graph" ? "story_graph" : page === "beats" ? "scene_beats" : page === "storyboard" ? "storyboard" : undefined; }
+export function stageForPage(page: PageId): DraftScope | undefined { return page === "brief" ? "brief" : page === "bible" ? "story_bible" : page === "graph" || page === "source" || page === "creator" ? "story_graph" : page === "beats" ? "scene_beats" : page === "storyboard" ? "storyboard" : undefined; }
 export function routeFromLocation() { const query = new URLSearchParams(window.location.search); return { project: query.get("project") || "", stage: pageFromStage(query.get("stage")), entity: query.get("entity") || "", run: query.get("run") || "", hash: decodeHash(location.hash) }; }
 function decodeHash(value: string) { try { return decodeURIComponent(value.replace(/^#/, "")); } catch { return ""; } }
 export const newClientDraftOwner = () => `workspace-${crypto.randomUUID()}`;

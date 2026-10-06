@@ -7,7 +7,7 @@ from time import perf_counter
 import pytest
 from pydantic import ValidationError
 
-from plotloom.domain import ProjectBrief, StageName, StoryBibleV2, StoryEdgeKind, StoryNodeKind
+from plotloom.domain import ProjectBrief, StageName, StoryBibleV2, V2StoryEdgeKind, V2StoryNodeKind
 from plotloom.generation.contracts import ValidationIssue
 from plotloom.generation.planning import create_generation_plan, plan_stage
 from plotloom.generation.story_graph_topology import (
@@ -18,7 +18,6 @@ from plotloom.generation.story_graph_topology import (
 )
 from plotloom.generation.validation import SemanticValidationContext
 from plotloom.generation.work_units import (
-    DialogueTimingRepairFact,
     EdgeStateEffectJsonRepairFact,
     JoinAllowedDifferencesRepairFact,
     JoinStateEffectRepairFact,
@@ -29,7 +28,6 @@ from plotloom.generation.work_units import (
     compile_work_unit_request,
     parse_semantic_repair_fact,
     semantic_repair_facts,
-    story_graph_join_repair_facts,
 )
 from plotloom.validation import validate_story_graph
 
@@ -46,6 +44,17 @@ def _brief(**updates: int) -> ProjectBrief:
     return ProjectBrief(title="冻结骨架", synopsis="主角在失控列车上寻找出口。", **values)
 
 
+def _footage_topology_fixture(brief):
+    """A frozen current contract with explicit scene-bearing controls."""
+    from plotloom.generation.story_graph_topology import StoryGraphTopology
+    data = plan_story_graph_topology(project_id="project-a", brief=brief).model_dump(mode="json", by_alias=True)
+    for node in data["nodes"]:
+        node["footageMode"] = "footage"
+    data.pop("topologyHash")
+    data["topologyHash"] = hashlib.sha256(json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return StoryGraphTopology.model_validate(data)
+
+
 def _complete_fill(topology) -> dict:
     join_pairs = {
         (source_id, join.join_node_id)
@@ -60,10 +69,10 @@ def _complete_fill(topology) -> dict:
         "edges": [
             {
                 "id": item.id,
-                "choiceText": "继续前进" if item.kind == StoryEdgeKind.CHOICE else None,
+                "choiceText": "继续前进" if item.kind == V2StoryEdgeKind.CHOICE else None,
                 "stateEffects": (
                     {"route": item.id}
-                    if item.kind == StoryEdgeKind.CHOICE
+                    if item.kind == V2StoryEdgeKind.CHOICE
                     or (item.source_node_id, item.target_node_id) in join_pairs
                     else {}
                 ),
@@ -74,8 +83,8 @@ def _complete_fill(topology) -> dict:
         "joinContracts": [
             {
                 "id": item.id,
-                "requiredStateKeys": ["route"],
-                "allowedDifferences": ["route"],
+                "requiredStateKeys": ["route"] if next(node for node in topology.nodes if node.id == item.join_node_id).footage_mode == "footage" else [],
+                "allowedDifferences": ["route"] if next(node for node in topology.nodes if node.id == item.join_node_id).footage_mode == "footage" else [],
                 "reconciliation": "所有路线都抵达同一个危机。",
                 "notes": "保留分支后果。",
             }
@@ -92,10 +101,10 @@ def test_planner_is_deterministic_minimal_and_domain_valid() -> None:
     assert first == second
     assert len(first.nodes) == 9
     assert len(first.joins) == brief.desired_join_count
-    assert first.nodes[0].kind == StoryNodeKind.START
+    assert first.nodes[0].kind == V2StoryNodeKind.START
     node_by_id = {node.id: node for node in first.nodes}
-    assert len([node for node in first.nodes if node.kind == StoryNodeKind.ENDING]) == brief.ending_count
-    assert all(node_by_id[join.join_node_id].kind == StoryNodeKind.JOIN for join in first.joins)
+    assert len([node for node in first.nodes if node.kind == V2StoryNodeKind.ENDING]) == brief.ending_count
+    assert all(node_by_id[join.join_node_id].kind == V2StoryNodeKind.JOIN for join in first.joins)
 
     graph = bind_story_graph_content_fill(first, _complete_fill(first), brief=brief)
     validate_story_graph(graph, brief)
@@ -114,7 +123,7 @@ def test_planner_never_manufactures_unplanned_viewer_choices(settings):
 
 def test_current_join_missing_fact_is_bound_to_frozen_direct_edges() -> None:
     brief = _brief()
-    topology = plan_story_graph_topology(project_id="project-a", brief=brief)
+    topology = _footage_topology_fixture(brief)
     fill = _complete_fill(topology)
     join = topology.joins[0]
     target_edges = sorted(
@@ -151,7 +160,7 @@ def test_join_repair_fact_preserves_only_valid_sibling_assignments_and_rebinds_s
     """A convergent repair cannot delete a valid variant sibling from its source."""
 
     brief = _brief()
-    topology = plan_story_graph_topology(project_id="project-a", brief=brief)
+    topology = _footage_topology_fixture(brief)
     fill = _complete_fill(topology)
     join = topology.joins[0]
     incoming = sorted(
@@ -212,7 +221,7 @@ def test_join_repair_fact_preserves_only_valid_sibling_assignments_and_rebinds_s
 
 def test_join_repair_facts_do_not_preserve_multiple_keys_that_need_repair() -> None:
     brief = _brief()
-    topology = plan_story_graph_topology(project_id="project-a", brief=brief)
+    topology = _footage_topology_fixture(brief)
     fill = _complete_fill(topology)
     join = topology.joins[0]
     fill["joinContracts"][0]["requiredStateKeys"] = ["route", "variant"]
@@ -239,7 +248,7 @@ def test_subset_join_diagnostics_include_existing_conflicts_but_not_promoted_mis
     """An allowed-only key must not hide an independent convergent conflict."""
 
     brief = _brief()
-    topology = plan_story_graph_topology(project_id="project-a", brief=brief)
+    topology = _footage_topology_fixture(brief)
     fill = _complete_fill(topology)
     join = topology.joins[0]
     incoming = sorted(
@@ -326,7 +335,7 @@ def test_non_join_nonfinite_state_effect_gets_a_topology_bound_repair_fact() -> 
 
 def test_typed_graph_entity_state_effects_require_exact_frozen_bible_membership() -> None:
     brief = _brief()
-    topology = plan_story_graph_topology(project_id="project-a", brief=brief)
+    topology = _footage_topology_fixture(brief)
     bible = StoryBibleV2(
         logline="站台等待。", premise="选择改变站台状态。", genre="", tone="", audience="",
         narrative_promise="", visual_language="", themes=[], world_rules=[], known_facts=[],
@@ -453,7 +462,7 @@ def test_v2_edge_and_join_contract_violations_are_reportable_binding_issues() ->
     topology = plan_story_graph_topology(project_id="project-a", brief=brief)
     invalid = _complete_fill(topology)
     continuation_id = next(
-        item.id for item in topology.edges if item.kind == StoryEdgeKind.CONTINUATION
+        item.id for item in topology.edges if item.kind == V2StoryEdgeKind.CONTINUATION
     )
     continuation = next(
         edge for edge in invalid["edges"] if edge["id"] == continuation_id
@@ -476,7 +485,7 @@ def test_v2_choice_and_join_text_must_be_non_blank() -> None:
     topology = plan_story_graph_topology(project_id="project-a", brief=brief)
     invalid = _complete_fill(topology)
     choice_id = next(
-        item.id for item in topology.edges if item.kind == StoryEdgeKind.CHOICE
+        item.id for item in topology.edges if item.kind == V2StoryEdgeKind.CHOICE
     )
     next(edge for edge in invalid["edges"] if edge["id"] == choice_id)[
         "choiceText"
@@ -545,7 +554,7 @@ def test_work_unit_compiler_exposes_content_only_graph_schema() -> None:
         story_graph_topology=topology,
     )
 
-    assert compiled.contract.schema_id == "story_graph_content_fill.v4"
+    assert compiled.contract.schema_id == "story_graph_content_fill.v5"
     assert compiled.response_schema["properties"]["nodes"]["minItems"] == len(
         topology.nodes
     )
@@ -571,9 +580,9 @@ def test_work_unit_compiler_exposes_content_only_graph_schema() -> None:
     edge_schema = compiled.response_schema["properties"]["edges"]["items"]
     conditions = edge_schema["allOf"]
     continuation_id = next(
-        item.id for item in topology.edges if item.kind == StoryEdgeKind.CONTINUATION
+        item.id for item in topology.edges if item.kind == V2StoryEdgeKind.CONTINUATION
     )
-    choice_id = next(item.id for item in topology.edges if item.kind == StoryEdgeKind.CHOICE)
+    choice_id = next(item.id for item in topology.edges if item.kind == V2StoryEdgeKind.CHOICE)
     by_id = {
         condition["if"]["properties"]["id"]["const"]: condition["then"]["properties"]["choiceText"]
         for condition in conditions
@@ -596,154 +605,9 @@ def test_work_unit_compiler_exposes_content_only_graph_schema() -> None:
         "semantic.continuation_choice_text_must_be_null"
     ]
 
-    invalid_join = _complete_fill(topology)
-    invalid_join["joinContracts"][0]["requiredStateKeys"] = ["route"]
-    invalid_join["joinContracts"][0]["allowedDifferences"] = ["other"]
-    join_report = compiled.validator.validate(
-        invalid_join,
-        context=SemanticValidationContext(stage="story_graph"),
-    )
-    facts = story_graph_join_repair_facts(invalid_join, join_report.issues)
-    assert join_report.accepted is False
-    assert len(facts) == 1
-    assert facts[0].model_dump(mode="json", by_alias=True) == {
-        "code": "semantic.join_allowed_differences_must_be_required",
-        "path": [
-            "joinContracts",
-            topology.joins[0].id,
-            "allowedDifferences",
-        ],
-        "joinContractId": topology.joins[0].id,
-        "missingRequiredStateKeys": ["other"],
-        "expectedRequiredStateKeys": ["route", "other"],
-        "expectedAllowedDifferences": ["other"],
-    }
 
-    for unsafe_allowed in (["   "], ["other", "other"]):
-        unsafe = _complete_fill(topology)
-        unsafe["joinContracts"][0]["requiredStateKeys"] = ["route"]
-        unsafe["joinContracts"][0]["allowedDifferences"] = unsafe_allowed
-        unsafe_report = compiled.validator.validate(
-            unsafe,
-            context=SemanticValidationContext(stage="story_graph"),
-        )
-        assert unsafe_report.accepted is False
-        assert story_graph_join_repair_facts(unsafe, unsafe_report.issues) == ()
-
-    assert story_graph_join_repair_facts(
-        {"joinContracts": []}, join_report.issues
-    ) == ()
-    assert story_graph_join_repair_facts(
-        invalid_join,
-        (
-            ValidationIssue(
-                code="semantic.some_other_issue",
-                message="ignored",
-                path=("joinContracts", topology.joins[0].id),
-            ),
-        ),
-    ) == ()
-
-
-def test_semantic_repair_fact_union_revalidates_current_and_legacy_evidence() -> None:
-    join = parse_semantic_repair_fact(
-        {
-            "code": "semantic.join_allowed_differences_must_be_required",
-            "path": ["joinContracts", "join-1", "allowedDifferences"],
-            "joinContractId": "join-1",
-            "missingRequiredStateKeys": ["route"],
-        }
-    )
-    assert isinstance(join, JoinAllowedDifferencesRepairFact)
-    assert_semantic_repair_fact_matches_issue(
-        join,
-        (
-            ValidationIssue(
-                code="semantic.join_allowed_differences_must_be_required",
-                message="safe message is not correction authority",
-                path=("joinContracts", "join-1", "allowedDifferences"),
-            ),
-        ),
-    )
-
-    timing = parse_semantic_repair_fact(
-        {
-            "code": "semantic.cue_duration_underestimated",
-            "path": ["dialogueCues", 0, "estimatedDurationUnits"],
-            "timingProfileVersion": "dialogue.default.v1",
-            "matchedRuleLanguage": "zh-CN",
-            "delivery": "natural",
-            "textCharacterCount": 2,
-            "unitsPerCharacter": 330,
-            "minimumDurationUnits": 660,
-            "currentEstimatedDurationUnits": 1,
-            "sceneDurationBudgetUnits": 600,
-            "sceneCueEstimatedTotalUnits": 1,
-            "sceneCueMinimumTotalUnits": 660,
-            "minimumFitsSceneBudget": False,
-        }
-    )
-    assert isinstance(timing, DialogueTimingRepairFact)
-
-    entity_state = parse_semantic_repair_fact(
-        {
-            "code": "semantic.invalid_required_entity_state",
-            "path": ["shots", 0, "requiredEntityStates", 1, "state"],
-            "entityType": "character",
-            "entityId": "speaker",
-            "allowedStates": ["awake", "injured"],
-        }
-    )
-    assert isinstance(entity_state, RequiredEntityStateRepairFact)
-
+def test_semantic_repair_facts_reject_retired_timing_witnesses() -> None:
     with pytest.raises(ValidationError):
-        parse_semantic_repair_fact(
-            {
-                "code": "semantic.join_allowed_differences_must_be_required",
-                "path": ["joinContracts", "join-1", "allowedDifferences"],
-                "joinContractId": "join-1",
-                "missingRequiredStateKeys": ["route", "route"],
-            }
-        )
-    with pytest.raises(ValidationError, match="path must identify"):
-        parse_semantic_repair_fact(
-            {
-                "code": "semantic.join_allowed_differences_must_be_required",
-                "path": ["bogus", 0],
-                "joinContractId": "join-1",
-                "missingRequiredStateKeys": ["route"],
-            }
-        )
-    with pytest.raises(ValidationError, match="path must identify"):
-        parse_semantic_repair_fact(
-            {
-                "code": "semantic.invalid_required_entity_state",
-                "path": ["shots", 0, "requiredEntityStates", 1, "entityId"],
-                "entityType": "character",
-                "entityId": "speaker",
-                "allowedStates": ["awake"],
-            }
-        )
-    with pytest.raises(ValidationError, match="allowedStates must be unique"):
-        parse_semantic_repair_fact(
-            {
-                "code": "semantic.invalid_required_entity_state",
-                "path": ["shots", 0, "requiredEntityStates", 1, "state"],
-                "entityType": "character",
-                "entityId": "speaker",
-                "allowedStates": ["awake", "awake"],
-            }
-        )
-    with pytest.raises(ValueError, match="no matching stable validation issue"):
-        assert_semantic_repair_fact_matches_issue(
-            join,
-            (
-                ValidationIssue(
-                    code="semantic.join_allowed_differences_must_be_required",
-                    message="different join",
-                    path=("joinContracts", "join-2", "allowedDifferences"),
-                ),
-            ),
-        )
-    with pytest.raises(ValidationError):
-        parse_semantic_repair_fact({"code": "semantic.unknown"})
+        parse_semantic_repair_fact({"code": "semantic.cue_duration_underestimated", "path": ["dialogueCues", 0, "estimatedDurationUnits"]})
+    current = parse_semantic_repair_fact({"code": "semantic.invalid_required_entity_state", "path": ["shots", 0, "requiredEntityStates", 0, "state"], "entityType": "character", "entityId": "speaker", "allowedStates": ["awake"]})
+    assert isinstance(current, RequiredEntityStateRepairFact)

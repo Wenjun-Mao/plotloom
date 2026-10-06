@@ -14,9 +14,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from .domain_base import CamelModel, to_camel
 from .brief_contracts import DirectionSelection, ProjectBrief, brief_for_new_project
 
-# V2 deliberately lives in a separate module.  The classes below remain the
-# explicit V1 read model for historical revisions; do not add V2 production
-# defaults to them.
+# Current canonical production contracts live in a separate cohesive module.
 from .canonical_schema import (
     AudioEvent,
     AudioKind,
@@ -201,24 +199,6 @@ class FragmentReuseKind(str, Enum):
     SIBLING = "sibling"
 
 
-class StoryNodeKind(str, Enum):
-    START = "start"
-    SCENE = "scene"
-    DECISION = "decision"
-    JOIN = "join"
-    ENDING = "ending"
-
-
-class StoryEdgeKind(str, Enum):
-    CONTINUATION = "continuation"
-    CHOICE = "choice"
-
-
-class CoverageRole(str, Enum):
-    PRIMARY = "primary"
-    SUPPORTING = "supporting"
-
-
 class GateStatus(str, Enum):
     PASS = "pass"
     FAIL = "fail"
@@ -291,16 +271,6 @@ class GateEvaluation(CamelModel):
         return all(result.passed for result in self.results)
 
 
-class ShotSize(str, Enum):
-    EXTREME_WIDE = "extreme_wide"
-    WIDE = "wide"
-    FULL = "full"
-    MEDIUM = "medium"
-    CLOSE_UP = "close_up"
-    EXTREME_CLOSE_UP = "extreme_close_up"
-    INSERT = "insert"
-
-
 class ArtifactKind(str, Enum):
     PROMPT = "prompt"
     RESPONSE = "response"
@@ -332,197 +302,7 @@ TERMINAL_MEDIA_TASK_STATUSES: frozenset[MediaTaskStatus] = frozenset(
 )
 
 
-class Character(CamelModel):
-    id: Annotated[str, Field(min_length=1)]
-    name: Annotated[str, Field(min_length=1)]
-    role: str | None = None
-    description: str = ""
-    goal: str = ""
-    traits: list[str] = Field(default_factory=list)
-    visual_identity: str = ""
-    continuity_rules: list[str] = Field(default_factory=list)
-
-
-class Location(CamelModel):
-    id: Annotated[str, Field(min_length=1)]
-    name: Annotated[str, Field(min_length=1)]
-    description: str = ""
-    visual_identity: str = ""
-    continuity_rules: list[str] = Field(default_factory=list)
-
-
-class Prop(CamelModel):
-    id: Annotated[str, Field(min_length=1)]
-    name: Annotated[str, Field(min_length=1)]
-    description: str = ""
-    visual_identity: str = ""
-    continuity_rules: list[str] = Field(default_factory=list)
-
-
-class StoryBible(CamelModel):
-    logline: Annotated[str, Field(min_length=1)]
-    premise: Annotated[str, Field(min_length=1)]
-    genre: str = ""
-    tone: str = ""
-    audience: str = ""
-    narrative_promise: str = ""
-    visual_language: str = ""
-    themes: list[str] = Field(default_factory=list)
-    world_rules: list[str] = Field(default_factory=list)
-    known_facts: list[str] = Field(default_factory=list)
-    open_questions: list[str] = Field(default_factory=list)
-    source_notes: list[str] = Field(default_factory=list)
-    characters: list[Character] = Field(default_factory=list)
-    locations: list[Location] = Field(default_factory=list)
-    props: list[Prop] = Field(default_factory=list)
-
-    @model_validator(mode="after")
-    def validate_entity_ids(self) -> StoryBible:
-        for label, entities in (
-            ("character", self.characters),
-            ("location", self.locations),
-            ("prop", self.props),
-        ):
-            ids = [entity.id for entity in entities]
-            if len(ids) != len(set(ids)):
-                raise ValueError(f"duplicate {label} ids")
-        return self
-
-
-class StoryNode(CamelModel):
-    id: Annotated[str, Field(min_length=1)]
-    title: Annotated[str, Field(min_length=1)]
-    summary: Annotated[str, Field(min_length=1)]
-    kind: StoryNodeKind
-
-
-class StoryEdge(CamelModel):
-    id: Annotated[str, Field(min_length=1)]
-    source_node_id: Annotated[str, Field(min_length=1)]
-    target_node_id: Annotated[str, Field(min_length=1)]
-    kind: StoryEdgeKind = StoryEdgeKind.CONTINUATION
-    choice_text: str | None = None
-    state_effects: dict[str, Any] = Field(default_factory=dict)
-    entity_state_effects: list[RequiredEntityState] = Field(default_factory=list)
-
-    @model_validator(mode="after")
-    def choice_edges_have_copy(self) -> StoryEdge:
-        if self.kind == StoryEdgeKind.CHOICE and not self.choice_text:
-            raise ValueError("choice edges require choice_text")
-        keys = [(item.entity_type, item.entity_id) for item in self.entity_state_effects]
-        if len(keys) != len(set(keys)):
-            raise ValueError("entityStateEffects must name each entity at most once")
-        return self
-
-
-class JoinContract(CamelModel):
-    id: Annotated[str, Field(min_length=1)]
-    join_node_id: Annotated[str, Field(min_length=1)]
-    incoming_node_ids: Annotated[list[str], Field(min_length=2)]
-    required_state_keys: list[str] = Field(default_factory=list)
-    allowed_differences: list[str] = Field(default_factory=list)
-    reconciliation: str = ""
-    notes: str = ""
-
-
-class StoryGraph(CamelModel):
-    start_node_id: Annotated[str, Field(min_length=1)]
-    nodes: Annotated[list[StoryNode], Field(min_length=1)]
-    edges: list[StoryEdge] = Field(default_factory=list)
-    join_contracts: list[JoinContract] = Field(default_factory=list)
-
-
-class ContinuityState(CamelModel):
-    facts: dict[str, Any] = Field(default_factory=dict)
-    character_states: dict[str, str] = Field(default_factory=dict)
-    prop_states: dict[str, str] = Field(default_factory=dict)
-    location_state: str | None = None
-    screen_direction: str | None = None
-    lighting: str | None = None
-    sound: str | None = None
-    notes: list[str] = Field(default_factory=list)
-
-
-class DramaticScene(CamelModel):
-    id: Annotated[str, Field(min_length=1)]
-    story_node_id: Annotated[str, Field(min_length=1)]
-    title: Annotated[str, Field(min_length=1)]
-    objective: Annotated[str, Field(min_length=1)]
-    location_id: str | None = None
-    character_ids: list[str] = Field(default_factory=list)
-    beat_ids: Annotated[list[str], Field(min_length=1)]
-    entry_state: ContinuityState = Field(default_factory=ContinuityState)
-    exit_state: ContinuityState = Field(default_factory=ContinuityState)
-
-
-class Beat(CamelModel):
-    id: Annotated[str, Field(min_length=1)]
-    scene_id: Annotated[str, Field(min_length=1)]
-    order: Annotated[int, Field(ge=1)]
-    description: Annotated[str, Field(min_length=1)]
-    purpose: Annotated[str, Field(min_length=1)]
-    visible_event: str = ""
-    dialogue: str = ""
-    immediate_result: str = ""
-    dramatic_change: str = ""
-    entry_state: ContinuityState = Field(default_factory=ContinuityState)
-    exit_state: ContinuityState = Field(default_factory=ContinuityState)
-    continuity_anchors: list[str] = Field(default_factory=list)
-    continuity_delta: dict[str, Any] = Field(default_factory=dict)
-
-
-class SceneBeatPlan(CamelModel):
-    scenes: list[DramaticScene] = Field(default_factory=list)
-    beats: list[Beat] = Field(default_factory=list)
-
-
-class Shot(CamelModel):
-    id: Annotated[str, Field(min_length=1)]
-    scene_id: Annotated[str, Field(min_length=1)]
-    order: Annotated[int, Field(ge=1)]
-    title: Annotated[str, Field(min_length=1)]
-    shot_size: ShotSize
-    duration_seconds: Annotated[float, Field(gt=0)]
-    camera_angle: str = ""
-    camera_movement: str = ""
-    composition: str = ""
-    visual_intent: str = ""
-    motion_intent: str = ""
-    action: str = ""
-    dialogue: str = ""
-    audio: str = ""
-    transition: str = ""
-    character_ids: list[str] = Field(default_factory=list)
-    location_id: str | None = None
-    prop_ids: list[str] = Field(default_factory=list)
-    entry_state: ContinuityState = Field(default_factory=ContinuityState)
-    exit_state: ContinuityState = Field(default_factory=ContinuityState)
-
-
-class ShotBeatLink(CamelModel):
-    shot_id: Annotated[str, Field(min_length=1)]
-    beat_id: Annotated[str, Field(min_length=1)]
-    role: CoverageRole = CoverageRole.PRIMARY
-    coverage_weight: Annotated[float, Field(gt=0, le=1)] = 1.0
-
-
-class Storyboard(CamelModel):
-    shots: list[Shot] = Field(default_factory=list)
-    shot_beat_links: list[ShotBeatLink] = Field(default_factory=list)
-
-
-StagePayload = StoryBible | StoryGraph | SceneBeatPlan | Storyboard
-# ``StagePayload`` is intentionally V1.  Storage selects this or the V2 union
-# only from an explicit persisted schema version.
-StagePayloadV1 = StagePayload
-StagePayloadV2 = StoryBibleV2 | StoryGraphV2 | SceneBeatPlanV2 | StoryboardV2
-
-# Explicit names make historical read behavior visible at call sites and avoid
-# the dangerous implication that a V2 default can reconstruct absent V1 data.
-StoryBibleV1 = StoryBible
-StoryGraphV1 = StoryGraph
-SceneBeatPlanV1 = SceneBeatPlan
-StoryboardV1 = Storyboard
+StagePayload = StoryBibleV2 | StoryGraphV2 | SceneBeatPlanV2 | StoryboardV2
 
 
 class InitialStage(CamelModel):
@@ -533,9 +313,6 @@ class InitialStage(CamelModel):
 
     @model_validator(mode="after")
     def normalize_payload(self) -> InitialStage:
-        # Initial-stage creation is a current authoring write.  Legacy V1
-        # revisions are read only through their persisted version at the
-        # repository boundary and must never be silently upgraded here.
         parsed = stage_payload_model(self.stage, schema_version=2).model_validate(self.payload)
         object.__setattr__(self, "payload", parsed.model_dump(mode="json", by_alias=False))
         return self
@@ -553,9 +330,7 @@ class EntityRevision(CamelModel):
     project_id: str
     stage: StageName
     revision: Annotated[int, Field(ge=1)]
-    # Required at the read boundary: legacy JSON remains V1 rather than being
-    # reparsed as current authoring data and thereby re-hashed or rewritten.
-    schema_version: Literal[1, 2]
+    schema_version: Literal[2]
     parent_revision_id: str | None = None
     content_hash: str
     input_revisions: dict[StageName, int] = Field(default_factory=dict)
@@ -567,11 +342,7 @@ class StageHead(CamelModel):
     stage: StageName
     status: StageStatus = StageStatus.MISSING
     revision: Annotated[int, Field(ge=0)] = 0
-    # Generation-run snapshots created before migration 0010 contain embedded
-    # heads without this scalar. Those immutable snapshots are explicitly V1;
-    # live/current heads are hydrated from their migrated row and always pass
-    # the stored value, so this fallback cannot turn a new write into V1.
-    schema_version: Literal[1, 2] = 1
+    schema_version: Literal[2]
     entity_revision_id: str | None = None
     content_hash: str | None = None
     input_revisions: dict[StageName, int] = Field(default_factory=dict)
@@ -590,12 +361,8 @@ class StageHead(CamelModel):
 
 class StageEnvelope(CamelModel):
     head: StageHead
-    # Current authoring endpoints reject schema-1 heads with
-    # ``data.schema_reset_required``. Keeping V1 in this response union would
-    # advertise an impossible success response and force the workbench to
-    # preserve fields it must never author. Historical V1 payloads remain
-    # available through immutable revision/run evidence readers.
-    payload: StagePayloadV2 | None = None
+    # Only the current canonical contract is executable.
+    payload: StagePayload | None = None
 
 
 class AuthoringDraft(CamelModel):
@@ -897,8 +664,8 @@ class MediaPromptContext(CamelModel):
     model_config = CamelModel.model_config | {"frozen": True}
 
     brief: ProjectBrief
-    story_bible: StoryBible
-    shot: Shot
+    story_bible: StoryBibleV2
+    shot: ShotV2
     storyboard_revision: Annotated[int, Field(ge=1)]
 
 
@@ -1328,36 +1095,17 @@ class StartupRecoveryPlan(CamelModel):
     terminated_media_task_ids: list[str] = Field(default_factory=list)
 
 
-def stage_payload_model(
-    stage: StageName | str,
-    schema_version: int,
-) -> type[StagePayloadV1] | type[StagePayloadV2]:
-    """Return the exact stage model for a persisted schema version.
+def stage_payload_model(stage: StageName | str, schema_version: int) -> type[StagePayload]:
+    """Select the current contract; retired schema evidence is never executed."""
 
-    Version ``1`` is retained only for legacy reads.  Callers must pass the
-    persisted version rather than relying on a default that could parse a V2
-    write as V1 and silently erase its production semantics.
-    """
-
-    resolved_stage = StageName(stage)
-    models_by_version: dict[int, dict[StageName, type[BaseModel]]] = {
-        1: {
-            StageName.STORY_BIBLE: StoryBibleV1,
-            StageName.STORY_GRAPH: StoryGraphV1,
-            StageName.SCENE_BEATS: SceneBeatPlanV1,
-            StageName.STORYBOARD: StoryboardV1,
-        },
-        2: {
-            StageName.STORY_BIBLE: StoryBibleV2,
-            StageName.STORY_GRAPH: StoryGraphV2,
-            StageName.SCENE_BEATS: SceneBeatPlanV2,
-            StageName.STORYBOARD: StoryboardV2,
-        },
-    }
-    try:
-        return models_by_version[schema_version][resolved_stage]
-    except KeyError as exc:
-        raise ValueError(f"unsupported canonical schema version: {schema_version}") from exc
+    if schema_version != 2:
+        raise ValueError(f"unsupported canonical schema version: {schema_version}")
+    return {
+        StageName.STORY_BIBLE: StoryBibleV2,
+        StageName.STORY_GRAPH: StoryGraphV2,
+        StageName.SCENE_BEATS: SceneBeatPlanV2,
+        StageName.STORYBOARD: StoryboardV2,
+    }[StageName(stage)]
 
 
 def upstream_stages(stage: StageName) -> tuple[StageName, ...]:

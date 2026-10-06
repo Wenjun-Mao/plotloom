@@ -1,5 +1,8 @@
 """F3A regression: art is source/map/graph/cast bound and text-first."""
+
 from __future__ import annotations
+
+from tests.graph_draft_fixtures import graph_map_save_request, graph_draft_revision
 
 import json
 from hashlib import sha256
@@ -52,7 +55,7 @@ def _deliver(store: object, request: CreativeHandoffRequest) -> object:
     package = json.loads((Path(paths["packagePath"]) / "request.json").read_text())
     delivery = Path(paths["deliveryPath"]); delivery.mkdir()
     render = "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth"
-    art = canonical_json({"source": "Tide Light", "style": "realistic", "scenes": [{"id": "S01", "name": "航标室", "primary": True, "summary": "choice pressure", "anchors": [{"name": "铜灯", "desc": "old brass"}, {"name": "窗", "desc": "salted glass"}, {"name": "桌", "desc": "worn wood"}], "lighting": [{"state": "dawn", "prompt": "cold dawn through a window"}], "image": {"prompt": render + ", empty beacon room", "negativePrompt": "people, human figures", "sheet": render, "tags": []}}], "props": [], "sectionUsage": [{"sectionId": "opening", "sceneIds": ["S01"], "propIds": []}, {"sectionId": "ending-a", "sceneIds": ["S01"], "propIds": []}, {"sectionId": "ending-b", "sceneIds": ["S01"], "propIds": []}]})
+    art = canonical_json({"source": "Tide Light", "style": "realistic", "scenes": [{"id": "S01", "name": "航标室", "primary": True, "summary": "choice pressure", "anchors": [{"name": "铜灯", "desc": "old brass"}, {"name": "窗", "desc": "salted glass"}, {"name": "桌", "desc": "worn wood"}], "lighting": [{"state": "dawn", "prompt": "cold dawn through a window"}], "image": {"prompt": render + ", empty beacon room", "negativePrompt": "people, human figures", "sheet": render, "tags": []}}], "props": [], "sectionUsage": [{"sectionId": section["sectionId"], "sceneIds": ["S01"], "propIds": []} for section in request.input_artifacts["section-map.json"]["sections"]]})
     report = b"<!doctype html><html><body>art report</body></html>"
     (delivery / "art.json").write_bytes(art); (delivery / "report.html").write_bytes(report)
     manifest = {"schemaVersion": 1, "jobId": request.job_id, "requestHash": package["requestHash"], "deliveryId": "art-fixture", "stage": "art", "candidate": {"filename": "art.json", "sha256": sha256(art).hexdigest()}, "report": {"filename": "report.html", "sha256": sha256(report).hexdigest()}, "executorProvenance": {"codeRevision": "abcdef0", "skillVersion": "fixture", "skillHash": package["executionPin"]["specialistSkillHash"], "upstreamRevision": package["executionPin"]["upstreamRevision"], "upstreamSkillHash": package["executionPin"]["upstreamSkillHash"], "model": "fixture", "reasoningEffort": "high"}, "limitations": ["no images"]}
@@ -74,9 +77,10 @@ def _deliver_stage(store: object, request: CreativeHandoffRequest, filename: str
     return result
 
 
-def _prepare_art_context(store: object) -> ArtBinding:
+def _prepare_art_context(store: object, structure_factory=None) -> ArtBinding:
     project = store.project()
-    store.update_brief(project.brief.model_copy(update={"decision_points_per_path": 1, "ending_count": 2, "desired_join_count": 0}), expected_revision=project.revision)
+    if structure_factory is None:
+        store.update_brief(project.brief.model_copy(update={"decision_points_per_path": 1, "ending_count": 2, "desired_join_count": 0}), expected_revision=project.revision)
     source = SourceMaterial(kind="synopsis", title="Tide Light", text="Lin chooses the beacon or dock.", attribution="fixture", rights_declaration="fixture", adaptation_intent="fixture")
     store.save_source_material(expected_source_revision=0, material=source)  # type: ignore[attr-defined]
     outline_request = CreativeHandoffRequest(job_id="ch_" + "o" * 32, project_id=store.manifest.project_id, section_id="story", stage="outline", expected_stage_revision=0, source=source.model_dump(mode="json", by_alias=True), input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(store.project().brief), "story-topology.json": planned_structure(store.manifest.project_id, store.project().brief).model_dump(mode="json", by_alias=True)}, creative_brief="fixture")  # type: ignore[attr-defined]
@@ -84,10 +88,21 @@ def _prepare_art_context(store: object) -> ArtBinding:
     store.admit_outline_delivery(_deliver_stage(store, outline_request, "outline.json", {"source": "Tide Light", "episodes": []}, "outline-fixture"))  # type: ignore[attr-defined]
     state = store.accept_outline_candidate(OutlineAcceptRequest(job_id=outline_request.job_id, expected_source_revision=1, expected_outline_revision=0))  # type: ignore[attr-defined]
     assert state.source and state.accepted_outline
-    mapping = SectionMap(sections=[StorySection(section_id="opening", title="Opening", summary="Lin chooses."), StorySection(section_id="ending-a", title="Beacon", summary="Beacon.", ending=True), StorySection(section_id="ending-b", title="Dock", summary="Dock.", ending=True)], choice=SectionChoice(choice_id="choose", section_id="opening", prompt="Where?", outcomes=[BranchOutcome(outcome_id="beacon", label="Beacon", consequence="Beacon.", ending_section_id="ending-a"), BranchOutcome(outcome_id="dock", label="Dock", consequence="Dock.", ending_section_id="ending-b")]))
-    state = store.save_section_map(SectionMapSaveRequest(expected_section_map_revision=0, expected_source_revision=1, expected_outline_revision=1, expected_outline_content_hash=state.accepted_outline.content_hash, mapping=mapping))  # type: ignore[attr-defined]
+    mapping = SectionMap(
+        seed_topology=planned_structure(store.manifest.project_id, store.project().brief),
+        topology_origin="author",
+        topology={"startNodeId": "opening",
+            "nodes": [{"id": "opening", "kind": "start"}, {"id": "choose", "kind": "decision"}, {"id": "ending-a", "kind": "ending"}, {"id": "ending-b", "kind": "ending"}],
+            "edges": [{"id": key, "sourceNodeId": source_id, "targetNodeId": target, "kind": kind, "stateEffects": {}, "entityStateEffects": []} for key, source_id, target, kind in [("to-choice", "opening", "choose", "continuation"), ("beacon", "choose", "ending-a", "choice"), ("dock", "choose", "ending-b", "choice")]], "joins": []},
+        sections=[StorySection(section_id="opening", title="Opening", summary="Lin chooses.", footage_mode="footage"), StorySection(section_id="choose", title="Choose", summary="Lin chooses a route.", footage_mode="route_only"), StorySection(section_id="ending-a", title="Beacon", summary="Beacon.", ending=True, footage_mode="footage"), StorySection(section_id="ending-b", title="Dock", summary="Dock.", ending=True, footage_mode="footage")],
+        choices=[SectionChoice(choice_id="choose", section_id="choose", prompt="Where?", outcomes=[BranchOutcome(outcome_id="beacon", label="Beacon", consequence="Beacon.", ending_section_id="ending-a"), BranchOutcome(outcome_id="dock", label="Dock", consequence="Dock.", ending_section_id="ending-b")])],
+        join_reconciliations={},
+    )
+    if structure_factory is not None:
+        mapping = structure_factory(store)
+    state = store.save_section_map(graph_map_save_request(store, expected_section_map_revision=0, expected_source_revision=1, expected_outline_revision=1, expected_outline_content_hash=state.accepted_outline.content_hash, mapping=mapping))  # type: ignore[attr-defined]
     assert state.accepted_section_map
-    store.install_section_map_graph(SectionMapGraphInstallRequest(expected_source_revision=1, expected_source_content_hash=state.source.content_hash, expected_outline_revision=1, expected_outline_content_hash=state.accepted_outline.content_hash, expected_section_map_revision=1, expected_section_map_content_hash=state.accepted_section_map.content_hash, expected_graph_revision=0))  # type: ignore[attr-defined]
+    store.install_section_map_graph(SectionMapGraphInstallRequest(expected_source_revision=1, expected_source_content_hash=state.source.content_hash, expected_outline_revision=1, expected_outline_content_hash=state.accepted_outline.content_hash, expected_section_map_revision=1, expected_section_map_content_hash=state.accepted_section_map.content_hash, expected_graph_revision=0, expected_graph_draft_revision=graph_draft_revision(store)))  # type: ignore[attr-defined]
     _candidate, cast_request = store.prepare_cast_candidate("ch_" + "c" * 32)  # type: ignore[attr-defined]
     ready_cast = store.admit_cast_delivery(_deliver_stage(store, cast_request, "cast.json", {"source": "Tide Light", "summary": "Lin chooses.", "characters": [{"id": "lin", "name": "Lin", "reviewNotes": {"sourceNotes": "Rain coat is proposed", "performanceGuidance": ""}, "persona": {"personality": ["Careful"], "motivation": "Choose", "appearance": "Rain coat", "arc": "Acts"}, "voice": {"timbre": "Calm"}}]}, "cast-fixture"))  # type: ignore[attr-defined]
     store.accept_cast_candidate(CastAcceptRequest(job_id=cast_request.job_id, expected_cast_revision=0, binding=ready_cast.binding, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))  # type: ignore[attr-defined]
@@ -496,7 +511,7 @@ def test_f4_script_admission_freezes_exact_mapping_caps_and_target_currentness(t
         store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))
         candidate, request = store.prepare_script_candidate("ch_" + "x" * 32)
         assert [item.duration_cap_milliseconds for item in candidate.binding.section_duration_caps] == [90_000, 90_000, 90_000]
-        assert candidate.binding.complete_route_section_ids == [["opening", "ending-a"], ["opening", "ending-b"]]
+        assert candidate.binding.complete_route_section_ids == [["opening", "choose", "ending-a"], ["opening", "choose", "ending-b"]]
         assert request.input_artifacts["script-admission.json"]["targetPlaythroughSeconds"] == 180
         assert "aggregate duration across mutually exclusive endings as product-inapplicable" in request.creative_brief
         assert "frozen per-section and complete-route caps remain applicable" in request.creative_brief
@@ -592,13 +607,19 @@ def test_f4_prepared_script_blocks_snapshot_until_cancel_and_late_delivery_stays
     assert storage.recovery.create_snapshot(project_id).status == "complete"
 
 
-def _accepted_f4_script(store: object) -> None:
-    binding = _prepare_art_context(store)
+def _accepted_f4_script(store: object, structure_factory=None) -> None:
+    binding = _prepare_art_context(store, structure_factory)
     art_candidate, art_request = store.prepare_art_candidate("ch_" + "k" * 32, render_style="realistic")  # type: ignore[attr-defined]
     art_ready = store.admit_art_delivery(_deliver(store, art_request))  # type: ignore[attr-defined]
     store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))  # type: ignore[attr-defined]
     candidate, request = store.prepare_script_candidate("ch_" + "l" * 32)  # type: ignore[attr-defined]
-    ready = store.admit_script_delivery(_deliver_stage(store, request, "script.json", _pilot_script(), "script-for-storyboard"))  # type: ignore[attr-defined]
+    script = _pilot_script()
+    if structure_factory is not None:
+        from copy import deepcopy
+        script["sectionBindings"] = [item.model_dump(mode="json", by_alias=True) for item in candidate.binding.section_bindings]
+        template = script["episodes"][0]
+        script["episodes"] = [dict(deepcopy(template), ep=item.episode) for item in candidate.binding.section_bindings]
+    ready = store.admit_script_delivery(_deliver_stage(store, request, "script.json", script, "script-for-storyboard"))  # type: ignore[attr-defined]
     store.accept_script_candidate(ScriptAcceptRequest(job_id=candidate.job_id, expected_script_revision=0, binding=ready.binding, script=ready.script))  # type: ignore[attr-defined]
 
 

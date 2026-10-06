@@ -1,4 +1,5 @@
 import { expect, test } from "./fixture";
+import { createCreatorGraph } from "./fixtures/creator-graph";
 
 const secondaryTools = ["故事圣经", "剧情 DAG", "场景节拍", "分镜工作台", "运行轨迹", "隔离修复"];
 
@@ -13,10 +14,9 @@ async function expectCompactCreatorGap(page: import("@playwright/test").Page) {
   expect(firstLinkBox!.y - (headingBox!.y + headingBox!.height)).toBeLessThanOrEqual(16);
 }
 
-test("keeps creator links compact and gives secondary tools one matching heading", async ({ page, workbench }) => {
-  await page.goto(`${workbench.frontendOrigin}/v2/?stage=brief`);
-  await page.getByRole("button", { name: "打开示例项目" }).click();
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+test("keeps creator links compact and gives secondary tools one current heading", async ({ page, request, workbench }) => {
+  const id = await createCreatorGraph(request, workbench.apiOrigin, "compact-tools");
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`);
   await expect(page).toHaveURL(/[?&]project=/);
 
   const toolsSummary = page.getByText("编辑与工具", { exact: true });
@@ -38,8 +38,8 @@ test("keeps creator links compact and gives secondary tools one matching heading
     await expect(tool.locator(":scope > span")).toHaveCount(0);
     await expect(tool.locator("small")).toHaveCount(0);
     await tool.click();
-    await expect(page.getByRole("heading", { name: label, exact: true })).toBeVisible();
-    await expect(page.locator(".page-header .eyebrow")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: label === "剧情 DAG" ? "剧情图与精确合同" : label, exact: true })).toBeVisible();
+    if (label !== "剧情 DAG") await expect(page.locator(".page-header .eyebrow")).toHaveCount(0);
   }
 
   await toolsSummary.click();

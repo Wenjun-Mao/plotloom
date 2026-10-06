@@ -14,6 +14,7 @@ import { deriveRoutes } from "../model";
 import { sourceWorkflowTarget } from "../app/workspace/sourceWorkflowNavigation";
 import { useReviewActivation } from "./useReviewActivation";
 import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
+import { useGraphWorkbench } from "../features/graph/GraphWorkbenchContext";
 
 const blankSource: SourceMaterial = {
   kind: "synopsis",
@@ -35,6 +36,7 @@ function sourceMessage(error: unknown) {
 }
 
 export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnly, navigationTarget = "", refreshToken, onOpenShot, onContinueToCharacters, onContinueToScript, onContinueToStoryboard }: { projectId: string; briefSeed: ProjectBrief; readOnly: boolean; navigationTarget?: string; refreshToken?: unknown; onOpenShot?: (shotId: string) => void; onContinueToCharacters?: () => void; onContinueToScript?: () => void; onContinueToStoryboard?: () => void }) {
+  const graphOwner = useGraphWorkbench();
   const [state, setState] = useState<SourceOutlineReviewState>();
   const [draft, setDraft] = useState<SourceMaterial>(blankSource);
   const [busy, setBusy] = useState(false);
@@ -100,6 +102,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
       setState(next);
       if (savedSource) { setDraft(next.source?.material || sourceDraftFromBrief(briefSeed)); draftDirty.current = false; await reviewDraft.clear(); }
       await recheck();
+      await graphOwner.refresh();
       return true;
     } catch (mutationError) { if (ownsProject(session)) setError(sourceMessage(mutationError)); return false; }
     finally { if (ownsProject(session)) setBusy(false); }
@@ -179,27 +182,18 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
         outlineCurrent={state.outlineStatus === "accepted"}
         sourceDirty={draftDirty.current}
         routes={state.graphAdmission?.status === "current" && graph?.revision === state.graphAdmission.graphRevision && graph?.contentHash === state.graphAdmission.graphContentHash ? deriveRoutes(graph.payload) : []}
-        onSave={(mapping) => {
-          if (!state.source || !accepted) return;
-          return mutate(() => plotloomApi.saveSectionMap(projectId, {
-            expectedSectionMapRevision: state.acceptedSectionMap?.revision || 0,
-            expectedSourceRevision: state.source!.revision,
-            expectedOutlineRevision: accepted.revision,
-            expectedOutlineContentHash: accepted.contentHash,
-            mapping,
-          }));
+        onSave={async () => {
+          if (!state.source || !accepted) return false;
+          const saved = await graphOwner.confirmMapping(state);
+          if (saved) await recheck();
+          return saved;
         }}
         onInstall={() => {
           const map = state.acceptedSectionMap;
           const source = state.source;
           const admission = state.graphAdmission;
           if (!source || !accepted || !map) return;
-          void mutate(() => plotloomApi.installSectionMapGraph(projectId, {
-            expectedSourceRevision: source.revision, expectedSourceContentHash: source.contentHash,
-            expectedOutlineRevision: accepted.revision, expectedOutlineContentHash: accepted.contentHash,
-            expectedSectionMapRevision: map.revision, expectedSectionMapContentHash: map.contentHash,
-            expectedGraphRevision: admission?.graphRevision || 0,
-          }));
+          void graphOwner.installMapping(state).then(saved => { if (saved) void recheck(); });
         }}
         onContinue={() => {
           if (draftDirty.current) { setError("故事内容有未保存修改。请先保存或放弃这些修改，再继续角色设定。"); return; }

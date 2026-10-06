@@ -29,12 +29,12 @@ def put(client, project_id, editor="source", text="unfinished", revision=0, **pa
 def test_partial_review_drafts_close_and_reopen_without_acceptance(draft_client):
     client, project_id = draft_client
     before = client.get(f"/api/v2/projects/{project_id}").json()
-    for editor in ["source", "section_map", "cast", "art", "script"]:
+    for editor in ["source", "cast", "art", "script"]:
         assert put(client, project_id, editor, '{"unfinished":').status_code == 200
     assert client.post(f"/api/v2/projects/{project_id}/close").status_code == 200
     assert client.post(f"/api/v2/projects/{project_id}/open").status_code == 200
     drafts = client.get(f"/api/v2/projects/{project_id}/authoring-drafts").json()
-    assert len(drafts) == 5
+    assert len(drafts) == 4
     assert all(draft["payload"]["text"] == '{"unfinished":' for draft in drafts)
     assert client.get(f"/api/v2/projects/{project_id}").json() == before
     assert client.get(f"/api/v2/projects/{project_id}/source-outline").json()["source"] is None
@@ -48,6 +48,7 @@ def test_review_draft_cas_identity_and_closed_admission(draft_client):
     assert put(client, project_id, revision=1, baseCanonicalRevision=0).status_code == 409
     assert put(client, project_id, entityId="art").status_code == 422
     assert put(client, project_id, editor="settings").status_code == 422
+    assert put(client, project_id, editor="section_map").status_code == 422
     assert client.post(f"/api/v2/projects/{project_id}/close").status_code == 200
     assert put(client, project_id, revision=1).status_code == 409
 

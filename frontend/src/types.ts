@@ -89,6 +89,7 @@ export interface StoryNode {
   title: string;
   kind: "start" | "decision" | "scene" | "join" | "ending";
   summary: string;
+  footageMode: "footage" | "route_only";
 }
 
 export interface StoryEdge {
@@ -1299,11 +1300,12 @@ export interface SourceOutlineReviewState {
   graphAdmission: SourceMapGraphAdmission | null;
 }
 
-export interface StorySection { sectionId: string; title: string; summary: string; ending: boolean; }
+export interface StorySection { sectionId: string; title: string; summary: string; ending: boolean; footageMode: "footage" | "route_only"; }
 export interface BranchOutcome { outcomeId: string; label: string; consequence: string; endingSectionId: string; }
 export interface SectionChoice { choiceId: string; sectionId: string; prompt: string; outcomes: BranchOutcome[]; }
-export interface SourceTopology { startNodeId: string; topologyHash: string; structuralParameters: Record<string, number>; nodes: Array<{ id: string; kind: "start" | "scene" | "decision" | "join" | "ending" }>; edges: Array<{ id: string; sourceNodeId: string; targetNodeId: string; kind: "choice" | "continuation" }>; joins: Array<{ id: string; joinNodeId: string; incomingNodeIds: string[] }>; [key: string]: unknown; }
-export interface SectionMap { sections: StorySection[]; choice: SectionChoice | null; topology?: SourceTopology | null; choices?: SectionChoice[]; joinReconciliations?: Record<string, string>; }
+export interface SourceTopology { plannerVersion: "story_graph_topology.v3"; projectId: string; startNodeId: string; topologyHash: string; structuralParameters: Record<string, number>; nodes: Array<{ id: string; kind: "start" | "scene" | "decision" | "join" | "ending"; footageMode: "footage" | "route_only" }>; edges: Array<{ id: string; sourceNodeId: string; targetNodeId: string; kind: "choice" | "continuation" }>; joins: Array<{ id: string; joinNodeId: string; incomingNodeIds: string[] }>; }
+export interface SourceStructure { startNodeId: string; nodes: Array<Omit<SourceTopology["nodes"][number], "footageMode">>; edges: Array<SourceTopology["edges"][number] & { stateEffects: Record<string, unknown>; entityStateEffects: RequiredEntityState[] }>; joins: Array<SourceTopology["joins"][number] & { requiredStateKeys: string[]; allowedDifferences: string[]; notes: string }>; }
+export interface SectionMap { sections: StorySection[]; seedTopology: SourceTopology; topologyOrigin: "planner" | "author"; topology: SourceStructure; choices: SectionChoice[]; joinReconciliations: Record<string, string>; }
 export interface AcceptedSectionMapRevision {
   revision: number; sourceRevision: number; outlineRevision: number; outlineContentHash: string;
   contentHash: string; mapping: SectionMap; acceptedAt: string;
@@ -1333,6 +1335,7 @@ export interface ScriptBinding extends ArtBinding {
   sectionBindings: Array<{ sectionId: string; episode: number }>;
   sectionDurationCaps: Array<{ sectionId: string; durationCapMilliseconds: number }>;
   completeRouteSectionIds: string[][];
+  routeOnlySectionIds: string[];
 }
 export interface ScriptCandidate { jobId: string; expectedScriptRevision: number; binding: ScriptBinding; status: "prepared" | "ready" | "accepted" | "cancelled"; deliveryId: string | null; manifestHash: string | null; script: Record<string, unknown> | null; reportAvailable: boolean; createdAt: string; deliveredAt: string | null; }
 export interface ScriptCandidatePreparation extends ScriptCandidate { packagePath: string; deliveryPath: string; assignment: string; }
@@ -1349,7 +1352,7 @@ export interface ProductionBridgeIntentPackage { suggestionOrigin: "none" | "mod
 export interface PresentationSpan { start: number; end: number; role: "unassigned" | "physical" | "visible_text" | "runtime_choice" | "review_only" | "dialogue"; rendering: string; reason: string; }
 export interface PresentationSource { id: string; kind: "action" | "composition" | "dialogue"; targetId: string; coordinates: Record<string, unknown>; sourceHash: string; sourceText: string; spans: PresentationSpan[]; }
 export interface RuntimeChoice { choiceId: string; sectionId: string; prompt: string; outcomes: Array<{ outcomeId: string; label: string; endingSectionId: string; consequence: string }>; }
-export type RuntimeChoices = RuntimeChoice | { choices: RuntimeChoice[] };
+export type RuntimeChoices = { choices: RuntimeChoice[] };
 export interface ProductionPresentation { version: 1; reviewed: boolean; sourceHash: string; sources: PresentationSource[]; runtimeChoice: RuntimeChoices; frozenEvidence: Record<string, unknown>; }
 export interface ProductionBridgeProposal { presentation?: ProductionPresentation | null; revision: number; contentHash: string; inputs: Record<string, unknown>; intentPackage: ProductionBridgeIntentPackage; scenes: Array<Record<string, unknown>>; cuts: Array<Record<string, unknown>>; conflicts: ProductionBridgeConflict[]; advisories: ProductionBridgeConflict[]; installable: boolean; preparedAt: string; }
 export interface ProductionBridgeIntentJob { id: string; status: "queued" | "dispatched" | "ready" | "stale" | "failed" | "cancelled" | "outcome_unknown"; proposalRevision: number; proposalContentHash: string; profileId: string; profileVersion: number; promptVersion: string; createdAt: string; updatedAt: string; errorCode: string | null; errorMessage: string | null; resultProposalRevision: number | null; providerRequestId: string | null; responseHash: string | null; }

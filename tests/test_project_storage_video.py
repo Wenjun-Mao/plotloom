@@ -18,7 +18,8 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from plotloom.api import create_project_folder_authoring_app
-from plotloom.canonical_schema import CharacterV2, DialogueCue
+from plotloom.canonical_schema import DialogueCue
+from tests.test_project_storage_image_identity_contracts import _install_visible_fixture_character
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName
 from plotloom.persistence.codec import stable_hash
@@ -149,64 +150,6 @@ def _fixture_app(
         )
     )
 
-
-def _install_visible_fixture_character(store: ProjectStore) -> None:
-    """Keep the identity-currentness test on an internally consistent story."""
-
-    project_id = store.manifest.project_id
-    bible = store.authoring.get_stage_payload(project_id, StageName.STORY_BIBLE)
-    hero = CharacterV2(
-        id="fixture-hero",
-        name="Fixture hero",
-        description="A deterministic identity-reference fixture.",
-        visual_anchors=["red coat"],
-        sound_anchors=[],
-        allowed_states=["alert"],
-        continuity_rules=["The red coat remains visible."],
-        role="lead",
-        goal="Keep the fixture coherent.",
-        traits=["steady"],
-        voice_anchors=[],
-    )
-    store.update_stage(
-        StageName.STORY_BIBLE,
-        bible.model_copy(update={"characters": [hero]}),
-        expected_revision=store.authoring.get_stage_head(project_id, StageName.STORY_BIBLE).revision,
-    )
-    graph = store.authoring.get_stage_payload(project_id, StageName.STORY_GRAPH)
-    store.update_stage(
-        StageName.STORY_GRAPH,
-        graph,
-        expected_revision=store.authoring.get_stage_head(project_id, StageName.STORY_GRAPH).revision,
-    )
-    plan = store.authoring.get_stage_payload(project_id, StageName.SCENE_BEATS)
-    plan = plan.model_copy(
-        update={
-            "scenes": [
-                scene.model_copy(update={"character_ids": [hero.id]})
-                for scene in plan.scenes
-            ]
-        }
-    )
-    store.update_stage(
-        StageName.SCENE_BEATS,
-        plan,
-        expected_revision=store.authoring.get_stage_head(project_id, StageName.SCENE_BEATS).revision,
-    )
-    storyboard = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
-    storyboard = storyboard.model_copy(
-        update={
-            "shots": [
-                shot.model_copy(update={"character_ids": [hero.id]})
-                for shot in storyboard.shots
-            ]
-        }
-    )
-    store.update_stage(
-        StageName.STORYBOARD,
-        storyboard,
-        expected_revision=store.authoring.get_stage_head(project_id, StageName.STORYBOARD).revision,
-    )
 
 
 def _approved_keyframe(

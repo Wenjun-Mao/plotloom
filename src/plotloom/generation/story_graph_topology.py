@@ -12,25 +12,17 @@ from heapq import heappop, heappush
 import hashlib
 import json
 from itertools import count
-from typing import Any
+from typing import Literal, Any
 from uuid import NAMESPACE_URL, uuid5
 
 from pydantic import ConfigDict, Field, ValidationError, model_validator
 
-from ..canonical_schema import StoryGraphV2
-from ..domain import (
-    CamelModel,
-    JoinContract,
-    ProjectBrief,
-    RequiredEntityState,
-    StoryBibleV2,
-    StoryEdge,
-    StoryEdgeKind,
-    StoryGraph,
-    StoryNode,
-    StoryNodeKind,
-    to_camel,
+from ..canonical_schema import (
+    StoryGraphV2, StoryBibleV2, StoryNodeV2, StoryEdgeV2, JoinContractV2,
+    RequiredEntityState, V2StoryNodeKind, V2StoryEdgeKind,
 )
+from ..domain import CamelModel, ProjectBrief, to_camel
+from ..node_footage import creation_footage_mode
 from ..validation import DomainValidationError, validate_story_graph
 from ..join_state_values import (
     JoinStateValueContractError,
@@ -39,8 +31,8 @@ from ..join_state_values import (
 from .json_schema import explicit_presence_json_schema, inline_local_json_references
 
 
-STORY_GRAPH_TOPOLOGY_VERSION = "story_graph_topology.v2"
-STORY_GRAPH_CONTENT_FILL_SCHEMA_ID = "story_graph_content_fill.v4"
+STORY_GRAPH_TOPOLOGY_VERSION = "story_graph_topology.v3"
+STORY_GRAPH_CONTENT_FILL_SCHEMA_ID = "story_graph_content_fill.v5"
 DEFAULT_MAX_DOWNSTREAM_WORK_UNITS = 128
 _STRUCTURAL_PARAMETER_KEYS = frozenset(
     {
@@ -80,14 +72,15 @@ class _FrozenCamelModel(CamelModel):
 
 class StoryGraphTopologyNode(_FrozenCamelModel):
     id: str = Field(min_length=1)
-    kind: StoryNodeKind
+    kind: V2StoryNodeKind
+    footage_mode: Literal["footage", "route_only"]
 
 
 class StoryGraphTopologyEdge(_FrozenCamelModel):
     id: str = Field(min_length=1)
     source_node_id: str = Field(min_length=1)
     target_node_id: str = Field(min_length=1)
-    kind: StoryEdgeKind
+    kind: V2StoryEdgeKind
 
 
 class StoryGraphTopologyJoin(_FrozenCamelModel):
@@ -99,7 +92,7 @@ class StoryGraphTopologyJoin(_FrozenCamelModel):
 class StoryGraphTopology(_FrozenCamelModel):
     """The frozen structural portion of a newly requested Story Graph."""
 
-    planner_version: str = STORY_GRAPH_TOPOLOGY_VERSION
+    planner_version: Literal["story_graph_topology.v3"]
     project_id: str = Field(min_length=1)
     structural_parameters: dict[str, int]
     start_node_id: str = Field(min_length=1)
@@ -215,7 +208,7 @@ def plan_story_graph_topology(
 @dataclass(frozen=True)
 class _Shape:
     # Layer tuples are (kind, width); ENDING is always the final layer.
-    layers: tuple[tuple[StoryNodeKind, int], ...]
+    layers: tuple[tuple[V2StoryNodeKind, int], ...]
     transitions: tuple[tuple[tuple[int, ...], ...], ...]
 
 
@@ -223,7 +216,7 @@ class _Shape:
 class _PlannerState:
     decisions: int
     joins: int
-    kind: StoryNodeKind
+    kind: V2StoryNodeKind
     width: int
 
 
@@ -242,12 +235,12 @@ def _find_minimum_shape(brief: ProjectBrief, limit: int) -> _Shape | None:
     the search is finite and does not enumerate graphs or edge matrices.
     """
 
-    start = _PlannerState(0, 0, StoryNodeKind.START, 1)
+    start = _PlannerState(0, 0, V2StoryNodeKind.START, 1)
     best_cost: dict[_PlannerState, int] = {start: 1}
     predecessor: dict[_PlannerState, _PlannerStep] = {}
     serial = count()
     queue: list[tuple[int, int, int, str, int, int, _PlannerState]] = []
-    heappush(queue, (1, 0, 0, StoryNodeKind.START.value, 1, next(serial), start))
+    heappush(queue, (1, 0, 0, V2StoryNodeKind.START.value, 1, next(serial), start))
 
     while queue:
         cost, _d, _j, _kind, _width, _serial, state = heappop(queue)
@@ -273,18 +266,18 @@ def _find_minimum_shape(brief: ProjectBrief, limit: int) -> _Shape | None:
         max_target_width = limit - cost - brief.ending_count
         if max_target_width < 1:
             continue
-        next_kinds: list[StoryNodeKind] = []
+        next_kinds: list[V2StoryNodeKind] = []
         if state.decisions < brief.decision_points_per_path:
-            next_kinds.append(StoryNodeKind.DECISION)
-        next_kinds.append(StoryNodeKind.SCENE)
+            next_kinds.append(V2StoryNodeKind.DECISION)
+        next_kinds.append(V2StoryNodeKind.SCENE)
 
         for next_kind in next_kinds:
             next_decisions = state.decisions + int(
-                next_kind == StoryNodeKind.DECISION
+                next_kind == V2StoryNodeKind.DECISION
             )
             max_joins_added = (
                 brief.desired_join_count - state.joins
-                if next_kind == StoryNodeKind.SCENE
+                if next_kind == V2StoryNodeKind.SCENE
                 else 0
             )
             for target_width in range(1, max_target_width + 1):
@@ -328,12 +321,12 @@ def _find_minimum_shape(brief: ProjectBrief, limit: int) -> _Shape | None:
     return None
 
 
-def _maximum_out_degree(kind: StoryNodeKind, brief: ProjectBrief) -> int:
-    return brief.max_out_degree if kind == StoryNodeKind.DECISION else 1
+def _maximum_out_degree(kind: V2StoryNodeKind, brief: ProjectBrief) -> int:
+    return brief.max_out_degree if kind == V2StoryNodeKind.DECISION else 1
 
 
-def _minimum_out_degree(kind: StoryNodeKind) -> int:
-    return 2 if kind == StoryNodeKind.DECISION else 1
+def _minimum_out_degree(kind: V2StoryNodeKind) -> int:
+    return 2 if kind == V2StoryNodeKind.DECISION else 1
 
 
 def _reconstruct_shape(
@@ -377,7 +370,7 @@ def _reconstruct_shape(
     )
     if ending_transition is None:
         raise RuntimeError("planner selected an ending transition that cannot be materialized")
-    layers.append((StoryNodeKind.ENDING, brief.ending_count))
+    layers.append((V2StoryNodeKind.ENDING, brief.ending_count))
     transitions.append(ending_transition)
     return _Shape(layers=tuple(layers), transitions=tuple(transitions))
 
@@ -578,7 +571,7 @@ def _materialize_topology(project_id: str, brief: ProjectBrief, shape: _Shape) -
     join_targets_by_layer = {
         layer_index + 1: _join_target_indices(rows, shape.layers[layer_index + 1][1])
         for layer_index, rows in enumerate(shape.transitions)
-        if shape.layers[layer_index + 1][0] == StoryNodeKind.SCENE
+        if shape.layers[layer_index + 1][0] == V2StoryNodeKind.SCENE
     }
     layers: list[list[StoryGraphTopologyNode]] = []
     sequence = 0
@@ -586,16 +579,11 @@ def _materialize_topology(project_id: str, brief: ProjectBrief, shape: _Shape) -
         layer: list[StoryGraphTopologyNode] = []
         for node_index in range(width):
             sequence += 1
-            layer.append(
-                StoryGraphTopologyNode(
-                    id=f"node-{uuid5(namespace, f'node:{sequence}')}",
-                    kind=(
-                        StoryNodeKind.JOIN
-                        if node_index in join_targets_by_layer.get(layer_index, frozenset())
-                        else kind
-                    ),
-                )
-            )
+            node_kind = V2StoryNodeKind.JOIN if node_index in join_targets_by_layer.get(layer_index, frozenset()) else kind
+            layer.append(StoryGraphTopologyNode(
+                id=f"node-{uuid5(namespace, f'node:{sequence}')}", kind=node_kind,
+                footage_mode=creation_footage_mode(node_kind.value),
+            ))
         layers.append(layer)
     edges: list[StoryGraphTopologyEdge] = []
     edge_sequence = 0
@@ -611,7 +599,7 @@ def _materialize_topology(project_id: str, brief: ProjectBrief, shape: _Shape) -
                         id=f"edge-{uuid5(namespace, f'edge:{edge_sequence}')}",
                         source_node_id=source.id,
                         target_node_id=target.id,
-                        kind=StoryEdgeKind.CHOICE if source.kind == StoryNodeKind.DECISION else StoryEdgeKind.CONTINUATION,
+                        kind=V2StoryEdgeKind.CHOICE if source.kind == V2StoryNodeKind.DECISION else V2StoryEdgeKind.CONTINUATION,
                     )
                 )
                 incoming.setdefault(target.id, []).append(source.id)
@@ -647,7 +635,7 @@ def bind_story_graph_content_fill(
     *,
     brief: ProjectBrief,
     bible: StoryBibleV2 | None = None,
-) -> StoryGraph:
+) -> StoryGraphV2:
     """Bind model prose to immutable topology and rerun the full domain validator."""
 
     try:
@@ -681,37 +669,7 @@ def bind_story_graph_content_fill(
         raise StoryGraphContentBindingError(
             [{"code": f"semantic.{issue['code']}", "path": issue["path"], "message": issue["message"]} for issue in exc.issues]
         ) from exc
-    # The durable generation path installs V2 only.  Keep this projection at
-    # the binding boundary so a value that the historical V1 shape permits
-    # cannot escape as a worker exception.  The adapter converts this typed
-    # binding failure into a correction-eligible ValidationReport.
-    try:
-        v2_graph = StoryGraphV2.model_validate(
-            graph.model_dump(mode="json", by_alias=True)
-        )
-        validate_story_graph(v2_graph, brief, strict_v2=True, bible=bible)  # type: ignore[arg-type]
-    except ValidationError as exc:
-        raise StoryGraphContentBindingError(
-            [
-                {
-                    "code": "semantic.v2_projection_invalid",
-                    "path": _path(error.get("loc") or ()),
-                    "message": error["msg"],
-                }
-                for error in exc.errors(include_url=False, include_context=False)
-            ]
-        ) from exc
-    except DomainValidationError as exc:
-        raise StoryGraphContentBindingError(
-            [
-                {
-                    "code": f"semantic.{issue['code']}",
-                    "path": issue["path"],
-                    "message": issue["message"],
-                }
-                for issue in exc.issues
-            ]
-        ) from exc
+
     return graph
 
 
@@ -742,10 +700,7 @@ def story_graph_content_fill_join_diagnostic_issues(
         )
         # Keep native values (not ``mode='json'``) so NaN/Infinity remain
         # visible to finite_canonical_json instead of being silently coerced.
-        diagnostic_v2 = StoryGraphV2.model_validate(
-            diagnostic_graph.model_dump(by_alias=True)
-        )
-        compile_join_state_value_contract(diagnostic_v2)
+        compile_join_state_value_contract(diagnostic_graph)
     except JoinStateValueContractError as exc:
         diagnostic_issues = list(exc.issues)
     except ValidationError:
@@ -791,25 +746,26 @@ def _bound_story_graph_from_content_fill(
     fill: StoryGraphContentFill,
     *,
     include_allowed_in_required: bool = False,
-) -> StoryGraph:
+) -> StoryGraphV2:
     """Bind frozen topology to content, optionally normalizing join diagnostics."""
 
     node_fill = {item.id: item for item in fill.nodes}
     edge_fill = {item.id: item for item in fill.edges}
     join_fill = {item.id: item for item in fill.join_contracts}
-    return StoryGraph(
+    return StoryGraphV2(
         start_node_id=topology.start_node_id,
         nodes=[
-            StoryNode(
+            StoryNodeV2(
                 id=item.id,
                 kind=item.kind,
                 title=node_fill[item.id].title,
                 summary=node_fill[item.id].summary,
+                footage_mode=item.footage_mode,
             )
             for item in topology.nodes
         ],
         edges=[
-            StoryEdge(
+            StoryEdgeV2(
                 id=item.id,
                 source_node_id=item.source_node_id,
                 target_node_id=item.target_node_id,
@@ -821,7 +777,7 @@ def _bound_story_graph_from_content_fill(
             for item in topology.edges
         ],
         join_contracts=[
-            JoinContract(
+            JoinContractV2(
                 id=item.id,
                 join_node_id=item.join_node_id,
                 incoming_node_ids=list(item.incoming_node_ids),
@@ -852,9 +808,9 @@ def _validate_topology_semantics(topology: StoryGraphTopology) -> None:
     nodes_by_id = {node.id: node for node in topology.nodes}
     for node in topology.nodes:
         outgoing = [edge for edge in topology.edges if edge.source_node_id == node.id]
-        if node.kind != StoryNodeKind.DECISION and len(outgoing) > 1:
+        if node.kind != V2StoryNodeKind.DECISION and len(outgoing) > 1:
             raise ValueError("non-decision topology nodes cannot fork continuations")
-        expected_kind = StoryEdgeKind.CHOICE if node.kind == StoryNodeKind.DECISION else StoryEdgeKind.CONTINUATION
+        expected_kind = V2StoryEdgeKind.CHOICE if node.kind == V2StoryNodeKind.DECISION else V2StoryEdgeKind.CONTINUATION
         if any(edge.kind != expected_kind for edge in outgoing):
             raise ValueError("topology edge kind must match its explicit decision role")
     incoming: dict[str, set[str]] = {node.id: set() for node in topology.nodes}
@@ -864,9 +820,9 @@ def _validate_topology_semantics(topology: StoryGraphTopology) -> None:
     actual_join_node_ids = {node_id for node_id, sources in incoming.items() if len(sources) >= 2}
     declared_join_node_ids = {join.join_node_id for join in topology.joins}
     for node_id in actual_join_node_ids:
-        if nodes_by_id[node_id].kind != StoryNodeKind.JOIN:
+        if nodes_by_id[node_id].kind != V2StoryNodeKind.JOIN:
             raise ValueError("join node must have kind 'join'")
-    if {node.id for node in topology.nodes if node.kind == StoryNodeKind.JOIN} != actual_join_node_ids:
+    if {node.id for node in topology.nodes if node.kind == V2StoryNodeKind.JOIN} != actual_join_node_ids:
         raise ValueError("JOIN node kind must correspond exactly to a graph merge")
     if declared_join_node_ids != actual_join_node_ids:
         raise ValueError("joins must correspond exactly to graph merge nodes")
@@ -877,27 +833,29 @@ def _validate_topology_semantics(topology: StoryGraphTopology) -> None:
             by_alias=True,
         )
         validate_story_graph(
-            StoryGraph(
+            StoryGraphV2(
                 start_node_id=topology.start_node_id,
                 nodes=[
-                    StoryNode(id=node.id, kind=node.kind, title="Topology", summary="Structural node.")
+                    StoryNodeV2(id=node.id, kind=node.kind, title="Topology", summary="Structural node.", footage_mode=node.footage_mode)
                     for node in topology.nodes
                 ],
                 edges=[
-                    StoryEdge(
+                    StoryEdgeV2(
                         id=edge.id,
                         source_node_id=edge.source_node_id,
                         target_node_id=edge.target_node_id,
                         kind=edge.kind,
-                        choice_text="Continue" if edge.kind == StoryEdgeKind.CHOICE else None,
+                        choice_text="Continue" if edge.kind == V2StoryEdgeKind.CHOICE else None,
+                        state_effects={}, entity_state_effects=[],
                     )
                     for edge in topology.edges
                 ],
                 join_contracts=[
-                    JoinContract(
+                    JoinContractV2(
                         id=join.id,
                         join_node_id=join.join_node_id,
                         incoming_node_ids=list(join.incoming_node_ids),
+                        required_state_keys=[], allowed_differences=[], reconciliation="", notes="",
                     )
                     for join in topology.joins
                 ],
@@ -943,6 +901,14 @@ def story_graph_content_fill_schema(
             identifiers=[item.id for item in topology.joins],
         )
         _bind_edge_content_contract(schema, topology)
+        route_only_ids = {node.id for node in topology.nodes if node.footage_mode == "route_only"}
+        joins = schema["$defs"]["StoryGraphJoinContentFill"]
+        joins["allOf"] = [
+            {"if": {"properties": {"id": {"const": join.id}}, "required": ["id"]},
+             "then": {"properties": {key: {"type": "array", "maxItems": 0}
+                for key in ("requiredStateKeys", "allowedDifferences")}}}
+            for join in topology.joins if join.join_node_id in route_only_ids
+        ]
     return inline_local_json_references(schema)
 
 
@@ -959,7 +925,7 @@ def story_graph_content_fill_manifest(topology: StoryGraphTopology) -> dict[str,
         "topologyHash": topology.topology_hash,
         "startNodeId": topology.start_node_id,
         "nodes": [
-            {"id": item.id, "kind": item.kind.value} for item in topology.nodes
+            {"id": item.id, "kind": item.kind.value, "footageMode": item.footage_mode} for item in topology.nodes
         ],
         "edges": [
             {
@@ -1015,8 +981,9 @@ def _bind_edge_content_contract(
 
     edge_schema = schema["$defs"]["StoryGraphEdgeContentFill"]
     contracts: list[dict[str, Any]] = []
+    route_only_ids = {node.id for node in topology.nodes if node.footage_mode == "route_only"}
     for edge in topology.edges:
-        if edge.kind == StoryEdgeKind.CONTINUATION:
+        if edge.kind == V2StoryEdgeKind.CONTINUATION:
             choice_text_schema: dict[str, Any] = {"const": None}
         else:
             choice_text_schema = {"type": "string", "minLength": 1}
@@ -1027,7 +994,9 @@ def _bind_edge_content_contract(
                     "required": ["id"],
                 },
                 "then": {
-                    "properties": {"choiceText": choice_text_schema},
+                    "properties": {"choiceText": choice_text_schema,
+                        **({"entityStateEffects": {"type": "array", "maxItems": 0}}
+                           if edge.target_node_id in route_only_ids else {})},
                     "required": ["choiceText"],
                 },
             }
@@ -1040,10 +1009,8 @@ def _assert_v2_content_contract(
 ) -> None:
     """Reject all model-controlled values that V2 would reject after binding.
 
-    The original binder builds a V1 graph to preserve historical read types.
-    V1 permits several values that current V2 authoring forbids.  Classifying
-    those values here turns ordinary model mistakes into stable, repairable
-    validation issues instead of letting a later V2 projection crash a worker.
+    Classify invalid model values as stable, repairable validation issues
+    before constructing the current canonical model.
     """
 
     edge_by_id = {edge.id: edge for edge in topology.edges}
@@ -1051,7 +1018,7 @@ def _assert_v2_content_contract(
     for edge in fill.edges:
         topology_edge = edge_by_id[edge.id]
         path = f"edges.{edge.id}.choiceText"
-        if topology_edge.kind == StoryEdgeKind.CONTINUATION and edge.choice_text is not None:
+        if topology_edge.kind == V2StoryEdgeKind.CONTINUATION and edge.choice_text is not None:
             issues.append(
                 {
                     "code": "semantic.continuation_choice_text_must_be_null",
@@ -1059,7 +1026,7 @@ def _assert_v2_content_contract(
                     "message": "continuation edges must set choiceText to null",
                 }
             )
-        elif topology_edge.kind == StoryEdgeKind.CHOICE and (
+        elif topology_edge.kind == V2StoryEdgeKind.CHOICE and (
             edge.choice_text is None or not edge.choice_text.strip()
         ):
             issues.append(

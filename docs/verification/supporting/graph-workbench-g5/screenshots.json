@@ -1,0 +1,158 @@
+{
+  "delivery-1280x460-production-dark-preference-viewport.png": {
+    "sha256": "bb6414682e67b019306968e2f91666cb60c24922af08f62bda259d187343985c",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-delivery-b17bd-s-remain-reachable-1280x460/production-dark-preference-viewport.png"
+  },
+  "delivery-1280x460-production-light-preference-viewport.png": {
+    "sha256": "bb6414682e67b019306968e2f91666cb60c24922af08f62bda259d187343985c",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-delivery-b17bd-s-remain-reachable-1280x460/production-light-preference-viewport.png"
+  },
+  "delivery-1280x460-shot-owner-viewport.png": {
+    "sha256": "85cd0e5e8cbf704b512dd706b017ebdf9a9ea5579b74708dc6027ea97a79ec52",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-delivery-b17bd-s-remain-reachable-1280x460/shot-owner-viewport.png"
+  },
+  "delivery-1280x768-production-dark-preference-viewport.png": {
+    "sha256": "56b44c3988258dafaa93ce435514bca37b8d2eb56dbb48a316b51576995c890d",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-delivery-3b6c8-s-remain-reachable-1280x768/production-dark-preference-viewport.png"
+  },
+  "delivery-1280x768-production-light-preference-viewport.png": {
+    "sha256": "56b44c3988258dafaa93ce435514bca37b8d2eb56dbb48a316b51576995c890d",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-delivery-3b6c8-s-remain-reachable-1280x768/production-light-preference-viewport.png"
+  },
+  "delivery-1280x768-shot-owner-viewport.png": {
+    "sha256": "722d69fdc81070ee69f93c1d92356ecfc1e9e9ac93f80463a2ca8556a1e5f905",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-delivery-3b6c8-s-remain-reachable-1280x768/shot-owner-viewport.png"
+  },
+  "delivery-1700x900-production-dark-preference-viewport.png": {
+    "sha256": "9e5864f52637480dc7fc4654c4d8fb94ee45c04a16aa6a4924bd676a31ced9f3",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-delivery-14b95-s-remain-reachable-1700x900/production-dark-preference-viewport.png"
+  },
+  "delivery-1700x900-production-light-preference-viewport.png": {
+    "sha256": "9e5864f52637480dc7fc4654c4d8fb94ee45c04a16aa6a4924bd676a31ced9f3",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-delivery-14b95-s-remain-reachable-1700x900/production-light-preference-viewport.png"
+  },
+  "delivery-1700x900-shot-owner-viewport.png": {
+    "sha256": "b7ad64d2ae2058beee8b05f6d49c73b8bd269ff6e2f239ee9ad8cbdaf750ca89",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-delivery-14b95-s-remain-reachable-1700x900/shot-owner-viewport.png"
+  },
+  "delivery-clean-example-clean-example-1280-viewport.png": {
+    "sha256": "c69d02d78e508fd8741695574560cc42452c9b562405eb11c487fd4bcc786fd6",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-delivery-7ca5d-admitting-or-dispatching-it/clean-example-1280-viewport.png"
+  },
+  "layout-1280x460-bottom.png": {
+    "sha256": "4a46293c9ae1eaaab52e0dcd081acf25dfdb236df42994df4fadd828668a7321",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-1ffb0-and-tall-inspector-1280x460/bottom.png"
+  },
+  "layout-1280x460-middle.png": {
+    "sha256": "2b5c8ddf355ffdd38748a97a719811e0facaaa4123ce823a06ddb643a201c201",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-1ffb0-and-tall-inspector-1280x460/middle.png"
+  },
+  "layout-1280x460-parallel-1-viewport.png": {
+    "sha256": "9a263574ca00e4a1b39527603b1f79d30c1b65de840eadeb305fccf37e6be212",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-1ffb0-and-tall-inspector-1280x460/parallel-1-viewport.png"
+  },
+  "layout-1280x460-parallel-3-viewport.png": {
+    "sha256": "8e7148a5160a41e00fed6f1e92daa80666f16754167624e3d9eceea45bac8e2a",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-1ffb0-and-tall-inspector-1280x460/parallel-3-viewport.png"
+  },
+  "layout-1280x460-parallel-6-viewport.png": {
+    "sha256": "c1d31a0f25bc339ea360bfdc51a7db6add54c437d0279e6d8fc396ec941e4764",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-1ffb0-and-tall-inspector-1280x460/parallel-6-viewport.png"
+  },
+  "layout-1280x460-resized-reopened.png": {
+    "sha256": "8e772676c5914e1fe3ebbe77e9bfba5dc238ee3a221dffb1ca35e4d63b87cb2f",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-1ffb0-and-tall-inspector-1280x460/resized-reopened.png"
+  },
+  "layout-1280x460-top.png": {
+    "sha256": "c6c016713962527e8a7d0ca2765042ec031202e396adeb9202b85ef351eced14",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-1ffb0-and-tall-inspector-1280x460/top.png"
+  },
+  "layout-1280x768-bottom.png": {
+    "sha256": "631829b1917f213458461dbc8ef04b8c28cdea816befe9806c226f7bcc881417",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-afb16-and-tall-inspector-1280x768/bottom.png"
+  },
+  "layout-1280x768-middle.png": {
+    "sha256": "306126a2355a36fb016c75722f2c71c568482cd6e86e1ef3e7f8797bdbeb184c",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-afb16-and-tall-inspector-1280x768/middle.png"
+  },
+  "layout-1280x768-parallel-1-viewport.png": {
+    "sha256": "5a012f91c94689b2ec4fc6f3d07bf57971b09b486a554866c7f54416e333fa28",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-afb16-and-tall-inspector-1280x768/parallel-1-viewport.png"
+  },
+  "layout-1280x768-parallel-3-viewport.png": {
+    "sha256": "251d04cf07ea0bc0c42e26acc9219112e8157657b8ac74e542e1878cf1a65887",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-afb16-and-tall-inspector-1280x768/parallel-3-viewport.png"
+  },
+  "layout-1280x768-parallel-6-viewport.png": {
+    "sha256": "c787f9cad626806a5ae8b23cd1422f95a0793546ea1601190214da9344f3b858",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-afb16-and-tall-inspector-1280x768/parallel-6-viewport.png"
+  },
+  "layout-1280x768-resized-reopened.png": {
+    "sha256": "a80850fab4b95b102e858b03e394d595813b233b41839cb755f4db13d694e33e",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-afb16-and-tall-inspector-1280x768/resized-reopened.png"
+  },
+  "layout-1280x768-top.png": {
+    "sha256": "1a73b1d947d5c47d96fd2d1de48fba849c7f54dac74e6999dca57b5560212eb0",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-afb16-and-tall-inspector-1280x768/top.png"
+  },
+  "layout-1700x900-bottom.png": {
+    "sha256": "73f722b7f2c632cbca22013364bfcf5345f2b5ce4bb7c79ea565e2a6a47d0485",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-fcaf9-and-tall-inspector-1700x900/bottom.png"
+  },
+  "layout-1700x900-middle.png": {
+    "sha256": "23ffac2f5d75e5cd47f402acb0b73b773f66750ff13efd785377491e37415771",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-fcaf9-and-tall-inspector-1700x900/middle.png"
+  },
+  "layout-1700x900-parallel-1-viewport.png": {
+    "sha256": "7e53c61ff717aba6c3da529037e459fe7ab03716862a5e98cfa5f809a932f02a",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-fcaf9-and-tall-inspector-1700x900/parallel-1-viewport.png"
+  },
+  "layout-1700x900-parallel-3-viewport.png": {
+    "sha256": "2cbdbfa84d1899589d1b1f627343d8461ab643bde15125ec89714b8fa48efbcb",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-fcaf9-and-tall-inspector-1700x900/parallel-3-viewport.png"
+  },
+  "layout-1700x900-parallel-6-viewport.png": {
+    "sha256": "6cf41af1f56dc6438bf49bd36b8d8bdca3275ae11b8e874f2818e4a13c0cc544",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-fcaf9-and-tall-inspector-1700x900/parallel-6-viewport.png"
+  },
+  "layout-1700x900-resized-reopened.png": {
+    "sha256": "b913c05bb5b903359a1e229807a6be7c56c62d1abd8003d07fd34f06135d8425",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-fcaf9-and-tall-inspector-1700x900/resized-reopened.png"
+  },
+  "layout-1700x900-top.png": {
+    "sha256": "145dec2ff70ef3af053f1540a429223acc9b561801ba7a02630cfd574e426b7a",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-layout-c-fcaf9-and-tall-inspector-1700x900/top.png"
+  },
+  "operations-insert-preview.png": {
+    "sha256": "2790c4de8e517af3d7ddbbc6534975f3d7dbb025de330bdfa5d088d12dd612da",
+    "source": ".local/graph-workbench/g5-release-qualified-full-e2e/creator-workbench-operatio-d0ae8-ag-deletion-Undo-and-reload/insert-preview.png"
+  },
+  "operations-inserted.png": {
+    "sha256": "e43e1b6deab74fe629db515d3ddae38d810a332c718f017376c7bd9b5701814d",
+    "source": ".local/graph-workbench/g5-release-qualified-full-e2e/creator-workbench-operatio-d0ae8-ag-deletion-Undo-and-reload/inserted.png"
+  },
+  "operations-reopened.png": {
+    "sha256": "b8442d8f24ad2379253cf98faf0e1c90295ee6ddcbc146eba24631a08519b709",
+    "source": ".local/graph-workbench/g5-release-qualified-full-e2e/creator-workbench-operatio-d0ae8-ag-deletion-Undo-and-reload/reopened.png"
+  },
+  "operations-row-preview.png": {
+    "sha256": "8a9c69c858b32d7137ba5a662d1e7d73f512205eb6f4cd304409aa508daa701e",
+    "source": ".local/graph-workbench/g5-release-qualified-full-e2e/creator-workbench-operatio-d0ae8-ag-deletion-Undo-and-reload/row-preview.png"
+  },
+  "operations-undo.png": {
+    "sha256": "808f609e95c6d277036f3b54e9fcd8cc298b5afc6d78069548ec247542bd2e05",
+    "source": ".local/graph-workbench/g5-release-qualified-full-e2e/creator-workbench-operatio-d0ae8-ag-deletion-Undo-and-reload/undo.png"
+  },
+  "story-all-scene-occurrences.png": {
+    "sha256": "2503447ac5596bbf4cfa1f43012f1fab6cbd2e9a5fcd204db388217b7354764b",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-story-no-6f965--across-selection-and-modes/all-scene-occurrences.png"
+  },
+  "text-blank-viewport.png": {
+    "sha256": "edeb7544ab604a17e65234d3257387c5720a18e6407ca5736b8b6a60f627bd78",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-text-nat-0f8dd-eview-Escape-writes-nothing/blank-viewport.png"
+  },
+  "text-literal-viewport.png": {
+    "sha256": "cf72243e29ded879fe5f000e73b4bbd82109378bb878a72e480a9f4455afb8e2",
+    "source": ".local/graph-workbench/g5-read-stable-native/creator-workbench-text-nat-0f8dd-eview-Escape-writes-nothing/literal-viewport.png"
+  }
+}

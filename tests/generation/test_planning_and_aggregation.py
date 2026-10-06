@@ -3,23 +3,15 @@ from __future__ import annotations
 import pytest
 
 from plotloom.domain import (
-    Beat,
-    ContinuityState,
-    CoverageRole,
-    DramaticScene,
-    JoinContract,
-    SceneBeatPlan,
-    Shot,
-    ShotBeatLink,
-    ShotSize,
+    V2CoverageRole,
+    JoinContractV2,
+    V2ShotSize,
     StageName,
-    StoryBible,
-    StoryEdge,
-    StoryEdgeKind,
-    StoryGraph,
-    StoryNode,
-    StoryNodeKind,
-    Storyboard,
+    StoryEdgeV2,
+    V2StoryEdgeKind,
+    StoryGraphV2,
+    StoryNodeV2,
+    V2StoryNodeKind,
     AudioPlan,
     BeatV2,
     ContinuityStateV2,
@@ -78,94 +70,58 @@ def make_story_bible():
     return StoryBibleV2(logline="领航员在真相与生存之间选择。", premise="记忆可能是被设计的导航工具。", genre="", tone="", audience="", narrative_promise="", visual_language="", themes=[], world_rules=[], known_facts=[], open_questions=[], source_notes=[], characters=[], locations=[], props=[])
 
 
-def _legacy_story_graph() -> StoryGraph:
+def make_story_graph() -> StoryGraphV2:
     nodes = [
-        StoryNode(id="start", title="苏醒", summary="林默苏醒。", kind=StoryNodeKind.START),
-        StoryNode(id="decision-1", title="第一次选择", summary="选择调查路线。", kind=StoryNodeKind.DECISION),
-        StoryNode(id="route-a", title="控制室", summary="检查控制室。", kind=StoryNodeKind.SCENE),
-        StoryNode(id="route-b", title="记忆舱", summary="检查记忆舱。", kind=StoryNodeKind.SCENE),
-        StoryNode(id="join", title="汇合", summary="线索汇合。", kind=StoryNodeKind.JOIN),
-        StoryNode(id="decision-2", title="最终选择", summary="决定人工智能命运。", kind=StoryNodeKind.DECISION),
-        StoryNode(id="ending-1", title="唤醒", summary="人工智能苏醒。", kind=StoryNodeKind.ENDING),
-        StoryNode(id="ending-2", title="关闭", summary="人工智能关闭。", kind=StoryNodeKind.ENDING),
-        StoryNode(id="ending-3", title="融合", summary="人与人工智能融合。", kind=StoryNodeKind.ENDING),
+        StoryNodeV2(footage_mode="footage", id="start", title="苏醒", summary="林默苏醒。", kind=V2StoryNodeKind.START),
+        StoryNodeV2(footage_mode="footage", id="decision-1", title="第一次选择", summary="选择调查路线。", kind=V2StoryNodeKind.DECISION),
+        StoryNodeV2(footage_mode="footage", id="route-a", title="控制室", summary="检查控制室。", kind=V2StoryNodeKind.SCENE),
+        StoryNodeV2(footage_mode="footage", id="route-b", title="记忆舱", summary="检查记忆舱。", kind=V2StoryNodeKind.SCENE),
+        StoryNodeV2(footage_mode="footage", id="join", title="汇合", summary="线索汇合。", kind=V2StoryNodeKind.JOIN),
+        StoryNodeV2(footage_mode="footage", id="decision-2", title="最终选择", summary="决定人工智能命运。", kind=V2StoryNodeKind.DECISION),
+        StoryNodeV2(footage_mode="footage", id="ending-1", title="唤醒", summary="人工智能苏醒。", kind=V2StoryNodeKind.ENDING),
+        StoryNodeV2(footage_mode="footage", id="ending-2", title="关闭", summary="人工智能关闭。", kind=V2StoryNodeKind.ENDING),
+        StoryNodeV2(footage_mode="footage", id="ending-3", title="融合", summary="人与人工智能融合。", kind=V2StoryNodeKind.ENDING),
     ]
     edges = [
-        StoryEdge(id="e1", source_node_id="start", target_node_id="decision-1"),
-        StoryEdge(id="e2", source_node_id="decision-1", target_node_id="route-a", kind=StoryEdgeKind.CHOICE, choice_text="去控制室"),
-        StoryEdge(id="e3", source_node_id="decision-1", target_node_id="route-b", kind=StoryEdgeKind.CHOICE, choice_text="去记忆舱"),
+        StoryEdgeV2(kind="continuation", choice_text=None, state_effects={}, entity_state_effects=[], id="e1", source_node_id="start", target_node_id="decision-1"),
+        StoryEdgeV2(state_effects={}, entity_state_effects=[], id="e2", source_node_id="decision-1", target_node_id="route-a", kind=V2StoryEdgeKind.CHOICE, choice_text="去控制室"),
+        StoryEdgeV2(state_effects={}, entity_state_effects=[], id="e3", source_node_id="decision-1", target_node_id="route-b", kind=V2StoryEdgeKind.CHOICE, choice_text="去记忆舱"),
         # A required join fact is a post-edge assignment.  The two source
         # nodes may retain different exit facts; their direct join edges must
         # instead establish the same arrival state.
-        StoryEdge(
+        StoryEdgeV2(kind="continuation", choice_text=None, entity_state_effects=[],
             id="e4",
             source_node_id="route-a",
             target_node_id="join",
             state_effects={"identity": "confirmed"},
         ),
-        StoryEdge(
+        StoryEdgeV2(kind="continuation", choice_text=None, entity_state_effects=[],
             id="e5",
             source_node_id="route-b",
             target_node_id="join",
             state_effects={"identity": "confirmed"},
         ),
-        StoryEdge(id="e6", source_node_id="join", target_node_id="decision-2"),
-        StoryEdge(id="e7", source_node_id="decision-2", target_node_id="ending-1", kind=StoryEdgeKind.CHOICE, choice_text="唤醒"),
-        StoryEdge(id="e8", source_node_id="decision-2", target_node_id="ending-2", kind=StoryEdgeKind.CHOICE, choice_text="关闭"),
-        StoryEdge(id="e9", source_node_id="decision-2", target_node_id="ending-3", kind=StoryEdgeKind.CHOICE, choice_text="融合"),
+        StoryEdgeV2(kind="continuation", choice_text=None, state_effects={}, entity_state_effects=[], id="e6", source_node_id="join", target_node_id="decision-2"),
+        StoryEdgeV2(state_effects={}, entity_state_effects=[], id="e7", source_node_id="decision-2", target_node_id="ending-1", kind=V2StoryEdgeKind.CHOICE, choice_text="唤醒"),
+        StoryEdgeV2(state_effects={}, entity_state_effects=[], id="e8", source_node_id="decision-2", target_node_id="ending-2", kind=V2StoryEdgeKind.CHOICE, choice_text="关闭"),
+        StoryEdgeV2(state_effects={}, entity_state_effects=[], id="e9", source_node_id="decision-2", target_node_id="ending-3", kind=V2StoryEdgeKind.CHOICE, choice_text="融合"),
     ]
-    return StoryGraph(
+    return StoryGraphV2(
         start_node_id="start",
         nodes=nodes,
         edges=edges,
         join_contracts=[
-            JoinContract(
+            JoinContractV2(
                 id="join-contract",
                 join_node_id="join",
                 incoming_node_ids=["route-a", "route-b"],
                 required_state_keys=["identity"],
                 allowed_differences=[],
                 reconciliation="两条路线都确认主角身份。",
+                notes="",
             )
         ],
     )
-
-
-def make_story_graph():
-    return StoryGraphV2.model_validate(_legacy_story_graph().model_dump(mode="json", by_alias=True))
-
-
-def _legacy_scene_beats(graph: StoryGraph) -> "SceneBeatPlan":
-    from plotloom.domain import SceneBeatPlan
-
-    scenes = []
-    beats = []
-    for node in graph.nodes:
-        scene_id = f"scene-{node.id}"
-        beat_id = f"beat-{node.id}"
-        scenes.append(
-            DramaticScene(
-                id=scene_id,
-                story_node_id=node.id,
-                title=node.title,
-                objective=node.summary,
-                beat_ids=[beat_id],
-                entry_state=ContinuityState(facts={"identity": "confirmed"} if node.id == "join" else {}),
-                exit_state=ContinuityState(facts={"identity": "confirmed"} if node.id in {"route-a", "route-b"} else {}),
-            )
-        )
-        beats.append(
-            Beat(
-                id=beat_id,
-                scene_id=scene_id,
-                order=1,
-                description=node.summary,
-                purpose="推进叙事",
-                visible_event=node.summary,
-                immediate_result="状态发生改变",
-            )
-        )
-    return SceneBeatPlan(scenes=scenes, beats=beats)
 
 
 def make_scene_beats(graph):
@@ -175,38 +131,6 @@ def make_scene_beats(graph):
     scenes = [DramaticSceneV2(id=f"scene-{node.id}", story_node_id=node.id, order=1, title=node.title, objective=node.summary, location_id=None, character_ids=[], beat_ids=[f"beat-{node.id}"], duration_budget_units=3, entry_state=state_for_node(node), exit_state=state_for_node(node)) for node in graph.nodes]
     beats = [BeatV2(id=f"beat-{node.id}", scene_id=f"scene-{node.id}", order=1, description=node.summary, purpose="推进叙事", visible_event=node.summary, immediate_result="状态发生改变", dramatic_change="推进", entry_state=state_for_node(node), exit_state=state_for_node(node), continuity_anchors=[], continuity_delta={}) for node in graph.nodes]
     return SceneBeatPlanV2(scenes=scenes, beats=beats, dialogue_cues=[])
-
-
-def _legacy_storyboard(plan) -> Storyboard:
-    shots = []
-    links = []
-    for scene in plan.scenes:
-        beat_id = scene.beat_ids[0]
-        for order in (1, 2):
-            shot_id = f"shot-{scene.id}-{order}"
-            shots.append(
-                Shot(
-                    id=shot_id,
-                    scene_id=scene.id,
-                    order=order,
-                    title=f"{scene.title}-{order}",
-                    shot_size=ShotSize.MEDIUM,
-                    duration_seconds=4,
-                    visual_intent="清楚呈现人物与空间关系",
-                    motion_intent="稳定推进",
-                    action=scene.objective,
-                    audio="环境底噪",
-                    transition="硬切",
-                )
-            )
-            links.append(
-                ShotBeatLink(
-                    shot_id=shot_id,
-                    beat_id=beat_id,
-                    role=CoverageRole.PRIMARY if order == 1 else CoverageRole.SUPPORTING,
-                )
-            )
-    return Storyboard(shots=shots, shot_beat_links=links)
 
 
 def make_storyboard(plan):
@@ -319,7 +243,7 @@ def test_run_plan_does_not_invent_future_selectors_and_stage_plans_are_determini
     ]
     assert all(unit.selector.kind == WorkUnitSelectorKind.STORY_NODE for unit in first.work_units)
     assert first.scene_timing_allocation is not None
-    assert first.scene_timing_allocation.allocation_version == "scene_timing_allocation.v1"
+    assert first.scene_timing_allocation.allocation_version == "scene_timing_allocation.v2"
     assert first.dialogue_timing_profile is not None
     assert first.dialogue_capacity_plan is not None
     assert first.dialogue_capacity_plan.policy_version == "dialogue_capacity.v2"
@@ -333,7 +257,7 @@ def test_run_plan_does_not_invent_future_selectors_and_stage_plans_are_determini
         dialogue_capacity_plan=first.dialogue_capacity_plan,
     )
     assert selected_context["scene_timing_allocation"] == {
-        "allocationVersion": "scene_timing_allocation.v1",
+        "allocationVersion": "scene_timing_allocation.v2",
         "allocationHash": first.scene_timing_allocation.allocation_hash,
         "nodeId": first.work_units[0].selector.stable_id,
         "durationBudgetUnits": first.scene_timing_allocation.node_duration_budget(

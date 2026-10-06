@@ -1,6 +1,9 @@
 """F1A regression coverage for source ownership and outline candidate admission."""
 
+
 from __future__ import annotations
+
+from tests.graph_draft_fixtures import graph_map_save_request, graph_draft_revision
 
 import json
 from hashlib import sha256
@@ -32,6 +35,7 @@ from plotloom.exceptions import (
 from plotloom.persistence.schema import CreativeHandoffExecutionPinRow, ProjectRow
 from plotloom.project_storage import ProjectBusyError
 from tests.backend_core.conftest import make_story_bible, make_story_graph
+from tests.source_graph_fixtures import letter_section_map
 
 
 def _material(kind: str = "synopsis") -> SourceMaterial:
@@ -210,7 +214,7 @@ def test_explicit_recovery_restores_only_a_git_verified_missing_execution_pin(
         store.close()
 
 
-def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_change(tmp_path: Path) -> None:
+def test_explicit_current_section_map_is_bound_to_outline_and_stales_on_source_change(tmp_path: Path) -> None:
     storage = _storage(tmp_path)
     store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"decision_points_per_path": 1, "ending_count": 2, "desired_join_count": 0}))
     try:
@@ -224,21 +228,8 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
         ))
         outline = accepted.accepted_outline
         assert outline is not None
-        mapping = SectionMap(
-            sections=[
-                StorySection(section_id="opening", title="渡口", summary="船夫收到最后一封信。"),
-                StorySection(section_id="ending-a", title="交给妹妹", summary="妹妹在风暴前读到信。", ending=True),
-                StorySection(section_id="ending-b", title="交给船长", summary="船长带信离岸。", ending=True),
-            ],
-            choice=SectionChoice(
-                choice_id="deliver", section_id="opening", prompt="把信交给谁？",
-                outcomes=[
-                    BranchOutcome(outcome_id="sister", label="交给妹妹", consequence="妹妹留下。", ending_section_id="ending-a"),
-                    BranchOutcome(outcome_id="captain", label="交给船长", consequence="船长启航。", ending_section_id="ending-b"),
-                ],
-            ),
-        )
-        saved = store.save_section_map(SectionMapSaveRequest(
+        mapping = letter_section_map(store.manifest.project_id, store.project().brief)
+        saved = store.save_section_map(graph_map_save_request(store,
             expected_section_map_revision=0, expected_source_revision=1,
             expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
             mapping=mapping,
@@ -246,18 +237,19 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
         assert saved.section_map_status == "current"
         assert saved.accepted_section_map is not None
         assert saved.accepted_section_map.mapping == mapping
+        accepted_draft_revision = graph_draft_revision(store)
         installed = store.install_section_map_graph(SectionMapGraphInstallRequest(
             expected_source_revision=1, expected_source_content_hash=saved.source.content_hash,  # type: ignore[union-attr]
             expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
             expected_section_map_revision=1, expected_section_map_content_hash=saved.accepted_section_map.content_hash,
-            expected_graph_revision=0,
+            expected_graph_revision=0, expected_graph_draft_revision=graph_draft_revision(store),
         ))
         assert installed.graph_admission is not None
         assert installed.graph_admission.status == "current"
         graph = store.authoring.get_stage_payload(store.manifest.project_id, StageName.STORY_GRAPH)
         assert graph.start_node_id == "opening"
-        assert {node.id for node in graph.nodes} == {"opening", "ending-a", "ending-b"}
-        assert [(edge.id, edge.choice_text, edge.state_effects["sourceMapConsequence"]) for edge in graph.edges] == [
+        assert {node.id for node in graph.nodes} == {"opening", "choose", "ending-a", "ending-b"}
+        assert [(edge.id, edge.choice_text, edge.state_effects["sourceMapConsequence"]) for edge in graph.edges if edge.kind.value == "choice"] == [
             ("sister", "交给妹妹", "妹妹留下。"), ("captain", "交给船长", "船长启航。"),
         ]
         with pytest.raises(RevisionConflictError):
@@ -265,7 +257,7 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
                 expected_source_revision=1, expected_source_content_hash=saved.source.content_hash,  # type: ignore[union-attr]
                 expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
                 expected_section_map_revision=1, expected_section_map_content_hash=saved.accepted_section_map.content_hash,
-                expected_graph_revision=0,
+                expected_graph_revision=0, expected_graph_draft_revision=accepted_draft_revision,
             ))
         project_id = store.manifest.project_id
         store.close()
@@ -287,22 +279,21 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
 
         edited_mapping = mapping.model_copy(deep=True)
         edited_mapping.sections[0].summary = "船夫收到最后一封信，并看见风暴逼近。"
-        edited_mapping.choice.prompt = "在风暴前把信交给谁？"
-        edited_mapping.choice.outcomes[0].label = "把信亲手交给妹妹"
-        edited = store.save_section_map(SectionMapSaveRequest(
+        edited_mapping.choices[0].prompt = "在风暴前把信交给谁？"
+        edited_mapping.choices[0].outcomes[0].label = "把信亲手交给妹妹"
+        edited = store.save_section_map(graph_map_save_request(store,
             expected_section_map_revision=1, expected_source_revision=1,
             expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
             mapping=edited_mapping,
         ))
         assert edited.accepted_section_map is not None
         assert edited.accepted_section_map.mapping.sections[0].section_id == "opening"
-        assert edited.accepted_section_map.mapping.choice.outcomes[0].outcome_id == "sister"
+        assert edited.accepted_section_map.mapping.choices[0].outcomes[0].outcome_id == "sister"
         assert edited.graph_admission is not None and edited.graph_admission.status == "stale"
         changed_id = edited_mapping.model_copy(deep=True)
         changed_id.sections[0].section_id = "other-opening"
-        changed_id.choice.section_id = "other-opening"
-        with pytest.raises(InvalidTransitionError, match="immutable"):
-            store.save_section_map(SectionMapSaveRequest(
+        with pytest.raises(ValueError, match="sections must exactly match"):
+            store.save_section_map(graph_map_save_request(store,
                 expected_section_map_revision=2, expected_source_revision=1,
                 expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
                 mapping=changed_id,
@@ -326,7 +317,7 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
         assert stale.section_map_status == "stale"
         assert stale.section_map_stale_reasons == ["accepted source revision changed to r2"]
         with pytest.raises(RevisionConflictError):
-            store.save_section_map(SectionMapSaveRequest(
+            store.save_section_map(graph_map_save_request(store,
                 expected_section_map_revision=2, expected_source_revision=1,
                 expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
                 mapping=mapping,
@@ -335,23 +326,11 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
         store.close()
 
 
-def test_section_map_rejects_extra_or_unreachable_sections() -> None:
-    with pytest.raises(ValueError, match="exactly one entry section"):
-        SectionMap(
-            sections=[
-                StorySection(section_id="opening", title="开场", summary="选择开始。"),
-                StorySection(section_id="ending-a", title="A", summary="结束 A。", ending=True),
-                StorySection(section_id="ending-b", title="B", summary="结束 B。", ending=True),
-                StorySection(section_id="unused", title="多余", summary="不可达。", ending=True),
-            ],
-            choice=SectionChoice(
-                choice_id="choice-route", section_id="opening", prompt="选择？",
-                outcomes=[
-                    BranchOutcome(outcome_id="route-a", label="A", consequence="A。", ending_section_id="ending-a"),
-                    BranchOutcome(outcome_id="route-b", label="B", consequence="B。", ending_section_id="ending-b"),
-                ],
-            ),
-        )
+def test_section_map_rejects_extra_sections() -> None:
+    data = letter_section_map("source-fixture", FIXED_CHINESE_BRIEF).model_dump(mode="json", by_alias=True)
+    data["sections"].append({"sectionId": "unused", "title": "多余", "summary": "不可达。", "ending": True, "footageMode": "footage"})
+    with pytest.raises(ValueError, match="sections must exactly match"):
+        SectionMap.model_validate(data)
 
 
 def test_section_map_install_rejects_stale_inputs_and_never_overwrites_an_unrelated_graph(tmp_path: Path) -> None:
@@ -374,27 +353,17 @@ def test_section_map_install_rejects_stale_inputs_and_never_overwrites_an_unrela
         ))
         outline = accepted.accepted_outline
         assert outline is not None
-        mapped = store.save_section_map(SectionMapSaveRequest(
+        mapped = store.save_section_map(graph_map_save_request(store,
             expected_section_map_revision=0, expected_source_revision=1,
             expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
-            mapping=SectionMap(
-                sections=[
-                    StorySection(section_id="entry", title="渡口", summary="船夫握着信。"),
-                    StorySection(section_id="ending-a", title="妹妹", summary="妹妹收到信。", ending=True),
-                    StorySection(section_id="ending-b", title="船长", summary="船长带走信。", ending=True),
-                ],
-                choice=SectionChoice(choice_id="delivery", section_id="entry", prompt="交给谁？", outcomes=[
-                    BranchOutcome(outcome_id="sister", label="妹妹", consequence="她留下。", ending_section_id="ending-a"),
-                    BranchOutcome(outcome_id="captain", label="船长", consequence="他启航。", ending_section_id="ending-b"),
-                ]),
-            ),
+            mapping=letter_section_map(store.manifest.project_id, store.project().brief),
         ))
         assert mapped.accepted_section_map is not None and mapped.source is not None
         install = dict(
             expected_source_revision=1, expected_source_content_hash=mapped.source.content_hash,
             expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
             expected_section_map_revision=1, expected_section_map_content_hash=mapped.accepted_section_map.content_hash,
-            expected_graph_revision=1,
+            expected_graph_revision=1, expected_graph_draft_revision=graph_draft_revision(store),
         )
         with pytest.raises(RevisionConflictError):
             store.install_section_map_graph(SectionMapGraphInstallRequest(**(install | {"expected_source_content_hash": "0" * 64})))

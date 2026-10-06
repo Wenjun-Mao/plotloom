@@ -14,7 +14,7 @@ from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
 from tests.test_project_storage_art import _accepted_f4_script, _deliver_stage
 
 
-def _source_shaped_review_board(seconds: int | float = 3) -> dict[str, object]:
+def _source_shaped_review_board(seconds: int | float = 3, episodes=(1, 2, 3)) -> dict[str, object]:
     """Pass the pinned upstream validator; no review-validation bypass is used."""
 
     def segment(ep: int, segment_index: int, beat_ranges: list[list[int]]) -> dict[str, object]:
@@ -24,7 +24,7 @@ def _source_shaped_review_board(seconds: int | float = 3) -> dict[str, object]:
         shots = "\n".join(f"[Shot {index}] Cinematic, live-action, cool gray palette. The empty beacon room of <Picture {index}> holds while the camera uses a static shot." if index == 1 else f"[Shot {index}] At 00:{starts[index - 1]:06.3f}, the camera cuts to <Picture {index}> and holds a static shot in the empty beacon room." for index in range(1, len(cuts) + 1))
         return {"id": f"E{ep:02}-{segment_index:02}", "sceneIndex": 1, "cuts": cuts, "h3Prompt": f"How the reference pictures align with the target video — {align}\n\nintegrated_multimodal_description:\n{shots}\n\noverall_soundscape: Quiet wind around an empty beacon room.\n\nnon_diegetic_music: N/A"}
 
-    return {"source": "Tide Light", "params": {"minCutSeconds": 2, "maxCutSeconds": 8, "maxSegmentSeconds": 15}, "episodes": [{"ep": ep, "segments": [segment(ep, 1, [[1, 1], [2, 2], [3, 3], [4, 4]]), segment(ep, 2, [[5, 5], [6, 6], [7, 7], [8, 8], [9, 10]])]} for ep in (1, 2, 3)]}
+    return {"source": "Tide Light", "params": {"minCutSeconds": 2, "maxCutSeconds": 8, "maxSegmentSeconds": 15}, "episodes": [{"ep": ep, "segments": [segment(ep, 1, [[1, 1], [2, 2], [3, 3], [4, 4]]), segment(ep, 2, [[5, 5], [6, 6], [7, 7], [8, 8], [9, 10]])]} for ep in episodes]}
 
 
 def _review_fixture_presentation(store, proposal):
@@ -40,10 +40,10 @@ def _review_fixture_presentation(store, proposal):
     )).proposal
 
 
-def _prepare_installable_bridge(store: ProjectStore, seconds: int | float = 3) -> ProductionBridgeProposal:
-    _accepted_f4_script(store)
+def _prepare_installable_bridge(store: ProjectStore, seconds: int | float = 3, structure_factory=None) -> ProductionBridgeProposal:
+    _accepted_f4_script(store, structure_factory)
     candidate, request = store.prepare_storyboard_review_candidate("ch_" + "b" * 32)
-    ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", _source_shaped_review_board(seconds), "bridge-fixture"))
+    ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", _source_shaped_review_board(seconds, [item.episode for item in candidate.binding.section_bindings]), "bridge-fixture"))
     store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
     proposal = store.prepare_production_bridge().proposal
     assert proposal and not proposal.installable

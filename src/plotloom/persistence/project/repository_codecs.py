@@ -1,8 +1,7 @@
 """Shared row projections and guards for project-owned persistence.
 
 These functions deliberately contain no repository composition or application
-control imports.  Both the retained compatibility facade and the bound project
-repository use the same durable row interpretation.
+control imports. Bound project repositories use one current row interpretation.
 """
 
 from __future__ import annotations
@@ -70,7 +69,7 @@ from ..schema import (
     WorkUnitRepairScopeRow,
 )
 from .approvals import ApprovalDecision
-from .constants import CURRENT_STAGE_SCHEMA_VERSION, LEGACY_STAGE_SCHEMA_VERSION
+from .constants import CURRENT_STAGE_SCHEMA_VERSION
 from .media_tasks import GenericMediaTaskPersistence
 
 
@@ -94,6 +93,8 @@ def latest_run_summary_from_row(row: GenerationRunRow) -> LatestRunSummary:
 
 
 def stage_head_from_row(row: StageHeadRow) -> StageHead:
+    if row.schema_version != CURRENT_STAGE_SCHEMA_VERSION:
+        raise SchemaResetRequiredError(stage=StageName(row.stage), schema_version=row.schema_version)
     return StageHead(
         stage=StageName(row.stage), status=StageStatus(row.status), revision=row.revision,
         entity_revision_id=row.entity_revision_id, content_hash=row.content_hash,
@@ -104,6 +105,8 @@ def stage_head_from_row(row: StageHeadRow) -> StageHead:
 
 
 def entity_revision_from_row(row: EntityRevisionRow) -> EntityRevision:
+    if row.schema_version != CURRENT_STAGE_SCHEMA_VERSION:
+        raise SchemaResetRequiredError(stage=StageName(row.stage), schema_version=row.schema_version)
     return EntityRevision(
         id=row.id, project_id=row.project_id, stage=StageName(row.stage), revision=row.revision,
         parent_revision_id=row.parent_revision_id, content_hash=row.content_hash,
@@ -118,7 +121,7 @@ def decode_stage_payload(
 ) -> StagePayload:
     """Decode according to stored evidence, never a live default."""
 
-    if schema_version not in {LEGACY_STAGE_SCHEMA_VERSION, CURRENT_STAGE_SCHEMA_VERSION}:
+    if schema_version != CURRENT_STAGE_SCHEMA_VERSION:
         raise SchemaResetRequiredError(stage=stage, schema_version=schema_version)
     return stage_payload_model(stage, schema_version=schema_version).model_validate(payload)
 

@@ -79,25 +79,20 @@ def compile_correction_response_schema(
         if isinstance(fact, JoinAllowedDifferencesRepairFact):
             required = fact.expected_required_state_keys
             allowed = fact.expected_allowed_differences
-            if required is None or allowed is None:
-                raise CorrectionResponseSchemaError(
-                    "current join-array repair fact has no complete replacement arrays"
-                )
             replacement = (tuple(required), tuple(allowed))
             previous = join_arrays.setdefault(fact.join_contract_id, replacement)
             if previous != replacement:
                 raise CorrectionResponseSchemaError(
                     "conflicting join-array repair facts target the same join contract"
                 )
-            if fact.new_required_key_incoming_edges is not None:
-                for key_scope in fact.new_required_key_incoming_edges:
-                    for edge in key_scope.incoming_edges:
-                        _merge_edge_state_constraint(
-                            edge_state_requirements,
-                            edge_id=edge.edge_id,
-                            state_key=key_scope.state_key,
-                            expected_value=_NO_EXPECTED_VALUE,
-                        )
+            for key_scope in fact.new_required_key_incoming_edges:
+                for edge in key_scope.incoming_edges:
+                    _merge_edge_state_constraint(
+                        edge_state_requirements,
+                        edge_id=edge.edge_id,
+                        state_key=key_scope.state_key,
+                        expected_value=_NO_EXPECTED_VALUE,
+                    )
             applied_codes.add(fact.code)
             continue
 
@@ -108,8 +103,8 @@ def compile_correction_response_schema(
                 else _NO_EXPECTED_VALUE
             )
             if fact.has_expected_value:
-                # Re-run the finite JSON boundary here so a future legacy
-                # parser cannot smuggle a non-portable const into a provider
+                # Keep response-schema constants within the finite JSON boundary
+                # before sending them to a provider
                 # schema even if its Pydantic shape remains readable.
                 finite_canonical_json(expected_value)
             for edge in fact.incoming_edges:

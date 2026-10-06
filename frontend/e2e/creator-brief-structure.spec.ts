@@ -26,8 +26,12 @@ test("returns to the current Brief and rejects a branch proposal frozen before s
   await page.reload();
   const map = page.getByTestId("section-map");
   const suggestion = page.getByRole("region", { name: "助手剧情分支建议" });
-  await suggestion.getByRole("button", { name: "准备剧情分支建议" }).click();
-  const state = await json(request.get(`${base}/branch-suggestions`));
+  const prepareSuggestion = async () => {
+    const response = page.waitForResponse(response => new URL(response.url()).pathname === `/api/v2/projects/${id}/branch-suggestions` && response.request().method() === "POST");
+    await suggestion.getByRole("button", { name: "准备剧情分支建议" }).click();
+    return json(await response);
+  };
+  const state = await prepareSuggestion();
   const topology = state.plannedTopology as SourceTopology;
   const packagePath = path.resolve(prepared.packagePath, "../..", state.candidate.jobId, "package");
   await writeDelivery({ ...prepared, jobId: state.candidate.jobId, packagePath, deliveryPath: path.resolve(packagePath, "../delivery") }, "branches", prose(topology));
@@ -42,13 +46,12 @@ test("returns to the current Brief and rejects a branch proposal frozen before s
   await expect(map.getByTestId("section-map-route-cards").locator("article")).toHaveCount(6);
   const retained = await json(request.get(`${base}/source-outline`));
   await suggestion.getByRole("button", { name: "放弃此建议任务" }).click();
-  await suggestion.getByRole("button", { name: "准备剧情分支建议" }).click();
-  const old = await json(request.get(`${base}/branch-suggestions`));
+  const old = await prepareSuggestion();
   await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
   await expect(page).toHaveURL(new RegExp(`project=${id}&stage=brief`));
   await page.getByLabel("不同结局的数量", { exact: true }).fill("2");
   await page.getByLabel("故事梗概").fill("只调整简报，保留来源正文。");
-  for (const width of [1920, 1440, 1280, 390]) {
+  for (const width of [1920, 1440, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     const help = page.getByLabel("说明：每次完整播放的选择次数", { exact: true });
     await help.focus();
@@ -77,14 +80,14 @@ test("returns to the current Brief and rejects a branch proposal frozen before s
   }
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.getByRole("button", { name: "保存修改", exact: true }).click();
+  await page.getByRole("button", { name: "确认并保存目标", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`project=${id}&stage=brief`));
   await page.getByRole("button", { name: "返回来源与大纲" }).click();
   await expect(page.getByLabel("故事内容")).toHaveValue(retained.source.material.text);
   await expect(map).toContainText("需要重新检查");
   expect((await request.get(`${base}/branch-suggestions/${old.candidate.jobId}/draft`)).ok()).toBe(false);
   await suggestion.getByRole("button", { name: "放弃此建议任务" }).click();
-  await suggestion.getByRole("button", { name: "准备剧情分支建议" }).click();
-  const fresh = await json(request.get(`${base}/branch-suggestions`));
+  const fresh = await prepareSuggestion();
   expect(fresh.plannedTopology.structuralParameters.endingCount).toBe(2);
   expect(fresh.plannedTopology.topologyHash).not.toBe(topology.topologyHash);
   expect((await json(request.get(`${base}/source-outline`))).acceptedOutline).toEqual(retained.acceptedOutline);

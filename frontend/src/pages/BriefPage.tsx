@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import type { ProjectBrief, StoryBible, StoryGraph } from "../types";
 import { Button, Field, PageHeader, Panel } from "../components";
 import { DirectionPresets, genreGroups, visualGroups } from "./DirectionPresets";
 import { ContextHelp, ContextHelpGroup } from "../components/ContextHelp";
 import { StageGuide } from "../components/StageGuide";
+import { GraphWorkbenchContext } from "../features/graph/GraphWorkbenchContext";
+import { BriefTargetPreview, structureTargets } from "../features/graph/BriefTargetPreview";
 
 type BriefPageProps = {
   value: ProjectBrief;
@@ -33,6 +35,13 @@ const defaultWorkingTitle = "未命名故事";
  */
 export function BriefPage({ value, hasSavedProject, saving, readOnly = false, onSave, onSaveAndContinue, onContinueToSource, onDraftChange, bible, graph, proposalRunning = false, proposalReady = true, storyboardRunning = false, onGenerateProposal, onGenerateStoryboard, onReviewStage, onContinueToPlanning }: BriefPageProps) {
   const [draft, setDraft] = useState(value);
+  const graphOwner = useContext(GraphWorkbenchContext);
+  const [targetPreview, setTargetPreview] = useState<ProjectBrief | null>(null);
+  const requestSave = () => {
+    const next = canonicalDraft();
+    if (structureTargets.some(key => next[key] !== value[key])) setTargetPreview(next);
+    else void onSave(next);
+  };
   const set = <K extends keyof ProjectBrief>(key: K, next: ProjectBrief[K]) => setDraft((current) => {
     const updated = { ...current, [key]: next };
     onDraftChange?.(updated); return updated;
@@ -52,7 +61,7 @@ export function BriefPage({ value, hasSavedProject, saving, readOnly = false, on
   return <div className="page">
     <PageHeader title="项目简报" description={hasSavedProject ? "修改项目的创作目标；保存后留在本页，已有来源不会被覆盖。" : "先写一个梗概，再进入来源与大纲。保存不会自动生成或确认故事内容。"} actions={<div className="page-action-group">
       {hasSavedProject
-        ? <Button variant="primary" busy={saving} disabled={!canSave} aria-describedby="brief-save-hint" onClick={() => void onSave(canonicalDraft())}>{saving ? "保存中…" : "保存修改"}</Button>
+        ? <Button variant="primary" busy={saving} disabled={!canSave} aria-describedby="brief-save-hint" onClick={requestSave}>{saving ? "保存中…" : "保存修改"}</Button>
         : <Button variant="primary" busy={saving} disabled={!canSave} aria-describedby="brief-save-hint" onClick={() => void onSaveAndContinue(canonicalDraft())}>{saving ? "保存中…" : "保存并继续到来源"}</Button>}
       <p id="brief-save-hint" className="action-prerequisite">{saveHint}</p>
       {hasSavedProject && onContinueToSource && <Button variant="quiet" disabled={saving} onClick={onContinueToSource}>返回来源与大纲</Button>}
@@ -116,5 +125,6 @@ export function BriefPage({ value, hasSavedProject, saving, readOnly = false, on
         <div className="button-row"><Button variant="quiet" onClick={() => onReviewStage?.("bible")}>细化人物与设定</Button><Button variant="quiet" onClick={() => onReviewStage?.("graph")}>细化分支与结局</Button>{onContinueToPlanning && <Button variant="quiet" disabled={!proposalReady} onClick={onContinueToPlanning}>进入场景编辑</Button>}{onGenerateStoryboard && <Button variant="primary" busy={storyboardRunning} disabled={readOnly || !proposalReady || saving || storyboardRunning} onClick={() => void onGenerateStoryboard()}>{storyboardRunning ? "正在生成场景与分镜…" : "生成可编辑场景与分镜"}</Button>}</div>
       </Panel>
     </div>}
+    {targetPreview && <BriefTargetPreview before={value} after={targetPreview} draft={graphOwner?.draft ?? null} busy={saving} onCancel={() => setTargetPreview(null)} onConfirm={() => { const next = targetPreview; setTargetPreview(null); void onSave(next); }} />}
   </div>;
 }

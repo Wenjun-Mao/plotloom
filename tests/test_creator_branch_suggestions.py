@@ -1,5 +1,7 @@
 """Brief-owned Source structures and explicit retained-outline recovery."""
 import json
+from tests.graph_draft_fixtures import graph_map_save_request, graph_draft_revision
+
 from pathlib import Path
 import subprocess
 import sys
@@ -45,7 +47,7 @@ def prepare(store):
 
 def save_map(store, mapping):
     state = store.source_outline_state()
-    return store.save_section_map(SectionMapSaveRequest(expected_section_map_revision=state.accepted_section_map.revision if state.accepted_section_map else 0,
+    return store.save_section_map(graph_map_save_request(store, expected_section_map_revision=state.accepted_section_map.revision if state.accepted_section_map else 0,
         expected_source_revision=state.source.revision, expected_outline_revision=state.accepted_outline.revision,
         expected_outline_content_hash=state.accepted_outline.content_hash, mapping=mapping))
 
@@ -56,7 +58,7 @@ def test_existing_outline_gets_complete_general_draft_without_mutating_canon(sto
     topology = request.source["topology"]
     store.admit_branch_delivery(_deliver_stage(store, request, "branches.json", proposal(topology), "branches-ready"))
     draft = store.branch_draft(request.job_id)
-    assert draft.choice is None
+    assert draft.topology_origin == "planner"
     assert len(draft.sections) == 9
     assert sorted(len(choice.outcomes) for choice in draft.choices) == [2, 3]
     assert store.source_outline_state() == before
@@ -75,11 +77,11 @@ def test_existing_outline_gets_complete_general_draft_without_mutating_canon(sto
     source, outline, mapping = saved.source, saved.accepted_outline, saved.accepted_section_map
     installed = store.install_section_map_graph(SectionMapGraphInstallRequest(expected_source_revision=source.revision, expected_source_content_hash=source.content_hash,
         expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
-        expected_section_map_revision=mapping.revision, expected_section_map_content_hash=mapping.content_hash, expected_graph_revision=0))
+        expected_section_map_revision=mapping.revision, expected_section_map_content_hash=mapping.content_hash, expected_graph_revision=0, expected_graph_draft_revision=graph_draft_revision(store)))
     assert installed.graph_admission.status == "current"
     candidate, cast = store.prepare_cast_candidate("ch_" + "c" * 32)
     assert len(candidate.binding.section_ids) == 9
-    assert cast.input_artifacts["section-map.json"]["topology"] == topology
+    assert cast.input_artifacts["section-map.json"]["seedTopology"] == topology
 
 
 @pytest.mark.parametrize("change", ["source", "brief", "map", "revision"])
@@ -155,7 +157,7 @@ def test_capacity_search_finds_a_larger_feasible_shape_without_rewriting_author_
     assert len(topology["nodes"]) == 16
     assert all(len(choice["options"]) <= 6 for choice in proposal(topology)["choices"])
     store.admit_branch_delivery(_deliver_stage(store, request, "branches.json", proposal(topology), "within-capacity"))
-    assert store.branch_draft(request.job_id).topology.structural_parameters["maxOutDegree"] == 7
+    assert store.branch_draft(request.job_id).seed_topology.structural_parameters["maxOutDegree"] == 7
     assert store.project().brief == brief
 
 

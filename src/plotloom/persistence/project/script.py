@@ -71,7 +71,7 @@ class ProjectScriptPersistence:
         )
         section_bindings = [
             ScriptSectionBinding(section_id=section.section_id, episode=index)
-            for index, section in enumerate(section_map.sections, start=1)
+            for index, section in enumerate((section for section in section_map.sections if section.footage_mode == "footage"), start=1)
         ]
         section_caps = [
             ScriptSectionDurationCap(
@@ -79,6 +79,7 @@ class ProjectScriptPersistence:
                 duration_cap_milliseconds=allocation.node_duration_budget(section.section_id),
             )
             for section in section_map.sections
+            if section.footage_mode == "footage"
         ]
         binding = ScriptBinding(
             **accepted.binding,
@@ -89,6 +90,7 @@ class ProjectScriptPersistence:
             section_bindings=section_bindings,
             section_duration_caps=section_caps,
             complete_route_section_ids=complete_routes(graph),
+            route_only_section_ids=[node.id for node in graph.nodes if node.footage_mode == "route_only"],
         )
         assert art_binding.source_revision == binding.source_revision
         return binding, source, outline, mapping, cast, accepted.art
@@ -96,7 +98,7 @@ class ProjectScriptPersistence:
     def _stale(self, session: Any, project_id: str, binding: ScriptBinding) -> list[str]:
         try: current, *_ = self._context(session, project_id)
         except InvalidTransitionError as error: return [str(error)]
-        fields = ("source_revision", "source_content_hash", "outline_revision", "outline_content_hash", "section_map_revision", "section_map_content_hash", "graph_revision", "graph_content_hash", "cast_revision", "cast_content_hash", "art_revision", "art_content_hash", "target_playthrough_seconds", "timing_allocation_hash", "section_bindings", "section_duration_caps", "complete_route_section_ids")
+        fields = ("source_revision", "source_content_hash", "outline_revision", "outline_content_hash", "section_map_revision", "section_map_content_hash", "graph_revision", "graph_content_hash", "cast_revision", "cast_content_hash", "art_revision", "art_content_hash", "target_playthrough_seconds", "timing_allocation_hash", "section_bindings", "section_duration_caps", "complete_route_section_ids", "route_only_section_ids")
         labels = {key: key.replace("_content_hash", " content").replace("_revision", " revision").replace("_", " ") for key in fields}
         reasons = [f"{labels[field]} changed" for field in fields if getattr(current, field) != getattr(binding, field)]
         return reasons + (["section context changed"] if current.section_ids != binding.section_ids else [])
@@ -118,7 +120,7 @@ class ProjectScriptPersistence:
             binding, source, outline, mapping, cast, art = self._context(session, project_id)
             upstream_outline = _upstream_script_outline(outline, mapping, cast, binding)
             admission = _script_admission_artifact(binding)
-            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="pilot-script", stage="script", expected_stage_revision=head.revision, source=source, input_artifacts={"accepted-outline.json": outline, "outline.json": upstream_outline, "section-map.json": mapping, "cast.json": cast, "art.json": art, "script-admission.json": admission}, creative_brief=f"Create one upstream-shaped script.json for the whole current Brief-planned story structure. The author-owned frozen target of {binding.target_playthrough_seconds} seconds is a hard maximum for each complete route, never a required runtime. script-admission.json freezes the exact sectionBindings order and graph-derived section caps. Copy script-admission.json.sectionBindings unchanged into top-level script.json.sectionBindings; this is a required Plotloom receiving extension to the upstream shape. Before publishing completion.json, compare the exact ordered sectionBindings array and episode set/cardinality against the frozen admission; the upstream validator does not check this extension. Trusted code owns the mapping values and order; do not infer, permute, or omit them. Every graph-derived complete playback route must remain within the frozen route maximum, including shared nodes and reconvergence. Do not stretch a section to its cap, do not sum mutually exclusive endings, and do not substitute upstream's three-minute default. accepted-outline.json is preserved F1 evidence; outline.json is trusted code's thin upstream execution projection of only the same stable section summaries and accepted cast identities, because the F1 section representation is not upstream episode-shaped. Do not treat it as a new canonical outline or invent Bible/shot fields. Set top-level lang to en so the unchanged pinned render is reproducible without a renderer flag. Use one episode per section, retain the upstream scenes/action/dialogue flow unchanged, and preserve the actual decision consequence, incoming context, completed actions, speaker identities, and timing. These are graph sections, not an episodic series. The upstream JSON's required hook/cliff strings are validator structural fields only: for every section, state the actual route-entry/terminal status plainly and do not invent an episodic hook, suspense, or promise of a next episode. Render report.html with the pinned upstream command unchanged; do not inject a wrapper or claim that its structural gate output is product acceptance. Plotloom's review UI labels hook/cliff and aggregate duration across mutually exclusive endings as product-inapplicable; the frozen per-section and complete-route caps remain applicable. F5 consumes the accepted upstream script JSON plus this section binding; it replaces only overlapping scene/beat authoring and does not produce shots, prompts, media, or TTS.")
+            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="pilot-script", stage="script", expected_stage_revision=head.revision, source=source, input_artifacts={"accepted-outline.json": outline, "outline.json": upstream_outline, "section-map.json": mapping, "cast.json": cast, "art.json": art, "script-admission.json": admission}, creative_brief=f"Create one upstream-shaped script.json for the whole current Brief-planned story structure. The author-owned frozen target of {binding.target_playthrough_seconds} seconds is a hard maximum for each complete route, never a required runtime. script-admission.json freezes the exact sectionBindings order and graph-derived section caps. Copy script-admission.json.sectionBindings unchanged into top-level script.json.sectionBindings; this is a required Plotloom receiving extension to the upstream shape. Before publishing completion.json, compare the exact ordered sectionBindings array and episode set/cardinality against the frozen admission; the upstream validator does not check this extension. Trusted code owns the mapping values and order; do not infer, permute, or omit them. Every graph-derived complete playback route must remain within the frozen route maximum, including shared nodes and reconvergence. Do not stretch a section to its cap, do not sum mutually exclusive endings, and do not substitute upstream's three-minute default. accepted-outline.json is preserved F1 evidence; outline.json is trusted code's thin upstream execution projection of only the same stable section summaries and accepted cast identities, because the F1 section representation is not upstream episode-shaped. Do not treat it as a new canonical outline or invent Bible/shot fields. Set top-level lang to en so the unchanged pinned render is reproducible without a renderer flag. Use one episode per footage-bearing section only. Route-only sections in script-admission.json.routeOnlySectionIds have no episode, scene or authored duration; retain them in complete route context, never fabricate empty episodes. Preserve the exact footage subset and retain the upstream scenes/action/dialogue flow unchanged, and preserve the actual decision consequence, incoming context, completed actions, speaker identities, and timing. These are graph sections, not an episodic series. The upstream JSON's required hook/cliff strings are validator structural fields only: for every section, state the actual route-entry/terminal status plainly and do not invent an episodic hook, suspense, or promise of a next episode. Render report.html with the pinned upstream command unchanged; do not inject a wrapper or claim that its structural gate output is product acceptance. Plotloom's review UI labels hook/cliff and aggregate duration across mutually exclusive endings as product-inapplicable; the frozen per-section and complete-route caps remain applicable. F5 consumes the accepted upstream script JSON plus this section binding; it replaces only overlapping scene/beat authoring and does not produce shots, prompts, media, or TTS.")
             request.assert_secret_free(); freeze_execution_pin(session, request, execution_pin); now = utc_now()
             row = ScriptCandidateRow(job_id=job_id, project_id=project_id, expected_script_revision=head.revision, binding=binding.model_dump(mode="json", by_alias=True), request=request.model_dump(mode="json", by_alias=True), status="prepared", delivery_id=None, manifest_hash=None, script=None, report_html=None, created_at=now, delivered_at=None)
             session.add(row); head.candidate_job_id, head.status, head.updated_at = job_id, "prepared", now
@@ -258,6 +260,7 @@ def _script_admission_artifact(binding: ScriptBinding) -> dict[str, Any]:
         "sectionBindings": [item.model_dump(mode="json", by_alias=True) for item in binding.section_bindings],
         "sectionDurationCaps": [item.model_dump(mode="json", by_alias=True) for item in binding.section_duration_caps],
         "completeRouteSectionIds": binding.complete_route_section_ids,
+        "routeOnlySectionIds": binding.route_only_section_ids,
     }
 
 
@@ -315,7 +318,7 @@ def _validate_timing_caps(
             raise ValueError(f"episode {section.episode} estimated duration exceeds its frozen section cap")
         actual[section.section_id] = float(estimate)
     for route in binding.complete_route_section_ids:
-        duration = sum(actual.get(section_id, float("inf")) for section_id in route)
+        duration = sum(0 if section_id in binding.route_only_section_ids else actual.get(section_id, float("inf")) for section_id in route)
         if duration > binding.target_playthrough_seconds + 0.05:
             raise ValueError("a complete script route exceeds the author playthrough maximum")
 

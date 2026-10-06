@@ -21,7 +21,6 @@ from plotloom.generation.work_units import (
     JoinPreservedIncomingStateEffect,
     JoinPreservedStateEffect,
     JoinStateEffectRepairFact,
-    ShotDurationBudgetRepairFact,
 )
 from plotloom.generation.storyboard_timing_repair import (
     StoryboardTimingRepairPlanFact,
@@ -410,18 +409,6 @@ def test_storyboard_timing_plan_postcondition_preserves_cue_order() -> None:
         fact.path
     )
 
-
-def test_unsupported_fact_is_ignored_without_schema_or_provider_dependency() -> None:
-    unsupported = ShotDurationBudgetRepairFact(
-        code="semantic.shot_duration_budget_exceeded",
-        path=("shots",),
-        scene_id="scene-a",
-        scene_duration_budget_units=10,
-        current_total_duration_units=12,
-        required_reduction_units=2,
-    )
-
-    assert validate_correction_postconditions(object(), [unsupported]) == ()
 
 
 def test_supported_fact_fails_closed_for_malformed_response_collections() -> None:

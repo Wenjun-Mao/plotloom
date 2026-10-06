@@ -1,12 +1,13 @@
 import { act, createElement, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, it, vi } from "vitest";
+import { plotloomApi } from "../src/api";
 import { OutlineReport } from "../src/pages/OutlineReport";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 it("opens original report with scripts but no same-origin, navigation, forms or download grants", async () => {
-  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true } as Response);
+  const fetch = vi.spyOn(plotloomApi, "reportAvailable").mockResolvedValue(true);
   const host = document.createElement("div");
   document.body.append(host);
   const root = createRoot(host);
@@ -16,7 +17,7 @@ it("opens original report with scripts but no same-origin, navigation, forms or 
   const outline = { source: "雨停以后", params: { episodes: 2, minutesPerEpisode: 0.25 }, beats: [{ id: "B1", episode: 1, setup: "<script>alert(1)</script>", payoff: "两条互斥结局", extra: "保留未知字段" }], episodes: [{ ep: 2, synopsis: "只能择一播放" }] };
   const before = JSON.stringify(outline);
   try {
-    await act(async () => root.render(createElement(StrictMode, null, createElement(OutlineReport, { url: "/candidate/report", outline }))));
+    await act(async () => root.render(createElement(StrictMode, null, createElement(OutlineReport, { url: "/api/v2/projects/p/source-outline/candidates/candidate/report", outline }))));
     const opener = host.querySelector("button")!;
     await act(async () => opener.click());
     const dialog = host.querySelector("dialog")!;
@@ -24,7 +25,7 @@ it("opens original report with scripts but no same-origin, navigation, forms or 
     const iframe = dialog.querySelector("iframe")!;
     expect(iframe.getAttribute("sandbox")).toBe("allow-scripts");
     expect(iframe.getAttribute("referrerpolicy")).toBe("no-referrer");
-    expect(iframe.getAttribute("src")).toBe("/candidate/report");
+    expect(iframe.getAttribute("src")).toBe("/api/v2/projects/p/source-outline/candidates/candidate/report");
     expect(dialog.querySelectorAll("button")).toHaveLength(1);
     expect(dialog.querySelector("button")!.textContent).toBe("关闭阅读");
     expect(dialog.textContent).toContain("不代表已确认的成片集数");
@@ -41,7 +42,7 @@ it("opens original report with scripts but no same-origin, navigation, forms or 
 });
 
 it("retains the exact accepted revision as escaped read-only content when its HTML is missing", async () => {
-  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: false, status: 404 } as Response);
+  const fetch = vi.spyOn(plotloomApi, "reportAvailable").mockResolvedValue(false);
   const host = document.createElement("div");
   document.body.append(host);
   const root = createRoot(host);
@@ -50,10 +51,10 @@ it("retains the exact accepted revision as escaped read-only content when its HT
   const outline = { source: "保留版本", episodes: [{ synopsis: "<script>保留的正文</script>", unknown: "保留的未知字段" }] };
   const before = JSON.stringify(outline);
   try {
-    await act(async () => root.render(createElement(OutlineReport, { url: "/accepted-candidate/report", outline, acceptedRevision: 3 })));
+    await act(async () => root.render(createElement(OutlineReport, { url: "/api/v2/projects/p/source-outline/candidates/accepted/report", outline, acceptedRevision: 3 })));
     expect(host.querySelector("button")!.textContent).toBe("阅读已确认大纲");
     await act(async () => host.querySelector("button")!.click());
-    expect(fetch.mock.calls[0][0]).toBe("/accepted-candidate/report");
+    expect(fetch.mock.calls[0][0]).toBe("/api/v2/projects/p/source-outline/candidates/accepted/report");
     const dialog = host.querySelector("dialog")!;
     expect(dialog.textContent).toContain("已确认大纲 r3");
     expect(dialog.textContent).toContain("HTML 报告不可用");

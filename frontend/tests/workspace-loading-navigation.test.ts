@@ -9,7 +9,7 @@ import type { RunStatus } from "../src/types";
 it("replaces a cancelled project load when returning to the still-displayed project", async () => {
   const loadProject = vi.fn().mockResolvedValue(undefined);
   const session = {
-    project: { id: "a" }, connection: "loading", activePage: "source",
+    project: { id: "a", stageRevisions: { story_graph: 0 } }, connection: "loading", activePage: "source",
     routeRef: { current: { project: "b", stage: "source", entity: "", run: "", hash: "" } },
     navigateToProject: vi.fn(() => 3), needsCanonicalRefresh: () => false,
     cancelRunSelection: vi.fn(), setUnsafeDraft: vi.fn(),

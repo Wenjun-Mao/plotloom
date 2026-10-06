@@ -376,20 +376,6 @@ def test_production_runtime_preserves_structured_domain_validation_issues(
     app = build_runtime_app(_settings(tmp_path), text_provider_resolver=FixtureResolver())
     with TestClient(app) as client:
         bible = all_stage_payloads()[0]
-        created = client.post(
-            "/api/v2/projects",
-            json={
-                "brief": FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True),
-                "initialStages": [
-                    {
-                        "stage": "story_bible",
-                        "payload": bible.model_dump(mode="json", by_alias=True),
-                    }
-                ],
-            },
-        )
-        assert created.status_code == 201
-        project_id = created.json()["id"]
         invalid_graph = {
             "startNodeId": "arrival",
             "nodes": [
@@ -397,16 +383,19 @@ def test_production_runtime_preserves_structured_domain_validation_issues(
                     "id": "arrival",
                     "title": "Arrival",
                     "summary": "No path leaves this non-ending node.",
-                    "kind": "start",
+                    "kind": "start", "footageMode": "footage",
                 }
             ],
             "edges": [],
             "joinContracts": [],
         }
-        response = client.patch(
-            f"/api/v2/projects/{project_id}/stages/story_graph",
-            json={"expectedRevision": 0, "payload": invalid_graph},
-        )
+        response = client.post("/api/v2/projects", json={
+            "brief": FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True),
+            "initialStages": [
+                {"stage": "story_bible", "payload": bible.model_dump(mode="json", by_alias=True)},
+                {"stage": "story_graph", "payload": invalid_graph},
+            ],
+        })
         assert response.status_code == 422
         assert response.json()["code"] == "domain_validation"
         assert {

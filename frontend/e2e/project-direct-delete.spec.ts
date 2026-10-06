@@ -45,11 +45,18 @@ test("busy deletion retains partial source input and does not cancel a prepared 
   const before = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${target.id}/source-outline`)).json();
   await page.getByLabel("故事内容").fill("这段尚未确认的编辑必须保留。");
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+  const deletion = page.waitForResponse(response => response.url().endsWith(`/api/v2/projects/${target.id}/permanent-delete`) && response.request().method() === "POST");
   await confirm(page, target.id, target.brief.title);
-  await expect(page.getByRole("alert")).toContainText("project_busy");
+  const refused = await deletion;
+  expect(refused.status()).toBe(409);
+  expect((await refused.json()).code).toBe("project_busy");
+  await expect(page.getByRole("alert")).toContainText("项目仍有读取、写入或后台任务占用");
+  await expect(page.getByRole("alert")).toContainText("等待占用结束后重试");
+  await expect(page.getByRole("alert")).not.toContainText("版本冲突");
   await expect(page.getByLabel("故事内容")).toHaveValue("这段尚未确认的编辑必须保留。");
   const after = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${target.id}/source-outline`)).json();
   expect(after.candidate).toEqual(before.candidate);
+  expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${target.id}`)).ok()).toBeTruthy();
 });
 
 test("stale Brief confirmation cannot erase another client's save", async ({ page, request, workbench }) => {

@@ -79,8 +79,8 @@ def _inputs() -> tuple[ProjectBrief, StoryBibleV2, StoryGraphV2, SceneBeatPlanV2
     graph = StoryGraphV2(
         start_node_id="node",
         nodes=[
-            StoryNodeV2(id="node", title="节点", summary="概要", kind="start"),
-            StoryNodeV2(id="ending", title="结局", summary="完成", kind="ending"),
+            StoryNodeV2(footage_mode="footage", id="node", title="节点", summary="概要", kind="start"),
+            StoryNodeV2(footage_mode="footage", id="ending", title="结局", summary="完成", kind="ending"),
         ],
         edges=[
             StoryEdgeV2(
@@ -145,7 +145,7 @@ def _board_output(*, cue_ids: list[str] | None = None, audio_duration: int = 660
 def test_m12a_scene_prompt_schema_and_binder_create_authoritative_cues() -> None:
     compiled = _compiled(StageName.SCENE_BEATS)
     assert compiled.rendered.output.schema_id == "scene_beats.fragment.v13"
-    assert compiled.contract.contract_version == "m1.14"
+    assert compiled.contract.contract_version == "m1.15"
     assert (
         compiled.contract.correction_directive_registry_version
         == CORRECTION_DIRECTIVE_REGISTRY_VERSION
@@ -176,7 +176,7 @@ def test_m12a_scene_prompt_schema_and_binder_create_authoritative_cues() -> None
     assert "durationWeight" in scene_schema["required"]
     assert compiled.contract.dialogue_timing_profile_version == "dialogue.default.v1"
     assert compiled.contract.dialogue_timing_profile_hash
-    assert compiled.contract.scene_timing_allocation_version == "scene_timing_allocation.v1"
+    assert compiled.contract.scene_timing_allocation_version == "scene_timing_allocation.v2"
     assert compiled.contract.scene_timing_allocation_hash
     assert compiled.contract.node_duration_budget_units == 90_000
     assert compiled.contract.dialogue_capacity_policy_version == "dialogue_capacity.v2"

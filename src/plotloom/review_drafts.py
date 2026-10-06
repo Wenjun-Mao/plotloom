@@ -10,7 +10,7 @@ from .domain import CamelModel, contains_secret_setting, contains_secret_value
 
 
 class ReviewBufferPayload(CamelModel):
-    editor: Literal["source", "section_map", "cast", "art", "script"]
+    editor: Literal["source", "cast", "art", "script"]
     basis: str = Field(min_length=1, max_length=4_000)
     text: str = Field(max_length=200_000)
 

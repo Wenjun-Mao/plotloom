@@ -2,14 +2,12 @@ import json
 from unittest.mock import Mock
 
 import pytest
+from tests.backend_core.conftest import make_scene_beats, make_story_bible, make_storyboard
 
 from plotloom.domain import (
-    ContinuityState,
     MediaKind,
     MediaPromptContext,
     ProjectBrief,
-    Shot,
-    StoryBible,
 )
 from plotloom.generation.secrets import InMemorySecretVault
 from plotloom.media import (
@@ -121,28 +119,13 @@ def test_media_prompt_compiler_compiles_frozen_context_for_api(
             visualStyle="低饱和冷色电影感",
             aspectRatio="16:9",
         ),
-        storyBible=StoryBible(
-            logline="领航员必须确认自己的身份。",
-            premise="废弃空间站里，记忆可能是伪造的。",
-            visualLanguage="冷色硬光，克制构图",
-        ),
-        shot=Shot(
-            id="shot-1",
-            sceneId="scene-1",
-            order=1,
-            title="苏醒",
-            shotSize="close_up",
-            durationSeconds=8,
-            action="林默睁开眼，保持平躺。",
-            entryState=ContinuityState(
-                facts={"pose": "仰卧", "apiKey": "must-not-survive"},
-                lighting="冷白应急灯",
-            ),
-            exitState=ContinuityState(
-                facts={"eyes": "open"},
-                lighting="冷白应急灯",
-            ),
-        ),
+        storyBible=make_story_bible().model_copy(update={"visual_language": "冷色硬光，克制构图"}),
+        shot=make_storyboard(make_scene_beats()).shots[0].model_copy(update={
+            "id": "shot-1", "title": "苏醒", "duration_units": 8000,
+            "action": "林默睁开眼，保持平躺。",
+            "entry_state": make_scene_beats().scenes[0].entry_state.model_copy(update={"facts": {"pose": "仰卧", "apiKey": "must-not-survive"}, "lighting": "冷白应急灯"}),
+            "exit_state": make_scene_beats().scenes[0].exit_state.model_copy(update={"facts": {"eyes": "open"}, "lighting": "冷白应急灯"}),
+        }),
         storyboardRevision=3,
     )
 

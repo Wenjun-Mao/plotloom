@@ -91,7 +91,7 @@
       ]
     },
     "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence": {
-      "source_sha256": "af0fd56e77c97b4333002f70a7ea548aae1914dd70095f1017d5afc0a0c58c6a",
+      "source_sha256": "ac6a75d24160e15018cced95575b68ac60e0137d0b03e56bb734ae10db83318e",
       "assertions": [
         "[receipt['sampleOrdinal'] for receipt in receipts] == [1, 2]",
         "all((receipt['status'] == 'succeeded' for receipt in receipts))",
@@ -100,7 +100,7 @@
         "all((receipt['workloadHash'] == conformance.conformance_workload_hash() for receipt in receipts))",
         "all((receipt['topologyHash'] for receipt in receipts))",
         "all((receipt['issueCodes'] == [] for receipt in receipts))",
-        "all((receipt['tokens'] == {'inputTokens': 140, 'outputTokens': 220, 'totalTokens': 360} for receipt in receipts))",
+        "all((receipt['tokens'] == {'inputTokens': 7 * (2 + 2 * fixed_workload_footage_count()), 'outputTokens': 11 * (2 + 2 * fixed_workload_footage_count()), 'totalTokens': 18 * (2 + 2 * fixed_workload_footage_count())} for receipt in receipts))",
         "all((receipt['firstPass']['accepted'] == 4 for receipt in receipts))",
         "all((receipt['firstPass'] == {'total': 4, 'accepted': 4, 'rejected': 0, 'outcomeUnknown': 0, 'cancelled': 0, 'notRun': 0} for receipt in receipts))",
         "all((receipt['maxAttemptsPerWorkUnit'] == 1 for receipt in receipts))",
@@ -132,9 +132,8 @@
       ]
     },
     "tests/test_production_project_folder_runtime.py::test_production_runtime_preserves_structured_domain_validation_issues": {
-      "source_sha256": "0e271e273f35d88678ae65389c262f04ee5c2ba3cb9b1b6a71fbe34e7a8704d2",
+      "source_sha256": "06837c835352df219fab15f9690163cdbcbb589fffe21f42ad8b302124bf850f",
       "assertions": [
-        "created.status_code == 201",
         "response.status_code == 422",
         "response.json()['code'] == 'domain_validation'",
         "{'code': 'dead_end', 'path': 'nodes.arrival', 'message': 'non-ending nodes must have an outgoing edge'} in response.json()['issues']"
@@ -375,13 +374,13 @@
       ]
     },
     "tests/test_project_storage_exact_repair_recovery.py::test_exact_repair_reexecutes_only_the_failed_scene_shard_after_preseal_process_loss": {
-      "source_sha256": "173cee79ed3db698fef8b07b7307f837ece79a106736515824cab62d6bddd276",
+      "source_sha256": "68c20cec7e0e0b6f7b40d4300efd2fc9d246d38a30e2cb9920f98b0f6d2832cc",
       "assertions": [
         "parent.status == RunStatus.QUARANTINED",
         "target.stage == StageName.SCENE_BEATS",
-        "len(resolver.provider.requests) == requests_after_target + 9",
+        "len(resolver.provider.requests) == requests_after_target + fixed_workload_footage_count()",
         "len(repaired_attempts) == 1",
-        "len(reused_scene_candidates) == 8",
+        "len(reused_scene_candidates) == fixed_workload_footage_count() - 1",
         "[envelope.head.stage for envelope in canonical_stages] == list(STAGE_ORDER)",
         "all((envelope.head.revision == 1 for envelope in canonical_stages))",
         "parent_trace_after.pop('snapshot_is_current') is False",
@@ -961,7 +960,7 @@
       ]
     },
     "tests/test_project_storage_authoring_control_contracts.py::test_gate_result_identity_is_scoped_to_the_project_revision": {
-      "source_sha256": "d3ee678d430d334c45541c46b41f0dbe2577a58d1c8755b28fe95f530215992e",
+      "source_sha256": "0ef1b0e412cd7f7eb955d538b6200f72389e7733c7466188663732207c222e4c",
       "assertions": [
         "first_head.entity_revision_id is not None",
         "second_head.entity_revision_id is not None",
@@ -11741,5 +11740,34 @@
       "tests/test_alpha_acceptance.py": "verified",
       "tests/test_conformance.py": "verified"
     }
-  }
+  },
+  "current_contract_amendments": [
+    {
+      "date": "2026-10-06",
+      "contract": "ADRs 0120 and 0121; current graph footage/admission contract",
+      "scope": "Refresh live replacement assertion catalog only; retain original baseline population, triggers, assertions and review statuses. This is current contract verification, not a historical replay or a claim that old evidence satisfied the new contract.",
+      "replacements": {
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_preserves_structured_domain_validation_issues": {
+          "prior_source_sha256": "0e271e273f35d88678ae65389c262f04ee5c2ba3cb9b1b6a71fbe34e7a8704d2",
+          "current_source_sha256": "06837c835352df219fab15f9690163cdbcbb589fffe21f42ad8b302124bf850f",
+          "rationale": "Structured 422 domain issue code/path/message remains covered through validated current initial-stage admission. The competing generic manual graph writer is retired, with explicit rejection covered by test_generic_graph_stage_write_is_retired. Historical baseline assertions are unchanged."
+        },
+        "tests/test_project_storage_exact_repair_recovery.py::test_exact_repair_reexecutes_only_the_failed_scene_shard_after_preseal_process_loss": {
+          "prior_source_sha256": "173cee79ed3db698fef8b07b7307f837ece79a106736515824cab62d6bddd276",
+          "current_source_sha256": "68c20cec7e0e0b6f7b40d4300efd2fc9d246d38a30e2cb9920f98b0f6d2832cc",
+          "rationale": "Shard counts derive from explicit current footage membership. Repaired-attempt count, immutable parent trace, reused sibling identity, complete atomic canonical installation and process-loss recovery assertions remain. Zero-time controls are not dispatched as scenes."
+        },
+        "tests/test_project_storage_authoring_control_contracts.py::test_gate_result_identity_is_scoped_to_the_project_revision": {
+          "prior_source_sha256": "d3ee678d430d334c45541c46b41f0dbe2577a58d1c8755b28fe95f530215992e",
+          "current_source_sha256": "0ef1b0e412cd7f7eb955d538b6200f72389e7733c7466188663732207c222e4c",
+          "rationale": "Current initial-stage fixtures replace retired manual graph writes. Identical gate kinds remain project/revision scoped with disjoint result identities."
+        },
+        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence": {
+          "prior_source_sha256": "af0fd56e77c97b4333002f70a7ea548aae1914dd70095f1017d5afc0a0c58c6a",
+          "current_source_sha256": "ac6a75d24160e15018cced95575b68ac60e0137d0b03e56bb734ae10db83318e",
+          "rationale": "Expected fake-provider token totals derive from current footage work-unit counts. Four-stage completion, trace/receipt privacy, first-pass acceptance and deletion of temporary evidence remain asserted."
+        }
+      }
+    }
+  ]
 }

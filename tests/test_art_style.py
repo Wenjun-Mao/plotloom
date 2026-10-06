@@ -185,6 +185,7 @@ def test_live_action_api_delivery_accept_save_and_staleness(tmp_path: Path):
         assert contract["authorDirection"] == "雨后真人写实"
         assert response.json()["binding"]["renderContract"] == contract
         art = candidate(contract)
+        art["sectionUsage"] = [{"sectionId": section, "sceneIds": ["S01"], "propIds": []} for section in response.json()["binding"]["sectionIds"]]
         delivery = _deliver_stage(store, request, "art.json", art, "live-action-fixture")
         invalid = deepcopy(art)
         invalid["scenes"][0]["image"]["tags"] = ["painterly"]

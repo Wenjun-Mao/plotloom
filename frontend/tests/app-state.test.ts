@@ -560,7 +560,7 @@ describe("App project/editor rehydration", () => {
     const incoming = resource("existing-project", "现有项目", 7);
     vi.spyOn(plotloomApi, "getProject").mockResolvedValue(incoming);
     vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes() });
-    const patch = vi.spyOn(plotloomApi, "patchProject").mockRejectedValue(new ApiError("revision changed", 409));
+    const patch = vi.spyOn(plotloomApi, "patchProject").mockRejectedValue(new ApiError("revision changed", 409, { code: "revision_conflict" }));
     const create = vi.spyOn(plotloomApi, "createProject");
 
     await act(async () => root.render(createElement(App)));
@@ -732,9 +732,12 @@ describe("App project/editor rehydration", () => {
     expect(document.body.textContent).toContain("保存当前草稿？");
     await act(async () => button("丢弃").click());
     await flush();
-    expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("切换后的项目");
+    expect(window.location.search).toContain("stage=creator");
+    expect(document.body.textContent).toContain("切换后的项目");
 
     await act(async () => pendingPatch.resolve({ ...source, revision: 8, brief: { ...source.brief, title: "旧项目的延迟保存" } }));
+    await flush();
+    await act(async () => button("项目简报与创作设置").click());
     await flush();
     expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("切换后的项目");
     expect(window.location.search).toContain("project=save-destination");

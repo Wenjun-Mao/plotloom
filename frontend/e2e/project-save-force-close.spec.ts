@@ -182,14 +182,33 @@ test("force closing another busy project keeps the current workspace and does no
   expect((await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${other}/source-outline`))).candidate).toEqual(before.candidate);
 });
 
-for (const editor of ["cast", "art", "script", "section_map"] as const) test(`Save-and-close recovers ${editor} input without changing accepted content`, async ({ page, request, workbench }) => {
+test("Save-and-close restores the shared Root graph draft without confirming it", async ({ page, request, workbench }) => {
+  const id = await createScriptProject(request, workbench.apiOrigin, "close-shared-graph");
+  const endpoint = `${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`;
+  const before = await json(request.get(endpoint));
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`);
+  const text = "共享图正文保存为草稿，尚未确认。";
+  await page.getByRole("textbox", { name: "剧情摘要", exact: true }).fill(text);
+  await page.getByRole("button", { name: "保存并关闭项目", exact: true }).click();
+  await expect(row(page, id)).toContainText("已关闭 · 可安全复制");
+  await page.evaluate(() => sessionStorage.clear());
+  await workbench.restartBackend();
+  await row(page, id).getByRole("button", { name: "重新打开" }).click();
+  await expect(page.getByRole("textbox", { name: "剧情摘要", exact: true })).toHaveValue(text);
+  expect((await json(request.get(endpoint))).acceptedSectionMap).toEqual(before.acceptedSectionMap);
+  const drafts = await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/authoring-drafts`));
+  expect(drafts.filter((draft: any) => draft.editorScope === "story_graph")).toHaveLength(1);
+  expect(drafts.some((draft: any) => draft.editorScope === "section_map")).toBe(false);
+});
+
+for (const editor of ["cast", "art", "script"] as const) test(`Save-and-close recovers ${editor} input without changing accepted content`, async ({ page, request, workbench }) => {
   const id = await createScriptProject(request, workbench.apiOrigin, `close-${editor}`);
-  const endpoint = `${workbench.apiOrigin}/api/v2/projects/${id}/${editor === "section_map" ? "source-outline" : editor}`;
+  const endpoint = `${workbench.apiOrigin}/api/v2/projects/${id}/${editor}`;
   const before = await json(request.get(endpoint));
   const url = editor === "cast" ? `${workbench.frontendOrigin}/v2/?project=${id}&stage=characters`
-    : `${workbench.frontendOrigin}/v2/?project=${id}&stage=source#${editor === "section_map" ? "source" : editor}`;
+    : `${workbench.frontendOrigin}/v2/?project=${id}&stage=source#${editor}`;
   await page.goto(url);
-  const scope = page.getByTestId(editor === "section_map" ? "section-map" : `${editor}-review`);
+  const scope = page.getByTestId(`${editor}-review`);
   const text = `unfinished ${editor} author input`;
   if (editor === "cast") {
     await scope.getByRole("button", { name: "编辑角色设定", exact: true }).click();
@@ -203,8 +222,6 @@ for (const editor of ["cast", "art", "script", "section_map"] as const) test(`Sa
     await scope.getByRole("button", { name: "重新打开剧本" }).click();
     await scope.getByRole("combobox").selectOption({ label: "opening · episode 1" });
     await scope.locator("textarea.source-outline-json").fill(text);
-  } else {
-    await scope.getByLabel("章节摘要").first().fill(text);
   }
   await page.getByRole("button", { name: "保存并关闭项目", exact: true }).click();
   await expect(row(page, id)).toContainText("已关闭 · 可安全复制");
@@ -214,12 +231,11 @@ for (const editor of ["cast", "art", "script", "section_map"] as const) test(`Sa
   await page.goto(url);
   await scope.getByRole("button", { name: "恢复编辑草稿" }).click();
   if (editor === "cast") await expect(scope.getByLabel("气质与举止", { exact: true })).toHaveValue(text);
-  else if (editor === "section_map") await expect(scope.getByLabel("章节摘要").first()).toHaveValue(text);
   else {
     if (editor === "art") await scope.locator(".art-json-editor summary").last().click();
     await expect(scope.locator("textarea.source-outline-json:not([disabled])")).toHaveValue(text);
   }
   const after = await json(request.get(endpoint));
-  const key = editor === "cast" ? "acceptedCast" : editor === "art" ? "acceptedArt" : editor === "script" ? "acceptedScript" : "acceptedSectionMap";
+  const key = editor === "cast" ? "acceptedCast" : editor === "art" ? "acceptedArt" : "acceptedScript";
   expect(after[key]).toEqual(before[key]);
 });

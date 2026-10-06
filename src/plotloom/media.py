@@ -542,7 +542,7 @@ class MediaPromptCompiler:
                 "visualStyle": context.brief.visual_direction,
                 "language": context.brief.language,
                 "aspectRatio": context.brief.aspect_ratio,
-                "durationSeconds": context.shot.duration_seconds,
+                "durationSeconds": context.shot.duration_units / 1000,
                 "storyboardRevision": context.storyboard_revision,
             }
         )

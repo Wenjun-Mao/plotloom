@@ -24,7 +24,7 @@ from .domain import (
     ProviderSnapshot,
     RunStatus,
     StageName,
-    StagePayloadV2,
+    StagePayload,
     WorkUnitRepairScope,
     WorkUnitFailureDisposition,
     stage_payload_model,
@@ -189,7 +189,7 @@ class DurableWorkUnitRunner:
         generation_plan = self.repository.get_generation_plan(run.id)
         story_graph_topology = self.repository.get_story_graph_topology(run.id)
         brief = run.canonical_snapshot.brief
-        sealed_payloads: dict[StageName, StagePayloadV2] = {}
+        sealed_payloads: dict[StageName, StagePayload] = {}
         sealed_ids: list[str] = []
         try:
             for stage in run.requested_stages:
@@ -371,7 +371,7 @@ class DurableWorkUnitRunner:
         generation_plan: Any,
         stage_plan: StagePlan,
         work_unit_id: str,
-        dependencies: Mapping[StageName, StagePayloadV2],
+        dependencies: Mapping[StageName, StagePayload],
         brief: ProjectBrief,
         adapter: ProviderAdapter,
         model: str,
@@ -975,7 +975,7 @@ class DurableWorkUnitRunner:
         work_unit_id: str,
         base_compiled: CompiledWorkUnitRequest,
         source_attempt: GenerationAttempt,
-        dependencies: Mapping[StageName, StagePayloadV2],
+        dependencies: Mapping[StageName, StagePayload],
         extraction_policy: ExtractionPolicy,
     ) -> CompiledWorkUnitRequest:
         """Render one compact correction packet from durable final evidence.
@@ -1613,10 +1613,10 @@ class DurableWorkUnitRunner:
         self,
         run: GenerationRun,
         stage: StageName,
-        sealed_payloads: Mapping[StageName, StagePayloadV2],
+        sealed_payloads: Mapping[StageName, StagePayload],
         *,
         repair_scope: WorkUnitRepairScope | None = None,
-    ) -> dict[StageName, StagePayloadV2]:
+    ) -> dict[StageName, StagePayload]:
         if repair_scope is not None:
             # The target stage may depend on parent-run output that was sealed
             # but never canonically installed after quarantine.  Only the
@@ -1627,7 +1627,7 @@ class DurableWorkUnitRunner:
                 stage,
             )
         ordered = (StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS, StageName.STORYBOARD)
-        dependencies: dict[StageName, StagePayloadV2] = {}
+        dependencies: dict[StageName, StagePayload] = {}
         requested = set(run.requested_stages)
         for upstream in ordered[: ordered.index(stage)]:
             if upstream in requested:
@@ -1644,7 +1644,7 @@ class DurableWorkUnitRunner:
         run: GenerationRun,
         stage: StageName,
         *,
-        dependencies: Mapping[StageName, StagePayloadV2],
+        dependencies: Mapping[StageName, StagePayload],
         repair_scope: WorkUnitRepairScope | None,
     ) -> StagePlan:
         """Obtain an immutable plan without giving repair callers authority.

@@ -2,6 +2,16 @@
 
 ## Product flow
 
+Creator authoring requires a desktop browser window at least **1280px wide**.
+Phone, narrow-window and 1024px authoring are unsupported. Short desktop windows
+remain supported: the page scrolls vertically, wide graph rows pan horizontally,
+and the node inspector stays within the visible workspace.
+
+Every creator UI delivery follows the permanent
+[graph workbench acceptance contract](creative-workflow/graph-workbench-acceptance.md),
+with candidate-bound functional evidence, directly inspected desktop viewport
+captures and an independent review. Author acceptance is recorded separately.
+
 ```text
 ProjectBrief
   -> StoryBible

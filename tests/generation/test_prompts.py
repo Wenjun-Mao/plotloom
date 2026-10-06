@@ -4,7 +4,8 @@ import json
 
 import pytest
 
-from plotloom.domain import Shot, ShotSize
+from plotloom.canonical_schema import V2ShotSize
+from tests.backend_core.conftest import make_scene_beats, make_storyboard
 from plotloom.generation.exceptions import PromptRenderError
 from plotloom.generation.prompts import PromptRenderer, PromptRepository
 
@@ -169,7 +170,7 @@ def test_graph_prompts_render_the_typed_direct_incoming_edge_agreement() -> None
         {**common, "story_graph_topology": {}},
     )
 
-    for rendered, version in ((graph, "3.2.0"), (content_fill, "2.7.0")):
+    for rendered, version in ((graph, "3.3.0"), (content_fill, "2.8.0")):
         instruction = rendered.messages[1].content
         assert rendered.trace.prompt_version == version
         assert "stateEffects 的汇流差异" in instruction
@@ -216,16 +217,7 @@ def test_storyboard_schema_and_media_prompts_are_separate() -> None:
     for field in ("audioPlan", "cueIds", "requiredEntityStates", "transition", "visualIntent", "motionIntent"):
         assert field in storyboard.messages[1].content
 
-    shot = Shot(
-        id="shot-1",
-        scene_id="scene-1",
-        order=1,
-        title="苏醒",
-        shot_size=ShotSize.CLOSE_UP,
-        duration_seconds=4,
-        visual_intent="身份迷失",
-        motion_intent="缓慢睁眼",
-    )
+    shot = make_storyboard(make_scene_beats()).shots[0].model_copy(update={"id": "shot-1", "title": "苏醒", "shot_size": V2ShotSize.CLOSE_UP, "visual_intent": "身份迷失", "motion_intent": "缓慢睁眼"})
     image = renderer.render(
         "media_image",
         {

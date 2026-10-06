@@ -1,5 +1,20 @@
 # Plotloom roadmap entrypoint
 
+The owner approved the [creator workbench implementation plan](2026-10-06-graph-centred-creator-workbench.md)
+on 2026-10-06 with an explicit zero-backward-compatibility instruction: retire
+encountered obsolete code/contracts instead of adding fallbacks or migration adapters.
+It connects 创作工作台
+and 专业工作台 through shared graph/draft authority and the existing production
+pipeline, with desktop authoring at browser widths of 1280px or wider only.
+Existing productions are owner-confirmed development demos, so this first batch
+does not include a general installed-production migration/replacement system.
+G0–G5 is implemented and locally qualified; the
+[integrated receipt](../verification/2026-10-06-graph-workbench-g5.md) records full
+gates and independent reviews. Publication is being finalized. Normal activation
+is held by a retained native queued receipt requiring exact terminal reconciliation;
+project data, media and protected settings remain unchanged. Owner walkthrough
+acceptance is separate; no activation or provider run has begun.
+
 The owner-approved [sketch-led visual system](2026-10-04-sketch-led-visual-system.md)
 applies the new design reference's whole visual language to the current Plotloom
 interface. It is a separate implementation assignment, not another icon-only

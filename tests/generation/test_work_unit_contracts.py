@@ -67,7 +67,7 @@ from plotloom.generation.scene_beats_edge_entry import (
     assert_edge_entry_entity_state_repair_fact_matches_source,
 )
 from plotloom.json_value_contract import finite_canonical_json
-from plotloom.validation import (
+from plotloom.validation_state import (
     _continuity_state_issues,
     _continuity_states_are_compatible,
 )
@@ -140,8 +140,8 @@ def _graph() -> StoryGraphV2:
     return StoryGraphV2(
         start_node_id="node-a",
         nodes=[
-            StoryNodeV2(id="node-a", title="苏醒", summary="她在控制室醒来。", kind="start"),
-            StoryNodeV2(id="node-b", title="秘密节点", summary="PRIVATE_OTHER_NODE", kind="ending"),
+            StoryNodeV2(footage_mode="footage", id="node-a", title="苏醒", summary="她在控制室醒来。", kind="start"),
+            StoryNodeV2(footage_mode="footage", id="node-b", title="秘密节点", summary="PRIVATE_OTHER_NODE", kind="ending"),
         ],
         edges=[StoryEdgeV2(id="edge-a-b", source_node_id="node-a", target_node_id="node-b", kind="continuation", choice_text=None, state_effects={})],
         join_contracts=[],
@@ -1112,9 +1112,9 @@ def test_join_continuity_keys_are_explicit_in_schema_prompt_and_validation() -> 
     graph = StoryGraphV2(
         start_node_id="node-a",
         nodes=[
-            StoryNodeV2(id="node-a", title="甲", summary="甲线", kind="start"),
-            StoryNodeV2(id="node-c", title="乙", summary="乙线", kind="scene"),
-            StoryNodeV2(id="node-b", title="汇流", summary="会合", kind="ending"),
+            StoryNodeV2(footage_mode="footage", id="node-a", title="甲", summary="甲线", kind="start"),
+            StoryNodeV2(footage_mode="footage", id="node-c", title="乙", summary="乙线", kind="scene"),
+            StoryNodeV2(footage_mode="footage", id="node-b", title="汇流", summary="会合", kind="ending"),
         ],
         edges=[
             StoryEdgeV2(id="edge-a-b", source_node_id="node-a", target_node_id="node-b", kind="choice", choice_text="直接汇流", state_effects={"船钟归属": "由摆渡人保管"}),
@@ -1405,7 +1405,7 @@ def test_storyboard_fragment_uses_closed_primary_coverage_and_injects_scene() ->
     assert "schema.extra_forbidden" in {issue.code for issue in legacy_shot_rejected.issues}
 
 
-def test_storyboard_audio_event_ids_are_deterministic_and_contracts_preserve_history() -> None:
+def test_storyboard_audio_event_ids_are_deterministic_and_contracts_reject_retired_history() -> None:
     brief, snapshot, plan, bible, graph, scene_beats = _plan_and_inputs()
     stage_plan = plan_stage(
         plan,
@@ -1452,31 +1452,10 @@ def test_storyboard_audio_event_ids_are_deterministic_and_contracts_preserve_his
     assert shot.audio_plan.events[0].id == canonical_audio_event_id(shot.id, 1)
     assert second.value.shots[0].audio_plan.events[0].id == shot.audio_plan.events[0].id
 
-    historical = compiled.contract.snapshot_dump()
-    historical["contract_version"] = "m1.12j"
-    historical["correction_policy_version"] = "bounded_correction.v14"
-    historical.pop("audio_event_id_binding_version")
-    historical.pop("correction_directive_registry_version")
-    historical.pop("correction_evidence_projection_version")
-    historical.pop("correction_issue_selection_version")
-    historical.pop("correction_response_schema_version")
-    parsed = WorkUnitPromptContract.model_validate(historical)
-    assert parsed.snapshot_dump() == historical
-
-
-def test_v15_timing_plan_fact_remains_readable_without_guidance_injection() -> None:
-    """Terminal v15 evidence stays inspectable but cannot become v16 authority."""
-
-    historical = {
-        "code": "semantic.cue_duration_exceeds_shot",
-        "path": ["shots", 0, "cueIds"],
-        "plan": {"version": "storyboard_timing_repair_plan.v1", "planHash": "old-plan"},
-        "planHash": "old-plan",
-    }
-
-    parsed = parse_semantic_repair_fact(historical)
-
-    assert serialize_semantic_repair_fact(parsed) == historical
+    retired = compiled.contract.snapshot_dump()
+    retired["contract_version"] = "m1.12j"
+    with pytest.raises(ValidationError, match="unsupported work-unit prompt"):
+        WorkUnitPromptContract.model_validate(retired)
 
 
 def test_storyboard_fragment_binding_namespaces_identical_local_shot_ids_by_scene() -> None:

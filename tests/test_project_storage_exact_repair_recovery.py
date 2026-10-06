@@ -19,7 +19,7 @@ from tests.project_storage_exact_repair_support import (
     execute_repair,
     storage,
 )
-from tests.project_storage_fixtures import FixtureProvider, fixture_profile
+from tests.project_storage_fixtures import fixed_workload_footage_count, FixtureProvider, fixture_profile
 
 
 class _RejectFinalSceneProvider:
@@ -37,7 +37,7 @@ class _RejectFinalSceneProvider:
         prompt = "\n".join(message.content for message in request.messages)
         if "【目标故事节点】" in prompt:
             self.scene_requests += 1
-            if self.scene_requests == 9:
+            if self.scene_requests == fixed_workload_footage_count():
                 from plotloom.generation.contracts import ProviderResponse, ProviderUsage
 
                 return ProviderResponse(
@@ -119,9 +119,9 @@ def test_exact_repair_reexecutes_only_the_failed_scene_shard_after_preseal_proce
         and artifact.kind == ArtifactKind.CANDIDATE
         and artifact.source_artifact_id is not None
     ]
-    assert len(resolver.provider.requests) == requests_after_target + 9
+    assert len(resolver.provider.requests) == requests_after_target + fixed_workload_footage_count()
     assert len(repaired_attempts) == 1
-    assert len(reused_scene_candidates) == 8
+    assert len(reused_scene_candidates) == fixed_workload_footage_count() - 1
     canonical_stages = store.canonical_stages()
     assert [envelope.head.stage for envelope in canonical_stages] == list(STAGE_ORDER)
     assert all(envelope.head.revision == 1 for envelope in canonical_stages)

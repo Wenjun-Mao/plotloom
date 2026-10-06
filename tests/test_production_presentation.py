@@ -51,7 +51,7 @@ def _package():
         {"line": "你好。", "speaker": "C01"},
     ]}]}]}
     board = {"episodes": [{"ep": 1, "segments": [{"sceneIndex": 1, "cuts": [{"frame": "门廊画面。预留选择区域。"}]}]}]}
-    return prepare_presentation(inputs={"scriptRevision": 3}, script=script, storyboard=board, mapping={"choice": choice})
+    return prepare_presentation(inputs={"scriptRevision": 3}, script=script, storyboard=board, mapping={"choices": [choice]})
 
 
 def _updates(pkg):

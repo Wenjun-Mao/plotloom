@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import defaultdict, deque
+from typing import Literal
 
 from pydantic import ConfigDict, Field, model_validator
 
@@ -19,7 +20,7 @@ from ..canonical_schema import StoryGraphV2, StoryNodeV2, V2StoryNodeKind
 from ..domain import CamelModel, ProjectBrief, to_camel
 
 
-SCENE_TIMING_ALLOCATION_VERSION = "scene_timing_allocation.v1"
+SCENE_TIMING_ALLOCATION_VERSION = "scene_timing_allocation.v2"
 _MILLISECONDS_PER_SECOND = 1_000
 
 
@@ -44,7 +45,7 @@ class SceneTimingLayerAllocation(_FrozenCamelModel):
     """One topological depth and its shared cap for every node in that depth."""
 
     depth: int = Field(ge=0)
-    duration_budget_units: int = Field(ge=1)
+    duration_budget_units: int = Field(ge=0)
     node_ids: tuple[str, ...] = Field(min_length=1)
 
 
@@ -53,13 +54,14 @@ class SceneTimingNodeAllocation(_FrozenCamelModel):
 
     node_id: str = Field(min_length=1)
     depth: int = Field(ge=0)
-    duration_budget_units: int = Field(ge=1)
+    duration_budget_units: int = Field(ge=0)
+    footage_mode: Literal["footage", "route_only"]
 
 
 class SceneTimingAllocation(_FrozenCamelModel):
     """Versioned, hash-bound timing ownership for one sealed Story Graph."""
 
-    allocation_version: str = SCENE_TIMING_ALLOCATION_VERSION
+    allocation_version: Literal["scene_timing_allocation.v2"]
     graph_topology_hash: str = Field(min_length=64, max_length=64)
     target_playthrough_seconds: int = Field(ge=1)
     target_duration_units: int = Field(ge=1)
@@ -83,8 +85,11 @@ class SceneTimingAllocation(_FrozenCamelModel):
         layer_by_depth = {layer.depth: layer for layer in self.layers}
         for node in self.node_allocations:
             layer = layer_by_depth[node.depth]
-            if node.node_id not in layer.node_ids or node.duration_budget_units != layer.duration_budget_units:
+            expected_budget = layer.duration_budget_units if node.footage_mode == "footage" else 0
+            if node.node_id not in layer.node_ids or node.duration_budget_units != expected_budget:
                 raise ValueError("node allocation must match its shared layer budget")
+            if node.footage_mode == "footage" and expected_budget <= 0:
+                raise ValueError("footage nodes require a positive budget")
         unsigned = self.model_dump(mode="json", by_alias=True, exclude={"allocation_hash"})
         expected = _sha256(unsigned)
         if self.allocation_hash != expected:
@@ -158,7 +163,8 @@ def plan_scene_timing_allocation(
 
     depths = _topological_depths(node_by_id, outgoing, incoming_count)
     max_depth = max(depths.values())
-    depth_count = max_depth + 1
+    footage_depths = sorted({depths[node.id] for node in graph.nodes if node.footage_mode == "footage"})
+    depth_count = len(footage_depths)
     target_units = brief.target_playthrough_seconds * _MILLISECONDS_PER_SECOND
     if target_units < depth_count:
         raise SceneTimingAllocationError(
@@ -168,10 +174,10 @@ def plan_scene_timing_allocation(
     base, remainder = divmod(target_units, depth_count)
     layers: list[SceneTimingLayerAllocation] = []
     allocations: list[SceneTimingNodeAllocation] = []
-    for depth in range(depth_count):
+    for depth in range(max_depth + 1):
         # Giving the earliest depths the remainder is deterministic and keeps
         # every sibling branch perfectly comparable.
-        duration = base + int(depth < remainder)
+        duration = base + int(footage_depths.index(depth) < remainder) if depth in footage_depths else 0
         node_ids = tuple(sorted(node_id for node_id, value in depths.items() if value == depth))
         layers.append(
             SceneTimingLayerAllocation(
@@ -184,7 +190,8 @@ def plan_scene_timing_allocation(
             SceneTimingNodeAllocation(
                 node_id=node_id,
                 depth=depth,
-                duration_budget_units=duration,
+                duration_budget_units=duration if node_by_id[node_id].footage_mode == "footage" else 0,
+                footage_mode=node_by_id[node_id].footage_mode,
             )
             for node_id in node_ids
         )
@@ -196,7 +203,7 @@ def plan_scene_timing_allocation(
         "layers": [item.model_dump(mode="json", by_alias=True) for item in layers],
         "nodeAllocations": [item.model_dump(mode="json", by_alias=True) for item in allocations],
         "exactForAllCompletePaths": _is_exact_for_all_complete_paths(
-            graph, depths, max_depth, endings
+            graph, depths, allocations, target_units, endings
         ),
     }
     return SceneTimingAllocation(
@@ -274,15 +281,20 @@ def _topological_depths(
 def _is_exact_for_all_complete_paths(
     graph: StoryGraphV2,
     depths: dict[str, int],
-    max_depth: int,
+    allocations: list[SceneTimingNodeAllocation],
+    target_units: int,
     endings: set[str],
 ) -> bool:
     """Whether all complete paths consume every allocated depth exactly once."""
 
-    return (
-        all(depths[ending] == max_depth for ending in endings)
-        and all(depths[edge.target_node_id] == depths[edge.source_node_id] + 1 for edge in graph.edges)
-    )
+    budgets = {item.node_id: item.duration_budget_units for item in allocations}
+    bounds: dict[str, tuple[int, int]] = {}
+    for node_id in sorted(depths, key=depths.get):
+        parents = [edge.source_node_id for edge in graph.edges if edge.target_node_id == node_id]
+        low = min((bounds[parent][0] for parent in parents), default=0)
+        high = max((bounds[parent][1] for parent in parents), default=0)
+        bounds[node_id] = (low + budgets[node_id], high + budgets[node_id])
+    return all(bounds[ending] == (target_units, target_units) for ending in endings)
 
 
 def _graph_topology_hash(graph: StoryGraphV2) -> str:
@@ -292,7 +304,7 @@ def _graph_topology_hash(graph: StoryGraphV2) -> str:
         {
             "startNodeId": graph.start_node_id,
             "nodes": sorted(
-                ({"id": node.id, "kind": node.kind.value} for node in graph.nodes),
+                ({"id": node.id, "kind": node.kind.value, "footageMode": node.footage_mode} for node in graph.nodes),
                 key=lambda item: item["id"],
             ),
             "edges": sorted(

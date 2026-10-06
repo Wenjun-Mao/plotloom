@@ -48,3 +48,9 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0116 Current-contract recovery and duplicate scope](0116-current-contract-recovery-and-copy-scope.md)
 
 - [0119 Shared visual roles for the current workbench](0119-current-workbench-visual-roles.md)
+
+- [0120 Explicit node footage mode](0120-explicit-node-footage-mode.md)
+- [0121 Current source-bound graph authoring](0121-current-source-graph-authoring.md)
+- [0122 Creator workspace presentation](0122-creator-workspace-presentation.md)
+- [0123 Node-context Story and Production workflows](0123-node-context-story-production-workflows.md)
+- [0124 Requesting-client project read quiescence](0124-requesting-client-project-read-quiescence.md)

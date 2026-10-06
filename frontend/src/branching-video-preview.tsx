@@ -4,6 +4,7 @@ import { plotloomApi } from "./api";
 import { Button } from "./components";
 import { useBridgeChoiceRead } from "./useBridgeChoiceRead";
 import { shotLabel } from "./shot-label";
+import { nodeFootageGaps } from "./node-footage";
 
 type FrozenShot = { id?: string; title?: string; action?: string; sceneId?: string };
 
@@ -44,10 +45,10 @@ export function branchingPreviewManifest(
   });
   const nodes = new Map<string, BranchingPreviewNode>();
   graph.nodes.forEach((node) => {
-    const shots = sceneBeats.scenes
+    const nodeScenes = sceneBeats.scenes
       .filter((scene) => scene.storyNodeId === node.id)
-      .sort((left, right) => left.order - right.order)
-      .flatMap((scene) => storyboard.shots
+      .sort((left, right) => left.order - right.order);
+    const shots = nodeScenes.flatMap((scene) => storyboard.shots
         .filter((shot) => shot.sceneId === scene.id)
         .sort((left, right) => left.order - right.order));
     const jobsForNode = shots.flatMap((shot) => (selectedByShot.get(shot.id) || [])
@@ -57,6 +58,7 @@ export function branchingPreviewManifest(
       (job) => frozenShot(job).sceneId === shot.sceneId && job.playbackSegment?.authoredDurationUnits === shot.durationUnits,
     ));
     const missingShotTitles = missingShots.map((shot) => shotLabel(shot));
+    missingShotTitles.push(...nodeFootageGaps(node, sceneBeats, storyboard));
     const missingShotIds = missingShots.map((shot) => shot.id);
     nodes.set(node.id, {
       node,
@@ -69,7 +71,7 @@ export function branchingPreviewManifest(
   const identity = JSON.stringify({
     projectId,
     start: graph.startNodeId,
-    nodes: graph.nodes.map(({ id, kind }) => [id, kind]),
+    nodes: graph.nodes.map(({ id, kind, footageMode }) => [id, kind, footageMode]),
     edges: graph.edges.map(({ id, sourceNodeId, targetNodeId, kind, choiceText }) => [id, sourceNodeId, targetNodeId, kind, choiceText]),
     scenes: sceneBeats.scenes.map(({ id, storyNodeId, order }) => [id, storyNodeId, order]),
     shots: storyboard.shots.map(({ id, sceneId, order }) => [id, sceneId, order]),
@@ -168,7 +170,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   };
 
   useEffect(() => {
-    if (!node || node.jobs.length || incompleteShots.length) return;
+    if (!node || node.node.footageMode !== "route_only" || node.jobs.length || incompleteShots.length) return;
     // An empty structural chain may select the first playable node, but it
     // never manufactures the initial user gesture required to start media.
     finishNode(false);

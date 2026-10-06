@@ -101,38 +101,8 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
         return sha256(canonical_json({"inputs": inputs, "proposal": proposal, "conflicts": [item.model_dump(mode="json") for item in conflicts]})).hexdigest()
 
     def _intent_package(self, session: Any, row: ProductionBridgeRevisionRow) -> ProductionBridgeIntentPackage:
-        """Project retained old rows without rewriting their accepted evidence."""
-
-        raw = row.proposal["intentPackage"]
-        if "suggestionOrigin" in raw:
-            return ProductionBridgeIntentPackage.model_validate(raw)
-        first = session.scalar(select(ProductionBridgeRevisionRow).where(
-            ProductionBridgeRevisionRow.project_id == row.project_id,
-        ).order_by(ProductionBridgeRevisionRow.revision).limit(1))
-        if first is None:
-            raise InvalidTransitionError("production bridge source revision is unavailable")
-        original = {entry["id"]: entry for entry in first.proposal["intentPackage"]["entries"]}
-        provenance = raw.get("provenance")
-        has_model = raw.get("method") == "model_inference.v1" or bool(provenance and provenance.get("jobId"))
-        entries: list[dict[str, Any]] = []
-        for entry in raw["entries"]:
-            source = original.get(entry["id"])
-            if source is None or source.get("sourceContentHash") != entry.get("sourceContentHash"):
-                raise InvalidTransitionError("production bridge source evidence cannot be recovered")
-            entries.append({
-                **{key: value for key, value in entry.items() if key not in {"method", "suggestedText"}},
-                "sourceExcerpt": source["suggestedText"],
-                "suggestedText": entry["suggestedText"] if has_model else None,
-            })
-        review_state = "author_saved" if raw.get("method") == "author_reviewed.v1" else (
-            "model_suggested" if has_model else "pending"
-        )
-        return ProductionBridgeIntentPackage.model_validate({
-            "suggestionOrigin": "model_inference.v1" if has_model else "none",
-            "reviewState": review_state,
-            "entries": entries,
-            "provenance": provenance if has_model else None,
-        })
+        """Read exactly the current intent package; never reconstruct old evidence."""
+        return ProductionBridgeIntentPackage.model_validate(row.proposal["intentPackage"])
 
     def _apply_intent_package(self, payload: dict[str, Any], package: ProductionBridgeIntentPackage) -> dict[str, Any]:
         """Bind editable intent text to exactly the declared canonical targets."""

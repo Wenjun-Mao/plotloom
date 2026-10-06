@@ -78,8 +78,9 @@ export function storyboardPrototypeReadiness(
  */
 export function derivePrototypeRoutes(graph: StoryGraph, bindings: Array<{ sectionId: string; episode: number }>): PrototypeRoute[] {
   const boundSections = new Set(bindings.map((binding) => binding.sectionId));
+  const footageSections = graph.nodes.filter(node => node.footageMode === "footage");
+  if (boundSections.size !== bindings.length || boundSections.size !== footageSections.length || footageSections.some(node => !boundSections.has(node.id))) return [];
   return deriveRoutes(graph)
-    .filter((route) => route.nodeIds.every((nodeId) => boundSections.has(nodeId)))
     .map((route) => ({ ...route, sectionIds: route.nodeIds }));
 }
 

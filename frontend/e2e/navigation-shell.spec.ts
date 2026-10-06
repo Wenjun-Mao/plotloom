@@ -1,5 +1,6 @@
 import { expect, test } from "./fixture";
 import { navigateToSecondaryTool } from "./workbench-controls";
+import { createCreatorGraph } from "./fixtures/creator-graph";
 
 test.describe("M1-B0 query navigation shell", () => {
   test("uses stage/entity query parameters and restores stage on browser back", async ({ page, workbench }) => {
@@ -26,18 +27,22 @@ test.describe("M1-B0 query navigation shell", () => {
     await expect(page.getByRole("heading", { name: "故事圣经" })).toBeVisible();
   });
 
-  test("writes graph selection into entity and restores it with browser history", async ({ page, workbench }) => {
-    await page.goto(`${workbench.frontendOrigin}/v2/?stage=graph`);
-    await page.getByRole("button", { name: "打开示例项目" }).click();
-    // The entity navigator is a normal, keyboard-accessible pointer path; it
-    // intentionally does not depend on compact canvas hitbox geometry.
-    await page.getByTestId("graph-select-node-diagnose").click();
-    await expect(page).toHaveURL(/stage=graph.*entity=graph-node%3Adiagnose/);
-    await expect(page.locator(".node-inspector")).toContainText("诊断双重故障");
-
+  test("retains shared graph selection through mode navigation, history and reload without authoring it", async ({ page, request, workbench }) => {
+    const id = await createCreatorGraph(request, workbench.apiOrigin, "navigation-selection");
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=graph`);
+    await page.getByText("全部稳定身份与待连接关系", { exact: true }).click();
+    await page.getByRole("button", { name: "结局 B", exact: true }).click();
+    await expect(page.getByLabel("章节标题", { exact: true })).toHaveValue("结局 B");
+    const before = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/graph-workbench`)).json();
+    await page.getByRole("button", { name: "创作工作台", exact: true }).click();
+    await expect(page).toHaveURL(/stage=creator$/);
+    await expect(page.getByLabel("章节标题", { exact: true })).toHaveValue("结局 B");
     await page.goBack();
     await expect(page).toHaveURL(/stage=graph$/);
-    await expect(page.locator(".node-inspector")).toContainText("冲入控制室");
+    await page.reload();
+    await expect(page.getByLabel("章节标题", { exact: true })).toHaveValue("结局 B");
+    const after = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/graph-workbench`)).json();
+    expect(after.draft.draftRevision).toBe(before.draft.draftRevision);
   });
 
   test("preserves project identity and withdraws stage navigation until refresh hydration completes", async ({ page, workbench }) => {

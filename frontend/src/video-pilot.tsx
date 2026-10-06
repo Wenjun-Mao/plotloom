@@ -15,6 +15,7 @@ import { VideoEndFrameChoice } from "./video-end-frame";
 import { useConfirmation } from "./confirmation";
 import { h3Timing } from "./video-backends/minimax-h3-timing";
 import { shotLabel } from "./shot-label";
+import { nodeFootageGaps } from "./node-footage";
 import { verifiedVideoGeometry } from "./features/media/verified-video-geometry";
 import { isCurrentVideoSelection, videoNextAction } from "./features/media/video-next-action";
 
@@ -73,10 +74,12 @@ export function selectedRouteVideos(
   const missingShotTitles = routeShots
     .filter(({ shot, sceneId }) => !(selectedByShotId.get(shot.id) || []).some((job) => frozenShot(job).sceneId === sceneId && job.playbackSegment?.authoredDurationUnits === shot.durationUnits))
     .map(({ shot }) => shotLabel(shot));
+  const routeNodes = graph.nodes.filter(node => route.nodeIds.includes(node.id));
+  missingShotTitles.push(...routeNodes.flatMap(node => nodeFootageGaps(node, sceneBeats, storyboard)));
   return {
     jobs: sequence,
     missingShotTitles,
-    sourceIdentity: `${route.id}:${routeShots.map(({ shot, sceneId }) => `${sceneId}/${shot.id}/${shot.order}`).join("|")}:${sequence.map((job) => `${job.playbackSegment?.id}/${job.playbackSegment?.derivativeHash}`).join("|")}`,
+    sourceIdentity: `${route.id}:${routeNodes.map(node => `${node.id}/${node.footageMode}`).join("|")}:${routeShots.map(({ shot, sceneId }) => `${sceneId}/${shot.id}/${shot.order}`).join("|")}:${sequence.map((job) => `${job.playbackSegment?.id}/${job.playbackSegment?.derivativeHash}`).join("|")}`,
   };
 }
 

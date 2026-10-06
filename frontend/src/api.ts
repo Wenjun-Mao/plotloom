@@ -69,21 +69,12 @@ import type {
   StoryboardReviewCandidatePreparation,
   ProductionBridgeState,
 } from "./types";
-import { providerSessionKeys } from "./session-key";
+import { ApiTransport, ApiError } from "./api-transport";
+import type { ProjectReadTicket } from "./project-read-admission";
+export { ApiError };
 import { projectCreationBody } from "./project-creation";
 
 type FetchLike = typeof fetch;
-
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    readonly details?: unknown,
-  ) {
-    super(message);
-    this.name = "ApiError";
-  }
-}
 
 export type H3ReviewedDirections = {
   sourceHash: string;
@@ -116,62 +107,16 @@ export type VideoEndFrameDecision = {
 };
 
 export class PlotloomApiClient {
-  private readonly fetcher: FetchLike;
+  private readonly transport: ApiTransport;
   private readonly base: string;
-
-  constructor(
-    fetcher: FetchLike = globalThis.fetch,
-    base = "/api/v2",
-  ) {
-    // Window.fetch is a Web-IDL method and some browsers reject a foreign
-    // receiver. Keep the injected function in a closure and always invoke it
-    // with the platform global rather than as `this.fetcher(...)`.
-    this.fetcher = (input, init) => fetcher.call(globalThis, input, init);
-    this.base = base;
+  constructor(fetcher: FetchLike = globalThis.fetch, base = "/api/v2") { this.base = base; this.transport = new ApiTransport(fetcher, base); }
+  private async request<T>(path: string, init: RequestInit = {}, includeSessionKey = false, profileId = "default"): Promise<T> {
+    return (await this.transport.json<T>(path, init, includeSessionKey, profileId)).body;
   }
-
-  private async request<T>(
-    path: string,
-    init: RequestInit = {},
-    includeSessionKey = false,
-    sessionProfileId = "default",
-  ): Promise<T> {
-    const headers = new Headers(init.headers);
-    headers.set("Accept", "application/json");
-    if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
-    if (includeSessionKey) {
-      const ephemeralKey = providerSessionKeys.read(sessionProfileId);
-      if (ephemeralKey) headers.set("X-Plotloom-Session-API-Key", ephemeralKey);
-    }
-    const response = await this.fetcher(`${this.base}${path}`, { ...init, headers });
-    const body = await response.json().catch(() => undefined);
-    if (!response.ok) {
-      const message = body && typeof body === "object" && "message" in body
-        ? String(body.message)
-        : `Plotloom API request failed (${response.status})`;
-      throw new ApiError(message, response.status, body);
-    }
-    return body as T;
-  }
-
-  /** Preserve an exact draft-consumption receipt without widening canonical bodies. */
-  private async requestWithResponse<T>(
-    path: string,
-    init: RequestInit = {},
-  ): Promise<{ body: T; response: Response }> {
-    const headers = new Headers(init.headers);
-    headers.set("Accept", "application/json");
-    if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
-    const response = await this.fetcher(`${this.base}${path}`, { ...init, headers });
-    const body = await response.json().catch(() => undefined);
-    if (!response.ok) {
-      const message = body && typeof body === "object" && "message" in body
-        ? String(body.message)
-        : `Plotloom API request failed (${response.status})`;
-      throw new ApiError(message, response.status, body);
-    }
-    return { body: body as T, response };
-  }
+  private requestWithResponse<T>(path: string, init: RequestInit = {}): Promise<{ body: T; response: Response }> { return this.transport.json<T>(path, init); }
+  suspendProjectReads(projectId: string) { return this.transport.reads.suspend(projectId); }
+  admitReportRead(url: string, signal: AbortSignal): Promise<ProjectReadTicket> { return this.transport.admitDocument(url, signal); }
+  reportAvailable(url: string, signal: AbortSignal): Promise<boolean> { return this.transport.reportAvailable(url, signal); }
 
   createProject(request: ProjectCreationRequest, idempotencyKey: string): Promise<ProjectCreationResponse> {
     return this.request("/projects", {
@@ -666,11 +611,23 @@ export class PlotloomApiClient {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/reopen`, { method: "POST", body: JSON.stringify({ expectedOutlineRevision }) });
   }
 
-  saveSectionMap(projectId: string, body: { expectedSectionMapRevision: number; expectedSourceRevision: number; expectedOutlineRevision: number; expectedOutlineContentHash: string; mapping: SectionMap }): Promise<SourceOutlineReviewState> {
+  getGraphWorkbench(projectId: string): Promise<import("./features/graph/contracts").GraphWorkbenchState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/graph-workbench`);
+  }
+  previewGraphCommand(projectId: string, body: { expectedDraftRevision: number; command: import("./features/graph/contracts").GraphCommand }): Promise<import("./features/graph/contracts").GraphCommandPreview> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/graph-workbench/preview`, { method: "POST", body: JSON.stringify(body) });
+  }
+  applyGraphCommand(projectId: string, body: { expectedDraftRevision: number; command: import("./features/graph/contracts").GraphCommand; previewHash: string }): Promise<AuthoringDraft> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/graph-workbench/apply`, { method: "POST", body: JSON.stringify(body) });
+  }
+  recoverGraphDraft(projectId: string, body: { expectedDraftRevision: number; expectedBindingHash: string; payload: import("./features/graph/contracts").GraphAuthoringDraft | null }): Promise<AuthoringDraft> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/graph-workbench/recover`, { method: "POST", body: JSON.stringify(body) });
+  }
+  saveSectionMap(projectId: string, body: { expectedSectionMapRevision: number; expectedSourceRevision: number; expectedOutlineRevision: number; expectedOutlineContentHash: string; expectedGraphDraftRevision: number; mapping: SectionMap }): Promise<SourceOutlineReviewState> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/section-map`, { method: "PUT", body: JSON.stringify(body) });
   }
 
-  installSectionMapGraph(projectId: string, body: { expectedSourceRevision: number; expectedSourceContentHash: string; expectedOutlineRevision: number; expectedOutlineContentHash: string; expectedSectionMapRevision: number; expectedSectionMapContentHash: string; expectedGraphRevision: number }): Promise<SourceOutlineReviewState> {
+  installSectionMapGraph(projectId: string, body: { expectedSourceRevision: number; expectedSourceContentHash: string; expectedOutlineRevision: number; expectedOutlineContentHash: string; expectedSectionMapRevision: number; expectedSectionMapContentHash: string; expectedGraphRevision: number; expectedGraphDraftRevision: number }): Promise<SourceOutlineReviewState> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/section-map/install-graph`, { method: "POST", body: JSON.stringify(body) });
   }
 

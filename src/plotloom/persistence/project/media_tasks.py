@@ -14,8 +14,8 @@ from ...domain import (
     MediaTaskStatus,
     StageName,
     StageStatus,
-    StoryBible,
-    Storyboard,
+    StoryBibleV2,
+    StoryboardV2,
     utc_now,
 )
 from ...exceptions import (
@@ -60,12 +60,12 @@ class GenericMediaTaskPersistence:
             if head.status != StageStatus.READY.value:
                 raise StagePrerequisiteError(StageName.STORYBOARD, StageName.STORYBOARD, head.status)
             storyboard = self._canonical._load_stage_payload(session, project_id, StageName.STORYBOARD)
-            assert isinstance(storyboard, Storyboard)
+            assert isinstance(storyboard, StoryboardV2)
             shot = next((candidate for candidate in storyboard.shots if candidate.id == shot_id), None)
             if shot is None:
                 raise NotFoundError(f"shot not found in current storyboard: {shot_id}")
             bible = self._canonical._load_stage_payload(session, project_id, StageName.STORY_BIBLE)
-            assert isinstance(bible, StoryBible)
+            assert isinstance(bible, StoryBibleV2)
             return MediaPromptContext(
                 brief=project.brief,
                 story_bible=bible,
@@ -85,7 +85,7 @@ class GenericMediaTaskPersistence:
         provider: str | None = None,
         public_settings: dict[str, Any] | None = None,
     ) -> MediaTask:
-        """Reject the pre-M2 Shot-to-provider path before any data access.
+        """Reject the pre-M2 ShotV2-to-provider path before any data access.
 
         Approval alone is deliberately not a production input.  M2 will
         replace this compatibility-shaped entry point with one that accepts an

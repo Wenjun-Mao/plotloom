@@ -31,9 +31,9 @@ describe("Plotloom workspace model", () => {
     const routes = deriveRoutes({
       startNodeId: "tide-entry",
       nodes: [
-        { id: "tide-entry", title: "气象站", summary: "选择电力去向。", kind: "start" },
-        { id: "dock-ending", title: "码头结局", summary: "码头得电。", kind: "ending" },
-        { id: "beacon-ending", title: "灯塔结局", summary: "灯塔得电。", kind: "ending" },
+        { id: "tide-entry", title: "气象站", summary: "选择电力去向。", kind: "start", footageMode: "footage" as const },
+        { id: "dock-ending", title: "码头结局", summary: "码头得电。", kind: "ending", footageMode: "footage" as const },
+        { id: "beacon-ending", title: "灯塔结局", summary: "灯塔得电。", kind: "ending", footageMode: "footage" as const },
       ],
       edges: [
         { id: "dock-route", sourceNodeId: "tide-entry", targetNodeId: "dock-ending", kind: "choice", choiceText: "供电码头", stateEffects: {}, entityStateEffects: [] },
@@ -51,9 +51,9 @@ describe("Plotloom workspace model", () => {
     const graph = {
       startNodeId: "opening",
       nodes: [
-        { id: "opening", title: "Storm warning", summary: "One cable.", kind: "start" as const },
-        { id: "beacon", title: "Beacon lit", summary: "Sailors see home.", kind: "ending" as const },
-        { id: "dock", title: "Dock lit", summary: "Boats stay together.", kind: "ending" as const },
+        { id: "opening", title: "Storm warning", summary: "One cable.", kind: "start" as const, footageMode: "footage" as const },
+        { id: "beacon", title: "Beacon lit", summary: "Sailors see home.", kind: "ending" as const, footageMode: "footage" as const },
+        { id: "dock", title: "Dock lit", summary: "Boats stay together.", kind: "ending" as const, footageMode: "footage" as const },
       ],
       edges: [
         { id: "beacon-path", sourceNodeId: "opening", targetNodeId: "beacon", kind: "choice" as const, choiceText: "Light the beacon", stateEffects: { sourceMapConsequence: "The dock loses power." }, entityStateEffects: [] },
@@ -79,11 +79,28 @@ describe("Plotloom workspace model", () => {
     expect(prototypeReadiness("accepted", { ...currentHead, contentHash: "newer-graph-hash" }, binding)).toContain("不是当前版本");
   });
 
+  it("retains route-only controls in full reader routes and requires every footage binding", () => {
+    const graph = structuredClone(demoProject.storyGraph);
+    for (const node of graph.nodes) if (node.kind === "decision" || node.kind === "join") node.footageMode = "route_only";
+    const controlIds = graph.nodes.filter(node => node.footageMode === "route_only").map(node => node.id);
+    const sectionBindings = graph.nodes.filter(node => node.footageMode === "footage").map((node, index) => ({ sectionId: node.id, episode: index + 1 }));
+    const script = { sectionBindings, episodes: sectionBindings.map(binding => ({ ep: binding.episode })) };
+    const routes = derivePrototypeRoutes(graph, sectionBindings);
+    expect(routes.length).toBeGreaterThan(0);
+    expect(routes.some(route => route.sectionIds.some(id => controlIds.includes(id)))).toBe(true);
+    for (const route of routes) expect(episodesForRoute(script, route).every(item => !controlIds.includes(item.sectionId))).toBe(true);
+    expect(derivePrototypeRoutes(graph, sectionBindings.slice(1))).toEqual([]);
+    expect(derivePrototypeRoutes(graph, [...sectionBindings, sectionBindings[0]])).toEqual([]);
+    graph.nodes.find(node => node.id === controlIds[0])!.footageMode = "footage";
+    expect(derivePrototypeRoutes(graph, sectionBindings)).toEqual([]);
+    expect(derivePrototypeRoutes(graph, [...sectionBindings, { sectionId: controlIds[0], episode: 99 }]).length).toBeGreaterThan(0);
+  });
+
   it("admits only the current accepted storyboard review and preserves screenplay route order", () => {
     const binding = { graphRevision: 4, graphContentHash: "graph-hash", sectionBindings: [{ sectionId: "opening", episode: 1 }, { sectionId: "beacon", episode: 2 }] } as any;
     const script = { revision: 3, contentHash: "script-hash", binding };
     const review = { status: "accepted", acceptedReview: { binding: { ...binding, scriptRevision: 3, scriptContentHash: "script-hash" }, storyboard: { episodes: [{ ep: 2, segments: [] }, { ep: 1, segments: [] }] } } } as any;
-    const graph = { startNodeId: "opening", nodes: [{ id: "opening", title: "Opening", summary: "", kind: "start" }, { id: "beacon", title: "Beacon", summary: "", kind: "ending" }], edges: [{ id: "edge", sourceNodeId: "opening", targetNodeId: "beacon", kind: "choice", choiceText: "Beacon", stateEffects: {}, entityStateEffects: [] }], joinContracts: [] } as any;
+    const graph = { startNodeId: "opening", nodes: [{ id: "opening", title: "Opening", summary: "", kind: "start", footageMode: "footage" as const }, { id: "beacon", title: "Beacon", summary: "", kind: "ending", footageMode: "footage" as const }], edges: [{ id: "edge", sourceNodeId: "opening", targetNodeId: "beacon", kind: "choice", choiceText: "Beacon", stateEffects: {}, entityStateEffects: [] }], joinContracts: [] } as any;
     const routes = derivePrototypeRoutes(graph, binding.sectionBindings);
 
     expect(storyboardPrototypeReadiness("accepted", { status: "ready", revision: 4, contentHash: "graph-hash" }, script, review)).toBeUndefined();

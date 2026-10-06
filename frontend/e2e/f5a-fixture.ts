@@ -1,3 +1,4 @@
+import { acknowledgeGraphMapping, graphDraftRevision, currentFixtureMapping, beaconMap } from "./fixtures/graph-authoring";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -50,10 +51,12 @@ export async function createScriptProject(request: APIRequestContext, origin: st
   await writeDelivery(outline, "outline", await fixture("outline.json"));
   await json(request.post(`${url}/source-outline/candidates/${outline.jobId}/refresh`));
   const accepted = await json(request.post(`${url}/source-outline/accept`, { data: { jobId: outline.jobId, expectedSourceRevision: source.source.revision, expectedOutlineRevision: 0 } }));
-  const map = await json(request.put(`${url}/source-outline/section-map`, { data: { expectedSectionMapRevision: 0, expectedSourceRevision: 1, expectedOutlineRevision: 1, expectedOutlineContentHash: accepted.acceptedOutline.contentHash, mapping: await fixture("section-map.json") } }));
+  const mapping = await currentFixtureMapping(request, url, beaconMap());
+  const draftRevision = await acknowledgeGraphMapping(request, url, mapping);
+  const map = await json(request.put(`${url}/source-outline/section-map`, { data: { expectedSectionMapRevision: 0, expectedSourceRevision: 1, expectedOutlineRevision: 1, expectedOutlineContentHash: accepted.acceptedOutline.contentHash, mapping, expectedGraphDraftRevision: draftRevision } }));
   await json(request.post(`${url}/source-outline/section-map/install-graph`, { data: {
     expectedSourceRevision: 1, expectedSourceContentHash: map.source.contentHash, expectedOutlineRevision: 1, expectedOutlineContentHash: map.acceptedOutline.contentHash,
-    expectedSectionMapRevision: 1, expectedSectionMapContentHash: map.acceptedSectionMap.contentHash, expectedGraphRevision: 0,
+    expectedSectionMapRevision: 1, expectedSectionMapContentHash: map.acceptedSectionMap.contentHash, expectedGraphRevision: 0, expectedGraphDraftRevision: await graphDraftRevision(request, url),
   } }));
   for (const stage of stages) {
     const candidate = candidates[stage] ?? await fixture(`${stage}.json`);

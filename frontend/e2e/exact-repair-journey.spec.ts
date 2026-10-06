@@ -12,6 +12,10 @@ type ProviderStatus = {
 };
 
 test("repairs exactly one late scene-beats shard through the real browser and public contracts", async ({ page, request, workbench }) => {
+  // The current nine-node seed has six footage nodes. Route-only decisions
+  // and joins produce no scene shard, so fault the final actual work request.
+  const footageCount = 6;
+  expect((await request.post(`${workbench.providerOrigin}/control/scene-failure`, { data: { ordinal: footageCount } })).ok()).toBeTruthy();
   await configurePublicNoAuthProfile(request, workbench.apiOrigin, workbench.providerOrigin);
   const projectId = await createDemoProject(page, workbench.frontendOrigin);
 
@@ -34,8 +38,8 @@ test("repairs exactly one late scene-beats shard through the real browser and pu
   expect(successfulSiblingResponse).toBeTruthy();
   const providerBeforeRepair = await providerStatus(request, workbench.providerOrigin);
   expect(providerBeforeRepair.failedSceneAttempts).toBe(3);
-  expect(providerBeforeRepair.sceneTargets).toHaveLength(9);
-  expect(providerBeforeRepair.requests.filter((entry) => entry.type === "scene_beats" && !entry.failed)).toHaveLength(8);
+  expect(providerBeforeRepair.sceneTargets).toHaveLength(footageCount);
+  expect(providerBeforeRepair.requests.filter((entry) => entry.type === "scene_beats" && !entry.failed)).toHaveLength(footageCount - 1);
 
   await navigateToStage(page, "07 隔离修复");
   const exactRepair = page.locator("#workspace-main").getByRole("button", { name: "修复这个 work unit" });
@@ -50,7 +54,7 @@ test("repairs exactly one late scene-beats shard through the real browser and pu
   expect(repairRun).toMatchObject({ parentRunId: sourceRun.id, kind: "repair" });
 
   const repaired = await pollProgress(request, workbench.apiOrigin, repairRun.id, "succeeded");
-  expect(repaired.workUnits.filter((unit) => unit.stage === "scene_beats" && unit.status === "succeeded")).toHaveLength(9);
+  expect(repaired.workUnits.filter((unit) => unit.stage === "scene_beats" && unit.status === "succeeded")).toHaveLength(footageCount);
   const providerAfterRepair = await providerStatus(request, workbench.providerOrigin);
   const callsDuringRepair = providerAfterRepair.requests.slice(providerBeforeRepair.totalRequests);
   const repairedSceneCalls = callsDuringRepair.filter((entry) => entry.type === "scene_beats");

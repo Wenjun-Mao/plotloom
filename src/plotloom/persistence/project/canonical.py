@@ -34,7 +34,7 @@ from .constants import CURRENT_STAGE_SCHEMA_VERSION
 from .access import ProjectPersistenceAccess
 
 class ProjectCanonicalPersistence:
-    """Typed project persistence collaborator; the facade owns compatibility only."""
+    """Current canonical persistence and validation inside the caller transaction."""
 
     def __init__(self, access: ProjectPersistenceAccess, gates: Any) -> None:
         self._access = access
@@ -109,7 +109,11 @@ class ProjectCanonicalPersistence:
                 raise TypeError("source-map admission only installs StoryGraphV2")
             from ...source_outline_contracts import validate_section_map_graph
 
-            validate_section_map_graph(payload, ProjectBrief.model_validate(project_row.brief))
+            bible_head = self._access.rows.stage(session, project_row.id, StageName.STORY_BIBLE)
+            bible = self._load_stage_payload(session, project_row.id, StageName.STORY_BIBLE) if bible_head.status == StageStatus.READY.value else None
+            validate_section_map_graph(payload, ProjectBrief.model_validate(project_row.brief), bible)
+            if any(edge.entity_state_effects for edge in payload.edges):
+                input_revisions[StageName.STORY_BIBLE] = bible_head.revision
         else:
             for upstream in upstream_stages(stage):
                 upstream_head = self._access.rows.stage(session, project_row.id, upstream)
@@ -227,6 +231,8 @@ class ProjectCanonicalPersistence:
         expected_revision: int,
         payload: StagePayload | dict[str, Any],
     ) -> StageHead:
+        if stage == StageName.STORY_GRAPH:
+            raise InvalidTransitionError("剧情图只能通过当前来源图草稿确认与准入；请使用共享图工作台。")
         parsed = stage_payload_model(stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION).model_validate(payload)
         with self._access.leases.lifecycle_write() as session:
             project_row = self._access.rows.project(session, project_id)

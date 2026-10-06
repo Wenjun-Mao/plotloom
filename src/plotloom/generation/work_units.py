@@ -133,7 +133,7 @@ from .storyboard_presence_repair import (
 from .validation import CanonicalStageValidationAdapter, SemanticValidationContext, ValidationAdapter
 
 
-WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.14"
+WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.15"
 FRAGMENT_ID_BINDING_VERSION = "fragment_ids.v1"
 AUDIO_EVENT_ID_BINDING_VERSION = "audio_event_ids.v1"
 STORYBOARD_PRIMARY_COVERAGE_BINDING_VERSION = "storyboard_primary_coverage.v1"
@@ -238,29 +238,6 @@ class SceneBeatsFragmentOutput(CamelModel):
     dialogue_cues: list[DialogueCueContent]
 
 
-class DialogueTimingRepairFact(CamelModel):
-    """Trusted, compact evidence for repairing one dialogue timing rejection.
-
-    The fact intentionally contains derived quantities only.  In particular it
-    never copies dialogue text, a validator's free-form message, model
-    reasoning, credentials, or any other provider evidence into a new prompt.
-    """
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    code: Literal["semantic.cue_duration_underestimated"]
-    path: tuple[str | int, ...]
-    timing_profile_version: str = Field(min_length=1, max_length=128)
-    matched_rule_language: str = Field(min_length=1, max_length=32)
-    delivery: DialogueDeliveryPace
-    text_character_count: int = Field(ge=1)
-    units_per_character: int = Field(ge=1)
-    minimum_duration_units: int = Field(ge=1)
-    current_estimated_duration_units: int = Field(ge=1)
-    scene_duration_budget_units: int | None = Field(default=None, ge=1)
-    scene_cue_estimated_total_units: int | None = Field(default=None, ge=0)
-    scene_cue_minimum_total_units: int | None = Field(default=None, ge=0)
-    minimum_fits_scene_budget: bool | None = None
 
 
 class DialogueCapacityDeliveryLimit(CamelModel):
@@ -427,60 +404,8 @@ class CueOrderRepairFact(CamelModel):
         return self
 
 
-class ShotDurationBudgetRepairFact(CamelModel):
-    """Exact aggregate overage for one Storyboard fragment."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    code: Literal["semantic.shot_duration_budget_exceeded"]
-    path: tuple[str | int, ...]
-    scene_id: NonBlankText
-    scene_duration_budget_units: int = Field(ge=1)
-    current_total_duration_units: int = Field(ge=1)
-    required_reduction_units: int = Field(ge=1)
-
-    @model_validator(mode="after")
-    def validate_overage(self) -> "ShotDurationBudgetRepairFact":
-        if self.path != ("shots",):
-            raise ValueError("path must identify the complete shots collection")
-        if self.current_total_duration_units - self.scene_duration_budget_units != self.required_reduction_units:
-            raise ValueError("required reduction must equal the frozen scene overage")
-        return self
 
 
-class CueDurationFitRepairFact(CamelModel):
-    """Exact cue-duration witness for one overfull shot."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    code: Literal["semantic.cue_duration_exceeds_shot"]
-    path: tuple[str | int, ...]
-    shot_local_id: NonBlankText
-    current_shot_duration_units: int = Field(ge=1)
-    scheduled_cue_ids: tuple[NonBlankText, ...] = Field(min_length=1)
-    scheduled_cue_duration_units: tuple[int, ...] = Field(min_length=1)
-    minimum_required_duration_units: int = Field(ge=1)
-
-    @model_validator(mode="after")
-    def validate_cue_fit(self) -> "CueDurationFitRepairFact":
-        if (
-            len(self.path) != 3
-            or self.path[0] != "shots"
-            or not isinstance(self.path[1], int)
-            or isinstance(self.path[1], bool)
-            or self.path[1] < 0
-            or self.path[2] != "cueIds"
-        ):
-            raise ValueError("path must identify one shot cueIds list")
-        if len(self.scheduled_cue_ids) != len(self.scheduled_cue_duration_units):
-            raise ValueError("cue IDs and durations must have the same cardinality")
-        if len(self.scheduled_cue_ids) != len(set(self.scheduled_cue_ids)):
-            raise ValueError("scheduled cue IDs must be unique")
-        if sum(self.scheduled_cue_duration_units) != self.minimum_required_duration_units:
-            raise ValueError("minimum required duration must equal the scheduled cue total")
-        if self.minimum_required_duration_units <= self.current_shot_duration_units:
-            raise ValueError("cue-fit fact requires an overfull shot")
-        return self
 
 
 class JoinIncomingEdgeRepairTarget(CamelModel):
@@ -516,24 +441,13 @@ class JoinAllowedDifferencesRepairFact(CamelModel):
     path: tuple[str | int, ...]
     join_contract_id: str = Field(min_length=1)
     missing_required_state_keys: tuple[NonBlankText, ...] = Field(min_length=1)
-    # Absent only when parsing legacy persisted evidence created before
-    # bounded_correction.v9. New derivation always writes both complete arrays.
-    expected_required_state_keys: tuple[NonBlankText, ...] | None = Field(
-        default=None,
+    expected_required_state_keys: tuple[NonBlankText, ...] = Field(
         min_length=1,
     )
-    expected_allowed_differences: tuple[NonBlankText, ...] | None = Field(
-        default=None,
+    expected_allowed_differences: tuple[NonBlankText, ...] = Field(
         min_length=1,
     )
-    # Added in bounded_correction.v13.  Historical evidence deliberately
-    # omits it; current facts make the same correction turn aware that a key
-    # promoted into requiredStateKeys must also be written on every immutable
-    # direct incoming edge.
-    new_required_key_incoming_edges: tuple[JoinNewRequiredKeyIncomingEdges, ...] | None = Field(
-        default=None,
-        exclude_if=lambda value: value is None,
-    )
+    new_required_key_incoming_edges: tuple[JoinNewRequiredKeyIncomingEdges, ...]
 
     @model_validator(mode="after")
     def validate_issue_identity_and_missing_keys(self) -> "JoinAllowedDifferencesRepairFact":
@@ -550,14 +464,6 @@ class JoinAllowedDifferencesRepairFact(CamelModel):
             set(self.missing_required_state_keys)
         ):
             raise ValueError("missingRequiredStateKeys must be unique")
-        has_expected_required = self.expected_required_state_keys is not None
-        has_expected_allowed = self.expected_allowed_differences is not None
-        if has_expected_required != has_expected_allowed:
-            raise ValueError("complete expected join arrays must be set together")
-        if not has_expected_required:
-            return self
-        assert self.expected_required_state_keys is not None
-        assert self.expected_allowed_differences is not None
         if len(self.expected_required_state_keys) != len(
             set(self.expected_required_state_keys)
         ):
@@ -577,16 +483,15 @@ class JoinAllowedDifferencesRepairFact(CamelModel):
             raise ValueError(
                 "missingRequiredStateKeys must belong to expectedAllowedDifferences"
             )
-        if self.new_required_key_incoming_edges is not None:
-            targets = {item.state_key: item for item in self.new_required_key_incoming_edges}
-            if set(targets) != missing:
-                raise ValueError(
-                    "newRequiredKeyIncomingEdges must name exactly the promoted keys"
-                )
-            for item in targets.values():
-                edge_ids = [edge.edge_id for edge in item.incoming_edges]
-                if len(edge_ids) != len(set(edge_ids)):
-                    raise ValueError("incoming edge targets must be unique")
+        targets = {item.state_key: item for item in self.new_required_key_incoming_edges}
+        if set(targets) != missing:
+            raise ValueError(
+                "newRequiredKeyIncomingEdges must name exactly the promoted keys"
+            )
+        for item in targets.values():
+            edge_ids = [edge.edge_id for edge in item.incoming_edges]
+            if len(edge_ids) != len(set(edge_ids)):
+                raise ValueError("incoming edge targets must be unique")
         return self
 
 
@@ -1124,27 +1029,9 @@ class ContinuityEntityStateRepairFact(CamelModel):
         return self
 
 
-class LegacyStoryboardTimingRepairPlanFact(CamelModel):
-    """Read-only v15 timing-plan evidence.
-
-    The previous timing-plan shape predates a binding to the source guidance.
-    It remains parseable so terminal traces retain their original JSON, but is
-    deliberately outside the current discriminated union and is rejected if a
-    nonterminal correction ever tries to execute it.
-    """
-
-    model_config = CamelModel.model_config | {"frozen": True, "extra": "allow"}
-
-    code: Literal[
-        "semantic.shot_duration_budget_exceeded",
-        "semantic.cue_duration_exceeds_shot",
-    ]
-    path: tuple[str | int, ...]
-    plan: dict[str, Any]
-    plan_hash: str = Field(min_length=1)
 
 
-CurrentSemanticRepairFact: TypeAlias = Annotated[
+SemanticRepairFact: TypeAlias = Annotated[
     DialogueCapacityRepairFact
     | DialogueNodeBudgetRepairFact
     | CueOrderRepairFact
@@ -1162,18 +1049,7 @@ CurrentSemanticRepairFact: TypeAlias = Annotated[
     | ContinuityEntityStateRepairFact,
     Field(discriminator="code"),
 ]
-# Timing witnesses are intentionally outside the current discriminated union:
-# their legacy codes now identify executable plans.  The parser below keeps
-# sealed historical evidence readable without letting old facts enter a new
-# correction contract.
-SemanticRepairFact: TypeAlias = (
-    CurrentSemanticRepairFact
-    | DialogueTimingRepairFact
-    | ShotDurationBudgetRepairFact
-    | CueDurationFitRepairFact
-    | LegacyStoryboardTimingRepairPlanFact
-)
-_SEMANTIC_REPAIR_FACT_ADAPTER = TypeAdapter(CurrentSemanticRepairFact)
+_SEMANTIC_REPAIR_FACT_ADAPTER = TypeAdapter(SemanticRepairFact)
 
 
 FragmentOutput: TypeAlias = SceneBeatsFragmentOutput | StoryboardFragmentOutput
@@ -1311,7 +1187,7 @@ class StoryGraphContentFillValidationAdapter(ValidationAdapter[StoryGraphV2]):
             # semantics used by canonical installation here; otherwise an
             # ordinary non-finite edge value can bypass fact projection until
             # a later stage, where no exact graph correction exists.
-            validate_story_graph(canonical_graph, self.brief, strict_v2=True, bible=self.bible)
+            validate_story_graph(canonical_graph, self.brief, bible=self.bible)
         except DomainValidationError as exc:
             return ValidationReport(accepted=False, issues=exc.issues)
         return ValidationReport(accepted=True, value=canonical_graph)
@@ -1326,16 +1202,12 @@ class WorkUnitPromptContract(_FrozenModel):
     so a later bounded correction can obey the same frozen limits.
     """
 
-    contract_version: str = WORK_UNIT_PROMPT_CONTRACT_VERSION
-    correction_policy_version: str = CORRECTION_POLICY_VERSION
-    # Optional so terminal historical contracts round-trip without injecting
-    # identities that did not exist when they were sealed.  Current contracts
-    # set all four explicitly, including primary attempts, so a later
-    # correction cannot silently execute under a changed compiler.
-    correction_directive_registry_version: str | None = None
-    correction_evidence_projection_version: str | None = None
-    correction_issue_selection_version: str | None = None
-    correction_response_schema_version: str | None = None
+    contract_version: str
+    correction_policy_version: str
+    correction_directive_registry_version: str
+    correction_evidence_projection_version: str
+    correction_issue_selection_version: str
+    correction_response_schema_version: str
     # These hashes are correction-variant provenance.  Primary attempts have
     # no selected directives/evidence overlay; correction attempts require all
     # four and bind the exact issue selection, prompt projection, and narrowed
@@ -1400,31 +1272,19 @@ class WorkUnitPromptContract(_FrozenModel):
     storyboard_timing_guidance: StoryboardTimingGuidance | None = None
     unit_dependency_hash: str = Field(min_length=1)
     fragment_id_binding_version: str = FRAGMENT_ID_BINDING_VERSION
-    # Optional solely so historical prompt evidence can be parsed and hashed
-    # without injecting a field it never contained.  Audio IDs are a distinct
-    # binding namespace and must not perturb existing scene/beat/shot IDs.
-    audio_event_id_binding_version: str | None = None
+    audio_event_id_binding_version: str | None
     storyboard_primary_coverage_binding_version: str | None = None
 
     def snapshot_dump(self) -> dict[str, Any]:
-        """Serialize only the fields that belonged to the sealed contract.
-
-        Historical trace readers may parse an older contract for inspection,
-        but they must not inject later optional defaults when comparing or
-        hashing that evidence.  Current compilers explicitly set every current
-        identity field, so ``exclude_unset`` loses nothing for new attempts.
-        """
-
-        return self.model_dump(
-            mode="json",
-            by_alias=True,
-            exclude_unset=True,
-        )
+        """Serialize the complete current prompt contract."""
+        return self.model_dump(mode="json", by_alias=True)
 
     @model_validator(mode="after")
     def validate_correction_schedule(self) -> WorkUnitPromptContract:
         """Keep primary and correction provenance structurally unambiguous."""
 
+        if self.contract_version != WORK_UNIT_PROMPT_CONTRACT_VERSION:
+            raise ValueError("unsupported work-unit prompt contract version")
         has_ordinal = self.correction_ordinal is not None
         has_strategy = self.correction_strategy is not None
         if has_ordinal != has_strategy:
@@ -1446,21 +1306,20 @@ class WorkUnitPromptContract(_FrozenModel):
             self.correction_issue_selection_version,
             self.correction_response_schema_version,
         )
-        if self.contract_version == WORK_UNIT_PROMPT_CONTRACT_VERSION:
-            if self.correction_policy_version != CORRECTION_POLICY_VERSION:
-                raise ValueError(
-                    "current work-unit contracts require the current correction policy"
-                )
-            expected_versions = (
-                CORRECTION_DIRECTIVE_REGISTRY_VERSION,
-                CORRECTION_EVIDENCE_PROJECTION_VERSION,
-                CORRECTION_ISSUE_SELECTION_VERSION,
-                CORRECTION_RESPONSE_SCHEMA_VERSION,
+        if self.correction_policy_version != CORRECTION_POLICY_VERSION:
+            raise ValueError(
+                "current work-unit contracts require the current correction policy"
             )
-            if correction_versions != expected_versions:
-                raise ValueError(
-                    "current work-unit contracts require the current correction compiler versions"
-                )
+        expected_versions = (
+            CORRECTION_DIRECTIVE_REGISTRY_VERSION,
+            CORRECTION_EVIDENCE_PROJECTION_VERSION,
+            CORRECTION_ISSUE_SELECTION_VERSION,
+            CORRECTION_RESPONSE_SCHEMA_VERSION,
+        )
+        if correction_versions != expected_versions:
+            raise ValueError(
+                "current work-unit contracts require the current correction compiler versions"
+            )
         correction_hashes = (
             self.correction_directive_set_hash,
             self.correction_evidence_projection_hash,
@@ -1523,7 +1382,6 @@ class WorkUnitPromptContract(_FrozenModel):
         has_join_contract = has_join_version and has_join_hash
         if (
             self.stage == StageName.SCENE_BEATS
-            and self.contract_version == WORK_UNIT_PROMPT_CONTRACT_VERSION
             and not has_join_contract
         ):
             raise ValueError(
@@ -1542,7 +1400,6 @@ class WorkUnitPromptContract(_FrozenModel):
         has_edge_entry_contract = has_edge_entry_version and has_edge_entry_hash
         if (
             self.stage == StageName.SCENE_BEATS
-            and self.contract_version == WORK_UNIT_PROMPT_CONTRACT_VERSION
             and not has_edge_entry_contract
         ):
             raise ValueError(
@@ -1554,7 +1411,6 @@ class WorkUnitPromptContract(_FrozenModel):
             )
         if (
             self.stage == StageName.STORYBOARD
-            and self.contract_version == WORK_UNIT_PROMPT_CONTRACT_VERSION
             and self.storyboard_timing_guidance is None
         ):
             raise ValueError("current Storyboard contracts require timing guidance")
@@ -1568,7 +1424,6 @@ class WorkUnitPromptContract(_FrozenModel):
         has_audio_event_binding = self.audio_event_id_binding_version is not None
         if (
             self.stage == StageName.STORYBOARD
-            and self.contract_version == WORK_UNIT_PROMPT_CONTRACT_VERSION
             and not has_audio_event_binding
         ):
             raise ValueError(
@@ -1579,8 +1434,7 @@ class WorkUnitPromptContract(_FrozenModel):
                 "audio event ID provenance only belongs to Storyboard"
             )
         if (
-            self.contract_version == WORK_UNIT_PROMPT_CONTRACT_VERSION
-            and has_audio_event_binding
+            has_audio_event_binding
             and self.audio_event_id_binding_version != AUDIO_EVENT_ID_BINDING_VERSION
         ):
             raise ValueError("unsupported audio event ID binding version")
@@ -1784,7 +1638,6 @@ def compile_work_unit_request(
             expected_capacity = plan_dialogue_capacity(
                 scene_timing_allocation=expected_timing,
                 dialogue_timing_profile=stage_plan.dialogue_timing_profile,
-                policy_version=stage_plan.dialogue_capacity_plan.policy_version,
                 authoring_language=stage_plan.dialogue_capacity_plan.authoring_language,
             )
         except DialogueCapacityPlanningError as exc:
@@ -2483,60 +2336,6 @@ def _fragment_semantic_issues(
     return _storyboard_semantic_issues(output, work_unit=work_unit, brief=brief, bible=bible, scoped_context=scoped_context)
 
 
-def story_graph_join_repair_facts(
-    value: Any,
-    issues: tuple[ValidationIssue, ...],
-) -> tuple[SemanticRepairFact, ...]:
-    """Return only topology-bound, correction-safe Story Graph join facts.
-
-    The response schema fixes content IDs but intentionally omits edge
-    endpoints.  A correction therefore cannot reconstruct which edges enter a
-    join unless this function projects that immutable topology into typed
-    evidence.  It never selects creative state values except when every other
-    convergent incoming edge already proves one exact finite value.
-    """
-
-    # Kept for direct historical tests/readers.  The execution path below
-    # supplies topology and produces the richer current fact.  Without one we
-    # retain only the original safe array replacement, never infer endpoints.
-    try:
-        fill = StoryGraphContentFill.model_validate(value, by_alias=True)
-    except ValidationError:
-        return ()
-    joins_by_id = {join.id: join for join in fill.join_contracts}
-    facts: list[SemanticRepairFact] = []
-    for issue in issues:
-        path = issue.path
-        if (
-            issue.code != "semantic.join_allowed_differences_must_be_required"
-            or len(path) != 3
-            or path[0] != "joinContracts"
-            or not isinstance(path[1], str)
-            or path[2] != "allowedDifferences"
-        ):
-            continue
-        join = joins_by_id.get(path[1])
-        if join is None:
-            continue
-        key_lists = (join.required_state_keys, join.allowed_differences)
-        if any(
-            any(not key.strip() for key in keys) or len(keys) != len(set(keys))
-            for keys in key_lists
-        ):
-            continue
-        missing = tuple(key for key in join.allowed_differences if key not in set(join.required_state_keys))
-        if missing:
-            facts.append(
-                JoinAllowedDifferencesRepairFact(
-                    code=issue.code,
-                    path=path,
-                    join_contract_id=join.id,
-                    missing_required_state_keys=missing,
-                    expected_required_state_keys=tuple((*join.required_state_keys, *missing)),
-                    expected_allowed_differences=tuple(join.allowed_differences),
-                )
-            )
-    return tuple(facts)
 
 
 def _story_graph_edge_state_effect_json_repair_facts(
@@ -4000,34 +3799,12 @@ def semantic_repair_facts(
 
 
 def parse_semantic_repair_fact(value: Any) -> SemanticRepairFact:
-    """Revalidate persisted repair evidence without adding current defaults."""
-
-    if isinstance(value, Mapping):
-        if value.get("code") == "semantic.cue_duration_underestimated":
-            # Read-only evidence from the retired duration-estimate repair
-            # contract.  It remains inspectable but is deliberately outside
-            # ``CurrentSemanticRepairFact`` and therefore cannot authorize a
-            # newly compiled correction.
-            return DialogueTimingRepairFact.model_validate(value)
-        if "plan" in value and value.get("code") in {
-            "semantic.shot_duration_budget_exceeded",
-            "semantic.cue_duration_exceeds_shot",
-        } and "guidanceHash" not in value:
-            return LegacyStoryboardTimingRepairPlanFact.model_validate(value)
-        if "plan" not in value and value.get("code") == "semantic.shot_duration_budget_exceeded":
-            return ShotDurationBudgetRepairFact.model_validate(value)
-        if "plan" not in value and value.get("code") == "semantic.cue_duration_exceeds_shot":
-            return CueDurationFitRepairFact.model_validate(value)
+    """Revalidate current repair evidence; retired witness shapes are rejected."""
     return _SEMANTIC_REPAIR_FACT_ADAPTER.validate_python(value)
 
 
 def serialize_semantic_repair_fact(fact: SemanticRepairFact) -> dict[str, Any]:
-    """Serialize current facts without injecting absent historical fields.
-
-    ``exclude_none`` preserves old evidence shape, except that an explicitly
-    authorized JSON null is semantically distinct from no `expectedValue`
-    authority.  Keep that one null when `hasExpectedValue` says it is real.
-    """
+    """Serialize current evidence, preserving authorized JSON null assignments."""
 
     payload = fact.model_dump(mode="json", by_alias=True, exclude_none=True)
     if isinstance(fact, JoinStateEffectRepairFact) and fact.has_expected_value:

@@ -1,3 +1,4 @@
+import { acknowledgeGraphMapping, graphDraftRevision, currentFixtureMapping, beaconMap } from "./graph-authoring";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -75,13 +76,16 @@ export async function createCastReadyProject(
   const acceptedOutline = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/accept`, {
     data: { jobId: outlinePrepared.jobId, expectedSourceRevision: sourceState.source.revision, expectedOutlineRevision: 0 },
   }));
+  const projectUrl = `${apiOrigin}/api/v2/projects/${projectId}`;
+  const mapping = await currentFixtureMapping(request, projectUrl, beaconMap());
+  const draftRevision = await acknowledgeGraphMapping(request, projectUrl, mapping);
   const mapSaved = await getJson<any>(request.put(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/section-map`, {
     data: {
       expectedSectionMapRevision: 0,
       expectedSourceRevision: acceptedOutline.source.revision,
       expectedOutlineRevision: acceptedOutline.acceptedOutline.revision,
       expectedOutlineContentHash: acceptedOutline.acceptedOutline.contentHash,
-      mapping: sectionMap(),
+      mapping, expectedGraphDraftRevision: draftRevision,
     },
   }));
   await getJson(request.post(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/section-map/install-graph`, {
@@ -92,7 +96,7 @@ export async function createCastReadyProject(
       expectedOutlineContentHash: mapSaved.acceptedOutline.contentHash,
       expectedSectionMapRevision: mapSaved.acceptedSectionMap.revision,
       expectedSectionMapContentHash: mapSaved.acceptedSectionMap.contentHash,
-      expectedGraphRevision: 0,
+      expectedGraphRevision: 0, expectedGraphDraftRevision: await graphDraftRevision(request, projectUrl),
     },
   }));
   const castPrepared = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/candidates`));
@@ -235,24 +239,6 @@ function sourceMaterial(label: string) {
   };
 }
 
-function sectionMap() {
-  return {
-    sections: [
-      { sectionId: "opening", title: "Storm warning", summary: "The keeper has one cable and two destinations.", ending: false },
-      { sectionId: "beacon", title: "Beacon lit", summary: "The beacon guides the sailors through the storm.", ending: true },
-      { sectionId: "dock", title: "Dock lit", summary: "The dock welcomes the boats while the beacon goes dark.", ending: true },
-    ],
-    choice: {
-      choiceId: "power-choice",
-      sectionId: "opening",
-      prompt: "Where should the keeper send the cable?",
-      outcomes: [
-        { outcomeId: "beacon-path", label: "Light the beacon", consequence: "The dock loses power.", endingSectionId: "beacon" },
-        { outcomeId: "dock-path", label: "Light the dock", consequence: "The beacon goes dark.", endingSectionId: "dock" },
-      ],
-    },
-  };
-}
 
 async function writeOutlineDelivery(prepared: any): Promise<void> {
   const request = JSON.parse(await readFile(path.join(prepared.packagePath, "request.json"), "utf8"));

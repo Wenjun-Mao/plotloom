@@ -399,6 +399,18 @@ class ProjectStore(ProjectCreativeHandoffs):
     def source_outline_state(self) -> SourceOutlineReviewState:
         return self.repository.source_outline.get_state(self.manifest.project_id)
 
+    def graph_workbench_state(self):
+        return self.repository.graph_workbench.get_state(self.manifest.project_id)
+
+    def preview_graph_command(self, request):
+        return self.repository.graph_workbench.preview(self.manifest.project_id, request)
+
+    def apply_graph_command(self, request):
+        return self.repository.graph_workbench.apply(self.manifest.project_id, request)
+
+    def rebase_graph_draft(self, request):
+        return self.repository.graph_workbench.rebase(self.manifest.project_id, request)
+
     def save_source_material(
         self, *, expected_source_revision: int, material: SourceMaterial
     ) -> SourceOutlineReviewState:

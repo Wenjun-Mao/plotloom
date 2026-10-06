@@ -79,6 +79,7 @@ test.describe("project-folder Close", () => {
     await expectClosedDirectoryRow(page, projectId);
     await workbench.restartBackend();
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
+    await openBrief(page);
     await expect(page.getByText("发现未保存草稿", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "恢复草稿" }).click();
     await expect(page.getByLabel("片名")).toHaveValue(draftTitle);
@@ -147,6 +148,7 @@ test.describe("project-folder Close", () => {
     await page.evaluate(() => sessionStorage.clear());
 
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
+    await openBrief(page);
     await expect(page.getByLabel("片名")).toHaveValue(canonicalTitle);
     const drafts = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/authoring-drafts`);
     expect(drafts.ok()).toBeTruthy();
@@ -306,6 +308,11 @@ test.describe("project-folder Close", () => {
     expect(await drafts.json()).toEqual([]);
   });
 });
+
+async function openBrief(page: import("@playwright/test").Page): Promise<void> {
+  await expect(page.getByRole("heading", { name: "创作工作台", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
+}
 
 async function expectClosedDirectoryRow(page: import("@playwright/test").Page, projectId: string): Promise<void> {
   // Close responds before directory refresh. Finish this read before restart

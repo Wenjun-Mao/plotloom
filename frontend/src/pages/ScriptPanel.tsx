@@ -1,3 +1,4 @@
+import { ProjectReportFrame } from "../components/ProjectReportFrame";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
@@ -7,11 +8,13 @@ import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskAct
 import { useReviewActivation } from "./useReviewActivation";
 import { StageGuide } from "../components/StageGuide";
 import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
+import { sectionEpisode } from "../features/graph/scriptProjection";
+import { ScriptEpisodeView } from "../features/graph/ScriptEpisodeView";
 
 type ProjectSession = { projectId: string; epoch: number };
 
 /** F4 reviews one upstream JSON authority and permits only bound episode replacement. */
-export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true, refreshToken, onContinue }: { projectId: string; readOnly: boolean; active?: boolean; refreshToken?: unknown; onContinue?: () => void }) {
+export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true, refreshToken, onContinue, contextSectionId }: { projectId: string; readOnly: boolean; active?: boolean; refreshToken?: unknown; onContinue?: () => void; contextSectionId?: string }) {
   const [state, setState] = useState<ScriptReviewState>();
   const [assignment, setAssignment] = useState("");
   const [error, setError] = useState("");
@@ -57,6 +60,13 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
     // A refreshed head can invalidate saving, but cannot discard that work.
     if (!draftDirty.current) { setSectionId(""); setDraft(""); setDraftBase(null); }
   }, [projectId, state?.acceptedScript?.revision, state?.acceptedScript?.contentHash, state?.status]);
+  useEffect(() => {
+    if (!contextSectionId || !acceptedHead || state?.status !== "reopened" || draftDirty.current) return;
+    try {
+      const episode = sectionEpisode(acceptedHead.script, acceptedHead.binding, contextSectionId);
+      setSectionId(episode ? contextSectionId : ""); setDraft(episode ? JSON.stringify(episode, null, 2) : ""); setDraftBase(episode ? acceptedHead : null);
+    } catch (reason) { setError(String(reason)); }
+  }, [contextSectionId, acceptedHead?.revision, acceptedHead?.contentHash, state?.status]);
 
   const run = <Result,>(operation: () => Promise<Result>, onSuccess?: (result: Result) => void) => {
     const session = activeProject.current;
@@ -80,18 +90,17 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
   </article>;
 
   const { candidate, acceptedScript: accepted } = state;
-  const script = activeScript(candidate, accepted);
   const draftMatches = Boolean(draftBase && accepted && draftBase.revision === accepted.revision && draftBase.contentHash === accepted.contentHash);
   const retained = Boolean(draftDirty.current && draftBase && (state.status !== "reopened" || !draftMatches));
   const selectSection = (nextSectionId: string) => {
     if (draftDirty.current && nextSectionId !== sectionId) { setError("请先保存或舍弃当前章节修改，再切换章节。"); return; }
     setSectionId(nextSectionId);
-    setDraft(episodeForSection(script, nextSectionId));
+    setDraft(accepted ? episodeForSection(accepted, nextSectionId) : "");
     setDraftBase(accepted); draftDirty.current = false;
   };
-  const editDraft = (next: string) => { draftDirty.current = next !== episodeForSection(draftBase?.script || null, sectionId); setDraft(next); reviewDraft.changed(JSON.stringify({ sectionId, text: next })); };
+  const editDraft = (next: string) => { draftDirty.current = next !== (draftBase ? episodeForSection(draftBase, sectionId) : ""); setDraft(next); reviewDraft.changed(JSON.stringify({ sectionId, text: next })); };
   const discardDraft = () => { draftDirty.current = false; setSectionId(""); setDraft(""); setDraftBase(null); void reviewDraft.clear(); };
-  const adoptCurrent = () => { if (accepted) { draftDirty.current = false; setDraftBase(accepted); setDraft(episodeForSection(accepted.script, sectionId)); void reviewDraft.clear(); } };
+  const adoptCurrent = () => { if (accepted) { draftDirty.current = false; setDraftBase(accepted); setDraft(episodeForSection(accepted, sectionId)); void reviewDraft.clear(); } };
   const save = () => {
     if (!draftBase || !draftMatches || state.status !== "reopened") { setError("草稿绑定已过期，请先明确舍弃草稿或采用当前章节。"); return; }
     try {
@@ -112,6 +121,8 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
     <header><span>剧本</span><strong>{checking ? "正在刷新" : failed ? "无法刷新" : heading(state)}</strong></header>
     {failed && <Button variant="quiet" onClick={() => void recheck()}>重试加载剧本</Button>}
     <p>根据已确认的故事结构编写所有章节；每次完整播放依次经过选择、后续剧情与一个结局。</p>
+    {contextSectionId && <><p>当前节点：{contextSectionId}。准备、发送、结果检查与确认使用影响整份剧本；章节保存仅替换所选稳定章节。</p>{accepted && <ScriptEpisodeView accepted={accepted} sectionId={contextSectionId} />}</>}
+    {contextSectionId && draftDirty.current && sectionId !== contextSectionId && <p role="status">正在保留 {sectionId} 的未保存章节；切换节点不会将其保存到 {contextSectionId}。请先保存或舍弃当前章节修改。</p>}
     <StageGuide next={onContinue && <Button variant="quiet" disabled={checking || failed || busy || draftDirty.current || state.status !== "accepted" || !accepted} onClick={onContinue}>继续：分镜评审</Button>}>
       {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : busy ? "正在处理剧本任务，请稍候。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃章节修改，再继续分镜。" : state.status === "stale" ? "故事或美术设定已变化，请更新并确认剧本。" : state.status === "accepted" && accepted ? "完整剧本已确认。下一步准备分镜评审；切换页面不会自动生成镜头或媒体。" : candidate?.status === "ready" ? "阅读候选剧本，确认开场、选择和结局表达，再确认使用。" : "准备剧本任务并发送给文字创作助手。返回的剧本须先审阅，再确认使用。"}
     </StageGuide>
@@ -128,7 +139,8 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
       <Button disabled={ownerReadOnly || busy || checking} onClick={discardDraft}>舍弃章节草稿</Button>
       <Button disabled={readOnly || busy || !accepted} onClick={adoptCurrent}>用当前章节替换草稿</Button>
     </section>}
-    {reportJobId && <Report projectId={projectId} jobId={reportJobId} />}
+    {draftDirty.current && !retained && <Button disabled={readOnly || busy} onClick={discardDraft}>舍弃当前章节修改</Button>}
+    {reportJobId && <Report key={`${reportJobId}:${accepted?.revision}:${accepted?.contentHash}`} projectId={projectId} jobId={reportJobId} />}
     {candidate?.status === "prepared" && <details><summary>查看任务说明（手动方式）</summary><Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.recoverScriptHandoff(projectId, candidate.jobId), result => setAssignment(result.assignment))}>恢复剧本任务</Button>{assignment && <ManualTaskAssignment key={`${projectId}:${candidate.jobId}:${assignment}`} assignment={assignment} taskName="剧本" />}</details>}
     {error && <ErrorNotice message={error} />}
   </article>;
@@ -161,7 +173,7 @@ function SectionEditor({ accepted, disabled, sectionId, draft, onSelect, onDraft
       <option value="">选择稳定章节</option>
       {accepted.binding.sectionBindings.map(item => <option key={item.sectionId} value={item.sectionId}>{item.sectionId} · episode {item.episode}</option>)}
     </select></label>
-    {sectionId && <><textarea className="source-outline-json" disabled={disabled} rows={22} value={draft} onChange={event => onDraft(event.target.value)} /><Button variant="primary" disabled={disabled} onClick={onSave}>保存此章节，不覆盖其他章节</Button></>}
+    {sectionId && <><textarea aria-label={`${sectionId} 章节剧本 JSON`} className="source-outline-json" disabled={disabled} rows={22} value={draft} onChange={event => onDraft(event.target.value)} /><Button variant="primary" disabled={disabled} onClick={onSave}>保存此章节，不覆盖其他章节</Button></>}
   </section>;
 }
 
@@ -170,20 +182,12 @@ function ScriptJson({ title, script }: { title: string; script: Record<string, u
 }
 
 function Report({ projectId, jobId }: { projectId: string; jobId: string }) {
-  return <details><summary>打开原始只读上游报告</summary><iframe title="original derived upstream script report" className="source-outline-report" sandbox="" src={plotloomApi.scriptCandidateReportUrl(projectId, jobId)} /></details>;
+  return <details><summary>打开原始只读上游报告</summary><ProjectReportFrame sandbox="" title="original derived upstream script report" className="source-outline-report" url={plotloomApi.scriptCandidateReportUrl(projectId, jobId)} /></details>;
 }
 
-function activeScript(candidate: ScriptCandidate | null, accepted: AcceptedScriptRevision | null): Record<string, unknown> | null {
-  if (candidate?.status === "ready") return candidate.script;
-  return accepted?.script || null;
-}
-
-function episodeForSection(script: Record<string, unknown> | null, sectionId: string): string {
-  const bindings = Array.isArray(script?.sectionBindings) ? script.sectionBindings : [];
-  const binding = bindings.find(item => typeof item === "object" && item !== null && (item as Record<string, unknown>).sectionId === sectionId) as Record<string, unknown> | undefined;
-  const episodes = Array.isArray(script?.episodes) ? script.episodes : [];
-  const episode = episodes.find(item => typeof item === "object" && item !== null && (item as Record<string, unknown>).ep === binding?.episode);
-  return JSON.stringify(episode || {}, null, 2);
+function episodeForSection(accepted: AcceptedScriptRevision, sectionId: string): string {
+  if (!sectionId) return "";
+  return JSON.stringify(sectionEpisode(accepted.script, accepted.binding, sectionId), null, 2);
 }
 
 function heading(state: ScriptReviewState): string {

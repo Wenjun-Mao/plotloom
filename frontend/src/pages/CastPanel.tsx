@@ -1,3 +1,4 @@
+import { ProjectReportFrame } from "../components/ProjectReportFrame";
 import { useEffect, useRef, useState } from "react";
 
 import { plotloomApi } from "../api";
@@ -90,7 +91,7 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
     {accepted && <AcceptedCastSummary accepted={accepted} current={!loadError && state.status === "accepted"} onEdit={() => act(() => plotloomApi.reopenCast(projectId, accepted.revision), undefined, true)} disabled={readOnly || busy || state.status === "reopened"} />}
     {!candidate && state.status !== "reopened" && <section className="cast-next-action"><div><strong>创建新角色提案</strong><small>先准备任务，再发送给文字创作助手。结果需要你审核确认。</small></div><Button variant="quiet" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.prepareCastCandidate(projectId), (result) => setAssignment(result.assignment))}>创建新角色提案</Button></section>}
     {candidate && <>
-      <details className="cast-technical"><summary>查看提案来源与技术详情</summary><small>冻结来源与章节：r{candidate.binding.sourceRevision} · r{candidate.binding.outlineRevision} · {candidate.binding.sectionIds.join(" · ")}</small>{candidate.status === "ready" && <><pre>{JSON.stringify(candidate.cast, null, 2)}</pre>{candidate.reportAvailable && <iframe title="只读上游角色报告" className="source-outline-report" sandbox="" src={plotloomApi.castCandidateReportUrl(projectId, candidate.jobId)} />}</>}</details>
+      <details className="cast-technical"><summary>查看提案来源与技术详情</summary><small>冻结来源与章节：r{candidate.binding.sourceRevision} · r{candidate.binding.outlineRevision} · {candidate.binding.sectionIds.join(" · ")}</small>{candidate.status === "ready" && <><pre>{JSON.stringify(candidate.cast, null, 2)}</pre>{candidate.reportAvailable && <ProjectReportFrame sandbox="" title="只读上游角色报告" className="source-outline-report" url={plotloomApi.castCandidateReportUrl(projectId, candidate.jobId)} />}</>}</details>
       {candidate.status === "prepared" && <><SpecialistTaskActions projectId={projectId} stage="characters" jobId={candidate.jobId} disabled={readOnly || busy} sendDisabled={state.status === "stale"} onDelivered={() => onRefresh()} /><Button variant="danger" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.cancelCastCandidate(projectId, candidate.jobId))}>取消此任务</Button></>}
       {candidate.status === "ready" && <><CastEditor characters={castCharacters} disabled={readOnly || busy || state.status === "stale"} onChange={updateDirection} /><Button variant="primary" disabled={readOnly || busy || state.status === "stale" || !canConfirm} onClick={saveAccepted}>确认使用此角色设定</Button></>}
     </>}

@@ -9,6 +9,7 @@ import { initialStagesThrough, projectCreationBody, projectCreationRequest, work
 import type { ProjectResource, ServerStageName, WorkspaceProject } from "../../types";
 import { authoringDraftKey, canonicalDraftConsumption, messageFrom, newClientDraftOwner, sameDraftPayload, validationIssuesFrom, type DurableDraftStatus, type WorkspaceOperation } from "./contracts";
 import type { WorkspaceSession } from "./useWorkspaceSession";
+import { readGraphDraft } from "../../features/graph/contracts";
 
 type AuthoringSession = Pick<WorkspaceSession,
   "project" | "connection" | "route" | "serverDrafts" | "capture" | "isCurrent"
@@ -225,11 +226,16 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
   }, [beginSave, createProjectFrom, finishSave, flushAuthoringDraft, refreshStaleAcceptedProject]);
 
   const commitStage = useCallback(async <T,>(stage: ServerStageName, content: T) => {
+    if (stage === "story_graph") {
+      if (!await flushAuthoringDraft(stage)) return;
+      currentDraft.current = undefined; setRestoredDraft(undefined);
+      return;
+    }
     const generation = beginSave();
     if (!generation) return;
     const source = current.current;
     const operation = source.session.capture();
-    const key = stage === "story_bible" ? "storyBible" : stage === "story_graph" ? "storyGraph" : stage === "scene_beats" ? "sceneBeats" : "storyboard";
+    const key = stage === "story_bible" ? "storyBible" : stage === "scene_beats" ? "sceneBeats" : "storyboard";
     const nextLocal = markDownstreamStale(workspaceWithStageDraft(source.session.project, stage, content), stage);
     try {
       if (!source.session.project.id) {
@@ -319,6 +325,27 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
   const copyDraftConflict = useCallback(async () => {
     const conflict = draftConflict;
     if (!conflict) return false;
+    if (conflict.scope === "story_graph") {
+      const source = current.current, projectId = source.session.project.id;
+      if (!projectId) return false;
+      const generation = beginSave();
+      if (!generation) return false;
+      const operation = source.session.capture();
+      try {
+        const state = await plotloomApi.getGraphWorkbench(projectId);
+        if (!source.session.isCurrent(operation)) return false;
+        const saved = await plotloomApi.recoverGraphDraft(projectId, { expectedDraftRevision: state.draft?.draftRevision ?? 0,
+          expectedBindingHash: state.bindingHash, payload: readGraphDraft(conflict.record.payload) });
+        if (!source.session.isCurrent(operation)) return false;
+        source.session.serverDrafts.current.set(authoringDraftKey(projectId, "story_graph"), saved);
+        discardDraftRecord(conflict.record);
+        currentDraft.current = { scope: "story_graph", payload: saved.payload };
+        setRestoredDraft({ scope: "story_graph", payload: saved.payload, source: "server" });
+        setDraftConflict(undefined);
+        return true;
+      } catch (error) { if (source.session.isCurrent(operation)) source.feedback.setError(`图草稿未恢复：${messageFrom(error)}`); return false; }
+      finally { finishSave(operation, generation); }
+    }
     const generation = beginSave();
     if (!generation) return false;
     const source = current.current;

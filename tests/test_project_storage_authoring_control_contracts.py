@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import STAGE_ORDER, StageName
+from plotloom.domain import InitialStage, STAGE_ORDER, StageName
 from plotloom.project_storage import ProjectFolderStorage
 
 from tests.backend_core.conftest import all_stage_payloads
@@ -230,18 +230,13 @@ def test_gate_result_identity_is_scoped_to_the_project_revision(tmp_path: Path) 
         outputs_root=tmp_path / "outputs",
         application_data_root=tmp_path / "application",
     )
-    first = storage.projects.create(FIXED_CHINESE_BRIEF)
+    initial = [InitialStage(stage=stage, payload=payload.model_dump(mode="json", by_alias=True))
+        for stage, payload in zip(STAGE_ORDER, all_stage_payloads(), strict=True)]
+    first = storage.projects.create(FIXED_CHINESE_BRIEF, initial_stages=initial)
     second = storage.projects.create(
-        FIXED_CHINESE_BRIEF.model_copy(update={"title": "A second revision scope"})
+        FIXED_CHINESE_BRIEF.model_copy(update={"title": "A second revision scope"}), initial_stages=initial
     )
     try:
-        for store in (first, second):
-            for stage, payload in zip(STAGE_ORDER, all_stage_payloads(), strict=True):
-                store.update_stage(
-                    stage,
-                    payload.model_dump(mode="json", by_alias=True),
-                    expected_revision=0,
-                )
         first_head = first.authoring.get_stage_head(first.project().id, StageName.STORYBOARD)
         second_head = second.authoring.get_stage_head(second.project().id, StageName.STORYBOARD)
         assert first_head.entity_revision_id is not None

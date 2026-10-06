@@ -1,3 +1,4 @@
+import { acknowledgeGraphMapping, graphDraftRevision, currentFixtureMapping, beaconMap } from "./fixtures/graph-authoring";
 import { createHash } from "node:crypto";
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -471,11 +472,14 @@ async function createAcceptedCastProject(request: Api, apiOrigin: string, label:
   await writeStageDelivery(outline, "outline.json", { source: "F3A browser fixture", summary: "A bounded beacon choice.", sections: ["opening", "beacon", "dock"] }, "f3a-outline", "outline");
   await getJson(request.post(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/candidates/${outline.jobId}/refresh`));
   const acceptedOutline = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/accept`, { data: { jobId: outline.jobId, expectedSourceRevision: source.source.revision, expectedOutlineRevision: 0 } }));
+  const projectUrl = `${apiOrigin}/api/v2/projects/${projectId}`;
+  const mapping = await currentFixtureMapping(request, projectUrl, beaconMap());
+  const draftRevision = await acknowledgeGraphMapping(request, projectUrl, mapping);
   const map = await getJson<any>(request.put(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/section-map`, {
-    data: { expectedSectionMapRevision: 0, expectedSourceRevision: acceptedOutline.source.revision, expectedOutlineRevision: acceptedOutline.acceptedOutline.revision, expectedOutlineContentHash: acceptedOutline.acceptedOutline.contentHash, mapping: sectionMap() },
+    data: { expectedSectionMapRevision: 0, expectedSourceRevision: acceptedOutline.source.revision, expectedOutlineRevision: acceptedOutline.acceptedOutline.revision, expectedOutlineContentHash: acceptedOutline.acceptedOutline.contentHash, mapping, expectedGraphDraftRevision: draftRevision },
   }));
   await getJson(request.post(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/section-map/install-graph`, {
-    data: { expectedSourceRevision: map.source.revision, expectedSourceContentHash: map.source.contentHash, expectedOutlineRevision: map.acceptedOutline.revision, expectedOutlineContentHash: map.acceptedOutline.contentHash, expectedSectionMapRevision: map.acceptedSectionMap.revision, expectedSectionMapContentHash: map.acceptedSectionMap.contentHash, expectedGraphRevision: 0 },
+    data: { expectedSourceRevision: map.source.revision, expectedSourceContentHash: map.source.contentHash, expectedOutlineRevision: map.acceptedOutline.revision, expectedOutlineContentHash: map.acceptedOutline.contentHash, expectedSectionMapRevision: map.acceptedSectionMap.revision, expectedSectionMapContentHash: map.acceptedSectionMap.contentHash, expectedGraphRevision: 0, expectedGraphDraftRevision: await graphDraftRevision(request, projectUrl) },
   }));
   const cast = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/candidates`));
   await writeStageDelivery(cast, "cast.json", castFixture(), "f3a-cast", "characters");
@@ -562,9 +566,8 @@ async function writeStageDelivery(prepared: any, filename: string, candidate: Re
 }
 
 function sourceMaterial(label: string) { return { kind: "synopsis", title: `Beacon choice ${label}`, text: "A keeper must power the beacon or dock before the storm closes the channel.", attribution: "F3A production-browser fixture", rightsDeclaration: "Test fixture only; not a rights determination.", adaptationIntent: "Preserve one choice and two explicit endings." }; }
-function sectionMap() { return { sections: [{ sectionId: "opening", title: "Storm warning", summary: "The keeper has one cable and two destinations.", ending: false }, { sectionId: "beacon", title: "Beacon lit", summary: "The beacon guides sailors through the storm.", ending: true }, { sectionId: "dock", title: "Dock lit", summary: "The dock welcomes boats while the beacon goes dark.", ending: true }], choice: { choiceId: "power-choice", sectionId: "opening", prompt: "Where should the keeper send the cable?", outcomes: [{ outcomeId: "beacon-path", label: "Light the beacon", consequence: "The dock loses power.", endingSectionId: "beacon" }, { outcomeId: "dock-path", label: "Light the dock", consequence: "The beacon goes dark.", endingSectionId: "dock" }] } }; }
 function castFixture() { return { source: "F3A browser fixture", summary: "One beacon keeper.", characters: [{ id: "keeper", name: "Mira", reviewNotes: { sourceNotes: "Appearance is proposed", performanceGuidance: "" }, persona: { personality: ["Careful"],  motivation: "Guide sailors home", appearance: "Rain-dark hair and a weathered beacon coat", arc: "Chooses who to protect" }, voice: { timbre: "Steady under pressure" } }] }; }
-function artFixture() { const render = "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth"; return { source: "F3A browser fixture", style: "realistic", scenes: [{ id: "S01", name: "Beacon room", primary: true, summary: "The keeper faces a power choice.", anchors: [{ name: "brass lamp", desc: "old brass" }, { name: "window", desc: "salted glass" }, { name: "desk", desc: "worn wood" }], lighting: [{ state: "dawn", prompt: "cold dawn through a window" }], image: { prompt: render + ", empty beacon room", negativePrompt: "people, human figures", sheet: render, tags: [] } }], props: [], sectionUsage: [{ sectionId: "opening", sceneIds: ["S01"], propIds: [] }, { sectionId: "beacon", sceneIds: ["S01"], propIds: [] }, { sectionId: "dock", sceneIds: ["S01"], propIds: [] }] }; }
+function artFixture() { const render = "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth"; return { source: "F3A browser fixture", style: "realistic", scenes: [{ id: "S01", name: "Beacon room", primary: true, summary: "The keeper faces a power choice.", anchors: [{ name: "brass lamp", desc: "old brass" }, { name: "window", desc: "salted glass" }, { name: "desk", desc: "worn wood" }], lighting: [{ state: "dawn", prompt: "cold dawn through a window" }], image: { prompt: render + ", empty beacon room", negativePrompt: "people, human figures", sheet: render, tags: [] } }], props: [], sectionUsage: beaconMap().sections.map(section => ({ sectionId: section.sectionId, sceneIds: ["S01"], propIds: [] })) }; }
 function mockedArtReferenceStudies(projectId: string) {
   const createdAt = "2026-09-21T00:00:00Z";
   const candidates = Array.from({ length: 5 }, (_, index) => {

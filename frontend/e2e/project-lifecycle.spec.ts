@@ -30,7 +30,7 @@ test.describe("M1-B0 real project journeys", () => {
     await openDirectory(page);
     await openProject(page, firstTitle);
     await expect(page).toHaveURL(new RegExp(`project=${firstProjectId}`));
-    await expect(page.getByLabel("片名")).toHaveValue(firstTitle);
+    await expectCreatorProject(page, firstTitle);
 
     await page.goBack();
     await expect(page).toHaveURL(new RegExp(`project=${secondProjectId}`));
@@ -38,7 +38,7 @@ test.describe("M1-B0 real project journeys", () => {
 
     await page.goForward();
     await expect(page).toHaveURL(new RegExp(`project=${firstProjectId}`));
-    await expect(page.getByLabel("片名")).toHaveValue(firstTitle);
+    await expectCreatorProject(page, firstTitle);
   });
 
   test("persists a durable draft and installs it only on explicit save", async ({ page, request, workbench }) => {
@@ -170,7 +170,7 @@ test.describe("M1-B0 real project journeys", () => {
       await expect(page.getByRole("alertdialog")).toContainText("不复制来源与大纲");
       await page.getByRole("button", { name: "确认复制简报与规范内容", exact: true }).click();
       await expect.poll(() => projectIdFromPage(page)).not.toBe(sourceId);
-      await expect(page.getByLabel("片名")).toHaveValue(title);
+      await expectCreatorProject(page, title);
       await expect(page.getByRole("status").filter({ hasText: "已创建" })).toContainText("仅项目简报");
       await expect(page.getByRole("status").filter({ hasText: "已创建" })).toContainText("原项目保持不变");
 
@@ -214,9 +214,9 @@ test.describe("M1-B0 real project journeys", () => {
 
       await openDirectory(page);
       await openProject(page, secondTitle);
-      await expect(page.getByLabel("片名")).toHaveValue(secondTitle);
+      await expectCreatorProject(page, secondTitle);
       releaseFirstResponse?.();
-      await expect(page.getByLabel("片名")).toHaveValue(secondTitle);
+      await expectCreatorProject(page, secondTitle);
     } finally {
       releaseFirstResponse?.();
       await page.unroute(`**/api/v2/projects/${firstProjectId}`, delayedProjectRoute);
@@ -264,6 +264,11 @@ async function saveExistingBrief(page: Page, projectId: string): Promise<void> {
   await page.getByRole("button", { name: "保存修改" }).click();
   expect((await saved).ok()).toBeTruthy();
   await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
+}
+
+async function expectCreatorProject(page: Page, title: string): Promise<void> {
+  await expect(page.getByRole("heading", { name: "创作工作台", exact: true })).toBeVisible();
+  await expect(page.locator(".project-switcher")).toContainText(title);
 }
 
 async function openDirectory(page: Page): Promise<void> {

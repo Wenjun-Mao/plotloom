@@ -71,6 +71,7 @@ from .models import (
     _normalize_idempotency_key,
 )
 from .project_folder_source_outline import register_project_folder_source_outline_routes
+from .project_folder_graph import register_project_folder_graph_routes
 from .project_folder_cast import register_project_folder_cast_routes
 from .project_folder_specialists import register_specialist_routes
 from ..specialist_settings import SpecialistRegistry, ImageSpecialist
@@ -755,6 +756,7 @@ def create_project_folder_authoring_app(
         service=video_service,
     )
     register_project_folder_source_outline_routes(app, opened_project)
+    register_project_folder_graph_routes(app, opened_project)
     register_project_folder_cast_routes(app, opened_project)
     register_project_folder_art_routes(app, opened_project, ImageSpecialist(specialists))
     register_project_folder_script_routes(app, opened_project)

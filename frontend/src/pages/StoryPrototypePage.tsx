@@ -1,3 +1,4 @@
+import { ProjectReportFrame } from "../components/ProjectReportFrame";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { plotloomApi } from "../api";
@@ -84,7 +85,8 @@ export function StoryPrototypePage() {
 
   if (!projectId) return <PrototypeShell><section className="prototype-empty"><strong>需要一个项目</strong><p>从已有已确认剧本和分镜评审的项目打开此只读阅读页：在地址中加入 <code>?view=story-prototype&amp;project=…</code>。</p></section></PrototypeShell>;
   if (error) return <PrototypeShell><section className="prototype-empty"><WorkflowReturn projectId={projectId} /><h1>暂时无法阅读故事</h1><ErrorNotice message={error} /><button className="button quiet" onClick={() => setReadRevision(value => value + 1)}>重新读取故事</button></section></PrototypeShell>;
-  if (!data || !selectedRoute) return <PrototypeShell><div className="prototype-loading"><Spinner label="正在读取故事和剧本" /></div></PrototypeShell>;
+  if (!data) return <PrototypeShell><div className="prototype-loading"><Spinner label="正在读取故事和剧本" /></div></PrototypeShell>;
+  if (!selectedRoute) return <PrototypeShell><section className="prototype-empty"><WorkflowReturn projectId={projectId} /><h1>故事路线与剧本绑定不一致</h1><p>当前画面节点必须与已确认章节完整对应。路线控制无需章节；请返回创作流程核对当前来源。</p></section></PrototypeShell>;
 
   const selectedEpisode = episodeForSection(data.script, selectedNode);
   return <PrototypeShell>
@@ -118,7 +120,7 @@ function ScreenplayReader({ graph, script, names, route, selectedNode, selectedE
 function StoryboardStage({ graph, script, names, route, state, onFocus, projectId }: { graph: StoryGraph; script: PrototypeScript; names: PrototypeNames; route: PrototypeRoute; state: StoryboardState; onFocus: (id: string) => void; projectId: string }) {
   if (state.status === "loading") return <section className="prototype-reading"><Spinner label="正在检查当前分镜评审" /></section>;
   if (state.status === "unavailable") return <section className="prototype-reading storyboard-unavailable" data-testid="storyboard-unavailable"><div><span className="eyebrow">分镜阅读</span><h2>当前分镜不可读</h2><p>{state.message}</p></div><p>这不会影响已确认剧本；可切换回“剧本”继续按路径阅读。</p></section>;
-  return <><StoryboardReader graph={graph} script={script} names={names} route={route} storyboard={state.storyboard} bindings={state.review.binding.sectionBindings} onFocus={onFocus} /><section className="prototype-report"><details><summary>打开原始上游报告（只读评审证据）</summary><iframe title="original upstream storyboard report" sandbox="" src={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, state.review.candidateJobId)} /></details></section></>;
+  return <><StoryboardReader graph={graph} script={script} names={names} route={route} storyboard={state.storyboard} bindings={state.review.binding.sectionBindings} onFocus={onFocus} /><section className="prototype-report"><details><summary>打开原始上游报告（只读评审证据）</summary><ProjectReportFrame sandbox="" title="original upstream storyboard report" url={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, state.review.candidateJobId)} /></details></section></>;
 }
 
 function PrototypeShell({ children }: { children: ReactNode }) { return <div className="prototype-shell">{children}</div>; }

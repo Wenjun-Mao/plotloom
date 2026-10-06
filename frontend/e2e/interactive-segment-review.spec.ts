@@ -18,8 +18,8 @@ function openingWalkthroughProject() {
   project.storyGraph = {
     startNodeId: "start",
     nodes: [
-      { id: "start", title: "开场", kind: "start", summary: "合成媒体检查镜头。" },
-      { id: "ending", title: "完成", kind: "ending", summary: "片段检查完成。" },
+      { id: "start", title: "开场", kind: "start", footageMode: "footage", summary: "合成媒体检查镜头。" },
+      { id: "ending", title: "完成", kind: "ending", footageMode: "footage", summary: "片段检查完成。" },
     ],
     edges: [{ id: "finish", sourceNodeId: "start", targetNodeId: "ending", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] }],
     joinContracts: [],

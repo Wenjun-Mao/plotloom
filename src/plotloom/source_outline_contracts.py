@@ -7,16 +7,11 @@ from typing import Any, Literal
 
 from pydantic import Field, field_validator, model_validator
 
-from .canonical_schema import (
-    StoryEdgeV2,
-    StoryGraphV2,
-    StoryNodeV2,
-    V2StoryEdgeKind,
-    V2StoryNodeKind,
-)
+from .canonical_schema import StoryGraphV2
 from .generation.story_graph_topology import StoryGraphTopology
 from .domain import CamelModel, contains_secret_setting, contains_secret_value
 from .source_structures import MAX_SOURCE_OPTIONS
+from .source_graph_structure import SourceStructure, structure_from_seed
 
 
 SourceKind = Literal["synopsis", "imported_text", "existing_work"]
@@ -109,6 +104,7 @@ class StorySection(CamelModel):
     title: str = Field(min_length=1, max_length=300)
     summary: str = Field(min_length=1, max_length=8_000)
     ending: bool = False
+    footage_mode: Literal["footage", "route_only"]
 
 
 class BranchOutcome(CamelModel):
@@ -128,13 +124,14 @@ class SectionChoice(CamelModel):
 
 
 class SectionMap(CamelModel):
-    """Reviewed planned structure, or a retained explicit binary structure."""
+    """One reviewed author structure with the original immutable planner seed."""
 
     sections: list[StorySection] = Field(min_length=1, max_length=128)
-    choice: SectionChoice | None = None
-    topology: StoryGraphTopology | None = None
-    choices: list[SectionChoice] = Field(default_factory=list)
-    join_reconciliations: dict[str, str] = Field(default_factory=dict)
+    seed_topology: StoryGraphTopology
+    topology_origin: Literal["planner", "author"]
+    topology: SourceStructure
+    choices: list[SectionChoice]
+    join_reconciliations: dict[str, str]
 
     @field_validator("sections")
     @classmethod
@@ -143,36 +140,24 @@ class SectionMap(CamelModel):
             raise ValueError("section IDs must be unique")
         return sections
 
-    @field_validator("choice")
+    @field_validator("choices")
     @classmethod
-    def require_unique_outcomes(cls, choice: SectionChoice | None) -> SectionChoice | None:
-        if choice is None:
-            return choice
-        if len({outcome.outcome_id for outcome in choice.outcomes}) != len(choice.outcomes):
-            raise ValueError("outcome IDs must be unique")
-        return choice
+    def require_unique_outcomes(cls, choices: list[SectionChoice]) -> list[SectionChoice]:
+        for choice in choices:
+            if len({outcome.outcome_id for outcome in choice.outcomes}) != len(choice.outcomes):
+                raise ValueError("outcome IDs must be unique")
+        return choices
 
     def validate_links(self) -> None:
-        if self.topology is not None:
-            from .source_structure_validation import validate_structure_links
-            validate_structure_links(self)
-            return
-        if self.choice is None or len(self.choice.outcomes) != 2 or self.choices or self.join_reconciliations:
-            raise ValueError("retained binary map requires exactly one choice and two outcomes")
-        sections = {section.section_id: section for section in self.sections}
-        if self.choice.section_id not in sections:
-            raise ValueError("choice section must be an explicit section")
-        if sections[self.choice.section_id].ending:
-            raise ValueError("an ending section cannot own the choice")
-        ending_ids = [outcome.ending_section_id for outcome in self.choice.outcomes]
-        if len(set(ending_ids)) != 2:
-            raise ValueError("each outcome must lead to a distinct ending section")
-        if any(section_id not in sections or not sections[section_id].ending for section_id in ending_ids):
-            raise ValueError("each outcome must lead to an explicit ending section")
-        if len(sections) != 3 or len([section for section in sections.values() if section.ending]) != 2:
-            raise ValueError("F1B requires exactly one entry section and exactly two ending sections")
-        if set(ending_ids) != {section.section_id for section in sections.values() if section.ending}:
-            raise ValueError("the two outcomes must reach every explicit ending section")
+        from .source_structure_validation import validate_structure_links
+        validate_structure_links(self)
+        planner_membership = [(node.id, node.footage_mode) for node in self.seed_topology.nodes]
+        authored_membership = [(section.section_id, section.footage_mode) for section in self.sections]
+        if self.topology_origin == "planner" and (
+            self.topology != structure_from_seed(self.seed_topology)
+            or authored_membership != planner_membership
+        ):
+            raise ValueError("author-edited structure must declare author provenance")
 
     @model_validator(mode="after")
     def require_complete_structure(self) -> "SectionMap":
@@ -184,50 +169,22 @@ def compile_section_map_graph(mapping: SectionMap) -> StoryGraphV2:
     """Compile only the admitted structure into the canonical routing owner."""
 
     mapping.validate_links()
-    if mapping.topology is not None:
-        from .source_structures import compile_structure
-        return compile_structure(mapping)
-    sections = {section.section_id: section for section in mapping.sections}
-    entry = sections[mapping.choice.section_id]
-    return StoryGraphV2(
-        start_node_id=entry.section_id,
-        nodes=[
-            StoryNodeV2(
-                id=section.section_id,
-                title=section.title,
-                summary=section.summary,
-                kind=V2StoryNodeKind.START if section.section_id == entry.section_id else V2StoryNodeKind.ENDING,
-            )
-            for section in mapping.sections
-        ],
-        edges=[
-            StoryEdgeV2(
-                id=outcome.outcome_id,
-                source_node_id=entry.section_id,
-                target_node_id=outcome.ending_section_id,
-                kind=V2StoryEdgeKind.CHOICE,
-                choice_text=outcome.label,
-                state_effects={
-                    "sourceMapChoiceId": mapping.choice.choice_id,
-                    "sourceMapOutcomeId": outcome.outcome_id,
-                    "sourceMapConsequence": outcome.consequence,
-                },
-                entity_state_effects=[],
-            )
-            for outcome in mapping.choice.outcomes
-        ],
-        join_contracts=[],
-    )
+    from .source_structures import compile_structure
+    return compile_structure(mapping)
 
 
-def validate_section_map_graph(graph: StoryGraphV2, brief: Any) -> None:
+def validate_section_map_graph(graph: StoryGraphV2, brief: Any, bible: Any = None) -> None:
     """Validate actual viewer choices and endings against the saved Brief."""
 
-    if any(edge.entity_state_effects for edge in graph.edges):
-        raise ValueError("source-map graph admission forbids entity state effects")
-    from .validation import validate_story_graph
+    from .validation import DomainValidationError, validate_story_graph
+    from .node_footage import route_only_state_issues
+    issues = route_only_state_issues(graph)
+    if issues:
+        raise DomainValidationError(issues)
+    if any(edge.entity_state_effects for edge in graph.edges) and bible is None:
+        raise ValueError("typed entity state effects require a current accepted Story Bible")
 
-    validate_story_graph(graph, brief, strict_v2=True, bible=None)
+    validate_story_graph(graph, brief, bible=bible)
 
 
 
@@ -290,6 +247,7 @@ class OutlineReturnRequest(OutlineReopenRequest):
 
 
 class SectionMapSaveRequest(CamelModel):
+    expected_graph_draft_revision: int = Field(ge=1)
     expected_section_map_revision: int = Field(ge=0)
     expected_source_revision: int = Field(ge=1)
     expected_outline_revision: int = Field(ge=1)
@@ -305,3 +263,4 @@ class SectionMapGraphInstallRequest(CamelModel):
     expected_section_map_revision: int = Field(ge=1)
     expected_section_map_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     expected_graph_revision: int = Field(ge=0)
+    expected_graph_draft_revision: int = Field(ge=1)

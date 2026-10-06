@@ -51,6 +51,8 @@ export function useAuthoringDraftRecovery({
       if (record && !unsafeDraft) session.setUnsafeDraft({ record, reason: "archived" });
       return;
     }
+    // The shared graph provider owns current typed graph recovery in both modes.
+    if (scope === "story_graph") return;
     if (!scope || (project.id && session.connection !== "connected") || currentDraft.current || recovery || draftConflict || unsafeDraft || restoredDraft) return;
     const saved = getDraft(project, scope);
     const serverDraft = project.id && durableEnabled ? serverDrafts.current.get(authoringDraftKey(project.id, scope)) : undefined;
