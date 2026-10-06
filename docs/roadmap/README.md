@@ -10,7 +10,8 @@ Existing productions are owner-confirmed development demos, so this first batch
 does not include a general installed-production migration/replacement system.
 G0–G5 is implemented and locally qualified; the
 [integrated receipt](../verification/2026-10-06-graph-workbench-g5.md) records full
-gates and independent reviews. Publication is being finalized. Normal activation
+gates and independent reviews. Implementation `c8f59b7` is pushed to `origin/main`;
+full exact-revision remote CI is running. Normal activation
 is held by a retained native queued receipt requiring exact terminal reconciliation;
 project data, media and protected settings remain unchanged. Owner walkthrough
 acceptance is separate; no activation or provider run has begun.

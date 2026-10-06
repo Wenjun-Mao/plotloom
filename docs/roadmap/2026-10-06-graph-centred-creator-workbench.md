@@ -454,7 +454,8 @@ scope in ADR 0059 is reference evidence, not an executable contract to retain.
   Python1182, frontend538/76, focused native37 and final full native190 passed;
   types, lock/lint, archived reader, deterministic build, isolated wheel smoke
   and compile gates exited0. Prior failed diagnostics remain recorded. Publication
-  is pending. Exact demo Graph/map retirement and normal activation are held by
+  is pushed at `c8f59b7`, with full exact-revision remote CI running. Exact demo
+  Graph/map retirement and normal activation are held by
   an independent retained native queued receipt, despite global busy=false;
   no reset, service stop/activation or provider dispatch has occurred. All normal
   project/application/files/credential fingerprints remain unchanged. Separate

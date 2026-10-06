@@ -1,6 +1,6 @@
 # G5 integrated creator workbench qualification
 
-Status: locally qualified; publication pending and normal activation held by an
+Status: locally qualified and published; normal activation held by an
 independent retained native execution receipt. Owner acceptance is separate.
 G0–G4 evidence remains historical at its
 recorded fingerprints; it is not rewritten as evidence for the final candidate.
@@ -257,7 +257,18 @@ described below; owner acceptance is separate.
 
 Working directly on retained `main`; initial base `e542f49`, initial remote 0/0.
 The manager's pre-existing roadmap entry and owner-approved plan are preserved.
-No normal reset, service activation, commit or push has occurred at this draft.
+Implementation revision `c8f59b77222216f4e2923283606493658f28674f` is pushed to
+`origin/main`, with a clean worktree and remote0/0 after publication. The final
+staged diff/static check passed; no force push or unrelated work was used.
+Full unfiltered [remote CI](https://github.com/Wenjun-Mao/plotloom/actions/runs/37495692517)
+is running on that exact revision; its verify job has passed frontend types/unit,
+archived reader and checked production bundle, with Python/distribution and
+browser jobs still pending at the recorded observation. Remote CI is not claimed
+as passed. This receipt's publication follow-up changes documentation only.
+No normal reset, service stop/recreation or provider dispatch has occurred.
+The existing owner browser session was not refreshed or edited. Published static
+files are mounted from the checkout; the running normal backend has not been
+recreated, so this is not normal runtime qualification or activation.
 
 The stable runtime review used source aggregate
 `522ce076d04165149a553f8b76db9d9dae75a0039a355d2427fe72c2df77a6ce`.
@@ -311,6 +322,14 @@ reserved receipt destinations, exact full-row/schema/file precommit delta checks
 and protected postcommit readback. Its actual optimized read-only preflight
 exits1 on the queued native outcome, before transaction admission. This is a
 correct safety refusal, not normal reset qualification or permission to bypass it.
+The existing-only helper's attended Sol/High review closed without a remaining
+source blocker. Ten optimized synthetic guard checks passed, exit0; normal
+quiescence remains blocked. A separate ignored exact terminal-completion helper
+passes current delivery/pin/provenance/output/stored-manifest receiving checks
+and read-only admission with unchanged preservation. Six isolated existing-method
+checks passed, exit0, including exact one-receipt transition and refusal on
+inflight/temporary/wrong identity/missing lock. Its final independent review and
+separate owner permission remain pending; no native completion was performed.
 
 Engineering qualification, normal activation and owner usability acceptance are
 separate. Final next action remains a fresh owner walkthrough of the qualified
