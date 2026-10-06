@@ -87,6 +87,7 @@ further generation, Plotloom integration, director contact, merge or push is
 authorized by this supporting record.
 
 The [video VAE precision/INT8 qualification](2026-10-06-h3-vae-qualification.md)
-was owner-approved on October 6. Experiment tooling is in progress; the adopted
-runtime remains the production baseline. Its four-arm, 12-attempt comparison
-does not authorize production adoption.
+was owner-approved on October 6. One baseline component smoke ran; a harness
+storage/compute validation bug stopped the runner before any full clip. The
+contract is corrected and baseline services restored. See its execution ledger
+for the resume gate. The 12-attempt ceiling is unused; adoption remains separate.

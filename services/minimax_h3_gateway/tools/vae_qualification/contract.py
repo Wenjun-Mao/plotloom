@@ -20,6 +20,16 @@ ARMS = {
     'C': {'checkpoint': FP16, 'dtype': 'float16', 'fast': True},
     'D': {'checkpoint': INT8, 'dtype': 'float16', 'fast': True},
 }
+# Dynamic VRAM retains checkpoint-storage weights and casts them on demand.
+# Raw Parameter.dtype is not the same fact as a GPU compute activation dtype.
+# Permit only that arm's immutable storage form plus its execution precision.
+PARAMETER_STORAGE = {
+    'A': {'torch.float16', 'torch.bfloat16'},
+    'B': {'torch.float16'},
+    'C': {'torch.float16'},
+    'D': {'torch.float16', 'torch.int8', 'torch.uint8'},
+}
+AUDIO_PARAMETER_STORAGE = {'torch.float32', 'torch.bfloat16'}
 CASE_IDS = ('landscape', 'portrait', 'voice')
 
 
@@ -85,9 +95,10 @@ def validate_observations(events: list[dict], arm: str, *, smoke: bool) -> None:
         if any(not x['computeActivations'] or any(a['dtype'] != dtype or a['device'] != 'cuda:0'
                 for a in x['computeActivations']) or not x['ok'] for x in relevant):
             raise ValueError(f'{kind} precision/device invariant failed')
-        if any(not x['parameterDtypes'] or set(x['parameterDtypes']) - {dtype, 'torch.int8', 'torch.uint8'}
+        storage = PARAMETER_STORAGE[arm] if kind == 'video' else AUDIO_PARAMETER_STORAGE
+        if any(not x['parameterDtypes'] or set(x['parameterDtypes']) - storage
                for x in relevant):
-            raise ValueError(f'{kind} parameter precision invariant failed')
+            raise ValueError(f'{kind} checkpoint/parameter storage invariant failed')
         outer = [x for x in events if x.get('kind') == 'outer_stage' and x['vaeKind'] == kind]
         if not required <= {x['operation'] for x in outer} or any(x['effectiveDtype'] != dtype for x in outer):
             raise ValueError(f'{kind} loader/outer precision proof missing')

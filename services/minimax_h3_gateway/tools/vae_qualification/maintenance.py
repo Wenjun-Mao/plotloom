@@ -1,6 +1,7 @@
 """Operator-only idle proof and identity preservation. No cancellation/reset."""
 from __future__ import annotations
 
+import copy
 import json
 import sqlite3
 import subprocess
@@ -11,6 +12,13 @@ from contract import COMMIT, IMAGE, digest, fingerprint, save
 
 LAB_DATA = Path('/home/wjmao/services/plotloom-voice-lab/data')
 GATEWAY_DATA = Path('/home/wjmao/services/plotloom-h3-gateway/data')
+
+
+def canonical_configuration(value: dict) -> dict:
+    """Docker inspect's mount order is unstable across start, unlike bindings."""
+    result = copy.deepcopy(value)
+    result['mounts'] = sorted(result['mounts'], key=lambda item: item['Destination'])
+    return result
 
 
 def lab_proof():

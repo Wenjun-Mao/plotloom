@@ -6,6 +6,9 @@ custom nodes in the production Comfy container.
 
 - `contract.py`: fixed arms, input/hash guards, twelve-cell ceiling, actual
   compute/parameter/kernel validation. Audio stays at baseline BF16 execution.
+  Raw parameter dtypes describe dynamic/offloaded checkpoint storage; they need
+  not all equal the compute dtype. The guard admits only the known checkpoint
+  storage plus the selected execution dtype, while actual compute remains strict.
 - `freeze.py`: inspect inputs first; freeze exact bytes, three graphs and model
   hashes. Copy the existing Voice Lab `tools/memory_trace.py` to the private
   experiment root before freezing. Use the gateway's packaged CPU dependencies

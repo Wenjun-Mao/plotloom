@@ -19,6 +19,7 @@ def load(name):
 
 C = load('contract')
 R = load('run_arm')
+M = load('maintenance')
 
 
 def case():
@@ -165,5 +166,27 @@ def test_cpu_staging_allowed_only_with_gpu_compute_and_parameter_proof():
         C.validate_observations(values, 'A', smoke=True)
     values = events('A')
     values[0]['parameterDtypes'] = {'torch.float32': 100}
-    with pytest.raises(ValueError, match='parameter precision'):
+    with pytest.raises(ValueError, match='parameter storage'):
         C.validate_observations(values, 'A', smoke=True)
+
+
+def test_dynamic_storage_is_distinct_from_compute_precision():
+    values = events('A')
+    for entry in values:
+        if entry['kind'] == 'stage':
+            entry['parameterDtypes'] = ({'torch.float16': 486, 'torch.bfloat16': 73}
+                if entry['vaeKind'] == 'video' else {'torch.float32': 368, 'torch.bfloat16': 292})
+    C.validate_observations(values, 'A', smoke=True)
+    values[0]['computeActivations'][0]['dtype'] = 'torch.float16'
+    with pytest.raises(ValueError, match='precision/device'):
+        C.validate_observations(values, 'A', smoke=True)
+
+
+def test_restoration_ignores_mount_order_not_binding_changes():
+    original = {'image': 'fixed', 'mounts': [
+        {'Destination': '/user', 'Source': '/production-user', 'RW': True},
+        {'Destination': '/models', 'Source': '/models', 'RW': False}]}
+    reordered = {'image': 'fixed', 'mounts': list(reversed(original['mounts']))}
+    assert M.canonical_configuration(original) == M.canonical_configuration(reordered)
+    reordered['mounts'][0] = {**reordered['mounts'][0], 'RW': True}
+    assert M.canonical_configuration(original) != M.canonical_configuration(reordered)

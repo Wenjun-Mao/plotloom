@@ -4,6 +4,13 @@
 this bounded qualification, including its 12-attempt ceiling. Production adoption
 is not authorized. Results and restoration evidence will be recorded separately.
 
+**Execution checkpoint:** one A component smoke ran successfully; the runner
+stopped on a storage-versus-compute dtype validation bug before any full clip.
+The observer contract is corrected and baseline services are restored. See the
+[execution ledger](../verification/2026-10-06-h3-vae-qualification.md). A fresh
+cold-boundary A smoke would exceed the original one-per-arm component cap and
+requires resumed authority; no extra full-generation calls are proposed.
+
 Specialist checkout: `plotloom-h3-ref2va-gateway`, branch
 `codex/h3-ref2va-gateway`, clean starting commit `de6e088`.
 Plotloom integration, director contact, merge and push remain held.
