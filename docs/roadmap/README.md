@@ -85,3 +85,8 @@ preserved, services healthy. The original input–prompt mismatch remains labell
 the adoption is not general quality or co-resident-memory qualification. No
 further generation, Plotloom integration, director contact, merge or push is
 authorized by this supporting record.
+
+The [video VAE precision/INT8 qualification](2026-10-06-h3-vae-qualification.md)
+was owner-approved on October 6. Experiment tooling is in progress; the adopted
+runtime remains the production baseline. Its four-arm, 12-attempt comparison
+does not authorize production adoption.
