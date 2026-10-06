@@ -243,3 +243,45 @@ adoption still needs explicit approval; do not promote the experiment shim or
 change the baseline automatically.
 
 No production promotion, Plotloom edits, director message, merge or push.
+
+## External monitor reconciliation — 2026-10-06
+
+**Use:** the merged [comfy-kitchen PR 167](https://github.com/Comfy-Org/comfy-kitchen/pull/167)
+reports 67.7 dB for INT8 decode and 68 dB for accelerated FP16 encode versus
+its exact path, against an approximately 38 dB VAE reconstruction floor, in
+the reported 1344x768/362-frame evaluation. The official
+[native workflow guide](https://docs.comfy.org/tutorials/video/minimax/minimax-h3-native)
+lists the INT8 video VAE. These support adoption; they are not our GB10 timings,
+portrait/Ref2VA perceptual scores, or proof of universal video equivalence.
+
+**Use:** global VAE flags cannot independently select video and audio precision.
+The [pinned dtype selector](https://github.com/Comfy-Org/ComfyUI/blob/6b747c0428c343e1417219641db93a4fb7cb69ae/comfy/model_management.py)
+applies explicit CLI overrides before preferred working dtypes. Normal H3 video
+preferences are FP16/FP32 and audio FP32; our BF16 audio is an experimentally
+qualified global override, not the normal default. Do not replace the global
+`--bf16-vae` with `--fp16-vae` and describe audio as unchanged.
+
+**Local evidence:** D retained `--bf16-vae` and added the fast flag; only its
+experiment video loader passed `dtype=torch.float16` explicitly. Retained
+`D-container.log` lines 106–109 identify the audio checkpoint then BF16 load,
+and INT8 video checkpoint then FP16 load. Post-transfer encoder/decoder hooks
+prove video FP16 and audio BF16 CUDA compute in all three D clips, including
+both Ref2VA audio encode/decode. This is stronger than filename/launch inference.
+The split measured in the before/after table is real, but it is not a stock
+VAELoader UI setting.
+
+**Test/fix before adoption:** a source audit and narrow independent Terra review
+found the experiment loader's dormant cached-reload callback misbound:
+`__init__.py:39` passes `(path, metadata, dtype)` to `load_vae_patcher`, whose
+[pinned signature](https://github.com/Comfy-Org/ComfyUI/blob/6b747c0428c343e1417219641db93a4fb7cb69ae/comfy/sd.py)
+treats its third argument as `device`, not dtype. Clone/deepclone can therefore
+fail or recreate a VAE without the intended FP16 override. Actual measured
+single-GPU compute remains valid; the qualification shim is not production-safe
+to copy unchanged. A maintained video-only loader must preserve explicit dtype
+through its reload/clone factory and test those paths against the pinned image,
+without changing the stock audio loader. No source fix, deployment or new
+generation was authorized or performed by this external-review reconciliation.
+
+**Follow-up recommendation: none** for further external consultation. Direct
+precision-safe loader implementation and focused reload/clone regression checks
+address the concrete remaining risk; no additional creative comparison sweep.
