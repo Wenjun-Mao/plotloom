@@ -18,9 +18,9 @@ approve the pending Image continuation or implement new product capabilities.
 
 | Profile field | Current run |
 |---|---|
-| Last qualified baseline | Published documentation12a0de9, executable be87634 including406c942; fresh qualification must record the actual next loaded source/static/runtime |
+| Last qualified baseline | Published executable e941780302c9d97be0b1f0fd9cb1bace4549d5d8, normal8841 activated at22:10–22:11 UTC; local1,245Python/594frontend/206browser and exact855-input readback PASS; remote full CI37694754831 running |
 | Existing evidence | Completed text→installation→first-shot native flow and separate structural QA; software gates qualified, full lifecycle remains PARTIAL |
-| Runtime boundary | Normal8841 is the activated repair candidate; retained8851 and busy8861 loaded backends differ. Do not reload newer static against old Python or restart the busy Image reservation |
+| Runtime boundary | Normal8841 is the activated e941780 repair candidate; separate8871 qualifies disposable graph checks. Retained8851 and busy8861 loaded backends differ. Do not reload newer static against old Python or restart the busy Image reservation |
 | Data baseline | Fresh native QA b3a933f7-b6fc-40e3-826f-5162f95a119a; structural QA remains separately identified in the ledger. Completed playable/media baseline not yet established for this repeat |
 | Protection | Two named owner projects, managed files and protected configuration unchanged; disposable lifecycle/recovery targets identified before actions |
 | Authority | Earlier bounded functional ImageGen/H3 QA authorization remains distinct from specialist-task continuation. No new paid fallback, settings mutation, broad deletion or creative/media-quality approval |
@@ -103,6 +103,21 @@ alone does not end independent coverage. Report NOT EXERCISED subcontrols
 explicitly and leave exact pending task identities.
 
 ## Status
+
+At22:13 UTC the reviewed repair batch is published as `e941780` and activated on
+healthy normal8841. Local1,245Python,594frontend and206browser checks pass; all855
+gate inputs stayed identical through publication. Accepted Cast original reports,
+candidate-only Branch reports, typed graph-safety refusals, merge preview impacts,
+the installed-proposal lookup and centered row-add icons are repaired. Additional
+disposable choice/join/ending deletion and exact Undo preservation passed.
+Owner DB/files/settings remain exact. Full unfiltered remote CI37694754831 is
+running, not yet PASS. Native image continuation still needs separate authority;
+post-install rebuild and configured inference remain capability prerequisites.
+Actual OS blur remains unqualified after a real focus switch produced no observed
+browser event. Full E2E remains PARTIAL. The dated checkpoint below is historical;
+the [ledger](../verification/2026-10-07-full-creator-e2e-repeat.md) owns current evidence.
+
+### Prior published checkpoint 18 37 UTC
 
 PARTIAL, not full E2E acceptance. Local checkpoints `406c942` and
 `be876346995ff5385db16992f34298e2cf2854f0` were published by root to origin/main

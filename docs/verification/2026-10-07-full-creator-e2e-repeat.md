@@ -7,6 +7,37 @@ receipts and prior checkpoints are preserved verbatim in the linked
 [historical receipt](2026-10-07-full-creator-e2e-repeat-history.md).
 Historical present-tense statements there do not describe current deployment.
 
+## Published repair release 2026 10 07 22 13 UTC
+
+Root approved the independently reviewed repair batch after the final local
+gates and exact855-input readback. Executable `e941780302c9d97be0b1f0fd9cb1bace4549d5d8`
+is committed on main and pushed to origin/main; remote HEAD was verified, with
+no force push. The21:53 section below records its pre-publication state, not the
+current deployment. Full lifecycle acceptance remains PARTIAL.
+
+Normal8841 was activated through the existing `manage.py start` at22:10–22:11.
+Container and native bridge health passed; HTTP entry and healthz are200.
+Its loaded Python is now this repair candidate rather than the earlier backend.
+Served JS `e0cb4a2a60d17bfff68d71c1ac79a683c2de34c57eeaaabfbdd902d831fd11fd`
+and CSS `d430ea5d72528c509b27446c10eb5ae34cada9c5e8808e8ad72c616570ea10cb`
+match the qualified build. The accepted Rain Cast r2 still reports its original
+job `ch_212cad5ded684740b1d1e6672a570ea4`, `reportAvailable:true` and
+`differsFromDelivery:true`; its static report is200/54,886bytes with the original
+sandbox CSP and nosniff header. Its existing stale status was not changed.
+
+Post-activation owner DB/row/schema/file/settings hashes still equal aggregate
+`df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`:
+Wind17/Rain67 files and three protected configurations. Separate8861 PID44523
+and8871 PID91539 retain their original start times. The pending image package
+still has the same request hash, zero outputs and no completion; it was neither
+resumed nor resent. No native media or H3 call was made during this release.
+
+[Full unfiltered CI](https://github.com/Wenjun-Mao/plotloom/actions/runs/37694754831)
+is running on the exact executable revision; it is not yet claimed PASS.
+Local1,245Python/594frontend/206browser and the other release gates remain the
+qualified results below. Outstanding native creation/media, supported post-install rebuild, configured
+model inference and actual OS blur remain separately unqualified.
+
 ## Current repair batch 2026 10 07 21 53 UTC
 
 The current batch is uncommitted and has no freshly activated normal8841 backend.
