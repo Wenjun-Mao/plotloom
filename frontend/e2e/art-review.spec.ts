@@ -214,9 +214,9 @@ test.describe("F3A production art review", () => {
     await expect(preview.frameLocator("iframe").locator("body")).toContainText("original specialist candidate");
     expect(await preview.evaluate((element) => !!(element.compareDocumentPosition(document.querySelector("details.art-json-editor")!) & Node.DOCUMENT_POSITION_FOLLOWING))).toBeTruthy();
     await panel.getByRole("button", { name: "放大阅读报告" }).click();
-    const candidateReport = page.getByRole("dialog", { name: "美术设定报告" });
+    const candidateReport = page.getByRole("dialog", { name: "美术设定报告（静态阅读）" });
     await expect(candidateReport).toBeVisible();
-    await expect(candidateReport).toContainText("这是助手交付时的原始报告");
+    await expect(candidateReport).toContainText("静态阅读视图保留助手交付时的内容");
     await candidateReport.getByRole("button", { name: "关闭报告" }).click();
     await expect(candidateReport).not.toBeVisible();
 
@@ -237,11 +237,11 @@ test.describe("F3A production art review", () => {
     await expect(jsonDetails).not.toHaveAttribute("open", "");
     const reportButton = panel.getByRole("button", { name: "放大阅读报告" });
     await reportButton.click();
-    const reportDialog = page.getByRole("dialog", { name: "美术设定报告" });
+    const reportDialog = page.getByRole("dialog", { name: "美术设定报告（静态阅读）" });
     await expect(reportDialog).toBeVisible();
     const dialogBox = await reportDialog.boundingBox();
     expect(dialogBox!.height).toBeGreaterThan(page.viewportSize()!.height * 0.8);
-    const report = reportDialog.frameLocator('iframe[title="美术设定报告内容"]');
+    const report = reportDialog.frameLocator('iframe[title="美术设定报告静态内容"]');
     await expect(report.locator("body")).toContainText("original specialist candidate");
     await reportDialog.getByRole("button", { name: "关闭报告" }).click();
     await expect(reportDialog).not.toBeVisible();
@@ -273,8 +273,8 @@ test.describe("F3A production art review", () => {
     await refreshFromBrowser(page, panel, projectId, replacement.jobId);
     const previews = panel.locator(".art-report-preview > iframe");
     await expect(previews).toHaveCount(2);
-    await expect(previews.nth(0)).toHaveAttribute("src", new RegExp(`${replacement.jobId}/report$`));
-    await expect(previews.nth(1)).toHaveAttribute("src", new RegExp(`${prepared.jobId}/report$`));
+    await expect(previews.nth(0)).toHaveAttribute("src", new RegExp(`${replacement.jobId}/report\\?presentation=static$`));
+    await expect(previews.nth(1)).toHaveAttribute("src", new RegExp(`${prepared.jobId}/report\\?presentation=static$`));
     await expect(panel.locator(".art-json-editor[open]")).toHaveCount(0);
     await expect(current.nth(0)).toHaveValue(/The keeper faces a power choice/);
     await expect(current.nth(1)).toHaveValue(/Author saved r2 wording/);

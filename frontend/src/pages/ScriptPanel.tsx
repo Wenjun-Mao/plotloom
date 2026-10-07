@@ -160,7 +160,7 @@ function CandidateActions({ candidate, projectId, readOnly, stale, busy, run }: 
 function AcceptedReview({ accepted, projectId, readOnly, busy, status, retained, sectionId, draft, onSelect, onDraft, onReopen, onSave }: { accepted: AcceptedScriptRevision; projectId: string; readOnly: boolean; busy: boolean; status: ScriptReviewState["status"]; retained: boolean; sectionId: string; draft: string; onSelect: (sectionId: string) => void; onDraft: (draft: string) => void; onReopen: () => void; onSave: () => void }) {
   const editing = status === "reopened";
   return <section>
-    <small>已确认 r{accepted.revision} · hash {accepted.contentHash.slice(0, 12)}。当前 JSON 可直接检查；上游报告始终是原始派生报告。</small>
+    <small>已确认 r{accepted.revision} · hash {accepted.contentHash.slice(0, 12)}。当前 JSON 可直接检查；上游报告保留原始派生内容，以静态阅读方式显示。</small>
     <ScriptJson title="查看当前已确认剧本" script={accepted.script} />
     {!editing && <Button variant="quiet" disabled={readOnly || busy} onClick={onReopen}>重新打开剧本</Button>}
     {editing && !retained && <SectionEditor accepted={accepted} disabled={readOnly || busy} sectionId={sectionId} draft={draft} onSelect={onSelect} onDraft={onDraft} onSave={onSave} />}
@@ -182,7 +182,7 @@ function ScriptJson({ title, script }: { title: string; script: Record<string, u
 }
 
 function Report({ projectId, jobId }: { projectId: string; jobId: string }) {
-  return <details><summary>打开原始只读上游报告</summary><ProjectReportFrame sandbox="" title="original derived upstream script report" className="source-outline-report" url={plotloomApi.scriptCandidateReportUrl(projectId, jobId)} /></details>;
+  return <details><summary>打开上游报告（静态阅读）</summary><p>静态阅读视图：所有场次与台词完整展开；上游脚本、复制与导出操作停用。原始归档文件与确认内容保持独立。</p><ProjectReportFrame sandbox="" title="static derived upstream script report" className="source-outline-report" referrerPolicy="no-referrer" url={plotloomApi.scriptCandidateReportUrl(projectId, jobId)} /></details>;
 }
 
 function episodeForSection(accepted: AcceptedScriptRevision, sectionId: string): string {

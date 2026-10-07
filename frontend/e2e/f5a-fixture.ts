@@ -70,20 +70,21 @@ export async function createScriptProject(request: APIRequestContext, origin: st
   }
   return id;
 }
-export async function writeDelivery(prepared: Preparation, stage = "storyboard", candidate?: any): Promise<void> {
+export async function writeDelivery(prepared: Preparation, stage = "storyboard", candidate?: any, reportOverride?: Buffer): Promise<void> {
   const request = JSON.parse(await readFile(path.join(prepared.packagePath, "request.json"), "utf8"));
   const filename = `${stage === "characters" ? "cast" : stage}.json`;
   const content = candidate ? Buffer.from(JSON.stringify(candidate)) : await readFile(path.join(fixtureDirectory, filename));
   await mkdir(prepared.deliveryPath, { recursive: true });
   const candidatePath = path.join(prepared.deliveryPath, filename);
   await writeFile(candidatePath, content);
-  let report = Buffer.from("<!doctype html><html><body>Deterministic upstream-context fixture report</body></html>");
+  let report: Buffer = Buffer.from("<!doctype html><html><body>Deterministic upstream-context fixture report</body></html>");
   if (stage === "storyboard") {
     const inputs = path.join(prepared.packagePath, "inputs");
     const args = [candidatePath, "--script", path.join(inputs, "script.json"), "--outline", path.join(inputs, "outline.json"), "--cast", path.join(inputs, "cast.json")];
     execFileSync(process.execPath, [validator, "validate", ...args, "--no-log"]);
     report = execFileSync(process.execPath, [validator, "render", ...args, "--art", path.join(inputs, "art.json"), "--html"]);
   }
+  if (reportOverride) report = reportOverride;
   await writeFile(path.join(prepared.deliveryPath, "report.html"), report);
   await writeFile(path.join(prepared.deliveryPath, "completion.json"), JSON.stringify({
     schemaVersion: 1, jobId: prepared.jobId, requestHash: request.requestHash, deliveryId: `deterministic-${prepared.jobId}`, stage,

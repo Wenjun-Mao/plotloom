@@ -1,10 +1,11 @@
 """F4 routes: one frozen whole-pilot handoff and section-scoped script edits."""
 from __future__ import annotations
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 from uuid import uuid4
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import HTMLResponse
 from ..script_contracts import ScriptAcceptRequest, ScriptCandidate, ScriptCandidatePreparation, ScriptReopenRequest, ScriptReviewState, ScriptSectionSaveRequest
+from ..upstream_report_presentation import static_script_report
 
 
 def register_project_folder_script_routes(app: FastAPI, opened_project: Callable[[str], Any]) -> None:
@@ -42,8 +43,10 @@ def register_project_folder_script_routes(app: FastAPI, opened_project: Callable
         with opened_project(project_id) as store: return store.cancel_script_candidate(job_id)
 
     @app.get("/api/v2/projects/{project_id}/script/candidates/{job_id}/report", response_class=HTMLResponse)
-    def script_report(project_id: str, job_id: str) -> HTMLResponse:
+    def script_report(project_id: str, job_id: str, presentation: Literal["archive", "static"] = "archive") -> HTMLResponse:
         with opened_project(project_id) as store: report = store.script_candidate_report(job_id)
+        if presentation == "static":
+            report = static_script_report(report)
         return HTMLResponse(report, headers={"Content-Security-Policy": "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:;", "X-Content-Type-Options": "nosniff"})
 
     @app.post("/api/v2/projects/{project_id}/script/accept", response_model=ScriptReviewState)

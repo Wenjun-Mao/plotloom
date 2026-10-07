@@ -1,5 +1,10 @@
 # Plotloom roadmap entrypoint
 
+The owner approved a [fresh full creator E2E repeat](2026-10-07-full-creator-e2e-repeat.md)
+with demonstrated repairs on October7, including candidate provenance. Its
+[run ledger](../verification/2026-10-07-full-creator-e2e-repeat.md) is in progress;
+the prior deadline does not apply to this new assignment.
+
 The owner subsequently authorized the
 [full creator journey functional walkthrough](2026-10-06-full-creator-e2e.md)
 while sleeping, with up to ten hours and no reliance on further replies.
@@ -14,7 +19,11 @@ explicit footage confirmation/current Script binding. Verified executable
 `24935d1` is pushed and normal8841 activated; its new full CI37576375714 passed
 verification and both unfiltered browser shards. Scoped documentation/evidence
 closeout is published with the receipt.
-The native image queue→start gap remains unresolved and its lease preserved.
+The native image queue→start gap was unresolved at that checkpoint. The later
+[native ingestion follow-up](../verification/2026-10-07-native-image-ingestion.md)
+records owner-restarted delivery and legitimate lease completion, plus the
+candidate provenance defect now explicitly authorized for repair. It does not
+prove durable scheduler recovery or rewrite the historical blocked evidence.
 
 The owner authorized a checklist-led self-walkthrough and demonstrated-issue
 repairs on 2026-10-06 before their next walkthrough. Extend the permanent

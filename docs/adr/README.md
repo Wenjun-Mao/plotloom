@@ -54,3 +54,5 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0122 Creator workspace presentation](0122-creator-workspace-presentation.md)
 - [0123 Node-context Story and Production workflows](0123-node-context-story-production-workflows.md)
 - [0124 Requesting-client project read quiescence](0124-requesting-client-project-read-quiescence.md)
+- [0125 Complete candidate asset projections](0125-complete-candidate-asset-projections.md)
+- [0126 Static archived report presentation](0126-static-script-report-presentation.md)

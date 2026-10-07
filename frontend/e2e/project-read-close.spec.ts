@@ -11,7 +11,7 @@ const row = (page: Page, id: string) => page.locator(`.directory-item[data-proje
 for (const kind of ["JSON", "HTML"] as const) test(`Save-and-close settles an owned ${kind} read and resumes projections after the exclusive response`, async ({ page, request, workbench }) => {
   const id = await createScriptProject(request, workbench.apiOrigin, `held-close-${kind}`);
   const held = gate(); let closes = 0, reports = 0;
-  const pattern = kind === "JSON" ? "**/api/v2/projects/*/script" : "**/api/v2/projects/*/script/candidates/*/report";
+  const pattern = kind === "JSON" ? "**/api/v2/projects/*/script" : "**/api/v2/projects/*/script/candidates/*/report?presentation=static";
   await page.route(pattern, async route => {
     const response = await route.fetch();
     if (kind === "HTML") { reports += 1; expect(response.headers()["content-security-policy"]).toContain("default-src 'none'"); }
@@ -58,7 +58,7 @@ test("busy close fails truthfully and resumes owned report and JSON reads for an
   await expect(textbox).toHaveValue("失败后仍保留这份未确认图草稿。");
   await page.getByRole("dialog", { name: "项目目录", exact: true }).locator("footer").getByRole("button", { name: "关闭窗口", exact: true }).click();
   await page.reload(); await expect(textbox).toHaveValue("失败后仍保留这份未确认图草稿。");
-  await expect(page.frameLocator('iframe[title="original derived upstream script report"]').locator("body")).toContainText("Deterministic upstream-context fixture report");
+  await expect(page.frameLocator('iframe[title="static derived upstream script report"]').locator("body")).toContainText("Deterministic upstream-context fixture report");
   await page.getByRole("button", { name: "保存并关闭项目", exact: true }).click();
   await expect(row(page, id)).toContainText("已关闭 · 可安全复制"); expect(closes).toBe(2);
 });

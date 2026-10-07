@@ -115,7 +115,7 @@ class ImageJobDeliveryPersistence:
         return {
             "id": row.id, "assetId": row.asset_id, "jobId": row.job_id,
             "outputFilename": row.output_filename, "outputHash": row.output_hash, "role": row.role,
-            "asset": ManagedAssetPersistence.managed_asset_dict(asset) if asset else None,
+            "asset": ManagedAssetPersistence.public_managed_asset_dict(session, asset) if asset else None,
             "createdAt": _stored_utc(row.created_at).isoformat(),
         }
 

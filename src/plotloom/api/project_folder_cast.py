@@ -1,9 +1,10 @@
 """F2A routes: prepare/copy, refresh, ordinary review, and explicit cast acceptance."""
 from __future__ import annotations
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 from uuid import uuid4
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import HTMLResponse
+from ..upstream_report_presentation import static_cast_report
 from ..cast_contracts import CastAcceptRequest, CastCancelReopenRequest, CastCandidate, CastCandidatePreparation, CastReopenRequest, CastReviewState, CastSaveRequest
 
 def register_project_folder_cast_routes(app: FastAPI, opened_project: Callable[[str], Any]) -> None:
@@ -32,8 +33,9 @@ def register_project_folder_cast_routes(app: FastAPI, opened_project: Callable[[
         with opened_project(project_id) as store: return store.cancel_cast_candidate(job_id)
 
     @app.get("/api/v2/projects/{project_id}/cast/candidates/{job_id}/report", response_class=HTMLResponse)
-    def cast_report(project_id: str,job_id: str) -> HTMLResponse:
+    def cast_report(project_id: str,job_id: str, presentation: Literal["archive", "static"] = "archive") -> HTMLResponse:
         with opened_project(project_id) as store: report=store.cast_candidate_report(job_id)
+        if presentation == "static": report=static_cast_report(report)
         return HTMLResponse(report,headers={"Content-Security-Policy":"sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:;", "X-Content-Type-Options":"nosniff"})
 
     @app.post("/api/v2/projects/{project_id}/cast/accept",response_model=CastReviewState)

@@ -34,6 +34,10 @@ test("installs the accepted Tide Light map into canonical routes, then survives 
   await expect(page.getByText("确认后，将以这份大纲继续设计分支和剧本；不会自动生成后续内容。", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "确认使用此大纲", exact: true }).click();
   await expect(page.getByText("已确认 r1", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "阅读已确认大纲", exact: true }).click();
+  await expect(page.getByRole("dialog")).toContainText("其中的“导出 JSON”下载受隔离阅读限制，不会下载文件");
+  await expect(page.getByRole("dialog").locator("iframe")).toHaveAttribute("sandbox", "allow-scripts");
+  await page.getByRole("button", { name: "关闭阅读", exact: true }).click();
 
   const map = page.getByTestId("section-map");
   await map.getByRole("button", { name: "自行填写当前结构草稿" }).click();

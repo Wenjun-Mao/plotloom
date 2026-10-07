@@ -43,7 +43,7 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     await expect(panel.getByTestId("storyboard-cut").first()).toContainText("wide shot of a lone beacon keeper");
     await expect(panel.getByTestId("storyboard-cut").first()).toBeVisible();
     expect(await panel.locator("textarea:not([readonly])").count()).toBe(0);
-    await panel.getByText("打开原始只读上游报告", { exact: true }).click();
+    await panel.getByText("打开上游分镜报告（静态阅读）", { exact: true }).click();
     await expect(panel.frameLocator("iframe").locator("body")).toContainText("One cable. Two places need it.");
     const report = await request.get(`${endpoint(workbench.apiOrigin, id)}/candidates/${prepared.jobId}/report`);
     expect(await report.body()).toEqual(await readFile(path.join(prepared.deliveryPath, "report.html")));

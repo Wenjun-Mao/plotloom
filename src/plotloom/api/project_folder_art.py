@@ -1,7 +1,7 @@
 """F3A routes: frozen art handoff, inspection, explicit acceptance, and reopen."""
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, status
@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse
 
 from ..art_contracts import ArtAcceptRequest, ArtCandidate, ArtCandidatePreparation, ArtReopenRequest, ArtReviewState, ArtSaveRequest
 from ..art_style import ArtPrepareRequest
+from ..upstream_report_presentation import static_art_report
 from ..image_job_contracts import (
     ArtReferenceDecisionRequest,
     ArtReferenceProposalCancellationRequest,
@@ -56,8 +57,10 @@ def register_project_folder_art_routes(app: FastAPI, opened_project: Callable[[s
         with opened_project(project_id) as store: return store.cancel_art_candidate(job_id)
 
     @app.get("/api/v2/projects/{project_id}/art/candidates/{job_id}/report", response_class=HTMLResponse)
-    def art_report(project_id: str, job_id: str) -> HTMLResponse:
+    def art_report(project_id: str, job_id: str, presentation: Literal["archive", "static"] = "archive") -> HTMLResponse:
         with opened_project(project_id) as store: report = store.art_candidate_report(job_id)
+        if presentation == "static":
+            report = static_art_report(report)
         return HTMLResponse(report, headers={"Content-Security-Policy": "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:;", "X-Content-Type-Options": "nosniff"})
 
     @app.post("/api/v2/projects/{project_id}/art/accept", response_model=ArtReviewState)

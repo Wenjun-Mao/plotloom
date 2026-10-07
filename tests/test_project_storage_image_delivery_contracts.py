@@ -190,6 +190,14 @@ def test_repeated_pre_final_delivery_observation_stays_pending_until_completion(
         listed = client.get(f"/api/v2/projects/{project_id}/image-jobs").json()["jobs"]
         assert len(listed[0]["deliveries"]) == 1
         assert len(listed[0]["deliveries"][0]["candidates"]) == 1
+        asset = accepted.json()["candidates"][0]["asset"]
+        assert asset["provenance"]["origin"] == "codex_image_job"
+        assert asset == client.get(f"/api/v2/projects/{project_id}/managed-assets").json()["assets"][0]
+        assert listed[0]["deliveries"][0]["candidates"] == accepted.json()["candidates"]
+        repeated = client.post(refresh_path)
+        assert repeated.status_code == 200, repeated.text
+        assert repeated.json()["idempotent"] is True
+        assert repeated.json()["candidates"] == accepted.json()["candidates"]
     finally:
         client.close()
 

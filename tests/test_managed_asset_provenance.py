@@ -86,6 +86,20 @@ def test_art_delivery_writer_records_complete_common_provenance(tmp_path: Path) 
     assert declaration["declaredAdditions"] == []
     assert declaration["deliveryId"] == "art-study-001"
     assert declaration["limitations"] == ["fixture bytes only"]
+    asset = delivered.json()["candidates"][0]["asset"]
+    assert asset["provenance"] == declaration
+    assert asset == client.get(f"/api/v2/projects/{project_id}/managed-assets").json()["assets"][0]
+    assert asset == client.get(f"/api/v2/projects/{project_id}/visual-workbench").json()["assets"][0]
+    repeated = client.post(f"{base}/{proposal['id']}/refresh")
+    assert repeated.status_code == 200, repeated.text
+    assert repeated.json()["idempotent"] is True
+    assert repeated.json()["candidates"] == delivered.json()["candidates"]
+    reopened = TestClient(create_project_folder_authoring_app(ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")))
+    listed = reopened.get(base).json()["proposals"][0]["deliveries"][0]["candidates"]
+    assert listed == delivered.json()["candidates"]
+    with sqlite3.connect(database) as connection:
+        assert json.loads(connection.execute("SELECT declaration FROM v2_managed_asset_provenance").fetchone()[0]) == declaration
 
 
 @pytest.mark.parametrize("invalid", [{"rights": "acquired"}, {"declaredAdditions": None}, {"declaredAdditions": [1]}])

@@ -6,6 +6,7 @@ from collections.abc import Callable
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from ...domain import new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
@@ -36,6 +37,20 @@ class ManagedAssetPersistence:
             "width": row.width,
             "height": row.height,
             "createdAt": _stored_utc(row.created_at).isoformat(),
+        }
+
+    @staticmethod
+    def public_managed_asset_dict(session: Session, row: ManagedAssetRow) -> dict[str, Any]:
+        """Project the same persisted declaration wherever a public asset is read."""
+        provenance = session.scalar(
+            select(ManagedAssetProvenanceRow)
+            .where(ManagedAssetProvenanceRow.asset_id == row.id)
+            .order_by(ManagedAssetProvenanceRow.created_at, ManagedAssetProvenanceRow.id)
+            .limit(1)
+        )
+        return {
+            **ManagedAssetPersistence.managed_asset_dict(row),
+            "provenance": project_asset_provenance(provenance.declaration) if provenance else None,
         }
 
     def record_managed_import(
@@ -228,16 +243,4 @@ class ManagedAssetPersistence:
                 .where(ManagedAssetRow.project_id == project_id)
                 .order_by(ManagedAssetRow.created_at, ManagedAssetRow.id)
             ).all()
-            result = []
-            for row in rows:
-                provenance = session.scalar(
-                    select(ManagedAssetProvenanceRow)
-                    .where(ManagedAssetProvenanceRow.asset_id == row.id)
-                    .order_by(ManagedAssetProvenanceRow.created_at)
-                    .limit(1)
-                )
-                result.append({
-                    **self.managed_asset_dict(row),
-                    "provenance": project_asset_provenance(provenance.declaration) if provenance else None,
-                })
-            return result
+            return [self.public_managed_asset_dict(session, row) for row in rows]

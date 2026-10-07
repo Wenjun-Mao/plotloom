@@ -1,11 +1,13 @@
 """F5A routes for source-bound upstream storyboard review revisions."""
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import HTMLResponse
+
+from ..upstream_report_presentation import static_storyboard_report
 
 from ..storyboard_review_contracts import (
     StoryboardReviewAcceptRequest, StoryboardReviewCandidate,
@@ -52,9 +54,11 @@ def register_project_folder_storyboard_review_routes(app: FastAPI, opened_projec
             return store.cancel_storyboard_review_candidate(job_id)
 
     @app.get("/api/v2/projects/{project_id}/storyboard-source-review/candidates/{job_id}/report", response_class=HTMLResponse)
-    def storyboard_review_report(project_id: str, job_id: str) -> HTMLResponse:
+    def storyboard_review_report(project_id: str, job_id: str, presentation: Literal["archive", "static"] = "archive") -> HTMLResponse:
         with opened_project(project_id) as store:
             report = store.storyboard_review_candidate_report(job_id)
+        if presentation == "static":
+            report = static_storyboard_report(report)
         return HTMLResponse(report, headers={"Content-Security-Policy": "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:;", "X-Content-Type-Options": "nosniff"})
 
     @app.post("/api/v2/projects/{project_id}/storyboard-source-review/accept", response_model=StoryboardReviewState)

@@ -310,7 +310,7 @@ class CharacterReferenceProposalPersistence:
         return {
             "id": row.id, "assetId": row.asset_id, "proposalId": row.proposal_id,
             "outputFilename": row.output_filename, "outputHash": row.output_hash, "role": row.role,
-            "asset": ManagedAssetPersistence.managed_asset_dict(asset) if asset is not None else None,
+            "asset": ManagedAssetPersistence.public_managed_asset_dict(session, asset) if asset is not None else None,
             "createdAt": _stored_utc(row.created_at).isoformat(),
         }
 
