@@ -18,9 +18,9 @@ approve the pending Image continuation or implement new product capabilities.
 
 | Profile field | Current run |
 |---|---|
-| Last qualified baseline | Published executable e941780302c9d97be0b1f0fd9cb1bace4549d5d8, normal8841 activated at22:10–22:11 UTC; local1,245Python/594frontend/206browser and exact855-input readback PASS; remote CI37694754831 failed a Linux report-fixture argv limit; bounded stdin correction reviewed, not yet published |
+| Last qualified baseline | Published frontend repair5aff37e885fdd8b32f9282d8cc14a5366ee1a99e, served on normal8841 with unchanged e941780 Python; local597frontend/206browser and exact856-input readback PASS, Python1,245 qualification reused on unchanged inputs; full CI37701584435 running, not yet PASS |
 | Existing evidence | Completed text→installation→first-shot native flow and separate structural QA; additional finite type/start/Undo and imported-image lifecycle/snapshot/restored-copy UI passed. Readonly-label repair has597 frontend and final206 browser PASS; Linux stdin and Source ACK corrections independently reviewed. Full lifecycle remains PARTIAL |
-| Runtime boundary | Normal8841 is the activated e941780 repair candidate; separate8871 qualifies disposable graph checks. Retained8851 and busy8861 loaded backends differ. Do not reload newer static against old Python or restart the busy Image reservation |
+| Runtime boundary | Normal8841 serves reviewed5aff37e frontend with unchanged qualified e941780 Python; separate8871 qualifies disposable graph checks. Retained8851 and busy8861 loaded backends differ. Do not reload newer static against old Python or restart the busy Image reservation |
 | Data baseline | Fresh native QA b3a933f7-b6fc-40e3-826f-5162f95a119a; structural QA remains separately identified in the ledger. Completed playable/media baseline not yet established for this repeat |
 | Protection | Two named owner projects, managed files and protected configuration unchanged; disposable lifecycle/recovery targets identified before actions |
 | Authority | Earlier bounded functional ImageGen/H3 QA authorization remains distinct from specialist-task continuation. No new paid fallback, settings mutation, broad deletion or creative/media-quality approval |
@@ -104,16 +104,17 @@ explicitly and leave exact pending task identities.
 
 ## Status
 
-At23:17 UTC the frontend-only read-only/save-label repair is uncommitted but served
-through normal8841's checkout mount; its loaded Python remains e941780 unchanged.
+At23:19 UTC root approved and pushed frontend repair5aff37e; origin/main identity
+was verified. Normal8841 serves it through the checkout mount without restarting
+its unchanged e941780 Python.
 Imported-image lifecycle and snapshot/operator/restored-copy UI recovery passed;
 the protected owners are unchanged. Independent reviews closed access-lock and
 report-transport checks. The next full gate retained205 PASS/1 FAIL from a source-
 test read-before-write-ACK race. The bounded harness correction is reviewed with
 three-repeat PASS; the final full206 gate PASS6.0m on unchanged856 inputs and the
-repeat deterministic build retains the checked JS/CSS. Publication remains pending.
-Remote CI37694754831 is FAIL due to the separately corrected Linux argv fixture
-limit, not qualification of this pending candidate. The ledger owns exact evidence.
+repeat deterministic build retains the checked JS/CSS. Full CI37701584435 is
+running on the exact published source, not yet PASS. Earlier CI37694754831 failed
+the now-corrected Linux argv fixture limit. The ledger owns exact evidence.
 
 ### Prior published checkpoint 22 13 UTC
 

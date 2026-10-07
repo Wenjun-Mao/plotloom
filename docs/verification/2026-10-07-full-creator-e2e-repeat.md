@@ -7,9 +7,12 @@ receipts and prior checkpoints are preserved verbatim in the linked
 [historical receipt](2026-10-07-full-creator-e2e-repeat-history.md).
 Historical present-tense statements there do not describe current deployment.
 
-## Recovery continuation 2026 10 07 23 17 UTC
+## Recovery repair published 2026 10 07 23 19 UTC
 
-The frontend-only repair is locally qualified and awaiting publication. Final
+Root approved and pushed the frontend-only repair as
+`5aff37e885fdd8b32f9282d8cc14a5366ee1a99e`; origin/main identity was verified.
+Full unfiltered [CI37701584435](https://github.com/Wenjun-Mao/plotloom/actions/runs/37701584435)
+is running on that exact revision, not yet PASS. Final
 206-browser gate PASS6.0m; all856 source/test/config/static inputs stayed unchanged.
 Their aggregate is `bbc702df320b991ae67a0dba5eed064866fa642d2a6dafe1da7f0b1da7430c3c`.
 Normal8841's Python remains the qualified e941780 source, unchanged;
@@ -88,7 +91,7 @@ and explicit named Brief navigation correct those assumptions; no timeout weaken
 Artifacts remain in `readonly-focused-browser/`, `readonly-media-focused-browser/`
 and `readonly-media-reconciled-browser/`; PASS is `readonly-media-final-focused/`.
 
-Exact owner recapture still matches `df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`
+Post-publication owner recapture matches `df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`
 (Wind17/Rain67 files, both DB row/schema sets and three protected configurations).
 The earlier global helper refuses the five-project registry; the scoped recapture
 checks only the two protected owners, without modifying or weakening that helper.
