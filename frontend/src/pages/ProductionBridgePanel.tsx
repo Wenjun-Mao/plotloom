@@ -17,13 +17,14 @@ function userFacingBridgeMessage(message: string): string {
 }
 
 /** F5 projection and dramatic-intent review; this panel never dispatches media. */
-export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { projectId: string; readOnly: boolean; onOpenShot?: (shotId: string) => boolean | void }) {
+export function ProductionBridgePanel({ projectId, readOnly, onOpenShot, onInstalled }: { projectId: string; readOnly: boolean; onOpenShot?: (shotId: string) => boolean | void; onInstalled: (projectId: string) => Promise<void> }) {
   const [state, setState] = useState<ProductionBridgeState>();
   const [intentEntries, setIntentEntries] = useState<ProductionBridgeIntentEntry[]>([]);
   const [presentationDirty, setPresentationDirty] = useState(false);
   const [presentationEditorNonce, setPresentationEditorNonce] = useState(0);
   const [presentationTouched, setPresentationTouched] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [canonicalReady, setCanonicalReady] = useState(true);
   const [error, setError] = useState("");
   const [loadFailed, setLoadFailed] = useState(false);
   const [draftConflict, setDraftConflict] = useState(false);
@@ -63,7 +64,7 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { pro
     const controller = new AbortController();
     draftProposalKey.current = undefined;
     draftBaseline.current = [];
-    setState(undefined); setIntentEntries([]); setPresentationDirty(false); setPresentationTouched(false); setBusy(false); setError(""); setLoadFailed(false); setDraftConflict(false);
+    setState(undefined); setIntentEntries([]); setPresentationDirty(false); setPresentationTouched(false); setBusy(false); setCanonicalReady(true); setError(""); setLoadFailed(false); setDraftConflict(false);
     void plotloomApi.getProductionBridge(projectId, controller.signal)
       .then(next => { if (owns(request)) adopt(next); })
       .catch(reason => { if (owns(request)) { setLoadFailed(true); setError(reason instanceof Error ? reason.message : "无法加载投产提案。"); } });
@@ -104,12 +105,23 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { pro
     return () => { stopped = true; clearTimeout(timer); };
   }, [projectId, job?.id, job?.status, busy]);
 
-  const run = (operation: () => Promise<ProductionBridgeState>, adoptResult = false, resetPresentation = false) => {
+  const run = (operation: () => Promise<ProductionBridgeState>, adoptResult = false, resetPresentation = false, refreshCanonical = false) => {
     const request = beginRequest();
+    let installed = false;
     setBusy(true); setError("");
     void operation()
-      .then(next => { if (owns(request)) { if (adoptResult) adopt(next); else setState(next); if (resetPresentation) { setPresentationTouched(false); setPresentationEditorNonce(value => value + 1); } } })
-      .catch(reason => { if (owns(request)) setError(reason instanceof Error ? reason.message : "投产提案操作失败。"); })
+      .then(async next => {
+        if (!owns(request)) return;
+        if (adoptResult) adopt(next); else setState(next);
+        if (resetPresentation) { setPresentationTouched(false); setPresentationEditorNonce(value => value + 1); }
+        if (refreshCanonical) {
+          installed = next.status === "accepted";
+          setCanonicalReady(false);
+          await onInstalled(projectId);
+          if (owns(request)) setCanonicalReady(true);
+        }
+      })
+      .catch(reason => { if (owns(request)) setError(installed ? `投产已确认；请刷新服务器版本读取当前镜头：${reason instanceof Error ? reason.message : "读取失败"}` : reason instanceof Error ? reason.message : "投产提案操作失败。"); })
       .finally(() => { if (owns(request)) setBusy(false); });
   };
 
@@ -135,10 +147,10 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { pro
     {proposal && <>
       <p><small>提案 r{proposal.revision} · {proposal.scenes.length} 个场次 · {proposal.cuts.length} 个镜头</small></p>
       {proposal.conflicts.map((conflict, index) => <div className="notice warning" key={`${conflict.code}-${index}`}>{userFacingBridgeMessage(conflict.message)}</div>)}
-      {proposal.advisories?.map((advisory, index) => <div className="notice" key={`${advisory.code}-${index}`}>{advisory.message}</div>)}
+      {proposal.advisories.map((advisory, index) => <div className="notice" key={`${advisory.code}-${index}`}>{advisory.message}</div>)}
       <details><summary>查看场次与镜头</summary><ul>{proposal.scenes.map((scene, index) => <li key={String(scene.sceneId ?? index)}>{String(scene.sectionId)} / 第 {String(scene.episode)} 结构条目 / 场次 {String(scene.sceneIndex)}：{String(scene.cutCount)} 个镜头</li>)}</ul><ul>{proposal.cuts.map((raw, index) => {
         const cut = bridgeCut(raw);
-        return <li key={String(raw.shotId ?? index)}>{String(raw.shotId)} · {String(raw.seconds)} 秒{cut && state.status === "accepted" && state.staleReasons.length === 0 && state.installedStoryboardCurrent === true && onOpenShot && <Button variant="quiet" onClick={() => { if (onOpenShot(cut.shotId) === false) setError("来源文字仍有未保存的编辑；请先保存或明确放弃，再打开投产镜头。"); }}>在分镜工作台打开 {cut.shotId}</Button>}</li>;
+        return <li key={String(raw.shotId ?? index)}>{String(raw.shotId)} · {String(raw.seconds)} 秒{cut && state.status === "accepted" && state.staleReasons.length === 0 && state.installedStoryboardCurrent === true && onOpenShot && <Button variant="quiet" disabled={readOnly || busy || !canonicalReady} onClick={() => { if (onOpenShot(cut.shotId) === false) setError("来源文字仍有未保存的编辑；请先保存或明确放弃，再打开投产镜头。"); }}>在分镜工作台打开 {cut.shotId}</Button>}</li>;
       })}</ul></details>
       {state.status !== "accepted" && <div className="bridge-intent-controls">
         <Button variant="primary" disabled={readOnly || busy || activeJob || state.status === "stale"} onClick={() => run(() => plotloomApi.generateProductionBridgeIntent(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash }))}>生成戏剧意图建议</Button>
@@ -158,14 +170,15 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { pro
       <ProductionPresentationReview key={`${projectId}:${presentationEditorNonce}`} projectId={projectId} proposal={proposal} accepted={state.status === "accepted"} disabled={readOnly || busy || activeJob || state.status === "stale" || intentDirty || draftConflict} onSaved={adopt} onDirty={setPresentationDirty} onEdited={() => setPresentationTouched(true)} onBusy={setBusy} />
       <details><summary>技术详情（版本、来源与冻结输入）</summary><code>{proposal.contentHash}</code>{job && <p><small>推断任务 {job.id} · 配置 {job.profileId} r{job.profileVersion} · 提示 v{job.promptVersion}</small></p>}{proposal.intentPackage.provenance && <p><small>建议来源任务：{String(proposal.intentPackage.provenance.jobId ?? "")}</small></p>}</details>
       <p>确认后，将建立后续制作使用的场景与镜头数据；不会自动生成图片或视频。</p>
-      {state.status !== "accepted" && <Button variant="primary" disabled={readOnly || busy || !proposal.installable || unsaved || state.status === "stale" || state.hasInstallation} onClick={() => run(() => plotloomApi.acceptProductionBridge(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash }))}>确认投产提案</Button>}
+      {state.status !== "accepted" && <Button variant="primary" disabled={readOnly || busy || !proposal.installable || unsaved || state.status === "stale" || state.hasInstallation} onClick={() => run(() => plotloomApi.acceptProductionBridge(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash }), false, false, true)}>确认投产提案</Button>}
       {state.status !== "accepted" && (readOnly || busy || unsaved || state.hasInstallation) && <p className="action-prerequisite">{readOnly ? "项目当前只读。" : busy ? "正在处理提案，请稍候。" : unsaved ? "请先保存当前编辑，再确认投产。" : "已安装过投产内容；当前工作流不支持替换。"}</p>}
       {state.status !== "accepted" && !proposal.installable && <p>请先完成戏剧意图与呈现归属审阅，并显式解决项目规划冲突；系统不会拆分场次或静默改写规则。</p>}
-      {state.status === "accepted" && <StageGuide next={state.installedStoryboardCurrent && state.staleReasons.length === 0 && firstCut && onOpenShot && <Button variant="primary" onClick={() => { if (onOpenShot(firstCut.shotId) === false) setError("来源文字仍有未保存的编辑；请先保存或明确放弃，再打开投产镜头。"); }}>继续：打开第一个镜头</Button>}>
+      {state.status === "accepted" && <StageGuide next={state.installedStoryboardCurrent && state.staleReasons.length === 0 && firstCut && onOpenShot && <Button variant="primary" disabled={readOnly || busy || !canonicalReady} onClick={() => { if (onOpenShot(firstCut.shotId) === false) setError("来源文字仍有未保存的编辑；请先保存或明确放弃，再打开投产镜头。"); }}>继续：打开第一个镜头</Button>}>
         {state.installedStoryboardCurrent
           ? "投产提案已确认。打开镜头后，依次完成分镜审核、参考选择、关键帧审核与视频片段审核。也可展开“查看场次与镜头”选择其他镜头。"
           : "投产提案已确认，但当时的分镜已不是当前版本。请在分镜工作台核对当前镜头；这里的镜头直达已暂停。"}
       </StageGuide>}
+      {state.status === "accepted" && !canonicalReady && <Button disabled={readOnly || busy} onClick={() => run(async () => state, false, false, true)}>重新读取投产镜头</Button>}
     </>}
     {error && <ErrorNotice message={userFacingBridgeMessage(error)} />}
   </section>;

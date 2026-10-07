@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName, StageStatus
@@ -79,6 +80,20 @@ def test_bridge_projects_one_f4_scene_to_one_canonical_scene_and_installs_atomic
         assert {scene.objective for scene in installed.scenes} == {edited_text}
         assert revised.intent_package.review_state == "author_saved"
         assert revised.intent_package.suggestion_origin == "none"
+    finally:
+        store.close()
+
+
+def test_current_bridge_proposal_requires_its_presentation_package(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}))
+    try:
+        proposal = _prepare_installable_bridge(store)
+        payload = proposal.model_dump(mode="json", by_alias=True)
+        assert ProductionBridgeProposal.model_validate(payload).presentation.reviewed
+        for invalid in ({key: value for key, value in payload.items() if key != "presentation"}, payload | {"presentation": None}):
+            with pytest.raises(ValidationError, match="presentation"):
+                ProductionBridgeProposal.model_validate(invalid)
     finally:
         store.close()
 

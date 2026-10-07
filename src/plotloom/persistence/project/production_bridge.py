@@ -129,7 +129,7 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
             self._access.rows.project(session, project_id); head = self._head(session, project_id)
             row = session.scalar(select(ProductionBridgeRevisionRow).where(ProductionBridgeRevisionRow.project_id == project_id, ProductionBridgeRevisionRow.revision == head.revision)) if head.revision else None
             stale = self._current(session, project_id, row.inputs) if row else []
-            proposal = ProductionBridgeProposal(revision=row.revision, content_hash=row.content_hash, inputs=row.inputs, intent_package=self._intent_package(session, row), presentation=ProductionPresentation.model_validate(row.proposal["presentation"]) if row.proposal.get("presentation") else None, scenes=row.proposal["scenes"], cuts=row.proposal["cuts"], conflicts=[ProductionBridgeConflict.model_validate(item) for item in row.conflicts], advisories=[ProductionBridgeConflict.model_validate(item) for item in row.proposal.get("advisories", [])], installable=row.installable, prepared_at=row.prepared_at) if row else None
+            proposal = ProductionBridgeProposal(revision=row.revision, content_hash=row.content_hash, inputs=row.inputs, intent_package=self._intent_package(session, row), presentation=ProductionPresentation.model_validate(row.proposal["presentation"]), scenes=row.proposal["scenes"], cuts=row.proposal["cuts"], conflicts=[ProductionBridgeConflict.model_validate(item) for item in row.conflicts], advisories=[ProductionBridgeConflict.model_validate(item) for item in row.proposal["advisories"]], installable=row.installable, prepared_at=row.prepared_at) if row else None
             admission = session.scalar(select(ProductionBridgeAdmissionRow).where(ProductionBridgeAdmissionRow.project_id == project_id).order_by(ProductionBridgeAdmissionRow.accepted_at.desc()).limit(1))
             storyboard_head = self._access.rows.stage(session, project_id, StageName.STORYBOARD) if admission else None
             installed_storyboard_current = bool(
@@ -139,7 +139,7 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
             )
             job = session.scalar(select(ProductionBridgeIntentJobRow).where(ProductionBridgeIntentJobRow.project_id == project_id).order_by(ProductionBridgeIntentJobRow.created_at.desc(), ProductionBridgeIntentJobRow.id.desc()).limit(1))
             job_view = ProductionBridgeIntentJob(id=job.id, status=job.status, proposal_revision=job.proposal_revision, proposal_content_hash=job.proposal_content_hash, profile_id=job.profile_snapshot["profileId"], profile_version=job.profile_snapshot["profileVersion"], prompt_version=job.prompt_trace["prompt_version"], created_at=job.created_at, updated_at=job.updated_at, error_code=job.error_code, error_message=job.error_message, result_proposal_revision=job.result_proposal_revision, provider_request_id=job.provider_request_id, response_hash=job.response_hash) if job else None
-            return ProductionBridgeState(proposal=proposal, status="stale" if stale else head.status, stale_reasons=stale, installed_stage_revisions=admission.installed_stage_revisions if admission and not stale else None, installed_storyboard_current=installed_storyboard_current, has_installation=admission is not None, intent_job=job_view, runtime_choice=row.proposal["presentation"]["runtimeChoice"] if row and row.proposal.get("presentation", {}).get("reviewed") and installed_storyboard_current else None)
+            return ProductionBridgeState(proposal=proposal, status="stale" if stale else head.status, stale_reasons=stale, installed_stage_revisions=admission.installed_stage_revisions if admission and not stale else None, installed_storyboard_current=installed_storyboard_current, has_installation=admission is not None, intent_job=job_view, runtime_choice=row.proposal["presentation"]["runtimeChoice"] if row and row.proposal["presentation"]["reviewed"] and installed_storyboard_current else None)
 
     def prepare(self, project_id: str) -> ProductionBridgeState:
         with self._access.leases.lifecycle_write() as session:
@@ -202,7 +202,7 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
             if head.revision != request.expected_proposal_revision: raise RevisionConflictError("production bridge", request.expected_proposal_revision, head.revision)
             row = session.scalar(select(ProductionBridgeRevisionRow).where(ProductionBridgeRevisionRow.project_id == project_id, ProductionBridgeRevisionRow.revision == head.revision))
             if row is None or row.content_hash != request.expected_content_hash or not row.installable: raise InvalidTransitionError("production bridge proposal is not installable")
-            if not row.proposal.get("presentation", {}).get("reviewed"):
+            if not ProductionPresentation.model_validate(row.proposal["presentation"]).reviewed:
                 raise InvalidTransitionError("production bridge requires complete reviewed presentation")
             package = self._intent_package(session, row)
             if package.review_state == "pending" or any(not entry.text.strip() for entry in package.entries):

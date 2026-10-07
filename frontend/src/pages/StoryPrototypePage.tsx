@@ -75,12 +75,18 @@ export function StoryPrototypePage() {
 
   const chooseNode = (nodeId: string) => {
     setSelectedNodeId(nodeId);
-    // The opening belongs to both paths. Keep a deliberately chosen path until
+    // Shared nodes belong to multiple routes. Keep a deliberately chosen path until
     // the reader selects a node that is outside it or clicks another branch.
     const containingRoute = selectedRoute?.sectionIds.includes(nodeId)
       ? selectedRoute
       : routes.find((route) => route.sectionIds.includes(nodeId));
     if (containingRoute) setSelectedRouteId(containingRoute.id);
+  };
+
+  const chooseRoute = (routeId: string, nodeId: string) => {
+    // An explicit complete route must not be inferred again from its shared ending.
+    setSelectedRouteId(routeId);
+    setSelectedNodeId(nodeId);
   };
 
   if (!projectId) return <PrototypeShell><section className="prototype-empty"><strong>需要一个项目</strong><p>从已有已确认剧本和分镜评审的项目打开此只读阅读页：在地址中加入 <code>?view=story-prototype&amp;project=…</code>。</p></section></PrototypeShell>;
@@ -100,7 +106,7 @@ export function StoryPrototypePage() {
         <div><span className="eyebrow">故事 / 剧本 / 分镜</span><h1>{data.projectTitle || "故事与分支"}</h1><p>选择一条路径，再选择要阅读的已确认剧本或对应分镜评审。界面为中文；已确认原文内容按接受版本呈现。</p></div>
         <div className="prototype-version"><strong>当前阅读内容</strong><span>已确认剧本{storyboardState.status === "available" ? " / 已确认分镜评审" : ""}</span><small>这里不会更改内容、生成素材或将分镜转为产品镜头。</small></div>
       </section>
-      <BranchMap graph={data.graph} routes={routes} selectedRoute={selectedRoute} selectedNode={selectedNode} onNode={chooseNode} onRoute={setSelectedRouteId} />
+      <BranchMap graph={data.graph} routes={routes} selectedRoute={selectedRoute} selectedNode={selectedNode} onNode={chooseNode} onRoute={chooseRoute} />
       <ReaderTabs mode={readerMode} storyboardStatus={storyboardState.status} onMode={setReaderMode} />
       {readerMode === "screenplay" ? <ScreenplayReader graph={data.graph} script={data.script} names={data.names} route={selectedRoute} selectedNode={selectedNode} selectedEpisode={selectedEpisode} onFocus={chooseNode} /> : <StoryboardStage graph={data.graph} script={data.script} names={data.names} route={selectedRoute} state={storyboardState} onFocus={chooseNode} projectId={projectId} />}
       <footer className="prototype-boundary"><strong>阅读边界</strong><span>分镜中的时长是评审用预计时长，不代表实际音频或成片时长。此页只用于阅读当前绑定的故事、剧本和分镜评审，不能在这里保存、生成或投产。</span></footer>
@@ -132,7 +138,7 @@ function WorkflowReturn({ projectId }: { projectId: string }) {
   </nav>;
 }
 
-function BranchMap({ graph, routes, selectedRoute, selectedNode, onNode, onRoute }: { graph: StoryGraph; routes: PrototypeRoute[]; selectedRoute: PrototypeRoute; selectedNode: string; onNode: (nodeId: string) => void; onRoute: (routeId: string) => void }) {
+function BranchMap({ graph, routes, selectedRoute, selectedNode, onNode, onRoute }: { graph: StoryGraph; routes: PrototypeRoute[]; selectedRoute: PrototypeRoute; selectedNode: string; onNode: (nodeId: string) => void; onRoute: (routeId: string, nodeId: string) => void }) {
   const start = graph.nodes.find((node) => node.id === graph.startNodeId);
   const endings = graph.nodes.filter(node => node.kind === "ending").length;
   return <section className="branch-map" aria-labelledby="branch-map-title"><div className="branch-map-heading"><div><span className="eyebrow">分支地图</span><h2 id="branch-map-title">{routes.length} 条完整播放路线 · {endings} 个不同结局</h2></div><p>每条路线从开场到一个结局；途中可以经过多次选择与共享剧情。</p></div><div className="branch-canvas">
@@ -141,7 +147,7 @@ function BranchMap({ graph, routes, selectedRoute, selectedNode, onNode, onRoute
     <div className="branch-options">{routes.map((route, index) => {
       const target = graph.nodes.find(node => node.id === route.sectionIds.at(-1));
       const choices = route.sectionIds.flatMap((id, step) => graph.edges.filter(edge => edge.sourceNodeId === id && edge.targetNodeId === route.sectionIds[step + 1] && edge.kind === "choice"));
-      return target && <button type="button" key={route.id} className={`branch-choice ${selectedRoute.id === route.id ? "selected" : ""}`} aria-pressed={selectedRoute.id === route.id} onClick={() => { onRoute(route.id); onNode(target.id); }}><span className="choice-label">播放路线 {index + 1}：{route.label}</span><strong>{target.title}</strong>{choices.map(edge => <small key={edge.id}>选项：{edge.choiceText} · 后果：{String(edge.stateEffects.sourceMapConsequence || "查看后续剧情。")}</small>)}</button>;
+      return target && <button type="button" key={route.id} className={`branch-choice ${selectedRoute.id === route.id ? "selected" : ""}`} aria-pressed={selectedRoute.id === route.id} onClick={() => onRoute(route.id, target.id)}><span className="choice-label">播放路线 {index + 1}：{route.label}</span><strong>{target.title}</strong>{choices.map(edge => <small key={edge.id}>选项：{edge.choiceText} · 后果：{String(edge.stateEffects.sourceMapConsequence || "查看后续剧情。")}</small>)}</button>;
     })}</div>
   </div></section>;
 }

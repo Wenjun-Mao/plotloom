@@ -94,3 +94,14 @@ fractional timing provenance, isolated storage/default-off and capability gramma
 Existing evidence is not relabelled as satisfying this new contract. New bridge
 proposals require new explicit presentation review; old proposals do not install
 under this contract.
+
+## Current-schema boundary — 2026-10-07 functional E2E
+
+Current proposal creation always emits a presentation package, including pending
+unassigned sources. A missing package is not a valid historical variant of the
+current proposal: the proposal schema and stored-row readers require it. Removed
+nullable/optional fields, missing-package reconstruction defaults and the UI's
+historical-proposal branch. Missing whole proposal remains the legitimate
+preparation state; incomplete presentation remains visible and blocks install.
+No migration, owner-data rewrite or compatibility adapter is introduced. Tests
+reject missing/null packages and retain current reviewed installation behavior.

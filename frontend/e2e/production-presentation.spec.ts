@@ -34,9 +34,29 @@ test("whole presentation review preserves source evidence and requires explicit 
   for (let index = 0; index < await textareas.count(); index++) await textareas.nth(index).fill(`明确的技术测试戏剧目的 ${index + 1}`);
   await panel.getByRole("button", { name: "保存戏剧意图整包" }).click();
   await expect(panel.getByRole("button", { name: "确认投产提案" })).toBeEnabled();
+  let accepts = 0;
+  page.on("request", request => {
+    if (request.method() === "POST" && request.url().endsWith("/production-bridge/accept")) accepts++;
+  });
+  const aggregateStages = `**/api/v2/projects/${id}/stages`;
+  await page.route(aggregateStages, route => route.fulfill({ status: 503, json: { detail: "QA failed canonical aggregate read" } }));
   await panel.getByRole("button", { name: "确认投产提案" }).click();
   await expect(panel).toContainText("投产提案已确认");
+  await expect(panel).toContainText("投产已确认；请刷新服务器版本读取当前镜头");
+  await expect(panel.getByRole("button", { name: "继续：打开第一个镜头" })).toBeDisabled();
+  await panel.getByText("查看场次与镜头", { exact: true }).click();
+  const cut = before.proposal.cuts[0];
+  await expect(panel.getByRole("button", { name: `在分镜工作台打开 ${cut.shotId}` })).toBeDisabled();
+  await page.unroute(aggregateStages);
+  await page.getByRole("button", { name: "刷新服务器版本", exact: true }).click();
+  await page.getByRole("link", { name: "分镜评审", exact: true }).click();
+  // Refresh returns the host to source; revisit the retained review and
+  // acknowledge the current aggregate through a read-only retry, never accept.
+  await panel.getByRole("button", { name: "重新读取投产镜头", exact: true }).click();
+  await expect(panel.getByRole("button", { name: "继续：打开第一个镜头" })).toBeEnabled();
+  await expect(panel.getByRole("button", { name: `在分镜工作台打开 ${cut.shotId}` })).toBeEnabled();
+  expect(accepts).toBe(1);
   const installed = await json(request.get(endpoint));
-  expect(installed.runtimeChoice.prompt).toBe(before.proposal.presentation.runtimeChoice.prompt);
+  expect(installed.runtimeChoice).toEqual(before.proposal.presentation.runtimeChoice);
   expect(installed.proposal.presentation.frozenEvidence).toEqual(before.proposal.presentation.frozenEvidence);
 });

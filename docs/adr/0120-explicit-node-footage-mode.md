@@ -73,3 +73,11 @@ duplicate bindings and unexpected bindings fail closed with a visible mismatch;
 no episode is fabricated for a control. Pure and native reader tests guard this
 same contract. This closes a missed consumer of the decision above, not a new
 membership rule or reinterpretation of prior G0 evidence.
+
+The 2026-10-07 live three-by-three reader run exposed a second consumer error:
+explicit route selection was overwritten by node-focus inference using the old
+route and a shared ending. Complete route identity outranks focused/shared node
+identity. One explicit route action now commits route and focus together;
+standalone node focus keeps its existing inference rule. The nine-route browser
+regression checks both readers and opening focus without collapsing paths that
+share an endpoint. No graph, episode binding or provider contract changes.

@@ -109,7 +109,13 @@ export function GraphWorkbenchProvider(input: Input) {
   useEffect(() => { void refresh(); }, [input.project.revision, input.project.stageRevisions.story_graph, input.project.stageRevisions.story_bible, refresh]);
   useEffect(() => {
     if (input.restoredPayload === undefined) return;
-    try { const payload = readGraphDraft(input.restoredPayload); setDraft(payload); liveDraft.current = payload; selectNode(payload.selectedNodeId); resetHistory(); }
+    try {
+      const payload = readGraphDraft(input.restoredPayload);
+      setDraft(payload); liveDraft.current = payload; selectNode(payload.selectedNodeId); resetHistory();
+      // Recovery changes the trusted context without necessarily changing a
+      // canonical revision. Re-read its full authority before further edits.
+      void refresh();
+    }
     catch (reason) { setError(String(reason)); }
   }, [input.restoredNonce]);
 

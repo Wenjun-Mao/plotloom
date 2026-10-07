@@ -22,9 +22,9 @@ const receipt = (payload: GraphAuthoringDraft, revision: number, base = 0): Auth
 function state(): GraphWorkbenchState { return { bindingHash: "a".repeat(64), baseCanonicalRevision: project.stageRevisions.story_graph, draft: server ? structuredClone(server) : null,
   initialPayload: server ? null : graphDraftFixture(), readOnlyReason: null }; }
 function Probe({ mode }: { mode: string }) { owner = useGraphWorkbench(); return createElement("span", null, mode); }
-function Harness({ mode = "story", enabled = true }: { mode?: string; enabled?: boolean }) {
+function Harness({ mode = "story", enabled = true, restoredPayload, restoredNonce = 0 }: { mode?: string; enabled?: boolean; restoredPayload?: GraphAuthoringDraft; restoredNonce?: number }) {
   const source = project;
-  return createElement(GraphWorkbenchProvider, { project: source, enabled, readOnly: false, restoredNonce: 0, serverDrafts,
+  return createElement(GraphWorkbenchProvider, { project: source, enabled, readOnly: false, restoredPayload, restoredNonce, serverDrafts,
     remember: payload => putDraft(source, "story_graph", payload, serverDrafts.current.get(graphDraftKey(source.id!))?.draftRevision ?? 0),
     flush: async () => {
       await flushGate;
@@ -75,6 +75,53 @@ it("preserves one draft through mode changes and saves without approval or dispa
   expect(server!.payload.mapping).toEqual(edited.mapping);
   expect(getDraft(project, "story_graph")).toBeUndefined();
   expect(plotloomApi.applyGraphCommand).not.toHaveBeenCalled();
+});
+
+it("re-reads trusted context after conflict recovery without a canonical revision change", async () => {
+  await show();
+  const restored = graphDraftFixture(); restored.bindingHash = "d".repeat(64);
+  restored.mapping.sections[0].summary = "Recovered author prose";
+  server = receipt(restored, 3); serverDrafts.current.set(graphDraftKey("project"), server);
+  vi.mocked(plotloomApi.getGraphWorkbench).mockImplementation(async () => ({ ...state(), bindingHash: restored.bindingHash }));
+  await act(async () => root.render(createElement(Harness, { restoredPayload: restored, restoredNonce: 1 })));
+  expect(owner.stale).toBe(false);
+  expect(owner.state!.draft!.draftRevision).toBe(3);
+  expect(owner.state!.bindingHash).toBe(restored.bindingHash);
+  const edited = structuredClone(owner.draft!); edited.mapping.sections[0].summary += " continued";
+  await act(async () => owner.changeMapping(edited.mapping));
+  await act(async () => { expect(await owner.saveDraft()).toBe(true); });
+  expect(server!.payload.mapping).toEqual(edited.mapping);
+  expect(server!.draftRevision).toBe(4);
+});
+
+it("retains newer typing and selection during a recovery authority read", async () => {
+  await show();
+  const restored = graphDraftFixture(); restored.mapping.sections[0].summary = "Recovered";
+  server = receipt(restored, 2); serverDrafts.current.set(graphDraftKey("project"), server);
+  let release!: (value: GraphWorkbenchState) => void;
+  vi.mocked(plotloomApi.getGraphWorkbench).mockImplementationOnce(() => new Promise(done => { release = done; }));
+  await act(async () => root.render(createElement(Harness, { restoredPayload: restored, restoredNonce: 1 })));
+  const edited = structuredClone(owner.draft!); edited.mapping.sections[0].summary = "Typed after recovery";
+  await act(async () => { owner.changeMapping(edited.mapping); owner.selectNode("ending"); });
+  await act(async () => release(state()));
+  expect(owner.draft!.mapping.sections[0].summary).toBe("Typed after recovery");
+  expect(owner.selectedNodeId).toBe("ending");
+  expect(getDraft(project, "story_graph")!.payload).toEqual(edited);
+});
+
+it("rejects a delayed recovery authority read after switching projects", async () => {
+  await show();
+  const restored = graphDraftFixture(); restored.bindingHash = "d".repeat(64);
+  server = receipt(restored, 2); serverDrafts.current.set(graphDraftKey("project"), server);
+  const oldState = { ...state(), bindingHash: restored.bindingHash };
+  let release!: (value: GraphWorkbenchState) => void;
+  vi.mocked(plotloomApi.getGraphWorkbench).mockImplementationOnce(() => new Promise(done => { release = done; }));
+  await act(async () => root.render(createElement(Harness, { restoredPayload: restored, restoredNonce: 1 })));
+  project = { ...project, id: "other-project" }; server = null; await show();
+  await act(async () => release(oldState));
+  expect(owner.state!.bindingHash).toBe("a".repeat(64));
+  expect(owner.draft!.mapping.sections[0].summary).toBe("opening story");
+  expect(owner.stale).toBe(false);
 });
 
 it("reports a current preview only after saving and validation succeed", async () => {

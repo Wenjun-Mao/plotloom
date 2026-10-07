@@ -246,9 +246,9 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   return <section className="video-sequence" data-testid="branching-video-preview">
     <strong>{title}</strong>
     <small>当前段落：{node.node.title || node.node.id}。选择历史：{choiceLabels.length ? choiceLabels.join(" → ") : "尚未选择"}</small>
-    {missingMedia.length > 0 && <div className="notice warning" data-testid="branching-missing-media">
+    {missingMedia.length > 0 && <div className="notice warning branching-missing-media" data-testid="branching-missing-media">
       <small>{mediaFailure ? `故事已暂停：${mediaFailure} 的所选片段无法读取或播放。` : `故事还不能播放：${missingMedia.join("、")} 缺少当前已确认的播放片段。`}待审原片不会自动用于故事。</small>
-      {returnShotIds.map((shotId) => <a key={shotId} href={`?${new URLSearchParams({ project: projectId, stage: "storyboard", entity: `shot:${shotId}` }).toString()}#shot-workbench`}>返回镜头 {shotLabel(storyboard.shots.find((shot) => shot.id === shotId) ?? { id: shotId })} 审核片段</a>)}
+      <ul>{returnShotIds.map((shotId) => <li key={shotId}><a href={`?${new URLSearchParams({ project: projectId, stage: "storyboard", entity: `shot:${shotId}` }).toString()}#shot-workbench`}>返回镜头 {shotLabel(storyboard.shots.find((shot) => shot.id === shotId) ?? { id: shotId })} 审核片段</a></li>)}</ul>
     </div>}
     {!missingMedia.length && current && <>
       <video

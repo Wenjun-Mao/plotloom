@@ -29,15 +29,14 @@ export function ProductionPresentationReview({ projectId, proposal, disabled, ac
   const [error, setError] = useState("");
   const [selection, setSelection] = useState<{ id: string; start: number; end: number }>();
   const ownership = useRef(0);
-  useLayoutEffect(() => { ownership.current += 1; return () => { ownership.current += 1; }; }, [projectId, pkg?.sourceHash]);
-  const baseline = JSON.stringify(pkg?.sources.map(source => ({ id: source.id, spans: source.spans })));
+  useLayoutEffect(() => { ownership.current += 1; return () => { ownership.current += 1; }; }, [projectId, pkg.sourceHash]);
+  const baseline = JSON.stringify(pkg.sources.map(source => ({ id: source.id, spans: source.spans })));
   useEffect(() => {
-    setEntries(Object.fromEntries(pkg?.sources.map(source => [source.id, initial(source)]) ?? []));
+    setEntries(Object.fromEntries(pkg.sources.map(source => [source.id, initial(source)])));
     setConfirmed(false); setError(""); setBusy(false); onBusy(false); setSelection(undefined); onDirty(false);
-  }, [projectId, pkg?.sourceHash]);
-  const dirty = JSON.stringify(pkg?.sources.map(source => ({ id: source.id, spans: entries[source.id] ?? [] }))) !== baseline;
+  }, [projectId, pkg.sourceHash]);
+  const dirty = JSON.stringify(pkg.sources.map(source => ({ id: source.id, spans: entries[source.id] ?? [] }))) !== baseline;
   useEffect(() => { onDirty(dirty && !accepted); }, [dirty, accepted]);
-  if (!pkg) return <p>此历史提案没有呈现归属审阅；请准备当前来源的新提案。</p>;
   const change = (id: string, index: number, update: Partial<PresentationSpan>) => {
     onEdited?.();
     setEntries(current => ({ ...current, [id]: current[id].map((span, position) => position === index ? { ...span, ...update } : span) }));

@@ -130,3 +130,57 @@ async function multiSceneCandidates() {
   opening.scenes = [firstScene, secondScene];
   return { cast, art, script };
 }
+
+test("keeps all nine explicit routes through shared joins and endings in both readers", async ({ page, request, workbench }) => {
+  const id = await createScriptProject(request, workbench.apiOrigin, "shared-ending-reader");
+  await acceptStoryboardReview(request, workbench.apiOrigin, id);
+  const root = `${workbench.apiOrigin}/api/v2/projects/${id}`;
+  const stages = await json(request.get(`${root}/stages`));
+  const scriptState = await json(request.get(`${root}/script`));
+  const reviewState = await json(request.get(`${root}/storyboard-source-review`));
+  const graphStage = stages.stages.find((stage: any) => stage.head.stage === "story_graph");
+  const nodes = ["opening", "first-choice", "branch-1", "branch-2", "branch-3", "join", "second-choice", "ending-1", "ending-2", "ending-3"];
+  const footage = nodes.filter(node => !node.endsWith("choice"));
+  const edge = (sourceNodeId: string, targetNodeId: string, choiceText = "") => ({ id: `${sourceNodeId}-${targetNodeId}`, sourceNodeId, targetNodeId, kind: choiceText ? "choice" : "continuation", choiceText, stateEffects: {}, entityStateEffects: [] });
+  graphStage.payload = { ...graphStage.payload, startNodeId: "opening", nodes: nodes.map(node => ({ id: node, title: node, kind: node === "opening" ? "start" : node.endsWith("choice") ? "decision" : node === "join" ? "join" : node.startsWith("ending") ? "ending" : "scene", footageMode: footage.includes(node) ? "footage" : "route_only" })), edges: [edge("opening", "first-choice"), ...[1, 2, 3].flatMap(n => [edge("first-choice", `branch-${n}`, `inspect-${n}`), edge(`branch-${n}`, "join")]), edge("join", "second-choice"), ...[1, 2, 3].map(n => edge("second-choice", `ending-${n}`, `mode-${n}`))] };
+  const bindings = footage.map((sectionId, index) => ({ sectionId, episode: index + 1 }));
+  const accepted = scriptState.acceptedScript;
+  accepted.binding.sectionBindings = bindings;
+  accepted.script = { ...accepted.script, sectionBindings: bindings, episodes: bindings.map(({ sectionId, episode }) => ({ ep: episode, scenes: [{ sceneId: "S01", flow: [{ action: `SCRIPT ${sectionId}` }] }] })) };
+  reviewState.acceptedReview.binding.sectionBindings = bindings;
+  reviewState.acceptedReview.storyboard = { episodes: bindings.map(({ sectionId, episode }) => ({ ep: episode, segments: [{ sceneIndex: 1, cuts: [{ frame: `FRAME ${sectionId}`, seconds: 5 }] }] })) };
+  // Read-only transport fixture: exercise the production reader's exact current bindings.
+  await page.route(`**/api/v2/projects/${id}/stages`, route => route.fulfill({ json: stages }));
+  await page.route(`**/api/v2/projects/${id}/script`, route => route.fulfill({ json: scriptState }));
+  await page.route(`**/api/v2/projects/${id}/storyboard-source-review`, route => route.fulfill({ json: reviewState }));
+  const writes: string[] = [];
+  page.on("request", request => { if (request.url().includes("/api/v2/") && request.method() !== "GET") writes.push(request.method()); });
+  await page.setViewportSize({ width: 1700, height: 900 });
+  await page.goto(`${workbench.frontendOrigin}/v2/?view=story-prototype&project=${id}`);
+  const prototype = page.getByTestId("story-prototype");
+  await expect(prototype.locator(".branch-choice")).toHaveCount(9);
+  for (let branch = 1; branch <= 3; branch++) for (let ending = 1; ending <= 3; ending++) {
+    const route = prototype.getByRole("button", { name: new RegExp(`^播放路线 ${(branch - 1) * 3 + ending}：`) });
+    await route.click();
+    await expect(route).toHaveAttribute("aria-pressed", "true");
+    const expectedSections = ["opening", `branch-${branch}`, "join", `ending-${ending}`];
+    await prototype.getByRole("button", { name: "剧本", exact: true }).click();
+    const screenplay = prototype.getByTestId("route-reader");
+    await expect(screenplay.locator(".screenplay-section")).toHaveCount(4);
+    await expect(screenplay.locator(`[data-section-id="ending-${ending}"]`)).toHaveClass(/focused/);
+    expect(await screenplay.locator("[data-section-id]").evaluateAll(elements => elements.map(element => element.getAttribute("data-section-id")))).toEqual(expectedSections);
+    await expect(screenplay).toContainText(`SCRIPT branch-${branch}`);
+    await expect(screenplay).toContainText(`SCRIPT ending-${ending}`);
+    await prototype.getByRole("button", { name: "分镜", exact: true }).click();
+    const storyboard = prototype.getByTestId("storyboard-reader");
+    await expect(storyboard.locator(".storyboard-episode")).toHaveCount(4);
+    expect(await storyboard.locator("[data-storyboard-section]").evaluateAll(elements => elements.map(element => element.getAttribute("data-storyboard-section")))).toEqual(expectedSections);
+    await expect(storyboard).toContainText(`FRAME branch-${branch}`);
+    await expect(storyboard).toContainText(`FRAME ending-${ending}`);
+    await prototype.getByRole("button", { name: /^开场/ }).click();
+    await expect(route).toHaveAttribute("aria-pressed", "true");
+    await storyboard.getByRole("button", { name: /join/ }).click();
+    await expect(route).toHaveAttribute("aria-pressed", "true");
+  }
+  expect(writes).toEqual([]);
+});

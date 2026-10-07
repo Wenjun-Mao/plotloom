@@ -45,6 +45,9 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .scene-rail button small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notice ul { width: 100%; padding-left: 18px; margin: 3px 0; }
 .notice li + li { margin-top: 4px; }
+.workspace-copy-notice { margin: 16px 24px; align-items: start; }
+.workspace-copy-notice > span { min-width: 0; overflow-wrap: anywhere; }
+.workspace-copy-notice > .button { flex: 0 0 auto; }
 .notice code { color: var(--accent-2); font-size: 12px; overflow-wrap: anywhere; }
 .notice.error { display: grid; gap: 7px; }
 .notice.error .page-actions { align-items: center; }
@@ -95,6 +98,8 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .source-outline-grid label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; }
 .source-outline-grid textarea { min-height: 56px; resize: vertical; }
 .source-outline-grid pre { max-height: 360px; overflow: auto; padding: 12px; border: 1px solid var(--line); background: var(--panel-3); font: 12px/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.script-json-disclosure { min-width: 0; }
+.script-json-disclosure pre { min-width: 0; max-width: 100%; max-height: 360px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.45 var(--mono); }
 .source-outline-report { width: 100%; min-height: 320px; border: 1px solid var(--line); background: white; }
 .review-report-dialog { width: 96vw; max-width: 1600px; height: 94dvh; max-height: 94dvh; padding: 16px; box-sizing: border-box; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
 .review-report-dialog[open] { display: flex; flex-direction: column; gap: 12px; }

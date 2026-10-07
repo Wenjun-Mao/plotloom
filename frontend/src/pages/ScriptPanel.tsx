@@ -178,7 +178,7 @@ function SectionEditor({ accepted, disabled, sectionId, draft, onSelect, onDraft
 }
 
 function ScriptJson({ title, script }: { title: string; script: Record<string, unknown> | null }) {
-  return <details><summary>{title}</summary><pre>{JSON.stringify(script, null, 2)}</pre></details>;
+  return <details className="script-json-disclosure"><summary>{title}</summary><pre>{JSON.stringify(script, null, 2)}</pre></details>;
 }
 
 function Report({ projectId, jobId }: { projectId: string; jobId: string }) {

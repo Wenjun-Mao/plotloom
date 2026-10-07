@@ -68,7 +68,7 @@ class ProductionBridgeProposal(CamelModel):
     content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     inputs: dict[str, Any]
     intent_package: ProductionBridgeIntentPackage
-    presentation: ProductionPresentation | None = None
+    presentation: ProductionPresentation
     scenes: list[dict[str, Any]]
     cuts: list[dict[str, Any]]
     conflicts: list[ProductionBridgeConflict] = Field(default_factory=list)

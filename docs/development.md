@@ -191,15 +191,19 @@ The operator and maintainer entry point is the
   and [ADR 0034](adr/0034-provider-neutral-video-adapters-and-local-h3.md).
 - Enable exactly one reviewed video backend at a time. For H3, set
   `PLOTLOOM_ENABLE_H3_GATEWAY=true`, `VIDEO_PROVIDER=minimax_h3_gateway`,
-  `VIDEO_MODEL=minimax_h3_gateway_catalog_v6` (or an explicit reviewed H3
+  `VIDEO_MODEL=minimax_h3_gateway_catalog_v7` (or an explicit reviewed H3
   profile ID), the private Tailnet
   `VIDEO_BASE_URL`, and a server-only `VIDEO_MODEL_API_KEY`; restart Plotloom.
   The browser never sees or stores that key.
 - H3 uses the reviewed catalog in [ADR 0036](adr/0036-minimax-h3-profile-catalog.md):
   832x480, 960x544 and 1280x704 landscape; 576x1024 (the default), 608x1088
-  and 704x1280 portrait. Plotloom currently qualifies five seconds/124 frames
-  or eight seconds/192 frames at 24 fps, with native audio; five seconds is the
-  default. The frozen job duration, not profile geometry alone, determines the
+  and 704x1280 portrait. Plotloom supports integer requested durations 5–15
+  seconds at 24 fps, snapped upward to the `17k + 5` frame grid; five seconds
+  freezes 124 frames (about 5.167 seconds) and is the default. Catalog identity
+  is distinct from gateway protocol v6. The current duration/frame contract is
+  owned by `H3_QUALIFIED_DURATION_FRAMES` in
+  `src/plotloom/video_backends/minimax_h3/adapter.py` and the operations manual.
+  The frozen job duration, not profile geometry alone, determines the
   expected frame count. A new job defaults to an aspect-matched reviewed
   keyframe and rejects a mismatch before reservation or provider contact.
   The author can prepare a matching crop/adapted still, or explicitly choose

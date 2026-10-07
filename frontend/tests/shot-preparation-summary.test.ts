@@ -15,6 +15,7 @@ const emptyWorkbench: VisualWorkbench = { assets: [], selectionRevision: 0, visu
 
 function bridge(seconds: number): ProductionBridgeState {
   return { status: "accepted", staleReasons: [], installedStageRevisions: { storyboard: 1 }, installedStoryboardCurrent: true, hasInstallation: false, proposal: {
+    presentation: { version: 1, reviewed: true, sourceHash: "f".repeat(64), sources: [], runtimeChoice: { choices: [] }, frozenEvidence: {} },
     revision: 2, contentHash: "a".repeat(64), inputs: {}, scenes: [], conflicts: [], advisories: [], installable: true, preparedAt: "2026-09-23T00:00:00Z",
     cuts: [{ shotId: "opening-s1-c1", sectionId: "opening", episode: 1, sceneIndex: 1, seconds, source: { segmentIndex: 1, segmentSceneIndex: 1, cutIndex: 1 } }],
     intentPackage: { suggestionOrigin: "none", reviewState: "author_saved", entries: [] },

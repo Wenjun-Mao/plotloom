@@ -354,6 +354,10 @@ input[readonly] { color: var(--dim); }
 .notice strong { flex: 0 0 auto; color: var(--blue); }
 .notice.warning { border-color: var(--accent); background: rgba(233,180,91,.07); }
 .notice.warning strong { color: var(--accent); }
+.video-sequence .branching-missing-media { display: grid; grid-template-columns: minmax(0, 1fr); }
+.branching-missing-media small, .branching-missing-media li { min-width: 0; overflow-wrap: anywhere; }
+.branching-missing-media ul { margin: 0; padding-left: 20px; }
+.branching-missing-media li + li { margin-top: 6px; }
 .notice.error { border-color: var(--danger); background: rgba(229,121,125,.07); }
 .notice.error strong { color: var(--danger); }
 .profile-actions { display: flex; flex-wrap: wrap; gap: 7px; }

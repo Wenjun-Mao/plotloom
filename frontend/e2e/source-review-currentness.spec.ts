@@ -17,6 +17,29 @@ async function navigate(page: Page, name: string) {
   await page.getByRole("link", { name, exact: true }).click();
 }
 
+for (const width of [1280, 1700]) test(`expanded accepted Script JSON remains inside the ${width}px desktop`, async ({ page, request, workbench }) => {
+  const longScript = await fixture("script.json");
+  longScript.episodes[0].cliff += ` Layout regression source token ${"ContinuousSourceToken".repeat(120)}`;
+  const id = await createScriptProject(request, workbench.apiOrigin, `script-json-layout-${width}`, { script: longScript });
+  await page.setViewportSize({ width, height: 900 });
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#script`);
+  const panel = page.getByTestId("script-review");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  await panel.getByText("查看当前已确认剧本", { exact: true }).click();
+  const raw = panel.locator(".script-json-disclosure[open] pre");
+  await expect(raw).toBeVisible();
+  const geometry = await raw.evaluate(element => ({
+    documentWidth: document.documentElement.scrollWidth,
+    viewportWidth: document.documentElement.clientWidth,
+    rawRight: element.getBoundingClientRect().right,
+    whiteSpace: getComputedStyle(element).whiteSpace,
+  }));
+  expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewportWidth);
+  expect(geometry.rawRight).toBeLessThanOrEqual(width);
+  expect(geometry.whiteSpace).toBe("pre-wrap");
+  await expect(page.getByRole("link", { name: "美术参考", exact: true })).toBeInViewport();
+});
+
 async function changeArt(request: APIRequestContext, origin: string, id: string) {
   const url = `${origin}/api/v2/projects/${id}/art`;
   const { acceptedArt: base } = await json(request.get(url));

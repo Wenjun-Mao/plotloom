@@ -35,7 +35,7 @@ function sourceMessage(error: unknown) {
   return error instanceof Error ? error.message : "来源与大纲操作失败。";
 }
 
-export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnly, navigationTarget = "", refreshToken, onOpenShot, onContinueToCharacters, onContinueToScript, onContinueToStoryboard }: { projectId: string; briefSeed: ProjectBrief; readOnly: boolean; navigationTarget?: string; refreshToken?: unknown; onOpenShot?: (shotId: string) => void; onContinueToCharacters?: () => void; onContinueToScript?: () => void; onContinueToStoryboard?: () => void }) {
+export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnly, navigationTarget = "", refreshToken, onOpenShot, onProductionInstalled, onContinueToCharacters, onContinueToScript, onContinueToStoryboard }: { projectId: string; briefSeed: ProjectBrief; readOnly: boolean; navigationTarget?: string; refreshToken?: unknown; onOpenShot?: (shotId: string) => void; onProductionInstalled: (projectId: string) => Promise<void>; onContinueToCharacters?: () => void; onContinueToScript?: () => void; onContinueToStoryboard?: () => void }) {
   const graphOwner = useGraphWorkbench();
   const [state, setState] = useState<SourceOutlineReviewState>();
   const [draft, setDraft] = useState<SourceMaterial>(blankSource);
@@ -212,7 +212,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
     </section>
     <section className="source-workflow-focus" hidden={focusedTarget !== "storyboard-review"} aria-labelledby="storyboard-review-workflow-heading">
       <header className="page-header"><div><h1 id="storyboard-review-workflow-heading">分镜评审</h1><p>将已确认剧本拆成镜头，审阅后准备投产。</p></div></header>
-      <StoryboardReviewPanel projectId={projectId} readOnly={ownerReadOnly} active={focusedTarget === "storyboard-review"} refreshToken={refreshToken} onOpenShot={(shotId) => {
+      <StoryboardReviewPanel projectId={projectId} readOnly={ownerReadOnly} active={focusedTarget === "storyboard-review"} refreshToken={refreshToken} onInstalled={onProductionInstalled} onOpenShot={(shotId) => {
         if (draftDirty.current) return false;
         onOpenShot?.(shotId);
         return true;

@@ -13,12 +13,13 @@ let host: HTMLDivElement;
 const state = (label: string, revision = 1, contentHash = "a".repeat(64), text = "", reviewState: "pending" | "author_saved" | "model_suggested" = "pending", modelSuggestion?: string): ProductionBridgeState => ({
   status: "ready", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false, hasInstallation: false,
   proposal: {
+    presentation: { version: 1, reviewed: true, sourceHash: "f".repeat(64), sources: [], runtimeChoice: { choices: [] }, frozenEvidence: {} },
     revision, contentHash, inputs: {}, scenes: [{ sceneId: `scene-${label}`, sectionId: label, episode: 1, sceneIndex: 1, cutCount: 1 }], cuts: [], conflicts: [], advisories: [], installable: reviewState !== "pending", preparedAt: "2026-09-22T00:00:00Z",
     intentPackage: { suggestionOrigin: reviewState === "model_suggested" || modelSuggestion ? "model_inference.v1" : "none", reviewState, provenance: reviewState === "model_suggested" || modelSuggestion ? { jobId: "fake-job" } : null, entries: [{ id: `entry-${label}`, targetKind: "scene_objective", targetId: `scene-${label}`, sourceCoordinates: { sectionId: label, episode: 1, sceneIndex: 1 }, sourceContentHash: "b".repeat(64), sourceExcerpt: `excerpt-${label}`, suggestedText: reviewState === "model_suggested" ? text : modelSuggestion ?? null, text }] },
   },
 });
 
-const render = async (projectId: string, onOpenShot?: (shotId: string) => void) => { await act(async () => root.render(createElement(ProductionBridgePanel, { projectId, readOnly: false, onOpenShot }))); };
+const render = async (projectId: string, onOpenShot?: (shotId: string) => void, onInstalled: (projectId: string) => Promise<void> = async () => undefined) => { await act(async () => root.render(createElement(ProductionBridgePanel, { projectId, readOnly: false, onOpenShot, onInstalled }))); };
 const settle = async () => { await act(async () => { await Promise.resolve(); }); };
 const button = (text: string) => Array.from(host.querySelectorAll("button")).find((item) => item.textContent === text) as HTMLButtonElement;
 const deferred = <T,>() => {
@@ -38,6 +39,63 @@ it("shows an advisory shot-count notice without a blocking conflict", async () =
   await render("advisory"); await settle();
   expect(host.textContent).toContain("此项不阻止确认");
   expect(button("确认投产提案").disabled).toBe(false);
+});
+
+it("refreshes the owning canonical project before enabling either installed-shot handoff", async () => {
+  const first = state("install", 3, "c".repeat(64), "QA intent", "author_saved");
+  first.proposal!.cuts = [{ shotId: "shot-1", sectionId: "install", episode: 1, sceneIndex: 1, seconds: 5, source: { segmentIndex: 1, segmentSceneIndex: 1, cutIndex: 1 } }];
+  const installed = { ...first, status: "accepted" as const, installedStageRevisions: { storyboard: 1 }, installedStoryboardCurrent: true, hasInstallation: true };
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(first);
+  const accept = vi.spyOn(plotloomApi, "acceptProductionBridge").mockResolvedValue(installed);
+  const refreshed = deferred<void>();
+  const onInstalled = vi.fn(() => refreshed.promise), onOpenShot = vi.fn();
+  await render("install", onOpenShot, onInstalled); await settle();
+  await act(async () => button("确认投产提案").click()); await settle();
+  expect(onInstalled).toHaveBeenCalledExactlyOnceWith("install");
+  expect(button("继续：打开第一个镜头").disabled).toBe(true);
+  expect(button("在分镜工作台打开 shot-1").disabled).toBe(true);
+  await act(async () => button("继续：打开第一个镜头").click());
+  expect(onOpenShot).not.toHaveBeenCalled();
+  await act(async () => refreshed.resolve()); await settle();
+  expect(button("继续：打开第一个镜头").disabled).toBe(false);
+  await act(async () => button("继续：打开第一个镜头").click());
+  expect(onOpenShot).toHaveBeenCalledExactlyOnceWith("shot-1");
+  expect(accept).toHaveBeenCalledTimes(1);
+});
+
+it("keeps both shot handoffs blocked after a failed canonical reread without repeating installation", async () => {
+  const first = state("reload-failure", 3, "c".repeat(64), "QA intent", "author_saved");
+  first.proposal!.cuts = [{ shotId: "shot-1", sectionId: "reload-failure", episode: 1, sceneIndex: 1, seconds: 5, source: { segmentIndex: 1, segmentSceneIndex: 1, cutIndex: 1 } }];
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(first);
+  const accept = vi.spyOn(plotloomApi, "acceptProductionBridge").mockResolvedValue({ ...first, status: "accepted", installedStoryboardCurrent: true, hasInstallation: true });
+  const onOpenShot = vi.fn();
+  const onInstalled = vi.fn().mockRejectedValueOnce(new Error("canonical read failed")).mockResolvedValue(undefined);
+  await render("reload-failure", onOpenShot, onInstalled); await settle();
+  await act(async () => button("确认投产提案").click()); await settle();
+  expect(host.textContent).toContain("投产已确认；请刷新服务器版本读取当前镜头");
+  expect(button("继续：打开第一个镜头").disabled).toBe(true);
+  expect(button("在分镜工作台打开 shot-1").disabled).toBe(true);
+  expect(accept).toHaveBeenCalledTimes(1);
+  expect(onOpenShot).not.toHaveBeenCalled();
+  await act(async () => button("重新读取投产镜头").click()); await settle();
+  expect(button("继续：打开第一个镜头").disabled).toBe(false);
+  expect(button("在分镜工作台打开 shot-1").disabled).toBe(false);
+  expect(accept).toHaveBeenCalledTimes(1);
+  expect(onInstalled).toHaveBeenCalledTimes(2);
+});
+
+it("does not refresh a replacement project for a late installation acknowledgement", async () => {
+  const first = state("prior", 3, "c".repeat(64), "QA intent", "author_saved");
+  const pending = deferred<ProductionBridgeState>(), onInstalled = vi.fn(async () => undefined);
+  vi.spyOn(plotloomApi, "getProductionBridge").mockImplementation(async projectId => projectId === "prior" ? first : state("current"));
+  vi.spyOn(plotloomApi, "acceptProductionBridge").mockReturnValue(pending.promise);
+  await render("prior", undefined, onInstalled); await settle();
+  await act(async () => button("确认投产提案").click());
+  await render("current", undefined, onInstalled); await settle();
+  await act(async () => pending.resolve({ ...first, status: "accepted", installedStoryboardCurrent: true })); await settle();
+  expect(onInstalled).not.toHaveBeenCalled();
+  expect(host.textContent).toContain("excerpt-current");
+  expect(host.textContent).not.toContain("投产提案已确认");
 });
 
 it("requires the displayed dramatic-intent package to be saved before accepting its exact new revision", async () => {

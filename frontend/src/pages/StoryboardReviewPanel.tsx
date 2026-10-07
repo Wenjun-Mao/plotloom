@@ -11,7 +11,7 @@ import { useReviewActivation } from "./useReviewActivation";
 import { StageGuide } from "../components/StageGuide";
 
 /** F5A preserves upstream review evidence; it deliberately cannot create product shots. */
-export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOpenShot, active: visible = true, refreshToken }: { projectId: string; readOnly: boolean; onOpenShot?: (shotId: string) => boolean | void; active?: boolean; refreshToken?: unknown }) {
+export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOpenShot, onInstalled, active: visible = true, refreshToken }: { projectId: string; readOnly: boolean; onOpenShot?: (shotId: string) => boolean | void; onInstalled: (projectId: string) => Promise<void>; active?: boolean; refreshToken?: unknown }) {
   const [state, setState] = useState<StoryboardReviewState>();
   const [assignment, setAssignment] = useState("");
   const [error, setError] = useState("");
@@ -70,7 +70,7 @@ export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOp
     {reportJobId && <details><summary>打开原始只读上游报告</summary><ProjectReportFrame sandbox="" title="original derived upstream storyboard report" className="source-outline-report" url={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, reportJobId)} /></details>}
     {candidate?.status === "prepared" && <details><summary>查看任务说明（手动方式）</summary><Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.recoverStoryboardSourceReviewHandoff(projectId, candidate.jobId), result => setAssignment(result.assignment))}>恢复分镜任务</Button>{assignment && <ManualTaskAssignment key={`${projectId}:${candidate.jobId}:${assignment}`} assignment={assignment} taskName="分镜" />}</details>}
     {error && <ErrorNotice message={error} />}
-    {acceptedReview && <ProductionBridgePanel projectId={projectId} readOnly={readOnly || state.status === "stale"} onOpenShot={onOpenShot} />}
+    {acceptedReview && <ProductionBridgePanel projectId={projectId} readOnly={readOnly || state.status === "stale"} onOpenShot={onOpenShot} onInstalled={onInstalled} />}
   </article>;
 }
 

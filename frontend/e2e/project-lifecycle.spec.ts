@@ -173,6 +173,17 @@ test.describe("M1-B0 real project journeys", () => {
       await expectCreatorProject(page, title);
       await expect(page.getByRole("status").filter({ hasText: "已创建" })).toContainText("仅项目简报");
       await expect(page.getByRole("status").filter({ hasText: "已创建" })).toContainText("原项目保持不变");
+      const copyNotice = page.getByRole("status").filter({ hasText: "已创建" });
+      const acknowledge = copyNotice.getByRole("button", { name: "知道了", exact: true });
+      const noticeBounds = await acknowledge.boundingBox();
+      const sidebarBounds = await page.locator(".sidebar").boundingBox();
+      const fullNoticeBounds = await copyNotice.boundingBox();
+      expect(fullNoticeBounds!.x).toBeGreaterThanOrEqual(sidebarBounds!.x + sidebarBounds!.width);
+      expect(fullNoticeBounds!.x + fullNoticeBounds!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+      expect(noticeBounds!.x).toBeGreaterThanOrEqual(sidebarBounds!.x + sidebarBounds!.width);
+      expect(noticeBounds!.x + noticeBounds!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+      await acknowledge.click();
+      await expect(copyNotice).toHaveCount(0);
 
       await openDirectory(page);
       const directory = page.getByRole("dialog", { name: "项目目录" });

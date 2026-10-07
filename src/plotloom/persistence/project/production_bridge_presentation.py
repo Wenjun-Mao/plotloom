@@ -21,8 +21,6 @@ class ProductionBridgePresentationPersistence:
                 raise InvalidTransitionError("production presentation proposal changed")
             if self._current(session, project_id, row.inputs):
                 raise InvalidTransitionError("production presentation source is stale")
-            if not row.proposal.get("presentation"):
-                raise InvalidTransitionError("prepare a new proposal under the reviewed presentation contract")
             try:
                 package = review_presentation(ProductionPresentation.model_validate(row.proposal["presentation"]), request)
                 payload = project_presentation(row.proposal["payload"], package)

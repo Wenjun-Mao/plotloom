@@ -124,3 +124,14 @@ invalidates the owner, and each operation holds its own busy token so an older
 completion cannot unlock a newer session. Regressions cover project switching,
 unmount, disable/re-enable and ordinary-command selection. No second writer,
 compatibility path or permissive stale-receipt handling is introduced.
+
+## Full-journey recovery authority refresh, 2026-10-07
+
+An actual conflict-dialog recovery saved a fresh server context and retained the
+author's prose, but the shared graph owner restored only the payload. Its old
+workbench binding kept Creator and Pro disabled even though server binding and
+draft matched. Restoring a graph payload now re-reads the whole trusted workbench
+state, including binding, canonical base and read-only admission. A payload does
+not grant currentness by itself. Existing project/epoch/read-generation guards
+reject obsolete reads and preserve newer typing; regression checks cover current
+editing after recovery and delayed reads across typing and project changes.

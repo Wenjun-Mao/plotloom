@@ -17,7 +17,7 @@ it.each([false, true])("exposes explicit first-candidate cancel recovery with re
   vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: [] });
   const prepare = vi.spyOn(plotloomApi, "prepareOutlineCandidate").mockRejectedValue(new Error("ordinary admission refused"));
   const saveSource = vi.spyOn(plotloomApi, "saveSourceMaterial");
-  const show = () => act(async () => root.render(createElement(GraphWorkbenchContext.Provider, { value: graphControllerFixture(), children: createElement(SourceOutlinePage, { projectId: "project", briefSeed: demoProject.brief, readOnly }) })));
+  const show = () => act(async () => root.render(createElement(GraphWorkbenchContext.Provider, { value: graphControllerFixture(), children: createElement(SourceOutlinePage, { projectId: "project", briefSeed: demoProject.brief, readOnly, onProductionInstalled: async () => undefined }) })));
   try {
     await show();
     const button = [...host.querySelectorAll("button")].find(item => item.textContent === "重新准备大纲任务")!;

@@ -162,3 +162,22 @@ rounding at production/provenance boundaries; raw F5 admission is unchanged.
 Preparation validates the retained accepted F5 binding including its frozen cut
 policy before freezing the current source chain. Fresh preparation cannot pair
 stale F5 with a newer Script.
+
+## 2026-10-07 amendment: installation refreshes canonical authority
+
+The live first-install handoff exposed a missing ownership notification: bridge
+acceptance updated only panel-local proposal state, leaving the workspace's
+canonical aggregate at its pre-install zero-shot version. The exact first-shot
+URL then correctly rejected that nonexistent local owner.
+
+Successful installation now notifies the route-owned workspace loader before
+shot handoff is enabled. That loader rereads Bible/SceneBeats/Storyboard and
+retains its project/route epoch and stale-response guards. Both first-shot and
+listed-shot actions wait while it runs; a late acknowledgement from a previous
+project cannot reload a replacement project. No inferred shot, reader fallback,
+reinstallation or data rewrite is added. Focused tests bind installation once,
+deferred canonical refresh, both handoffs and project-switch rejection. Since
+the loader intentionally handles failures without throwing, the host marks its
+existing canonical-refresh requirement before loading and checks that successful
+current acceptance cleared it. A failed reread retains the accepted installation
+but blocks both shot handoffs after busy clears; it does not repeat installation.
