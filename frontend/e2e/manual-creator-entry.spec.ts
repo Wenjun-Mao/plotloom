@@ -60,7 +60,19 @@ test("existing Source content and optional declarations survive a later source e
   await expect(page.getByLabel("标题")).toHaveValue("Existing source");
   await expect(page.getByLabel("故事内容")).toHaveValue("Existing authored text");
   await page.getByLabel("故事内容").fill("Existing authored text, revised");
+  const sourceSave = page.waitForResponse((response) => response.request().method() === "PUT"
+    && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/source-outline/source`);
   await page.getByRole("button", { name: "确认改编内容" }).click();
+  const sourceSaveResponse = await sourceSave;
+  expect(sourceSaveResponse.ok()).toBeTruthy();
+  expect((await sourceSaveResponse.json()).source).toMatchObject({
+    revision: 2,
+    material: {
+      title: "Existing source", text: "Existing authored text, revised",
+      attribution: "Historical author attribution", rightsDeclaration: "Historical rights declaration",
+    },
+  });
+  await expect(page.getByText("改编内容 r2", { exact: true })).toBeVisible();
   const updated = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/source-outline`)).json();
   expect(updated.source.material).toMatchObject({
     title: "Existing source", text: "Existing authored text, revised",

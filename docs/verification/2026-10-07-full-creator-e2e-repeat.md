@@ -7,6 +7,94 @@ receipts and prior checkpoints are preserved verbatim in the linked
 [historical receipt](2026-10-07-full-creator-e2e-repeat-history.md).
 Historical present-tense statements there do not describe current deployment.
 
+## Recovery continuation 2026 10 07 23 17 UTC
+
+The frontend-only repair is locally qualified and awaiting publication. Final
+206-browser gate PASS6.0m; all856 source/test/config/static inputs stayed unchanged.
+Their aggregate is `bbc702df320b991ae67a0dba5eed064866fa642d2a6dafe1da7f0b1da7430c3c`.
+Normal8841's Python remains the qualified e941780 source, unchanged;
+its checkout mount already serves the newly built JS
+`efcf31dcf30926e4a88a9577a3ebc0bff5b2764b5017ca8e5daa5afd77b36114`.
+Both CSS files are unchanged. No restart/reload/resend touched busy8861.
+
+On disposable8871 QA965671f3, connected start reassignment was refused without
+changing r19. Explicit incoming-edge detachment then legal start reassignment
+r20→21 preserved all sections, identities and nonblank contracts; two Undos
+restored the exact baseline at r23. Separate outgoing-edge detachment permitted
+scene→choice r24→25 without invented options; two Undos restored r27. An explicit
+optional merge contract permitted scene→join r28→29 with edges retained; two Undos
+restored the exact r19 mapping at r31. Canonical revision stayed0. Pixels24–26
+were directly inspected; this is finite type/start coverage, not every permutation.
+
+UI-origin image-recovery QA `94a5b5ac-e1bf-4d4e-9509-685d0e424aff` imported one
+existing QA browser screenshot, explicitly labelled not provider generation or
+creative acceptance. Asset `d965a5d7-c07f-4079-9bdf-8a14c2748ddc` stayed identical
+through Save-close/reopen and archive/restore; original SHA256
+`0342ac0f075da18dd29f70f4c941ef464631cf56b486ded19631b2ae09b6f209` and display SHA256
+`cb7aedfe7b4de35739f878a05fbd6abd326e3f903c5f912974b96d56bdb2791e` matched independent
+HTTP byte readbacks. Provenance retains unknown rights, null rights note and the
+explicit synthetic addition; selection revision stays0. Pixels28–33 directly
+qualify loaded1700×900 image bytes and access states. Last restore is active at
+lifecycle r5; this retained object was not deleted.
+
+UI snapshot `75c90f42-968a-4d7e-9863-81d9bbcd7fcc` is format1 containing current
+project format11. Operator restore into `/private/tmp/plotloom-image-restore.OzkaVw`
+matched all five manifest files by independent SHA256, including both images and
+the SQLite bytes. Repeating into that exact identity refused overwrite (exit2),
+with retained hashes unchanged. Separate8873 then opened this restored copy with
+fresh application storage, no provider keys and no native specialist. Its UI
+loaded the same1700×900 image; independent original/display HTTP hashes and
+provenance matched. Explicit1700×900 pixel35 was inspected (body width1700,
+scrollX0); pixel34 inherited tab sizing and is not desktop-layout qualification.
+Project/source r1 and selection r0 stayed unchanged. The owned8873 tab/runtime
+was closed/stopped; restored files remain. Video/native lifecycle is unqualified.
+
+Archive inspection demonstrated false “正在保存…” labels on Story Bible, Scene
+Beats and Storyboard. The owning controller conflated read-only access with save
+progress. ADR0129 separates them; the disabled workspace fieldset and Storyboard
+media/confirmation locks remain enforced. Actual archived QA retest has three
+normal disabled Save labels, no false busy label, locked upload/snapshot and the
+retained image. Restore re-enables Save/upload without changing that image.
+Independent source/test review found no lock regression. Focused14 and full597
+frontend checks, app/E2E types, lock, API import lint, diff, wheel and installed
+smoke pass. The pre-transport206-test browser gate PASS7.0m with all856 inputs
+unchanged. Earlier e941780 CI37694754831 finished FAIL: verify and browser1 PASS,
+browser2 had101 PASS/1 FAIL including retry, a renderer fixture exceeding Linux
+single-argument limits (`spawnSync node E2BIG`), not a browser/product assertion.
+The same report JSON now uses stdin, with renderer and assertions unchanged;
+focused three-repeat3 PASS12.9s. Its full gate retained205 PASS/1 FAIL6.7m,
+exposing a separate Source-edit ACK race: the independent GET started17ms
+after the UI PUT began, before its102ms successful r2 commit. The trace retains
+the exact revised prose and declarations; the test must wait for that ACK before
+reading back. All856 inputs stayed unchanged during that failed gate. The test
+now checks the exact successful PUT/r2 response and visible r2 before its persisted
+readback; independent review is clean and three repeats PASS11.8s. The final
+206-test gate PASS6.0m; this is harness ordering, not product data repair.
+Failed artifacts remain under `readonly-stdin-final-browser-gate/`.
+Final artifacts are `readonly-stdin-source-ack-final-browser-gate/`. A repeat
+deterministic build retained the exact JS/CSS bytes. Python1,245 PASS/381.25s is
+reused from e941780 because its source/tests/config are unchanged, not rerun.
+Wheel/installed smoke PASS; wheel SHA256
+`2940646f28e9388fd0c9c86e5c059c820acce3b7d1534fd2be62f9e42e7a7cbc`.
+
+The strengthened archive fixture imports a still and compares its full asset
+projection plus original/display bytes before, during and after archive. Exact-title
+delete has a successful ACK, project/asset404 and no matching project home. Final
+focused journey PASS4.6s; this is offline fixture deletion, not native video deletion.
+Three retained harness failures did not establish product data loss: a blind toggle
+closed the already-open Tools menu; two final assertions assumed deletion/New Blank
+navigated to Brief, whereas both preserve the current tool route. Existing helpers
+and explicit named Brief navigation correct those assumptions; no timeout weakening.
+Artifacts remain in `readonly-focused-browser/`, `readonly-media-focused-browser/`
+and `readonly-media-reconciled-browser/`; PASS is `readonly-media-final-focused/`.
+
+Exact owner recapture still matches `df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`
+(Wind17/Rain67 files, both DB row/schema sets and three protected configurations).
+The earlier global helper refuses the five-project registry; the scoped recapture
+checks only the two protected owners, without modifying or weakening that helper.
+Native image continuation, post-install rebuild, configured inference and OS blur
+remain separate gaps. Full lifecycle acceptance is PARTIAL.
+
 ## Published repair release 2026 10 07 22 13 UTC
 
 Root approved the independently reviewed repair batch after the final local
@@ -213,12 +301,12 @@ the exact frozen image reservation, without restart/reload/send. Root receipts:
 | Contract | Current qualification | Remaining scope |
 |---|---|---|
 | E01–E04/P01–P05 | Fresh UI Brief/source/Outline r1, native branch review/Confirm/Apply; actual Outline timeline/table PASS, export BLOCKED_BY_DESIGN | Richer native structure not generated merely for counts |
-| E05–E06/C01–C55 | Separate real structural QA123→222→333 sequence; bypass/unconnected deletion/Undo; Save-close-reopen; partial-key/nonblank C49; real stale-CAS refusal and matched live selection refresh; C44 explicit draft footage toggles/reversal; C48 legal/refused type/start guards and exact legal conversion/Undo; C50 endpoint/edge-only deletion/Undo; C51 retain/discard; C55 normal-flow help retests; current repaired preview pixels15–18 | Remaining type/kind/ownership permutations; OS blur NOT EXERCISED; no post-install native revision qualification |
+| E05–E06/C01–C55 | Separate real structural QA123→222→333 sequence; bypass/unconnected deletion/Undo; Save-close-reopen; partial-key/nonblank C49; real stale-CAS refusal and matched live selection refresh; C44 footage toggles/reversal; C48 legal/refused type/start guards, explicit start/choice/join conversion and exact Undo; C50 endpoint/edge-only deletion/Undo; C51 retain/discard; C55 normal-flow help; preview pixels15–26 | Remaining type/kind/ownership permutations; OS blur NOT EXERCISED; no post-install native revision qualification |
 | E07–E09/P04/P06 | Fresh native Cast/Art confirmed r1 with offscreen style boundary; original gallery provenance, current static readers and original gallery zoom PASS | Native Character/Scene/Prop images and same-subject pair pending |
 | E10–E13 | Fresh Script/Storyboard r1 confirmed; proposal r3 presentation reviewed/installed; ordinary first-shot handoff PASS | Model inference E12 NOT EXERCISED (runtime unavailable); physical direction realization remains unspecified |
 | E14–E18 | No fresh native media-route qualification | Keyframes, managed endframe/dirty guards, multishot preview, H3/all routes/staleness NOT EXERCISED |
-| E19–E21 | Task/reopen/owned idle restart; exact QA snapshot/operator restore/archive/unarchive/typed disposable-copy delete PASS | Media-bearing deletion and remaining lifecycle recovery NOT EXERCISED |
-| E22/C37–C39 |18 earlier graph pixels across three sizes/two preferences reviewed independently; separate six-sibling QA at1700/1280/short desktop directly inspected;34s exploratory navigation and earlier clean nine-seed reset; current repaired preview, centered-plus and deletion pixels15–23; final206 browser gate PASS | OS blur not qualified; native journey remains partial |
+| E19–E21 | Task/reopen/owned idle restart; exact QA snapshot/operator restore/archive/unarchive/typed disposable-copy delete; imported-image close/reopen/archive/restore, five-file snapshot bytes, overwrite refusal and restored-copy UI/HTTP hashes; offline imported-image archive/typed-delete regression PASS | Native/video-bearing deletion and remaining lifecycle recovery NOT EXERCISED |
+| E22/C37–C39 |18 earlier graph pixels across three sizes/two preferences reviewed independently; separate six-sibling QA at1700/1280/short desktop directly inspected;34s exploratory navigation and earlier clean nine-seed reset; current repaired preview, centered-plus and deletion pixels15–26, recovery28–33/35; reviewed stdin/Source ACK corrections, focused repeats and final206 browser gate PASS | OS blur not qualified; native journey remains partial |
 
 ### Fresh native identities and review boundaries
 

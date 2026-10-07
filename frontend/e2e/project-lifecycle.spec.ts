@@ -1,5 +1,11 @@
 import type { Locator, Page, Route, TestInfo } from "@playwright/test";
+import path from "node:path";
+import { readdir } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { expect, test } from "./fixture";
+import { navigateToSecondaryTool, openMediaPreparation } from "./workbench-controls";
+
+const retainedStill = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../docs/verification/supporting/p0-generated/01-arrival.png");
 
 test.describe("M1-B0 real project journeys", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
@@ -106,17 +112,57 @@ test.describe("M1-B0 real project journeys", () => {
     await expect(page.getByLabel("片名")).toHaveValue(recoveredTitle);
   });
 
-  test("archives, restores, and permanently deletes only after exact-title confirmation", async ({ page, workbench }) => {
+  test("archives, restores, and permanently deletes only after exact-title confirmation", async ({ page, request, workbench }) => {
     const title = uniqueTitle("E2E lifecycle");
-    await createProject(page, workbench.frontendOrigin, title);
+    const projectId = await createProject(page, workbench.frontendOrigin, title);
+    await navigateToSecondaryTool(page, "分镜工作台");
+    await openMediaPreparation(page);
+    await page.getByLabel("来源声明").fill("Offline lifecycle fixture; not provider generation or creative acceptance.");
+    const imported = page.waitForResponse((response) => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/managed-assets`);
+    await page.getByTestId("managed-image-upload").setInputFiles(retainedStill);
+    expect((await imported).ok()).toBeTruthy();
+    const candidate = page.getByLabel("候选图像比较").locator(".media-candidate");
+    await expect(candidate).toHaveCount(1);
+    await expect(candidate.getByRole("img")).toBeVisible();
+    const assetEvidence = async () => {
+      const response = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/visual-workbench`);
+      expect(response.ok()).toBeTruthy();
+      const assets = (await response.json() as { assets: Array<{ id: string }> }).assets;
+      expect(assets).toHaveLength(1);
+      const original = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/managed-assets/${assets[0].id}/original`);
+      const display = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/managed-assets/${assets[0].id}/display`);
+      expect(original.ok()).toBeTruthy();
+      expect(display.ok()).toBeTruthy();
+      return { assets, originalBytes: (await original.body()).toString("base64"), displayBytes: (await display.body()).toString("base64") };
+    };
+    const retained = await assetEvidence();
 
     await openDirectory(page);
     await projectItem(page, title).getByRole("button", { name: "归档" }).click();
     await expect(projectItem(page, title)).toHaveCount(0);
     await page.getByLabel("显示归档项目").check();
     await expect(projectItem(page, title)).toContainText("已归档 · 只读");
+    await openProject(page, title);
+    await expect(page.getByText("归档只读", { exact: true })).toBeVisible();
+    for (const [view, save] of [
+      ["故事圣经", "保存故事圣经"],
+      ["场景节拍", "保存节拍计划"],
+      ["分镜工作台", "保存分镜"],
+    ]) {
+      await navigateToSecondaryTool(page, view);
+      await expect(page.getByRole("button", { name: save, exact: true })).toBeDisabled();
+      await expect(page.getByRole("button", { name: "正在保存…", exact: true })).toHaveCount(0);
+    }
+    await openMediaPreparation(page);
+    await expect(page.getByTestId("managed-image-upload")).toBeDisabled();
+    await expect(candidate.getByRole("img")).toBeVisible();
+    expect(await assetEvidence()).toEqual(retained);
+    await expect(page.getByRole("button", { name: "创建恢复快照", exact: true })).toBeDisabled();
+    await openDirectory(page);
     await projectItem(page, title).getByRole("button", { name: "恢复" }).click();
     await expect(projectItem(page, title)).toContainText("当前项目");
+    expect(await assetEvidence()).toEqual(retained);
 
     await projectItem(page, title).getByRole("button", { name: "归档" }).click();
     await expect(projectItem(page, title).getByRole("button", { name: "永久删除" })).toBeVisible();
@@ -134,8 +180,20 @@ test.describe("M1-B0 real project journeys", () => {
     await projectItem(page, title).getByRole("button", { name: "永久删除" }).click();
     await expect(consent.getByLabel("输入完整片名以确认删除")).toHaveValue("");
     await consent.getByLabel("输入完整片名以确认删除").fill(title);
+    const deleted = page.waitForResponse((response) => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/permanent-delete`);
     await consent.getByRole("button", { name: "确认永久删除项目" }).click();
+    expect((await deleted).ok()).toBeTruthy();
     await expect(consent).not.toBeVisible();
+    await expect(projectItem(page, title)).toHaveCount(0);
+    await expect(page.getByRole("status").filter({ hasText: "项目已永久删除" })).toBeVisible();
+    expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}`)).status()).toBe(404);
+    expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/managed-assets/${retained.assets[0].id}/original`)).status()).toBe(404);
+    expect((await readdir(workbench.outputsRoot)).some((name) => name.endsWith(`__${projectId}`))).toBe(false);
+    // Deletion clears the selected project but keeps the current tool route.
+    // New Blank also keeps that route; return to Brief through its named control.
+    await page.getByRole("button", { name: "新建空白项目", exact: true }).click();
+    await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
     await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
     await expect(page.getByLabel("片名")).toHaveValue("");
     expect(permanentDeleteRequests).toBe(1);

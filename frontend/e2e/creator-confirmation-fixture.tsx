@@ -34,7 +34,7 @@ function Fixture() {
     <section aria-label="Deletion fixture"><VideoPilotPanel projectId="disposable" shot={demoProject.storyboard.shots[0]} selectionRevision={revision} mediaReadPhase="ready" readOnly={false}
       storyboard={demoProject.storyboard} sceneBeats={demoProject.sceneBeats} graph={demoProject.storyGraph} /></section>
     <section aria-label="Coverage fixture"><StoryboardPage bible={demoProject.storyBible} graph={demoProject.storyGraph} sceneBeats={demoProject.sceneBeats}
-      value={demoProject.storyboard} stale={false} mediaTasks={{}} saving={false} entityId={`shot:${demoProject.storyboard.shots[0].id}`} onSave={async () => undefined}
+      value={demoProject.storyboard} stale={false} mediaTasks={{}} saving={false} readOnly={false} entityId={`shot:${demoProject.storyboard.shots[0].id}`} onSave={async () => undefined}
       onDraftChange={draft => { if (draft.shotBeatLinks.length !== demoProject.storyboard.shotBeatLinks.length) record(["coverage", draft.shotBeatLinks]); }} /></section>
   </main>;
 }

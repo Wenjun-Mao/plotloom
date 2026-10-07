@@ -5,23 +5,39 @@ import { demoProject } from "../src/demo";
 import { StoryboardPage } from "../src/pages/StoryboardPage";
 
 vi.mock("../src/features/media/ManagedMediaWorkbench", () => ({
-  ManagedMediaWorkbench: ({ selectedShot }: { selectedShot?: { id: string } }) => createElement("div", { "data-testid": "selected-media-shot" }, selectedShot?.id ?? "none"),
+  ManagedMediaWorkbench: ({ selectedShot, readOnly }: { selectedShot?: { id: string }; readOnly: boolean }) => createElement("div", { "data-testid": "selected-media-shot", "data-read-only": readOnly }, selectedShot?.id ?? "none"),
 }));
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 let root: Root;
 let host: HTMLDivElement;
-const render = async (entityId: string) => {
+const render = async (entityId: string, saving = false, readOnly = false) => {
   await act(async () => root.render(createElement(StoryboardPage, {
     bible: demoProject.storyBible, graph: demoProject.storyGraph,
     sceneBeats: demoProject.sceneBeats, value: demoProject.storyboard,
-    stale: false, mediaTasks: {}, saving: false, entityId,
+    stale: false, mediaTasks: {}, saving, readOnly, entityId,
     onSave: async () => undefined,
   })));
 };
 
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
+
+it.each([
+  [false, true, "保存分镜", true],
+  [true, false, "正在保存…", true],
+  [false, false, "保存分镜", false],
+])("separates saving %s from read-only %s while retaining action locks", async (saving, readOnly, label, locked) => {
+  await render(`shot:${demoProject.storyboard.shots[0].id}`, saving, readOnly);
+  const save = host.querySelector<HTMLButtonElement>(".page-actions button")!;
+  expect(save.textContent).toBe(label);
+  expect(save.disabled).toBe(locked);
+  expect(host.querySelector('[data-testid="selected-media-shot"]')?.getAttribute("data-read-only")).toBe(String(locked));
+  if (locked) {
+    await act(async () => host.querySelector<HTMLButtonElement>(".coverage-link button")!.click());
+    expect(document.querySelector("dialog")).toBeNull();
+  }
+});
 
 it("selects the exact routed shot and refuses a no-longer-owned ID without falling back", async () => {
   const second = demoProject.storyboard.shots[1];
@@ -44,7 +60,7 @@ it("confirms only the displayed coverage link and cancels without changing the d
     const changed = vi.fn();
     await act(async () => root.render(createElement(StoryboardPage, {
       bible: demoProject.storyBible, graph: demoProject.storyGraph, sceneBeats: demoProject.sceneBeats,
-      value: demoProject.storyboard, stale: false, mediaTasks: {}, saving: false,
+      value: demoProject.storyboard, stale: false, mediaTasks: {}, saving: false, readOnly: false,
       entityId: `shot:${link.shotId}`, onSave: async () => undefined, onDraftChange: changed,
     })));
     const remove = host.querySelector<HTMLButtonElement>(".coverage-link button")!;

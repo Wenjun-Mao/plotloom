@@ -53,6 +53,7 @@ import {
 import { Badge, Button, EmptyState, Field, PageHeader, Panel } from "../components";
 import { useConfirmation } from "../confirmation";
 import { ManagedMediaWorkbench } from "../managed-media";
+import { GateStatusBadge, ShotDeletionConfirmation, ShotMigrationConfirmation } from "./storyboard/StoryboardFeedback";
 
 const shotSizes: Array<{ value: Shot["shotSize"]; label: string }> = [
   { value: "extreme_wide", label: "大远景" },
@@ -84,28 +85,6 @@ function referenceOptions(bible: StoryBible): EntityOption[] {
   ];
 }
 
-function GateStatusBadge({ status }: { status: "pass" | "fail" | "skipped" | "not_applicable" }) {
-  const tone = status === "pass" ? "ok" : status === "fail" ? "danger" : "warning";
-  return <Badge tone={tone}>{status.toUpperCase()}</Badge>;
-}
-
-function ShotMigrationConfirmation({ impact, onCancel, onConfirm }: { impact: ShotSceneMigrationImpact; onCancel: () => void; onConfirm: () => void }) {
-  return <Panel className="notice warning" data-testid="shot-scene-migration-impact"><strong>镜头关系迁移确认</strong><p>将 Shot {impact.shotId} 从 {impact.fromSceneId} 迁移到 {impact.toSceneId}。Shot ID 不变，两个场景的镜头顺序会确定性归一化。</p><small>不会自动删除或迁移关联关系。迁移后跨场景的 cue 调度：{impact.crossSceneCueIds.join(", ") || "无"}；ShotBeatLink：{impact.crossSceneLinkKeys.join(", ") || "无"}。请在确认后显式调整这些关系。</small><div className="page-actions"><Button type="button" variant="primary" onClick={onConfirm}>确认迁移</Button><Button type="button" onClick={onCancel}>取消</Button></div></Panel>;
-}
-
-function ShotDeletionConfirmation({ impact, title, onCancel, onConfirm }: { impact: ShotRemovalImpact; title: string; onCancel: () => void; onConfirm: () => void }) {
-  return <Panel className="notice error" data-testid="shot-deletion-impact" role="alertdialog" aria-label="镜头删除影响确认">
-    <strong>删除镜头“{title}”</strong>
-    <p>镜头 {impact.shotId} 将被删除；同场景镜头顺序会重新编号。以下关系不会被隐藏处理：</p>
-    <ul>
-      {impact.linkBeatIds.map((beatId) => <li key={`link:${beatId}`}>删除 ShotBeatLink：{impact.shotId} → {beatId}</li>)}
-      {impact.unscheduledCueIds.map((cueId) => <li key={`cue:${cueId}`}>DialogueCue 将变为未调度：{cueId}</li>)}
-      {!impact.linkBeatIds.length && !impact.unscheduledCueIds.length && <li>没有 ShotBeatLink 或 DialogueCue 调度关系。</li>}
-    </ul>
-    <div className="page-actions"><Button type="button" variant="danger" data-testid="confirm-shot-delete" onClick={onConfirm}>确认删除</Button><Button type="button" onClick={onCancel}>取消</Button></div>
-  </Panel>;
-}
-
 export function StoryboardPage({
   bible,
   graph,
@@ -114,6 +93,7 @@ export function StoryboardPage({
   stale,
   mediaTasks,
   saving,
+  readOnly,
   entityId,
   issues = [],
   onEntitySelect,
@@ -137,6 +117,7 @@ export function StoryboardPage({
   stale: boolean;
   mediaTasks: Record<string, MediaTask>;
   saving: boolean;
+  readOnly: boolean;
   entityId?: string;
   issues?: ValidationIssue[];
   onEntitySelect?: (entityId: string) => void;
@@ -390,7 +371,8 @@ export function StoryboardPage({
       onNavigateIssue?.("beats", `cue:${identity}`);
     }
   };
-  const { requestConfirmation, confirmation } = useConfirmation(JSON.stringify([projectId, revision, storyboard, selectedShot?.id]), saving);
+  const actionsLocked = saving || readOnly;
+  const { requestConfirmation, confirmation } = useConfirmation(JSON.stringify([projectId, revision, storyboard, selectedShot?.id]), actionsLocked);
 
   const requiredGatesPass = Boolean(review?.gateEvaluation?.results.every((gate) => !gate.required || gate.status === "pass"));
 
@@ -398,12 +380,12 @@ export function StoryboardPage({
     {confirmation}
     <PageHeader title="分镜工作台" description="镜头、对白、声音、实体状态与节拍覆盖都在同一份可审计合同中。" actions={<>
       <Field label="路径过滤"><select value={routeId} onChange={(event) => setRouteId(event.target.value)}><option value="">全部场景</option>{routes.map((item, index) => <option key={item.id} value={item.id}>路径 {index + 1} · {item.label}</option>)}</select></Field>
-      <Button variant="primary" disabled={saving} onClick={() => void onSave(storyboard)}>{saving ? "正在保存…" : "保存分镜"}</Button>
+      <Button variant="primary" disabled={actionsLocked} onClick={() => void onSave(storyboard)}>{saving ? "正在保存…" : "保存分镜"}</Button>
     </>} />
     {stale && <div className="notice warning"><strong>分镜已过期</strong><span>上游合同发生变化。现有手工镜头仍保留；请审阅差异后从合适阶段重建。</span></div>}
     <div className="notice"><strong>媒体工作流</strong><span>选择镜头后，在下方查看原片、调整并预览片段，再明确决定是否用于故事。关键帧、参考素材与准备步骤可展开；未配置视频后端时仍可查看已有候选。</span></div>
     {unresolvedEntity && <div className="notice warning" role="alert" data-testid="unknown-storyboard-entity">请求的镜头不属于当前分镜；未打开其他镜头。请从镜头列表重新选择。</div>}
-    <ManagedMediaWorkbench projectId={projectId} storyboard={storyboard} bible={bible} graph={graph} sceneBeats={sceneBeats} routeId={route?.id} storyboardRevision={revision} storyBibleRevision={storyBibleRevision} mediaDraftsEnabled={mediaDraftsEnabled} draftQuiescence={mediaDraftQuiescence} selectedShot={selectedShot} review={review} draftChanged={JSON.stringify(storyboard) !== JSON.stringify(value)} readOnly={saving} onSelectShot={selectShot} onEditShot={revealStoryboardEditor} onReturnToBridge={onReturnToBridge} onReview={() => {
+    <ManagedMediaWorkbench projectId={projectId} storyboard={storyboard} bible={bible} graph={graph} sceneBeats={sceneBeats} routeId={route?.id} storyboardRevision={revision} storyBibleRevision={storyBibleRevision} mediaDraftsEnabled={mediaDraftsEnabled} draftQuiescence={mediaDraftQuiescence} selectedShot={selectedShot} review={review} draftChanged={JSON.stringify(storyboard) !== JSON.stringify(value)} readOnly={actionsLocked} onSelectShot={selectShot} onEditShot={revealStoryboardEditor} onReturnToBridge={onReturnToBridge} onReview={() => {
       if (storyboardDetails.current) storyboardDetails.current.open = true;
       if (approvalActions.current) approvalActions.current.open = true;
       requestAnimationFrame(() => {

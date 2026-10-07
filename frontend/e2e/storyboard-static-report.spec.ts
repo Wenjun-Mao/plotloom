@@ -19,8 +19,11 @@ test("pinned Storyboard static reader reveals long segments/prompts without perm
   }));
   const renderer = path.resolve("../third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs");
   const scriptPath = path.join(prepared.packagePath, "inputs/script.json");
+  // Keep report payloads out of argv: Linux bounds each argument independently
+  // of the available memory, and this deliberately long report exceeds it.
   const render = (images: boolean) => execFileSync(process.execPath, ["--input-type=module", "-e",
-    `import {renderHtml} from ${JSON.stringify(renderer)};import fs from 'node:fs';const board=${JSON.stringify(longBoard)};const script=JSON.parse(fs.readFileSync(${JSON.stringify(scriptPath)},'utf8'));process.stdout.write(renderHtml(board,{script,lang:'en',imageExists:()=>${images}}));`]);
+    `import {renderHtml} from ${JSON.stringify(renderer)};import fs from 'node:fs';const board=JSON.parse(fs.readFileSync(0,'utf8'));const script=JSON.parse(fs.readFileSync(${JSON.stringify(scriptPath)},'utf8'));process.stdout.write(renderHtml(board,{script,lang:'en',imageExists:()=>${images}}));`],
+  { input: JSON.stringify(longBoard) });
   const report = Buffer.concat([render(false), Buffer.from('<script>window.storyboardExecuted=true;</script><script>try{parent.document.body.dataset.storyboardMutation="bad"}catch{}</script><script>fetch("https://report-security.invalid/board")</script>')]);
   await writeDelivery(prepared, "storyboard", board, report);
   await json(request.post(`${root}/candidates/${prepared.jobId}/refresh`));

@@ -61,8 +61,9 @@ file picker:
 uv run plotloom restore --source /absolute/path/to/snapshot-or-closed-project --outputs-dir /absolute/path/to/outputs
 ```
 
-It restores only a format-6 closed project folder or a verified format-1
-snapshot, preserves the project ID, and refuses an existing identity. The
+It restores only a closed project folder in the current storage format or a
+verified format-1 snapshot containing that format. Older project formats are
+refused, not migrated. Restore preserves the project ID and refuses an existing identity. The
 operator supplies no provider credentials or application database; restore
 never dispatches or replays remote work.
 
@@ -118,9 +119,11 @@ never dispatches or replays remote work.
   storyboard Approval. A still preview can cover any nonempty contiguous subset
   of one scene; the authored frame duration is played unchanged. The four-image/
   three-shot P0 scenario is test evidence, not a runtime limit.
-- Media-bearing projects cannot be permanently deleted yet: the API refuses
-  with `project_managed_assets_present` before mutation. Do not attempt manual
-  blob cleanup; media-aware erasure is a follow-up.
+- The current project-folder runtime permanently deletes one exact idle project
+  home, including its media, only after matching revisions and full-title
+  confirmation. Busy or publishing projects are refused before mutation.
+  Never manually remove blobs or use row-only persistence erasure as a substitute
+  for this project-owned filesystem operation.
 
 ### Manual Codex image jobs (P1)
 
