@@ -41,7 +41,10 @@ explicitly and leave exact pending task identities.
 
 ## Status
 
-PARTIAL, not full E2E acceptance. Local checkpoint `406c942` remains local-only.
+PARTIAL, not full E2E acceptance. Local checkpoints `406c942` and
+`be876346995ff5385db16992f34298e2cf2854f0` were published by root to origin/main
+at2026-10-07 18:37:52 UTC; push exit0 and remote source HEAD verified. This is the
+after-source-push status; current CI was not yet listed, not claimed PASS from old runs.
 Shared persisted provenance, Character/shot disclosures and intrinsic long-note
 card layout are repaired and independently reviewed. Named static report readers
 preserve archives/CSP/sandbox; original live reports and fresh native text stages
@@ -66,7 +69,14 @@ identical; only that authorized Python unit-test file changed during its run.
 C55 shared-flow help and current disclosure pixels passed focused/live review.
 Independent source review is closed; earlier interrupted gates remain history.
 
-Normal8841 is stopped in coordinated idle maintenance, not restarted or pushed.
+Root restored normal8841 from clean `be876346` using established manage.py start
+at18:30:59→18:31:16, exit0. Container/native bridge/HTTP health are healthy; served
+JS matches the final checked bundle. Runtime intentGeneration is explicitly
+unavailable/not_configured, not inference acceptance. Four normal Rain managed
+assets expose non-null provenance; Wind has zero assets. Additional normal Art
+candidate comparison is NOT EXERCISED because no completed candidate rows exist;
+no protected owner data was seeded. Post-activation owner DB/file/settings recapture
+at18:34:54 matches the exact baseline. Normal is idle; no active tasks were stopped.
 Retained8851 Python predates shot-policy cleanup; its explicit-advisory QA is
 semantically comparable, not the identical final loaded backend. Its isolated
 static matches checked JS `c8fe9734faaed15142987c80fd318561260269d4e8c8415d853845dbcd6346ab`.
@@ -83,6 +93,5 @@ seed; snapshot/separate operator restore/archive/unarchive/typed brief-copy dele
 passed, not media-bearing deletion. Graph pixels qualify three siblings and
 graph-area clamp, not six siblings/universal viewport centering or OS blur.
 The concise current ledger links preserved dated chronology and exact failures.
-Qualified software release awaits root's exact local commit, paired normal restart
-and publication authorization. No final activation/push has occurred; media authority
+Qualified software is activated and the exact source is published; media authority
 and remaining native coverage do not become PASS from the software gate results.

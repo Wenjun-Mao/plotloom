@@ -7,12 +7,16 @@ receipts and prior checkpoints are preserved verbatim in the linked
 [historical receipt](2026-10-07-full-creator-e2e-repeat-history.md).
 Historical present-tense statements there do not describe current deployment.
 
-## Current status — final gate checkpoint, 2026-10-07
+## Current status — after source publication, 2026-10-07 18:37:52 UTC
 
-Local checkpoint `406c942` is local-only: no push or normal activation.
-Normal8841 was stopped only after an immediate idle check at17:03 with the
-established manage.py stop; it remains in maintenance awaiting
-explicit restart approval. Deployment/token/specialist settings are unchanged.
+Local checkpoints `406c942` and `be876346995ff5385db16992f34298e2cf2854f0`
+were published by root to origin/main at18:37:52, push exit0 and remote HEAD verified
+as `be876346995ff5385db16992f34298e2cf2854f0` (including `406c942`).
+This is a dated after-source-push receipt; current CI was not yet listed and is not
+claimed PASS from older runs. Root restored normal8841 from the clean final checkpoint
+with the established manage.py start at18:30:59→18:31:16, exit0. Docker/native bridge
+health passed; HTTP healthz was OK at18:32:37. Deployment/token/specialist settings
+are unchanged. The earlier17:03 idle maintenance preserved the old checked static.
 Old checked static is recoverably retained in
 `output/playwright/full-creator-2026-10-07/pre-capability-checked-static/`.
 
@@ -50,8 +54,13 @@ and `independent-final-v7-{frontend,typecheck,lock,lint,diff,wheel,smoke}.log`.
 `independent-final-v7-python.log` retains the failed attempt, not a passing gate.
 Wheel SHA256: `82bee9d078bcd01c4001183adf25d2661ea778dc0d546aa2c20b20d8544bdcde`.
 
-Qualified software release still awaits root's exact scoped local commit, paired
-normal restart and publication authorization. No final activation or push occurred.
+Qualified software is activated on normal8841 and its exact source is published.
+Served JS matches the exact checked hash above. The required runtime capability is
+`intentGeneration=unavailable/not_configured` for normal's bare composition, not
+an inference PASS. Normal Rain's four managed-asset rows each expose non-null
+provenance; Wind has zero assets. Normal Art has no completed candidate assets,
+so an additional candidate HTTP comparison was NOT EXERCISED: no applicable rows,
+not a product regression. No owner data was seeded to manufacture coverage.
 The real E2E remains PARTIAL: native image continuation requires separate human
 authority; remaining media routes and controls are not qualified by fixture gates.
 
@@ -60,7 +69,11 @@ Parent protection recaptures match the baseline aggregate exactly:
 Scope is two owner DB schemas/rows, Wind17+Rain67 managed files and three protected
 configuration hashes/modes/UIDs, not the global QA registry/application DB.
 Root's final read-only recapture at18:24:32 matched this exact baseline and final
-847-file source fingerprint; post-activation comparison remains due.
+847-file source fingerprint. Post-activation recapture at18:34:54 again matched
+the baseline exactly. Normal is idle (busy:false/zero active tasks);8861 retains only
+the exact frozen image reservation, without restart/reload/send. Root receipts:
+`round2_root_activation_http_smoke`, `round2_root_activation_provenance_smoke`,
+`round2_root_post_activation_protection`. No full E2E acceptance is implied.
 
 ## Current coverage and explicit gaps
 
