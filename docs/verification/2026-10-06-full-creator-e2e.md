@@ -1,5 +1,9 @@
 # Full creator E2E receipt — live runs and exact-head CI complete
 
+Dated follow-up: [October7 original native image ingestion](2026-10-07-native-image-ingestion.md)
+records later owner-restarted delivery/gallery checks and a candidate-provenance
+projection finding. The historical queue/no-delivery result below is not rewritten.
+
 Authorized scope and rounds: [roadmap](../roadmap/2026-10-06-full-creator-e2e.md).
 Permanent control inventory: [C01–C55/P01–P06/E01–E22](../creative-workflow/graph-workbench-acceptance.md).
 This receipt separates observed UI actions, provider results, API setup/readback,
