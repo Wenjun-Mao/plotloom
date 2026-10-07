@@ -1,5 +1,21 @@
 # Plotloom roadmap entrypoint
 
+The owner subsequently authorized the
+[full creator journey functional walkthrough](2026-10-06-full-creator-e2e.md)
+while sleeping, with up to ten hours and no reliance on further replies.
+It extends the permanent checklist with E01–E22, permits bounded real Codex
+ImageGen/H3 generation and provisional QA-only decisions, and excludes media
+quality adjudication. Preserve both owner projects/settings and dispatch safety;
+consult the H3 Specialist for configuration clarification. This new live scope
+does not relabel the earlier graph-only/fake-media evidence as full E2E.
+The [full journey receipt](../verification/2026-10-06-full-creator-e2e.md) records
+both genuine R1 media routes, all nine R2 text routes, R3 recovery and normal R4
+explicit footage confirmation/current Script binding. Verified executable
+`24935d1` is pushed and normal8841 activated; its new full CI37576375714 passed
+verification and both unfiltered browser shards. Scoped documentation/evidence
+closeout is published with the receipt.
+The native image queue→start gap remains unresolved and its lease preserved.
+
 The owner authorized a checklist-led self-walkthrough and demonstrated-issue
 repairs on 2026-10-06 before their next walkthrough. Extend the permanent
 [acceptance checklist](../creative-workflow/graph-workbench-acceptance.md), not
@@ -24,7 +40,7 @@ exact-revision CI are recorded in that receipt, including the older red run.
 Final test-contract candidate `a792293` passed all 191 local browser tests;
 all 1,182 Python/546 frontend and other release gates remain qualified. The new
 [unfiltered exact-head CI](https://github.com/Wenjun-Mao/plotloom/actions/runs/37561866807)
-is running, not yet passed. The clean nine-node QA draft is available for owner
+passed verify and both browser shards. The clean nine-node QA draft is available for owner
 walkthrough; real creative/media acceptance remains separate.
 
 The owner approved the [creator workbench implementation plan](2026-10-06-graph-centred-creator-workbench.md)
