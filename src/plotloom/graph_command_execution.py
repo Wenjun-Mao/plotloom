@@ -279,9 +279,28 @@ def execute_graph_command(before: GraphAuthoringDraft, command: GraphCommand, br
     new_edges = {edge.id: edge for edge in draft.mapping.topology.edges}
     old_joins = {join.id: join for join in before.mapping.topology.joins}
     new_joins = {join.id: join for join in draft.mapping.topology.joins}
-    affected = sorted(identity for identity in old_joins.keys() | new_joins.keys() if old_joins.get(identity) != new_joins.get(identity))
-    if affected:
-        messages.append("汇合输入身份已变化；保留原有事实、允许差异和衔接文字，需重新审阅。")
+    added_joins = sorted(new_joins.keys() - old_joins.keys())
+    removed_joins = sorted(old_joins.keys() - new_joins.keys())
+    changed_join_inputs = sorted(identity for identity in old_joins.keys() & new_joins.keys()
+        if set(old_joins[identity].incoming_node_ids) != set(new_joins[identity].incoming_node_ids))
+    other_changed_joins = sorted(identity for identity in old_joins.keys() & new_joins.keys()
+        if old_joins[identity].model_dump(exclude={"incoming_node_ids"})
+        != new_joins[identity].model_dump(exclude={"incoming_node_ids"}))
+    affected = sorted(set(added_joins) | set(removed_joins) | set(changed_join_inputs) | set(other_changed_joins))
+    if added_joins:
+        messages.append("新增汇合合同；合同字段目前为空，请填写并审阅其直接输入节点。")
+    if removed_joins:
+        content = "移除汇合合同及其必需状态键、允许差异、协调说明、备注和未提交字段输入。"
+        removed_join_nodes = [old_joins[identity].join_node_id for identity in removed_joins]
+        if all(node_id in new_nodes for node_id in removed_join_nodes) and before.mapping.topology.edges == draft.mapping.topology.edges:
+            content += "汇合节点与图连接保留。"
+        else:
+            content += "相关节点和连接按预览所列的结构变化处理。"
+        messages.append(content)
+    if changed_join_inputs:
+        messages.append("保留的汇合合同直接输入节点集合已变化；原合同字段保留，请重新审阅这些规则是否仍适用。")
+    if other_changed_joins:
+        messages.append("保留的汇合合同字段已变化；请检查合同内容。")
     return draft, GraphCommandImpact(added_node_ids=sorted(new_nodes - old_nodes), removed_node_ids=sorted(old_nodes - new_nodes),
         added_edge_ids=sorted(new_edges.keys() - old_edges.keys()), removed_edge_ids=sorted(old_edges.keys() - new_edges.keys()),
         changed_edge_ids=sorted(identity for identity in old_edges.keys() & new_edges.keys() if old_edges[identity] != new_edges[identity]),

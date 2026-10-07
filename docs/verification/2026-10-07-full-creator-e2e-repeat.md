@@ -7,7 +7,109 @@ receipts and prior checkpoints are preserved verbatim in the linked
 [historical receipt](2026-10-07-full-creator-e2e-repeat-history.md).
 Historical present-tense statements there do not describe current deployment.
 
-## Current status — after source publication, 2026-10-07 18:37:52 UTC
+## Current repair batch 2026 10 07 21 53 UTC
+
+The current batch is uncommitted and has no freshly activated normal8841 backend.
+Its loaded QA runtime is separate8871/8872, with empty disposable storage under
+`/private/tmp/plotloom-preview-qa.QBEXwD`. Normal8841 and busy8861 were not
+restarted; existing8861 tabs were not reloaded and its frozen image job was not
+resumed, resent or modified. The18:37 publication below is a prior deployment
+checkpoint, not qualification or activation of this repair batch.
+Read-only HTTP checks at21:51 establish that normal8841 already serves the current
+checked JS/CSS hashes below through its read-only checkout mount. Building the
+static assets therefore updates those served bytes without restarting Python;
+normal's loaded backend is still the earlier checkpoint. Healthz is OK, but the
+mixed served-static/loaded-Python state is not a qualified full-batch activation.
+The earlier shorthand “not activated” must not be read as “static bytes unchanged.”
+
+Independent reviews closed the installed-proposal project-ID lookup correction,
+accepted Cast original-report lineage, candidate-only Branch static report,
+typed graph-safety guidance, distinct merge-contract preview impacts, and centered
+row-add icon. The Branch candidate reader preserves original archived HTML and
+static sandbox boundaries. Adopted Branch report association remains separate
+schema/capability work; no latest-candidate fallback was added.
+
+Full Python1,245 PASS/381.25s and frontend594 PASS/5.31s. The first full browser
+run206 PASS/6.1m preceded the final icon fix. The next gate retained205 PASS/1 FAIL:
+the graph-interactions harness reloaded21ms after starting Save, aborting the
+browser PUT receipt while the server committed r4 with the exact prose. Its local
+buffer still bound r3, so the explicit conflict guard correctly protected it.
+Root and independent read-only review identified an E2E ACK race, not data loss.
+The harness now waits for Save-owner settlement, polls exact server prose, and
+asserts no conflict dialog after reload; it does not dismiss or bypass one.
+Focused three-repeat3 PASS/6.4s; final206-test browser gate PASS/6.3m.
+App/E2E typechecks, lock, API F401 lint, diff and deterministic build
+PASS. Final checked JS is
+`e0cb4a2a60d17bfff68d71c1ac79a683c2de34c57eeaaabfbdd902d831fd11fd`.
+Checked and normal-served CSS is
+`d430ea5d72528c509b27446c10eb5ae34cada9c5e8808e8ad72c616570ea10cb`.
+The final855-file gate input fingerprint is
+`089bbfe1b2b1fd991f710b0148f200a2cfa7c943cef21be162abdd76e921794e`.
+Since the Python checkpoint only eight frontend/test/static inputs changed;
+no Python source or Python test changed. Wheel build and installed-wheel smoke
+PASS; wheel SHA256 `5224be557d7b5ca57574b9977cb72da59ebc81c3aa976431374150edd57f34b5`.
+The855-file fingerprint is unchanged across the final browser gate. Its retained
+artifacts are `output/playwright/full-lifecycle-2026-10-07/final-save-ack-browser-gate/`;
+the failed attempt remains separately in `final-centering-browser-gate/`, and the
+three repeats in `save-ack-focused-repeat/`. Writer browser attempts denied artifact writes/Chromium launch
+before assertions; these are not passing checks or product assertion failures.
+
+Root directly reviewed repaired preview pixels15–18 on UI-origin disposable
+project `965671f3-491c-4c30-ba26-03fe20463eba`: added/removed contracts identify
+their direct inputs; deleting a nonblank optional contract preserves nodes/edges;
+Undo restores exact mapping/fields (r5→6→7). Safe bypass distinguishes removed
+optional contract from retained join input changes, preserves the retained keys,
+allowed differences, notes and reconciliation, and Undo restores exact mapping
+(r11→12→13). Type/footage preview visibly discloses both changes; Cancel preserves
+the mapping. No canonical confirmation/application or generation occurred.
+
+Pixels19/20 directly qualify the centered plus at1700×900 and1280×768. All six
+row controls remain30×30 with zero icon-center offset on both axes; their named
+row-add dialog opens and cancels without adding a node. Save-close/reopen retained
+the exact saved draft. The beforeunload prompt protects retained uncanonicalized
+work even after draft acknowledgement; an empty session registry is not canonical
+acceptance. A batched reload that raced explicit close was dismissed, then close
+settlement was verified before reload; no loss or stale-ref bug was established.
+
+Owner protection was read-only recaptured at21:21,21:48 and21:53 with the same baseline aggregate
+`df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`:
+two owner DB schemas/rows, Wind17+Rain67 files and three protected configurations.
+The earlier declined inspection was recovered through the verified named
+`查看版本与技术详情` control; retained pixel02 proves the inspection completed.
+That does not qualify the pending image job. Full E2E remains PARTIAL.
+
+### Additional desktop and deletion checks 22 08 UTC
+
+The final independent read-only release audit found no concrete source blocker
+in this repair batch. Normal8841's five project databases have no nonterminal
+text/media/video work or prepared creative candidates; its native dispatch
+directory has no inflight assignment. Both protected owner projects and all
+protected files still match the exact baseline aggregate above. These are
+release-readiness checks, not native media acceptance.
+
+On disposable8871 project965671f3, explicit choice-only deletion r13→14 retained
+all seven other nodes, their sections and all eight edge identities; the three
+affected endpoints became pending. Nonblank retained merge fields were unchanged.
+Undo restored the original mapping. Join-only deletion r15→16 removed only the
+selected node and its disclosed merge contract, retained every other node/section
+and edge identity, and Undo r17 restored the exact mapping and field buffers.
+The UI correctly refused safe bypass into a single-entry choice without a merge
+contract. Ending-only deletion r17→18 preserved the choice edge as pending and all
+other nodes/sections; Undo r19 restored the exact mapping, buffers and row hints
+from r13. Canonical revision stayed0 throughout; no generation or application.
+Root directly inspected preview pixels21–23 at1700×900. An inspection expression
+first used `draft.mapping` instead of `draft.payload.mapping` after the choice
+commit; readback reconciled r14 before Undo, with no repeated deletion.
+
+Actual OS blur remains NOT EXERCISED. Native-app inspection timed out. A separate
+real Finder activation during a held divider resize produced no observed browser
+blur within20s, rather than a simulated event. The temporary width380→440 was
+ordinarily reset to automatic380; authored draft r13 was unchanged. This does not
+qualify the cancellation handler or establish a product failure. Fresh specialist
+thread inspection confirms the same image job stopped at source preflight, with
+no image/completion; no continuation or reservation change was sent.
+
+## Published checkpoint 2026 10 07 18 37 UTC
 
 Local checkpoints `406c942` and `be876346995ff5385db16992f34298e2cf2854f0`
 were published by root to origin/main at18:37:52, push exit0 and remote HEAD verified
@@ -80,12 +182,12 @@ the exact frozen image reservation, without restart/reload/send. Root receipts:
 | Contract | Current qualification | Remaining scope |
 |---|---|---|
 | E01–E04/P01–P05 | Fresh UI Brief/source/Outline r1, native branch review/Confirm/Apply; actual Outline timeline/table PASS, export BLOCKED_BY_DESIGN | Richer native structure not generated merely for counts |
-| E05–E06/C01–C55 | Separate real structural QA123→222→333 sequence; bypass/unconnected deletion/Undo; Save-close-reopen; partial-key C49; real stale-CAS refusal and matched live selection refresh; C48 legal/refused type/start guards; C50 endpoint/edge-only deletion/Undo; C51 retain/discard; C55 normal-flow help retests | Remaining type/kind/ownership permutations; OS blur NOT EXERCISED |
+| E05–E06/C01–C55 | Separate real structural QA123→222→333 sequence; bypass/unconnected deletion/Undo; Save-close-reopen; partial-key/nonblank C49; real stale-CAS refusal and matched live selection refresh; C44 explicit draft footage toggles/reversal; C48 legal/refused type/start guards and exact legal conversion/Undo; C50 endpoint/edge-only deletion/Undo; C51 retain/discard; C55 normal-flow help retests; current repaired preview pixels15–18 | Remaining type/kind/ownership permutations; OS blur NOT EXERCISED; no post-install native revision qualification |
 | E07–E09/P04/P06 | Fresh native Cast/Art confirmed r1 with offscreen style boundary; original gallery provenance, current static readers and original gallery zoom PASS | Native Character/Scene/Prop images and same-subject pair pending |
 | E10–E13 | Fresh Script/Storyboard r1 confirmed; proposal r3 presentation reviewed/installed; ordinary first-shot handoff PASS | Model inference E12 NOT EXERCISED (runtime unavailable); physical direction realization remains unspecified |
 | E14–E18 | No fresh native media-route qualification | Keyframes, managed endframe/dirty guards, multishot preview, H3/all routes/staleness NOT EXERCISED |
 | E19–E21 | Task/reopen/owned idle restart; exact QA snapshot/operator restore/archive/unarchive/typed disposable-copy delete PASS | Media-bearing deletion and remaining lifecycle recovery NOT EXERCISED |
-| E22/C37–C39 |18 actual graph pixels across three sizes/two preferences reviewed independently; three siblings readable;34s exploratory navigation and final clean nine-seed reset; final software gates PASS | Six-sibling state/OS blur not qualified; native journey remains partial |
+| E22/C37–C39 |18 earlier graph pixels across three sizes/two preferences reviewed independently; separate six-sibling QA at1700/1280/short desktop directly inspected;34s exploratory navigation and earlier clean nine-seed reset; current repaired preview, centered-plus and deletion pixels15–23; final206 browser gate PASS | OS blur not qualified; native journey remains partial |
 
 ### Fresh native identities and review boundaries
 

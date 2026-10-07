@@ -40,6 +40,21 @@ function Harness({ mode = "story", enabled = true, restoredPayload, restoredNonc
     children: createElement(Probe, { mode }) });
 }
 async function show(mode?: string) { await act(async () => root.render(createElement(Harness, { mode }))); }
+
+it("preserves graph refusal facts and leaves the acknowledged draft untouched", async () => {
+  server = receipt(graphDraftFixture(), 1); await show();
+  const before = structuredClone(server);
+  const details = { code: "graph_edit_unsafe", diagnostics: [{ code: "out_degree", identity: "out_degree:opening",
+    severity: 1, previousSeverity: 0, facts: { nodeId: "opening", nodeKind: "decision", actual: 7, limit: 6 } }] };
+  vi.mocked(plotloomApi.previewGraphCommand).mockRejectedValueOnce(new ApiError("raw refusal", 409, details));
+  await act(async () => { expect(await owner.prepareCommand({ operation: "add_edge", edgeId: "seventh", sourceNodeId: "opening", targetNodeId: null })).toBe(false); });
+  expect(owner.errorDetails).toEqual(details);
+  expect(owner.preview).toBeNull(); expect(owner.previewConflict).toBe(false);
+  expect(server).toEqual(before); expect(plotloomApi.saveAuthoringDraft).not.toHaveBeenCalled();
+  expect(plotloomApi.applyGraphCommand).not.toHaveBeenCalled();
+  await act(async () => owner.prepareCommand({ operation: "set_start", nodeId: "opening" }));
+  expect(owner.errorDetails).toBeUndefined();
+});
 beforeEach(() => {
   sessionStorage.clear(); vi.restoreAllMocks(); revisionConflict.mockClear(); server = null;
   flushGate = undefined;

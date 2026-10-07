@@ -45,6 +45,42 @@ def test_outline_report_script_isolation() -> None:
     assert response.headers["x-content-type-options"] == "nosniff"
 
 
+def test_branch_candidate_report_is_original_html_under_static_sandbox() -> None:
+    report = "<!doctype html><p>retained branch report</p><script>window.bad=true</script>"
+
+    class ReportStore:
+        def branch_candidate_report(self, job_id: str) -> str:
+            assert job_id == "branch-candidate"
+            return report
+
+    @contextmanager
+    def opened(project_id: str):
+        assert project_id == "project"
+        yield ReportStore()
+
+    app = FastAPI()
+    register_project_folder_source_outline_routes(app, opened)
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/v2/projects/project/branch-suggestions/branch-candidate/report?presentation=static"
+        )
+        invalid_presentation = client.get(
+            "/api/v2/projects/project/branch-suggestions/branch-candidate/report?presentation=archive"
+        )
+        missing_presentation = client.get(
+            "/api/v2/projects/project/branch-suggestions/branch-candidate/report"
+        )
+    assert response.status_code == 200
+    assert response.text == report
+    assert response.headers["content-security-policy"] == (
+        "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:;"
+    )
+    assert response.headers["referrer-policy"] == "no-referrer"
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert invalid_presentation.status_code == 422
+    assert missing_presentation.status_code == 422
+
+
 def _settings(tmp_path: Path) -> PlotloomSettings:
     static = tmp_path / "static"
     static.mkdir()

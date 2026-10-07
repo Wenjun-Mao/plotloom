@@ -72,6 +72,9 @@ class ProjectCreativeHandoffs:
     def branch_candidate_request(self, job_id):
         return self.repository.branches.request(self.manifest.project_id, job_id)
 
+    def branch_candidate_report(self, job_id):
+        return self.repository.branches.candidate_report(self.manifest.project_id, job_id)
+
     def admit_branch_delivery(self, delivery):
         return self.repository.branches.admit(self.manifest.project_id, delivery)
 

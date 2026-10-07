@@ -91,3 +91,30 @@ using LF-based positions and fail-closed source-slice checks. Archive evidence,
 structured Cast review and acceptance remain unchanged. A genuine pinned
 four-role fixture qualifies hidden-member disclosure separately from the fresh
 native one-role delivery, which does not demonstrate a multi-role native run.
+
+Accepted Cast report access follows the retained revision's `candidateJobId`,
+because acceptance clears the active candidate pointer while the accepted
+revision and candidate report remain durable. The accepted read model exposes
+report availability and whether accepted JSON differs from the stored delivered
+cast. The UI can reopen the same static report after acceptance and author edits,
+and identifies the delivered version when those contents diverge. Missing
+reports stay unavailable. Report bytes, CSP, iframe sandbox, and the existing
+static projection are unchanged.
+
+## Demonstrated Branch report reopening
+
+Outline and Branch candidates share `SourceOutlineCandidateRow`, with the
+request's `stage` as the discriminator. The original Outline report read checked
+project, job, status and HTML but omitted that discriminator, so a ready Branch
+report could be returned under an Outline URL. Each report reader now checks
+its own stage at persistence. Branch reading requires the explicit job ID, a
+ready Branch candidate and stored HTML; the Branch state exposes `reportAvailable`
+only in that condition.
+
+The Branch report URL requires `presentation=static` and returns the retained
+HTML unchanged under the standard no-script sandbox, `default-src 'none'`,
+data-image-only policy and no-referrer headers. The existing report-frame read
+admission and empty iframe sandbox govern navigation; no scripts, adoption,
+installation or accepted-lineage behavior is added. Regression checks cover
+ready-only availability, cross-stage rejection, unchanged report bytes, CSP,
+and the explicit Branch panel control.

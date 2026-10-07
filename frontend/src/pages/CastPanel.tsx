@@ -89,6 +89,7 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
     <header className="cast-panel-heading"><div><span className="eyebrow">角色设定</span><h2>{taskLabel}</h2></div><span className={`reference-state ${state.status === "stale" ? "historical" : state.status === "accepted" ? "selected" : "candidate"}`}>{loadError ? "无法刷新" : state.status === "stale" ? "需更新" : state.status === "accepted" ? "已确认" : state.status === "reopened" ? "编辑中" : candidate?.status === "ready" ? "待审核" : candidate?.status === "prepared" ? "任务未交付" : "待准备"}</span></header>
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
     {accepted && <AcceptedCastSummary accepted={accepted} current={!loadError && state.status === "accepted"} onEdit={() => act(() => plotloomApi.reopenCast(projectId, accepted.revision), undefined, true)} disabled={readOnly || busy || state.status === "reopened"} />}
+    {accepted?.reportAvailable && <AcceptedCastReport projectId={projectId} accepted={accepted} />}
     {!candidate && state.status !== "reopened" && <section className="cast-next-action"><div><strong>创建新角色提案</strong><small>先准备任务，再发送给文字创作助手。结果需要你审核确认。</small></div><Button variant="quiet" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.prepareCastCandidate(projectId), (result) => setAssignment(result.assignment))}>创建新角色提案</Button></section>}
     {candidate && <>
       <details className="cast-technical"><summary>查看提案来源与技术详情</summary><small>冻结来源与章节：r{candidate.binding.sourceRevision} · r{candidate.binding.outlineRevision} · {candidate.binding.sectionIds.join(" · ")}</small>{candidate.status === "ready" && <><pre>{JSON.stringify(candidate.cast, null, 2)}</pre>{candidate.reportAvailable && <><p className="action-prerequisite">角色报告静态阅读：全部角色、关系与提示词展开；搜索、角色切换、复制、导出与报告内图片放大停用。原始归档与当前审阅内容保持独立。</p><ProjectReportFrame sandbox="" referrerPolicy="no-referrer" title="角色报告静态阅读" className="source-outline-report" url={plotloomApi.castCandidateReportUrl(projectId, candidate.jobId)} /></>}</>}</details>
@@ -105,6 +106,15 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
 function AcceptedCastSummary({ accepted, current, onEdit, disabled }: { accepted: AcceptedCastRevision; current: boolean; onEdit: () => void; disabled: boolean }) {
   const characters = charactersOf(accepted.cast);
 return <section className="accepted-cast-summary"><div className="accepted-cast-summary-heading"><div><strong>{current ? "当前角色" : "保留的已接受角色"}</strong><small>{current ? "这是可复用的已接受文本；图像选择在下方单独进行。" : "旧版本仍可查看；请先处理当前任务，不能把保留结果当作本次已确认。"}</small></div><Button variant="primary" disabled={disabled} onClick={onEdit}>编辑角色设定</Button></div><div className="accepted-cast-grid">{characters.map((character, index) => <article key={String(character.id || index)}><h3>{String(character.name || character.id || `角色 ${index + 1}`)}</h3><dl><CastValue label="性格特点" value={Array.isArray(record(character.persona).personality) ? (record(character.persona).personality as string[]).map((value) => castTextPresentation(value).text).join("、") : undefined} /><CastValue label="气质与举止" value={castTextPresentation(record(character.persona).temperament).text} /><CastValue label="外观" value={castTextPresentation(record(character.persona).appearance).text} /><CastValue label="声音方向" value={castTextPresentation(record(character.voice).timbre).text} /><CastValue label="图像风格" value={record(character.image).style} /></dl><CastInferenceNotes character={character} /></article>)}</div><details className="cast-technical"><summary>查看版本与技术详情</summary><small>已接受版本 r{accepted.revision} · 内容标识 {accepted.contentHash} · 已保留既有角色映射。</small></details></section>;
+}
+
+function AcceptedCastReport({ projectId, accepted }: { projectId: string; accepted: AcceptedCastRevision }) {
+  return <details className="cast-accepted-report">
+    <summary>打开原始角色报告（静态阅读）</summary>
+    {accepted.differsFromDelivery === true && <p role="note">当前已确认角色设定与交付内容不同；下方报告仍保留交付时的角色内容。</p>}
+    <p className="action-prerequisite">静态阅读视图会完整展开角色、关系与提示词；搜索、切换角色、复制、导出和报告内图片放大停用。原始归档保持不变。</p>
+    <ProjectReportFrame sandbox="" referrerPolicy="no-referrer" title="已接受角色的原始报告静态阅读" className="source-outline-report" url={plotloomApi.castCandidateReportUrl(projectId, accepted.candidateJobId)} />
+  </details>;
 }
 
 function CastValue({ label, value }: { label: string; value: unknown }) { return <div><dt>{label}</dt><dd>{typeof value === "string" && value ? value : "未提供"}</dd></div>; }

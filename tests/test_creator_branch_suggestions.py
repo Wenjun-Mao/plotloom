@@ -10,7 +10,7 @@ import pytest
 from plotloom.branch_suggestions import BranchSuggestion, bind_branches
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError
-from plotloom.exceptions import InvalidTransitionError
+from plotloom.exceptions import InvalidTransitionError, NotFoundError
 from plotloom.source_outline_contracts import OutlineAcceptRequest, OutlineReopenRequest, OutlineReturnRequest, SectionMapSaveRequest, SectionMapGraphInstallRequest, compile_section_map_graph, validate_section_map_graph
 from plotloom.source_structures import complete_routes
 from tests.test_project_storage_source_outline import _storage, _material, _request, _deliver
@@ -82,6 +82,30 @@ def test_existing_outline_gets_complete_general_draft_without_mutating_canon(sto
     candidate, cast = store.prepare_cast_candidate("ch_" + "c" * 32)
     assert len(candidate.binding.section_ids) == 9
     assert cast.input_artifacts["section-map.json"]["seedTopology"] == topology
+
+
+def test_branch_candidate_report_is_stage_bound_read_only_and_available_only_when_ready(store):
+    request = prepare(store)
+    prepared = store.branch_state().candidate
+    assert prepared.report_available is False
+    with pytest.raises(NotFoundError):
+        store.branch_candidate_report(request.job_id)
+
+    delivery = _deliver_stage(store, request, "branches.json", proposal(request.source["topology"]), "branch-report")
+    original_report = delivery.report.decode("utf-8")
+    store.admit_branch_delivery(delivery)
+    before_outline = store.source_outline_state()
+    before_candidate = store.branch_state().candidate
+    assert before_candidate.status == "ready"
+    assert before_candidate.report_available is True
+    assert store.branch_candidate_report(request.job_id) == original_report
+    assert store.source_outline_state() == before_outline
+    assert store.branch_state().candidate == before_candidate
+
+    # Both stages share one candidate table, so each reader must enforce its
+    # own request discriminator before returning report HTML.
+    with pytest.raises(NotFoundError):
+        store.outline_candidate_report(request.job_id)
 
 
 @pytest.mark.parametrize("change", ["source", "brief", "map", "revision"])

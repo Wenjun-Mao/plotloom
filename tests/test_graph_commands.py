@@ -185,6 +185,86 @@ def test_reuse_retains_content_identity_and_existing_outputs(source_project):
     assert store.graph_workbench_state().draft == saved
 
 
+def test_remove_join_preview_discloses_contract_content_removal_and_retained_graph(source_project):
+    receipt = save_graph_mapping(source_project, authored_map(source_project))
+    before = GraphAuthoringDraft.model_validate(receipt.payload)
+    # Keep this a safety-valid one-input join; removing a multi-input contract
+    # must continue to fail when it would create an unreviewed merge.
+    before.mapping.topology.edges = [edge for edge in before.mapping.topology.edges
+        if edge.id in {"opening-choice", "option-123", "option-222", "option-333", "branch-input", "new-continuation", "merge-ending"}]
+    before.mapping.topology.joins[0].incoming_node_ids = ["inserted-step"]
+    before.mapping.topology.joins[0].required_state_keys = ["arrival"]
+    before.mapping.topology.joins[0].allowed_differences = ["arrival"]
+    before.mapping.join_reconciliations["join-contract"] = "Each route reconciles arrival before the ending."
+    before.mapping.topology.joins[0].notes = "Keep the bridge intact."
+    before.field_buffers = {
+        "join:join-contract:reconciliation": "unfinished reconciliation",
+        "join:join-contract:notes": "unfinished note",
+        "edge:branch-input:stateEffects": "unrelated pending edge field",
+    }
+    remove = GraphCommandRequest.model_validate({"expectedDraftRevision": receipt.draft_revision,
+        "command": {"operation": "remove_join", "joinId": "join-contract"}}).command
+
+    result, impact = execute_graph_command(before, remove, source_project.project().brief)
+
+    assert [node.id for node in result.mapping.topology.nodes] == [node.id for node in before.mapping.topology.nodes]
+    assert result.mapping.topology.edges == before.mapping.topology.edges
+    assert result.mapping.topology.joins == []
+    assert "join-contract" not in result.mapping.join_reconciliations
+    assert "join:join-contract:reconciliation" not in result.field_buffers
+    assert "join:join-contract:notes" not in result.field_buffers
+    assert result.field_buffers["edge:branch-input:stateEffects"] == "unrelated pending edge field"
+    assert impact.affected_join_ids == ["join-contract"]
+    message = " ".join(impact.messages)
+    assert "移除汇合合同" in message
+    assert "必需状态键、允许差异、协调说明、备注和未提交字段输入" in message
+    assert "汇合节点与图连接保留" in message
+    assert "保留原有事实" not in message
+
+
+def test_add_join_preview_names_new_contract_without_claiming_existing_content_is_preserved(source_project):
+    receipt = save_graph_mapping(source_project, authored_map(source_project))
+    before = GraphAuthoringDraft.model_validate(receipt.payload)
+    add = GraphCommandRequest.model_validate({"expectedDraftRevision": receipt.draft_revision,
+        "command": {"operation": "add_join", "joinId": "new-contract", "nodeId": "ending"}}).command
+
+    result, impact = execute_graph_command(before, add, source_project.project().brief)
+
+    new_join = next(join for join in result.mapping.topology.joins if join.id == "new-contract")
+    assert new_join.incoming_node_ids == ["merge"]
+    assert result.mapping.join_reconciliations["new-contract"] == ""
+    assert impact.affected_join_ids == ["new-contract"]
+    message = " ".join(impact.messages)
+    assert "新增汇合合同" in message
+    assert "合同字段目前为空" in message
+    assert "保留原有事实" not in message
+
+
+def test_retained_join_input_membership_change_preserves_contract_fields_and_requests_review(source_project):
+    receipt = save_graph_mapping(source_project, authored_map(source_project))
+    before = GraphAuthoringDraft.model_validate(receipt.payload)
+    before.mapping.topology.joins[0].required_state_keys = ["arrival"]
+    before.mapping.topology.joins[0].allowed_differences = ["arrival"]
+    before.mapping.join_reconciliations["join-contract"] = "Preserve each arrival state."
+    before.mapping.topology.joins[0].notes = "Original contract note."
+    retarget = GraphCommandRequest.model_validate({"expectedDraftRevision": receipt.draft_revision,
+        "command": {"operation": "retarget", "edgeId": "branch-input", "endpoint": "target", "nodeId": "merge"}}).command
+
+    result, impact = execute_graph_command(before, retarget, source_project.project().brief)
+
+    changed_join = result.mapping.topology.joins[0]
+    assert set(changed_join.incoming_node_ids) == {"inserted-step", "branch-123", "branch-222", "branch-333"}
+    assert changed_join.required_state_keys == ["arrival"]
+    assert changed_join.allowed_differences == ["arrival"]
+    assert changed_join.notes == "Original contract note."
+    assert result.mapping.join_reconciliations["join-contract"] == "Preserve each arrival state."
+    assert impact.affected_join_ids == ["join-contract"]
+    message = " ".join(impact.messages)
+    assert "直接输入节点集合已变化" in message
+    assert "原合同字段保留" in message
+    assert "请重新审阅" in message
+
+
 def test_input_replacement_detaches_prior_and_preserves_displaced_target(source_project):
     store = source_project
     receipt = save_graph_mapping(store, authored_map(store))

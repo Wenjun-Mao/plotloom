@@ -22,7 +22,7 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi
 const accepted: NonNullable<CastReviewState["acceptedCast"]> = {
   revision: 1, candidateJobId: "old-job", contentHash: "a".repeat(64), acceptedAt: "2026-10-04T00:00:00Z",
   cast: { characters: [{ id: "lin", name: "林遥", persona: { personality: ["克制"], appearance: "深色外套" } }] },
-  consumerMappings: [],
+  consumerMappings: [], reportAvailable: false, differsFromDelivery: null,
   binding: { sourceRevision: 1, sourceContentHash: "b", outlineRevision: 1, outlineContentHash: "c", sectionMapRevision: 1, sectionMapContentHash: "d", graphRevision: 1, graphContentHash: "e", sectionIds: ["opening"] },
 };
 const props = { projectId: "project", readOnly: false, loadError: "", onState: vi.fn(), onRefresh: vi.fn(async () => true), onInvalidate: vi.fn(), onTransitionComplete: vi.fn() };

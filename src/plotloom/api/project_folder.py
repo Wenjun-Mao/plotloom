@@ -30,6 +30,7 @@ from ..exceptions import (
     ProjectBusyError as LifecycleProjectBusyError,
 )
 from ..creative_handoff_contracts import CreativeHandoffError
+from ..graph_safety_diagnostics import transition_error_content
 from ..project_storage import (
     ProjectFolderStorage,
     ProjectBusyError,
@@ -282,7 +283,7 @@ def create_project_folder_authoring_app(
     ) -> JSONResponse:
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
-            content={"code": "invalid_transition", "message": str(error)},
+            content=transition_error_content(error),
         )
 
     @app.exception_handler(CreativeHandoffError)

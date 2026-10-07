@@ -4,6 +4,7 @@ import { plotloomApi } from "../../api";
 import type { SourceOutlineReviewState, WorkspaceProject } from "../../types";
 import type { PageId } from "../../app/workspace/contracts";
 import { useGraphWorkbench } from "./GraphWorkbenchContext";
+import { GraphSafetyNotice } from "./GraphSafetyNotice";
 import { GraphPreviewRecovery } from "./GraphPreviewRecovery";
 import { CanonicalGraphReader } from "./CanonicalGraphReader";
 import { CreatorStoryInspector } from "./CreatorStoryInspector";
@@ -83,7 +84,7 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onNavigate, onO
       </div>
       <div className="creator-divider-track"><div ref={geometry.divider} className="creator-divider" role="separator" tabIndex={0} aria-label="调整节点详情宽度" aria-orientation="vertical" aria-valuemin={300} aria-valuemax={520} aria-valuenow={300} {...geometry.dividerEvents}><span /></div></div>
       <div className="creator-inspector-track"><aside ref={geometry.inspector} className="creator-inspector" aria-label="当前节点详情">
-        <header><strong>{section?.title || "选择故事节点"}</strong><div className="creator-tabs" role="tablist"><button role="tab" aria-selected={tab === "story"} onClick={() => setTab("story")}>故事</button><button role="tab" aria-selected={tab === "production"} onClick={() => setTab("production")}>制作</button></div>{owner.error && !action && <p role="alert">{owner.error}</p>}</header>
+        <header><strong>{section?.title || "选择故事节点"}</strong><div className="creator-tabs" role="tablist"><button role="tab" aria-selected={tab === "story"} onClick={() => setTab("story")}>故事</button><button role="tab" aria-selected={tab === "production"} onClick={() => setTab("production")}>制作</button></div>{!action && <GraphSafetyNotice />}</header>
         <div className="creator-inspector-body"><CreatorStoryInspector projectId={project.id!} disabled={disabled} active={tab === "story"} onNavigate={onNavigate} />{tab === "production" && <CreatorProductionInspector project={project} read={production} graphCurrent={admission.graphCurrent} disabled={disabled} onNavigate={onNavigate} onOpenShot={onOpenShot} />}</div>
         <footer><Button disabled={disabled} onClick={() => void owner.saveDraft()}>保存图草稿</Button><Button disabled={disabled || !source?.acceptedOutline || structure.incomplete || structure.mismatches.length > 0 || admission.structureBlocked || !production.data?.bridge} onClick={() => source && void owner.confirmMapping(source)}>确认图内容</Button><Button variant="primary" disabled={disabled || admission.installBlocked} onClick={() => source && void owner.installMapping(source)}>应用到故事路线</Button><p>{admission.reason}</p></footer>
       </aside></div>

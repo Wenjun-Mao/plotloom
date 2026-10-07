@@ -92,6 +92,7 @@ class BranchTaskCandidate(CamelModel):
     job_id: str
     status: str
     suggestion: BranchSuggestion | None = None
+    report_available: bool
 
 
 class BranchTaskState(CamelModel):

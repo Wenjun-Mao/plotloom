@@ -224,7 +224,7 @@ class ProjectSourceOutlinePersistence:
         with self._access.leases.read() as session:
             self._access.rows.project(session, project_id)
             candidate = session.get(SourceOutlineCandidateRow, job_id)
-            if candidate is None or candidate.project_id != project_id or candidate.status not in {"ready", "accepted"} or candidate.report_html is None:
+            if candidate is None or candidate.project_id != project_id or candidate.request.get("stage") != "outline" or candidate.status not in {"ready", "accepted"} or candidate.report_html is None:
                 raise NotFoundError("ready outline candidate report is unavailable")
             return candidate.report_html
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice } from "../components";
+import { ProjectReportFrame } from "../components/ProjectReportFrame";
 import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskActions";
 import type { BranchTaskState, SectionMap, SourceTopology } from "../types";
 
@@ -47,6 +48,11 @@ export function BranchSuggestionPanel({ projectId, basis, disabled, dirty, onAdo
     {state && (!candidate || candidate.status === "cancelled") && <Button variant="primary" busy={busy} disabled={disabled || busy || Boolean(state.infeasibleReason)} onClick={() => void run(() => plotloomApi.prepareBranchSuggestions(projectId))}>准备剧情分支建议</Button>}
     {candidate?.status === "prepared" && <SpecialistTaskActions key={candidate.jobId} projectId={projectId} stage="branches" jobId={candidate.jobId} disabled={disabled || busy} sendDisabled={stale} onDelivered={() => run(() => plotloomApi.getBranchSuggestions(projectId))} />}
     {stale && <p className="notice warning">{state?.staleReasons.join("；")}</p>}
+    {candidate?.status === "ready" && candidate.reportAvailable && <details>
+      <summary>打开分支建议报告（静态阅读）</summary>
+      <p className="action-prerequisite">报告对应这份未确认的建议。阅读不会带入、保存、确认或应用路线；报告内脚本和网络内容受隔离限制。</p>
+      <ProjectReportFrame sandbox="" referrerPolicy="no-referrer" title="分支建议报告静态阅读" className="source-outline-report" url={plotloomApi.branchCandidateReportUrl(projectId, candidate.jobId)} />
+    </details>}
     {suggestion && <div className="branch-suggestion-preview">
       {suggestion.nodes.map((node, index) => <section key={node.id}><h4>剧情节点 {index + 1}：{node.title}</h4><p>{node.summary}</p></section>)}
       {suggestion.choices.map(choice => <section key={choice.nodeId}><h4>播放时显示的问题：{choice.question}</h4><div className="field-grid two">{choice.options.map((option, index) => {

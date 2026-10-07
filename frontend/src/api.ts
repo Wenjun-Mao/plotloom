@@ -602,6 +602,9 @@ export class PlotloomApiClient {
   cancelBranchSuggestions(projectId: string, jobId: string): Promise<import("./types").BranchTaskState> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/branch-suggestions/${encodeURIComponent(jobId)}/cancel`, { method: "POST" });
   }
+  branchCandidateReportUrl(projectId: string, jobId: string): string {
+    return `${this.base}/projects/${encodeURIComponent(projectId)}/branch-suggestions/${encodeURIComponent(jobId)}/report?presentation=static`;
+  }
 
   returnToAcceptedOutline(projectId: string, request: { expectedOutlineRevision: number; expectedSourceRevision: number; expectedOutlineContentHash: string; expectedCandidateJobId: string | null }): Promise<SourceOutlineReviewState> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/return`, { method: "POST", body: JSON.stringify(request) });

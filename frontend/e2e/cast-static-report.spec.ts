@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { expect, test } from "./fixture";
+import { expect, test, checkedStaticTest } from "./fixture";
 import { createScriptProject, fixture, hash, json, writeDelivery } from "./f5a-fixture";
 
 test("pinned multi-character static reader retains all roles, relations, long synopsis, prompts and images", async ({ page, request, workbench }) => {
@@ -75,4 +75,64 @@ test("pinned multi-character static reader retains all roles, relations, long sy
   await expect(frame.locator(".char").last()).toBeVisible();
   expect(hash(await readFile(path.join(prepared.deliveryPath, "report.html")))).toBe(hash(report));
   expect(await (await request.get(archiveUrl)).text()).toBe(report.toString());
+});
+
+checkedStaticTest("accepted Cast keeps its original report through reopen and edit, with a divergence notice", async ({ page, request, workbench }) => {
+  const id = await createScriptProject(request, workbench.apiOrigin, "accepted-static-cast-report", {}, []);
+  const root = `${workbench.apiOrigin}/api/v2/projects/${id}/cast`;
+  const prepared = await json(request.post(`${root}/candidates`));
+  const deliveredCast = await fixture("cast.json");
+  const report = Buffer.from("<!doctype html><html><body><p>Original delivered Cast report marker.</p></body></html>");
+  await writeDelivery(prepared, "characters", deliveredCast, report);
+  await json(request.post(`${root}/candidates/${prepared.jobId}/refresh`));
+
+  let reportRequests = 0;
+  page.on("request", current => {
+    if (new URL(current.url()).pathname.endsWith("/report")) reportRequests++;
+  });
+  await page.setViewportSize({ width: 1280, height: 768 });
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=characters`);
+  const panel = page.getByTestId("cast-review");
+  await panel.getByRole("button", { name: "确认使用此角色设定" }).click();
+  await expect(panel).toContainText("已接受角色设定 r1");
+  const acceptedState = await json(request.get(root));
+  expect(acceptedState.acceptedCast.candidateJobId).toBe(prepared.jobId);
+  const acceptedReport = panel.locator("details.cast-accepted-report");
+  await expect(acceptedReport).toHaveCount(1);
+  expect(acceptedState.acceptedCast.reportAvailable).toBe(true);
+  expect(acceptedState.acceptedCast.differsFromDelivery).toBe(false);
+
+  await acceptedReport.locator("summary").click();
+  await expect(acceptedReport.locator("iframe")).toHaveAttribute("sandbox", "");
+  await expect(acceptedReport.locator("iframe")).toHaveAttribute("referrerpolicy", "no-referrer");
+  const frame = acceptedReport.frameLocator("iframe");
+  await expect(frame.locator("body")).toContainText("Original delivered Cast report marker.");
+  await expect(acceptedReport).not.toContainText("当前已确认角色设定与交付内容不同");
+
+  await panel.getByRole("button", { name: "编辑角色设定" }).click();
+  await expect(panel.getByLabel("外观")).toBeVisible();
+  await expect(frame.locator("body")).toContainText("Original delivered Cast report marker.");
+  await panel.getByLabel("外观").fill("Changed after the original delivery.");
+  await expect(frame.locator("body")).toContainText("Original delivered Cast report marker.");
+  await expect(acceptedReport).not.toContainText("当前已确认角色设定与交付内容不同");
+  await panel.getByRole("button", { name: "保存角色修改" }).click();
+  await expect(panel).toContainText("已接受角色设定 r2");
+  await expect(acceptedReport).toContainText("当前已确认角色设定与交付内容不同");
+  await expect(frame.locator("body")).toContainText("Original delivered Cast report marker.");
+  const savedState = await json(request.get(root));
+  expect(savedState.acceptedCast.differsFromDelivery).toBe(true);
+  expect(await (await request.get(`${root}/candidates/${prepared.jobId}/report`)).text()).toBe(report.toString());
+
+  const requestsBeforeMissingReport = reportRequests;
+  await page.route(`**/api/v2/projects/${id}/cast`, async route => {
+    if (route.request().method() !== "GET") return route.continue();
+    const response = await route.fetch();
+    const state = await response.json();
+    state.acceptedCast.reportAvailable = false;
+    await route.fulfill({ response, body: JSON.stringify(state) });
+  });
+  await page.reload();
+  await expect(panel.locator("details.cast-accepted-report")).toHaveCount(0);
+  await expect(panel).not.toContainText("当前已确认角色设定与交付内容不同");
+  expect(reportRequests).toBe(requestsBeforeMissingReport);
 });

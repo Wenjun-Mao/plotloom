@@ -28,8 +28,17 @@ test.describe("current shared graph authoring", () => {
     await page.getByText("全部稳定身份与待连接关系", { exact: true }).click();
     await page.getByRole("button", { name: "Beacon lit", exact: true }).click();
     await page.getByRole("textbox", { name: "剧情摘要", exact: true }).fill("Unfinished current author prose");
-    await page.getByRole("button", { name: "保存图草稿", exact: true }).click();
+    const save = page.getByRole("button", { name: "保存图草稿", exact: true });
+    await save.click();
+    // A click starts the asynchronous flush; reload must not abort its receipt
+    // and leave the session buffer on an older CAS revision than the server.
+    await expect(save).toBeEnabled();
+    await expect.poll(async () => {
+      const saved = await json(request.get(`${url}/graph-workbench`));
+      return saved.draft.payload.mapping.sections.find((section: any) => section.sectionId === "beacon").summary;
+    }).toBe("Unfinished current author prose");
     await page.reload();
+    await expect(page.getByRole("dialog", { name: "草稿版本已过期", exact: true })).toHaveCount(0);
     await page.getByText("全部稳定身份与待连接关系", { exact: true }).click();
     await page.getByRole("button", { name: "Beacon lit", exact: true }).click();
     await expect(page.getByRole("textbox", { name: "剧情摘要", exact: true })).toHaveValue("Unfinished current author prose");

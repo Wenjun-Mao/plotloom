@@ -4,6 +4,7 @@ import { useGraphWorkbench } from "./GraphWorkbenchContext";
 import { newGraphId } from "./contracts";
 import type { GraphCommand } from "./contracts";
 import { rowConnectionDefaults } from "./creatorLayout";
+import { GraphSafetyNotice } from "./GraphSafetyNotice";
 export type CreatorEdit = { type: "row"; rank: number; nodes: string[] } | { type: "insert"; rank: number; edgeId: string | null } | { type: "connection"; nodeId: string; endpoint: "source" | "target"; edgeId: string | null; targetNodeId?: string };
 
 export function CreatorEditDialog({ action, onClose }: { action: CreatorEdit; onClose: () => void }) {
@@ -47,7 +48,7 @@ export function CreatorEditDialog({ action, onClose }: { action: CreatorEdit; on
         : <Field label="更改目标"><select aria-label="更改连接端点" value={endpointNode} onChange={event => setEndpointNode(event.target.value)}><option value="">明确保留待连接</option>{topology.nodes.map(node => <option key={node.id} value={node.id}>{title(node.id)} · {node.kind}</option>)}</select></Field>}
       <p>{action.endpoint === "source" ? "原入口保持待连接并保留标识与文字；所选输出的旧目标保留。两条连接变化一次确认。" : "修改一个精确端点，原目标与其他连接保留。"}任何兼容节点都可选择；服务器会验证自连接、循环、开场与容量。</p>
     </>}
-    {owner.error && <p role="alert">{owner.error}</p>}
+    <GraphSafetyNotice />
     <footer><Button disabled={owner.busy} onClick={onClose}>取消</Button><Button variant="primary" disabled={owner.busy || action.type === "connection" && action.endpoint === "source" && !chosenEdge} onClick={() => void prepare()}>准备修改预览</Button></footer>
   </dialog>;
 }

@@ -21,9 +21,10 @@ from plotloom.creative_handoff_contracts import CreativeHandoffError, CreativeHa
 from plotloom.creative_handoff_exchange import canonical_json
 from plotloom.domain import utc_now
 from tests.source_graph_fixtures import letter_section_map
-from plotloom.exceptions import InvalidTransitionError
+from plotloom.exceptions import InvalidTransitionError, NotFoundError
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.project_storage.operational_state import close_blockers, specialist_publication_blockers
+from plotloom.persistence.schema.project_cast import CastCandidateRow
 from plotloom.source_outline_contracts import (
     AcceptedOutlineRevision, AcceptedSectionMapRevision, SectionChoice, SectionMap,
     SourceMapGraphAdmission, SourceMaterial, SourceOutlineReviewState, SourceRevision,
@@ -158,6 +159,62 @@ def test_cancel_reopened_cast_restores_only_current_accepted_authority(tmp_path:
         assert store.cast_state().status == "stale"
         with store.repository._read() as session:  # type: ignore[attr-defined]
             assert store.repository.cast.identity_context_in_session(session, store.manifest.project_id, "lin") is None  # type: ignore[attr-defined]
+    finally:
+        store.close()
+
+
+def test_accepted_cast_report_keeps_delivery_and_tracks_current_divergence(tmp_path: Path) -> None:
+    store = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application").projects.create(FIXED_CHINESE_BRIEF)
+    context = _context()
+
+    def bound_context(_session: object, _project_id: str) -> tuple[CastBinding, dict[str, object], dict[str, object], dict[str, object]]:
+        assert context.source and context.accepted_outline and context.accepted_section_map
+        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "choose", "ending-a", "ending-b"])
+        return binding, context.source.material.model_dump(mode="json", by_alias=True), context.accepted_outline.outline, context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True)
+
+    store.repository.cast._context = bound_context  # type: ignore[method-assign]
+    try:
+        binding, *_ = bound_context(None, store.manifest.project_id)
+        _candidate, request = store.prepare_cast_candidate("ch_" + "m" * 32)
+        store.admit_cast_delivery(_deliver(store, request))
+        original_report = store.cast_candidate_report(request.job_id)
+        accepted = store.accept_cast_candidate(CastAcceptRequest(
+            job_id=request.job_id,
+            expected_cast_revision=0,
+            binding=binding,
+            cast=None,
+            consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")],
+        ))
+        assert accepted.accepted_cast is not None
+        assert accepted.accepted_cast.report_available is True
+        assert accepted.accepted_cast.differs_from_delivery is False
+        assert store.cast_candidate_report(request.job_id) == original_report
+
+        store.reopen_cast(CastReopenRequest(expected_cast_revision=1))
+        edited = json.loads(json.dumps(accepted.accepted_cast.cast))
+        edited["characters"][0]["persona"]["appearance"] = "A reviewed author edit after delivery"
+        saved = store.save_reopened_cast(CastSaveRequest(
+            expected_cast_revision=1,
+            binding=binding,
+            cast=edited,
+            consumer_mappings=accepted.accepted_cast.consumer_mappings,
+        ))
+        assert saved.accepted_cast is not None
+        assert saved.accepted_cast.revision == 2
+        assert saved.accepted_cast.report_available is True
+        assert saved.accepted_cast.differs_from_delivery is True
+        assert store.cast_candidate_report(request.job_id) == original_report
+
+        with store.repository._write() as session:  # type: ignore[attr-defined]
+            delivered = session.get(CastCandidateRow, request.job_id)
+            assert delivered is not None
+            delivered.report_html = None
+        missing_report = store.cast_state().accepted_cast
+        assert missing_report is not None
+        assert missing_report.report_available is False
+        assert missing_report.differs_from_delivery is True
+        with pytest.raises(NotFoundError, match="cast report is unavailable"):
+            store.cast_candidate_report(request.job_id)
     finally:
         store.close()
 

@@ -66,6 +66,8 @@ class AcceptedCastRevision(CamelModel):
     binding: CastBinding
     cast: dict[str, Any]
     consumer_mappings: list[CastConsumerMapping]
+    report_available: bool
+    differs_from_delivery: bool | None
     accepted_at: datetime
 
 

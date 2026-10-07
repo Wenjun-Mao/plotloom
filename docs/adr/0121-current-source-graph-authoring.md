@@ -158,3 +158,37 @@ a programming-contract failure, not permission to generate an owner lazily or
 admit historical buffers. No actual user data loss was demonstrated; focused
 guards reject missing/empty owners without touching storage and retain ordinary
 persisted-project and distinct local-session behavior.
+
+## Exact structural preview impact, 2026-10-07
+
+The live `RemoveGraphJoin` preview described a removed contract as though its
+facts and reconciliation were retained; added contracts and retained contracts
+with changed direct inputs were also collapsed into one review group. A separate
+node-kind preview omitted the old and new kind and footage membership. The cause
+was a blanket backend message for every join delta and a dialog that displayed
+all affected join IDs as one category, despite the immutable before/result
+mappings already carrying the exact memberships.
+
+Keep the existing impact schema. Derive added, removed and retained-input-change
+groups from the acknowledged draft and preview result; show exact old/new input
+nodes, and show retained-node kind and footage-mode changes from those same
+authoritative mappings. Adding a contract starts with empty contract fields.
+Removing a contract removes its state keys, allowed differences, reconciliation,
+notes and pending contract fields; a standalone contract removal retains its join
+node and graph connections. A retained contract keeps its fields when its input
+membership changes, but the preview asks the author to review them. Preserve
+`assert_edit_safe`, immutable preview confirmation, and the existing Undo
+transaction. Focused Python and dialog regressions guard each distinction.
+
+## Installed graph guard lookup correction, 2026-10-07
+
+Both source-map guards previously used `session.get(ProductionBridgeAdmissionRow,
+project_id)`. The row's primary key is a separately generated `id`; `project_id`
+is only indexed, so the lookup missed real installations and allowed topology,
+footage-realization, and graph-reinstallation writes past the first-install
+protection. Query the admission by `project_id`, matching the production-bridge
+owner's established lookup. Preserve first-install-only behavior; this does not
+define or authorize rebuilding post-install production. Regressions exercise a
+real admission with `id != project_id`, verify both changed-map guards and
+unchanged-map installation reject before persistent state changes, and retain
+the ordinary pre-install editing path.

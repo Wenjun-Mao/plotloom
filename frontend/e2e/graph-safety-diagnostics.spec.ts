@@ -1,0 +1,30 @@
+import { expect, checkedStaticTest as test } from "./fixture";
+import { createCreatorGraph } from "./fixtures/creator-graph";
+import { json } from "./f5a-fixture";
+
+test("seventh sibling refusal explains the constraint and preserves the saved graph", async ({ page, request, workbench }, info) => {
+  await page.setViewportSize({ width: 1700, height: 900 });
+  const id = await createCreatorGraph(request, workbench.apiOrigin, "seventh-refusal", 6);
+  const url = `${workbench.apiOrigin}/api/v2/projects/${id}/graph-workbench`;
+  const before = await json(request.get(url));
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`);
+  await page.getByRole("button", { name: "向第 3 行添加节点", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "向此行添加节点" });
+  await expect(dialog.getByLabel("并行选项来自", { exact: true })).toHaveValue("choose");
+  const response = page.waitForResponse(item => item.url().endsWith("/graph-workbench/preview"));
+  await dialog.getByRole("button", { name: "准备修改预览", exact: true }).click();
+  expect((await response).status()).toBe(409);
+  const notice = dialog.getByRole("alert");
+  await expect(notice).toContainText("「choose」修改后有 7 条输出连接，最多允许 6 条");
+  await expect(notice).toContainText("先删除一个选项");
+  await expect(notice).toContainText("本次结构修改未保存");
+  const details = notice.locator("details");
+  await expect(details).not.toHaveAttribute("open", "");
+  await page.screenshot({ path: info.outputPath("seventh-sibling-refusal.png") });
+  await details.getByText("技术详情", { exact: true }).click();
+  await expect(details).toContainText("out_degree:choose");
+  await expect(details).toContainText('"actual": 7');
+  await page.screenshot({ path: info.outputPath("seventh-sibling-technical-details.png") });
+  expect((await json(request.get(url))).draft).toEqual(before.draft);
+  await expect(page.getByRole("dialog", { name: "确认结构修改" })).toHaveCount(0);
+});

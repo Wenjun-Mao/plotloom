@@ -8,6 +8,7 @@ export interface GraphWorkbenchController {
   selectedNodeId: string | null;
   busy: boolean;
   error: string;
+  errorDetails?: unknown;
   stale: boolean;
   preview: GraphCommandPreview | null;
   previewConflict: boolean;

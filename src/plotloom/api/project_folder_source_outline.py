@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, status
@@ -239,3 +239,23 @@ def register_project_folder_source_outline_routes(
     def cancel_branch(project_id: str, job_id: str):
         with opened_project(project_id) as store:
             return store.cancel_branch_candidate(job_id)
+
+    @app.get(
+        "/api/v2/projects/{project_id}/branch-suggestions/{job_id}/report",
+        response_class=HTMLResponse,
+    )
+    def branch_candidate_report(
+        project_id: str, job_id: str, presentation: Literal["static"]
+    ) -> HTMLResponse:
+        with opened_project(project_id) as store:
+            report = store.branch_candidate_report(job_id)
+        return HTMLResponse(
+            report,
+            headers={
+                "Content-Security-Policy": (
+                    "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:;"
+                ),
+                "X-Content-Type-Options": "nosniff",
+                "Referrer-Policy": "no-referrer",
+            },
+        )

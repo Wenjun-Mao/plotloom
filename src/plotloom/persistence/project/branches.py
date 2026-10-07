@@ -61,7 +61,12 @@ class ProjectBranchPersistence:
 
     @staticmethod
     def _view(row):
-        return {"jobId": row.job_id, "status": row.status, "suggestion": row.outline}
+        return {
+            "jobId": row.job_id,
+            "status": row.status,
+            "suggestion": row.outline,
+            "reportAvailable": row.status == "ready" and row.report_html is not None,
+        }
 
     def state(self, project_id):
         with self._access.leases.lifecycle_write() as session:
@@ -141,6 +146,15 @@ class ProjectBranchPersistence:
             if row.status != "ready":
                 raise InvalidTransitionError("分支建议尚未交付")
             return bind_branches(BranchSuggestion.model_validate(row.outline), request.source["topology"])
+
+    def candidate_report(self, project_id, job_id):
+        """Read the stored report for an explicitly identified ready branch candidate."""
+        with self._access.leases.read() as session:
+            self._access.rows.project(session, project_id)
+            row = self._row(session, project_id, job_id)
+            if row.status != "ready" or row.report_html is None:
+                raise NotFoundError("ready branch suggestion report is unavailable")
+            return row.report_html
 
     def cancel(self, project_id, job_id):
         with self._access.leases.lifecycle_write() as session:

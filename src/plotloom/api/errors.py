@@ -31,6 +31,7 @@ from ..image_job_contracts import (
 from ..creative_handoff_contracts import CreativeHandoffError
 from ..generation.story_graph_topology import StoryGraphTopologyError
 from ..validation import DomainValidationError, pydantic_issues
+from ..graph_safety_diagnostics import transition_error_content
 
 
 def register_api_error_handlers(app: FastAPI) -> None:
@@ -78,7 +79,7 @@ def register_api_error_handlers(app: FastAPI) -> None:
     ) -> JSONResponse:
         return JSONResponse(
             status_code=409,
-            content={"code": "invalid_transition", "message": str(error)},
+            content=transition_error_content(error),
         )
 
     @app.exception_handler(KeyframeAspectMismatchError)

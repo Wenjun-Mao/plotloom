@@ -8,12 +8,18 @@ from ...domain import StageName, StageStatus, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...graph_authoring_drafts import GraphAuthoringDraft
 from ...source_outline_contracts import (
-    SectionMapSaveRequest, SectionMapGraphInstallRequest, SourceOutlineReviewState,
-    compile_section_map_graph, validate_section_map_graph,
+    SectionMapGraphInstallRequest,
+    SectionMapSaveRequest,
+    SourceOutlineReviewState,
+    compile_section_map_graph,
+    validate_section_map_graph,
 )
 from ..schema import (
-    AuthoringDraftRow, SourceOutlineRevisionRow, SourceOutlineSourceRevisionRow,
-    SourceOutlineSectionMapRevisionRow, SourceOutlineGraphAdmissionRow,
+    AuthoringDraftRow,
+    SourceOutlineGraphAdmissionRow,
+    SourceOutlineRevisionRow,
+    SourceOutlineSectionMapRevisionRow,
+    SourceOutlineSourceRevisionRow,
 )
 from .graph_draft_context import assert_graph_draft_context, graph_draft_binding
 
@@ -73,7 +79,10 @@ class SourceGraphAdmission:
             if prior_mapping is not None:
                 from ..schema import ProductionBridgeAdmissionRow
                 realization_changed = [(item.section_id, item.footage_mode) for item in prior_mapping.mapping.sections] != [(item.section_id, item.footage_mode) for item in request.mapping.sections]
-                if (prior_mapping.mapping.topology != request.mapping.topology or realization_changed) and session.get(ProductionBridgeAdmissionRow, project_id) is not None:
+                bridge_installed = session.scalar(select(ProductionBridgeAdmissionRow.id).where(
+                    ProductionBridgeAdmissionRow.project_id == project_id,
+                ).limit(1)) is not None
+                if (prior_mapping.mapping.topology != request.mapping.topology or realization_changed) and bridge_installed:
                     raise InvalidTransitionError("此项目已安装投产，当前流程不能替换其剧情结构。已保存内容与媒体仍保留。")
             payload = request.mapping.model_dump(mode="json", by_alias=True)
             now = utc_now()
@@ -139,7 +148,10 @@ class SourceGraphAdmission:
             bible = self._canonical._load_stage_payload(session, project_id, StageName.STORY_BIBLE) if bible_head.status == StageStatus.READY.value else None
             validate_section_map_graph(graph, ProjectBrief.model_validate(project.brief), bible)
             from ..schema import ProductionBridgeAdmissionRow
-            if session.get(ProductionBridgeAdmissionRow, project_id) is not None:
+            bridge_installed = session.scalar(select(ProductionBridgeAdmissionRow.id).where(
+                ProductionBridgeAdmissionRow.project_id == project_id,
+            ).limit(1)) is not None
+            if bridge_installed:
                 raise InvalidTransitionError("已安装的投产内容受到保护；当前工作流不支持替换其剧情结构。")
             now = utc_now()
             installed = self._canonical.install_source_map_graph_in_session(

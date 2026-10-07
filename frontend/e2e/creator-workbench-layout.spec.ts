@@ -10,6 +10,17 @@ for (const viewport of [{ width: 1280, height: 768 }, { width: 1280, height: 460
   await expect(page.getByRole("heading", { name: "创作工作台", exact: true })).toBeVisible();
   const chart = page.getByLabel("剧情图横向平移", { exact: true }), inspector = page.getByRole("complementary", { name: "当前节点详情" });
   await expect(page.locator("[data-creator-node]")).toHaveCount(24);
+  const rowAdd = page.getByRole("button", { name: "向第 1 行添加节点", exact: true });
+  const rowAddPresentation = await rowAdd.evaluate(element => {
+    const buttonStyle = getComputedStyle(element), icon = element.querySelector<HTMLElement>(".creator-row-add-icon")!;
+    const before = getComputedStyle(icon, "::before"), after = getComputedStyle(icon, "::after");
+    return {
+      button: { width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height, padding: buttonStyle.padding, placeItems: buttonStyle.placeItems },
+      icon: { hidden: icon.getAttribute("aria-hidden"), width: getComputedStyle(icon).width, height: getComputedStyle(icon).height, placeItems: getComputedStyle(icon).placeItems },
+      bars: [[before.width, before.height, before.gridRowStart, before.gridColumnStart], [after.width, after.height, after.gridRowStart, after.gridColumnStart]],
+    };
+  });
+  expect(rowAddPresentation).toEqual({ button: { width: 30, height: 30, padding: "0px", placeItems: "center" }, icon: { hidden: "true", width: "12px", height: "12px", placeItems: "center" }, bars: [["12px", "2px", "1", "1"], ["2px", "12px", "1", "1"]] });
   const metrics = await chart.evaluate(element => ({ scroll: element.scrollWidth > element.clientWidth, height: element.scrollHeight, outer: (element as HTMLElement).offsetHeight, vertical: getComputedStyle(element).overflowY }));
   expect(metrics.scroll).toBe(true); expect(metrics.vertical).toBe("hidden"); expect(metrics.height, JSON.stringify(metrics)).toBeLessThanOrEqual(metrics.outer + 1);
   expect((await page.locator(".creator-row-insert").last().boundingBox())!.y + (await page.locator(".creator-row-insert").last().boundingBox())!.height).toBeLessThanOrEqual((await chart.boundingBox())!.y + (await chart.boundingBox())!.height);

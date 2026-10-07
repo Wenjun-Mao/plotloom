@@ -41,7 +41,9 @@ export function GraphWorkbenchProvider(input: Input) {
   const selectNode = (identity: string | null) => { selectionVersion.current++; displaySelection(identity); };
   const [busy, setBusy] = useState(false);
   const busyRef = useRef<symbol | null>(null);
-  const [error, setError] = useState("");
+  const [error, setErrorMessage] = useState("");
+  const [errorDetails, setErrorDetails] = useState<unknown>();
+  const setError = (message: string, details?: unknown) => { setErrorMessage(message); setErrorDetails(details); };
   const [preview, setPreview] = useState<GraphCommandPreview | null>(null);
   const livePreview = useRef<GraphCommandPreview | null>(null);
   const [previewConflict, setPreviewConflict] = useState(false);
@@ -173,7 +175,7 @@ export function GraphWorkbenchProvider(input: Input) {
     if (busyRef.current) return;
     const basis = owner.current, lock = Symbol("graph operation"); busyRef.current = lock; setBusy(true); setError("");
     try { return await operation(); }
-    catch (reason) { if (basis === owner.current) setError(reason instanceof Error ? reason.message : String(reason)); }
+    catch (reason) { if (basis === owner.current) setError(reason instanceof Error ? reason.message : String(reason), reason instanceof ApiError ? reason.details : undefined); }
     finally { if (busyRef.current === lock) { busyRef.current = null; if (basis === owner.current) setBusy(false); } }
   };
   const saveDraft = async () => (await perform(async () => { await acknowledge(); return true; })) === true;
@@ -296,7 +298,7 @@ export function GraphWorkbenchProvider(input: Input) {
     current.current.clearDraftWorkflow(); resetHistory(); await current.current.canonicalChanged(); await refresh(); return true;
   })) === true;
 
-  return <GraphWorkbenchContext.Provider value={{ state, draft, selectedNodeId, busy, error, stale,
+  return <GraphWorkbenchContext.Provider value={{ state, draft, selectedNodeId, busy, error, errorDetails, stale,
     preview, previewConflict, canUndo: historyCount > 0, refresh, selectNode, changeMapping, changeDraft, adoptMapping, saveDraft,
     confirmMapping, installMapping, prepareCommand, cancelPreview: () => { displayPreview(null); previewBasis.current = null; },
     applyPreview, undo, recover, discard }}>{input.children}</GraphWorkbenchContext.Provider>;

@@ -33,8 +33,30 @@ class ProjectCastPersistence:
         return CastCandidate(job_id=row.job_id, expected_cast_revision=row.expected_cast_revision, binding=row.binding, status=row.status, delivery_id=row.delivery_id, manifest_hash=row.manifest_hash, cast=row.cast, report_available=row.report_html is not None, created_at=row.created_at, delivered_at=row.delivered_at)
 
     @staticmethod
-    def _accepted(row: CastRevisionRow) -> AcceptedCastRevision:
-        return AcceptedCastRevision(revision=row.revision, candidate_job_id=row.candidate_job_id, content_hash=row.content_hash, binding=row.binding, cast=row.cast, consumer_mappings=row.consumer_mappings, accepted_at=row.accepted_at)
+    def _accepted(row: CastRevisionRow, delivery: CastCandidateRow | None) -> AcceptedCastRevision:
+        original = (
+            delivery
+            if delivery is not None
+            and delivery.project_id == row.project_id
+            and delivery.job_id == row.candidate_job_id
+            and delivery.status == "accepted"
+            else None
+        )
+        return AcceptedCastRevision(
+            revision=row.revision,
+            candidate_job_id=row.candidate_job_id,
+            content_hash=row.content_hash,
+            binding=row.binding,
+            cast=row.cast,
+            consumer_mappings=row.consumer_mappings,
+            report_available=original is not None and original.report_html is not None,
+            differs_from_delivery=(
+                row.cast != original.cast
+                if original is not None and original.cast is not None
+                else None
+            ),
+            accepted_at=row.accepted_at,
+        )
 
     @staticmethod
     def _head(session: Any, project_id: str) -> CastHeadRow:
@@ -180,9 +202,10 @@ class ProjectCastPersistence:
             head = self._head(session, project_id)
             candidate = session.get(CastCandidateRow, head.candidate_job_id) if head.candidate_job_id else None
             accepted = session.scalar(select(CastRevisionRow).where(CastRevisionRow.project_id == project_id, CastRevisionRow.revision == head.revision)) if head.revision else None
+            delivery = session.get(CastCandidateRow, accepted.candidate_job_id) if accepted else None
             binding = candidate.binding if candidate else accepted.binding if accepted else None
             stale = self._stale(session, project_id, CastBinding.model_validate(binding)) if binding else []
-            return CastReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_cast=self._accepted(accepted) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
+            return CastReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_cast=self._accepted(accepted, delivery) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
 
     def prepare_candidate(self, project_id: str, job_id: str, *, execution_pin: dict[str, str]) -> tuple[CastCandidate, CreativeHandoffRequest]:
         with self._access.leases.lifecycle_write() as session:

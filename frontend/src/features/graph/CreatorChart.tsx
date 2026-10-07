@@ -44,7 +44,7 @@ export function CreatorChart({ layout, disabled, onEdit }: { layout: CreatorLayo
     })}
     {layout.rows.map(row => {
       const last = layout.nodes.filter(node => node.rank === row.rank).at(-1)!;
-      return <div key={row.rank}><button type="button" className="creator-row-add" aria-label={`向第 ${row.rank + 1} 行添加节点`} style={{ left: last.x + CARD_WIDTH + 12, top: row.y + 34 }} disabled={disabled} onClick={() => onEdit({ type: "row", rank: row.rank, nodes: row.nodes })}>+</button>
+      return <div key={row.rank}><button type="button" className="creator-row-add" aria-label={`向第 ${row.rank + 1} 行添加节点`} style={{ left: last.x + CARD_WIDTH + 12, top: row.y + 34 }} disabled={disabled} onClick={() => onEdit({ type: "row", rank: row.rank, nodes: row.nodes })}><span className="creator-row-add-icon" aria-hidden="true" /></button>
         <button type="button" className="creator-row-insert" aria-label={`在第 ${row.rank + 1} 行后插入新一行`} style={{ left: layout.width / 2 - 65, top: row.y + CARD_HEIGHT + 106 }} disabled={disabled} onClick={() => onEdit({ type: "insert", rank: row.rank + 1, edgeId: null })}>插入新一行</button></div>;
     })}
   </div>;
