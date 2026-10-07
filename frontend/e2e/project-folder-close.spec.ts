@@ -74,9 +74,8 @@ test.describe("project-folder Close", () => {
       releaseDraft();
     }
     expect((await closeResponse).ok()).toBeTruthy();
-    await page.unroute("**/api/v2/projects/*/authoring-drafts");
-
     await expectClosedDirectoryRow(page, projectId);
+    await page.unroute("**/api/v2/projects/*/authoring-drafts");
     await workbench.restartBackend();
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
     await openBrief(page);
@@ -119,6 +118,7 @@ test.describe("project-folder Close", () => {
       releaseClose();
     }
     await expect(page.getByText("正在关闭项目", { exact: true })).not.toBeVisible();
+    await expectClosedDirectoryRow(page, projectId);
     await page.unroute("**/api/v2/projects/*/close");
   });
 
@@ -144,6 +144,7 @@ test.describe("project-folder Close", () => {
       draftHold.release();
     }
     expect((await closeResponse).ok()).toBeTruthy();
+    await expectClosedDirectoryRow(page, projectId);
     await page.unroute("**/api/v2/projects/*/authoring-drafts");
     await page.evaluate(() => sessionStorage.clear());
 
@@ -188,6 +189,8 @@ test.describe("project-folder Close", () => {
       const drafts = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/authoring-drafts`);
       return (await drafts.json() as Array<{ payload: { title: string } }>).some((draft) => draft.payload.title === draftTitle);
     }).toBe(true);
+    await expect(page.getByRole("dialog", { name: "项目目录" }).getByRole("alert")).toContainText("Plotloom API request failed (503)");
+    await expect(page.getByLabel("片名")).toBeEnabled();
     await page.unroute("**/api/v2/projects/*/close");
     await page.unroute("**/api/v2/projects/*/authoring-drafts");
   });
@@ -232,8 +235,8 @@ test.describe("project-folder Close", () => {
       releaseDraft();
     }
     expect((await closeResponse).ok()).toBeTruthy();
-    await page.unroute("**/api/v2/projects/*/authoring-drafts");
     await expectClosedDirectoryRow(page, projectId);
+    await page.unroute("**/api/v2/projects/*/authoring-drafts");
     await page.evaluate(() => sessionStorage.clear());
 
     await workbench.restartBackend();
@@ -315,11 +318,13 @@ async function openBrief(page: import("@playwright/test").Page): Promise<void> {
 }
 
 async function expectClosedDirectoryRow(page: import("@playwright/test").Page, projectId: string): Promise<void> {
-  // Close responds before directory refresh. Finish this read before restart
-  // so the test cannot interrupt its own persisted Open/recovery controls.
+  // Close responds before directory refresh. Settle this UI-owned read before
+  // removing the last network interceptor or restarting the fixture backend.
+  // Neither action may interrupt the persisted Open/recovery readback.
   const row = page.locator(`.directory-item[data-project-id="${projectId}"]`);
   await expect(row).toContainText("已关闭 · 可安全复制");
   await expect(row.getByRole("button", { name: "重新打开" })).toBeVisible();
+  await expect(row.getByRole("button", { name: "重新打开" })).toBeEnabled();
 }
 
 async function openMediaWorkbench(page: import("@playwright/test").Page): Promise<void> {

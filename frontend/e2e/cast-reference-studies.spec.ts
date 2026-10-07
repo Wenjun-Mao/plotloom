@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { demoProject } from "../src/demo";
 import { expect, test } from "./fixture";
+import { expectInlineRequiredMark } from "./inline-required-mark";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const retainedStill = path.join(repositoryRoot, "docs/verification/supporting/p0-generated/01-arrival.png");
@@ -37,12 +38,7 @@ test.describe("F2B cast-owned reference studies", () => {
     const cast = page.getByTestId("cast-review");
     await expect(cast.getByRole("button", { name: "确认使用此角色设定" })).toBeEnabled();
     const appearanceLabel = cast.locator("label").filter({ hasText: "外观" });
-    const labelBox = await appearanceLabel.boundingBox();
-    const starBox = await appearanceLabel.locator("span").boundingBox();
-    expect(labelBox).not.toBeNull();
-    expect(starBox).not.toBeNull();
-    expect(Math.abs(starBox!.y - labelBox!.y)).toBeLessThan(3);
-    expect(starBox!.x).toBeGreaterThan(labelBox!.x);
+    await expectInlineRequiredMark(appearanceLabel);
     const appearanceBox = await cast.getByLabel("外观").boundingBox();
     const temperamentBox = await cast.getByLabel("气质与举止").boundingBox();
     expect(appearanceBox).not.toBeNull();

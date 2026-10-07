@@ -87,6 +87,16 @@ stale-review journeys are separate cases with unchanged assertions/deadlines,
 so repeated hydration does not consume another state transition's entire
 assertion budget.
 
+When a test must remove an interceptor before its body ends, first await the
+operation's rendered outcome and any dependent projection read. Backend Close
+acknowledgement is earlier than the refreshed closed-directory row; removing
+Chromium's last route during that read changes global Fetch interception and
+can strand the test's own request. Failed Close instead awaits its rendered
+refusal and restored enabled editor. This is harness sequencing, not a product
+retry, longer timeout or permissive persistence assertion. Required-mark layout
+checks likewise assert inline baseline and containment in the label line rather
+than comparing inline-text and enclosing-line-box top pixels across OS fonts.
+
 Shot changes intentionally clear retained-image draft ownership (ADR0103).
 Multi-shot fixtures must retain their chosen asset again and explicitly review
 compatibility, not inherit another shot's temporary retention. Approved-board
