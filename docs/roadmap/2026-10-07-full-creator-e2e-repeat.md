@@ -18,8 +18,8 @@ approve the pending Image continuation or implement new product capabilities.
 
 | Profile field | Current run |
 |---|---|
-| Last qualified baseline | Published frontend repair5aff37e885fdd8b32f9282d8cc14a5366ee1a99e, served on normal8841 with unchanged e941780 Python; local597frontend/206browser and exact856-input readback PASS, Python1,245 qualification reused on unchanged inputs; full CI37701584435 running, not yet PASS |
-| Existing evidence | Completed text→installation→first-shot native flow and separate structural QA; additional finite type/start/Undo and imported-image lifecycle/snapshot/restored-copy UI passed. Readonly-label repair has597 frontend and final206 browser PASS; Linux stdin and Source ACK corrections independently reviewed. Full lifecycle remains PARTIAL |
+| Last qualified baseline | Published frontend repair5aff37e885fdd8b32f9282d8cc14a5366ee1a99e, served on normal8841 with unchanged e941780 Python; local597frontend/206browser and exact856-input readback PASS, Python1,245 qualification reused on unchanged inputs; CI37701584435 verify PASS, browser shards running at23:37 UTC, not yet full PASS |
+| Existing evidence | Completed text→installation→first-shot native flow and separate structural QA; additional finite type/start/Undo and imported-image lifecycle/snapshot/restored-copy UI passed. Actual OS blur automatic380/persisted350 passes trusted event, retained text/cursor/scroll, zero post-ACK write and exact QA cleanup checks. Readonly-label repair has597 frontend and final206 browser PASS; Linux stdin and Source ACK corrections independently reviewed. Full lifecycle remains PARTIAL |
 | Runtime boundary | Normal8841 serves reviewed5aff37e frontend with unchanged qualified e941780 Python; separate8871 qualifies disposable graph checks. Retained8851 and busy8861 loaded backends differ. Do not reload newer static against old Python or restart the busy Image reservation |
 | Data baseline | Fresh native QA b3a933f7-b6fc-40e3-826f-5162f95a119a; structural QA remains separately identified in the ledger. Completed playable/media baseline not yet established for this repeat |
 | Protection | Two named owner projects, managed files and protected configuration unchanged; disposable lifecycle/recovery targets identified before actions |
@@ -103,6 +103,16 @@ alone does not end independent coverage. Report NOT EXERCISED subcontrols
 explicitly and leave exact pending task identities.
 
 ## Status
+
+Actual OS focus loss now passes on owned8871 at1700×900, with automatic380px and
+persisted350px resize cancellation. Playwright focus emulation masked the earlier
+method; temporarily disabling it on the exact QA page produced trusted OS events.
+No product patch was needed. Text/cursor/scroll and acknowledged r32 stayed exact
+with zero writes; UI cleanup restored the original payload at r33, canonical0,
+automatic width and Playwright's focus setting. The
+[focus receipt](../verification/2026-10-07-creator-os-focus-recovery.md) and permanent
+playbook retain the method. CI verify passed; both browser shards were running at
+23:37 UTC. Native media and post-install revision acceptance remain PARTIAL.
 
 At23:19 UTC root approved and pushed frontend repair5aff37e; origin/main identity
 was verified. Normal8841 serves it through the checkout mount without restarting

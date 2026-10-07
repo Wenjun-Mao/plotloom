@@ -12,7 +12,7 @@ Historical present-tense statements there do not describe current deployment.
 Root approved and pushed the frontend-only repair as
 `5aff37e885fdd8b32f9282d8cc14a5366ee1a99e`; origin/main identity was verified.
 Full unfiltered [CI37701584435](https://github.com/Wenjun-Mao/plotloom/actions/runs/37701584435)
-is running on that exact revision, not yet PASS. Final
+has passed verify; both browser shards are running at23:37 UTC, not yet full PASS. Final
 206-browser gate PASS6.0m; all856 source/test/config/static inputs stayed unchanged.
 Their aggregate is `bbc702df320b991ae67a0dba5eed064866fa642d2a6dafe1da7f0b1da7430c3c`.
 Normal8841's Python remains the qualified e941780 source, unchanged;
@@ -95,8 +95,9 @@ Post-publication owner recapture matches `df1716a80d93bdf9aeaf2565464ac030340ab0
 (Wind17/Rain67 files, both DB row/schema sets and three protected configurations).
 The earlier global helper refuses the five-project registry; the scoped recapture
 checks only the two protected owners, without modifying or weakening that helper.
-Native image continuation, post-install rebuild, configured inference and OS blur
-remain separate gaps. Full lifecycle acceptance is PARTIAL.
+[Real OS focus recovery](2026-10-07-creator-os-focus-recovery.md) now passes automatic380/persisted350 with trusted events, retained text/cursor/scroll, zero post-ACK writes and exact QA cleanup r33; the earlier dated unsuccessful methods below remain historical.
+Native image continuation, post-install rebuild and configured inference remain
+separate gaps. Full lifecycle acceptance is PARTIAL.
 
 ## Published repair release 2026 10 07 22 13 UTC
 
@@ -304,12 +305,12 @@ the exact frozen image reservation, without restart/reload/send. Root receipts:
 | Contract | Current qualification | Remaining scope |
 |---|---|---|
 | E01–E04/P01–P05 | Fresh UI Brief/source/Outline r1, native branch review/Confirm/Apply; actual Outline timeline/table PASS, export BLOCKED_BY_DESIGN | Richer native structure not generated merely for counts |
-| E05–E06/C01–C55 | Separate real structural QA123→222→333 sequence; bypass/unconnected deletion/Undo; Save-close-reopen; partial-key/nonblank C49; real stale-CAS refusal and matched live selection refresh; C44 footage toggles/reversal; C48 legal/refused type/start guards, explicit start/choice/join conversion and exact Undo; C50 endpoint/edge-only deletion/Undo; C51 retain/discard; C55 normal-flow help; preview pixels15–26 | Remaining type/kind/ownership permutations; OS blur NOT EXERCISED; no post-install native revision qualification |
+| E05–E06/C01–C55 | Separate real structural QA123→222→333 sequence; bypass/unconnected deletion/Undo; Save-close-reopen; partial-key/nonblank C49; real stale-CAS refusal and matched live selection refresh; C44 footage toggles/reversal; C48 legal/refused type/start guards, explicit start/choice/join conversion and exact Undo; C50 endpoint/edge-only deletion/Undo; C51 retain/discard; C55 normal-flow help; preview pixels15–26; C46 actual OS blur automatic380/persisted350 PASS, pixel37 and exact cleanup r33 | Remaining type/kind/ownership permutations; no post-install native revision qualification |
 | E07–E09/P04/P06 | Fresh native Cast/Art confirmed r1 with offscreen style boundary; original gallery provenance, current static readers and original gallery zoom PASS | Native Character/Scene/Prop images and same-subject pair pending |
 | E10–E13 | Fresh Script/Storyboard r1 confirmed; proposal r3 presentation reviewed/installed; ordinary first-shot handoff PASS | Model inference E12 NOT EXERCISED (runtime unavailable); physical direction realization remains unspecified |
 | E14–E18 | No fresh native media-route qualification | Keyframes, managed endframe/dirty guards, multishot preview, H3/all routes/staleness NOT EXERCISED |
 | E19–E21 | Task/reopen/owned idle restart; exact QA snapshot/operator restore/archive/unarchive/typed disposable-copy delete; imported-image close/reopen/archive/restore, five-file snapshot bytes, overwrite refusal and restored-copy UI/HTTP hashes; offline imported-image archive/typed-delete regression PASS | Native/video-bearing deletion and remaining lifecycle recovery NOT EXERCISED |
-| E22/C37–C39 |18 earlier graph pixels across three sizes/two preferences reviewed independently; separate six-sibling QA at1700/1280/short desktop directly inspected;34s exploratory navigation and earlier clean nine-seed reset; current repaired preview, centered-plus and deletion pixels15–26, recovery28–33/35; reviewed stdin/Source ACK corrections, focused repeats and final206 browser gate PASS | OS blur not qualified; native journey remains partial |
+| E22/C37–C39 |18 earlier graph pixels across three sizes/two preferences reviewed independently; separate six-sibling QA at1700/1280/short desktop directly inspected;34s exploratory navigation and earlier clean nine-seed reset; current repaired preview, centered-plus and deletion pixels15–26/36, recovery28–33/35/37; reviewed stdin/Source ACK corrections, focused repeats and final206 browser gate PASS; actual trusted OS blur PASS | Native journey remains partial |
 
 ### Fresh native identities and review boundaries
 
