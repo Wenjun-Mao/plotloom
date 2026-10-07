@@ -119,8 +119,9 @@ code, pre { font-family: var(--mono); }
 .topbar-technical-status > div { z-index: 40; top: calc(100% + 8px); right: 0; display: grid; gap: 7px; padding: 12px; border: 1px solid var(--line); border-radius: 7px; background: #0b0f14; box-shadow: 0 16px 40px rgba(0,0,0,.3); position: static; min-width: 0; max-width: 100%; margin-top: 8px; }
 .topbar-technical-status small { overflow-wrap: anywhere; color: var(--muted); font: 12px var(--mono); font-size: var(--type-support); }
 main { min-width: 0; }
-input, textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 5px; padding: 12px 12px; color: var(--text); background: #0b0f14; outline: none; }
-input, select { min-height: 40px; }
+input:not([type="checkbox"]):not([type="radio"]), textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 5px; padding: 12px 12px; color: var(--text); background: #0b0f14; outline: none; }
+input:not([type="checkbox"]):not([type="radio"]), select { min-height: 40px; }
+input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; min-height: 0; padding: 0; margin: 0; accent-color: var(--accent); }
 .form-card .field-grid.three input, .form-card .field-grid.three select { height: 40px; }
 textarea { resize: vertical; }
 input:focus, textarea:focus, select:focus { border-color: #856f49; box-shadow: 0 0 0 3px rgba(233,180,91,.08); }

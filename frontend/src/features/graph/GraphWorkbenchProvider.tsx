@@ -40,7 +40,7 @@ export function GraphWorkbenchProvider(input: Input) {
   };
   const selectNode = (identity: string | null) => { selectionVersion.current++; displaySelection(identity); };
   const [busy, setBusy] = useState(false);
-  const busyRef = useRef(false);
+  const busyRef = useRef<symbol | null>(null);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<GraphCommandPreview | null>(null);
   const previewBasis = useRef<GraphAuthoringDraft | null>(null);
@@ -51,7 +51,7 @@ export function GraphWorkbenchProvider(input: Input) {
   if (owner.current.projectId !== input.project.id) owner.current = { projectId: input.project.id, epoch: owner.current.epoch + 1 };
   const resetHistory = () => { history.current = []; setHistoryCount(0); setPreview(null); previewBasis.current = null; };
 
-  const acceptReceipt = (receipt: AuthoringDraft, authored = false, selectionBasis = selectionVersion.current) => {
+  const acceptReceipt = (receipt: AuthoringDraft, authored = false, selectionBasis = selectionVersion.current, keepSelection = false) => {
     readGeneration.current++;
     const source = current.current;
     const payload = readGraphDraft(receipt.payload);
@@ -61,7 +61,7 @@ export function GraphWorkbenchProvider(input: Input) {
       const local = getDraft(source.project, "story_graph");
       if (local) acknowledgeDraft(source.project, "story_graph", local.localRevision, receipt.draftRevision);
     }
-    const laterSelection = selectionVersion.current !== selectionBasis && payload.mapping.topology.nodes.some(node => node.id === liveSelection.current);
+    const laterSelection = (keepSelection || selectionVersion.current !== selectionBasis) && payload.mapping.topology.nodes.some(node => node.id === liveSelection.current);
     setDraft(payload); liveDraft.current = payload;
     displaySelection(laterSelection ? liveSelection.current : payload.selectedNodeId);
     setState(existing => existing ? { ...existing, draft: receipt } : existing);
@@ -99,7 +99,12 @@ export function GraphWorkbenchProvider(input: Input) {
 
   useEffect(() => {
     setState(null); setDraft(null); liveDraft.current = null; liveSelection.current = null; setSelection(null); setError(""); resetHistory();
+    busyRef.current = null; setBusy(false);
     void refresh();
+    return () => {
+      owner.current = { ...owner.current, epoch: owner.current.epoch + 1 };
+      busyRef.current = null;
+    };
   }, [input.project.id, input.enabled, refresh]);
   useEffect(() => { void refresh(); }, [input.project.revision, input.project.stageRevisions.story_graph, input.project.stageRevisions.story_bible, refresh]);
   useEffect(() => {
@@ -129,32 +134,36 @@ export function GraphWorkbenchProvider(input: Input) {
     setDraft(next); liveDraft.current = next; selectNode(next.selectedNodeId); current.current.remember(next); resetHistory();
   };
   const acknowledge = async () => {
-    const source = current.current, payload = liveDraft.current;
+    const source = current.current, payload = liveDraft.current, operation = owner.current;
     if (!source.project.id || !payload || source.readOnly || stale) throw new Error("请先保存项目并处理当前图草稿的版本状态。");
     // The existing autosave owner drains every newer local revision before a
     // command can bind its preview to one acknowledged server buffer.
     if (!source.serverDrafts.current.has(graphDraftKey(source.project.id)) && !getDraft(source.project, "story_graph")) source.remember(payload);
     if (!await source.flush()) throw new Error("图草稿未保存，操作已停止；请处理保存错误后重试。");
+    // Every command uses the same acknowledgement boundary. A completed save
+    // still belongs to its original project, never to a subsequently opened one.
+    if (operation !== owner.current) throw new Error("项目已切换，原图操作已停止。");
     const receipt = source.serverDrafts.current.get(graphDraftKey(source.project.id));
     if (!receipt) throw new Error("没有当前图草稿的服务器回执。");
     return receipt;
   };
   const perform = async <T,>(operation: () => Promise<T>): Promise<T | undefined> => {
     if (busyRef.current) return;
-    const basis = owner.current; busyRef.current = true; setBusy(true); setError("");
+    const basis = owner.current, lock = Symbol("graph operation"); busyRef.current = lock; setBusy(true); setError("");
     try { return await operation(); }
     catch (reason) { if (basis === owner.current) setError(reason instanceof Error ? reason.message : String(reason)); }
-    finally { if (basis === owner.current) setBusy(false); busyRef.current = false; }
+    finally { if (busyRef.current === lock) { busyRef.current = null; if (basis === owner.current) setBusy(false); } }
   };
   const saveDraft = async () => (await perform(async () => { await acknowledge(); return true; })) === true;
   const prepareCommand = async (command: GraphCommand) => {
-    await perform(async () => {
+    return (await perform(async () => {
       const basis = owner.current, receipt = await acknowledge();
       const result = await plotloomApi.previewGraphCommand(current.current.project.id!, { expectedDraftRevision: receipt.draftRevision, command });
-      if (basis !== owner.current) return;
+      if (basis !== owner.current) return false;
       previewBasis.current = { ...readGraphDraft(receipt.payload), selectedNodeId };
       setPreview(result);
-    });
+      return true;
+    })) === true;
   };
   const applyPreview = async () => {
     if (!preview || !previewBasis.current) return;
@@ -167,7 +176,9 @@ export function GraphWorkbenchProvider(input: Input) {
       const after = readGraphDraft(saved.payload);
       history.current.push({ before: previous, after });
       if (history.current.length > 40) history.current.shift();
-      setHistoryCount(history.current.length); acceptReceipt(saved, true, selectionBasis); setPreview(null); previewBasis.current = null;
+      // Creation/reuse explicitly select their node. Other commands must not
+      // revive the older selection stored with the last authored draft receipt.
+      setHistoryCount(history.current.length); acceptReceipt(saved, true, selectionBasis, !["add", "insert", "reuse"].includes(preview.command.operation)); setPreview(null); previewBasis.current = null;
     });
   };
   const undo = async () => {

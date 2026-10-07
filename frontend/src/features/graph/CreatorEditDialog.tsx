@@ -17,7 +17,7 @@ export function CreatorEditDialog({ action, onClose }: { action: CreatorEdit; on
   const title = (id: string) => draft.mapping.sections.find(section => section.sectionId === id)?.title || "待填写节点";
   const availableEdges = action.type === "connection" ? topology.edges.filter(edge => action.endpoint === "target" ? edge.sourceNodeId === action.nodeId : edge.targetNodeId === action.nodeId) : topology.edges;
   const detached = topology.nodes.filter(node => node.id !== topology.startNodeId && !topology.edges.some(edge => edge.targetNodeId === node.id && edge.sourceNodeId));
-  const prepare = () => {
+  const prepare = async () => {
     let command: GraphCommand;
     if (action.type === "row") {
       command = reuse ? { operation: "reuse", nodeId: reuse, rowHint: action.rank, sourceNodeId: source || null, targetNodeId: target || null, incomingEdgeId: newGraphId(), outgoingEdgeId: newGraphId() }
@@ -26,9 +26,11 @@ export function CreatorEditDialog({ action, onClose }: { action: CreatorEdit; on
     else if (action.endpoint === "source") command = { operation: "replace_input", nodeId: action.nodeId, priorEdgeId: edgeId || null, chosenEdgeId: chosenEdge };
     else if (edgeId) command = { operation: "retarget", edgeId, endpoint: action.endpoint, nodeId: endpointNode || null };
     else command = { operation: "add_edge", edgeId: newGraphId(), sourceNodeId: action.nodeId, targetNodeId: endpointNode || null };
-    onClose(); void owner.prepareCommand(command);
+    // Keep the author's endpoints visible when validation or saving fails.
+    // Only a current acknowledged preview can replace this editing dialog.
+    if (await owner.prepareCommand(command)) onClose();
   };
-  return <dialog ref={dialog} className="creator-edit-dialog" aria-label={action.type === "row" ? "向此行添加节点" : action.type === "insert" ? "插入新一行" : "编辑精确连接"} onCancel={event => { event.preventDefault(); onClose(); }}>
+  return <dialog ref={dialog} className="creator-edit-dialog" aria-label={action.type === "row" ? "向此行添加节点" : action.type === "insert" ? "插入新一行" : "编辑精确连接"} onCancel={event => { event.preventDefault(); if (!owner.busy) onClose(); }}>
     <h2>{action.type === "row" ? "向此行添加节点" : action.type === "insert" ? "插入新一行" : "编辑精确连接"}</h2>
     {action.type !== "connection" && <>
       {action.type === "row" && <Field label="新建或复用"><select aria-label="新建或复用" value={reuse} onChange={event => { setReuse(event.target.value); if (event.target.value && topology.edges.some(edge => edge.sourceNodeId === event.target.value)) setTarget(""); }}><option value="">新建节点</option>{detached.map(node => <option key={node.id} value={node.id}>复用 {title(node.id)} · {node.kind}</option>)}</select></Field>}
@@ -45,6 +47,7 @@ export function CreatorEditDialog({ action, onClose }: { action: CreatorEdit; on
         : <Field label="更改目标"><select aria-label="更改连接端点" value={endpointNode} onChange={event => setEndpointNode(event.target.value)}><option value="">明确保留待连接</option>{topology.nodes.map(node => <option key={node.id} value={node.id}>{title(node.id)} · {node.kind}</option>)}</select></Field>}
       <p>{action.endpoint === "source" ? "原入口保持待连接并保留标识与文字；所选输出的旧目标保留。两条连接变化一次确认。" : "修改一个精确端点，原目标与其他连接保留。"}任何兼容节点都可选择；服务器会验证自连接、循环、开场与容量。</p>
     </>}
-    <footer><Button onClick={onClose}>取消</Button><Button variant="primary" disabled={owner.busy || action.type === "connection" && action.endpoint === "source" && !chosenEdge} onClick={prepare}>准备修改预览</Button></footer>
+    {owner.error && <p role="alert">{owner.error}</p>}
+    <footer><Button disabled={owner.busy} onClick={onClose}>取消</Button><Button variant="primary" disabled={owner.busy || action.type === "connection" && action.endpoint === "source" && !chosenEdge} onClick={() => void prepare()}>准备修改预览</Button></footer>
   </dialog>;
 }

@@ -7,7 +7,7 @@ export function graphControllerFixture(changes: Partial<GraphWorkbenchController
     preview: null, canUndo: false, refresh: vi.fn().mockResolvedValue(undefined), selectNode: vi.fn(),
     changeMapping: vi.fn(), changeDraft: vi.fn(), adoptMapping: vi.fn(), saveDraft: vi.fn().mockResolvedValue(true),
     confirmMapping: vi.fn().mockResolvedValue(true), installMapping: vi.fn().mockResolvedValue(true),
-    prepareCommand: vi.fn().mockResolvedValue(undefined), cancelPreview: vi.fn(), applyPreview: vi.fn().mockResolvedValue(undefined),
+    prepareCommand: vi.fn().mockResolvedValue(true), cancelPreview: vi.fn(), applyPreview: vi.fn().mockResolvedValue(undefined),
     undo: vi.fn().mockResolvedValue(undefined), recover: vi.fn().mockResolvedValue(undefined), discard: vi.fn().mockResolvedValue(undefined), ...changes };
 }
 export function graphDraftFixture(): GraphAuthoringDraft {

@@ -69,3 +69,18 @@ exercise reproduced the old 380→469px tentative width remaining active, then
 checks restoration, preference, editor focus/caret/content/scroll and zero
 authored writes with native pointer gestures. Actual OS blur delivery is not
 claimed: headed browser-tab activation did not deliver that event on this host.
+
+## Coverage walkthrough refusal presentation, 2026-10-06
+
+The backend correctly refused a cycle, but the editing dialog closed before
+asynchronous validation finished and the error appeared above a long graph.
+Preparing a preview now returns explicit admission success: failure retains the
+dialog, values and local error; only success closes it. Direct inspector commands
+show refusal in the visible inspector header, not above the off-screen workspace.
+Cancel/Escape cannot dismiss an in-flight preparation. Native edit, preview and
+discard dialogs share the current surface/typography contract. Checkbox/radio
+controls are excluded from text-input sizing and use explicit compact geometry.
+
+Qualification covers the original cycle and capacity failures, direct node-role
+refusal, retained endpoint values and zero mutation, with separate viewport
+inspection. This changes feedback ownership, not graph validity or admission.

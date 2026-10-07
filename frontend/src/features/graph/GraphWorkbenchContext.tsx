@@ -19,7 +19,7 @@ export interface GraphWorkbenchController {
   saveDraft: () => Promise<boolean>;
   confirmMapping: (source: SourceOutlineReviewState) => Promise<boolean>;
   installMapping: (source: SourceOutlineReviewState) => Promise<boolean>;
-  prepareCommand: (command: GraphCommand) => Promise<void>;
+  prepareCommand: (command: GraphCommand) => Promise<boolean>;
   cancelPreview: () => void;
   applyPreview: () => Promise<void>;
   undo: () => Promise<void>;

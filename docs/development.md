@@ -284,8 +284,8 @@ The operator and maintainer entry point is the
 - Exact work-unit repair is an immutable child execution defined by
   [ADR 0015](adr/0015-exact-work-unit-repair.md). The server alone decides
   eligibility, freezes the failed unit and reusable fragments, and re-plans
-  every downstream stage. The legacy stage-level repair endpoint remains only
-  for compatibility and must not be presented as exact repair.
+  every downstream stage. Complete stage rebuilding is a new current execution,
+  not exact repair or a compatibility endpoint.
 
 ## Verification order
 
@@ -331,7 +331,7 @@ npm --prefix frontend run test:e2e -- --workers=1 --output="$e2e_output/static" 
 npm --prefix frontend run test:e2e -- --workers=1 --output="$e2e_output/vite" e2e/production-bridge-shot-handoff.spec.ts
 ```
 
-The default Vite fixture also covers two legacy-editor journeys. Their
+The default Vite fixture also covers two professional-workspace journeys. Their
 navigation targets live under the folded `编辑与工具` menu; the first keeps the
 Brief-prefix and later Story Bible persistence assertions, and opens the folded
 `服务状态` disclosure before checking its connection badge. The second keeps

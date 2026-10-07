@@ -67,7 +67,7 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onNavigate, onO
       <Button disabled={disabled || !owner.canUndo} onClick={() => void owner.undo()}>撤销结构修改</Button><GraphDraftDiscard disabled={disabled} />
     </div>
     <p className="creator-desktop-boundary">桌面创作：浏览器窗口宽度至少 1280px；不支持手机或窄屏。{!geometry.desktop && "请扩大窗口后继续编辑。"}</p>
-    {owner.error && <p className="notice warning" role="alert">{owner.error}</p>}{sourceError && <p className="notice warning" role="alert">来源读取失败：{sourceError}<Button onClick={() => onNavigate("source")}>返回来源检查</Button></p>}
+    {sourceError && <p className="notice warning" role="alert">来源读取失败：{sourceError}<Button onClick={() => onNavigate("source")}>返回来源检查</Button></p>}
     {owner.stale && <p className="notice warning">简报、来源或已确认规范已变化。当前图草稿仍保留。<Button disabled={owner.busy} onClick={() => void owner.recover()}>在当前版本恢复为新草稿</Button></p>}
     <details className="creator-structure-check"><summary>结构检查 · {structure.incomplete ? "未完成" : structure.mismatches.length ? "与简报目标不同" : "可进入内容确认"}</summary>
       <p>实际：{structure.actual.nodes} 节点 · {structure.actual.endings} 结局 · {structure.actual.joins} 汇合 · {structure.actual.routes}{structure.truncated ? "+" : ""} 条完整路线 · 每条路线 {structure.actual.choices.join(" / ") || "尚未完成"} 次选择。</p>
@@ -81,7 +81,7 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onNavigate, onO
       </div>
       <div className="creator-divider-track"><div ref={geometry.divider} className="creator-divider" role="separator" tabIndex={0} aria-label="调整节点详情宽度" aria-orientation="vertical" aria-valuemin={300} aria-valuemax={520} aria-valuenow={300} {...geometry.dividerEvents}><span /></div></div>
       <div className="creator-inspector-track"><aside ref={geometry.inspector} className="creator-inspector" aria-label="当前节点详情">
-        <header><strong>{section?.title || "选择故事节点"}</strong><div className="creator-tabs" role="tablist"><button role="tab" aria-selected={tab === "story"} onClick={() => setTab("story")}>故事</button><button role="tab" aria-selected={tab === "production"} onClick={() => setTab("production")}>制作</button></div></header>
+        <header><strong>{section?.title || "选择故事节点"}</strong><div className="creator-tabs" role="tablist"><button role="tab" aria-selected={tab === "story"} onClick={() => setTab("story")}>故事</button><button role="tab" aria-selected={tab === "production"} onClick={() => setTab("production")}>制作</button></div>{owner.error && !action && <p role="alert">{owner.error}</p>}</header>
         <div className="creator-inspector-body"><CreatorStoryInspector projectId={project.id!} disabled={disabled} active={tab === "story"} onNavigate={onNavigate} />{tab === "production" && <CreatorProductionInspector project={project} read={production} graphCurrent={admission.graphCurrent} disabled={disabled} onNavigate={onNavigate} onOpenShot={onOpenShot} />}</div>
         <footer><Button disabled={disabled} onClick={() => void owner.saveDraft()}>保存图草稿</Button><Button disabled={disabled || !source?.acceptedOutline || structure.incomplete || structure.mismatches.length > 0 || admission.structureBlocked || !production.data?.bridge} onClick={() => source && void owner.confirmMapping(source)}>确认图内容</Button><Button variant="primary" disabled={disabled || admission.installBlocked} onClick={() => source && void owner.installMapping(source)}>应用到故事路线</Button><p>{admission.reason}</p></footer>
       </aside></div>

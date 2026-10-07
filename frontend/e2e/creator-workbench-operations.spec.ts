@@ -14,7 +14,74 @@ async function undo(page: Page) {
   await expect(page.getByRole("button", { name: "保存图草稿", exact: true })).toBeEnabled();
 }
 async function select(page: Page, title: string) { await page.getByRole("button", { name: `选择节点 ${title}`, exact: true }).click(); await expect(page.getByRole("textbox", { name: "章节标题", exact: true })).toHaveValue(title); }
+async function save(page: Page) {
+  const button = page.getByRole("button", { name: "保存图草稿", exact: true });
+  await button.click();
+  // Content can already be present from autosave while this explicit Save is
+  // still draining newer local revisions. Reload only after its owner settles.
+  await expect(button).toBeEnabled();
+}
 async function nameNode(page: Page, title: string) { await page.getByRole("textbox", { name: "章节标题", exact: true }).fill(title); await page.getByRole("textbox", { name: "剧情摘要", exact: true }).fill(`${title} 的正文完整保留。`); await page.getByRole("button", { name: "保存图草稿", exact: true }).click(); }
+
+test("creator node-role, join and effect controls retain selected ownership and unfinished input", async ({ page, request, workbench }, info) => {
+  test.setTimeout(100_000); await page.setViewportSize({ width: 1700, height: 900 });
+  const id = await createCreatorGraph(request, workbench.apiOrigin, "detail-controls");
+  const url = `${workbench.apiOrigin}/api/v2/projects/${id}`;
+  const read = async (): Promise<GraphAuthoringDraft> => (await json(request.get(`${url}/graph-workbench`))).draft.payload;
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`);
+  await select(page, "step-1");
+  const inspector = page.getByRole("complementary", { name: "当前节点详情" });
+  await inspector.getByText("专业节点与汇合设置", { exact: true }).click();
+  const initial = await read();
+  await inspector.getByRole("combobox", { name: "节点类型", exact: true }).selectOption("ending");
+  await expect(inspector.getByRole("alert")).toContainText("out_degree");
+  expect((await read()).mapping).toEqual(initial.mapping);
+  await page.screenshot({ path: info.outputPath("role-refusal.png") });
+  await inspector.getByRole("combobox", { name: "节点类型", exact: true }).selectOption("join"); await confirm(page);
+  await expect(inspector.getByRole("textbox", { name: "章节标题", exact: true })).toHaveValue("step-1");
+  expect((await read()).mapping.topology.nodes.find(node => node.id === "step-1")!.kind).toBe("join");
+  await undo(page); expect((await read()).mapping).toEqual(initial.mapping);
+  await select(page, "step-1");
+  const settings = inspector.locator("details").filter({ has: page.locator("summary").filter({ hasText: "专业节点与汇合设置" }) }).first();
+  if (await settings.getAttribute("open") === null) await settings.locator("summary").click();
+  await inspector.getByRole("button", { name: "添加汇合合同", exact: true }).click(); await confirm(page);
+  await expect(inspector.getByRole("textbox", { name: "章节标题", exact: true })).toHaveValue("step-1");
+  await inspector.getByRole("textbox", { name: "必须一致的状态键（每行一个）", exact: true }).fill("energy\nmemory");
+  await inspector.getByRole("textbox", { name: "允许差异（每行一个）", exact: true }).fill("brother");
+  await inspector.getByRole("textbox", { name: "汇合衔接", exact: true }).fill("重新确认不同路线留下的记忆。");
+  await inspector.getByRole("textbox", { name: "合同备注", exact: true }).fill("QA current join");
+  await save(page);
+  await expect.poll(async () => (await read()).mapping.topology.joins.find(join => join.joinNodeId === "step-1")!.requiredStateKeys).toEqual(["energy", "memory"]);
+  await inspector.getByRole("button", { name: "删除此汇合合同", exact: true }).click(); await confirm(page);
+  await expect(inspector.getByRole("textbox", { name: "章节标题", exact: true })).toHaveValue("step-1");
+  await undo(page);
+  expect((await read()).mapping.topology.joins.find(join => join.joinNodeId === "step-1")!.notes).toBe("QA current join");
+  await select(page, "step-1");
+  const edge = inspector.locator('[data-edge-id="last-step-choice"]');
+  await edge.getByText("状态与实体效果", { exact: true }).click();
+  await edge.getByRole("textbox", { name: /^事实效果 JSON/ }).fill('{"unfinished":');
+  await edge.getByRole("textbox", { name: /^实体状态 JSON/ }).fill('[{"entityType":"character"');
+  await save(page);
+  await expect.poll(async () => (await read()).fieldBuffers["edge:last-step-choice:stateEffects"]).toBe('{"unfinished":');
+  await page.reload(); await select(page, "step-1");
+  await edge.getByText("状态与实体效果", { exact: true }).click();
+  await expect(edge.getByRole("textbox", { name: /^事实效果 JSON/ })).toHaveValue('{"unfinished":');
+  await expect(edge.getByRole("textbox", { name: /^实体状态 JSON/ })).toHaveValue('[{"entityType":"character"');
+  await edge.getByRole("textbox", { name: /^事实效果 JSON/ }).fill('{"memory":"restored"}');
+  await edge.getByRole("textbox", { name: /^实体状态 JSON/ }).fill('[{"entityType":"character","entityId":"ruan","state":"ready"}]');
+  await save(page);
+  await expect.poll(async () => Object.keys((await read()).fieldBuffers).length).toBe(0);
+  expect((await read()).mapping.topology.edges.find(item => item.id === "last-step-choice")!.stateEffects).toEqual({ memory: "restored" });
+  await select(page, "choose");
+  const checkbox = inspector.getByRole("checkbox", { name: "包含画面与剧本场景" });
+  const box = (await checkbox.boundingBox())!; expect(box.width).toBe(16); expect(box.height).toBe(16);
+  await checkbox.check(); await save(page);
+  await expect.poll(async () => (await read()).mapping.sections.find(item => item.sectionId === "choose")!.footageMode).toBe("footage");
+  await checkbox.uncheck(); await save(page);
+  await expect.poll(async () => (await read()).mapping.sections.find(item => item.sectionId === "choose")!.footageMode).toBe("route_only");
+  await page.screenshot({ path: info.outputPath("checkbox-and-selection.png") });
+  await select(page, "风暴前的共同开场"); await expect(inspector.getByRole("button", { name: "删除节点…", exact: true })).toBeDisabled();
+});
 
 test("creator exact operations 123 → 222 → 333, drag, deletion, Undo and reload", async ({ page, request, workbench }, info) => {
   test.setTimeout(150_000); await page.setViewportSize({ width: 1700, height: 900 });
@@ -76,7 +143,10 @@ test("creator exact operations 123 → 222 → 333, drag, deletion, Undo and rel
   const beforeInvalid = await read();
   await page.getByRole("button", { name: "连接 333 的后续", exact: true }).click();
   await page.getByLabel("更改连接端点", { exact: true }).selectOption(a); await page.getByRole("button", { name: "准备修改预览", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("cycle"); expect((await read()).mapping).toEqual(beforeInvalid.mapping);
+  await expect(page.getByRole("dialog", { name: "编辑精确连接" }).getByRole("alert")).toContainText("cycle"); expect((await read()).mapping).toEqual(beforeInvalid.mapping);
+  await expect(page.getByRole("dialog", { name: "编辑精确连接" })).toBeVisible();
+  await expect(page.getByLabel("更改连接端点", { exact: true })).toHaveValue(a);
+  await page.getByRole("dialog", { name: "编辑精确连接" }).getByRole("button", { name: "取消", exact: true }).click();
   // Both deletion methods explicitly preview, each restores the whole transaction.
   for (const method of ["预览安全绕过", "仅删除，保留待连接"]) {
     await select(page, "333"); await page.getByRole("button", { name: "删除节点…", exact: true }).click();
@@ -151,7 +221,8 @@ test("creator capacity, retained-node reuse and explicit decision restoration", 
   await expect(page.locator("[data-creator-node]")).toHaveCount(13);
   const full = await read();
   await page.getByRole("button", { name: "向第 3 行添加节点", exact: true }).click(); await page.getByRole("button", { name: "准备修改预览", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("out_degree:choose"); expect((await read()).mapping).toEqual(full.mapping);
+  await expect(page.getByRole("dialog", { name: "向此行添加节点" }).getByRole("alert")).toContainText("out_degree:choose"); expect((await read()).mapping).toEqual(full.mapping);
+  await page.getByRole("dialog", { name: "向此行添加节点" }).getByRole("button", { name: "取消", exact: true }).click();
   await select(page, "choose");
   await page.getByRole("button", { name: "新增待连接输出", exact: true }).click(); await expect(page.getByRole("alert")).toContainText("out_degree:choose");
   await page.getByRole("button", { name: "向第 3 行添加节点", exact: true }).click();

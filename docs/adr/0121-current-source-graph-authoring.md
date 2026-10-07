@@ -108,3 +108,19 @@ recovery and confirmation receipts now carry a selection-generation basis:
 preserve a later explicit selection if it still exists in the committed mapping;
 otherwise use the receipt's safe selection. Content/CAS/Undo semantics do not
 change. Deferred-receipt regressions cover both retained and removed nodes.
+
+## Coverage walkthrough ownership guard, 2026-10-06
+
+The live walkthrough exposed ordinary join commands reviving the older selection
+stored in an acknowledged draft. Non-creation commands now preserve the currently
+selected surviving node even if there was no selection change during the request.
+Add, insert and reuse retain their explicit selection intent; removal still uses
+the receipt's safe fallback. Selection does not become an authored mutation.
+
+A delayed draft flush could also outlive its project/session owner before a
+command was dispatched. The shared acknowledgement boundary now rejects that
+obsolete operation after flush, before any command API call. Disable/unmount
+invalidates the owner, and each operation holds its own busy token so an older
+completion cannot unlock a newer session. Regressions cover project switching,
+unmount, disable/re-enable and ordinary-command selection. No second writer,
+compatibility path or permissive stale-receipt handling is introduced.
