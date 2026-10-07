@@ -1,10 +1,73 @@
-# Fresh full creator E2E and demonstrated repairs
+# Creator lifecycle acceptance — current run profile and demonstrated repairs
 
 Owner approved another complete E2E run, fixing demonstrated bugs along the way,
 including the observed candidate origin/rights omission. This is a new assignment
 after the earlier deadline; no new deadline was specified. Baseline: clean
 retained main `8782dab`. One source/browser/data writer; independent review and
 owner-data protection remain required before publication.
+
+## Reusable playbook and current continuation profile
+
+On October7 the owner agreed to ONE reusable Create → Revise → Recover playbook,
+with a tailored profile and dated evidence for each major update/iteration.
+Extend the existing [C/P/E playbook](../creative-workflow/graph-workbench-acceptance.md),
+not a competing checklist. This file remains the single current run plan;
+the [ledger](../verification/2026-10-07-full-creator-e2e-repeat.md) retains actual results.
+The agreement adopts the plan shape; it does not itself dispatch native tasks,
+approve the pending Image continuation or implement new product capabilities.
+
+| Profile field | Current run |
+|---|---|
+| Last qualified baseline | Published documentation12a0de9, executable be87634 including406c942; fresh qualification must record the actual next loaded source/static/runtime |
+| Existing evidence | Completed text→installation→first-shot native flow and separate structural QA; software gates qualified, full lifecycle remains PARTIAL |
+| Runtime boundary | Normal8841 is the activated repair candidate; retained8851 and busy8861 loaded backends differ. Do not reload newer static against old Python or restart the busy Image reservation |
+| Data baseline | Fresh native QA b3a933f7-b6fc-40e3-826f-5162f95a119a; structural QA remains separately identified in the ledger. Completed playable/media baseline not yet established for this repeat |
+| Protection | Two named owner projects, managed files and protected configuration unchanged; disposable lifecycle/recovery targets identified before actions |
+| Authority | Earlier bounded functional ImageGen/H3 QA authorization remains distinct from specialist-task continuation. No new paid fallback, settings mutation, broad deletion or creative/media-quality approval |
+| Primary goal | Complete the outstanding creation/media journey, prove revisions on the same completed project, and cover recovery/desktop gaps with current evidence |
+
+### Capability prerequisites — investigate/design before implementation
+
+- Current creatorAdmission/production inspector and production_bridge preparation
+  deliberately permit first installation only. Define a supported post-install
+  revision/rebuild contract before claiming that structural changes can become
+  a revised playable production. Keep identity, transaction integrity, retained
+  author work/media and frozen-dispatch boundaries; do not add backward-compatibility
+  adapters or migrate retired demos to manufacture success.
+- Define which changes invalidate which reviews/bindings, when outputs are reusable,
+  and what an explicit rebuild replaces. Selective regeneration is an acceptance
+  claim to prove, not an assumed current capability; honestly record stage-level
+  rebuilds where the approved dependency model requires them.
+- Normal intentGeneration is unavailable/not_configured. Establish the intended
+  runtime composition and qualification method before a model-generation PASS;
+  authored-intent saving is already separately exercised and is not a substitute.
+- Product design/implementation and any scope-changing choices require their own
+  approval. Before native execution use a clean committed qualified checkpoint,
+  matching loaded runtime and known job state. Current playbook adoption does not
+  bypass the existing Image same-task continuation authority boundary.
+
+### Three rounds for the next execution
+
+1. **Create:** finish distinct native Character/Scene/Prop images and one same-subject
+   comparison, references, keyframes/endframes/dirty guards/multi-shot, bounded H3
+   and all-route playback. Read all reports and exercise authored/model intent paths
+   separately. Existing first-shot handoff is not media or route-playback completion.
+2. **Revise:** after a supported revision/rebuild capability is qualified, modify
+   middle prose, add/remove/rewire nodes/options, change character design/identity
+   reference and scene/prop or high-level settings. Record before/after revisions,
+   identities and hashes; verify affected reviews/rebuilds, unaffected preservation,
+   retained historical media and playback of every revised route in the SAME project.
+3. **Recover:** use exact disposable objects to exercise dirty/stale/two-tab/OS blur,
+   waiting/cancel/failure/unknown-dispatch and reopen/restart, then media-bearing
+   lifecycle operations. Complete six-sibling desktop views and remaining relevant
+   type/kind/ownership cases. Do not fabricate fault eligibility or clear busy leases.
+
+For each round list individual C/P/E subchecks, expected visible outcomes, actual
+evidence class and omissions. Adapt effort and scenario order explicitly without
+weakening required gates or inheriting PASS from earlier candidates. Keep software
+qualification, native functional acceptance and creative/media quality separate.
+Stop when scoped checks close or new authority/access is required; preserve exact
+pending jobs and report PARTIAL rather than claiming full lifecycle acceptance.
 
 ## Deliverable and boundaries
 

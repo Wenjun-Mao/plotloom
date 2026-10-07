@@ -56,3 +56,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0124 Requesting-client project read quiescence](0124-requesting-client-project-read-quiescence.md)
 - [0125 Complete candidate asset projections](0125-complete-candidate-asset-projections.md)
 - [0126 Static archived report presentation](0126-static-script-report-presentation.md)
+- [0127 Reusable creator lifecycle acceptance](0127-reusable-creator-lifecycle-acceptance.md)

@@ -1,5 +1,14 @@
 # Plotloom roadmap entrypoint
 
+The owner adopted a reusable [creator lifecycle acceptance playbook](../creative-workflow/graph-workbench-acceptance.md)
+on October7: Create → Revise → Recover, with one tailored run profile and one dated
+evidence ledger per major update. The existing C/P/E checks remain the acceptance
+authority; prior evidence is not copied into new PASS claims. The
+[current run profile](2026-10-07-full-creator-e2e-repeat.md) records outstanding media
+coverage and the first-install-only revision/rebuild and intent-generation prerequisites.
+Playbook adoption is documentation/planning approval, not dispatch or implementation
+authority; native media and the post-install revision journey remain PARTIAL.
+
 The owner approved a [fresh full creator E2E repeat](2026-10-07-full-creator-e2e-repeat.md)
 with demonstrated repairs on October7, including candidate provenance. Its
 [run ledger](../verification/2026-10-07-full-creator-e2e-repeat.md) is in progress;
