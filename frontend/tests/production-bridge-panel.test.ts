@@ -11,7 +11,7 @@ let root: Root;
 let host: HTMLDivElement;
 
 const state = (label: string, revision = 1, contentHash = "a".repeat(64), text = "", reviewState: "pending" | "author_saved" | "model_suggested" = "pending", modelSuggestion?: string): ProductionBridgeState => ({
-  status: "ready", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false, hasInstallation: false,
+  intentGeneration: { status: "available" }, status: "ready", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false, hasInstallation: false,
   proposal: {
     presentation: { version: 1, reviewed: true, sourceHash: "f".repeat(64), sources: [], runtimeChoice: { choices: [] }, frozenEvidence: {} },
     revision, contentHash, inputs: {}, scenes: [{ sceneId: `scene-${label}`, sectionId: label, episode: 1, sceneIndex: 1, cutCount: 1 }], cuts: [], conflicts: [], advisories: [], installable: reviewState !== "pending", preparedAt: "2026-09-22T00:00:00Z",
@@ -39,6 +39,70 @@ it("shows an advisory shot-count notice without a blocking conflict", async () =
   await render("advisory"); await settle();
   expect(host.textContent).toContain("此项不阻止确认");
   expect(button("确认投产提案").disabled).toBe(false);
+});
+
+it.each([{ reasons: [] }, { reasons: ["the accepted F5 storyboard review is stale", "unknown <probe> changed"] }])("uses typed stale guidance and retains literal diagnostics: %j", async ({ reasons }) => {
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ ...state("stale"), status: "stale", staleReasons: reasons, hasInstallation: true });
+  const prepare = vi.spyOn(plotloomApi, "prepareProductionBridge");
+  const generate = vi.spyOn(plotloomApi, "generateProductionBridgeIntent");
+  await render("stale"); await settle();
+  const banner = host.querySelector(".notice.warning")!;
+  expect(banner.textContent).toContain("请检查来源、剧本与分镜评审");
+  expect(banner.textContent).toContain("旧提案与已有媒体仍保留");
+  expect(banner.textContent).toContain("不会自动重新生成、替换投产内容或配置推断服务");
+  const technical = Array.from(host.querySelectorAll("details")).find(item => item.querySelector("summary")?.textContent === "技术详情（版本、来源与冻结输入）")!;
+  for (const reason of reasons) {
+    expect(banner.textContent).not.toContain(reason);
+    expect(technical.textContent).toContain(reason);
+  }
+  expect(technical.open).toBe(false); expect(technical.querySelector("probe")).toBeNull();
+  expect(button("重新准备投产提案")).toBeUndefined();
+  expect(prepare).not.toHaveBeenCalled(); expect(generate).not.toHaveBeenCalled();
+});
+
+it.each(["ready", "accepted"] as const)("does not invent stale guidance for %s state", async status => {
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ ...state(status), status });
+  await render(status); await settle();
+  expect(host.textContent).not.toContain("来源上下文已变化");
+  expect(host.textContent).not.toContain("来源过期诊断（原文）");
+});
+
+it("disables unavailable inference without dispatch while preserving authored intent save", async () => {
+  const unavailable = state("author"); unavailable.intentGeneration = { status: "unavailable", reason: "not_configured" };
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(unavailable);
+  const generate = vi.spyOn(plotloomApi, "generateProductionBridgeIntent");
+  const save = vi.spyOn(plotloomApi, "updateProductionBridgeIntent").mockResolvedValue({ ...state("author", 2, "b".repeat(64), "作者填写", "author_saved"), intentGeneration: unavailable.intentGeneration });
+  await render("author"); await settle();
+  expect(button("生成戏剧意图建议").disabled).toBe(true);
+  await act(async () => button("生成戏剧意图建议").click());
+  expect(generate).not.toHaveBeenCalled(); expect(host.textContent).toContain("可在下方逐项填写作者意图");
+  const field = host.querySelector(".bridge-intent-field textarea") as HTMLTextAreaElement;
+  await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, "作者填写"); field.dispatchEvent(new Event("input", { bubbles: true })); });
+  expect(button("保存戏剧意图整包").disabled).toBe(false);
+  await act(async () => button("保存戏剧意图整包").click()); await settle();
+  expect(save).toHaveBeenCalledWith("author", expect.objectContaining({ entries: [{ id: "entry-author", text: "作者填写" }] }));
+  expect(button("生成戏剧意图建议").disabled).toBe(true);
+});
+
+it("contains capability responses to their current project owner", async () => {
+  const prior = deferred<ProductionBridgeState>();
+  const unavailable = state("current"); unavailable.intentGeneration = { status: "unavailable", reason: "not_configured" };
+  vi.spyOn(plotloomApi, "getProductionBridge").mockImplementation(id => id === "prior" ? prior.promise : Promise.resolve(unavailable));
+  await render("prior"); await render("current"); await settle();
+  await act(async () => prior.resolve(state("prior"))); await settle();
+  expect(host.textContent).toContain("excerpt-current"); expect(button("生成戏剧意图建议").disabled).toBe(true);
+});
+
+it.each(["queued", "dispatched"] as const)("disables service-owned %s job controls when runtime inference is unavailable", async status => {
+  const unavailable = state("held"); unavailable.intentGeneration = { status: "unavailable", reason: "not_configured" };
+  unavailable.intentJob = { id: "held", status } as never;
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(unavailable);
+  const resume = vi.spyOn(plotloomApi, "resumeProductionBridgeIntent"), cancel = vi.spyOn(plotloomApi, "cancelProductionBridgeIntent");
+  await render("held"); await settle();
+  expect(button("取消推断任务").disabled).toBe(true);
+  await act(async () => button("取消推断任务").click());
+  if (status === "queued") { expect(button("继续排队任务").disabled).toBe(true); await act(async () => button("继续排队任务").click()); }
+  expect(resume).not.toHaveBeenCalled(); expect(cancel).not.toHaveBeenCalled();
 });
 
 it("refreshes the owning canonical project before enabling either installed-shot handoff", async () => {
@@ -182,7 +246,7 @@ it("ignores a late mutation from the prior project", async () => {
   vi.spyOn(plotloomApi, "prepareProductionBridge").mockReturnValue(priorPrepare.promise);
 
   await render("prior");
-  await act(async () => priorGet.resolve({ status: "missing", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false, hasInstallation: false, proposal: null })); await settle();
+  await act(async () => priorGet.resolve({ intentGeneration: { status: "available" }, status: "missing", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false, hasInstallation: false, proposal: null })); await settle();
   await act(async () => button("准备投产提案").click());
   await render("current");
   await act(async () => { priorPrepare.resolve(state("prior")); currentGet.resolve(state("current")); }); await settle();

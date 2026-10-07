@@ -7,6 +7,7 @@ import type { SourceOutlineReviewState, StoryGraph } from "../../types";
 import { CanonicalGraphReader } from "./CanonicalGraphReader";
 import { GraphDraftDiscard } from "./GraphDraftDiscard";
 import { useGraphWorkbench } from "./GraphWorkbenchContext";
+import { GraphPreviewRecovery } from "./GraphPreviewRecovery";
 import { GraphNodeDetails } from "./GraphNodeDetails";
 import { GraphEdgeDetails } from "./GraphEdgeDetails";
 import { GraphCommandDialog } from "./GraphCommandDialog";
@@ -38,6 +39,7 @@ export function ProfessionalGraphWorkbench({ projectId, canonical, readOnly, onO
   return <section className="page professional-graph-workbench">
     <PageHeader eyebrow="专业工作台" title="剧情图与精确合同" description="与创作工作台共用当前图草稿。保存草稿、确认内容与应用路线分别进行。" />
     {owner.error && <p className="notice warning" role="alert">{owner.error}</p>}
+    <GraphPreviewRecovery />
     {owner.stale && <p className="notice warning">规范上下文已变化，图草稿仍保留。<Button disabled={owner.busy} onClick={() => void owner.recover()}>在当前版本恢复为新草稿</Button></p>}
     <div className="button-row">
       <Button disabled={disabled || !mapping} onClick={() => void owner.saveDraft()}>保存图草稿</Button>

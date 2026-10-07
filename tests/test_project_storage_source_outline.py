@@ -25,7 +25,7 @@ from plotloom.source_outline_contracts import (
 )
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import ProjectLifecycleStatus, StageName, StageStatus, utc_now
-from plotloom.domain import InitialStage, ProjectBrief, brief_for_new_project
+from plotloom.domain import InitialStage, ProjectBrief
 from plotloom.source_structures import planned_structure
 from plotloom.exceptions import (
     InvalidTransitionError,
@@ -66,7 +66,7 @@ def _request(
         stage="outline",
         expected_stage_revision=expected_outline_revision,
         source=source.model_dump(mode="json", by_alias=True),
-        input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(brief or brief_for_new_project(FIXED_CHINESE_BRIEF)), "story-topology.json": planned_structure(project_id, brief or brief_for_new_project(FIXED_CHINESE_BRIEF)).model_dump(mode="json", by_alias=True)},
+        input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(brief or FIXED_CHINESE_BRIEF), "story-topology.json": planned_structure(project_id, brief or FIXED_CHINESE_BRIEF).model_dump(mode="json", by_alias=True)},
         creative_brief="Produce one upstream-shaped review candidate only.",
     )
 

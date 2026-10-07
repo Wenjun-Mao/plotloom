@@ -12,7 +12,7 @@ from uuid import uuid4
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .domain_base import CamelModel, to_camel
-from .brief_contracts import DirectionSelection, ProjectBrief, brief_for_new_project
+from .brief_contracts import DirectionSelection, ProjectBrief
 
 # Current canonical production contracts live in a separate cohesive module.
 from .canonical_schema import (

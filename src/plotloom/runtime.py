@@ -142,18 +142,6 @@ def build_runtime_app(
     )
     from .generation.contracts import ReasoningMode, RequestExtension
 
-    storage = ProjectFolderStorage(
-        outputs_root=settings.outputs_dir,
-        application_data_root=settings.application_data_dir,
-    )
-    run_secrets = RunSecretBroker(
-        settings.text_api_key.get_secret_value() if settings.text_api_key else None,
-        server_key_resolver=lambda profile_id: (
-            key.get_secret_value()
-            if (key := settings.text_api_key_for_profile(profile_id)) is not None
-            else None
-        ),
-    )
     provider_defaults = ProviderSettings(
         text_provider=settings.text_provider,
         text_base_url=settings.text_base_url,
@@ -222,13 +210,26 @@ def build_runtime_app(
         text_profile_default = TextProviderProfileSnapshotV3.model_validate(
             text_profile_values
         )
-    except ValueError:
-        # Existing pre-M1.5 environment combinations remain valid, but they
-        # are explicitly frozen as custom instead of impersonating a preset.
-        text_profile_values["preset_id"] = PresetId.CUSTOM
-        text_profile_default = TextProviderProfileSnapshotV3.model_validate(
-            text_profile_values
-        )
+    except ValueError as exc:
+        raise ValueError(
+            "Invalid declared text execution profile. Correct the execution "
+            "fields for TEXT_PRESET_ID, or explicitly set TEXT_PRESET_ID=custom "
+            "for intentional non-preset fields; custom profiles must still "
+            "satisfy execution validation."
+        ) from exc
+    # Reject an invalid declaration before creating installation state or keys.
+    storage = ProjectFolderStorage(
+        outputs_root=settings.outputs_dir,
+        application_data_root=settings.application_data_dir,
+    )
+    run_secrets = RunSecretBroker(
+        settings.text_api_key.get_secret_value() if settings.text_api_key else None,
+        server_key_resolver=lambda profile_id: (
+            key.get_secret_value()
+            if (key := settings.text_api_key_for_profile(profile_id)) is not None
+            else None
+        ),
+    )
     profile_repository = ApplicationProfileRepository(storage.application, provider_defaults)
     profile_repository.bootstrap_default_text_provider_profile(text_profile_default)
     dispatcher = ProjectRunDispatcher(

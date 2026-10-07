@@ -10,6 +10,7 @@ export interface GraphWorkbenchController {
   error: string;
   stale: boolean;
   preview: GraphCommandPreview | null;
+  previewConflict: boolean;
   canUndo: boolean;
   refresh: () => Promise<void>;
   selectNode: (identity: string | null) => void;

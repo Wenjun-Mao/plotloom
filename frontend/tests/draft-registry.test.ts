@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { discardDraft, draftKey, findRevisionConflict, getDraft, putDraft } from "../src/draft-registry";
 import { demoProject } from "../src/demo";
+import { blankWorkspace, newClientDraftOwner } from "../src/app/workspace/contracts";
 
 describe("draft registry", () => {
   beforeEach(() => window.sessionStorage.clear());
@@ -25,6 +26,31 @@ describe("draft registry", () => {
     expect(draftKey(blank, "brief")).toBe("local:blank:brief:0");
     expect(draftKey(sample, "brief")).toBe("local:sample:brief:0");
     putDraft(blank, "brief", { title: "blank only" });
+    expect(getDraft(sample, "brief")).toBeUndefined();
+  });
+
+  it.each([undefined, "", "   "])("fails closed for missing or empty local owner %s without touching storage", clientDraftOwner => {
+    const project = { ...demoProject, id: undefined, clientDraftOwner };
+    sessionStorage.setItem("sentinel", "retained");
+    const before = JSON.stringify(sessionStorage);
+    expect(() => putDraft(project, "brief", { title: "unowned" })).toThrow("明确的本地草稿归属");
+    expect(() => getDraft(project, "brief")).toThrow();
+    expect(() => findRevisionConflict(project, "brief")).toThrow();
+    expect(() => discardDraft(project, "brief")).toThrow();
+    expect(JSON.stringify(sessionStorage)).toBe(before);
+  });
+
+  it("uses persisted identity without requiring a local owner", () => {
+    const project = { ...demoProject, id: "persisted", clientDraftOwner: undefined };
+    expect(putDraft(project, "brief", { title: "persisted" }).projectId).toBe("persisted");
+  });
+
+  it("isolates newly constructed blank and explicitly owned sample workspaces", () => {
+    const first = blankWorkspace(), second = blankWorkspace();
+    const sample = { ...demoProject, id: undefined, clientDraftOwner: newClientDraftOwner() };
+    expect(new Set([first.clientDraftOwner, second.clientDraftOwner, sample.clientDraftOwner]).size).toBe(3);
+    putDraft(first, "brief", { title: "first only" });
+    expect(getDraft(second, "brief")).toBeUndefined();
     expect(getDraft(sample, "brief")).toBeUndefined();
   });
 

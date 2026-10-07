@@ -14,6 +14,29 @@ to four shots per canonical scene.
 
 ## Decision
 
+### Runtime intent-generation capability (2026-10-07)
+
+Every bridge API state includes a runtime-owned `intentGeneration` discriminator:
+`available` only when both the intent service and text admission are wired;
+otherwise `unavailable` with reason `not_configured`. This is not persisted in
+the proposal or its content hash, and does not claim profile, key, transport, or
+model readiness. Direct generation/resume/cancel calls without this capability
+return structured `503 bridge_intent_not_configured` before touching jobs or
+proposals. The browser disables those service actions and explains the existing
+author-authored intent/save alternative. Manual intent and presentation review
+remain available. Neither an absent-field compatibility guess nor automatic
+provider configuration is permitted; frontend/backend activation must be paired.
+
+### Stale-state reading guidance (2026-10-07)
+
+The typed `stale` status owns the primary Chinese reading guidance: inspect
+current source/script/storyboard reviews, retain old proposals/media, and never
+promise automatic rebuilding, installed-content replacement, or inference
+configuration. Literal `staleReasons` remain fully inspectable in technical
+details rather than being promoted to the primary banner. No English diagnostic
+parsing or message-to-state mapping is permitted. Domain currentness, CAS,
+proposal hashes, and installation/reprepare authority remain unchanged.
+
 Add a dedicated F5 production-bridge proposal/acceptance owner. It deterministically
 freezes accepted F1–F5 plus the project brief, builds a reviewable V2 canonical
 proposal with source provenance, and installs it only after an explicit

@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { demoProject } from "../src/demo";
 import { expect, test } from "./fixture";
 import { expectInlineRequiredMark } from "./inline-required-mark";
+import { inspectLongProvenanceLayout } from "./provenance-layout";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const retainedStill = path.join(repositoryRoot, "docs/verification/supporting/p0-generated/01-arrival.png");
@@ -123,6 +124,13 @@ test.describe("F2B cast-owned reference studies", () => {
     await expect.poll(async () => (await proposal(request, workbench.apiOrigin, projectId, original.id)).deliveries[0]?.state, { timeout: 10_000 }).toBe("accepted");
     const deliveredOriginal = await proposal(request, workbench.apiOrigin, projectId, original.id);
     const originalCandidate = deliveredOriginal.deliveries[0]!.candidates[0]!.assetId;
+    const originalDetails = panel.getByTestId("appearance-viewer").locator("details");
+    await originalDetails.locator("summary").click();
+    await expect(originalDetails).toContainText(originalCandidate);
+    await expect(originalDetails).toContainText("character_reference_proposal");
+    await expect(originalDetails).toContainText("unknown");
+    await originalDetails.locator("summary").click();
+    await inspectLongProvenanceLayout(page, projectId, originalCandidate, originalDetails, "character", testInfo, async () => {});
     await panel.getByRole("button", { name: "选用当前图片" }).click();
     await expect(panel).toContainText("已选择身份参考 r1");
 
@@ -171,6 +179,9 @@ test.describe("F2B cast-owned reference studies", () => {
       await expect(viewer).toContainText("Keep the viewed identity and clarify the rain-lit eyebrow anchor.");
       await expect(viewer).toContainText("请求标识");
       await expect(viewer).toContainText("来源");
+      await expect(viewer.locator("details")).toContainText(refinementCandidate);
+      await expect(viewer.locator("details")).toContainText("character_reference_proposal");
+      await expect(viewer.locator("details")).toContainText("unknown");
       await viewer.getByRole("button", { name: "放大查看" }).click();
       await expect(page.getByRole("dialog", { name: "放大查看图片" }).getByRole("img")).toBeVisible();
       await page.getByRole("dialog", { name: "放大查看图片" }).getByRole("button", { name: "关闭" }).click();

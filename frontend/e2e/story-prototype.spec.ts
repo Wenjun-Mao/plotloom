@@ -35,8 +35,9 @@ test("reads ordered multi-scene canonical screenplay without a storyboard review
   await expect(prototype.getByTestId("storyboard-unavailable")).toContainText("这不会影响已确认剧本");
   await prototype.getByRole("button", { name: "剧本" }).click();
   await expect(prototype.getByTestId("route-reader")).toContainText("One cable. Two places need it.");
-  await page.setViewportSize({ width: 720, height: 900 });
-  await page.screenshot({ path: testInfo.outputPath("screenplay-f4-720.png"), fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 768 });
+  await expect(scenes.nth(1)).toContainText("The dock keeps the boats together.");
+  await page.screenshot({ path: testInfo.outputPath("screenplay-f4-1280.png"), fullPage: true });
   expect(writes).toEqual([]);
 });
 
@@ -77,11 +78,10 @@ test("switches route-focused screenplay and matching storyboard without appendin
   await page.setViewportSize({ width: 1920, height: 1080 });
   await prototype.locator(".branch-map").screenshot({ path: testInfo.outputPath("branch-map-f5-1920.png") });
   await page.screenshot({ path: testInfo.outputPath("storyboard-f5-1920.png"), fullPage: true });
-  await page.setViewportSize({ width: 768, height: 900 });
-  await prototype.locator(".branch-map").screenshot({ path: testInfo.outputPath("branch-map-f5-768.png") });
-  await page.screenshot({ path: testInfo.outputPath("storyboard-f5-768.png"), fullPage: true });
-  await page.setViewportSize({ width: 720, height: 900 });
-  await prototype.locator(".branch-map").screenshot({ path: testInfo.outputPath("branch-map-f5-720.png") });
+  await page.setViewportSize({ width: 1280, height: 768 });
+  await expect(storyboard).toContainText("The dock stays on.");
+  await prototype.locator(".branch-map").screenshot({ path: testInfo.outputPath("branch-map-f5-1280.png") });
+  await page.screenshot({ path: testInfo.outputPath("storyboard-f5-1280.png"), fullPage: true });
   await prototype.getByRole("button", { name: "剧本" }).click();
   await expect(prototype.getByTestId("route-reader")).toContainText("Dock first.");
   expect(writes).toEqual([]);

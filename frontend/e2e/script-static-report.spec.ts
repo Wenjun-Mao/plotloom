@@ -51,6 +51,8 @@ test("archived Script static reading reveals long scenes and keeps scripts isola
   await expect(frame.locator(".cast-lines").first().locator("li").filter({ hasText: "Archived dialogue." })).toHaveCount(30);
   await expect(frame.locator(".cast-lines").first().locator("li").last()).toContainText("Come in safely.");
   for (const section of ["sec-timing", "sec-script", "sec-scenes", "sec-cast", "sec-gates"]) await expect(frame.locator(`#${section}`)).toBeVisible();
+  for (const section of ["sec-script", "sec-cast"]) await expect(frame.locator(`#${section} > .sec-h > .note`)).toBeHidden();
+  for (const section of ["sec-timing", "sec-scenes"]) await expect(frame.locator(`#${section} > .sec-h > .note`)).toBeVisible();
   for (const selector of [".scmore", ".copy", ".expo"]) for (const control of await frame.locator(selector).all()) await expect(control).toBeHidden();
   expect(await page.locator("body").getAttribute("data-archive-mutation")).toBeNull();
   expect(await frame.locator("body").evaluate(() => (window as unknown as { archiveExecuted?: boolean }).archiveExecuted)).toBeUndefined();

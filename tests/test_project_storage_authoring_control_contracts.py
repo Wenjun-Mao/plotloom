@@ -46,18 +46,21 @@ def _complete_project(client: TestClient) -> dict:
 
 @pytest.mark.parametrize("save_with_draft", [False, True])
 @pytest.mark.parametrize(
-    ("change", "expected_statuses"),
+    ("change", "expected_statuses", "expected_revision"),
     [
-        ({"shotCountPolicy": "advisory"}, ["ready", "ready", "ready", "stale"]),
-        ({"targetPlaythroughSeconds": 181}, ["ready", "ready", "stale", "stale"]),
-        ({"nodeBudget": 10}, ["ready", "stale", "stale", "stale"]),
+        ({"shotCountPolicy": "strict"}, ["ready", "ready", "ready", "stale"], 2),
+        ({"shotCountPolicy": "advisory"}, ["ready", "ready", "ready", "ready"], 1),
+        ({"targetPlaythroughSeconds": 181}, ["ready", "ready", "stale", "stale"], 2),
+        ({"nodeBudget": 10}, ["ready", "stale", "stale", "stale"], 2),
     ],
 )
 def test_brief_saves_invalidate_only_evidenced_stage_dependencies(
     tmp_path: Path, save_with_draft: bool, change: dict, expected_statuses: list[str],
+    expected_revision: int,
 ) -> None:
     client = _client(tmp_path)
     project = _complete_project(client)
+    assert project["brief"]["shotCountPolicy"] == "advisory"
     project_id = project["id"]
     brief = {**project["brief"], **change}
     if save_with_draft:
@@ -72,6 +75,11 @@ def test_brief_saves_invalidate_only_evidenced_stage_dependencies(
         payload["consumedDraft"] = {"editorScope": "brief", "entityId": "root", "draftRevision": 1}
     saved = client.patch(f"/api/v2/projects/{project_id}", json=payload)
     assert saved.status_code == 200, saved.text
+    assert saved.json()["revision"] == expected_revision
+    assert client.get(f"/api/v2/projects/{project_id}").json()["revision"] == expected_revision
+    if save_with_draft:
+        assert saved.headers["X-Plotloom-Draft-Consumed-Revision"] == "1"
+        assert client.get(f"/api/v2/projects/{project_id}/authoring-drafts").json() == []
     stages = client.get(f"/api/v2/projects/{project_id}/stages").json()["stages"]
     assert [stage["head"]["status"] for stage in stages] == expected_statuses
 

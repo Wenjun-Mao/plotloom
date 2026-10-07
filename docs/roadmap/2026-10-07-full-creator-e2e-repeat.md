@@ -41,15 +41,48 @@ explicitly and leave exact pending task identities.
 
 ## Status
 
-Shared candidate provenance repair is implemented and locally verified, including
-the original gallery action. Named static Script/Art/Storyboard/Cast presentation
-repairs preserve archives and sandbox safety; original reports and fresh Cast
-were retested, with final hint activation still pending. Independent frozen-source
-Python/frontend/type gates and source review passed; full browser gates are
-running for an explicitly authorized local execution checkpoint, not publication.
-Fresh Brief/Outline/branch/Cast milestones passed. Native image execution stopped
-at the uncommitted-source pin prerequisite; preserve the same frozen request for
-separately authorized continuation after a clean committed checkpoint. Art remains
-prepared/unsent. Fresh Script/Storyboard, distinct native images/pair comparison,
-endframes/multi-shot preview, H3/all-route playback/staleness and remaining
-structural/recovery/visual controls remain pending in the ledger.
+PARTIAL, not full E2E acceptance. Local checkpoint `406c942` remains local-only.
+Shared persisted provenance, Character/shot disclosures and intrinsic long-note
+card layout are repaired and independently reviewed. Named static report readers
+preserve archives/CSP/sandbox; original live reports and fresh native text stages
+passed functional review, with skips/physical/style limitations explicit.
+Fresh Brief/Outline/branch/Cast/Art/Script/Storyboard are confirmed; proposal r3
+preserves nine authored intents, exact-source presentation classification and
+explicit canonical installation/first-shot handoff. Physical east/west realization
+remains unspecified/review-only, not invented or creatively approved.
+
+Runtime-only generation capability, typed unavailable refusal, strict declared
+preset validation, stale-preview recovery/live selection and typed stale guidance
+are repaired. Uniform current advisory default/effective policy hashing now removes
+the audited stored/new Brief compatibility split, without data migration or weakening
+explicit strict. Final independent gates PASS: V8 full Python1,227, frontend582,
+V7 unfiltered browser204, both typechecks, lock/API F401/diff checks and
+wheel-installed smoke. Final847-file fingerprint is
+`761a22ec55021b22a218d82569d2f0767600a8bf818f3f220ce5155adc2730c7`.
+V7 Python's two stale fixture assumptions were corrected in one unit-test module:
+explicit strict delta versus advisory no-op, revision and draft consumption guards;
+11 focused PASS, then full V8 PASS. Browser product/E2E/harness/static inputs stayed
+identical; only that authorized Python unit-test file changed during its run.
+C55 shared-flow help and current disclosure pixels passed focused/live review.
+Independent source review is closed; earlier interrupted gates remain history.
+
+Normal8841 is stopped in coordinated idle maintenance, not restarted or pushed.
+Retained8851 Python predates shot-policy cleanup; its explicit-advisory QA is
+semantically comparable, not the identical final loaded backend. Its isolated
+static matches checked JS `c8fe9734faaed15142987c80fd318561260269d4e8c8415d853845dbcd6346ab`.
+Busy8861 retains the frozen image
+reservation and old loaded QA tabs; newer checked static is served but those tabs
+must not reload against old Python. No absent-field compatibility fallback.
+Same frozen image continuation still awaits separate human authority.
+Native Character/Scene/Prop/pair, keyframes/endframes/multishot/H3/all routes/
+staleness are NOT EXERCISED. Model inference E12 is unavailable, not qualified.
+
+Actual structural Save-close-reopen/C49 partial nonblank keys and matched two-tab
+selection recovery passed. C51 retain then explicit discard restores clean nine
+seed; snapshot/separate operator restore/archive/unarchive/typed brief-copy delete
+passed, not media-bearing deletion. Graph pixels qualify three siblings and
+graph-area clamp, not six siblings/universal viewport centering or OS blur.
+The concise current ledger links preserved dated chronology and exact failures.
+Qualified software release awaits root's exact local commit, paired normal restart
+and publication authorization. No final activation/push has occurred; media authority
+and remaining native coverage do not become PASS from the software gate results.

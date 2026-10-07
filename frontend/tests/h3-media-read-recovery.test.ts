@@ -94,7 +94,7 @@ beforeEach(() => {
     .mockResolvedValue({ configured: true, jobs: [] });
   vi.spyOn(plotloomApi, "refreshImageJob").mockResolvedValue({ state: "accepted", candidates: [] });
   vi.spyOn(plotloomApi, "getCharacterReferenceProposals").mockResolvedValue({ configured: false, proposals: [] });
-  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ status: "missing", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false, hasInstallation: false, proposal: null });
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ intentGeneration: { status: "unavailable", reason: "not_configured" }, status: "missing", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false, hasInstallation: false, proposal: null });
   vi.spyOn(plotloomApi, "getVideoPilotBudget").mockResolvedValue({ limitSeconds: 100, reservedSeconds: 0, remainingSeconds: 100, attempts: [] });
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue(backend);
   vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [] });

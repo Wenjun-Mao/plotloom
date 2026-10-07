@@ -532,10 +532,7 @@ def _v2_gate_input_hash(
         "storyboard": storyboard.model_dump(mode="json", by_alias=True),
         "sceneBeats": plan.model_dump(mode="json", by_alias=True),
         "storyBible": bible.model_dump(mode="json", by_alias=True),
-        "brief": None if brief is None else brief.model_dump(
-            mode="json", by_alias=True,
-            exclude={"shot_count_policy"} if "shot_count_policy" not in brief.model_fields_set else None,
-        ),
+        "brief": None if brief is None else brief.model_dump(mode="json", by_alias=True),
         "timingProfile": None if timing_profile is None else timing_profile.model_dump(mode="json", by_alias=True),
     }
     return hashlib.sha256(

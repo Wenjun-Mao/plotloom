@@ -133,6 +133,7 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot, onInsta
   const unsaved = intentDirty || draftConflict || presentationDirty;
   const firstCut = proposal?.cuts.map(bridgeCut).find(cut => cut !== undefined);
   const activeJob = job?.status === "queued" || job?.status === "dispatched";
+  const intentAvailable = state.intentGeneration.status === "available";
   const unresolvedJob = activeJob || job?.status === "outcome_unknown";
   const localEdits = intentDirty || draftConflict || (presentationTouched && presentationDirty);
   const canPrepare = state.hasInstallation === false && (!proposal || state.status === "stale");
@@ -140,7 +141,7 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot, onInsta
     <header><span>投产提案</span><strong>{state.status === "accepted" ? "投产提案已确认" : state.status === "stale" ? "上下文已过期" : "待确认"}</strong></header>
     {state.simulationLabel && <div className="notice warning" data-testid="bridge-fake-banner">{state.simulationLabel}</div>}
     <p>将已确认的故事、剧本与分镜证据整理成待审阅的投产提案。戏剧意图须单独推断或由作者填写；这里不会批准镜头、选择参考、创建资产或发起媒体任务。</p>
-    {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
+    {state.status === "stale" && <div className="notice warning">来源上下文已变化。请检查来源、剧本与分镜评审，核对当前已确认版本。旧提案与已有媒体仍保留；不会自动重新生成、替换投产内容或配置推断服务。</div>}
     {canPrepare && <><Button variant="primary" disabled={readOnly || busy || localEdits || unresolvedJob} onClick={() => run(() => plotloomApi.prepareProductionBridge(projectId), true, true)}>{proposal ? "重新准备投产提案" : "准备投产提案"}</Button>
       {proposal && <p>按当前来源新建提案，保留旧版本；戏剧意图与呈现归属需要重新审阅。{localEdits ? "请先复制所需文字，再明确放弃本地编辑。" : unresolvedJob ? "仍有执行中或结果不明的意图任务，暂不能重新准备。" : ""}</p>}
       {proposal && localEdits && <Button disabled={busy || readOnly} onClick={() => { adopt(state); setPresentationTouched(false); setPresentationDirty(false); setPresentationEditorNonce(value => value + 1); }}>放弃本地编辑，保留已保存提案</Button>}</>}
@@ -153,11 +154,12 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot, onInsta
         return <li key={String(raw.shotId ?? index)}>{String(raw.shotId)} · {String(raw.seconds)} 秒{cut && state.status === "accepted" && state.staleReasons.length === 0 && state.installedStoryboardCurrent === true && onOpenShot && <Button variant="quiet" disabled={readOnly || busy || !canonicalReady} onClick={() => { if (onOpenShot(cut.shotId) === false) setError("来源文字仍有未保存的编辑；请先保存或明确放弃，再打开投产镜头。"); }}>在分镜工作台打开 {cut.shotId}</Button>}</li>;
       })}</ul></details>
       {state.status !== "accepted" && <div className="bridge-intent-controls">
-        <Button variant="primary" disabled={readOnly || busy || activeJob || state.status === "stale"} onClick={() => run(() => plotloomApi.generateProductionBridgeIntent(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash }))}>生成戏剧意图建议</Button>
+        <Button variant="primary" disabled={readOnly || busy || activeJob || state.status === "stale" || !intentAvailable} onClick={() => { if (intentAvailable) run(() => plotloomApi.generateProductionBridgeIntent(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash })); }}>生成戏剧意图建议</Button>
+        {!intentAvailable && <p className="action-prerequisite">当前服务未配置戏剧意图推断。可在下方逐项填写作者意图并保存整包；不会自动配置或重试模型。</p>}
         {job && <small className="bridge-intent-status">{job.status === "queued" ? "等待执行" : job.status === "dispatched" ? "模型处理中" : job.status === "ready" ? "建议已进入新提案" : job.status === "outcome_unknown" ? "结果不确定，不会自动重试" : job.status === "stale" ? "来源或提案已变化，结果未采用" : job.status === "cancelled" ? "已取消" : "推断失败"}</small>}
         {job?.errorMessage && <ErrorNotice message={job.errorMessage} />}
-        {job?.status === "queued" && <Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.resumeProductionBridgeIntent(projectId, job.id))}>继续排队任务</Button>}
-        {activeJob && <Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.cancelProductionBridgeIntent(projectId, job.id))}>取消推断任务</Button>}
+        {job?.status === "queued" && <Button disabled={readOnly || busy || !intentAvailable} onClick={() => { if (intentAvailable) run(() => plotloomApi.resumeProductionBridgeIntent(projectId, job.id)); }}>继续排队任务</Button>}
+        {activeJob && <Button disabled={readOnly || busy || !intentAvailable} onClick={() => { if (intentAvailable) run(() => plotloomApi.cancelProductionBridgeIntent(projectId, job.id)); }}>取消推断任务</Button>}
       </div>}
       <details open className="bridge-intent-review"><summary>戏剧意图整包审阅</summary>
         <p><small>{proposal.intentPackage.suggestionOrigin === "model_inference.v1" ? "模型建议仅供审阅，来源与目标由系统绑定。" : "来源摘录仅是证据，不是已完成的戏剧意图。"} 可逐项修改并保存整包；确认仅适用于当前提案。</small></p>
@@ -168,7 +170,7 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot, onInsta
         {state.status !== "accepted" && unsaved && <p><small>当前编辑未保存或提案已变化；保存并刷新前，不能确认投产提案。</small></p>}
       </details>
       <ProductionPresentationReview key={`${projectId}:${presentationEditorNonce}`} projectId={projectId} proposal={proposal} accepted={state.status === "accepted"} disabled={readOnly || busy || activeJob || state.status === "stale" || intentDirty || draftConflict} onSaved={adopt} onDirty={setPresentationDirty} onEdited={() => setPresentationTouched(true)} onBusy={setBusy} />
-      <details><summary>技术详情（版本、来源与冻结输入）</summary><code>{proposal.contentHash}</code>{job && <p><small>推断任务 {job.id} · 配置 {job.profileId} r{job.profileVersion} · 提示 v{job.promptVersion}</small></p>}{proposal.intentPackage.provenance && <p><small>建议来源任务：{String(proposal.intentPackage.provenance.jobId ?? "")}</small></p>}</details>
+      <details><summary>技术详情（版本、来源与冻结输入）</summary><code>{proposal.contentHash}</code>{state.staleReasons.length > 0 && <><p>来源过期诊断（原文）</p><ul>{state.staleReasons.map((reason, index) => <li key={index}>{reason}</li>)}</ul></>}{job && <p><small>推断任务 {job.id} · 配置 {job.profileId} r{job.profileVersion} · 提示 v{job.promptVersion}</small></p>}{proposal.intentPackage.provenance && <p><small>建议来源任务：{String(proposal.intentPackage.provenance.jobId ?? "")}</small></p>}</details>
       <p>确认后，将建立后续制作使用的场景与镜头数据；不会自动生成图片或视频。</p>
       {state.status !== "accepted" && <Button variant="primary" disabled={readOnly || busy || !proposal.installable || unsaved || state.status === "stale" || state.hasInstallation} onClick={() => run(() => plotloomApi.acceptProductionBridge(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash }), false, false, true)}>确认投产提案</Button>}
       {state.status !== "accepted" && (readOnly || busy || unsaved || state.hasInstallation) && <p className="action-prerequisite">{readOnly ? "项目当前只读。" : busy ? "正在处理提案，请稍候。" : unsaved ? "请先保存当前编辑，再确认投产。" : "已安装过投产内容；当前工作流不支持替换。"}</p>}

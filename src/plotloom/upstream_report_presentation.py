@@ -6,6 +6,7 @@ from html.parser import HTMLParser
 # Apply those content rules to the archived screen view; leave the archive intact.
 STATIC_SCRIPT_REPORT_STYLE = """<style data-plotloom-static-script-report>
 .expo,.copy,.scmore{display:none!important}
+#sec-script>.sec-h>.note,#sec-cast>.sec-h>.note{display:none!important}
 .scenes.clip{max-height:none!important;overflow:visible!important}
 .scenes.clip::after{display:none!important}
 .cast-lines{max-height:none!important;overflow:visible!important}

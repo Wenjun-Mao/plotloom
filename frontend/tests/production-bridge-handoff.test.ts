@@ -4,7 +4,7 @@ import type { ProductionBridgeState } from "../src/types";
 
 const cut = { shotId: "dock-s1-c8", sectionId: "dock", episode: 3, sceneIndex: 1, seconds: 8, source: { segmentIndex: 4, segmentSceneIndex: 1, cutIndex: 2 } };
 const accepted: ProductionBridgeState = {
-  status: "accepted", staleReasons: [], installedStageRevisions: { storyboard: 1 }, installedStoryboardCurrent: true, hasInstallation: false,
+  intentGeneration: { status: "available" }, status: "accepted", staleReasons: [], installedStageRevisions: { storyboard: 1 }, installedStoryboardCurrent: true, hasInstallation: false,
   proposal: { presentation: { version: 1, reviewed: true, sourceHash: "f".repeat(64), sources: [], runtimeChoice: { choices: [] }, frozenEvidence: {} }, revision: 2, contentHash: "a".repeat(64), inputs: {}, scenes: [], cuts: [cut], conflicts: [], advisories: [], installable: true, preparedAt: "2026-09-23T00:00:00Z", intentPackage: { suggestionOrigin: "none", reviewState: "author_saved", entries: [] } },
 };
 

@@ -21,7 +21,9 @@ const storageKey = "plotloom:workbench-drafts:v1";
 function draftOwner(project: WorkspaceProject): string {
   // Never use a shared `new` namespace: a blank workspace and the sample are
   // independent editing sessions and must not recover one another's content.
-  return project.id || `local:${project.clientDraftOwner || "legacy"}`;
+  if (project.id) return project.id;
+  if (!project.clientDraftOwner?.trim()) throw new Error("未保存工作区必须具有明确的本地草稿归属。");
+  return `local:${project.clientDraftOwner}`;
 }
 
 export function draftKey(project: WorkspaceProject, scope: DraftScope): string {

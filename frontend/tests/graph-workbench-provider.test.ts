@@ -1,7 +1,7 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
-import { plotloomApi } from "../src/api";
+import { ApiError, plotloomApi } from "../src/api";
 import { demoProject } from "../src/demo";
 import { acknowledgeDraft, getDraft, putDraft } from "../src/draft-registry";
 import { GraphWorkbenchProvider } from "../src/features/graph/GraphWorkbenchProvider";
@@ -11,6 +11,7 @@ import type { GraphAuthoringDraft, GraphCommandPreview, GraphWorkbenchState } fr
 import type { AuthoringDraft, WorkspaceProject } from "../src/types";
 import type { SourceOutlineReviewState } from "../src/types";
 import { graphDraftFixture } from "./graph-workbench-fixture";
+import { storeGraphSelection } from "../src/features/graph/graphSelection";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let root: Root, owner: GraphWorkbenchController, server: AuthoringDraft | null, preview: GraphCommandPreview;
@@ -258,6 +259,118 @@ it("refuses a preview after newer local edits instead of overwriting them", asyn
   await act(async () => owner.applyPreview());
   expect(owner.draft!.mapping.sections[0].summary).toBe("Typed after preview");
   expect(plotloomApi.applyGraphCommand).not.toHaveBeenCalled();
+});
+
+it("retires a remote revision-conflicted preview before any repeated confirmation, then explicitly rereads and prepares anew", async () => {
+  await show(); await act(async () => owner.prepareCommand({ operation: "set_start", nodeId: "opening" }));
+  const confirm = owner.applyPreview;
+  const remote = structuredClone(server!.payload) as unknown as GraphAuthoringDraft;
+  remote.mapping.sections[0].summary = "Remote newer prose";
+  server = receipt(remote, 2);
+  vi.mocked(plotloomApi.applyGraphCommand).mockRejectedValueOnce(new ApiError("arbitrary server wording", 409, { code: "revision_conflict" }));
+  await act(async () => confirm());
+  expect(owner.preview).toBeNull(); expect(owner.previewConflict).toBe(true);
+  expect(owner.error).toContain("重新读取");
+  await act(async () => { await confirm(); expect(await owner.prepareCommand({ operation: "set_start", nodeId: "opening" })).toBe(false); });
+  expect(plotloomApi.applyGraphCommand).toHaveBeenCalledTimes(1);
+  await act(async () => owner.refresh());
+  expect(owner.previewConflict).toBe(false);
+  expect(owner.draft!.mapping.sections[0].summary).toBe("Remote newer prose");
+  await act(async () => { expect(await owner.prepareCommand({ operation: "set_start", nodeId: "opening" })).toBe(true); });
+  expect(owner.preview!.draftRevision).toBe(2);
+});
+
+it("preserves unsent buffers, selection and the original CAS basis during explicit conflict reads and subsequent typing", async () => {
+  await show(); await act(async () => owner.prepareCommand({ operation: "set_start", nodeId: "opening" }));
+  const apply = owner.applyPreview;
+  let reject!: (reason: unknown) => void, applying!: Promise<void>;
+  vi.mocked(plotloomApi.applyGraphCommand).mockImplementationOnce(() => new Promise((_, fail) => { reject = fail; }));
+  await act(async () => { applying = apply(); });
+  const edited = structuredClone(owner.draft!); edited.fieldBuffers["edge:opening-ending:stateEffects"] = '{"unfinished":';
+  // A delayed response must not consume input that arrived after dispatch.
+  await act(async () => owner.selectNode("ending"));
+  server = receipt(graphDraftFixture(), 2);
+  await act(async () => { reject(new ApiError("CAS", 409, { code: "revision_conflict" })); await applying; });
+  await act(async () => owner.changeDraft(edited));
+  await act(async () => owner.refresh());
+  expect(owner.previewConflict).toBe(true); expect(owner.selectedNodeId).toBe("ending");
+  expect(getDraft(project, "story_graph")!.serverDraftRevision).toBe(1);
+  expect(revisionConflict).toHaveBeenCalledWith(expect.objectContaining({ serverDraftRevision: 1, payload: edited }));
+  // The refresh retained the local draft; restoring it uses the existing recovery
+  // boundary, not a silent CAS update from a read.
+  expect(serverDrafts.current.get(graphDraftKey("project"))!.draftRevision).toBe(1);
+  const next = structuredClone(owner.draft!); next.fieldBuffers = edited.fieldBuffers;
+  await act(async () => owner.changeDraft(next));
+  expect(getDraft(project, "story_graph")!.serverDraftRevision).toBe(1);
+  expect((getDraft(project, "story_graph")!.payload as GraphAuthoringDraft).fieldBuffers).toEqual(edited.fieldBuffers);
+});
+
+it("retains the invalidated preview boundary and local content when explicit rereading fails", async () => {
+  await show(); await act(async () => owner.prepareCommand({ operation: "set_start", nodeId: "opening" }));
+  vi.mocked(plotloomApi.applyGraphCommand).mockRejectedValueOnce(new ApiError("CAS", 409, { code: "revision_conflict" }));
+  await act(async () => owner.applyPreview());
+  const retained = structuredClone(owner.draft);
+  vi.mocked(plotloomApi.getGraphWorkbench).mockRejectedValueOnce(new Error("offline"));
+  await act(async () => owner.refresh());
+  expect(owner.previewConflict).toBe(true); expect(owner.preview).toBeNull(); expect(owner.draft).toEqual(retained);
+  expect(owner.error).toContain("当前内容仍保留");
+  await act(async () => owner.applyPreview());
+  expect(plotloomApi.applyGraphCommand).toHaveBeenCalledTimes(1);
+});
+
+it("does not classify unrelated 409 responses as a draft revision conflict", async () => {
+  await show(); await act(async () => owner.prepareCommand({ operation: "set_start", nodeId: "opening" }));
+  vi.mocked(plotloomApi.applyGraphCommand).mockRejectedValueOnce(new ApiError("domain refusal", 409, { code: "graph_invalid" }));
+  await act(async () => owner.applyPreview());
+  expect(owner.previewConflict).toBe(false); expect(owner.preview).not.toBeNull(); expect(owner.error).toBe("domain refusal");
+});
+
+it("ignores an old project's delayed revision conflict response", async () => {
+  await show(); await act(async () => owner.prepareCommand({ operation: "set_start", nodeId: "opening" }));
+  let reject!: (reason: unknown) => void, applying!: Promise<void>;
+  vi.mocked(plotloomApi.applyGraphCommand).mockImplementationOnce(() => new Promise((_, fail) => { reject = fail; }));
+  await act(async () => { applying = owner.applyPreview(); });
+  project = { ...project, id: "other-project" }; server = null; await show();
+  await act(async () => { reject(new ApiError("old CAS", 409, { code: "revision_conflict" })); await applying; });
+  expect(owner.previewConflict).toBe(false); expect(owner.error).toBe(""); expect(owner.preview).toBeNull();
+});
+
+it("ignores a reread failure older than a successful authority read", async () => {
+  await show(); await act(async () => owner.prepareCommand({ operation: "set_start", nodeId: "opening" }));
+  vi.mocked(plotloomApi.applyGraphCommand).mockRejectedValueOnce(new ApiError("CAS", 409, { code: "revision_conflict" }));
+  await act(async () => owner.applyPreview());
+  let reject!: (reason: unknown) => void, oldRead!: Promise<void>;
+  vi.mocked(plotloomApi.getGraphWorkbench).mockImplementationOnce(() => new Promise((_, fail) => { reject = fail; }));
+  await act(async () => { oldRead = owner.refresh(); });
+  const remote = graphDraftFixture(); remote.mapping.sections[0].summary = "Latest successful authority";
+  server = receipt(remote, 2);
+  await act(async () => owner.refresh());
+  const latest = { draft: structuredClone(owner.draft), receipt: structuredClone(serverDrafts.current.get(graphDraftKey("project"))), conflict: owner.previewConflict, error: owner.error };
+  await act(async () => { reject(new Error("obsolete failure")); await oldRead; });
+  expect({ draft: owner.draft, receipt: serverDrafts.current.get(graphDraftKey("project")), conflict: owner.previewConflict, error: owner.error }).toEqual(latest);
+});
+
+it("preserves this tab's surviving live selection over another tab's stored preference on reread", async () => {
+  server = receipt(graphDraftFixture(), 1); await show();
+  await act(async () => owner.selectNode("ending"));
+  storeGraphSelection("project", "opening");
+  expect(getDraft(project, "story_graph")).toBeUndefined();
+  await act(async () => owner.refresh());
+  expect(owner.selectedNodeId).toBe("ending");
+  project = { ...project, id: "other-project" }; server = null;
+  storeGraphSelection("other-project", "opening"); await show();
+  expect(owner.selectedNodeId).toBe("opening");
+});
+
+it("uses the server's valid selection with an explanation if the live node was remotely removed", async () => {
+  server = receipt(graphDraftFixture(), 1); await show();
+  await act(async () => owner.selectNode("ending"));
+  const next = graphDraftFixture(); next.mapping.topology.nodes = next.mapping.topology.nodes.filter(node => node.id !== "ending");
+  next.mapping.sections = next.mapping.sections.filter(section => section.sectionId !== "ending");
+  next.mapping.topology.edges[0].targetNodeId = null;
+  server = receipt(next, 2);
+  await act(async () => owner.refresh());
+  expect(owner.selectedNodeId).toBe("opening"); expect(owner.error).toContain("原选中节点已不在");
 });
 
 it("keeps draft content when discard fails, then clears only on its exact receipt", async () => {

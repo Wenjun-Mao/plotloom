@@ -1,219 +1,261 @@
 # Fresh full creator E2E run ledger
 
 Scope: [approved repeat](../roadmap/2026-10-07-full-creator-e2e-repeat.md).
-Inventory: permanent C01–C55/P01–P06/E01–E22, with meaningful subcontrols and
-states recorded separately here. Current status is IN PROGRESS, not acceptance.
+The permanent C01–C55/P01–P06/E01–E22 checklist owns acceptance. Current status
+is PARTIAL, not full E2E acceptance. Dated failures, interrupted gates, native
+receipts and prior checkpoints are preserved verbatim in the linked
+[historical receipt](2026-10-07-full-creator-e2e-repeat-history.md).
+Historical present-tense statements there do not describe current deployment.
 
-## Preservation and runtime
+## Current status — final gate checkpoint, 2026-10-07
 
-Baseline `8782dab`, clean main. Manager independently captured protected owner
-rows, 67+17 files and three protected configurations: aggregate
+Local checkpoint `406c942` is local-only: no push or normal activation.
+Normal8841 was stopped only after an immediate idle check at17:03 with the
+established manage.py stop; it remains in maintenance awaiting
+explicit restart approval. Deployment/token/specialist settings are unchanged.
+Old checked static is recoverably retained in
+`output/playwright/full-creator-2026-10-07/pre-capability-checked-static/`.
+
+Retained8851/8852 Python (PID2191/session91780) started before the final shot-policy
+cleanup. Its explicit-advisory QA is semantically comparable, not identical to the
+final loaded Python. Its isolated static matches the checked candidate. SHA256 is
+`c8fe9734faaed15142987c80fd318561260269d4e8c8415d853845dbcd6346ab`.
+Fresh8861/8862 was NOT restarted: its exact image reservation remains busy.
+Existing live QA tabs on8861 retain pre-capability loaded UI; its served checked
+static bytes are newer, so those tabs must not reload against the old Python.
+No absent-field compatibility fallback or concurrent API writer was introduced.
+
+Final independent gates are PASS: V8 full Python 1,227 tests; frontend 582 tests;
+V7 unfiltered full browser 204 tests; frontend and E2E typechecks, lock check,
+API F401 lint, diff check, wheel build and wheel-installed smoke. Independent
+source review has no blocker. Full 847-file final fingerprint:
+`761a22ec55021b22a218d82569d2f0767600a8bf818f3f220ce5155adc2730c7`.
+During the browser run only the authorized Python unit-test module changed;
+the other 846 product/E2E/harness/static inputs remained identical. This is not
+a claim that every input stayed unchanged. Prior interrupted/checkpoint gates
+remain historical, not replacements for these final gates.
+
+V7 Python had two failures: its dependency-invalidation fixture now began with
+advisory policy, so advisory→advisory correctly remained ready rather than stale.
+The single-file test correction explicitly tests advisory→strict invalidation and
+advisory→advisory no-op for direct/draft saves, with unchanged no-op revision and
+exact draft consumption. Focused module: 11 PASS/2.85s. Production behavior and
+bounds were not weakened; V8 full Python includes this correction.
+
+Durable gate artifacts live in `.local/full-creator-e2e-repeat-2026-10-07/gates/`:
+`independent-final-v8-python.log`, `independent-final-v8-before.json`,
+`independent-final-v8-python-after.json`; `independent-final-v7-browser.log`,
+`independent-final-v7-before.json`, `independent-final-v7-browser-after.json`;
+and `independent-final-v7-{frontend,typecheck,lock,lint,diff,wheel,smoke}.log`.
+`independent-final-v7-python.log` retains the failed attempt, not a passing gate.
+Wheel SHA256: `82bee9d078bcd01c4001183adf25d2661ea778dc0d546aa2c20b20d8544bdcde`.
+
+Qualified software release still awaits root's exact scoped local commit, paired
+normal restart and publication authorization. No final activation or push occurred.
+The real E2E remains PARTIAL: native image continuation requires separate human
+authority; remaining media routes and controls are not qualified by fixture gates.
+
+Parent protection recaptures match the baseline aggregate exactly:
 `df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`.
-New isolated8861/8862 `.local/full-creator-2026-10-07/installation`, initially
-process7211 then idle-restarted13666 before first send,23408 before branch dispatch,
-30338 after branch completion (zero inflight/two completed receipts). Prior8851 projects and evidence
-remain retained. This ledger never records credentials.
+Scope is two owner DB schemas/rows, Wind17+Rain67 managed files and three protected
+configuration hashes/modes/UIDs, not the global QA registry/application DB.
+Root's final read-only recapture at18:24:32 matched this exact baseline and final
+847-file source fingerprint; post-activation comparison remains due.
 
-## Inventory and root causes
+## Current coverage and explicit gaps
 
-| Contract | Controls/states and required evidence | Status |
+| Contract | Current qualification | Remaining scope |
 |---|---|---|
-| E01–E04/P01–P05 | Fresh Brief/source/outline/branch UI, frozen tasks, reports/cancel/reopen, independent Save/Confirm/Apply | PARTIAL: Brief/source/Outline r1 and native branch Confirm/Apply PASS; richer native structure pending |
-| E05–E06/C01–C55 | Permanent structural/detail/settings inventory, required123→222→333 sequence, richer joins/choices, dirty/authority recovery | PARTIAL: separate fresh structural QA; actual123/222/333 reconnections, bypass/delete/Undo and decision/join/ending cancel/delete/Undo PASS; unconnected deletion, save/reopen and remaining detail/visual inventory pending |
-| E07–E09/P04/P06 | Cast/art native delivery, distinct image subjects, pair comparison/zoom/selection/refinement/reopen, exact provenance | PARTIAL: original Art provenance/static reader/gallery zoom PASS; native Cast static reader/review/confirmation r1 PASS with offscreen style boundary; fresh images pending failed execution-preflight recovery |
-| E10–E13 | Script/static archived report/full scenes, storyboard review, intents/presentation/install, exact canonical handoff | PARTIAL: original Script/Storyboard static readers PASS after retained FAIL; fresh Script/Storyboard/intents/presentation/install workflow pending |
-| E14–E18 | Native keyframes, managed endframe/dirty guards, one-send H3, original/segment decisions, all media routes, downstream staleness | NOT EXERCISED |
-| E19–E21 | Rapid project/node/mode/history, queued/hidden/reopened tasks, unknown refusal, snapshot/restore/typed deletion/idle restart | NOT EXERCISED |
-| E22/C37–C39 | Three viewport sizes × color preference, separate pixels,30–90s exploration, clean seed, full gates/independent review/preservation | NOT EXERCISED |
+| E01–E04/P01–P05 | Fresh UI Brief/source/Outline r1, native branch review/Confirm/Apply; actual Outline timeline/table PASS, export BLOCKED_BY_DESIGN | Richer native structure not generated merely for counts |
+| E05–E06/C01–C55 | Separate real structural QA123→222→333 sequence; bypass/unconnected deletion/Undo; Save-close-reopen; partial-key C49; real stale-CAS refusal and matched live selection refresh; C48 legal/refused type/start guards; C50 endpoint/edge-only deletion/Undo; C51 retain/discard; C55 normal-flow help retests | Remaining type/kind/ownership permutations; OS blur NOT EXERCISED |
+| E07–E09/P04/P06 | Fresh native Cast/Art confirmed r1 with offscreen style boundary; original gallery provenance, current static readers and original gallery zoom PASS | Native Character/Scene/Prop images and same-subject pair pending |
+| E10–E13 | Fresh Script/Storyboard r1 confirmed; proposal r3 presentation reviewed/installed; ordinary first-shot handoff PASS | Model inference E12 NOT EXERCISED (runtime unavailable); physical direction realization remains unspecified |
+| E14–E18 | No fresh native media-route qualification | Keyframes, managed endframe/dirty guards, multishot preview, H3/all routes/staleness NOT EXERCISED |
+| E19–E21 | Task/reopen/owned idle restart; exact QA snapshot/operator restore/archive/unarchive/typed disposable-copy delete PASS | Media-bearing deletion and remaining lifecycle recovery NOT EXERCISED |
+| E22/C37–C39 |18 actual graph pixels across three sizes/two preferences reviewed independently; three siblings readable;34s exploratory navigation and final clean nine-seed reset; final software gates PASS | Six-sibling state/OS blur not qualified; native journey remains partial |
 
-Provenance failure: persisted declaration exists, while candidate.asset embeds
-metadata only. Shared art/character/shot candidate serializers have the same
-defect. Correct layer is public persistence projection, not gallery fallback.
-ADR0125 records the fix and null/history semantics. Original runtime/gallery retest
-passed independently; fresh native gallery coverage remains pending.
+### Fresh native identities and review boundaries
 
-Outstanding provenance UI gaps at the reviewed execution checkpoint: the shared
-API now projects persisted declarations, but Character ProposalDetails passes
-only origin, and shot MediaCandidates omits rights. Art shows both. These are
-disclosure-owner gaps, not a persistence/schema defect; E08/E14 are not fully
-qualified. Manager authorized a LOCAL checkpoint commit of current tested source
-only, not push/normal activation or full E2E completion. Follow-up Character/shot
-UI must display persisted source/rights/optional note and absent declarations as
-unavailable, never infer approval. Pinned image API/persistence source stays frozen
-while the same request/reservation is outstanding; native continuation still
-needs separately confirmed human authority.
+Project `b3a933f7-b6fc-40e3-826f-5162f95a119a` is the new minimal two-route film.
+Brief/Outline/branch/Cast/Art/Script/Storyboard used supported first dispatches.
+Cast's capacity failure was recovered once on the SAME job with explicit human
+continuation authority; no blind resend. Cast is one offscreen Lin, half-painted
+F2 style, not same-appearance or live-action creative approval. Frozen F3 Art,
+Script and Storyboard follow author-selected live-action and no visible people.
 
-Archived Script failure: pinned report Show-all handlers require JavaScript,
-while iframe and endpoint CSP intentionally prohibit it. Long scene blocks may
-be clipped. Owning reader presentation must preserve stored report evidence and
-the security boundary. ADR0126 defines named static Script/Art/Storyboard/Cast
-presentation after actual neighboring failures. Original Script/Art live reader
-retests passed. Corrected original Storyboard full prompts/segments and fresh
-native Cast static disclosures also passed; wide Cast height repair independently
-corroborated. Final hidden relationship hint is fixture-proven and awaits live
-activation after native reservation resolves. Pinned multi-role/long-content
-fixtures passed separately; no scripts enabled. Fresh Script/Storyboard provider
-milestones remain pending.
+Art r1 hash `640131312426c031d557214faf59696a9ff125880f32a5d3e9b86dda48e166df`;
+Script r1 hash `e861b07e03c5ab51f01dbbb5257f47d91a86501b3002e6900267c693bd325be7`;
+Storyboard r1 hash `375f1afd164e2f8a6cadf2f4076d0778e3ae4f0b0bf4a046617c3b7361031d06`.
+Storyboard's one turn completed normally after1,440,093ms; report17/17 includes
+recipe-library skip, placeholder Picture1 and unspecified physical east/west
+realization. Pixels28–31 qualify visible report reading;27 does not.
 
-## Live ledger
+Authored-intent checkpoint r2 hash `dec232ca6958789678713689bb68f53e5f2a21df77ec0a24a130b14225fc72d6`
+has nine source-bound author intents (`suggestionOrigin=none`,
+`reviewState=author_saved`, absent model provenance). Only presentation_required
+remained then; later functional presentation classification/install is below.
+No inference retry or invented physical direction.
 
-API fixtures and historical observations never fill fresh UI milestone rows.
-Expected failures, exact identities, separate visible/pixel evidence, focused
-checks and remaining subcontrols are appended as exercised below.
+Image `ij_5be49304cccb4b1bbbc215f08b2f75cd` stopped at committed-source preflight.
+Frozen request hash `9bf2758335113c686f921d6f6f283e867911552c6762f8e39669389a483ce3ba`.
+No image/completion exists. Preserve request/reservation; SAME-task continuation
+still awaits separate human authority. Queue/package state is not native
+execution status. Native Scene/Prop/pair/keyframes/H3 have not been exercised.
 
-### First current checkpoints
+### Demonstrated repairs and separate evidence
 
-| Subcase | Action → visible observation / identity | Qualification |
-|---|---|---|
-| E01 Brief/new project | Actual Create blank/title/synopsis/drama/live-action/10s/one choice/two endings/four nodes/two options/zero joins/one shot, Save→Source. New project `b3a933f7-b6fc-40e3-826f-5162f95a119a`; offscreen adult Lin, one room/one copper signal lamp, three5s pictures, two10s routes. | LIVE_UI_ISOLATED PASS for named inputs, other preset/custom states pending |
-| E02 source/settings/prepare | Actual source Confirm→r1; QA-local text/image chat fields saved/Close; Outline Prepare→`ch_c1ced9e72a55423995ad84a821dfb3eb`, source1/outline0 frozen. Modal Save did not close by contract; premature underlying click was correctly intercepted, then explicit Close. | LIVE_UI_ISOLATED PASS, no normal settings mutation |
-| E02 dispatch/admission/report/accept | Send once14:17:27UTC; native turn `01a116b9-f6ca-7d33-b925-595d40ec43b9` completed168855ms. Existing automatic checks admitted actual delivery; full report read before explicit Confirm14:24:26. Three organization records, one offscreenrole/room/prop,14/14; east/west mutually exclusive and no new quality/same-person claims. | LIVE_UI_ISOLATED/LIVE_PROVIDER PASS; screenshot04 directly inspected1700×900 |
-| E21 fresh idle restart | Prepared unsent Outline/source retained across owned8861 restart before send; reload recovered same project/candidate, no duplicate. | LIVE_UI_ISOLATED/READBACK PASS for this idle restart only |
-| E09 provenance original repair | Old8851 exact process20595 stopped only after zero inflight/all12receipts completed; same root/backend/static restarted13855. Original S01 asset `684e1485-a8e5-4344-ac6a-74ab31856c54`, candidate `a6e48087-1a8c-4a73-880f-943f1b9bf968`, originalij69ef…/hash e7d084… now visible source `art_reference_proposal`, rights `unknown`,1672×941. Actual existing Check retained unselected Use button/same image. | LIVE_UI_ISOLATED PASS for original action; screenshots02/03 directly reviewed1700×900/1280×768, manager independently corroborated; fresh native galleries still pending |
-| E09 neighboring archived Art Copy | Ordinary original report first Copy click left label复制/data-done null; expected sandbox script-block error, no write/selection. Pinned renderer requires JS for copy/export/inner zoom, native prompt details work. | LIVE_UI_ISOLATED FAIL before repair; subsequent corrected original PASS below |
-| E02 revision/cancel/retained Outline | After accepting r1, ordinary reopen/Close and reopen/Escape, Start revision→Prepare `ch_27e1387d11484596b1ddc9298a4c6fa8` unsent→Cancel→Return retained accepted Outline r1. | LIVE_UI_ISOLATED PASS; timeline/detail/export subcontrols still pending |
-| E03 native branch task | Prepare `ch_c2912042416b4c3d9c2e344717b6722f`→Send once; visible sent/automatic delivery checks. | LIVE_UI_ISOLATED PASS for dispatch, actual admission/review pending |
-| E03 branch review/adopt/Confirm/Apply | Actual returned four-node/two-ending candidate fully read, then Bring into editable draft→Confirm saved→separate Apply. UI shows story route r1/current and two complete east/west routes. Native branch task receipt completed normally. | LIVE_UI_ISOLATED/LIVE_PROVIDER PASS for named actions; richer structure pending |
-| E09 corrected original static Art | Corrected owned8851 runtime27688 activated only while zero inflight/all12 receipts completed. Six prompt details initially open; actual first summary closes then reopens. Copy/export hidden; old report has no embedded image/zoom (NOT EXERCISED there). Modal Close→reopen, Escape→opener focus. | LIVE_UI_ISOLATED PASS;05/06 directly inspected1280×768/1700×900 and manager independently inspected. Gallery-owned zoom remains separate/pending |
-| E09 immutable Art report | Default API exactly equals stored HTML; static view distinct. Stored SHA256 `437b31ad3fc0155da6133b9d9acb65e7d631881a1316c1467c0f3e83a5e79885` retained before/after actual reading. | READBACK PASS, no evidence rewrite |
-| E02 Outline subcontrols | Retained accepted report ordinary 明细表 shows table, 时间轴 hides it. Export JSON click produces no download; actual browser warning identifies absent allow-downloads grant. ADR0086 explicitly keeps downloads restricted while allowing original export control visible. | LIVE_UI_ISOLATED PASS for tabs; export BLOCKED_BY_DESIGN, no download success or permission relaxation claimed |
-| E07 cast dispatch hidden/reopened | Create character proposal→Send once→navigate to retained Outline→return Characters while native task continues. | LIVE_UI_ISOLATED PASS for dispatch/navigation; delivery/review pending |
+Persisted-provenance omission is repaired in the shared public projection
+(ADR0125), including earliest declaration ordering/null-vs-unknown semantics.
+Character/shot disclosure-owner omissions are also repaired without inference.
+Long-note layout initially stretched sibling actions; intrinsic card alignment
+and all-sibling guards now pass. Four retained corrected1280/1700 pixels were
+directly read by writer and parent; FAIL pixels remain separately retained.
+These long-note fixtures do not qualify native image delivery or legal rights.
 
-Current exact browser screenshots: `output/playwright/full-creator-2026-10-07/`.
-Screenshot01 records first Outline sent;04 loaded candidate report.02/03 repaired
-original details inspected for readability, no horizontal overflow or occlusion.
-All current media/creative-quality acceptance remains excluded.
+ADR0126 static Script/Art/Storyboard/Cast readers preserve archived bytes/hash,
+CSP/empty sandbox, actual images, native disclosures and anchors. Pinned scripts
+remain forbidden. Original live readers and final Script owned-note suppression
+passed; duration/scene-table notes remain visible. Parent inspected38.
+Retained8851 QA project `4ede8a69-bd36-4e3e-9e6f-5678181a29fa`, separate from
+the fresh8861 native project, showed raw English as primary guidance in pixel40;
+typed stale status now owns Chinese guidance, unchanged raw diagnostics remain
+inspectable under technical details. Live42/43 preserve that retained project's
+installed proposal r3 hash
+`0dbdbfd4f3a89bf2bc7af418556cbaaaec74f785d3bd92cbcc37f3bf9992d653`.
+No unsupported post-install reprepare or automatic regeneration is promised.
+This is not the fresh native installation, whose current r3 hash is `ef1d922c5cb266cb5192d9a1f49846f46d19a77bb151c0b4d7f5d9019b8da6bd`.
 
-### Subsequent partial checkpoints
+Runtime-only intentGeneration capability (ADR0079) is available iff both service
+owners are wired, never persisted into proposal/hash; typed503 refuses before
+jobs/writes. Unconfigured UI disables service operations but retains authored
+intent saving. Strict declared preset validation now precedes installation/key
+bootstrap (ADR0011); explicit CUSTOM remains valid, no migration/relabel fallback.
 
-- Cast `ch_e4e2200ffa35409e8896beae762992ff`: initial native turn
-  `01a116cb-82fc-77b2-966b-24286e2aa589` failed at capacity after16.8s, with no
-  delivery. UI Check truthfully retained queued/waiting-delivery; it does not
-  project native execution failure. Independent read-only assessment confirms an
-  external visibility boundary: receipts own queue/package/delivery state and
-  text UI warns acknowledgment is not execution. No failed app transition or
-  running/healthy claim is demonstrated; no reconciliation feature is introduced.
-  Human explicitly authorized
-  one same-frozen-job continuation; manager sent it without model/settings/job or
-  lease changes. Turn `01a116d6-6dec-7cd1-bcf7-10dc488d849a` completed148729ms;
-  ordinary automatic checks admitted the same Cast candidate. All fields reviewed,
-  acceptance still pending corrected static-reader retest.
-- Cast style boundary: F2 pinned realistic means half-painted, unlike Brief
-  live-action. Explicit functional QA acknowledges this offscreen independent
-  character-design proposal only, not same appearance, Brief-style or creative
-  acceptance. F3's frozen live-action art-style contract must own actual film Art
-  and keyframes; no inherited Cast default, silent mapping or frozen-job rewrite.
-- Original Script `ch_ff461edee55e430c8a95205348f65b72`: static host/all five
-  sections visible; stored/default HTML SHA256
-  `0007445bc8968ff5b4b1d826e1b93552365ca35ec4d3ea6548b73ee18bf20d62`
-  unchanged. Screenshot07 is1700×900 top/summary pixels, not long-scene pixel proof.
-- Original Storyboard `ch_94df04816baf423c9bfc80e66da749eb`: actual Show-all
-  stayed max-height760px, Copy inert. Screenshot08 preserves pre-repair failure.
-  Fresh Cast Copy/Expand/Search inert under empty sandbox; screenshot09 filename
-  says1280 but measured pixels are1700×900. Manager directly reviewed07/08/09.
-- Structural QA project `0eabd058-b8a6-4ad1-8764-d2bbf11155be`: actual fresh
-  Brief two choices/three endings/max-three-options/one join, nine-node planner
-  seed, all nine titles/summaries edited. Added123 `graph-96dc7984a15d401eaeb54322`
-  with first-choice→123→join; added222 `graph-d67bfb0c52f64816885650b7`
-  explicitly unconnected; inserted333 `graph-509b1cdcda1540a5aa8343ef` after123,
-  preserving original edge identity. Actual reconnection previews exercised;
-  required bypass/delete/undo sequence remains in progress, not full E05 PASS.
-- Original gallery-owned image zoom opens1672×941 asset, Escape closes and
-  restores opener focus. Separate from report-inner zoom, which is disabled.
-- Outline export warning is expected C01 sandbox policy evidence, not successful
-  download. C08 actual OS blur is NOT EXERCISED; DOM focus cannot qualify OS focus.
+### Structural and recovery readback
 
-Latest focused checks: provenance34PASS/8.72s includes deterministic earliest
-created-at/ID tie regressions; manager independently34PASS/7.33s. Static parser/API
-16PASS/0.71s, genuine pinned Storyboard1PASS/10.1s and Cast four-role1PASS/4.4s,
-e2e typecheck PASS. Manager independently combined parser/API/provenance50PASS/7.89s.
-These do not qualify native multi-role delivery or fresh images. Storyboard fixture
-first image-branch attempt failed because close/reopen does not remount the frame;
-reload established the intended intercepted image transport. No product contract
-or CSP was weakened.
+Structural project `0eabd058-b8a6-4ad1-8764-d2bbf11155be` retained exact unfinished
+edge JSON and two-line prose through Save-close-reopen without Confirm/Apply.
+C49 join `join-a5801402-05aa-52b8-a238-6e90dd2e660f` retained nonblank partial keys
+`lamp.partial_QA_`/`lamp.unfinished_QA_` through blur/mode/select/save/close/reopen,
+server draft53/baseCanon0. Blank separators/trailing list newline normalize by
+the typed list codec; that is not nonblank content loss.
 
-Independent Cast review found a desktop static-layout omission: pinned `.side`
-retained a viewport-fixed height after switching the shell to linear reading,
-allowing long synopsis overflow into main content. Static CSS now resets owned
-height to auto. The first guard checked sidebar-box bottom but did not measure
-overflowed content and was insufficient. The final genuine pinned long-synopsis
-fixture at an iframe wider than1080px measures actual synopsis/footer content
-bottom against main top: the old fixed-height counterfactual must overlap, and
-the restored static auto-height must not. This is presentation
-ownership, not a host-viewport workaround. Earlier broad snapshot gates require
-rerun against this repaired candidate.
-Corrected live wide-frame height is183.289px, sidebar bottom243.289 before
-main top254.289 (1360px iframe), independently corroborated. Reviewer then
-observed pinned graph's residual hover/click instruction despite inert canvas:
-static visibility contract must suppress exact `.graph-h .hint`, not leave a
-scripted-action promise. Fixture asserts hidden; archived text remains retained.
+Matched8851 UI-origin QA `274ea714-6506-4396-9520-f1b818d79919` independently
+proved stale draft3→4 refusal, no repeated stale POST, explicit reread preserving
+this tab's surviving join despite another tab's stored start preference, newer
+prose readback and new preview Cancel. Pixel39 qualifies the corrected selection.
 
-Execution-prerequisite sequencing failure: Character image native turn
-`01a116e9-924d-7e41-af31-9ad80d13a5ab` stopped at pin preflight because
-`src/plotloom/api/project_folder_art.py` was uncommitted. No image/completion/pin
-was created. The local exported/waiting state is not execution evidence. Preserve
-`ij_5be49304cccb4b1bbbc215f08b2f75cd` and its frozen request/reservation; no
-resend, replacement or bypass. Obtain stable independent review/full gates and
-explicit local-commit-only authorization, then separately authorized same-task
-continuation. Art live-action task is prepared but remains unsent. This is run
-sequencing, not a product bug; permanent checklist now carries the pre-native
-committed-checkpoint prerequisite.
+Snapshot `20261007T171218926407Z__540792a9-a7e1-4436-b207-4ecbcde33ec5` was created
+by UI. Operator restore into separate `.local/full-creator-2026-10-07/e21-restored-outputs`
+has byte-equal project.sqlite3; no second API/writer or configuration restore.
+Actual archive/unarchive and wrong-name/cancel/exact-name typed delete passed for
+disposable brief-only copy `1154579c-dc16-4915-ba9d-e32778bea500` only (API404).
+Source QA274 and snapshot retained; this does not prove media-bearing deletion.
 
-Current executable checkpoint gates (not full fresh E2E acceptance): final Cast
-content-overflow/hint fixture1PASS/4.7s, parser/API16PASS/0.65s, lock check/API F401
-lint/compileall/diff check exit0, deterministic build PASS (existing chunk warning),
-wheel build and installed-wheel smoke PASS. Wheel SHA256
-`0c26b842d7468cd2e1804bf1e2e77695cf1521514ac276e99c7adb92f39ea3c5`;
-static JS `cfa42149a62261642ad534c0856e04f9f9065ac3e97c50f4edc5ea1b4b695cce`.
-Independent initial 1,214 Python/552 frontend passed, but executable source changed
-during that run: diagnostic only. Independent final frozen-v2 rerun: 1,214 Python
-tests PASS in 415.45s; 552 frontend tests across 77 files PASS; both typechecks,
-lock/API F401/diff checks PASS. Source fingerprint before/after
-`b997431e4172ee12343485013799859a293d2b4adf6e53e72a1f63f2980a3d61`,
-tracked diff fingerprint `7a9b211820ccf9d15b7098ffad726a975974b85f3c3a4f00a444fc5e87e5ec17`.
-Independent source review closed and protected owner checkpoint matches baseline.
-Full 202 fixture browser suite PASS in20.6m, exit0. No local commit yet. Saved
-gate receipt: `output/playwright/full-creator-2026-10-07/execution-checkpoint-receipt.md`;
-stdout was terminal session17682, not a separate full transcript. Playwright
-artifacts are `frontend/test-results/`. Real QA browser writes were paused during
-suite; these fixture gates do not fill fresh native E01–E22 rows.
+C51 on QA274: unsent two-line prose retained by 保留草稿, then separately explicit
+放弃图草稿 cleared draft/Undo. Server draft:null/baseCanon0 and original nine node IDs;
+empty start title/prose, Undo disabled. Pixel45 directly read by writer/parent.
+No accepted content existed, so accepted-media preservation is not claimed.
 
-Live structural additions: decision/join/ending only-delete previews enumerate
-exact affected endpoints, ordinary Cancel preserves node, Confirm detaches it,
-Undo restores node and downstream content. Required333 bypass and only-delete
-both confirmed/undone with original edge IDs restored; draft explicitly saved.
-Unconnected-node deletion and full save/reopen/visual inventory remain pending.
-Original Storyboard corrected live three blocks967/970/998px and full H3 prompts
-623/644/687px have no max-height or inner overflow; controls hidden. Host ordinary
-close/reopen retains named static frame. Screenshot13 directly inspected final
-prompt/soundscape/music lines1700×900;12 is mid-prompt, not final-line proof.
-Stored report SHA256 `c231d3e49f98401c905b746b46415cdba09d76aab442d2f91da59e8168b6c440`.
-Fresh native Cast r1 explicitly confirmed only after static reader retest and
-functional offscreen style acknowledgment. Its retained HTML current SHA256
-`f9cab6fa8ab0f6f65d41b6bfe3bee60e00b15142c33f6eb9a128dfe25b1ef5e4`.
-Multi-role/all-role/long-synopsis proof remains genuine pinned fixture, not this
-one-role native delivery. Fresh Art explicitly prepared live-action and unsent.
+Graph18 pixels qualify readable/clamped graph-area editor, three horizontal
+siblings, curved joins, footer, fixed dark composition under both color preferences.
+Top graph-area clamp intentionally prevents literal viewport-only centering.
+Pixel26's document selection is a prior nonqualifying attempt; clean pointer34
+has empty selection before/after. No OS blur or six-sibling extrapolation.
 
-Focused provenance31PASS/8.10s includes12 shared consumer tests for known/unknown/
-absent/invalid declarations and absent assets. Script static endpoint1PASS;
-strengthened actual-pinned long scene/cast/all-five-sections/independent script/
-parent/network/onclick/edited-warning/archive-hash browser1PASS/5.1s. Adjacent
-Script/owned HTML/JSON close/current Story7PASS/18.9s. Art parser/API2PASS/0.80s,
-actual-pinned Art static browser PASS; corrected adjacent accepted-report copy/URL
-assertions plus static test2PASS/9.3s. These are fixture checks, not fresh live Art/
-Script acceptance or final gates. Fixture failed attempts are retained in terminal
-outputs: confined delivery rejected an extra report-source fixture file; moving
-the fixture outside the inbox fixed setup. A wrong expected final cast line was
-corrected after inspecting actual orderedE03 last line. No validator was weakened.
+### C55 current root cause, repair and retest
 
-Independent manager provenance corroboration: same31 tests PASS/7.14s; existing
-Starlette/httpx deprecation warning only. Independent static review found a source
-preservation defect: `splitlines` recognized CR/Unicode separators that HTMLParser
-does not count, shifting start-tag offsets. Corrected to LF-only offsets with exact
-source-slice assertion, preserving unrelated text rather than tolerating mismatch.
-Six CR/CRLF/U+2028/U+2029/VT/FF regressions plus parser/API8PASS/0.74s; actual-pinned
-Art browser rerun1PASS/4.1s. Live Art will be retested only after corrected activation.
-The subsequent corrected original live retest is recorded above. Independent manager
-parser/API8PASS/0.59s and independent presentation review closed the offset blocker;
-no source/security blocker remains for this component. Browser fixtures and live
-pixel/control evidence remain distinct from the not-yet-complete full journey.
+Pixel44 demonstrated focused help intercepting the required input. The owning
+ContextHelp CSS absolutely positioned the explanation below the trigger, contrary
+to its shared dock contract. Group-owned normal-flow dock now follows the five-field
+grid; one active label/content, exact active-only aria-describedby, focused/pinned
+priority and trigger-scoped Escape remain. No pass-through, clipping or focus weakening.
+Two unit tests and both focused browser tests PASS12.5s; both typechecks/build PASS.
+Changed legal input values plus exact restoration are tested, not only same-value fill.
+
+Actual QA274 all five hover/focus/pin/Escape controls at1700×900,1280×768,1280×460
+have own help text, no field/dock overlap and unforced associated/next input clicks.
+Durable46 top views qualify unobscured fields;47 at1280×768 shows readable dock.
+47 short view alone did not expose the dock and is not readability proof; ordinary
+wheel scrolling reaches full dock/next settings in48 at1280×460, directly viewed.
+Save scroll visibility is not save-action acceptance; existing Brief save checks
+remain separate. Parent directly reviewed46-1700/47-768/48-460 and independently
+ran both unit tests PASS305ms; source review closed without blocker. First live
+alternate-value loop transiently made nodeBudget1/endingCount3 invalid and was
+refused by background Brief validation. Exact values restored and error ordinarily
+dismissed; no accepted write. Fixture alternatives now increment within valid
+ranges instead of reducing node budget below ending count. Existing pinned help
+closed on the first repeat-click observation; explicit Escape reset plus changed
+values1/2 retest preserved pinned help. All15 pairs changed/restored; no blanket
+claim that every transient combination was collectively valid.
+
+## Final finite structural checks — 17:41 UTC
+
+On QA274, edge `edge-11dfd08f-d8ab-5f56-bf5a-9e65035a0bdb` terminal cleared via
+preview/Confirm and restored to `node-6dfd1b52-dfa7-591f-8c34-aa078cc9a97f`;
+nine nodes retained. Delete EDGE removed only that connection, not either node;
+Undo restored the same identity/target. C48 current-start type select is disabled,
+and nonstart start option disabled. Connected scene `node-f0aa134f-bed2-5703-b302-64b585a7d1c4`
+to ending correctly refused out_degree; scene to decision refused edge_kind.
+After two failures, reassessed the edge/type contract rather than bypassing it.
+Cancelled add-node dialog without preparing/adding a tenth node; deleted outgoing
+`edge-0f415931-b5c7-582a-bb3f-31b673b223aa`, then legal scene→ending preview/Confirm
+succeeded. Undo restored scene type; second Undo restored exact outgoing edge.
+No complete type/kind permutation claim.
+
+34s free-form exploration17:40:26→17:41:00 inspected ending Story/Production,
+Professional layout/scroll and Creator join without a predetermined expected
+sequence. No new defect. Final explicit discard restored exact original nine IDs,
+draft:null/baseCanonical0/Undo disabled. No Confirm/Apply or accepted-media claim.
+Presentation classification was authorized as functional QA, not creative/media
+approval. Initial keyboard/pointer selection attempts were no-ops, not product
+qualification. Plain readonly textarea reproduces the same behavior; editable
+counterfactual arrows work. Ordinary native Shift-click works on both plain and
+current readonly fields. Exact current source0:15 selected the lamp-stays prefix,
+active:true/disabled:false, then Split produced two exact fragments with original
+source unchanged. Native selection and existing full presentation fixture2 PASS22.1s,
+no setSelectionRange or DOM mutation. Nine-source classification is paused to
+prioritize source/gates at that checkpoint; later normal classification is below.
+No image/H3 send, lease clearing or image continuation occurred.
+
+## Uniform shot-policy cleanup — 17:54 UTC
+
+Root/independent audit confirmed a compatibility split: absent stored policy was
+strict while absent new-project input became advisory through helper stamping;
+gate hashes excluded implicit policy. Owner's cleanup instruction supersedes this
+dated ADR0080 clause. One current ProjectBrief default is now advisory; explicit
+strict remains strict, helper/export/import/calls removed. Effective policy is
+always hashed: implicit advisory equals explicit advisory, differs from strict.
+Missing-field read preserves exact stored Brief/revision; no migration/read-time
+write. Protected owners have explicit advisory, unchanged semantics. Strict
+regressions now explicitly declare strict rather than weakening bounds.
+Shot-policy/domain/source-outline34 PASS2.15s; bridge/generation63 PASS25.20s;
+Idempotent missing-vs-explicit advisory creation included in final34 PASS3.53s;
+API F401 lint and diff check PASS.
+ADR0080 retains dated historical clauses with precise superseding current decision.
+
+## Fresh presentation/install/handoff — 17:58 UTC
+
+After source readiness, ordinary Shift-click source selection/splitting and role
+controls classified all nine sources. Every fragment concatenates exactly to its
+original source; source coordinates/hash/frozen evidence unchanged. Physical
+renderings copy source verbatim; player opening→choice is runtime_choice; abstract
+east/west state/termination and explicitly unspecified realization are review_only
+with honest reasons excluding invented mechanisms/colors/signals/people/rescue
+events and creative/media quality acceptance. Physical restrictions remain physical.
+Pixel51 directly inspected the unspecified west-state reason and full restrictions
+before Save/install; it does not independently prove installation.
+
+Functional-QA completeness checkbox and Save produced proposal r3 hash
+`ef1d922c5cb266cb5192d9a1f49846f46d19a77bb151c0b4d7f5d9019b8da6bd`,
+reviewed:true/installable:true. Explicit Confirm installed normally: status accepted,
+hasInstallation:true/installedStoryboardCurrent:true; three scenes/three exact5s
+cuts, same east/west outcome IDs/coordinates and original two10s routes. No image
+or video generated, no implicit media selection. Ordinary Continue opened
+`shot:node-b64d6809-7161-5042-a7f8-a3c5c854e733-s1-c1` in the canonical workbench.
+Pixel52 directly inspected5s/current shot/no-original candidate boundary; readback
+has both route filters, exact physical opening actions, Lin unchecked/S01 selected/
+P01 checked. No shot approval or further native task sent at this checkpoint.
+Parent's read-only GET at18:02 independently corroborated r3/hash, accepted status,
+reviewed/installable, three scenes/cuts and current installation. Pixel52 plus that
+GET qualify post-install handoff; pixel51 remains pre-install classification evidence.

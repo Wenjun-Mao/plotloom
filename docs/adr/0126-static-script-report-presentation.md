@@ -16,7 +16,10 @@ The host explicitly requests `report?presentation=static` and labels it a static
 reading view. A presentation-only stylesheet applies the pinned renderer's own
 print content semantics: fully reveal scenes and cast line books, suppress
 script-dependent Show-all/copy/export controls. This is full static disclosure,
-not working interactive buttons. The current F4 renderer has no tabs/hidden panes;
+not working interactive buttons. It also suppresses the current
+`sec-script`/`sec-cast` header notes that
+promise clipping/expansion or six-row scrolling. Other duration/data notes remain.
+The current F4 renderer has no tabs/hidden panes;
 its five sections are always present. Product-owned current JSON/scene readers
 and separate acceptance controls remain authoritative.
 

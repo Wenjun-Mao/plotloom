@@ -156,11 +156,9 @@ fieldset legend, .structured-editor legend, .section-map legend { color: var(--m
 .context-help > button { display: grid; width: 28px; height: 28px; padding: 0; place-items: center; border: 0; border-radius: 6px; color: var(--muted); background: transparent; cursor: pointer; font: 400 14px var(--sans); list-style: none; }
 
 .context-help > button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.context-help > [role="tooltip"] { display: block; position: absolute; z-index: 15; top: 32px; right: 0; width: min(280px, 70vw); padding: 14px; border: 1px solid var(--line-strong); border-radius: 9px; background: var(--panel-2); color: var(--text); box-shadow: 0 8px 22px #0008; font-size: 14px; line-height: 1.65; }
-.context-help > [role="tooltip"][hidden] { display: none; }
-@media (max-width: 720px) {
-  .context-help > [role="tooltip"] { position: fixed; top: auto; bottom: 24px; left: 16px; right: 16px; width: auto; }
-}
+.context-help-dock { min-height: 100px; margin-top: 12px; }
+.context-help-dock > [role="tooltip"] { padding: 14px; border: 1px solid var(--line-strong); border-radius: 9px; background: var(--panel-2); color: var(--text); font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; }
+.context-help-dock p { margin: 4px 0 0; }
 .project-brief-navigation { display: grid; gap: .35rem; padding: .85rem; text-align: left; color: var(--text); border: 1px solid transparent; border-radius: .7rem; background: var(--panel); }
 .project-brief-navigation small { color: var(--muted); font-size: .78rem; line-height: 1.4; }
 .project-brief-navigation.active { border-color: var(--accent); }
@@ -189,7 +187,6 @@ fieldset legend, .structured-editor legend, .section-map legend { color: var(--m
   input:not([type="checkbox"]):not([type="radio"]), select, textarea { min-height: 44px; font-size: 16px; }
   .appearance-mode label, .directory-onboarding label, .profile-capabilities label, .preset-custom-disclosure > summary { min-height: 44px; }
   .context-help > button { width: 44px; height: 44px; }
-  .context-help > [role="tooltip"] { z-index: 60; max-height: 40vh; overflow-y: auto; }
   .page-header { gap: 12px; }
   .preset-options { gap: 6px; }
 }

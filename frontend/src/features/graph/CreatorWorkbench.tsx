@@ -4,6 +4,7 @@ import { plotloomApi } from "../../api";
 import type { SourceOutlineReviewState, WorkspaceProject } from "../../types";
 import type { PageId } from "../../app/workspace/contracts";
 import { useGraphWorkbench } from "./GraphWorkbenchContext";
+import { GraphPreviewRecovery } from "./GraphPreviewRecovery";
 import { CanonicalGraphReader } from "./CanonicalGraphReader";
 import { CreatorStoryInspector } from "./CreatorStoryInspector";
 import { GraphCommandDialog } from "./GraphCommandDialog";
@@ -68,6 +69,7 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onNavigate, onO
     </div>
     <p className="creator-desktop-boundary">桌面创作：浏览器窗口宽度至少 1280px；不支持手机或窄屏。{!geometry.desktop && "请扩大窗口后继续编辑。"}</p>
     {sourceError && <p className="notice warning" role="alert">来源读取失败：{sourceError}<Button onClick={() => onNavigate("source")}>返回来源检查</Button></p>}
+    <GraphPreviewRecovery />
     {owner.stale && <p className="notice warning">简报、来源或已确认规范已变化。当前图草稿仍保留。<Button disabled={owner.busy} onClick={() => void owner.recover()}>在当前版本恢复为新草稿</Button></p>}
     <details className="creator-structure-check"><summary>结构检查 · {structure.incomplete ? "未完成" : structure.mismatches.length ? "与简报目标不同" : "可进入内容确认"}</summary>
       <p>实际：{structure.actual.nodes} 节点 · {structure.actual.endings} 结局 · {structure.actual.joins} 汇合 · {structure.actual.routes}{structure.truncated ? "+" : ""} 条完整路线 · 每条路线 {structure.actual.choices.join(" / ") || "尚未完成"} 次选择。</p>

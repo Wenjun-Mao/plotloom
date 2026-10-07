@@ -3,6 +3,39 @@ import path from "node:path";
 import { expect, test } from "./fixture";
 import { json } from "./f5a-fixture";
 
+test("native readonly Shift-click selects an exact source fragment before splitting", async ({ page, request, workbench }) => {
+  const id = execFileSync("uv", ["run", "python", "-m", "frontend.e2e.fixtures.bridge_handoff_project", "--outputs", workbench.outputsRoot, "--application", workbench.applicationDataRoot, "--pending"], { cwd: path.resolve(".."), encoding: "utf8" }).trim();
+  const endpoint = `${workbench.apiOrigin}/api/v2/projects/${id}/production-bridge`;
+  const before = await json(request.get(endpoint));
+  await page.setViewportSize({ width: 1700, height: 900 });
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
+  const source = before.proposal.presentation.sources[0];
+  const field = page.getByTestId("production-presentation-review").locator("fieldset").first();
+  const text = field.getByLabel(`原始来源 ${source.id}`, { exact: true });
+  await text.scrollIntoViewIfNeeded();
+  const points = await text.evaluate(element => {
+    const input = element as HTMLTextAreaElement;
+    const style = getComputedStyle(input), rect = input.getBoundingClientRect();
+    const canvas = document.createElement("canvas").getContext("2d")!;
+    canvas.font = style.font;
+    const prefix = [...input.value].slice(0, 3).join("");
+    return { x: rect.x + parseFloat(style.paddingLeft), y: rect.y + parseFloat(style.paddingTop) + parseFloat(style.lineHeight) / 2, width: canvas.measureText(prefix).width, units: prefix.length };
+  });
+  await page.mouse.click(points.x + 1, points.y);
+  await page.keyboard.down("Shift");
+  await page.mouse.click(points.x + points.width, points.y);
+  await page.keyboard.up("Shift");
+  expect(await text.evaluate(element => {
+    const input = element as HTMLTextAreaElement;
+    return { start: input.selectionStart, end: input.selectionEnd, active: document.activeElement === input, disabled: input.matches(":disabled") };
+  })).toEqual({ start: 0, end: points.units, active: true, disabled: false });
+  await field.getByRole("button", { name: "拆分选中文本", exact: true }).click();
+  await expect(field.getByRole("combobox")).toHaveCount(2);
+  await expect(text).toHaveValue(source.sourceText);
+  expect((await field.locator("blockquote").allTextContents()).join("")).toBe(source.sourceText);
+  expect((await json(request.get(endpoint))).proposal).toEqual(before.proposal);
+});
+
 test("whole presentation review preserves source evidence and requires explicit complete UI review before installation", async ({ page, request, workbench }) => {
   test.setTimeout(120_000);
   const id = execFileSync("uv", ["run", "python", "-m", "frontend.e2e.fixtures.bridge_handoff_project", "--outputs", workbench.outputsRoot, "--application", workbench.applicationDataRoot, "--pending"], { cwd: path.resolve(".."), encoding: "utf8" }).trim();

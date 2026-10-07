@@ -708,7 +708,7 @@ def test_f5a_uses_a_distinct_source_review_api_not_the_canonical_storyboard_revi
     assert prepared.json()["assignment"].startswith("Plotloom F5A storyboard review assignment")
     bridge = client.get(f"/api/v2/projects/{project_id}/production-bridge")
     assert bridge.status_code == 200, bridge.text
-    assert bridge.json() == {"proposal": None, "status": "missing", "staleReasons": [], "installedStageRevisions": None, "installedStoryboardCurrent": False, "hasInstallation": False, "intentJob": None, "simulationLabel": None, "runtimeChoice": None}
+    assert bridge.json() == {"proposal": None, "status": "missing", "staleReasons": [], "installedStageRevisions": None, "installedStoryboardCurrent": False, "hasInstallation": False, "intentJob": None, "simulationLabel": None, "runtimeChoice": None, "intentGeneration": {"status": "unavailable", "reason": "not_configured"}}
 
 
 def test_f5a_explicit_longer_cut_review_survives_restart_and_preserves_old_policy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

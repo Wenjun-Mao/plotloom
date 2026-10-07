@@ -3,6 +3,7 @@ import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "./fixture";
+import { inspectLongProvenanceLayout } from "./provenance-layout";
 import {
   createCanonicalProject, imageJob, latestImageJob, prepareImageJob,
   readJson, recordSamePersonReview, retainedComplementary, retainedStill,
@@ -231,6 +232,19 @@ test.describe("P1 self-contained specialist image brief", () => {
     );
     const originalCandidate =
       acceptedOriginal.deliveries[0].candidates[0].assetId;
+
+    const candidateCard = page.locator(".media-candidate").filter({ has: page.getByTestId(`keep-candidate-${originalCandidate}`) });
+    const provenance = candidateCard.locator("details");
+    await provenance.locator("summary").click();
+    await expect(provenance).toContainText(originalCandidate);
+    await expect(provenance).toContainText("codex_image_job");
+    await expect(provenance).toContainText("unknown");
+    await expect(page.getByTestId(`keep-candidate-${originalCandidate}`)).toHaveAttribute("aria-pressed", "false");
+    await provenance.locator("summary").click();
+    await provenance.locator("summary").click();
+    await expect(provenance).toContainText(originalCandidate);
+
+    await inspectLongProvenanceLayout(page, projectId, originalCandidate, provenance, "shot", testInfo, async () => { await openMediaPreparation(page); await openMediaKeyframes(page); });
 
     await page.getByTestId(`keep-candidate-${originalCandidate}`).click();
     await page

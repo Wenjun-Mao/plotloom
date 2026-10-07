@@ -34,8 +34,7 @@ class ProjectBrief(CamelModel):
     desired_join_count: Annotated[int, Field(ge=0)] = 1
     shots_per_scene_min: Annotated[int, Field(ge=1)] = 2
     shots_per_scene_max: Annotated[int, Field(ge=1)] = 4
-    # Missing persisted fields belong to pre-ADR-0080 projects and stay strict.
-    shot_count_policy: Literal["strict", "advisory"] = "strict"
+    shot_count_policy: Literal["strict", "advisory"] = "advisory"
 
     @model_validator(mode="after")
     def validate_internal_limits(self) -> ProjectBrief:
@@ -71,13 +70,3 @@ class ProjectBrief(CamelModel):
         return self.model_dump(mode="json", by_alias=True) | {
             "genre": self.genre_direction, "visualStyle": self.visual_direction,
         }
-
-
-def brief_for_new_project(brief: ProjectBrief) -> ProjectBrief:
-    """Stamp the new-project default without reinterpreting stored legacy Briefs."""
-
-    return (
-        brief
-        if "shot_count_policy" in brief.model_fields_set
-        else brief.model_copy(update={"shot_count_policy": "advisory"})
-    )

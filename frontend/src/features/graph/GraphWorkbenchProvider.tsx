@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MutableRefObject, ReactNode } from "react";
-import { plotloomApi } from "../../api";
+import { ApiError, plotloomApi } from "../../api";
 import { acknowledgeDraft, discardDraft, getDraft, findRevisionConflict, type DraftRecord } from "../../draft-registry";
 import type { AuthoringDraft, SectionMap, SourceOutlineReviewState, WorkspaceProject } from "../../types";
 import { GraphWorkbenchContext } from "./GraphWorkbenchContext";
@@ -43,13 +43,19 @@ export function GraphWorkbenchProvider(input: Input) {
   const busyRef = useRef<symbol | null>(null);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<GraphCommandPreview | null>(null);
+  const livePreview = useRef<GraphCommandPreview | null>(null);
+  const [previewConflict, setPreviewConflict] = useState(false);
+  const conflictRef = useRef(false);
+  const displayPreview = (next: GraphCommandPreview | null) => { livePreview.current = next; setPreview(next); };
+  const displayConflict = (next: boolean) => { conflictRef.current = next; setPreviewConflict(next); };
+  const invalidatePreview = () => { displayPreview(null); previewBasis.current = null; displayConflict(true); };
   const previewBasis = useRef<GraphAuthoringDraft | null>(null);
   const history = useRef<Array<{ before: GraphAuthoringDraft; after: GraphAuthoringDraft }>>([]);
   const [historyCount, setHistoryCount] = useState(0);
   const readGeneration = useRef(0);
   const owner = useRef({ projectId: input.project.id, epoch: 0 });
   if (owner.current.projectId !== input.project.id) owner.current = { projectId: input.project.id, epoch: owner.current.epoch + 1 };
-  const resetHistory = () => { history.current = []; setHistoryCount(0); setPreview(null); previewBasis.current = null; };
+  const resetHistory = () => { history.current = []; setHistoryCount(0); displayPreview(null); previewBasis.current = null; };
 
   const acceptReceipt = (receipt: AuthoringDraft, authored = false, selectionBasis = selectionVersion.current, keepSelection = false) => {
     readGeneration.current++;
@@ -80,26 +86,36 @@ export function GraphWorkbenchProvider(input: Input) {
         && next.draft.draftRevision < acknowledged.draftRevision)) return;
       const previousBase = findRevisionConflict(source.project, "story_graph");
       if (previousBase) source.revisionConflict(previousBase);
-      if (next.draft) source.serverDrafts.current.set(graphDraftKey(source.project.id), next.draft);
-      else source.serverDrafts.current.delete(graphDraftKey(source.project.id));
       const unsent = getDraft(source.project, "story_graph");
+      const unsentConflict = Boolean(unsent && unsent.serverDraftRevision !== (next.draft?.draftRevision ?? 0));
+      // A read is not permission to rebase unsent typing. Keep its receipt/CAS
+      // basis until the existing explicit conflict workflow resolves it.
+      if (unsentConflict) source.revisionConflict(unsent!);
+      else if (next.draft) source.serverDrafts.current.set(graphDraftKey(source.project.id), next.draft);
+      else source.serverDrafts.current.delete(graphDraftKey(source.project.id));
       const payload = unsent ? readGraphDraft(unsent.payload) : next.draft ? readGraphDraft(next.draft.payload) : next.initialPayload;
       setState(next);
       // A background read cannot erase newer typing. The server receipt still
       // updates currentness so explicit recovery/conflict handling remains visible.
       if (!unsent && liveDraft.current?.bindingHash !== payload?.bindingHash) resetHistory();
       if (!unsent || !liveDraft.current) {
+        const preferred = liveDraft.current ? liveSelection.current : readGraphSelection(source.project.id);
+        const retainedSelection = payload?.mapping.topology.nodes.some(node => node.id === preferred);
+        const removedSelection = liveDraft.current && preferred && !retainedSelection;
         setDraft(payload); liveDraft.current = payload;
-        const preferred = readGraphSelection(source.project.id);
-        displaySelection(payload?.mapping.topology.nodes.some(node => node.id === preferred) ? preferred : payload?.selectedNodeId ?? null);
+        displaySelection(retainedSelection ? preferred : payload?.selectedNodeId ?? null);
+        setError(removedSelection ? "原选中节点已不在当前服务器图草稿中，已显示其有效选中节点；未发送内容不会被覆盖。" : "");
+      } else {
+        setError("");
       }
-      setError("");
-    } catch (reason) { if (operation === owner.current) setError(reason instanceof Error ? reason.message : "无法读取共享图草稿。"); }
+      displayConflict(unsentConflict);
+    } catch (reason) { if (operation === owner.current && generation === readGeneration.current) setError(`无法读取共享图草稿；当前内容仍保留，请重试读取。${reason instanceof Error ? reason.message : ""}`); }
   }, []);
 
   useEffect(() => {
     setState(null); setDraft(null); liveDraft.current = null; liveSelection.current = null; setSelection(null); setError(""); resetHistory();
     busyRef.current = null; setBusy(false);
+    displayConflict(false);
     void refresh();
     return () => {
       owner.current = { ...owner.current, epoch: owner.current.epoch + 1 };
@@ -124,11 +140,11 @@ export function GraphWorkbenchProvider(input: Input) {
   const changeMapping = (mapping: GraphMapDraft) => {
     if (!writable() || !liveDraft.current) return;
     const next = { ...liveDraft.current, mapping, selectedNodeId };
-    setDraft(next); liveDraft.current = next; current.current.remember(next); setPreview(null);
+    setDraft(next); liveDraft.current = next; current.current.remember(next); displayPreview(null);
   };
   const changeDraft = (next: GraphAuthoringDraft) => {
     if (!writable()) return;
-    setDraft(next); liveDraft.current = next; current.current.remember(next); setPreview(null);
+    setDraft(next); liveDraft.current = next; current.current.remember(next); displayPreview(null);
   };
   const adoptMapping = (mapping: SectionMap) => {
     if (!writable() || !state) return;
@@ -162,29 +178,41 @@ export function GraphWorkbenchProvider(input: Input) {
   };
   const saveDraft = async () => (await perform(async () => { await acknowledge(); return true; })) === true;
   const prepareCommand = async (command: GraphCommand) => {
+    if (conflictRef.current) return false;
     return (await perform(async () => {
       const basis = owner.current, receipt = await acknowledge();
       const result = await plotloomApi.previewGraphCommand(current.current.project.id!, { expectedDraftRevision: receipt.draftRevision, command });
       if (basis !== owner.current) return false;
       previewBasis.current = { ...readGraphDraft(receipt.payload), selectedNodeId };
-      setPreview(result);
+      displayPreview(result);
       return true;
     })) === true;
   };
   const applyPreview = async () => {
-    if (!preview || !previewBasis.current) return;
+    const admittedPreview = livePreview.current;
+    if (!admittedPreview || !previewBasis.current || conflictRef.current) return;
     await perform(async () => {
       const basis = owner.current, previous = previewBasis.current!, selectionBasis = selectionVersion.current;
       const currentReceipt = await acknowledge();
-      if (currentReceipt.draftRevision !== preview.draftRevision) throw new Error("预览后图草稿已变化，请重新准备预览；当前修改仍保留。");
-      const saved = await plotloomApi.applyGraphCommand(current.current.project.id!, { expectedDraftRevision: preview.draftRevision, command: preview.command, previewHash: preview.previewHash });
+      if (currentReceipt.draftRevision !== admittedPreview.draftRevision) { invalidatePreview(); throw new Error("预览后图草稿已变化；当前修改仍保留，请重新读取后准备新预览。"); }
+      let saved: AuthoringDraft;
+      try {
+        saved = await plotloomApi.applyGraphCommand(current.current.project.id!, { expectedDraftRevision: admittedPreview.draftRevision, command: admittedPreview.command, previewHash: admittedPreview.previewHash });
+      } catch (reason) {
+        if (basis === owner.current && reason instanceof ApiError && reason.status === 409
+          && reason.details && typeof reason.details === "object" && "code" in reason.details && reason.details.code === "revision_conflict") {
+          invalidatePreview();
+          throw new Error("服务器图草稿已变化，旧预览已失效；当前文字、未发送字段与所选节点仍保留。请先重新读取图草稿，处理已有冲突后再准备新预览。");
+        }
+        throw reason;
+      }
       if (basis !== owner.current) return;
       const after = readGraphDraft(saved.payload);
       history.current.push({ before: previous, after });
       if (history.current.length > 40) history.current.shift();
       // Creation/reuse explicitly select their node. Other commands must not
       // revive the older selection stored with the last authored draft receipt.
-      setHistoryCount(history.current.length); acceptReceipt(saved, true, selectionBasis, !["add", "insert", "reuse"].includes(preview.command.operation)); setPreview(null); previewBasis.current = null;
+      setHistoryCount(history.current.length); acceptReceipt(saved, true, selectionBasis, !["add", "insert", "reuse"].includes(admittedPreview.command.operation)); displayPreview(null); previewBasis.current = null;
     });
   };
   const undo = async () => {
@@ -198,7 +226,7 @@ export function GraphWorkbenchProvider(input: Input) {
         expectedDraftRevision: receipt.draftRevision, payload: entry.before as unknown as Record<string, unknown>,
       });
       if (basis !== owner.current) return;
-      history.current.pop(); setHistoryCount(history.current.length); acceptReceipt(saved, true, selectionBasis); setPreview(null);
+      history.current.pop(); setHistoryCount(history.current.length); acceptReceipt(saved, true, selectionBasis); displayPreview(null);
     });
   };
   const recover = async () => {
@@ -269,7 +297,7 @@ export function GraphWorkbenchProvider(input: Input) {
   })) === true;
 
   return <GraphWorkbenchContext.Provider value={{ state, draft, selectedNodeId, busy, error, stale,
-    preview, canUndo: historyCount > 0, refresh, selectNode, changeMapping, changeDraft, adoptMapping, saveDraft,
-    confirmMapping, installMapping, prepareCommand, cancelPreview: () => { setPreview(null); previewBasis.current = null; },
+    preview, previewConflict, canUndo: historyCount > 0, refresh, selectNode, changeMapping, changeDraft, adoptMapping, saveDraft,
+    confirmMapping, installMapping, prepareCommand, cancelPreview: () => { displayPreview(null); previewBasis.current = null; },
     applyPreview, undo, recover, discard }}>{input.children}</GraphWorkbenchContext.Provider>;
 }

@@ -3,6 +3,61 @@ import { json, writeDelivery, type Preparation } from "./f5a-fixture";
 import path from "node:path";
 import type { SourceTopology } from "../src/types";
 
+test("structural help reserves normal-flow space without intercepting required fields", async ({ page, workbench }, info) => {
+  await page.goto(`${workbench.frontendOrigin}/v2/`);
+  await page.getByRole("button", { name: "创建空白项目" }).click();
+  const labels = ["每次完整播放的选择次数", "不同结局的数量", "剧情节点数量上限", "每次选择的最多选项数", "分支汇合次数"];
+  for (const size of [{ width: 1700, height: 900 }, { width: 1280, height: 768 }, { width: 1280, height: 460 }]) {
+    await page.setViewportSize(size);
+    for (const [index, label] of labels.entries()) {
+      const help = page.getByRole("button", { name: `说明：${label}`, exact: true });
+      await help.hover();
+      const tooltip = page.getByRole("tooltip");
+      await expect(tooltip.locator("strong")).toHaveText(label);
+      await help.focus();
+      await help.click();
+      await expect(help).toHaveAttribute("aria-describedby", await tooltip.getAttribute("id") as string);
+      const geometry = await page.locator(".context-help-dock").evaluate(dock => {
+        const bounds = dock.getBoundingClientRect();
+        return [...document.querySelectorAll(".structural-setting")].map(field => {
+          const rect = field.getBoundingClientRect();
+          return rect.bottom <= bounds.top;
+        });
+      });
+      expect(geometry.every(Boolean)).toBe(true);
+      const input = page.getByRole("spinbutton", { name: label, exact: true });
+      const next = page.getByRole("spinbutton", { name: labels[(index + 1) % labels.length], exact: true });
+      const value = await input.inputValue();
+      const nextValue = await next.inputValue();
+      const alternative = (current: string, name: string) => name === "每次选择的最多选项数" && current === "6" ? "5" : String(Number(current) + 1);
+      const changed = alternative(value, label);
+      const nextChanged = alternative(nextValue, labels[(index + 1) % labels.length]);
+      await input.click();
+      await input.fill(changed);
+      await next.click();
+      await next.fill(nextChanged);
+      await expect(input).toHaveValue(changed);
+      await expect(next).toHaveValue(nextChanged);
+      await input.fill(value);
+      await next.fill(nextValue);
+      await expect(input).toHaveValue(value);
+      await expect(next).toHaveValue(nextValue);
+      await expect(tooltip).toBeVisible();
+      await help.focus();
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("tooltip")).toHaveCount(0);
+      await page.mouse.move(0, 0);
+    }
+    await page.getByRole("button", { name: `说明：${labels[0]}`, exact: true }).click();
+    await page.screenshot({ path: info.outputPath(`help-flow-${size.width}-${size.height}.png`), fullPage: true });
+    await page.getByRole("button", { name: "保存并继续到来源" }).scrollIntoViewIfNeeded();
+    await expect(page.getByRole("button", { name: "保存并继续到来源" })).toBeVisible();
+    await page.getByRole("button", { name: `说明：${labels[0]}`, exact: true }).focus();
+    await page.keyboard.press("Escape");
+    await page.mouse.move(0, 0);
+  }
+});
+
 test("returns to the current Brief and rejects a branch proposal frozen before structural edits", async ({ page, request, workbench }, info) => {
   test.setTimeout(90_000);
   await page.goto(`${workbench.frontendOrigin}/v2/`);

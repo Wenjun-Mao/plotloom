@@ -135,3 +135,26 @@ state, including binding, canonical base and read-only admission. A payload does
 not grant currentness by itself. Existing project/epoch/read-generation guards
 reject obsolete reads and preserve newer typing; regression checks cover current
 editing after recovery and delayed reads across typing and project changes.
+
+## Consumed preview recovery and local ownership, 2026-10-07
+
+A real two-tab command returned typed `409/revision_conflict` and atomically
+preserved the newer server graph. The frontend nevertheless retained the stale
+preview, enabled confirmation and showed only a raw error. The shared command
+owner now retires that preview synchronously, including callers holding an old
+confirmation closure. Only the structured status/code pair triggers this path;
+unrelated domain refusals retain their own semantics. Explicit read-only refresh
+precedes a new preview. Unsent fields, selection and their original CAS receipt
+survive that read; a conflicting unsent buffer enters the existing explicit
+conflict workflow rather than silently rebasing. Failed or obsolete reads cannot
+grant currentness. Provider regressions cover repeated confirmation, successful
+and failed rereads, retained buffers/CAS, unrelated refusals and project switches.
+
+The local draft resolver also removes its shared `legacy` fallback. Persisted
+project identity wins; an unsaved workspace must supply its explicit nonempty
+`clientDraftOwner` before storage access. Current blank, sample/session and
+conflict-copy constructors already create distinct owners. Missing ownership is
+a programming-contract failure, not permission to generate an owner lazily or
+admit historical buffers. No actual user data loss was demonstrated; focused
+guards reject missing/empty owners without touching storage and retain ordinary
+persisted-project and distinct local-session behavior.

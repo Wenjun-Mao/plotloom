@@ -349,8 +349,19 @@ def test_runtime_http_fake_inference_review_edit_save_then_explicit_install(tmp_
         prepared = client.post(f"{base}/proposals")
         assert prepared.status_code == 200, prepared.text
         assert prepared.json()["simulationLabel"] == "模拟数据 · 假模型演示"
+        assert prepared.json()["intentGeneration"] == {"status": "available"}
         first = prepared.json()["proposal"]
         assert first["installable"] is False
+        with closing(storage.projects.open(project_id)) as store:
+            stored_before = store.production_bridge_state().model_dump(mode="json", by_alias=True)
+        reread = client.get(base)
+        assert reread.json()["intentGeneration"] == {"status": "available"}
+        assert reread.json()["proposal"] == first
+        with closing(storage.projects.open(project_id)) as store:
+            stored_after = store.production_bridge_state().model_dump(mode="json", by_alias=True)
+        assert stored_after == stored_before
+        assert "intentGeneration" not in stored_after
+        assert "intentGeneration" not in first
         refused = client.post(f"{base}/accept", json={
             "expectedProposalRevision": first["revision"], "expectedContentHash": first["contentHash"],
         })

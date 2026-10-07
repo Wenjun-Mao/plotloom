@@ -160,13 +160,13 @@ def test_v2_gate_and_integer_timeline_are_deterministic() -> None:
 
 def test_shot_count_preference_is_warning_only_when_advisory() -> None:
     bible, plan, board, profile = _authoring_fixture()
-    legacy = ProjectBrief(title="x", synopsis="y", ending_count=1, desired_join_count=0, decision_points_per_path=0, node_budget=2, shots_per_scene_min=2, shots_per_scene_max=4)
-    strict = StoryboardGateEvaluator().evaluate(board, plan, bible, legacy, timing_profile=profile)
+    strict_brief = ProjectBrief(title="x", synopsis="y", ending_count=1, desired_join_count=0, decision_points_per_path=0, node_budget=2, shots_per_scene_min=2, shots_per_scene_max=4, shot_count_policy="strict")
+    strict = StoryboardGateEvaluator().evaluate(board, plan, bible, strict_brief, timing_profile=profile)
     assert strict.passed is False
     strict_count = next(item for item in strict.results if item.gate_id.startswith("shot.count."))
     assert strict_count.required and strict_count.status.value == "fail"
 
-    advisory = legacy.model_copy(update={"shot_count_policy": "advisory"})
+    advisory = strict_brief.model_copy(update={"shot_count_policy": "advisory"})
     warned = StoryboardGateEvaluator().evaluate(board, plan, bible, advisory, timing_profile=profile)
     assert warned.passed is True
     warning = next(item for item in warned.results if item.gate_id.startswith("shot.count."))
@@ -174,14 +174,15 @@ def test_shot_count_preference_is_warning_only_when_advisory() -> None:
     assert warning.severity.value == "warning"
     assert warning.evaluated_input_hash != strict_count.evaluated_input_hash
 
-    explicitly_strict = legacy.model_copy(update={"shot_count_policy": "strict"})
-    assert StoryboardGateEvaluator().evaluate(board, plan, bible, explicitly_strict, timing_profile=profile).evaluated_input_hash != strict.evaluated_input_hash
+    implicit_advisory = ProjectBrief.model_validate(strict_brief.model_dump(exclude={"shot_count_policy"}))
+    assert implicit_advisory.shot_count_policy == "advisory"
+    assert StoryboardGateEvaluator().evaluate(board, plan, bible, implicit_advisory, timing_profile=profile).evaluated_input_hash == warned.evaluated_input_hash
 
     ten_shots = board.model_copy(update={"shots": [
         board.shots[0].model_copy(update={"id": f"shot-{index}", "order": index, "duration_units": 33})
         for index in range(1, 11)
     ]})
-    ten_strict = StoryboardGateEvaluator().evaluate(ten_shots, plan, bible, legacy, timing_profile=profile)
+    ten_strict = StoryboardGateEvaluator().evaluate(ten_shots, plan, bible, strict_brief, timing_profile=profile)
     ten_advisory = StoryboardGateEvaluator().evaluate(ten_shots, plan, bible, advisory, timing_profile=profile)
     assert next(item for item in ten_strict.results if item.gate_id.startswith("shot.count.")).status.value == "fail"
     assert next(item for item in ten_advisory.results if item.gate_id.startswith("shot.count.")).status.value == "not_applicable"

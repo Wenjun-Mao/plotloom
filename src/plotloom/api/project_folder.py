@@ -17,7 +17,6 @@ from ..domain import (
     ProjectDuplicateResult,
     ProjectLifecycleStatus,
     ProjectSummary,
-    brief_for_new_project,
     StageHead,
     StageName,
 )
@@ -376,7 +375,7 @@ def create_project_folder_authoring_app(
         body: ProjectCreateRequest,
         idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
     ) -> ProjectCreation:
-        brief = brief_for_new_project(body.brief)
+        brief = body.brief
         key = _normalize_idempotency_key(idempotency_key)
         if key is None:
             store = storage.projects.create(
