@@ -1,5 +1,32 @@
 # Plotloom roadmap entrypoint
 
+The owner authorized a checklist-led self-walkthrough and demonstrated-issue
+repairs on 2026-10-06 before their next walkthrough. Extend the permanent
+[acceptance checklist](../creative-workflow/graph-workbench-acceptance.md), not
+a parallel checklist; map prior user failures and every visible control/state
+to explicit live functional and visual evidence. Use clearly named disposable
+projects, preserve owner work/settings, and test desktop widths >=1280 only.
+Fake transport evidence must remain distinct from normal8841 interaction and
+real creative/media acceptance. Fix demonstrated root causes, recheck affected
+cases, and report remaining coverage gaps before owner handoff. Broader optional
+redesigns and real media acceptance are not authorized by this check.
+
+The [self-walkthrough receipt](../verification/2026-10-06-creator-self-walkthrough.md)
+records C01–C55/P01–P06 coverage, prior-user regression mapping, exact live
+disposable-demo operations and independently inspected desktop pixels. Runtime
+repair `02fcc30` is pushed and served by normal8841's checked static mount;
+the backend is unchanged. Refusal visibility, dialog/control presentation,
+join-selection retention and async project/session ownership are repaired.
+Software verification and owner acceptance are distinct; real provider/media
+quality and actual OS-delivered blur are not claimed. No owner project or
+protected settings were reset. Remote-trace-driven test contracts and final
+exact-revision CI are recorded in that receipt, including the older red run.
+Final test-contract candidate `a792293` passed all 191 local browser tests;
+all 1,182 Python/546 frontend and other release gates remain qualified. The new
+[unfiltered exact-head CI](https://github.com/Wenjun-Mao/plotloom/actions/runs/37561866807)
+is running, not yet passed. The clean nine-node QA draft is available for owner
+walkthrough; real creative/media acceptance remains separate.
+
 The owner approved the [creator workbench implementation plan](2026-10-06-graph-centred-creator-workbench.md)
 on 2026-10-06 with an explicit zero-backward-compatibility instruction: retire
 encountered obsolete code/contracts instead of adding fallbacks or migration adapters.
@@ -11,7 +38,10 @@ does not include a general installed-production migration/replacement system.
 G0–G5 is implemented and locally qualified; the
 [integrated receipt](../verification/2026-10-06-graph-workbench-g5.md) records full
 gates and independent reviews. Implementation `c8f59b7` is pushed to `origin/main`;
-full exact-revision remote CI has passed verify and its browser shards are running.
+its [remote run](https://github.com/Wenjun-Mao/plotloom/actions/runs/37495692517)
+passed verify but finished red on a font-line-box assertion, with a separate
+interceptor-teardown Close retry. The self-walkthrough receipt retains the
+diagnosis and current qualification; the older result is not relabelled green.
 Normal8841 is healthy on the qualified candidate after the exact owner-authorized
 one-receipt reconciliation and scoped demo Graph/map retirement. All other project
 data, media and protected settings are preserved; zero provider dispatches.

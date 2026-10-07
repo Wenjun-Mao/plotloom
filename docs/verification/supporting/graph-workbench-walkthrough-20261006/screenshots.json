@@ -1,0 +1,254 @@
+{
+  "date": "2026-10-06",
+  "baseline": "8e29c8a050fb82f9142fbe20f0d20c32db795afe",
+  "images": [
+    {
+      "file": "01-insert-preview.png",
+      "sha256": "3dbce1a4e776c44b0b3aeba1e3fef8749d54e753bb732b4272f98c258dde1c55",
+      "source": "output/playwright/2026-10-06-live/01-insert-preview.png",
+      "reviewer": "main",
+      "initialState": "UI-created disposable QA project",
+      "directPixelInspection": true
+    },
+    {
+      "file": "02-parallel-preview.png",
+      "sha256": "6b2b95e750ddad6aa84830011e2704338390ff77aa1104fc84734b53c590da26",
+      "source": "output/playwright/2026-10-06-live/02-parallel-preview.png",
+      "reviewer": "main",
+      "initialState": "UI-created disposable QA project",
+      "directPixelInspection": true
+    },
+    {
+      "file": "03-four-siblings.png",
+      "sha256": "611753fd2781ec135da858ce5d28210723f5d6cc313ada5aaec9007ba8a638ed",
+      "source": "output/playwright/2026-10-06-live/03-four-siblings.png",
+      "reviewer": "main",
+      "initialState": "UI-created disposable QA project",
+      "directPixelInspection": true
+    },
+    {
+      "file": "07-fixed-in-place-refusal.png",
+      "sha256": "3b3c2c048a3276f3cf529ae446169603acb346be33d81ea29ae01ae4cabc79c2",
+      "source": "output/playwright/2026-10-06-live/07-fixed-in-place-refusal.png",
+      "reviewer": "main",
+      "initialState": "UI-created disposable QA project",
+      "directPixelInspection": true
+    },
+    {
+      "file": "08-styled-refusal.png",
+      "sha256": "d1040ba1305ae9484ea1a096841795ee2b8e4c92e5d8d55d44f0551fef59b302",
+      "source": "output/playwright/2026-10-06-live/08-styled-refusal.png",
+      "reviewer": "main",
+      "initialState": "UI-created disposable QA project",
+      "directPixelInspection": true
+    },
+    {
+      "file": "09-capacity-refusal.png",
+      "sha256": "a4a9909549ac6bbed32bf033a7e80d74da00362613dab6aaebda4b1e85d3037b",
+      "source": "output/playwright/2026-10-06-live/09-capacity-refusal.png",
+      "reviewer": "main",
+      "initialState": "UI-created disposable QA project",
+      "directPixelInspection": true
+    },
+    {
+      "file": "10-six-siblings.png",
+      "sha256": "9a2ad7975ee1b906bf8804f6553b768e4edc7bb1f26e62fb7f99ef120e26c9b6",
+      "source": "output/playwright/2026-10-06-live/10-six-siblings.png",
+      "reviewer": "main",
+      "initialState": "UI-created disposable QA project",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1280x460-bottom.png",
+      "sha256": "917f0be10c18cf91f05e0534f0b0d4cfccc63181831da31c9cacb3d81350951a",
+      "source": "frontend/test-results/creator-workbench-layout-c-1ffb0-and-tall-inspector-1280x460/bottom.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1280x460-middle.png",
+      "sha256": "118fb585f8929d4fda776c01eaa3fd4bd5062415dba89ddc506e983d6a0ff526",
+      "source": "frontend/test-results/creator-workbench-layout-c-1ffb0-and-tall-inspector-1280x460/middle.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1280x460-parallel-6-viewport.png",
+      "sha256": "18ed3d7d5a7e339b0601d8ba38256f2402b25da9e10a65c85b3318aeaf20853b",
+      "source": "frontend/test-results/creator-workbench-layout-c-1ffb0-and-tall-inspector-1280x460/parallel-6-viewport.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1280x460-production-dark-preference-viewport.png",
+      "sha256": "bb6414682e67b019306968e2f91666cb60c24922af08f62bda259d187343985c",
+      "source": "frontend/test-results/creator-workbench-delivery-b17bd-s-remain-reachable-1280x460/production-dark-preference-viewport.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1280x460-production-light-preference-viewport.png",
+      "sha256": "bb6414682e67b019306968e2f91666cb60c24922af08f62bda259d187343985c",
+      "source": "frontend/test-results/creator-workbench-delivery-b17bd-s-remain-reachable-1280x460/production-light-preference-viewport.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1280x460-shot-owner-viewport.png",
+      "sha256": "85cd0e5e8cbf704b512dd706b017ebdf9a9ea5579b74708dc6027ea97a79ec52",
+      "source": "frontend/test-results/creator-workbench-delivery-b17bd-s-remain-reachable-1280x460/shot-owner-viewport.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1280x460-top.png",
+      "sha256": "bd52d5f43ecc83efb77347384de19ef7d0746fc631d8a258b6e3b66b2bba7819",
+      "source": "frontend/test-results/creator-workbench-layout-c-1ffb0-and-tall-inspector-1280x460/top.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1280x768-bottom.png",
+      "sha256": "c21760a1d2fd0fd1d41adf3615ab98a8319262c58e2f6c518f8dd040994779e1",
+      "source": "frontend/test-results/creator-workbench-layout-c-afb16-and-tall-inspector-1280x768/bottom.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1280x768-middle.png",
+      "sha256": "a4b1ec68af1c4b1ea2167e37168433b9da294605fd64224f1f562e89e0b40009",
+      "source": "frontend/test-results/creator-workbench-layout-c-afb16-and-tall-inspector-1280x768/middle.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1280x768-parallel-6-viewport.png",
+      "sha256": "55c3c032e81bee6d6510da8308f90b4378f75693475c32fe7dbc226078c3459a",
+      "source": "frontend/test-results/creator-workbench-layout-c-afb16-and-tall-inspector-1280x768/parallel-6-viewport.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1280x768-production-dark-preference-viewport.png",
+      "sha256": "56b44c3988258dafaa93ce435514bca37b8d2eb56dbb48a316b51576995c890d",
+      "source": "frontend/test-results/creator-workbench-delivery-3b6c8-s-remain-reachable-1280x768/production-dark-preference-viewport.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1280x768-production-light-preference-viewport.png",
+      "sha256": "56b44c3988258dafaa93ce435514bca37b8d2eb56dbb48a316b51576995c890d",
+      "source": "frontend/test-results/creator-workbench-delivery-3b6c8-s-remain-reachable-1280x768/production-light-preference-viewport.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1280x768-shot-owner-viewport.png",
+      "sha256": "722d69fdc81070ee69f93c1d92356ecfc1e9e9ac93f80463a2ca8556a1e5f905",
+      "source": "frontend/test-results/creator-workbench-delivery-3b6c8-s-remain-reachable-1280x768/shot-owner-viewport.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1280x768-top.png",
+      "sha256": "3e2e909e05579040362899c7e2f59f699e256cdd0304c91a83e43f4a5a69715d",
+      "source": "frontend/test-results/creator-workbench-layout-c-afb16-and-tall-inspector-1280x768/top.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "14-discard-refusal.png",
+      "sha256": "7b99aa1b500f8e9ef3374d5e9609ca56f5c12b9e210bd77e7c19fa4ff1988b7a",
+      "source": "output/playwright/2026-10-06-live/14-discard-refusal.png.png",
+      "reviewer": "main",
+      "initialState": "UI-created QA project; explicit injected HTTP503",
+      "directPixelInspection": true
+    },
+    {
+      "file": "15-clean-normal-8841.png",
+      "sha256": "515a8d2e50cffdfb148958e88067b6212bddbb8eb69f6ae9fa648ab0e8e86431",
+      "source": "output/playwright/2026-10-06-live/15-clean-normal-8841.png",
+      "reviewer": "main",
+      "initialState": "UI-created disposable QA project",
+      "directPixelInspection": true
+    },
+    {
+      "file": "16-normal-refusal.png",
+      "sha256": "419a75c9d9460a3d559fd4a680e1f66615bb8f9a0012e393e2ddc698bd31b97b",
+      "source": "output/playwright/2026-10-06-live/16-normal-refusal.png",
+      "reviewer": "main",
+      "initialState": "UI-created disposable QA project",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1700x900-bottom.png",
+      "sha256": "e1605be14bb73c03129ad300f7e486631cf2ff2ee826df0241c10e696cf7e806",
+      "source": "frontend/test-results/creator-workbench-layout-c-fcaf9-and-tall-inspector-1700x900/bottom.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1700x900-middle.png",
+      "sha256": "2354c1575cad6a6cc1c991fb77b65bbdf7bc6e36541d74a869ff4f9780f3b5e9",
+      "source": "frontend/test-results/creator-workbench-layout-c-fcaf9-and-tall-inspector-1700x900/middle.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1700x900-parallel-6-viewport.png",
+      "sha256": "70661681d636e54d715fcc28eb548f4ff0d22af26684590bd14e2042a5fee64a",
+      "source": "frontend/test-results/creator-workbench-layout-c-fcaf9-and-tall-inspector-1700x900/parallel-6-viewport.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1700x900-production-dark-preference-viewport.png",
+      "sha256": "9e5864f52637480dc7fc4654c4d8fb94ee45c04a16aa6a4924bd676a31ced9f3",
+      "source": "frontend/test-results/creator-workbench-delivery-14b95-s-remain-reachable-1700x900/production-dark-preference-viewport.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1700x900-production-light-preference-viewport.png",
+      "sha256": "9e5864f52637480dc7fc4654c4d8fb94ee45c04a16aa6a4924bd676a31ced9f3",
+      "source": "frontend/test-results/creator-workbench-delivery-14b95-s-remain-reachable-1700x900/production-light-preference-viewport.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1700x900-shot-owner-viewport.png",
+      "sha256": "b7ad64d2ae2058beee8b05f6d49c73b8bd269ff6e2f239ee9ad8cbdaf750ca89",
+      "source": "frontend/test-results/creator-workbench-delivery-14b95-s-remain-reachable-1700x900/shot-owner-viewport.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    },
+    {
+      "file": "1700x900-top.png",
+      "sha256": "0120ec4c18063025a717f26594180e30d9e5b207a68318c3528d18b1f6573947",
+      "source": "frontend/test-results/creator-workbench-layout-c-fcaf9-and-tall-inspector-1700x900/top.png",
+      "reviewer": "independent GPT-6.1 Sol / Medium",
+      "initialState": "explicit isolated test fixture",
+      "directPixelInspection": true
+    }
+  ]
+}
