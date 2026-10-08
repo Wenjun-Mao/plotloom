@@ -60,3 +60,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0128 Checked graph-edit safety diagnostics](0128-graph-edit-safety-diagnostics.md)
 - [0129 Read-only access versus save progress](0129-read-only-access-versus-save-progress.md)
 - [0130 Media selection reads after acknowledged writes](0130-media-selection-read-after-write-authority.md)
+- [0131 Routine specialist continuation authority](0131-routine-specialist-continuation-authority.md)

@@ -13,8 +13,9 @@ with a tailored profile and dated evidence for each major update/iteration.
 Extend the existing [C/P/E playbook](../creative-workflow/graph-workbench-acceptance.md),
 not a competing checklist. This file remains the single current run plan;
 the [ledger](../verification/2026-10-07-full-creator-e2e-repeat.md) retains actual results.
-The agreement adopts the plan shape; it does not itself dispatch native tasks,
-approve the pending Image continuation or implement new product capabilities.
+The agreement adopts the plan shape; specialist execution uses the owner's
+existing run-level coordination authority, not a fresh consent gate for every
+safe continuation. It does not implement new product capabilities.
 
 | Profile field | Current run |
 |---|---|
@@ -23,7 +24,7 @@ approve the pending Image continuation or implement new product capabilities.
 | Runtime boundary | Normal8841 serves the rebuilt media-repair frontend through its checkout mount with unchanged qualified e941780 Python; separate8871 qualifies disposable graph checks. Retained8851 and busy8861 loaded backends differ. Do not reload newer static against old Python or restart the busy Image reservation |
 | Data baseline | Fresh native QA b3a933f7-b6fc-40e3-826f-5162f95a119a; structural QA remains separately identified in the ledger. Completed playable/media baseline not yet established for this repeat |
 | Protection | Two named owner projects, managed files and protected configuration unchanged; disposable lifecycle/recovery targets identified before actions |
-| Authority | Earlier bounded functional ImageGen/H3 QA authorization remains distinct from specialist-task continuation. No new paid fallback, settings mutation, broad deletion or creative/media-quality approval |
+| Authority | Approved specialist coordination includes routine follow-ups and safe same-frozen-job continuation in the existing task; renewed consent is not required for a repaired preflight blocker. Verify job/pin/completion state; preserve dispatch identity. No new paid fallback, protected-settings mutation, broad deletion, user/safety-stop bypass or creative/media-quality approval |
 | Primary goal | Complete the outstanding creation/media journey, prove revisions on the same completed project, and cover recovery/desktop gaps with current evidence |
 
 ### Capability prerequisites — investigate/design before implementation
@@ -43,8 +44,8 @@ approve the pending Image continuation or implement new product capabilities.
   authored-intent saving is already separately exercised and is not a substitute.
 - Product design/implementation and any scope-changing choices require their own
   approval. Before native execution use a clean committed qualified checkpoint,
-  matching loaded runtime and known job state. Current playbook adoption does not
-  bypass the existing Image same-task continuation authority boundary.
+  matching loaded runtime and known job state. Routine continuation under existing
+  coordination authority does not bypass execution pins or dispatch safety.
 
 ### Three rounds for the next execution
 
@@ -107,8 +108,14 @@ explicitly and leave exact pending task identities.
 Media authority/owned-ACK repairs and C50/C52 receipts are published at7f1041c.
 Normal8841 is healthy and serves the exact checked frontend through its mount;
 full CI37712695213 is running on that executable. No busy8861 restart or task resend.
-The held Image same-job continuation and prerequisite capability design questions
-are now pending human direction; full native/revision acceptance remains PARTIAL.
+At2026-10-08 01:28 UTC, the owner reconfirmed same-job continuation and clarified
+that routine steps already within the approved run must not seek renewed consent.
+Root sent the unchanged frozen job ij_5be49304cccb4b1bbbc215f08b2f75cd to the
+existing Plotloom Image Specialist, whose status is active; generation/delivery
+is not yet qualified. Earlier separate-continuation-authority wording was an
+over-restrictive coordination decision, superseded by ADR0131. Prerequisite
+capability design remains a separate unanswered scope question. Full
+native/revision acceptance remains PARTIAL.
 
 Actual OS focus loss now passes on owned8871 at1700×900, with automatic380px and
 persisted350px resize cancellation. Playwright focus emulation masked the earlier

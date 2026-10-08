@@ -126,7 +126,10 @@ configuration hashes/modes/UIDs. No native provider call or owner-data mutation
 was made by this repair.
 
 Full lifecycle acceptance remains PARTIAL. The frozen Image same-task continuation
-awaits separate human authority. Native Character/Scene/Prop/pair, keyframe/endframe,
+was sent after owner reconfirmation at2026-10-08 01:28 UTC; the existing specialist
+is active, not yet a qualified delivery. The owner also clarified that already
+authorized routine continuations must not require repeated approval; ADR0131
+records the correction. Native Character/Scene/Prop/pair, keyframe/endframe,
 H3/all-route playback, video-bearing lifecycle, configured inference and supported
 post-install revision/rebuild remain separate required journeys. Software gates
 and synthetic media cannot substitute for them.
