@@ -157,6 +157,7 @@ fieldset legend, .structured-editor legend, .section-map legend { color: var(--m
 
 .context-help > button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .context-help-dock { min-height: 100px; margin-top: 12px; }
+.field-grid.compact + .context-help-dock { margin-top: 8px; }
 .context-help-dock > [role="tooltip"] { padding: 14px; border: 1px solid var(--line-strong); border-radius: 9px; background: var(--panel-2); color: var(--text); font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; }
 .context-help-dock p { margin: 4px 0 0; }
 .project-brief-navigation { display: grid; gap: .35rem; padding: .85rem; text-align: left; color: var(--text); border: 1px solid transparent; border-radius: .7rem; background: var(--panel); }

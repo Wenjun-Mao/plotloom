@@ -1,6 +1,17 @@
 import { expect, test } from "./fixture";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import type { Page, TestInfo } from "@playwright/test";
+import { demoProject } from "../src/demo";
+import { json } from "./f5a-fixture";
+
+const sourceAuditViewports = [
+  { width: 1700, height: 900 }, { width: 1280, height: 768 }, { width: 1280, height: 460 },
+];
+async function sourceAuditCapture(page: Page, info: TestInfo, name: string) {
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+  await page.screenshot({ path: info.outputPath(`${name}.png`) });
+}
 
 test("unchanged original synopsis confirms without direction and freezes existing Brief settings", async ({ page, request, workbench }) => {
   await page.goto(`${workbench.frontendOrigin}/v2/`);
@@ -90,3 +101,124 @@ test("source type changes retain writing and require a goal only for imported ma
   await expect(page.getByLabel("故事内容")).toHaveValue("保留这个尚未确认的故事草稿。");
   await expect(page.getByLabel("补充创作要求（可选）")).toHaveValue("保持原作人物，把两个结局展开为动作。");
 });
+
+for (const viewport of sourceAuditViewports) {
+  const size = `${viewport.width}x${viewport.height}`;
+  test(`Source initial read failure ends waiting and retries without writes at ${size}`, async ({ page, request, workbench }, info) => {
+    await page.setViewportSize(viewport);
+    const brief = { ...demoProject.brief, title: `来源初次读取 ${size}`, synopsis: "许宁在小院决定放飞纸飞机，或带着它离开。" };
+    const project = await json(request.post(`${workbench.apiOrigin}/api/v2/projects`, {
+      headers: { "Idempotency-Key": `source-read-${size}` }, data: { brief },
+    }));
+    const root = `${workbench.apiOrigin}/api/v2/projects/${project.id}`;
+    const before = await json(request.get(`${root}/source-outline`));
+    const writes: string[] = [];
+    page.on("request", request => {
+      if (new URL(request.url()).pathname.startsWith("/api/") && !["GET", "HEAD"].includes(request.method())) writes.push(`${request.method()} ${request.url()}`);
+    });
+    let release!: () => void;
+    const held = new Promise<void>(resolve => { release = resolve; });
+    const url = `**/api/v2/projects/${project.id}/source-outline`;
+    await page.route(url, async route => { await held; await route.fulfill({ status: 503, json: { message: "来源读取测试：服务暂不可用" } }); });
+    try {
+      await page.goto(`${workbench.frontendOrigin}/v2/?project=${project.id}&stage=source#source`);
+      await expect(page.getByText("正在读取故事来源和当前进度。", { exact: true })).toBeVisible();
+      await expect(page.locator(".source-workflow-source .spinner")).toBeVisible();
+      await expect(page.getByRole("button", { name: "刷新", exact: true })).toBeDisabled();
+      await sourceAuditCapture(page, info, "source-initial-pending");
+    } finally { release(); }
+    await expect(page.getByText("无法读取当前进度，请先刷新重试；保留内容不代表版本已核实。", { exact: true })).toBeVisible();
+    await expect(page.getByRole("alert")).toContainText("来源读取测试：服务暂不可用");
+    await expect(page.getByRole("button", { name: "刷新", exact: true })).toBeEnabled();
+    const failedSpinnerCount = await page.locator(".source-workflow-source .spinner").count();
+    await sourceAuditCapture(page, info, "source-initial-failed");
+    await page.unroute(url);
+    await page.getByRole("button", { name: "刷新", exact: true }).click();
+    await expect(page.getByLabel("故事内容", { exact: false })).toHaveValue(brief.synopsis);
+    await expect(page.getByTestId("source-outline-source")).toContainText("尚未保存故事内容");
+    await expect(page.getByRole("button", { name: "确认改编内容", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "准备大纲任务", exact: true })).toBeDisabled();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    await sourceAuditCapture(page, info, "source-empty-top");
+    await page.getByTestId("source-outline-candidate").scrollIntoViewIfNeeded();
+    await expect(page.getByRole("button", { name: "准备大纲任务", exact: true })).toBeInViewport();
+    await sourceAuditCapture(page, info, "source-empty-prerequisite");
+    expect(await json(request.get(`${root}/source-outline`))).toEqual(before);
+    expect(writes).toEqual([]);
+    expect(failedSpinnerCount).toBe(0);
+  });
+
+  test(`Source dirty failed refresh preserves text and archived source stays read-only at ${size}`, async ({ page, request, workbench }, info) => {
+    await page.setViewportSize(viewport);
+    const brief = { ...demoProject.brief, title: `来源保留草稿 ${size}`, synopsis: "城里即将断电，主角要决定先救人还是先恢复记忆。" };
+    const project = await json(request.post(`${workbench.apiOrigin}/api/v2/projects`, {
+      headers: { "Idempotency-Key": `source-dirty-${size}` }, data: { brief },
+    }));
+    const root = `${workbench.apiOrigin}/api/v2/projects/${project.id}`;
+    const material = { kind: "synopsis", title: brief.title, text: brief.synopsis, attribution: null, rightsDeclaration: null, adaptationIntent: "", inventedAdditions: null };
+    await json(request.put(`${root}/source-outline/source`, { data: { expectedSourceRevision: 0, material } }));
+    const before = await json(request.get(`${root}/source-outline`));
+    const canonical = await json(request.get(root));
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${project.id}&stage=source#source`);
+    const story = page.getByLabel("故事内容", { exact: false });
+    await expect(story).toHaveValue(material.text);
+    const retained = `${material.text}\n这是我还没有确认的新剧情，读取与重试不得改写。`;
+    await story.fill(retained);
+    const writes: string[] = [];
+    page.on("request", request => {
+      if (new URL(request.url()).pathname.startsWith("/api/") && !["GET", "HEAD"].includes(request.method())) writes.push(`${request.method()} ${request.url()}`);
+    });
+    let release!: () => void;
+    const held = new Promise<void>(resolve => { release = resolve; });
+    const url = `**/api/v2/projects/${project.id}/source-outline`;
+    await page.route(url, async route => { await held; await route.fulfill({ status: 503, json: { message: "来源刷新测试：服务暂不可用" } }); });
+    try {
+      await page.getByRole("button", { name: "刷新", exact: true }).click();
+      await expect(page.getByText("正在读取故事来源和当前进度。", { exact: true })).toBeVisible();
+      await expect(story).toHaveValue(retained); await expect(story).toBeDisabled();
+      await expect(page.getByRole("button", { name: "确认改编内容", exact: true })).toBeDisabled();
+      await expect(page.getByRole("button", { name: "准备大纲任务", exact: true })).toBeDisabled();
+      await sourceAuditCapture(page, info, "source-dirty-pending");
+      await story.scrollIntoViewIfNeeded(); await expect(story).toBeInViewport();
+      await sourceAuditCapture(page, info, "source-dirty-pending-editor");
+    } finally { release(); }
+    await expect(page.getByRole("alert")).toContainText("来源刷新测试：服务暂不可用");
+    await expect(story).toHaveValue(retained); await expect(story).toBeDisabled();
+    await page.getByText("无法读取当前进度，请先刷新重试；保留内容不代表版本已核实。", { exact: true }).scrollIntoViewIfNeeded();
+    await sourceAuditCapture(page, info, "source-dirty-failed");
+    await story.scrollIntoViewIfNeeded(); await expect(story).toBeInViewport();
+    await sourceAuditCapture(page, info, "source-dirty-failed-editor");
+    await page.unroute(url);
+    await page.getByRole("button", { name: "刷新", exact: true }).click();
+    await expect(story).toBeEnabled(); await expect(story).toHaveValue(retained);
+    await expect(page.getByRole("button", { name: "准备大纲任务", exact: true })).toBeEnabled();
+    await sourceAuditCapture(page, info, "source-dirty-reverified");
+    await story.scrollIntoViewIfNeeded(); await expect(story).toBeInViewport();
+    await sourceAuditCapture(page, info, "source-dirty-reverified-editor");
+    expect(await json(request.get(`${root}/source-outline`))).toEqual(before);
+    expect(await json(request.get(root))).toEqual(canonical);
+    expect(writes).toEqual([]);
+
+    // Read-only is a separate disposable project, not a destructive shortcut around dirty Close.
+    const archived = await json(request.post(`${workbench.apiOrigin}/api/v2/projects`, {
+      headers: { "Idempotency-Key": `source-archive-${size}` }, data: { brief: { ...brief, title: `只读来源 ${size}` } },
+    }));
+    const archivedRoot = `${workbench.apiOrigin}/api/v2/projects/${archived.id}`;
+    await json(request.put(`${archivedRoot}/source-outline/source`, { data: { expectedSourceRevision: 0, material } }));
+    await json(request.post(`${archivedRoot}/archive`, { data: { expectedLifecycleRevision: archived.lifecycleRevision } }));
+    const archivedBefore = await json(request.get(`${archivedRoot}/source-outline`));
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${archived.id}&stage=source#source`);
+    await expect(page.getByText("归档只读", { exact: true })).toBeVisible();
+    await expect(story).toHaveValue(material.text); await expect(story).toBeDisabled();
+    await expect(page.getByText("项目当前只读，可查看已有内容；不能修改来源或准备、发送新任务。", { exact: true })).toBeVisible();
+    await expect(page.getByText("故事来源已确认。下一步准备大纲任务，再发送给文字创作助手。", { exact: true })).toHaveCount(0);
+    await sourceAuditCapture(page, info, "source-archived-top");
+    const confirm = page.getByRole("button", { name: "确认改编内容", exact: true });
+    await confirm.scrollIntoViewIfNeeded(); await expect(confirm).toBeDisabled(); await expect(confirm).toBeInViewport();
+    await expect(page.getByText("项目当前只读。", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "准备大纲任务", exact: true })).toBeDisabled();
+    await sourceAuditCapture(page, info, "source-archived-prerequisite");
+    expect(await json(request.get(`${archivedRoot}/source-outline`))).toEqual(archivedBefore);
+    expect(writes).toEqual([]);
+  });
+}

@@ -18,6 +18,9 @@ separate inspected desktop pixels, demonstrated repairs and still-unqualified st
 The [conflict/retained-draft checkpoint](../verification/2026-10-08-conflict-recovery-ui-states.md)
 records the later ownership, discard-feedback and two-tab recovery checks; final
 qualification/publication and broader gaps remain explicit there.
+The [Source/help checkpoint](../verification/2026-10-08-source-help-ui-states.md)
+adds initial/retained failed reads, accurate read-only guidance and separate full-control
+hover/focus reading at all supported desktop sizes; its final qualification is recorded there.
 The supported matrix remains1280×768,1280×460,1700×900; no phone/1024px work.
 
 The owner approved a [fresh full creator E2E repeat](2026-10-07-full-creator-e2e-repeat.md)

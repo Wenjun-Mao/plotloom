@@ -120,9 +120,9 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
     {error && focusedTarget !== "source" && <ErrorNotice message={error} />}
     <section className="source-workflow-source" hidden={focusedTarget !== "source"} aria-labelledby="source-workflow-heading">
       <header className="page-header"><div><h1 id="source-workflow-heading">来源与大纲</h1><p>确认故事来源，阅读大纲，再审阅剧情分支与结局。</p></div><Button variant="quiet" disabled={busy || checking} onClick={() => void recheck()}>刷新</Button></header>
-      <StageGuide>{failed ? "无法读取当前进度，请先刷新重试；保留内容不代表版本已核实。" : checking || !state ? "正在读取故事来源和当前进度。" : state.outlineStatus === "reopened" ? "已开始新的修订轮次。可以准备并单独发送新候选，也可以返回保留的有效大纲。" : candidate?.status === "ready" ? "先阅读候选大纲，再确认使用；随后准备完整的剧情分支建议，审阅后确认。" : candidate?.status === "prepared" ? "大纲任务尚未交付；发送、等待和检查状态见下方任务区。" : state.graphAdmission?.status === "current" ? "故事分支已应用。可在下方继续角色设定；此操作只切换页面，不会生成内容。" : accepted ? "大纲已确认。请在下方准备剧情分支建议，审阅确认后应用到故事路线。" : state.source ? "故事来源已确认。下一步准备大纲任务，再发送给文字创作助手。" : "先确认故事来源，再准备大纲任务。* 为必填项，确认内容不会自动启动生成。"}</StageGuide>
+      <StageGuide>{failed ? "无法读取当前进度，请先刷新重试；保留内容不代表版本已核实。" : checking || !state ? "正在读取故事来源和当前进度。" : ownerReadOnly ? "项目当前只读，可查看已有内容；不能修改来源或准备、发送新任务。" : state.outlineStatus === "reopened" ? "已开始新的修订轮次。可以准备并单独发送新候选，也可以返回保留的有效大纲。" : candidate?.status === "ready" ? "先阅读候选大纲，再确认使用；随后准备完整的剧情分支建议，审阅后确认。" : candidate?.status === "prepared" ? "大纲任务尚未交付；发送、等待和检查状态见下方任务区。" : state.graphAdmission?.status === "current" ? "故事分支已应用。可在下方继续角色设定；此操作只切换页面，不会生成内容。" : accepted ? "大纲已确认。请在下方准备剧情分支建议，审阅确认后应用到故事路线。" : state.source ? "故事来源已确认。下一步准备大纲任务，再发送给文字创作助手。" : "先确认故事来源，再准备大纲任务。* 为必填项，确认内容不会自动启动生成。"}</StageGuide>
       {error && <ErrorNotice message={error} />}
-      {!state ? <Spinner /> : <div className="source-outline-grid">
+      {!state ? checking && <Spinner label="正在读取故事来源" /> : <div className="source-outline-grid">
       <article className="panel source-outline-source" data-testid="source-outline-source">
         {reviewDraft.notice}
         <header><span>已确认的改编内容</span><strong>{state.source ? `改编内容 r${state.source.revision}` : "尚未保存故事内容"}</strong></header>

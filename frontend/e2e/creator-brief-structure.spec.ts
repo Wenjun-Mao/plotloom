@@ -11,10 +11,54 @@ test("structural help reserves normal-flow space without intercepting required f
     await page.setViewportSize(size);
     for (const [index, label] of labels.entries()) {
       const help = page.getByRole("button", { name: `说明：${label}`, exact: true });
+      // Use normal document scrolling to place the setting group below the fixed toolbar.
+      await help.evaluate(element => {
+        const group = element.closest(".field-grid")!;
+        window.scrollTo(0, group.getBoundingClientRect().top + window.scrollY - 72);
+      });
       await help.hover();
       const tooltip = page.getByRole("tooltip");
       await expect(tooltip.locator("strong")).toHaveText(label);
+      const toolbar = (await page.locator(".topbar").boundingBox())!;
+      const toolbarBottom = toolbar.y + toolbar.height;
+      const initialBounds = (await tooltip.boundingBox())!;
+      const overshoot = initialBounds.y + initialBounds.height - size.height;
+      if (overshoot > 0) {
+        const trigger = (await help.boundingBox())!;
+        // Browser scrolling is integral; round the measured fractional overflow up.
+        const adjustment = Math.ceil(overshoot);
+        // Prove this trigger and explanation can coexist; focus/pinning cannot waive hover.
+        expect(trigger.y - adjustment).toBeGreaterThanOrEqual(toolbarBottom);
+        await page.mouse.move(0, 0); await expect(tooltip).toHaveCount(0);
+        await page.evaluate(amount => window.scrollBy(0, amount), adjustment);
+        await help.hover();
+        await expect(tooltip.locator("strong")).toHaveText(label);
+      }
+      expect(await help.evaluate(element => {
+        const bounds = element.getBoundingClientRect();
+        const painted = document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+        return element.contains(painted);
+      })).toBe(true);
+      const checkHelpViewport = async () => {
+        const bounds = await tooltip.boundingBox();
+        const trigger = (await help.boundingBox())!;
+        expect(trigger.y).toBeGreaterThanOrEqual(toolbarBottom);
+        expect(trigger.y + trigger.height).toBeLessThanOrEqual(size.height);
+        expect(bounds).not.toBeNull();
+        expect(bounds!.x).toBeGreaterThanOrEqual(0); expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(size.width);
+        expect(bounds!.y).toBeGreaterThanOrEqual(toolbarBottom); expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(size.height);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(size.width);
+      };
+      await checkHelpViewport();
+      await page.screenshot({ path: info.outputPath(`help-hover-${index}-${size.width}x${size.height}.png`) });
+      await page.mouse.move(0, 0);
+      await expect(tooltip).toHaveCount(0);
       await help.focus();
+      await expect(help).toBeFocused();
+      await expect(tooltip.locator("strong")).toHaveText(label);
+      await tooltip.scrollIntoViewIfNeeded();
+      await checkHelpViewport();
+      await page.screenshot({ path: info.outputPath(`help-focus-${index}-${size.width}x${size.height}.png`) });
       await help.click();
       await expect(help).toHaveAttribute("aria-describedby", await tooltip.getAttribute("id") as string);
       const geometry = await page.locator(".context-help-dock").evaluate(dock => {
@@ -47,6 +91,7 @@ test("structural help reserves normal-flow space without intercepting required f
       await page.keyboard.press("Escape");
       await expect(page.getByRole("tooltip")).toHaveCount(0);
       await page.mouse.move(0, 0);
+      await page.screenshot({ path: info.outputPath(`help-escape-${index}-${size.width}x${size.height}.png`) });
     }
     await page.getByRole("button", { name: `说明：${labels[0]}`, exact: true }).click();
     await page.screenshot({ path: info.outputPath(`help-flow-${size.width}-${size.height}.png`), fullPage: true });

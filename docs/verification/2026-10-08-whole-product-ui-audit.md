@@ -30,6 +30,11 @@ desktop captures, including explicit visible local-discard feedback and exact li
 preservation. Final unfiltered167 passes224 browser tests6.5m, with875 inputs
 unchanged. Its publication is recorded separately; this does not
 close the other view/state or lifecycle/native-media gaps.
+The [Source/help checkpoint](2026-10-08-source-help-ui-states.md) extends initial
+pending/failure/empty, retained dirty text, explicit retry and archived guidance.
+It also separates hover from keyboard/pinned help and checks the full trigger,
+not merely its centre, against the actual toolbar. Final qualification is tracked
+there; prepared tasks, stale Outline and remaining Creator/Pro states stay open.
 Baseline: [full lifecycle ledger](2026-10-07-full-creator-e2e-repeat.md);
 reusable entry: [E22.1–E22.7](../creative-workflow/graph-workbench-acceptance.md#e22-全产品视觉与文案专门检查).
 
@@ -116,11 +121,21 @@ file; do not inherit a PASS from a different state or source revision.
 | Snapshot completion / status disclosure |143 actual201 complete; three before failures and three repaired after frames directly inspected | Reading defect repaired; open-only summary reveal preserves normal scrolling. Final gate qualified; does not imply every snapshot/lifecycle failure state. |
 | Permanent deletion challenge |143 disposable blank/wrong/exact title ×three sizes, all nine frames independently inspected; Cancel preserves entire project and sends zero writes | Scoped challenge reading/eligibility PASS; actual deletion and lifecycle failure-state pixels remain PARTIAL. |
 | Frozen profile: missing key / missing profile / read failure / exact settings |152 eighteen directly inspected fixture PNGs;153 three changed refresh-guidance frames re-inspected; GET-only faults and zero-write/explicit same-job continuation guards | Scoped pixel/operation PASS; final220 browser/688 frontend qualification in linked checkpoint. |
-| Source / Outline / Creator / Pro, populated owner views | Native82–85 and loaded109; scoped fixes rechecked112 | PARTIAL: explicit empty/waiting/failed/stale/dirty/read-only rows still required. |
-| Structural help, hover / keyboard focus | C55 functional and earlier short-desktop checks | PARTIAL: separate final candidate viewport and focused/disabled action receipt. |
+| Source initial pending / failed / empty, dirty refresh pending / failed / retried, archived | Disposable real-server176 state cases, all36 final Source PNGs independently directly inspected, exact zero-write/readback guards; qualification in linked Source/help checkpoint | Scoped pixels/operation PASS; full gate tracked there. Prepared task and stale Outline states remain open. |
+| Outline / Creator / Pro, populated owner views | Native82–85 and loaded109; scoped fixes rechecked112 | PARTIAL: remaining waiting/failed/stale/dirty/read-only permutations need explicit receipts. |
+| Structural help, pure hover / keyboard focus / pin / Escape |176 exact toolbar/full-control/full-explanation bounds, all48 final help PNGs independently directly inspected; five settings at all three sizes | Scoped pixels/operation PASS; full gate tracked in linked checkpoint. Earlier centre-only171 frames are insufficient for unclipped-control qualification. |
 | Script / Storyboard static reports |145 native33 direct pixels: disclosure/top/middle/bottom, West anchor/full prompt, reopen and archive/canonical/no-write guards;145 reader21 West route/instruction/report pixels | Scoped native reading PASS; original report covers all episodes, route reader only selected route. Other report permutations remain open. |
 | Cast / Art static reports | Existing report contracts and isolated browser journeys | PARTIAL: register each full summary, disclosures, anchors, disabled scripts and short-desktop pixels separately. |
 | Outline original interactive report |144 native12 direct top/table/middle/bottom pixels, all sizes; exact archive/project/no-write, bounds/hit and reopen guards | Reading controls/scroll scoped PASS. Raw fractional-minute tile wraps badly at1280; upstream renderer defect UNRESOLVED, original bytes preserved. |
+
+The Outline duration source diagnosis is confirmed in the clean pinned
+`shuohao-skills` submodule at `4322897e6d2bdaf66365534fd40194360c75a85f`.
+A new-report generation-layer formatter can preserve numeric input, embedded
+data and exported JSON, but needs a deliberate submodule/gitlink advancement
+and fresh execution-pin qualification. It has not been implemented in this
+checkpoint. ADR0086 preserves the retained original bytes; ADR0126 does not
+authorize an Outline projection. Do not rewrite the144 report or present it as
+repaired by a future-generation-only change.
 
 Next priority: review-state/dialog/help/report
 permutations and the remaining native route/report pixels. Reader/gallery/Bible
