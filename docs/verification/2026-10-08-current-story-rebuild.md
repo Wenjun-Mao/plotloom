@@ -9,7 +9,11 @@ follows [ADR 0138](../adr/0138-one-current-story-explicit-rebuild.md) and adds
 E12.1–E12.4 to the existing acceptance playbook. Worktree:
 `/private/tmp/plotloom-one-story-rebuild.gfnqlc`, branch
 `codex/one-current-story-rebuild`. Backend commit `9e79463` and schema cleanup
-`32d0bdf` precede the root-owned integration and freshness repair.
+`32d0bdf` precede root-owned integration/freshness commit `ea26b9b`.
+The branch is pushed through `2e54cdf`, which merges only newer main documentation;
+all 862 qualified executable/test/config/static inputs remain identical. Main and
+normal 8841 remain on the earlier qualified service. This is a recoverable candidate
+checkpoint, not a main release or completed native acceptance.
 
 ## Repairs and boundaries
 
