@@ -72,6 +72,8 @@ it.each([404, 503])("distinguishes authoritative HTTP%s without showing a blank 
   await render("/?project=a&stage=brief");
   expect(document.querySelector(".editor-host")).toBeNull();
   expect(document.body.textContent).toContain(status === 404 ? "找不到这个项目" : "暂时无法读取项目");
+  expect(document.body.textContent).toContain("当前链接与页面位置仍保留");
+  expect(document.body.textContent).not.toContain("镜头位置");
   if (status === 503) expect(document.body.textContent).not.toContain("服务器确认当前项目目录中没有");
 });
 

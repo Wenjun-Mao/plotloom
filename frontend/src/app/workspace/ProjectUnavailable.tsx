@@ -10,7 +10,7 @@ export function ProjectUnavailable({ projectId, failure, onRetry, onDirectory }:
   return <section className="page" data-testid="workspace-project-unavailable">
     <PageHeader title={copy.title} description={copy.description} />
     <Panel>
-      <p>当前链接和镜头位置仍保留。重新读取只检查已有内容，不会保存、生成或自动重新打开项目。</p>
+      <p>当前链接与页面位置仍保留。重新读取只检查已有内容，不会保存、生成或自动重新打开项目。</p>
       <div className="button-row">
         <Button variant={current?.kind === "closed" ? "primary" : "quiet"} onClick={onDirectory}>打开项目目录</Button>
         <Button variant={current?.kind === "closed" ? "quiet" : "primary"} onClick={onRetry}>重新读取项目</Button>

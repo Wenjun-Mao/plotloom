@@ -3,6 +3,9 @@
 Status: **EXECUTED / PARTIAL COVERAGE**. Included in the current full E2E run,
 with scoped repairs verified; unqualified states remain listed below. This is
 not full lifecycle acceptance. Artistic image/video quality remains owner/H3 scope.
+The [native intent checkpoint](2026-10-08-native-bridge-intent.md) adds the exact
+initial Bible failure/retry audit at all three desktop sizes and its page-neutral
+recovery wording repair. It does not close other Bible states or native revision.
 The [current-story rebuild checkpoint](2026-10-08-current-story-rebuild.md) adds
 directly inspected stale-proposal/installed-production pixels at all three desktop
 sizes, currentness-safe editing and accurate rebuild guidance. It is an isolated

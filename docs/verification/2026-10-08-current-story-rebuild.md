@@ -118,6 +118,10 @@ prepared/ready-Script stale-authority tests. No refusal was bypassed or softened
 
 ## Remaining native and deployment work
 
+The [native Codex intent checkpoint](2026-10-08-native-bridge-intent.md) records
+the implemented candidate-only capability, author-review and dispatch fixes,
+and its separate software and actual-native acceptance status.
+
 ### Profile-owned credential delta
 
 After the full rebuild gate, the encountered default-profile compatibility
