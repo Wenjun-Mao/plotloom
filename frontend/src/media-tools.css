@@ -109,6 +109,11 @@
 .video-job-card > header span { color: var(--accent); }
 .video-job-card small, .video-workflow-header small, .story-playback-section small { overflow-wrap: anywhere; }
 .video-job-card video { width: min(100%, 720px); max-height: 480px; background: #000; }
+.reviewed-video-player { width: 100%; min-width: 0; }
+.reviewed-video-error { display: grid; gap: 8px; }
+.reviewed-video-error > .button { justify-self: start; white-space: nowrap; }
+.reviewed-video-error summary { width: max-content; max-width: 100%; white-space: nowrap; }
+.reviewed-video-error pre { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
 .video-technical-history { display: grid; gap: 8px; }
 .video-technical-history pre { max-width: 100%; overflow: auto; padding: 12px; border: 1px solid var(--line); white-space: pre-wrap; overflow-wrap: anywhere; }
 .h3-directions-review > p, .h3-directions-review > small { margin: 0; line-height: 1.5; }

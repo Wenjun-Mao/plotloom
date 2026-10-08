@@ -270,3 +270,75 @@ test("retains separate exercise and ready-to-use synthetic segment walkthrough p
   console.log(`INTERACTIVE_EXERCISE_PROJECT=${exerciseProject}`);
   console.log(`INTERACTIVE_READY_PROJECT=${readyProject}`);
 });
+
+test("shows exact original and segment read failures and reloads media without provider or selection writes", async ({ page, request, workbench }) => {
+  const projectId = await createAndApprove(page, request, workbench);
+  const jobId = await ingestEightSecondOriginal(page, request, workbench, projectId);
+  const card = page.getByTestId(`video-job-${jobId}`);
+  const original = card.getByTestId(`video-job-player-${jobId}`);
+  const review = card.getByTestId(`video-segment-review-${jobId}`);
+  const prepared = page.waitForResponse(response => response.request().method() === "POST"
+    && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/video-jobs/${jobId}/segments`);
+  await review.getByRole("button", { name: "准备播放片段" }).click();
+  const response = await prepared;
+  expect(response.ok(), await response.text()).toBeTruthy();
+  const segment = await response.json() as { id: string };
+  const preview = review.getByTestId(`video-segment-preview-${segment.id}`);
+  const writes: string[] = [];
+  page.on("request", request => { if (request.method() !== "GET") writes.push(request.url()); });
+  for (const [player, kind] of [[original, "原片"], [preview, "播放片段"]] as const) {
+    const sourceAttribute = await player.getAttribute("src");
+    const mediaUrl = await player.evaluate(video => (video as HTMLVideoElement).src);
+    expect(mediaUrl).toBeTruthy();
+    await page.route(mediaUrl, route => route.abort("failed"));
+    const failedRead = page.waitForEvent("requestfailed", request => request.url() === mediaUrl);
+    // Fault injection is explicit: it exercises native read failure, not a provider error.
+    await player.evaluate(video => (video as HTMLVideoElement).load());
+    await failedRead;
+    const owner = player.locator("..");
+    await expect(owner.getByRole("alert")).toContainText(`浏览器未能播放这份${kind}`);
+    const nativeError = await player.evaluate(video => ({
+      code: (video as HTMLVideoElement).error?.code,
+      message: (video as HTMLVideoElement).error?.message,
+    }));
+    expect(nativeError.code).toBeGreaterThan(0);
+    await expect(owner.getByRole("alert")).toContainText(`媒体错误代码：${nativeError.code}`);
+    for (const [width, height] of [[1700, 900], [1280, 768], [1280, 460]]) {
+      await page.setViewportSize({ width, height });
+      const retry = owner.getByRole("button", { name: `重新加载${kind}`, exact: true });
+      const alert = owner.getByRole("alert");
+      await alert.evaluate(element => element.scrollIntoView({ block: "center" }));
+      await expect(retry).toBeVisible();
+      expect(await alert.evaluate(element => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(58);
+      expect(await alert.evaluate(element => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(height);
+      for (const control of [retry, owner.locator("summary")]) {
+        expect(await control.evaluate(element => {
+          const range = document.createRange(); range.selectNodeContents(element);
+          return new Set([...range.getClientRects()].map(rect => Math.round(rect.top))).size;
+        })).toBe(1);
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+      await page.screenshot({ path: test.info().outputPath(`media-read-error-${kind}-${width}x${height}.png`) });
+      await owner.locator("summary").click();
+      await alert.evaluate(element => element.scrollIntoView({ block: "center" }));
+      if (nativeError.message) await expect(owner.locator("pre")).toHaveText(nativeError.message);
+      expect(await alert.evaluate(element => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(58);
+      expect(await alert.evaluate(element => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(height);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+      await page.screenshot({ path: test.info().outputPath(`media-read-error-details-${kind}-${width}x${height}.png`) });
+      await owner.locator("summary").click();
+    }
+    await page.unroute(mediaUrl);
+    await owner.getByRole("button", { name: `重新加载${kind}`, exact: true }).click();
+    await expect(owner.getByRole("alert")).toHaveCount(0);
+    await expect.poll(() => player.evaluate(video => (video as HTMLVideoElement).readyState)).toBeGreaterThan(0);
+    expect(await player.getAttribute("src")).toBe(sourceAttribute);
+    expect(await player.evaluate(video => (video as HTMLVideoElement).src)).toBe(mediaUrl);
+    expect(await player.evaluate(video => (video as HTMLVideoElement).paused)).toBe(true);
+  }
+  expect(writes).toEqual([]);
+  const jobs = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs`);
+  expect(jobs.ok()).toBeTruthy();
+  expect((await jobs.json() as { jobs: Array<{ id: string; selected: boolean; selectionRevision: number }> }).jobs
+    .find(job => job.id === jobId)).toMatchObject({ selected: false, selectionRevision: 0 });
+});

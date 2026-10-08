@@ -3,6 +3,8 @@
 Status: **EXECUTED / PARTIAL COVERAGE**. Included in the current full E2E run,
 with scoped repairs verified; unqualified states remain listed below. This is
 not full lifecycle acceptance. Artistic image/video quality remains owner/H3 scope.
+The later [native preview error UI checkpoint](2026-10-08-native-preview-error-ui.md)
+extends failure-state coverage; it does not qualify the native decoder or all routes.
 Baseline: [full lifecycle ledger](2026-10-07-full-creator-e2e-repeat.md);
 reusable entry: [E22.1–E22.7](../creative-workflow/graph-workbench-acceptance.md#e22-全产品视觉与文案专门检查).
 
@@ -50,6 +52,42 @@ No page-width overflow observed in the measured native89–91 cases. This does n
 prove every view or state. Captured larger frames not explicitly inspected remain
 unqualified. Sandbox-blocked scripts in immutable static reports are an intentional
 reading boundary, not permission failures to solve by enabling report scripts.
+
+### Explicit state register for the next pass
+
+This register is not a claim that every state passed. `NOT EXERCISED` below means
+the named pixel/state slice has no qualifying receipt, even where handler tests
+pass. Existing capture numbers identify intermediate audit checkpoints, not an
+assertion that all pixels were recaptured against the latest source. Every new
+entry must bind its exact candidate, native/fixture class, viewport and inspected
+file; do not inherit a PASS from a different state or source revision.
+
+| Surface / state slice | Class and retained evidence | Visual result / next check |
+|---|---|---|
+| Script reader, populated read-only top/bottom | Native90, six PNGs at all three desktop sizes, root direct review | Layout readable; wide first top still has a pending Storyboard tab. Reader wording repair/re-capture pending. |
+| Storyboard reader, populated read-only top/bottom | Native90, six PNGs at all three desktop sizes, root direct review | Layout readable; current route is East. Does not qualify West pixels or expanded report/instructions. |
+| Reader, stale Script / stale Storyboard | Handler coverage in story-prototype.spec.ts; native90 is not this state | NOT EXERCISED: distinct refusal pixels and correct next action. |
+| Reader, initial read failure / pending read / named retry | Handler coverage in story-prototype.spec.ts | NOT EXERCISED: failure and pending viewport pixels. |
+| Original video, collapsed / expanded native error | Explicit read-fault fixture120; both states at all three sizes, root/independent inspection | Scoped PASS; candidate and handler limits in the preview checkpoint. |
+| Segment video, collapsed / expanded native error | Explicit read-fault fixture120; both states at all three sizes, root/independent inspection | Scoped PASS; not native successful playback or media selection. |
+| Cast/gallery, confirmed populated / expanded provenance | Native115, top/details/bottom at all three sizes | Scoped PASS; retained confirmed content, not an empty or failed read. |
+| Cast/gallery, empty / initial failed read | Existing handler guards are not pixel evidence | NOT EXERCISED: inspect both states and named recovery. |
+| Bible, populated premise | Native88 at all three sizes | Scoped PASS for this form, not the selected entity forms. |
+| Bible, selected character / scene / prop / archived read-only | Native88 does not exercise these forms or archive state | NOT EXERCISED: register each entity and archived reading separately. |
+| Art, confirmed plus optional new task | Native112/113 at all three sizes | Scoped PASS for current hierarchy/scrolling; no dispatch performed. |
+| Art / Script / Storyboard, stale / dirty / failed | Some fixture109 states and functional guards exist | PARTIAL: bind each final rendered state and its action owner separately. |
+| Trace, retained failure / running / true idle | Populated/idle97 and109; new copy has handler tests | PARTIAL: final retained-failure pixels remain unqualified. |
+| Exact repair, eligible / refusal / unknown result | Enabled109 eligible viewport; other guards are functional evidence | PARTIAL: refusal and unknown-result pixels are NOT EXERCISED. |
+| Directory/settings, populated / initial top / scrolled lower controls | Native91/93 and repaired112; all three sizes | Scoped PASS; not operation-in-progress or failed-save state. |
+| Snapshot / archive / delete / unsaved-navigation dialogs | Lifecycle handler journeys exist | NOT EXERCISED: named dialog/state pixel receipts for this audit candidate. |
+| Source / Outline / Creator / Pro, populated owner views | Native82–85 and loaded109; scoped fixes rechecked112 | PARTIAL: explicit empty/waiting/failed/stale/dirty/read-only rows still required. |
+| Structural help, hover / keyboard focus | C55 functional and earlier short-desktop checks | PARTIAL: separate final candidate viewport and focused/disabled action receipt. |
+| Cast / Art / Script / Storyboard static reports | Existing report contracts and isolated browser journeys | PARTIAL: register each report's full summary, disclosures, anchors, disabled scripts and short-desktop scroll pixels separately. |
+
+Priority order: reader refusal/recovery; gallery empty/failure and Bible entities;
+Trace/repair retained failures; then review-state/dialog/help/report permutations.
+Use only isolated QA data for state construction. Never manufacture failure or
+archive an owner project just to fill this table.
 
 ## Findings, root causes and bounded repairs
 

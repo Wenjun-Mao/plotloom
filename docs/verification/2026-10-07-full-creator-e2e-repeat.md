@@ -16,7 +16,7 @@ functional walkthroughs included incidental UI inspections, not a completed
 whole-product visual/copy audit. The dedicated pass has executed, with PARTIAL
 state coverage and verified scoped repairs;
 its [view/state observations and repairs](2026-10-08-whole-product-ui-audit.md)
-are recorded separately from functional results. Desktop matrix:
+and [native preview error checkpoint](2026-10-08-native-preview-error-ui.md) are recorded separately from functional results. Desktop matrix:
 1280×768,1280×460,1700×900; no phone/1024px testing.
 Reuse disposable data, distinguish fixture/native states and avoid repeated
 generation solely for visual inspection. All Create → Revise → Recover gaps remain.
@@ -324,7 +324,7 @@ the exact frozen image reservation, without restart/reload/send. Root receipts:
 | E10–E13 | Fresh Script/Storyboard r1 confirmed; proposal r3 presentation reviewed/installed; ordinary first-shot handoff PASS | Model inference E12 NOT EXERCISED (runtime unavailable); physical direction realization remains unspecified |
 | E14–E18 | Native opening image delivered; explicit keyframe and managed endframe review with ACK/readback and dirty guards; one H3 submit/reconcile ingested a5.167s832×480 candidate | Actual raw-media playback/audio, exact segment review/selection, other route media, all-route playback, native multishot and revised-media chain remain unqualified |
 | E19–E21 | C52 distinct A/B incomplete drafts/history/nodes/modes/Brief/Source/close/reopen and unsaved navigation ACK with full exact cleanup; Task/reopen/owned idle restart; exact QA snapshot/operator restore/archive/unarchive/typed disposable-copy delete; imported-image close/reopen/archive/restore, five-file snapshot bytes, overwrite refusal and restored-copy UI/HTTP hashes; offline imported-image archive/typed-delete regression PASS | Native/video-bearing deletion and remaining lifecycle recovery NOT EXERCISED |
-| E22/C37–C39 | Earlier graph layout/centered-plus/deletion/OS-blur evidence retained; dedicated whole-product E22.1–E22.7 view/state/copy sweep82–115, independent direct pixels, scoped repairs,628 frontend and final209 browser PASS; see linked audit for exact candidate and exclusions | Unobserved visual state permutations and native lifecycle/media acceptance remain partial |
+| E22/C37–C39 | Earlier graph layout/centered-plus/deletion/OS-blur evidence retained; dedicated whole-product E22.1–E22.7 sweep82–115 is the published628 frontend/209 browser checkpoint, not qualification for later changes. New native-preview UI and reader state checks are tracked in linked checkpoints with their own candidate/gates | Explicit state register lists unobserved visual permutations; native lifecycle/media acceptance remains partial |
 
 ### Fresh native identities and review boundaries
 

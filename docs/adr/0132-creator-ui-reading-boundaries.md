@@ -46,6 +46,13 @@ control, wrapping its label into the card's narrow number column.
   state and a link to the preparation owner, not a transport-error retry.
   Actual failed reads keep their named read-only retry. Optional new Art tasks
   are visibly distinct from the confirmed revision and never replace it implicitly.
+- Reviewed original/segment previews surface native browser media errors with
+  readable recovery guidance and exact secondary error evidence. An explicit
+  reload reads only that same media; it never generates, selects or autoplays.
+  Media identity changes reset preview-local error state. Playing either preview
+  pauses other original/segment previews; story playback remains independently owned.
+  Error guidance has a player-owned stacked layout, so descriptive copy cannot
+  squeeze its recovery controls. Expanded raw evidence wraps without being truncated.
 - Structural card layouts target cards, not every button in their container;
   generic actions retain their normal control layout. Chinese interface fallback
   errors and directory times use readable Chinese/24-hour presentation while
@@ -60,5 +67,8 @@ name/description separation, dialog hit testing as well as bounds at all three
 supported desktop sizes, identical-prose shots with exact recovery targets,
 and keyframe-summary clicks that reveal their owner without API writes.
 Direct viewport inspection remains required by E22; DOM visibility is insufficient.
+Do not infer completed playback from reaching duration: a decoder may disconnect
+without a native ended event. Preserve that failure and diagnose it separately;
+error presentation is not a decoder fix, timeout workaround or quality approval.
 Screenshot journeys wait for the intended content state, not just a page heading;
 an eligible repair capture must show an enabled repair control before recovery.
