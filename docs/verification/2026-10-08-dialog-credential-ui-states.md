@@ -130,6 +130,15 @@ base CSS `3b0c81ad3f5e2d92a455826ba114d269fedb3ddbf192ffed70c5381bbe1ea35d`
 and product CSS `42beb639a4681beb6bea3a3b04916ee1eb63481a821eb42994f152de7e2d6850`.
 All match local files; no service restart or protected-setting write was required.
 
+Executable source `0c91067fcd4e6d639d05c1bdfb8a811ca42e97dd` is committed and
+pushed to `origin/main`. Its unfiltered, exact-head
+[remote CI run](https://github.com/Wenjun-Mao/plotloom/actions/runs/37753998839)
+is queued at this closeout; remote success is not claimed. The prior reading
+checkpoint's CI37745186133 has completed successfully, not a substitute for this
+new candidate. Subsequent documentation-only closeout preserves the qualified
+executable fingerprint. Only the owned audit browser was closed; QA evidence,
+snapshots and all owner data remain retained.
+
 Remaining whole-product state slices are kept in the linked register, including
 dirty/upstream-stale review combinations, structural hover/focus, immutable
 report permutations, session/reconciliation recovery pixels and frozen-key

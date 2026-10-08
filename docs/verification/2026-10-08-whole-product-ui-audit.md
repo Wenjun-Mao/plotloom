@@ -11,6 +11,8 @@ gate and publication identity are recorded separately, not inherited from earlie
 The [draft/credential/lifecycle reading checkpoint](2026-10-08-dialog-credential-ui-states.md)
 adds actual consent/recovery and snapshot-disclosure checks; its final gate is
 qualified locally, and it does not close the remaining full-product state matrix.
+That checkpoint is published as executable `0c91067`, serving exact assets on
+normal8841; its new unfiltered remote CI37753998839 is queued at closeout.
 Baseline: [full lifecycle ledger](2026-10-07-full-creator-e2e-repeat.md);
 reusable entry: [E22.1–E22.7](../creative-workflow/graph-workbench-acceptance.md#e22-全产品视觉与文案专门检查).
 
