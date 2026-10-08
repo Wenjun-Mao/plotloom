@@ -3,6 +3,11 @@
 Status: **EXECUTED / PARTIAL COVERAGE**. Included in the current full E2E run,
 with scoped repairs verified; unqualified states remain listed below. This is
 not full lifecycle acceptance. Artistic image/video quality remains owner/H3 scope.
+The [Cast/Art report checkpoint](2026-10-08-cast-art-report-ui-states.md) adds96
+independently inspected report pixels and actual native toolbar-clearance reading.
+Its focused18 journeys and fresh unfiltered189 (236 tests) pass; earlier182 was interrupted by the owner's
+computer crash, retaining a separately completed native playback failure. Neither
+the interruption nor a later plain-player control closes that diagnosis.
 The later [native preview error UI checkpoint](2026-10-08-native-preview-error-ui.md)
 extends failure-state coverage; it does not qualify the native decoder or all routes.
 The [reader/gallery/Bible/run checkpoint](2026-10-08-reader-gallery-ui-states.md)
@@ -125,7 +130,8 @@ file; do not inherit a PASS from a different state or source revision.
 | Outline / Creator / Pro, populated owner views | Native82–85 and loaded109; scoped fixes rechecked112 | PARTIAL: remaining waiting/failed/stale/dirty/read-only permutations need explicit receipts. |
 | Structural help, pure hover / keyboard focus / pin / Escape |176 exact toolbar/full-control/full-explanation bounds, all48 final help PNGs independently directly inspected; five settings at all three sizes | Scoped pixels/operation PASS; full gate tracked in linked checkpoint. Earlier centre-only171 frames are insufficient for unclipped-control qualification. |
 | Script / Storyboard static reports |145 native33 direct pixels: disclosure/top/middle/bottom, West anchor/full prompt, reopen and archive/canonical/no-write guards;145 reader21 West route/instruction/report pixels | Scoped native reading PASS; original report covers all episodes, route reader only selected route. Other report permutations remain open. |
-| Cast / Art static reports | Existing report contracts and isolated browser journeys | PARTIAL: register each full summary, disclosures, anchors, disabled scripts and short-desktop pixels separately. |
+| Cast / Art static reports |181 disposable pinned-renderer fixtures,96 report PNGs independently inspected at all supported sizes;18 focused journeys PASS, original/canonical/hash/no-write guards;184 three directly inspected native Art action viewports;189 fresh unfiltered236PASS | Scoped reading PASS; accepted Cast identity marker is not a rich report, four-role fixture is not native delivery and relationship-heading/list pixels do not qualify the whole map. Publication tracked in linked checkpoint. |
+| Native Art prerequisite wording |184 current normal Art read exposes raw English prerequisite beside plain StageGuide; owner data unchanged. Independent source diagnosis traces successful stale projection through Cast-owned shared context. | UNRESOLVED contract/wording finding; distinguish source/map/graph vs current-Cast prerequisite owners using structured diagnostics, retaining raw evidence and stale restrictions. No string-matching translation or creative prose rewrite. |
 | Outline original interactive report |144 native12 direct top/table/middle/bottom pixels, all sizes; exact archive/project/no-write, bounds/hit and reopen guards | Reading controls/scroll scoped PASS. Raw fractional-minute tile wraps badly at1280; upstream renderer defect UNRESOLVED, original bytes preserved. |
 
 The Outline duration source diagnosis is confirmed in the clean pinned

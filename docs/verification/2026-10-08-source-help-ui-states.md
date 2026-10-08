@@ -1,6 +1,6 @@
 # Source and structural-help UI audit — 2026-10-08
 
-Status: **PUBLISHED / REMOTE CI PENDING**. This E22 checkpoint extends
+Status: **PUBLISHED / REMOTE CI PASSED**. This E22 checkpoint extends
 the [whole-product visual/text audit](2026-10-08-whole-product-ui-audit.md).
 It is not completion of Create → Revise → Recover or native-media acceptance.
 
@@ -110,7 +110,8 @@ No backend source, service restart or credential/settings write is required.
 
 Executable `210c33c604055916d35251ed8af1a5318251910d` is pushed to `origin/main`.
 The full unfiltered [CI37773930608](https://github.com/Wenjun-Mao/plotloom/actions/runs/37773930608)
-is queued at that exact head. Commit-ref dispatch requests were explicitly refused
+has completed success at that exact head: verify and both browser shards passed.
+Commit-ref dispatch requests were explicitly refused
 with HTTP 422 and created no runs. A fresh remote-main read established the same
 SHA; one branch-ref dispatch then returned the matching run. No duplicate run was
-created. Remote success is not yet established.
+created. This remote result qualifies only that published Source/help candidate.

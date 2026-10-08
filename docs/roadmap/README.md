@@ -21,6 +21,12 @@ qualification/publication and broader gaps remain explicit there.
 The [Source/help checkpoint](../verification/2026-10-08-source-help-ui-states.md)
 adds initial/retained failed reads, accurate read-only guidance and separate full-control
 hover/focus reading at all supported desktop sizes; its final qualification is recorded there.
+The [Cast/Art report checkpoint](../verification/2026-10-08-cast-art-report-ui-states.md)
+adds expanded original/current-report reading and directly reviewed report pixels;
+focused checks and fresh unfiltered189 pass236 tests; publication is tracked in
+the receipt. Earlier interrupted182 and failed186 remain documented, with their
+underlying startup/network-change causes unresolved. Reboot recovery does not
+authorize duplicate dispatch or imply native-media product acceptance.
 The supported matrix remains1280×768,1280×460,1700×900; no phone/1024px work.
 
 The owner approved a [fresh full creator E2E repeat](2026-10-07-full-creator-e2e-repeat.md)
