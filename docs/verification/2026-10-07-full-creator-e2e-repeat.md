@@ -8,6 +8,12 @@ and [C50 recovery](2026-10-07-c50-draft-recovery.md) / [C52 project ownership](2
 Dated checkpoints below and the [historical receipt](2026-10-07-full-creator-e2e-repeat-history.md)
 retain earlier failures; historical present-tense claims are not current status.
 
+Latest finite checkpoint: [203 project-load/retained-media repair](2026-10-08-load-retained-media-qualification.md),
+published/healthy executable6284118;1,309 Python,806 frontend,239 browser qualified
+with the receipt's reuse/identity limits. Exact-executable CI37840593084 is running.
+The owner selected one current story with explicit rebuild (ADR0138); implementation
+and native Revise/multishot acceptance remain outstanding, not waived.
+
 ## Dedicated whole-product visual and text audit added
 
 Owner-requested scope: execute E22.1–E22.7 as part of this full E2E run, including

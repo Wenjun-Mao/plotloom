@@ -1,7 +1,8 @@
 # Project availability and retained media — repair qualification
 
-Status at 20:34 UTC: candidate203 qualified locally and in isolated native replay;
-publication/activation pending. Full Create → Revise → Recover remains PARTIAL.
+Status at 20:36 UTC: candidate203 qualified locally and in isolated native replay,
+published as executable `628411858734a8496314cb9644d2384b61b82453` and activated
+healthy on normal8841. Full Create → Revise → Recover remains PARTIAL.
 This closes the two demonstrated read/presentation defects in the
 [native recovery receipt](2026-10-08-native-media-lifecycle-recovery.md), not the
 outstanding installed-story rebuild or same-node multishot journey.
@@ -81,6 +82,22 @@ Owner/protected-file checks before and after the owned idle stop still match
 17/67 managed files and three protected files unchanged. Normal8841 prebuild
 reported `busy:false`,zero active tasks before the graceful stop. No busy shutdown,
 lease clearing, duplicate dispatch or unknown-job retry occurred.
+
+## Publication and activation readback
+
+Main was clean and exactly synchronized with origin at executable6284118.
+The owned composition was rebuilt/recreated after the idle preflight; Docker
+reported Healthy and native Codex bridge available. `/healthz` returns200/ok;
+the actual served `/v2/workbench.js` SHA256 is the checked `3a8843…555d5` above.
+Post-activation owner/protected-file aggregate remains exact in
+`203-owner-protection-after-activation.json`. Activation log:
+`203-normal-activation.txt`. No owner migration, reset, credential change or
+generation occurred.
+
+Fresh unfiltered [CI37840593084](https://github.com/Wenjun-Mao/plotloom/actions/runs/37840593084)
+binds executable6284118 and is **in progress**, not yet a passed remote gate.
+The final publication note is a documentation-only commit, not a different runtime
+qualification. This finite repair checkpoint does not complete the active full run.
 
 ## Method failures, reassessment and deployment isolation incident
 
