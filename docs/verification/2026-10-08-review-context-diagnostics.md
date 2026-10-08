@@ -1,8 +1,13 @@
 # Typed Cast/Art currentness guidance — 2026-10-08
 
-Status: **LOCAL QUALIFIED / PUBLICATION AND ACTIVATION READBACK PENDING**. This is a bounded E22
+Status: **PUBLISHED / ACTIVATED / EXACT-HEAD CI RUNNING**. This is a bounded E22
 contract and wording repair within the current full lifecycle run. It does not
 complete Create → Revise → Recover, native-media coverage or creative acceptance.
+Executable`c26920ba69c645fc16384d070603549a31f1a7d0` is pushed to`origin/main`;
+healthy normal8841 serves the checked API/assets. The one unfiltered
+[exact-head CI run](https://github.com/Wenjun-Mao/plotloom/actions/runs/37786734259)
+is running, not yet remotely qualified. Documentation closeout does not change
+the qualified executable inputs.
 Public API decision: [ADR0134](../adr/0134-typed-review-context-diagnostics.md).
 Earlier interrupted182, failed186 and passing189 remain separate historical
 evidence in the [Cast/Art report receipt](2026-10-08-cast-art-report-ui-states.md).
@@ -90,7 +95,7 @@ source writer.
   at the manifest above. Default four workers, zero local retries, existing decoder
   and timing bounds remain unchanged. The three offline native-clock cases pass;
   these are not genuine H3 creative/media qualification.
-- Publication, normal activation/readback and exact-revision CI:PENDING.
+- Publication and normal activation/readback:PASS; exact-revision full CI:RUNNING.
 
 Normal8841 recovered automatically after the owner-reported reboot. Before the
 controlled build stop, the exact protected-owner aggregate remained
@@ -101,9 +106,44 @@ candidate, no frozen-profile reference, dispatch lease or inflight file. Root
 stopped only `plotloom-creator-workbench-1` before rebuilding the breaking API/UI
 pair, avoiding a new frontend served against the old backend. Native bridge,
 credentials and generation dispatches were untouched. Restart and post-activation
-preservation must still be verified before closeout.
+preservation are now verified below.
 Read-only host SQLite/file/settings capture while stopped returns that same exact
 aggregate; no owner data changed during the controlled stop.
+
+## Activated normal readback
+
+Only the same normal container was started again. Health and `/v2/` return200;
+container health is healthy. The Rain Art API returns200, stale review state and
+`source_context_not_ready` owned by Source, through the new typed contract.
+Actual served bytes match the qualified static files:
+
+- `/v2/workbench.js`:
+  `55b655e2db46182f9570d514f108466814055143b4f7b5546c8b85e63335e712`.
+- `/v2/workbench.css`:
+  `000aac5623f5ce4cf63f007979f7e7d1e09f9aa3698a1da3556fe400dbec3b7c`.
+- `/v2/workbench2.css`:
+  `99dd1d0435f1373766564583298fb848b6fa8fccae5847181b3d6341dbafd6c4`.
+
+Root directly inspected three additional native `normal-art-*-closed.png`
+viewports in the same folder. The entire notice is inside each viewport, its
+technical evidence stays closed and the Source owner link has the correct current
+project. The measured observation sends zero writes. This qualifies the notice,
+not every page element or state; some captures intentionally scroll to it. The
+one console error is the original report script blocked by its intended sandbox,
+not an app-load error. An initial root-relative asset404 was a probe-path mistake:
+the shipped index explicitly uses `/v2/` assets, which all return200.
+
+Active host SQLite cannot open the WAL state in this environment. The same
+mode=ro/query_only snapshot inside the normal container, combined with host
+file/settings hashing, returns the exact pre-stop aggregate above after API/UI
+readback. No database, media, source, report, setting or credential changed.
+The disposable18991/5178 processes and audit-owned browser are closed; fixtures
+and all39 screenshots remain retained. No user browser or specialist was stopped.
+
+Auto-review initially declined default-branch publication. A read-only check
+confirmed the standing AGENTS.md publication instruction, unprotected`main`,
+matching remote head, empty index and exact reviewed scope; the subsequent scoped
+commit/push succeeded. No force push or permission bypass was used.
 
 ## New finding and explicit limits
 

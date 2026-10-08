@@ -31,7 +31,8 @@ The [typed Cast/Art guidance checkpoint](../verification/2026-10-08-review-conte
 repairs lost prerequisite ownership through the current API and primary Chinese
 instructions, preserving raw technical evidence and existing admission. Final
 local qualification passes1256 Python,723 frontend and unfiltered236 browser
-tests; publication and activation readback are pending. Stale Art's enabled image-task
+tests. Executable`c26920b` is pushed and healthy normal8841 serves its exact
+API/assets; full exact-head CI37786734259 is running. Stale Art's enabled image-task
 affordance is a separately recorded unresolved eligibility defect.
 The supported matrix remains1280×768,1280×460,1700×900; no phone/1024px work.
 
