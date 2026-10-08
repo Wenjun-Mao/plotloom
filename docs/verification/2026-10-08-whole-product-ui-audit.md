@@ -6,6 +6,16 @@ not full lifecycle acceptance. Artistic image/video quality remains owner/H3 sco
 Baseline: [full lifecycle ledger](2026-10-07-full-creator-e2e-repeat.md);
 reusable entry: [E22.1–E22.7](../creative-workflow/graph-workbench-acceptance.md#e22-全产品视觉与文案专门检查).
 
+## Scoped delivery
+
+Executable source `46ab176b92d6b4dec2081ac1acd78c4109ff41ec` is committed and
+pushed to `origin/main`. Normal8841 returns HTTP200 and serves the exact verified
+JavaScript hash `258e1fee4a4c5fb3824a5492e00b3e0072a28da368f217a6dadc18c16a49203c`.
+No backend restart, protected-setting write or owner-data mutation was needed.
+The unfiltered [remote CI run](https://github.com/Wenjun-Mao/plotloom/actions/runs/37733050839)
+is in progress at delivery; remote success is not yet claimed. This scoped
+delivery does not close the broader lifecycle/media or visual-state gaps below.
+
 ## Scope and evidence discipline
 
 Audit primary and Professional views, settings, readers and recovery messages for
