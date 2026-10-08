@@ -143,7 +143,10 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
         with self._access.leases.read() as session:
             self._access.rows.project(session, project_id); head = self._head(session, project_id)
             row = session.scalar(select(ProductionBridgeRevisionRow).where(ProductionBridgeRevisionRow.project_id == project_id, ProductionBridgeRevisionRow.revision == head.revision)) if head.revision else None
-            stale = self._current(session, project_id, row.inputs) if row else []
+            # Successful installation necessarily advances the frozen target.
+            # Only a pending proposal is still authorized against that target.
+            stale = (self._current(session, project_id, row.inputs) if head.status == "accepted"
+                     else self._proposal_stale(session, project_id, row)) if row else []
             proposal = ProductionBridgeProposal(revision=row.revision, content_hash=row.content_hash, inputs=row.inputs, replacement_target=row.proposal["replacementTarget"], intent_package=self._intent_package(session, row), presentation=ProductionPresentation.model_validate(row.proposal["presentation"]), scenes=row.proposal["scenes"], cuts=row.proposal["cuts"], conflicts=[ProductionBridgeConflict.model_validate(item) for item in row.conflicts], advisories=[ProductionBridgeConflict.model_validate(item) for item in row.proposal["advisories"]], installable=row.installable, prepared_at=row.prepared_at) if row else None
             installation = self.installation_in_session(session, project_id)
             try:
@@ -187,7 +190,7 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
             row = session.scalar(select(ProductionBridgeRevisionRow).where(ProductionBridgeRevisionRow.project_id == project_id, ProductionBridgeRevisionRow.revision == head.revision))
             if row is None or row.content_hash != request.expected_content_hash:
                 raise InvalidTransitionError("production bridge proposal changed before its intent package was saved")
-            if self._current(session, project_id, row.inputs):
+            if self._proposal_stale(session, project_id, row):
                 raise InvalidTransitionError("production bridge proposal is stale")
             package = self._intent_package(session, row)
             updates = {item.id: item.text for item in request.entries}

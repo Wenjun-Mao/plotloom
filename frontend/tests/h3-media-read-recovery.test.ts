@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { plotloomApi, type H3PromptPreview } from "../src/api";
 import { demoProject } from "../src/demo";
 import { ManagedMediaWorkbench } from "../src/features/media/ManagedMediaWorkbench";
+import { bridgeState } from "./production-bridge-fixture";
 import type { ImageJob, ManagedAsset, ReviewedKeyframe, StoryboardReview, VideoBackend, VisualWorkbench } from "../src/types";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -94,7 +95,7 @@ beforeEach(() => {
     .mockResolvedValue({ configured: true, jobs: [] });
   vi.spyOn(plotloomApi, "refreshImageJob").mockResolvedValue({ state: "accepted", candidates: [] });
   vi.spyOn(plotloomApi, "getCharacterReferenceProposals").mockResolvedValue({ configured: false, proposals: [] });
-  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ intentGeneration: { status: "unavailable", reason: "not_configured" }, status: "missing", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false, hasInstallation: false, proposal: null });
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(bridgeState({ intentGeneration: { status: "unavailable", reason: "not_configured" } }));
   vi.spyOn(plotloomApi, "getVideoPilotBudget").mockResolvedValue({ limitSeconds: 100, reservedSeconds: 0, remainingSeconds: 100, attempts: [] });
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue(backend);
   vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [] });

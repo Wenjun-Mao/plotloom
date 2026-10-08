@@ -31,7 +31,9 @@ def repeated_scene_bridge(store, seconds):
         cut["beats"] = [value - 4 for value in cut["beats"]]
     ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", board, "creator-multiple-scenes"))
     store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
-    proposal = _review_fixture_presentation(store, store.prepare_production_bridge().proposal)
+    preparation = store.production_bridge_state().preparation
+    assert preparation.status == "available"
+    proposal = _review_fixture_presentation(store, store.prepare_production_bridge(preparation.request).proposal)
     proposal = store.update_production_bridge_intent_package(ProductionBridgeIntentUpdateRequest(
         expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash,
         entries=[{"id": entry.id, "text": f"作者明确的戏剧目的：{entry.id}"} for entry in proposal.intent_package.entries],
@@ -53,7 +55,9 @@ def main() -> None:
     try:
         proposal = repeated_scene_bridge(store, args.seconds) if args.repeat_scenes else _prepare_installable_bridge(store, seconds=args.seconds)
         if args.pending:
-            store.prepare_production_bridge()
+            preparation = store.production_bridge_state().preparation
+            assert preparation.status == "available"
+            store.prepare_production_bridge(preparation.request)
         else:
             accepted = store.accept_production_bridge(ProductionBridgeAcceptRequest(
                 expected_proposal_revision=proposal.revision,

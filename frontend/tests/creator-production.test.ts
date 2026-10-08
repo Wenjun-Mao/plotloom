@@ -3,6 +3,7 @@ import type { AcceptedScriptRevision, ProductionBridgeProposal, Shot, SourceOutl
 import { installedCutMatches, nodeProductionScenes } from "../src/features/graph/productionProjection";
 import { creatorAdmission } from "../src/features/graph/creatorAdmission";
 import { graphDraftFixture } from "./graph-workbench-fixture";
+import { bridgeState, installedProduction } from "./production-bridge-fixture";
 
 const scene = { sceneId: "S01", characters: [], flow: [{ action: "The light holds." }] };
 const accepted = { revision: 2, contentHash: "script-hash", binding: { sectionBindings: [{ sectionId: "opening", episode: 7 }], routeOnlySectionIds: ["choice"] }, script: { episodes: [{ ep: 7, scenes: [scene, scene] }] } } as unknown as AcceptedScriptRevision;
@@ -41,19 +42,22 @@ it("does not hide a retained old production under a route-only binding", () => {
   expect(() => nodeProductionScenes(value, accepted, "choice")).toThrow("旧投产映射");
 });
 
-it("checks semantic mapping and exact admission while preserving first-install-only guards", () => {
+it("allows revising installed content but still requires exact source admission and known production state", () => {
   const draft = graphDraftFixture();
   const { sections, ...rest } = draft.mapping;
   const source = { sectionMapStatus: "current", acceptedSectionMap: { revision: 4, contentHash: "map-hash", mapping: { sections: structuredClone(sections), ...rest } }, graphAdmission: { status: "current", graphRevision: 3, sectionMapRevision: 4, sectionMapContentHash: "map-hash" } } as SourceOutlineReviewState;
   expect(JSON.stringify(source.acceptedSectionMap!.mapping)).not.toBe(JSON.stringify(draft.mapping));
-  expect(creatorAdmission(draft, source, 3, true)).toMatchObject({ graphCurrent: true, installBlocked: true, structureBlocked: false });
-  expect(creatorAdmission(draft, source, 2, false).graphCurrent).toBe(false);
+  const production = bridgeState({ installation: installedProduction() });
+  expect(creatorAdmission(draft, source, 3, production)).toMatchObject({ graphCurrent: true, installBlocked: true });
+  expect(creatorAdmission(draft, source, 2, production)).toMatchObject({ graphCurrent: false, installBlocked: false });
   source.graphAdmission!.sectionMapContentHash = "other";
-  expect(creatorAdmission(draft, source, 3, false).graphCurrent).toBe(false);
+  expect(creatorAdmission(draft, source, 3, production).graphCurrent).toBe(false);
   source.graphAdmission!.sectionMapContentHash = "map-hash";
   draft.mapping.sections[0].title += " revised prose";
-  expect(creatorAdmission(draft, source, 3, true)).toMatchObject({ graphCurrent: false, structureBlocked: false, installBlocked: true });
+  expect(creatorAdmission(draft, source, 3, production)).toMatchObject({ graphCurrent: false, installBlocked: true });
   draft.mapping.sections[0].footageMode = "route_only";
-  expect(creatorAdmission(draft, source, 3, true).structureBlocked).toBe(true);
+  source.acceptedSectionMap!.mapping.sections = structuredClone(draft.mapping.sections);
+  source.graphAdmission!.status = "stale";
+  expect(creatorAdmission(draft, source, 3, production)).toMatchObject({ graphCurrent: false, installBlocked: false });
   expect(creatorAdmission(draft, source, 3, undefined).installBlocked).toBe(true);
 });

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { plotloomApi } from "../src/api";
 import { demoProject } from "../src/demo";
 import { ManagedMediaWorkbench } from "../src/features/media/ManagedMediaWorkbench";
+import { bridgeState } from "./production-bridge-fixture";
 import type { ManagedAsset, ReviewedKeyframe, Shot, StoryboardReview, VisualIntent, VisualWorkbench } from "../src/types";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -80,7 +81,7 @@ beforeEach(() => {
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
   vi.spyOn(plotloomApi, "getImageJobs").mockResolvedValue({ configured: false, jobs: [] });
   vi.spyOn(plotloomApi, "getCharacterReferenceProposals").mockResolvedValue({ configured: false, proposals: [] });
-  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ intentGeneration: { status: "unavailable", reason: "not_configured" }, status: "missing", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false, hasInstallation: false, proposal: null });
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(bridgeState({ intentGeneration: { status: "unavailable", reason: "not_configured" } }));
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({ enabled: false, qualifiedDurationSeconds: [5, 8] });
   vi.spyOn(plotloomApi, "importManagedAsset").mockResolvedValue(assets[0]);
   vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);

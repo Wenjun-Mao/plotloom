@@ -4,8 +4,9 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { plotloomApi } from "../src/api";
 import { demoProject } from "../src/demo";
 import { ShotPreparationSummary } from "../src/features/media/ShotPreparationSummary";
-import type { ProductionBridgeState, VisualWorkbench } from "../src/types";
+import type { ProductionBridgeProposal, ProductionBridgeState, VisualWorkbench } from "../src/types";
 import { sourceSecondsToMilliseconds } from "../src/production-timing";
+import { bridgeState, installedProduction, replacementTarget } from "./production-bridge-fixture";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -14,12 +15,14 @@ let host: HTMLDivElement;
 const emptyWorkbench: VisualWorkbench = { assets: [], selectionRevision: 0, visualIntents: [], reviewedKeyframes: [], characterReferences: { states: [], decisions: [] }, samePersonReviews: { revision: 0, reviews: [] }, previews: [] };
 
 function bridge(seconds: number): ProductionBridgeState {
-  return { intentGeneration: { status: "available" }, status: "accepted", staleReasons: [], installedStageRevisions: { storyboard: 1 }, installedStoryboardCurrent: true, hasInstallation: false, proposal: {
+  const proposal: ProductionBridgeProposal = {
+    replacementTarget: replacementTarget(),
     presentation: { version: 1, reviewed: true, sourceHash: "f".repeat(64), sources: [], runtimeChoice: { choices: [] }, frozenEvidence: {} },
     revision: 2, contentHash: "a".repeat(64), inputs: {}, scenes: [], conflicts: [], advisories: [], installable: true, preparedAt: "2026-09-23T00:00:00Z",
     cuts: [{ shotId: "opening-s1-c1", sectionId: "opening", episode: 1, sceneIndex: 1, seconds, source: { segmentIndex: 1, segmentSceneIndex: 1, cutIndex: 1 } }],
-    intentPackage: { suggestionOrigin: "none", reviewState: "author_saved", entries: [] },
-  } };
+    intentPackage: { suggestionOrigin: "none" as const, reviewState: "author_saved" as const, entries: [] },
+  };
+  return bridgeState({ status: "accepted", installation: installedProduction({ cuts: proposal.cuts }), proposal });
 }
 
 async function render(seconds: number, projectId = "one", mediaReadPhase: "loading" | "ready" | "error" = "ready", onRetryMedia?: () => void) {

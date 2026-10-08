@@ -102,7 +102,7 @@ export function ShotPreparationSummary({
     {(current?.bridgeError || current?.backendError) && <Button variant="quiet" onClick={() => setRetryEpoch((value) => value + 1)}>重试来源与视频能力读取</Button>}
     {mediaReadPhase === "error" && <p className="warning">媒体证据读取失败；当前角色参考与关键帧状态未知。<Button variant="quiet" onClick={onRetryMedia}>重试媒体读取</Button></p>}
     {current?.bridge && (!cut || !sourceMatches) && <p className="warning" data-testid="bridge-source-unavailable">
-      {current.bridge.status === "stale" ? "投产提案已过期；此镜头不具有当前投产来源绑定。"
+      {current.bridge.installation?.status === "outdated" ? "当前制作内容需要重建；此镜头不具有当前投产来源绑定。"
         : cut ? "镜头时长或未保存编辑与已应用的原稿来源不一致；先审阅并保存当前分镜设定，不能将其视为来源匹配。"
           : "当前镜头不属于此已确认投产提案，或分镜版本已变化；来源坐标不适用。"}
     </p>}

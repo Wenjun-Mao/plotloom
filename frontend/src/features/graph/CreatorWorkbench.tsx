@@ -39,7 +39,7 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onNavigate, onO
   const [action, setAction] = useState<CreatorEdit | null>(null), [tab, setTab] = useState<"story" | "production">("story");
   const [selectedY, setSelectedY] = useState<number>();
   const production = useCreatorProduction(project, owner.state?.bindingHash, tab === "production");
-  const admission = creatorAdmission(draft, source, owner.state!.baseCanonicalRevision, production.data?.bridge?.hasInstallation);
+  const admission = creatorAdmission(draft, source, owner.state!.baseCanonicalRevision, production.data?.bridge);
   const geometry = useCreatorGeometry(project.id!, selectedY);
   const revealedSelection = useRef<string | null>(null);
   const layout = useMemo(() => creatorLayout(draft, geometry.chartWidth), [draft, geometry.chartWidth]);
@@ -86,7 +86,7 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onNavigate, onO
       <div className="creator-inspector-track"><aside ref={geometry.inspector} className="creator-inspector" aria-label="当前节点详情">
         <header><strong>{section?.title || "选择故事节点"}</strong><div className="creator-tabs" role="tablist"><button role="tab" aria-selected={tab === "story"} onClick={() => setTab("story")}>故事</button><button role="tab" aria-selected={tab === "production"} onClick={() => setTab("production")}>制作</button></div>{!action && <GraphSafetyNotice />}</header>
         <div className="creator-inspector-body"><CreatorStoryInspector projectId={project.id!} disabled={disabled} active={tab === "story"} onNavigate={onNavigate} />{tab === "production" && <CreatorProductionInspector project={project} read={production} graphCurrent={admission.graphCurrent} disabled={disabled} onNavigate={onNavigate} onOpenShot={onOpenShot} />}</div>
-        <footer><Button disabled={disabled} onClick={() => void owner.saveDraft()}>保存图草稿</Button><Button disabled={disabled || !source?.acceptedOutline || structure.incomplete || structure.mismatches.length > 0 || admission.structureBlocked || !production.data?.bridge} onClick={() => source && void owner.confirmMapping(source)}>确认图内容</Button><Button variant="primary" disabled={disabled || admission.installBlocked} onClick={() => source && void owner.installMapping(source)}>应用到故事路线</Button><p>{admission.reason}</p></footer>
+        <footer><Button disabled={disabled} onClick={() => void owner.saveDraft()}>保存图草稿</Button><Button disabled={disabled || !source?.acceptedOutline || structure.incomplete || structure.mismatches.length > 0 || !production.data?.bridge} onClick={() => source && void owner.confirmMapping(source)}>确认图内容</Button><Button variant="primary" disabled={disabled || admission.installBlocked} onClick={() => source && void owner.installMapping(source)}>应用到故事路线</Button><p>{admission.reason}</p></footer>
       </aside></div>
     </div>
     {action && <CreatorEditDialog action={action} onClose={() => setAction(null)} />}

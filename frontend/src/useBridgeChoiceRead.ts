@@ -22,7 +22,8 @@ export function useBridgeChoiceRead(projectId: string, identity: string, bridgeO
     setState({ identity: readIdentity, status: "loading", choice: null });
     void plotloomApi.getProductionBridge(projectId, controller.signal).then(next => {
       if (!current()) return;
-      const raw = next.runtimeChoice;
+      const installation = next.installation;
+      const raw = installation?.runtimeChoice;
       const choices = raw ? raw.choices : [];
       const admitted = choices.every(choice => {
       const outgoing = edges.filter(edge => edge.sourceNodeId === choice.sectionId && edge.kind === "choice");
@@ -31,7 +32,7 @@ export function useBridgeChoiceRead(projectId: string, identity: string, bridgeO
         && choice.outcomes.every(outcome => outgoing.some(edge => edge.id === outcome.outcomeId && edge.targetNodeId === outcome.endingSectionId && edge.choiceText === outcome.label));
       });
       const graphChoiceSources = new Set(edges.filter(edge => edge.kind === "choice").map(edge => edge.sourceNodeId));
-      const exact = next.status === "accepted" && next.installedStoryboardCurrent && admitted
+      const exact = installation?.status === "current" && installation.staleReasons.length === 0 && admitted
         && new Set(choices.map(choice => choice.sectionId)).size === choices.length
         && choices.length === graphChoiceSources.size && choices.every(choice => graphChoiceSources.has(choice.sectionId));
 

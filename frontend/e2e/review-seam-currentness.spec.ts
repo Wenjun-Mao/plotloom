@@ -3,7 +3,7 @@ import { expect, test } from "./fixture";
 import { availableSpecialistWithoutSend, createScriptProject, fixture, json, writeDelivery } from "./f5a-fixture";
 import type { APIRequestContext } from "@playwright/test";
 
-async function invalidate(request: APIRequestContext, origin: string, id: string, stage: "cast" | "script") {
+async function invalidate(request: APIRequestContext, origin: string, id: string, stage: "cast" | "script", expectPublicationRefusal = false) {
   const project = `${origin}/api/v2/projects/${id}`;
   if (stage === "script") {
     const { acceptedArt: base } = await json(request.get(`${project}/art`));
@@ -19,11 +19,17 @@ async function invalidate(request: APIRequestContext, origin: string, id: string
   const mapping = structuredClone(base.acceptedSectionMap.mapping);
   mapping.sections[0].summary += " Current map context.";
   const draftRevision = await acknowledgeGraphMapping(request, project, mapping);
-  const next = await json(request.put(`${root}/section-map`, { data: {
+  const response = await request.put(`${root}/section-map`, { data: {
     expectedSectionMapRevision: base.acceptedSectionMap.revision,
     expectedSourceRevision: base.source.revision, expectedOutlineRevision: base.acceptedOutline.revision,
     expectedOutlineContentHash: base.acceptedOutline.contentHash, mapping, expectedGraphDraftRevision: draftRevision,
-  } }));
+  } });
+  if (expectPublicationRefusal) {
+    expect(response.status()).toBe(409);
+    expect(await response.json()).toMatchObject({ code: "invalid_transition", message: "unresolved publication or execution prevents production rebuild" });
+    return;
+  }
+  const next = await json(response);
   await json(request.post(`${root}/section-map/install-graph`, { data: {
     expectedSourceRevision: next.source.revision, expectedSourceContentHash: next.source.contentHash,
     expectedOutlineRevision: next.acceptedOutline.revision, expectedOutlineContentHash: next.acceptedOutline.contentHash,
@@ -32,8 +38,32 @@ async function invalidate(request: APIRequestContext, origin: string, id: string
   } }));
 }
 
+test("pending Cast publication blocks source-map changes until explicitly cancelled", async ({ page, request, workbench }) => {
+  const id = await createScriptProject(request, workbench.apiOrigin, "pending-cast-revision", {}, []);
+  const project = `${workbench.apiOrigin}/api/v2/projects/${id}`;
+  const prepared = await json(request.post(`${project}/cast/candidates`));
+  const sends = await availableSpecialistWithoutSend(page, id, "characters", prepared.jobId);
+  const before = await json(request.get(`${project}/source-outline`));
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=characters`);
+  const panel = page.getByTestId("cast-review");
+  await expect(panel.getByRole("button", { name: "发送给文字创作助手" })).toBeEnabled();
+  await invalidate(request, workbench.apiOrigin, id, "cast", true);
+  expect(await json(request.get(`${project}/source-outline`))).toEqual(before);
+  expect(await json(request.get(`${project}/cast`))).toMatchObject({ status: "prepared", acceptedCast: null });
+  await panel.getByRole("button", { name: "取消此任务", exact: true }).click();
+  await expect.poll(async () => (await json(request.get(`${project}/cast`))).candidate).toBeNull();
+  await invalidate(request, workbench.apiOrigin, id, "cast");
+  await writeDelivery(prepared, "characters", await fixture("cast.json"));
+  const late = await request.post(`${project}/cast/candidates/${prepared.jobId}/refresh`);
+  // Cancellation removes request authority before the delivery reader runs.
+  expect(late.status()).toBe(404);
+  expect(await late.json()).toMatchObject({ code: "not_found", message: "project cast candidate is unavailable" });
+  expect((await json(request.get(`${project}/cast`))).acceptedCast).toBeNull();
+  expect(sends()).toBe(0);
+});
+
 for (const stage of ["cast", "script"] as const) {
-  for (const ready of [false, true]) test(`first stale ${stage} ${ready ? "ready" : "prepared"} candidate has no acceptance authority`, async ({ page, request, workbench }) => {
+  for (const ready of stage === "cast" ? [true] : [false, true]) test(`first stale ${stage} ${ready ? "ready" : "prepared"} candidate has no acceptance authority`, async ({ page, request, workbench }) => {
     const id = await createScriptProject(request, workbench.apiOrigin, `first-${stage}-${ready}`, {}, stage === "cast" ? [] : ["cast", "art"]);
     const url = `${workbench.apiOrigin}/api/v2/projects/${id}/${stage}`;
     const prepared = await json(request.post(`${url}/candidates`));

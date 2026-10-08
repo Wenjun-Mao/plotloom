@@ -40,10 +40,10 @@ export function currentBridgeCut(
   storyboardRevision: number | undefined,
   shotId: string,
 ): BridgeCut | undefined {
+  const installation = state?.installation;
   if (
-    state?.status !== "accepted" || state.staleReasons.length > 0 ||
-    !storyboardRevision || state.installedStoryboardCurrent !== true ||
-    state.installedStageRevisions?.storyboard !== storyboardRevision
+    installation?.status !== "current" || installation.staleReasons.length > 0 ||
+    !storyboardRevision || installation.installedStageRevisions.storyboard !== storyboardRevision
   ) return undefined;
-  return state.proposal?.cuts.map(bridgeCut).find((cut) => cut?.shotId === shotId);
+  return installation.cuts.map(bridgeCut).find((cut) => cut?.shotId === shotId);
 }

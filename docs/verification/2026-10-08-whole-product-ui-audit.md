@@ -3,6 +3,10 @@
 Status: **EXECUTED / PARTIAL COVERAGE**. Included in the current full E2E run,
 with scoped repairs verified; unqualified states remain listed below. This is
 not full lifecycle acceptance. Artistic image/video quality remains owner/H3 scope.
+The [current-story rebuild checkpoint](2026-10-08-current-story-rebuild.md) adds
+directly inspected stale-proposal/installed-production pixels at all three desktop
+sizes, currentness-safe editing and accurate rebuild guidance. It is an isolated
+software fixture, not native revised-story playback or a normal-service activation.
 The [Cast/Art report checkpoint](2026-10-08-cast-art-report-ui-states.md) adds96
 independently inspected report pixels and actual native toolbar-clearance reading.
 Its focused18 journeys and fresh unfiltered189 (236 tests) pass; earlier182 was interrupted by the owner's

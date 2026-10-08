@@ -1,4 +1,4 @@
-import type { AcceptedScriptRevision, ProductionBridgeProposal, Shot } from "../../types";
+import type { AcceptedScriptRevision, ProductionSceneMapping, Shot } from "../../types";
 import { bridgeCut, type BridgeCut } from "../../production-bridge-handoff";
 import { sourceSecondsToMilliseconds } from "../../production-timing";
 import { sectionEpisode } from "./scriptProjection";
@@ -7,7 +7,7 @@ export interface NodeProductionScene { sceneId: string; episode: number; sceneIn
 const positiveInteger = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value > 0;
 
 /** Current F4 occurrence coordinates and F5 identities must agree; never infer. */
-export function nodeProductionScenes(proposal: ProductionBridgeProposal, accepted: AcceptedScriptRevision, sectionId: string): NodeProductionScene[] {
+export function nodeProductionScenes(proposal: ProductionSceneMapping, accepted: AcceptedScriptRevision, sectionId: string): NodeProductionScene[] {
   if (proposal.inputs.scriptRevision !== accepted.revision || proposal.inputs.scriptContentHash !== accepted.contentHash) throw new Error("投产映射使用的剧本版本已变化；原场次与媒体保留，请返回整包评审。");
   const episode = sectionEpisode(accepted.script, accepted.binding, sectionId);
   const scenes = proposal.scenes.filter(scene => scene.sectionId === sectionId);

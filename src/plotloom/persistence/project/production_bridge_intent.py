@@ -50,7 +50,7 @@ class ProductionBridgeIntentPersistence:
             if head.revision != expected_revision or head.status == "accepted":
                 raise RevisionConflictError("production bridge", expected_revision, head.revision)
             row = self._revision(session, project_id, expected_revision)
-            if row.content_hash != expected_hash or self._bridge._current(session, project_id, row.inputs):
+            if row.content_hash != expected_hash or self._bridge._proposal_stale(session, project_id, row):
                 raise InvalidTransitionError("bridge source or proposal changed before inference")
             _inputs, _storyboard, script, _cast_art = self._bridge._context(session, project_id)
             graph = self._bridge._canonical._load_stage_payload(session, project_id, StageName.STORY_GRAPH)
@@ -93,7 +93,7 @@ class ProductionBridgeIntentPersistence:
             if head.revision != expected_revision or head.status == "accepted":
                 raise RevisionConflictError("production bridge", expected_revision, head.revision)
             row = self._revision(session, project_id, expected_revision)
-            if row.content_hash != expected_hash or self._bridge._current(session, project_id, row.inputs):
+            if row.content_hash != expected_hash or self._bridge._proposal_stale(session, project_id, row):
                 raise InvalidTransitionError("bridge source or proposal changed before inference enqueue")
             package = self._bridge._intent_package(session, row)
             active = session.scalar(select(ProductionBridgeIntentJobRow).where(
@@ -140,7 +140,7 @@ class ProductionBridgeIntentPersistence:
                 job.status, job.updated_at = "stale", utc_now()
                 return False
             row = self._revision(session, project_id, job.proposal_revision)
-            if row.content_hash != job.proposal_content_hash or self._bridge._current(session, project_id, job.inputs):
+            if row.content_hash != job.proposal_content_hash or self._bridge._proposal_stale(session, project_id, row):
                 job.status, job.updated_at = "stale", utc_now()
                 return False
             job.status, job.dispatched_at, job.updated_at = "dispatched", utc_now(), utc_now()
@@ -168,7 +168,7 @@ class ProductionBridgeIntentPersistence:
                 job.status = "stale"
                 return
             row = self._revision(session, project_id, job.proposal_revision)
-            if row.content_hash != job.proposal_content_hash or self._bridge._current(session, project_id, job.inputs):
+            if row.content_hash != job.proposal_content_hash or self._bridge._proposal_stale(session, project_id, row):
                 job.status = "stale"
                 return
             package = self._bridge._intent_package(session, row)

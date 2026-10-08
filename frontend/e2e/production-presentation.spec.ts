@@ -78,7 +78,7 @@ test("whole presentation review preserves source evidence and requires explicit 
   await expect(panel).toContainText("投产提案已确认");
   await expect(panel).toContainText("投产已确认；请刷新服务器版本读取当前镜头");
   await expect(panel.getByRole("button", { name: "继续：打开第一个镜头" })).toBeDisabled();
-  await panel.getByText("查看场次与镜头", { exact: true }).click();
+  await panel.getByText("已建立的场次与镜头", { exact: true }).click();
   const cut = before.proposal.cuts[0];
   await expect(panel.getByRole("button", { name: `在分镜工作台打开 ${cut.shotId}` })).toBeDisabled();
   await page.unroute(aggregateStages);
@@ -91,6 +91,6 @@ test("whole presentation review preserves source evidence and requires explicit 
   await expect(panel.getByRole("button", { name: `在分镜工作台打开 ${cut.shotId}` })).toBeEnabled();
   expect(accepts).toBe(1);
   const installed = await json(request.get(endpoint));
-  expect(installed.runtimeChoice).toEqual(before.proposal.presentation.runtimeChoice);
+  expect(installed.installation.runtimeChoice).toEqual(before.proposal.presentation.runtimeChoice);
   expect(installed.proposal.presentation.frozenEvidence).toEqual(before.proposal.presentation.frozenEvidence);
 });

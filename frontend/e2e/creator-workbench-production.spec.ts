@@ -25,7 +25,7 @@ test("creator Production shows every repeated scene and exact cut, guards drafts
   await expect(production.locator("[data-production-shot]")).toHaveCount(9);
   await expect(production.locator(`[data-production-scene="${secondScene.sceneId}"]`)).toContainText("场次 2 · S01 · 5 个镜头");
   await expect(page.getByRole("button", { name: "应用到故事路线", exact: true })).toBeDisabled();
-  await expect(page.locator(".creator-inspector > footer")).toContainText("不能重新安装剧情图");
+  await expect(page.locator(".creator-inspector > footer")).toContainText("当前图内容已应用到故事路线");
   await page.screenshot({ path: info.outputPath("production-1700-viewport.png") });
   await page.locator(`[data-creator-node="${controlId}"] .creator-node-select`).click();
   await expect(production).toContainText("没有剧本场次、镜头或节点视频");
@@ -57,7 +57,8 @@ test("creator Production shows every repeated scene and exact cut, guards drafts
   await page.locator(`[data-creator-node="${controlId}"] .creator-node-select`).click();
   await page.getByRole("tab", { name: "故事", exact: true }).click();
   await page.getByLabel("包含画面与剧本场景").check();
-  await expect(page.getByRole("button", { name: "确认图内容", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "保存图草稿", exact: true }).click();
+  await expect(page.getByRole("button", { name: "确认图内容", exact: true })).toBeEnabled();
   const restoredGraphAck = page.waitForResponse(response => {
     if (response.request().method() !== "PUT" || new URL(response.url()).pathname !== `/api/v2/projects/${id}/authoring-drafts`) return false;
     const draft = response.request().postDataJSON();

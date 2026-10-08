@@ -11,7 +11,7 @@ from plotloom.branch_suggestions import BranchSuggestion, bind_branches
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError
 from plotloom.exceptions import InvalidTransitionError, NotFoundError
-from plotloom.source_outline_contracts import OutlineAcceptRequest, OutlineReopenRequest, OutlineReturnRequest, SectionMapSaveRequest, SectionMapGraphInstallRequest, compile_section_map_graph, validate_section_map_graph
+from plotloom.source_outline_contracts import OutlineAcceptRequest, OutlineReopenRequest, OutlineReturnRequest, SectionMapGraphInstallRequest, compile_section_map_graph, validate_section_map_graph
 from plotloom.source_structures import complete_routes
 from tests.test_project_storage_source_outline import _storage, _material, _request, _deliver
 from tests.test_project_storage_art import _deliver_stage
@@ -120,7 +120,14 @@ def test_changed_basis_rejects_delivery_and_adoption(store, change):
         project = store.project()
         store.update_brief(project.brief.model_copy(update={"genre": "Mystery"}), expected_revision=project.revision)
     elif change == "map":
-        save_map(store, bind_branches(BranchSuggestion.model_validate(content), request.source["topology"]))
+        mapping = bind_branches(BranchSuggestion.model_validate(content), request.source["topology"])
+        before = store.source_outline_state()
+        with pytest.raises(InvalidTransitionError, match="active project work"):
+            save_map(store, mapping)
+        assert store.source_outline_state() == before
+        assert store.branch_state().candidate.status == "prepared"
+        store.cancel_branch_candidate(request.job_id)
+        save_map(store, mapping)
     else:
         store.cancel_branch_candidate(request.job_id)
         store.reopen_outline(OutlineReopenRequest(expected_outline_revision=1))

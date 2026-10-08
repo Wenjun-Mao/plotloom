@@ -19,7 +19,7 @@ safe continuation. It does not implement new product capabilities.
 
 | Profile field | Current run |
 |---|---|
-| Last qualified baseline | Published/healthy6284118 read/lifecycle repair:1,309 Python reused from unchanged201 backend,806 frontend/239 browser PASS,types/lock/compile/deterministic paired build/wheel/smoke PASS. Fresh exact-executable CI37840593084 is in progress. Exact scope/fingerprints/publication are owned by the [203 receipt](../verification/2026-10-08-load-retained-media-qualification.md), not inferred from earlier CI |
+| Last qualified baseline | Published/healthy6284118 read/lifecycle repair:1,309 Python reused from unchanged201 backend,806 frontend/239 browser PASS,types/lock/compile/deterministic paired build/wheel/smoke PASS. Exact-executable CI37840593084 passed verify and both unfiltered browser shards. Exact scope/fingerprints/publication are owned by the [203 receipt](../verification/2026-10-08-load-retained-media-qualification.md), not inferred from earlier CI |
 | Existing evidence | Completed text→installation→three native selected shots and both minimal playable routes; native196–197 media-bearing recovery/snapshot/restored copy deletion/idle restart with unchanged bytes.203 repairs closed-load/archived-evidence admission, actual delayed archive/restore without reload and retained preview,final desktop pixels and both restored routes; six views/15 assets unchanged. Same-node multishot and installed-story revision remain PARTIAL |
 | Runtime boundary | Normal8841 was gracefully stopped while idle and rebuilt/recreated onto matching qualified6284118 Python/static; served JS and protection verified. Owned8861/8862 loads matching candidate203 static/Python plus current H3 catalogv7 via process-only configuration; protected settings unchanged. Separate8871 qualifies graph checks; retained8851 historical. Never restart a busy reservation |
 | Data baseline | Fresh native QA b3a933f7-b6fc-40e3-826f-5162f95a119a; structural QA remains separately identified in the ledger. Three selected five-second segments and both minimal native routes now establish a playable baseline for reversible recovery and draft-revision checks; not same-node multishot or revised production |
@@ -27,16 +27,15 @@ safe continuation. It does not implement new product capabilities.
 | Authority | Approved specialist coordination includes routine follow-ups and safe same-frozen-job continuation in the existing task; renewed consent is not required for a repaired preflight blocker. Verify job/pin/completion state; preserve dispatch identity. No new paid fallback, protected-settings mutation, broad deletion, user/safety-stop bypass or creative/media-quality approval |
 | Primary goal | Complete the outstanding creation/media journey, prove revisions on the same completed project, and cover recovery/desktop gaps with current evidence |
 
-### Capability prerequisites — investigate/design before implementation
+### Capability prerequisites and current implementation
 
-- Current creatorAdmission/production inspector and production_bridge preparation
-  deliberately permit first installation only. Define a supported post-install
-  revision/rebuild contract before claiming that structural changes can become
-  a revised playable production. Keep identity, transaction integrity, retained
-  author work/media and frozen-dispatch boundaries; do not add backward-compatibility
-  adapters or migrate retired demos to manufacture success.
+- The published baseline permits first installation only. The isolated current
+  candidate removes that restriction through the owner-approved rebuild contract,
+  not a button bypass. Its [qualification record](../verification/2026-10-08-current-story-rebuild.md)
+  covers exact replacement authority, transactions and fresh reviews; native
+  revised playback is still required before closing this capability.
 - The owner has now selected **one current story with explicit rebuild**. This
-  closes the separate-old-playable-version choice, not the implementation gap.
+  closes the separate-old-playable-version choice.
   [ADR0138](../adr/0138-one-current-story-explicit-rebuild.md) owns the adopted
   contract: confirmed edits make affected production outdated; managed media
   remains; fresh explicit rebuild/reviews precede resumed playback. Draft storage
@@ -48,6 +47,15 @@ safe continuation. It does not implement new product capabilities.
 - Normal intentGeneration is unavailable/not_configured. Establish the intended
   runtime composition and qualification method before a model-generation PASS;
   authored-intent saving is already separately exercised and is not a substitute.
+- Read-only composition review confirms both creator launchers omit the generic
+  text admission and intent executor. The existing intent engine uses the
+  OpenAI-compatible provider stack; native Codex specialist dispatch does not
+  implement bridge-intent jobs. Enabling an authorized API backend is distinct
+  from adding a native Codex capability; neither is silently substituted for the
+  preauthorized ImageGen/H3 paths. Configuration review also found the explicitly
+  historical `ATLASCLOUD_API_KEY` text-key fallback in `config.py`; remove it in a
+  bounded current-configuration cleanup before final completion, without rewriting
+  protected settings or changing an active frozen job.
 - Product design/implementation and any scope-changing choices require their own
   approval. Before native execution use a clean committed qualified checkpoint,
   matching loaded runtime and known job state. Routine continuation under existing
@@ -55,7 +63,8 @@ safe continuation. It does not implement new product capabilities.
 
 ### Approved Revise capability slice after the read/lifecycle checkpoint
 
-One source writer, same disposable native project, no compatibility path or
+One source writer, same disposable native project within the next current-schema
+Create → Revise → Recover run, no compatibility path or
 second version store. Reuse source-map confirmation/application and the bridge
 proposal/intent/presentation/accept endpoints. Extend preparation with exact
 proposal/installation/canonical replacement-target CAS and hash ownership.
@@ -75,6 +84,13 @@ design/reference and Brief changes on the same completed project; prove fresh
 reviews, explicit media decisions and every revised route. Record stage-level
 rebuilds honestly, without claiming selective regeneration. Within-node native
 multishot and downstream Scene/Prop reference consumption remain separate gaps.
+
+The breaking identity schema rejects earlier folders without adapting or rewriting
+their receipts. The next native run must create a fresh current-schema disposable
+project, complete its baseline, then revise that same project. The earlier native
+QA and protected owner projects remain on the qualified published service until
+a separately verified cutover. A fresh baseline is not evidence that revision of
+an already completed project works; the same-project Revise round remains required.
 
 ### Three rounds for the next execution
 

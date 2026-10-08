@@ -15,8 +15,8 @@ test("accepted bridge opens exact canonical shots and reports owner readiness wi
   const accepted = await json(request.get(bridgeRoot));
   expect(accepted.status).toBe("accepted");
   const otherProject = await json(request.post(`${workbench.apiOrigin}/api/v2/projects`, { headers: { "Idempotency-Key": `bridge-handoff-other-${id}` }, data: { brief: demoProject.brief } }));
-  const first = accepted.proposal.cuts[0] as { shotId: string; seconds: number };
-  const ending = [...accepted.proposal.cuts].reverse().find((cut: { sectionId: string }) => cut.sectionId === "ending-b") as { shotId: string; seconds: number };
+  const first = accepted.installation.cuts[0] as { shotId: string; seconds: number };
+  const ending = [...accepted.installation.cuts].reverse().find((cut: { sectionId: string }) => cut.sectionId === "ending-b") as { shotId: string; seconds: number };
   const writes: string[] = [];
   page.on("request", (pendingRequest) => {
     if (pendingRequest.url().includes("/api/v2/") && pendingRequest.method() !== "GET") writes.push(`${pendingRequest.method()} ${pendingRequest.url()}`);
@@ -30,12 +30,12 @@ test("accepted bridge opens exact canonical shots and reports owner readiness wi
   await workflow.getByRole("link", { name: "来源与大纲" }).click();
   await page.getByLabel("故事内容").fill("Unsaved local source draft — do not discard on shot handoff");
   await workflow.getByRole("link", { name: "分镜评审" }).click();
-  await bridge.getByText("查看场次与镜头", { exact: true }).click();
+  await bridge.getByText("已建立的场次与镜头", { exact: true }).click();
   await bridge.getByRole("button", { name: `在分镜工作台打开 ${first.shotId}` }).click();
   await expect(page).toHaveURL(new RegExp("stage=source#storyboard-review$"));
   await expect(bridge).toContainText("来源文字仍有未保存的编辑");
   await page.reload(); // Discard only this test-owned unsaved browser draft.
-  await bridge.getByText("查看场次与镜头", { exact: true }).click();
+  await bridge.getByText("已建立的场次与镜头", { exact: true }).click();
   await bridge.getByRole("button", { name: `在分镜工作台打开 ${first.shotId}` }).click();
   await expect(page).toHaveURL(new RegExp(`stage=storyboard&entity=shot%3A${first.shotId}`));
   const summary = page.getByTestId("shot-preparation-summary");
@@ -68,7 +68,7 @@ test("accepted bridge opens exact canonical shots and reports owner readiness wi
   await page.getByText("准备与参考 · 图片、角色、导入", { exact: true }).click();
   await summary.getByRole("button", { name: "返回分镜评审" }).click();
   await expect(page).toHaveURL(new RegExp("stage=source#storyboard-review$"));
-  await bridge.getByText("查看场次与镜头", { exact: true }).click();
+  await bridge.getByText("已建立的场次与镜头", { exact: true }).click();
   await bridge.getByRole("button", { name: `在分镜工作台打开 ${ending.shotId}` }).click();
   await expect(summary).toContainText(`当前镜头准备状态 · ${ending.shotId}`);
   await expect(summary).toContainText(`精确来源时长 ${ending.seconds} 秒`);
@@ -94,10 +94,10 @@ test("accepted bridge opens exact canonical shots and reports owner readiness wi
   } }));
   const drifted = await json(request.get(bridgeRoot));
   expect(drifted.status).toBe("accepted");
-  expect(drifted.installedStoryboardCurrent).toBe(false);
+  expect(drifted.installation.status).toBe("outdated");
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
   await expect(bridge).toContainText("投产提案已确认");
-  await bridge.getByText("查看场次与镜头", { exact: true }).click();
+  await bridge.getByText("已建立的场次与镜头", { exact: true }).click();
   await expect(bridge.getByRole("button", { name: `在分镜工作台打开 ${first.shotId}` })).toHaveCount(0);
 
   // Source drift is separately represented by the bridge's stale status.
@@ -110,6 +110,6 @@ test("accepted bridge opens exact canonical shots and reports owner readiness wi
   await page.reload();
   expect(await page.evaluate(async (projectId) => (await (await fetch(`/api/v2/projects/${projectId}/production-bridge`)).json()).status, id)).toBe("stale");
   await expect(bridge).toContainText("上下文已过期");
-  await bridge.getByText("查看场次与镜头", { exact: true }).click();
+  await bridge.getByText("已建立的场次与镜头", { exact: true }).click();
   await expect(bridge.getByRole("button", { name: `在分镜工作台打开 ${first.shotId}` })).toHaveCount(0);
 });

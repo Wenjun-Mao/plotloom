@@ -4,11 +4,12 @@ import { expect, it, vi } from "vitest";
 import { plotloomApi } from "../src/api";
 import { useBridgeChoiceRead } from "../src/useBridgeChoiceRead";
 import type { ProductionBridgeState, RuntimeChoice, StoryEdge } from "../src/types";
+import { bridgeState, installedProduction } from "./production-bridge-fixture";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const choices: RuntimeChoice[] = [2, 3].map((count, question) => ({ choiceId: `decision-${question}`, sectionId: `decision-${question}`, prompt: `Question ${question}`, outcomes: Array.from({ length: count }, (_, option) => ({ outcomeId: `option-${question}-${option}`, endingSectionId: `next-${question}-${option}`, label: `Option ${option}`, consequence: "Explicit subsequent story" })) }));
 const edges: StoryEdge[] = choices.flatMap(choice => choice.outcomes.map(option => ({ id: option.outcomeId, sourceNodeId: choice.sectionId, targetNodeId: option.endingSectionId, choiceText: option.label, kind: "choice" as const, stateEffects: {}, entityStateEffects: [] })));
-const accepted = { status: "accepted", installedStoryboardCurrent: true, runtimeChoice: { choices } } as ProductionBridgeState;
+const accepted = bridgeState({ status: "accepted", installation: installedProduction({ runtimeChoice: { choices } }) });
 
 it("admits every question and changes the displayed question only for the current node", async () => {
   const host = document.createElement("div"); const root = createRoot(host);
@@ -28,10 +29,20 @@ it("admits every question and changes the displayed question only for the curren
 
 it("rejects duplicated questions that omit another canonical choice source", async () => {
   const host = document.createElement("div"); const root = createRoot(host);
-  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ ...accepted, runtimeChoice: { choices: [choices[0], choices[0]] } } as ProductionBridgeState);
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ ...accepted, installation: installedProduction({ runtimeChoice: { choices: [choices[0], choices[0]] } }) });
   function Reader() { const value = useBridgeChoiceRead("project", "production", true, edges, "decision-0"); return createElement("div", null, value.status); }
   try {
     await act(async () => root.render(createElement(Reader)));
     expect(host.textContent).toBe("stale");
+  } finally { await act(async () => root.unmount()); vi.restoreAllMocks(); }
+});
+
+it.each(["ready", "stale"] as const)("keeps the installed choice authoritative while latest proposal is %s", async status => {
+  const host = document.createElement("div"); const root = createRoot(host);
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ ...accepted, status });
+  function Reader() { const value = useBridgeChoiceRead("project", "production", true, edges, "decision-0"); return createElement("div", null, `${value.status}: ${value.choice?.prompt}`); }
+  try {
+    await act(async () => root.render(createElement(Reader)));
+    expect(host.textContent).toBe("ready: Question 0");
   } finally { await act(async () => root.unmount()); vi.restoreAllMocks(); }
 });

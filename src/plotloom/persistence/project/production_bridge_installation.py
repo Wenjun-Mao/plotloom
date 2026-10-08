@@ -52,6 +52,14 @@ class ProductionBridgeInstallation:
             replacement_target=self._replacement_target(session, project_id),
         )
 
+    def _proposal_stale(self, session, project_id, row):
+        """A pending review also depends on the production it would replace."""
+        stale = self._current(session, project_id, row.inputs)
+        target = ProductionBridgeReplacementTarget.model_validate(row.proposal["replacementTarget"])
+        if target != self._replacement_target(session, project_id):
+            stale.append("production rebuild replacement target changed")
+        return stale
+
     def installation_in_session(self, session, project_id):
         admission = self._latest_admission(session, project_id)
         if admission is None:

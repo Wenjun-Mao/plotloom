@@ -13,11 +13,13 @@ export function CreatorProductionInspector({ project, read, graphCurrent, disabl
   const owner = useGraphWorkbench(), sectionId = owner.selectedNodeId;
   const data = read.data, bridge = data?.bridge, script = data?.script, accepted = script?.acceptedScript;
   let scenes: NodeProductionScene[] = [], projectionError = "";
-  if (bridge?.proposal && accepted && sectionId) {
-    try { scenes = nodeProductionScenes(bridge.proposal, accepted, sectionId); }
+  const installation = bridge?.installation;
+  const mapping = installation ?? bridge?.proposal;
+  if (mapping && accepted && sectionId) {
+    try { scenes = nodeProductionScenes(mapping, accepted, sectionId); }
     catch (reason) { projectionError = reason instanceof Error ? reason.message : String(reason); }
   }
-  const current = graphCurrent && data?.errors.length === 0 && accepted && bridge?.proposal && script?.status === "accepted" && bridge.status === "accepted" && bridge.staleReasons.length === 0 && !projectionError;
+  const current = graphCurrent && data?.errors.length === 0 && accepted && script?.status === "accepted" && installation?.status === "current" && installation.staleReasons.length === 0 && !projectionError;
   const review = data?.review, revision = project.stageRevisions.storyboard;
   const approved = current && review?.head.status === "ready" && review.head.revision === revision && review.activeApproval?.subjectRevision === revision;
   return <section data-testid="creator-production">
@@ -28,10 +30,11 @@ export function CreatorProductionInspector({ project, read, graphCurrent, disabl
     <Button variant="quiet" onClick={read.retry}>重新核对制作来源</Button>
     {!graphCurrent && <p className="notice warning">图草稿与当前已应用路线不同，或来源仍需确认。保留已安装镜头与媒体；此处的镜头直达暂不可用。</p>}
     {script && script.status !== "accepted" && <p className="notice warning">{script.status === "reopened" ? "剧本正在编辑" : script.status === "stale" ? "剧本来源已变化" : "尚无当前已确认剧本"}；请先返回故事页完成审阅。</p>}
-    {!bridge?.proposal && data && <p>尚未建立投产映射。请先确认整份剧本与分镜，再进入整包评审。</p>}
+    {!mapping && data && <p>尚未建立投产映射。请先确认整份剧本与分镜，再进入整包评审。</p>}
     {bridge?.status === "stale" && <p className="notice warning">投产来源已变化，旧映射与媒体仍保留。请核对整包评审；镜头直达已暂停。</p>}
-    {bridge?.proposal && bridge.status === "ready" && <p>提案待审阅与显式安装；以下是候选映射，不能作为已安装镜头操作。</p>}
-    {bridge?.hasInstallation && <p>此项目已有投产内容。当前流程支持现有镜头与媒体操作，不支持替换剧情结构。</p>}
+    {!installation && bridge?.proposal && bridge.status === "ready" && <p>提案待审阅与明确确认；以下是候选映射，不能作为已建立的镜头操作。</p>}
+    {installation?.status === "outdated" && <p>当前制作内容需要重建。请完成故事修改和来源评审，再到整包评审准备重建提案；旧镜头与媒体保留。</p>}
+    {installation?.status === "current" && bridge?.status === "ready" && <p>新的制作提案尚未确认。以下仍是当前已建立的镜头，不是待审提案中的镜头。</p>}
     {projectionError && <p className="notice warning">{projectionError}</p>}
     {accepted && sectionId && !projectionError && accepted.binding.routeOnlySectionIds.includes(sectionId) && <p>当前已确认节点是路线控制，无需拍摄；没有剧本场次、镜头或节点视频。包含画面须明确确认图，再重新审阅剧本与投产。</p>}
     {scenes.map(scene => <details key={scene.sceneId} open data-production-scene={scene.sceneId}><summary>场次 {scene.sceneIndex} · {scene.title} · {scene.cuts.length} 个镜头</summary>

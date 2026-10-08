@@ -5,7 +5,10 @@ on October7: Create → Revise → Recover, with one tailored run profile and on
 evidence ledger per major update. The existing C/P/E checks remain the acceptance
 authority; prior evidence is not copied into new PASS claims. The
 [current run profile](2026-10-07-full-creator-e2e-repeat.md) records outstanding media
-coverage and the first-install-only revision/rebuild and intent-generation prerequisites.
+coverage and the revision/rebuild and intent-generation prerequisites. The
+owner-approved one-current-story rebuild is implemented in an isolated candidate;
+[qualification](../verification/2026-10-08-current-story-rebuild.md) separates its
+software/browser results from the still-open native revision run.
 Playbook adoption is documentation/planning approval, not dispatch or implementation
 authority; native media and the post-install revision journey remain PARTIAL.
 

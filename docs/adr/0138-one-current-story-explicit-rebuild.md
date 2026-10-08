@@ -1,7 +1,7 @@
 # ADR 0138: One current story with explicit production rebuild
 
-Status: owner-approved contract, 2026-10-08; implementation and native revision
-acceptance pending. Supersedes only the first-install-only restrictions in ADRs
+Status: owner-approved contract, 2026-10-08; implemented in the isolated candidate,
+with native revision acceptance pending. Supersedes only the first-install-only restrictions in ADRs
 0079, 0118 and 0121. Their source ownership, exact review and dispatch safeguards
 continue to apply.
 

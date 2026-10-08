@@ -68,6 +68,7 @@ import type {
   StoryboardReviewCandidate,
   StoryboardReviewCandidatePreparation,
   ProductionBridgeState,
+  ProductionBridgePrepareRequest,
 } from "./types";
 import { ApiTransport, ApiError } from "./api-transport";
 import type { ProjectReadTicket } from "./project-read-admission";
@@ -676,7 +677,7 @@ export class PlotloomApiClient {
   acceptStoryboardSourceReviewCandidate(projectId: string, body: { jobId: string; expectedReviewRevision: number; binding: unknown }): Promise<StoryboardReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-source-review/accept`, { method: "POST", body: JSON.stringify(body) }); }
   storyboardSourceReviewCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/storyboard-source-review/candidates/${encodeURIComponent(jobId)}/report?presentation=static`; }
   getProductionBridge(projectId: string, signal?: AbortSignal): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge`, { signal }); }
-  prepareProductionBridge(projectId: string): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/proposals`, { method: "POST" }); }
+  prepareProductionBridge(projectId: string, body: ProductionBridgePrepareRequest): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/proposals`, { method: "POST", body: JSON.stringify(body) }); }
   generateProductionBridgeIntent(projectId: string, body: { expectedProposalRevision: number; expectedContentHash: string; providerProfileId?: string }): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/intent-jobs`, { method: "POST", body: JSON.stringify(body) }); }
   resumeProductionBridgeIntent(projectId: string, jobId: string): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/intent-jobs/${encodeURIComponent(jobId)}/resume`, { method: "POST" }); }
   cancelProductionBridgeIntent(projectId: string, jobId: string): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/intent-jobs/${encodeURIComponent(jobId)}/cancel`, { method: "POST" }); }

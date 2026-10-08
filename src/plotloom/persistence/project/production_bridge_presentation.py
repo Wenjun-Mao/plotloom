@@ -19,7 +19,7 @@ class ProductionBridgePresentationPersistence:
             row = session.scalar(select(ProductionBridgeRevisionRow).where(ProductionBridgeRevisionRow.project_id == project_id, ProductionBridgeRevisionRow.revision == head.revision))
             if row is None or row.content_hash != request.expected_content_hash:
                 raise InvalidTransitionError("production presentation proposal changed")
-            if self._current(session, project_id, row.inputs):
+            if self._proposal_stale(session, project_id, row):
                 raise InvalidTransitionError("production presentation source is stale")
             try:
                 package = review_presentation(ProductionPresentation.model_validate(row.proposal["presentation"]), request)
