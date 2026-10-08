@@ -15,6 +15,9 @@ not incidental observation during functional tests. The
 [current view/state audit](../verification/2026-10-08-whole-product-ui-audit.md)
 and [reading-state checkpoint](../verification/2026-10-08-reader-gallery-ui-states.md)
 separate inspected desktop pixels, demonstrated repairs and still-unqualified states.
+The [conflict/retained-draft checkpoint](../verification/2026-10-08-conflict-recovery-ui-states.md)
+records the later ownership, discard-feedback and two-tab recovery checks; final
+qualification/publication and broader gaps remain explicit there.
 The supported matrix remains1280×768,1280×460,1700×900; no phone/1024px work.
 
 The owner approved a [fresh full creator E2E repeat](2026-10-07-full-creator-e2e-repeat.md)

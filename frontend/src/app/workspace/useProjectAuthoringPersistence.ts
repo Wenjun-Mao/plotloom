@@ -10,6 +10,7 @@ import type { ProjectResource, ServerStageName, WorkspaceProject } from "../../t
 import { authoringDraftKey, canonicalDraftConsumption, messageFrom, newClientDraftOwner, sameDraftPayload, validationIssuesFrom, type DurableDraftStatus, type WorkspaceOperation } from "./contracts";
 import type { WorkspaceSession } from "./useWorkspaceSession";
 import { readGraphDraft } from "../../features/graph/contracts";
+import { useDraftConflictReload } from "./useDraftConflictReload";
 
 type AuthoringSession = Pick<WorkspaceSession,
   "project" | "connection" | "route" | "serverDrafts" | "capture" | "isCurrent"
@@ -51,6 +52,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
 
   const { flushAuthoringDraft, scheduleAuthoringDraftAutosave, discardUnsentProjectDrafts, suspendProjectDraftWrites } = useAuthoringDraftAutosave({
     project: input.session.project,
+    writesAllowed: input.session.connection === "connected" && !draftConflict,
     durableDraftsEnabledRef: input.durableDraftsEnabled,
     serverAuthoringDrafts: input.session.serverDrafts,
     captureWorkspaceOperation: input.session.capture,
@@ -310,21 +312,15 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     if (restoredDraft?.scope === scope) setRestoredDraft({ ...restoredDraft, payload });
   }, [restoredDraft, scheduleAuthoringDraftAutosave]);
 
-  const reloadDraftConflict = useCallback(async () => {
-    const conflict = draftConflict;
-    const source = current.current;
-    if (!conflict || !source.session.project.id) return false;
+  const conflictReload = useDraftConflictReload({ conflict: draftConflict, session: input.session, onLoaded: (conflict) => {
     currentDraft.current = undefined;
     setRestoredDraft(undefined);
-    setDraftConflict((existing) => existing ? { ...existing, serverReloaded: true } : existing);
-    const epoch = source.session.refreshCurrentRoute();
-    await source.session.reloadCanonicalProject(source.session.project.id, epoch);
-    return true;
-  }, [draftConflict]);
+    setDraftConflict((existing) => existing === conflict ? { ...existing, serverReloaded: true } : existing);
+  } });
 
   const copyDraftConflict = useCallback(async () => {
     const conflict = draftConflict;
-    if (!conflict) return false;
+    if (!conflict || conflictReload.isPending()) return false;
     if (conflict.scope === "story_graph") {
       const source = current.current, projectId = source.session.project.id;
       if (!projectId) return false;
@@ -381,16 +377,16 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     } finally {
       finishSave(operation, generation);
     }
-  }, [beginSave, createProjectFrom, draftConflict, finishSave]);
+  }, [beginSave, conflictReload, createProjectFrom, draftConflict, finishSave]);
 
   const discardDraftConflict = useCallback(() => {
-    if (!draftConflict) return false;
+    if (!draftConflict || conflictReload.isPending()) return false;
     discardDraftRecord(draftConflict.record);
     currentDraft.current = undefined;
     setRestoredDraft(undefined);
     setDraftConflict(undefined);
     return true;
-  }, [draftConflict]);
+  }, [conflictReload, draftConflict]);
   const clearDraftWorkflow = useCallback(() => {
     currentDraft.current = undefined;
     setRestoredDraft(undefined);
@@ -454,7 +450,8 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     beginSave,
     finishSave,
     createProjectFrom,
-    reloadDraftConflict,
+    reloadDraftConflict: conflictReload.reload,
+    conflictReloading: conflictReload.reloading,
     copyDraftConflict,
     discardDraftConflict,
     clearDraftWorkflow,

@@ -6,6 +6,7 @@ import type { DraftScope } from "../../draft-registry";
 export type PageId = "creator" | "source" | "characters" | "brief" | "bible" | "graph" | "beats" | "storyboard" | "trace" | "quarantine";
 export type NavigationTarget = { project: string; stage: PageId; entity: string; run: string; hash: string; history: "push" | "pop"; forceReload?: boolean; home?: boolean };
 export type WorkspaceOperation = { epoch: number; projectId: string; stage: PageId };
+export type ProjectLoadResult = "loaded" | "failed" | "superseded";
 export type DraftRecoverySource = "server" | "session" | "reconcile";
 export type DurableDraftStatus = "idle" | "saving" | "saved" | "failed" | "conflict";
 

@@ -3,7 +3,7 @@ import type { MutableRefObject } from "react";
 import type { DraftRecord, DraftScope } from "../../draft-registry";
 import { hydrateWorkspaceProject, newestMediaTasksByShot, quarantineItemsFromProgress } from "../../workspace-state";
 import type { AuthoringDraft, MediaTask, PipelineRun, ProjectResource, RunExecutionTrace, RunProgress, ServerStageName, StageEnvelope, StageHead, StoryboardReview, TraceEvent, ValidationIssue, WorkspaceProject } from "../../types";
-import { authoringDraftKey, blankWorkspace, headsByStage, newClientDraftOwner, routeFromLocation, type WorkspaceOperation } from "./contracts";
+import { authoringDraftKey, blankWorkspace, headsByStage, newClientDraftOwner, routeFromLocation, type ProjectLoadResult, type WorkspaceOperation } from "./contracts";
 
 export type WorkspaceRoute = ReturnType<typeof routeFromLocation>;
 export type ConnectionState = "loading" | "connected" | "demo" | "blank" | "error";
@@ -87,7 +87,7 @@ export function useWorkspaceSession() {
   const navigationCleanups = useRef(new Set<() => void>());
   const serverDrafts = useRef(new Map<string, AuthoringDraft>());
   const canonicalRefreshRequired = useRef(new Set<string>());
-  const canonicalReloader = useRef<(projectId: string, epoch?: number) => Promise<void>>(async () => undefined);
+  const canonicalReloader = useRef<(projectId: string, epoch?: number) => Promise<ProjectLoadResult>>(async () => "superseded");
 
   const updateSnapshot = useCallback((update: (current: CanonicalWorkspaceSnapshot) => CanonicalWorkspaceSnapshot) => {
     setSnapshot((current) => {
@@ -111,10 +111,10 @@ export function useWorkspaceSession() {
     navigationCleanups.current.add(cleanup);
     return () => { navigationCleanups.current.delete(cleanup); };
   }, []);
-  const registerCanonicalReloader = useCallback((reload: (projectId: string, epoch?: number) => Promise<void>) => {
+  const registerCanonicalReloader = useCallback((reload: (projectId: string, epoch?: number) => Promise<ProjectLoadResult>) => {
     canonicalReloader.current = reload;
     return () => {
-      if (canonicalReloader.current === reload) canonicalReloader.current = async () => undefined;
+      if (canonicalReloader.current === reload) canonicalReloader.current = async () => "superseded";
     };
   }, []);
   const reloadCanonicalProject = useCallback((projectId: string, epoch?: number) => canonicalReloader.current(projectId, epoch), []);

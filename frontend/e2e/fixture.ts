@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { usePageWithDrainedRoutes } from "./page-route-lifecycle";
+import { pollHttpReadiness } from "./http-readiness";
 
 const configDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(configDirectory, "../..");
@@ -206,26 +207,7 @@ async function waitForHttpUnavailable(url: string): Promise<void> {
 async function waitForHttp(url: string, process: ManagedProcess): Promise<void> {
   // Preserve the interrupted owner phase even if the outer fixture deadline
   // fires before this await returns. Do not infer its cause or loosen its limits.
-  await base.step(`Workbench readiness: ${process.label} (${url})`, () => pollHttpReadiness(url, process));
-}
-
-async function pollHttpReadiness(url: string, process: ManagedProcess): Promise<void> {
-  const deadline = Date.now() + 25_000;
-  let lastError = "";
-  while (Date.now() < deadline) {
-    if (process.child.exitCode !== null) {
-      throw new Error(`${process.label} exited before becoming ready (code ${process.child.exitCode}).\n${process.output()}`);
-    }
-    try {
-      const response = await fetch(url);
-      if (response.ok) return;
-      lastError = `${response.status} ${response.statusText}`;
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : String(error);
-    }
-    await delay(100);
-  }
-  throw new Error(`${process.label} did not become ready at ${url}: ${lastError}\n${process.output()}`);
+  await base.step(`Workbench readiness: ${process.label} (${url})`, () => pollHttpReadiness(url, process, Date.now() + 25_000));
 }
 
 async function stopProcess(process: ManagedProcess | undefined): Promise<void> {

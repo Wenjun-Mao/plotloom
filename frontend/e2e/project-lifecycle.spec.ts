@@ -164,8 +164,14 @@ test.describe("M1-B0 real project journeys", () => {
     await expect(projectItem(page, title)).toContainText("当前项目");
     expect(await assetEvidence()).toEqual(retained);
 
+    const archived = page.waitForResponse(response => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/archive`);
     await projectItem(page, title).getByRole("button", { name: "归档" }).click();
-    await expect(projectItem(page, title).getByRole("button", { name: "永久删除" })).toBeVisible();
+    expect((await archived).ok()).toBeTruthy();
+    // Delete exists on both active and archived rows; visibility is not an archive receipt.
+    await expect(projectItem(page, title)).toContainText("已归档 · 只读");
+    await expect(page.getByRole("status").filter({ hasText: "正在读取项目目录" })).toHaveCount(0);
+    await expect(projectItem(page, title).getByRole("button", { name: "永久删除" })).toBeEnabled();
 
     let permanentDeleteRequests = 0;
     page.on("request", (request) => {

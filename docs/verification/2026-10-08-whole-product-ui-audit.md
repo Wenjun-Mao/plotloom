@@ -23,7 +23,13 @@ adds all18 inspected desktop configuration-failure/settings frames, clearer curr
 current-use labels and action-neutral guidance, plus three re-inspected explicit-refresh
 frames. Final unfiltered154 browser qualification passes220 tests6.4m, with868
 inputs unchanged. Executable35cc75b is published on normal8841; exact-head remote
-CI37763010686 is in progress, not yet qualified remotely. This does not close the open state matrix.
+CI37763010686 has completed success. This does not close the open state matrix.
+The [conflict/retained-draft checkpoint](2026-10-08-conflict-recovery-ui-states.md)
+adds actual two-tab conflict/failure/retry and eighteen independently inspected final
+desktop captures, including explicit visible local-discard feedback and exact lineage
+preservation. Final unfiltered167 passes224 browser tests6.5m, with875 inputs
+unchanged. Its publication is recorded separately; this does not
+close the other view/state or lifecycle/native-media gaps.
 Baseline: [full lifecycle ledger](2026-10-07-full-creator-e2e-repeat.md);
 reusable entry: [E22.1–E22.7](../creative-workflow/graph-workbench-acceptance.md#e22-全产品视觉与文案专门检查).
 
@@ -106,6 +112,7 @@ file; do not inherit a PASS from a different state or source revision.
 | Directory/settings, populated / initial top / scrolled lower controls | Native91/93 and repaired112; all three sizes | Scoped PASS; not operation-in-progress or failed-save state. |
 | Navigate / directory Archive / directory Close consent |143 disposable nine cases, three desktop sizes, exact intent/actions and actual cancelled entry points | Scoped pixels/operation checks; final source220 browser/683 frontend gate in linked checkpoint. |
 | Project-saved recovery |143 three final recovery frames directly re-reviewed; exact payload Restore preserves canonical r2 | Scoped checks; session-only/reconciliation/busy have functional tests, not separate pixel qualification. |
+| Two-tab conflict reload / pending / unsafe failed read / retry / loaded / local discard | Native155 reproduction; final166 five states ×three sizes plus short-desktop discard sequence, all18 directly inspected independently, exact zero-write/local lineage/server-draft guards | Scoped pixel/operation PASS; broad final gate/publication tracked in linked checkpoint. Other scope/graph reconciliation pixels remain open. |
 | Snapshot completion / status disclosure |143 actual201 complete; three before failures and three repaired after frames directly inspected | Reading defect repaired; open-only summary reveal preserves normal scrolling. Final gate qualified; does not imply every snapshot/lifecycle failure state. |
 | Permanent deletion challenge |143 disposable blank/wrong/exact title ×three sizes, all nine frames independently inspected; Cancel preserves entire project and sends zero writes | Scoped challenge reading/eligibility PASS; actual deletion and lifecycle failure-state pixels remain PARTIAL. |
 | Frozen profile: missing key / missing profile / read failure / exact settings |152 eighteen directly inspected fixture PNGs;153 three changed refresh-guidance frames re-inspected; GET-only faults and zero-write/explicit same-job continuation guards | Scoped pixel/operation PASS; final220 browser/688 frontend qualification in linked checkpoint. |

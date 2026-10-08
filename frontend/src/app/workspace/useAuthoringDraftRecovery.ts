@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { discardDraft, findProjectDrafts, findRevisionConflict, getDraft, retainDraftRecord, type DraftRecord, type DraftScope } from "../../draft-registry";
+import { discardDraft, discardDraftRecord, findProjectDrafts, findRevisionConflict, getDraft, retainDraftRecord, type DraftRecord, type DraftScope } from "../../draft-registry";
 import { ApiError, plotloomApi } from "../../api";
 import type { WorkspaceProject } from "../../types";
-import { authoringDraftKey, messageFrom, stageForPage, type DraftRecoverySource } from "./contracts";
+import { authoringDraftKey, messageFrom, sameDraftPayload, stageForPage, type DraftRecoverySource } from "./contracts";
 import type { DraftConflictState } from "./useProjectAuthoringPersistence";
 import type { WorkspaceSession } from "./useWorkspaceSession";
 
 export type DraftRecovery = { scope: DraftScope; payload: unknown; source: DraftRecoverySource };
 type RecoveryPrompt = DraftRecovery & { projectId: string | undefined; baseRevision: number; record: DraftRecord; workspace: WorkspaceProject };
-type DraftRecoverySession = Pick<WorkspaceSession, "activePage" | "project" | "serverDrafts" | "unsafeDraft" | "setUnsafeDraft" | "connection" | "capture" | "isCurrent" | "rejectProjectLoad">;
+type DraftRecoverySession = Pick<WorkspaceSession, "activePage" | "project" | "route" | "serverDrafts" | "unsafeDraft" | "setUnsafeDraft" | "connection" | "capture" | "isCurrent" | "rejectProjectLoad">;
+const sameRetainedRecord = (left: DraftRecord, right: DraftRecord) => left.key === right.key
+  && left.localRevision === right.localRevision && left.serverDraftRevision === right.serverDraftRevision
+  && sameDraftPayload(left.payload, right.payload);
+const belongsToDiscardedLineage = (candidate: DraftRecord, discarded: DraftRecord) => candidate.key === discarded.key
+  && candidate.localRevision <= discarded.localRevision;
 
 /** Owns draft restoration prompts and the session/server discard handshake. */
 export function useAuthoringDraftRecovery({
@@ -42,7 +47,12 @@ export function useAuthoringDraftRecovery({
   const [recovery, setRecovery] = useState<RecoveryPrompt | undefined>();
   const [editorNonce, setEditorNonce] = useState(0);
   const [restoring, setRestoring] = useState(false);
+  const [discardNotice, setDiscardNotice] = useState<{ projectId: string }>();
   const { activePage, project, serverDrafts, unsafeDraft } = session;
+
+  useEffect(() => {
+    if (discardNotice && session.route.project !== discardNotice.projectId) setDiscardNotice(undefined);
+  }, [discardNotice, session.route.project]);
 
   useEffect(() => {
     const scope = stageForPage(activePage);
@@ -132,6 +142,31 @@ export function useAuthoringDraftRecovery({
   const discardConflict = () => {
     if (discardDraftConflict()) setEditorNonce((value) => value + 1);
   };
+  const discardRetained = (record: DraftRecord): boolean => {
+    setDiscardNotice(undefined);
+    const retained = findProjectDrafts(record.projectId).find(item => item.key === record.key);
+    if (retained && !sameRetainedRecord(retained, record)) {
+      session.setUnsafeDraft({ record: retained, reason: unsafeDraft?.reason ?? "temporary" });
+      setError("保留草稿已变化，请查看最新内容后再丢弃。");
+      return false;
+    }
+    // Discard the selected local buffer and every matching workflow reference.
+    // Leaving a conflict behind would offer to copy content already discarded.
+    discardDraftRecord(record);
+    const discardedRecovery = recovery && belongsToDiscardedLineage(recovery.record, record) ? recovery : undefined;
+    const discardedConflict = draftConflict && belongsToDiscardedLineage(draftConflict.record, record) ? draftConflict : undefined;
+    if (discardedRecovery) setRecovery(undefined);
+    if (discardedConflict) setDraftConflict(undefined);
+    if (project.id === record.projectId) {
+      const discardedPayloads = [record.payload, discardedRecovery?.payload, discardedConflict?.record.payload];
+      const removed = (payload: unknown) => discardedPayloads.some(value => value !== undefined && sameDraftPayload(payload, value));
+      if (currentDraft.current?.scope === record.scope && removed(currentDraft.current.payload)) currentDraft.current = undefined;
+      if (restoredDraft?.scope === record.scope && removed(restoredDraft.payload)) setRestoredDraft(undefined);
+    }
+    setEditorNonce(value => value + 1);
+    setDiscardNotice({ projectId: record.projectId });
+    return true;
+  };
 
   return {
     recovery,
@@ -143,6 +178,9 @@ export function useAuthoringDraftRecovery({
     reloadConflict,
     copyConflict,
     discardConflict,
+    discardRetained,
+    discardNotice,
+    dismissDiscardNotice: () => setDiscardNotice(undefined),
     bumpEditorNonce: () => setEditorNonce((value) => value + 1),
   };
 }

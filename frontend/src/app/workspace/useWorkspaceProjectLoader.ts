@@ -4,7 +4,7 @@ import { findProjectDrafts } from "../../draft-registry";
 import { providerSessionKeys } from "../../session-key";
 import { frozenRunCredentialMessage } from "./frozenRunGuidance";
 import type { AuthoringDraft, PipelineRun } from "../../types";
-import { messageFrom } from "./contracts";
+import { messageFrom, type ProjectLoadResult } from "./contracts";
 import type { WorkspaceSession } from "./useWorkspaceSession";
 
 type ProfileCatalog = { profiles: Array<{ profileId: string; serverKeyAvailable: boolean }> };
@@ -34,24 +34,31 @@ export function useWorkspaceProjectLoader(input: ProjectLoaderInput) {
   const latest = useRef(input);
   latest.current = input;
   const controller = useRef<AbortController | undefined>(undefined);
+  const readOwner = useRef<AbortController | undefined>(undefined);
 
   const abort = useCallback(() => {
-    controller.current?.abort();
+    readOwner.current?.abort();
     controller.current = undefined;
+    readOwner.current = undefined;
   }, []);
   useEffect(() => latest.current.session.registerNavigationCleanup(abort), [abort, input.session.registerNavigationCleanup]);
   useEffect(() => abort, [abort]);
 
-  const loadProject = useCallback(async (projectId: string, expectedEpoch?: number) => {
+  const loadProject = useCallback(async (projectId: string, expectedEpoch?: number): Promise<ProjectLoadResult> => {
     const current = latest.current;
     const operation = current.session.capture();
-    if (!projectId || operation.projectId !== projectId || (expectedEpoch !== undefined && expectedEpoch !== operation.epoch)) return;
+    if (!projectId || operation.projectId !== projectId || (expectedEpoch !== undefined && expectedEpoch !== operation.epoch)) return "superseded";
 
     abort();
     const request = new AbortController();
     controller.current = request;
+    readOwner.current = request;
     current.session.beginProjectLoad();
-    const isCurrent = () => current.session.isCurrent(operation);
+    // A same-route retry replaces the read without advancing the route epoch.
+    // Signal-independent progress reads must not admit the replaced aggregate.
+    const ownsRead = () => controller.current === request && !request.signal.aborted && current.session.isCurrent(operation);
+    // Continuation callbacks outlive fetch cleanup, but not a replacement read.
+    const isCurrent = () => readOwner.current === request && !request.signal.aborted && current.session.isCurrent(operation);
 
     let missingAuthority = false;
     try {
@@ -77,16 +84,18 @@ export function useWorkspaceProjectLoader(input: ProjectLoaderInput) {
       const progress = selectedRun ? await plotloomApi.getRunProgress(selectedRun.id) : undefined;
       const resumeBlocked = await blockedAutomaticResume(selectedRun, current, request.signal);
 
-      if (!isCurrent()) return;
+      if (!ownsRead()) return "superseded";
       current.session.acceptProjectLoad({ project, stages: stages.stages, run: selectedRun, progress, review, media: media.tasks, drafts });
       current.session.clearCanonicalRefresh(projectId);
       current.reportMessage(missingSelectedRun ? `运行 ${selectedRunId} 不属于当前项目或已不存在。` : resumeBlocked);
       resumeActiveRun(selectedRun, project.id, resumeBlocked, isCurrent, current);
+      return "loaded";
     } catch (error) {
-      if (!isCurrent() || isAbortError(error)) return;
+      if (!ownsRead() || isAbortError(error)) return "superseded";
       const stale = findProjectDrafts(projectId)[0];
       current.session.rejectProjectLoad(stale ? { record: stale, reason: missingAuthority ? "missing" : "temporary" } : undefined);
       current.reportMessage(`无法加载项目 ${projectId}：${messageFrom(error)}。项目未加载；没有回退到示例。`);
+      return "failed";
     } finally {
       if (controller.current === request) controller.current = undefined;
     }

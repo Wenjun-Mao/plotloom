@@ -62,3 +62,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0130 Media selection reads after acknowledged writes](0130-media-selection-read-after-write-authority.md)
 - [0131 Routine specialist continuation authority](0131-routine-specialist-continuation-authority.md)
 - [0132 Creator UI reading boundaries](0132-creator-ui-reading-boundaries.md)
+- [0133 Owned project-read acknowledgements](0133-owned-project-read-acknowledgement.md)

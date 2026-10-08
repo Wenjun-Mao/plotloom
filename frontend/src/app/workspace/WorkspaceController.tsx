@@ -3,7 +3,7 @@ import { formatUiTimestamp } from "../../ui-time";
 import type { SceneBeatPlan, StoryBible, StoryGraph, Storyboard } from "../../types";
 import { plotloomApi } from "../../api";
 import { providerSessionKeys } from "../../session-key";
-import { discardDraftRecord, findProjectDrafts, hasDraft, type DraftScope } from "../../draft-registry";
+import { findProjectDrafts, hasDraft, type DraftScope } from "../../draft-registry";
 import { stageLabels } from "../../model";
 import { editorRevisionKey } from "../../workspace-state";
 import { Badge, Button, ErrorNotice, Spinner } from "../../components";
@@ -51,6 +51,7 @@ export default function WorkspaceController() {
   const [busy, setBusy] = useState(false);
   const [specialistsOpen, setSpecialistsOpen] = useState(false);
   const [error, setError] = useState("");
+  const discardNoticeTarget = useRef<HTMLDivElement>(null);
   const [rebuildOpen, setRebuildOpen] = useState(false);
   const [durableDraftsEnabled, setDurableDraftsEnabled] = useState(false);
   const [durableMediaDraftsEnabled, setDurableMediaDraftsEnabled] = useState(false);
@@ -221,10 +222,9 @@ export default function WorkspaceController() {
   const discardUnsafeDraft = () => {
     const unsafeDraft = session.unsafeDraft;
     if (!unsafeDraft) return;
-    discardDraftRecord(unsafeDraft.record);
+    if (!recovery.discardRetained(unsafeDraft.record)) return;
     const remaining = findProjectDrafts(unsafeDraft.record.projectId)[0];
     session.setUnsafeDraft(remaining ? { record: remaining, reason: unsafeDraft.reason } : undefined);
-    recovery.bumpEditorNonce();
     if (!remaining) workspaceNavigation.continueAfterUnsafeDraft();
   };
 
@@ -238,6 +238,9 @@ export default function WorkspaceController() {
   const frozenProfile = profiles.profiles.profiles.find((profile) => profile.profileId === frozenProfileId);
   const frozenProfileNeedsKey = Boolean(run && runProgress?.actions.canResume && profiles.loaded.current && frozenProfile && run.providerSnapshot.textAuthMode !== "none" && !frozenProfile.serverKeyAvailable && !providerSessionKeys.read(frozenProfileId));
   const navigationProjectId = session.route.project || project.id || "";
+  useEffect(() => {
+    if (recovery.discardNotice?.projectId === navigationProjectId) discardNoticeTarget.current?.scrollIntoView({ block: "center", inline: "nearest" });
+  }, [recovery.discardNotice, navigationProjectId]);
   const playUrl = navigationProjectId
     ? `?${new URLSearchParams({ project: navigationProjectId, view: "play" }).toString()}`
     : "";
@@ -313,6 +316,7 @@ export default function WorkspaceController() {
 <header className="topbar"><div className="topbar-actions">{projectClosing ? <Badge tone="accent">{projectTransitionLabel}</Badge> : projectSnapshotting ? <Badge tone="accent">正在创建恢复快照</Badge> : projectReadOnly && <Badge tone="warning">归档只读</Badge>}{running && <Spinner label={runProgress?.failedStage ? stageLabels[runProgress.failedStage] : "Pipeline"} />}{explicitProjectCloseEnabled && <Button variant="quiet" disabled={!project.id || projectReadOnly || connection !== "connected" || busy} onClick={() => void lifecycle.saveAndCloseCurrent()}>保存并关闭项目</Button>}{playUrl && <a className="button quiet" href={playUrl}>播放故事</a>}<Button variant="quiet" disabled={!project.id || connection === "loading" || projectClosing || projectSnapshotting} onClick={requestProjectRefresh}>刷新服务器版本</Button>{portableSnapshotsEnabled && <Button variant="quiet" disabled={!project.id || projectReadOnly || connection === "loading"} onClick={() => void lifecycle.createSnapshot()}>{projectSnapshotting ? "正在创建恢复快照…" : "创建恢复快照"}</Button>}{staleCount > 0 && <Button variant="quiet" disabled={projectReadOnly} onClick={() => setRebuildOpen(true)}>{staleCount} 个阶段待重建</Button>}{toolbarHint && <span className="toolbar-prerequisite" role="note">{toolbarHint}</span>}<details className="topbar-technical-status" onToggle={revealOpenedStatus}><summary>服务状态</summary><div>{durableDraftsEnabled && <Badge tone={authoring.durableDraftStatus === "saved" ? "ok" : authoring.durableDraftStatus === "failed" || authoring.durableDraftStatus === "conflict" ? "danger" : authoring.durableDraftStatus === "saving" ? "accent" : "warning"}>草稿：{authoring.durableDraftStatus === "saving" ? "正在保存" : authoring.durableDraftStatus === "saved" ? "已保存" : authoring.durableDraftStatus === "failed" ? "保存失败" : authoring.durableDraftStatus === "conflict" ? "冲突" : "等待编辑"}</Badge>}<Badge tone={connection === "connected" ? "ok" : connection === "loading" ? "accent" : "warning"}>Plotloom 服务：{connection === "connected" ? "已连接" : connection === "loading" ? "连接中" : "未连接"}</Badge><Badge tone={profiles.profileDraft.readiness?.state === "available" ? "ok" : ["unreachable", "authentication_failed", "model_mismatch", "capability_mismatch"].includes(profiles.profileDraft.readiness?.state || "unverified") ? "danger" : "warning"}>文本后端：{profiles.profileDraft.readiness?.state || "unverified"} · {profiles.profileDraft.profileId} · {profiles.profileDraft.readiness?.reasonCode || "readiness.not_checked"}{profiles.profileDraft.readiness?.observedAt ? ` · ${formatUiTimestamp(profiles.profileDraft.readiness.observedAt)}` : " · 未检测"}</Badge>{lifecycle.latestSnapshot && lifecycle.latestSnapshot.projectId === project.id && <small title={lifecycle.latestSnapshot.location}>恢复快照已完成：{lifecycle.latestSnapshot.location}</small>}</div></details></div></header>
       {error && <div className="global-error"><ErrorNotice message={error} /><button aria-label="关闭错误" onClick={() => setError("")}>×</button></div>}
       {lifecycle.duplicateNotice && <div className="notice workspace-copy-notice" role="status"><span>{lifecycle.duplicateNotice}</span><Button onClick={lifecycle.dismissDuplicateNotice}>知道了</Button></div>}
+      {recovery.discardNotice?.projectId === navigationProjectId && <div ref={discardNoticeTarget} className="notice workspace-copy-notice" role="status"><span>已丢弃本标签页选中的保留草稿。项目中已保存的草稿和已确认内容未删除。</span><Button onClick={recovery.dismissDiscardNotice}>知道了</Button></div>}
       <div className="workbench-grid">
         <main id="workspace-main">
           <details className="workspace-technical-details">
@@ -332,8 +336,8 @@ export default function WorkspaceController() {
     {directory.open && <ProjectDirectoryDialog projects={directory.projects} currentProjectId={project.id} notice={lifecycle.closeNotice} busy={Boolean(lifecycle.closingProjectId || lifecycle.snapshottingProjectId)} showArchived={directory.showArchived} error={directory.error} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "creator" }); }} onAction={lifecycle.mutate} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
     {workspaceNavigation.pendingNavigation && !session.unsafeDraft && <DraftNavigationDialog intent="navigate" onSave={() => void workspaceNavigation.resolvePendingNavigation("save")} onDiscard={() => void workspaceNavigation.resolvePendingNavigation("discard")} onCancel={() => void workspaceNavigation.resolvePendingNavigation("cancel")} />}
     {lifecycle.pendingArchive && <DraftNavigationDialog intent={lifecycle.pendingArchive.action} onSave={() => void lifecycle.resolvePendingArchive("save")} onDiscard={() => void lifecycle.resolvePendingArchive("discard")} onCancel={() => void lifecycle.resolvePendingArchive("cancel")} />}
-    {recovery.recovery && <DraftRecoveryDialog source={recovery.recovery.source} busy={recovery.restoring} onRestore={() => void recovery.restore()} onDiscard={recovery.discard} />}
-    {authoring.draftConflict && <DraftConflictDialog graphRecovery={authoring.draftConflict.scope === "story_graph"} serverReloaded={authoring.draftConflict.serverReloaded} busy={authoring.projectSaving} onReload={() => void recovery.reloadConflict()} onCopy={() => void recovery.copyConflict()} onDiscard={recovery.discardConflict} />}
+    {recovery.recovery && !session.unsafeDraft && <DraftRecoveryDialog source={recovery.recovery.source} busy={recovery.restoring} onRestore={() => void recovery.restore()} onDiscard={recovery.discard} />}
+    {authoring.draftConflict && !session.unsafeDraft && <DraftConflictDialog graphRecovery={authoring.draftConflict.scope === "story_graph"} serverReloaded={authoring.draftConflict.serverReloaded} reloading={authoring.conflictReloading} busy={authoring.projectSaving} onReload={() => void recovery.reloadConflict()} onCopy={() => void recovery.copyConflict()} onDiscard={recovery.discardConflict} />}
     {session.unsafeDraft && !session.unsafeDraft.dismissed && <UnsafeDraftDialog reason={session.unsafeDraft.reason} records={findProjectDrafts(session.unsafeDraft.record.projectId)} busy={connection === "loading"} onDiscard={discardUnsafeDraft}
       onKeep={() => { session.setUnsafeDraft({ ...session.unsafeDraft!, dismissed: true }); workspaceNavigation.continueAfterUnsafeDraft(); }}
       onRetry={() => { void workspaceNavigation.resolvePendingNavigation("cancel"); void loadProject(session.unsafeDraft!.record.projectId); }} />}

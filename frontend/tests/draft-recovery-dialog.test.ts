@@ -1,7 +1,7 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { DraftRecoveryDialog } from "../src/app/workspace/WorkspaceViews";
+import { DraftConflictDialog, DraftRecoveryDialog } from "../src/app/workspace/WorkspaceViews";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let host: HTMLDivElement, root: Root;
@@ -31,5 +31,20 @@ it("keeps restore and discard unavailable while exact project authority is being
   await act(async () => root.render(createElement(DraftRecoveryDialog, { source: "server", busy: true, onRestore, onDiscard })));
   expect(button("正在核实…").disabled).toBe(true); expect(button("丢弃草稿").disabled).toBe(true);
   await act(async () => { button("正在核实…").click(); button("丢弃草稿").click(); });
+  expect(onRestore).not.toHaveBeenCalled(); expect(onDiscard).not.toHaveBeenCalled();
+});
+
+it("distinguishes pending conflict reads from copying and explains exactly what a new project contains", async () => {
+  await act(async () => root.render(createElement(DraftConflictDialog, {
+    serverReloaded: false, reloading: true, busy: false, onReload: onRestore, onCopy: onRestore, onDiscard,
+  })));
+  expect(host.textContent).toContain("所需的前序内容");
+  expect(host.textContent).toContain("项目内容或草稿的保存版本已变化");
+  expect(host.textContent).not.toContain("项目内容已更新");
+  expect(host.textContent).toContain("不会复制原项目的任务、审核决定或媒体");
+  expect(host.textContent).not.toMatch(/规范版本|连续阶段前缀|正在复制/);
+  for (const label of ["正在重新加载…", "复制草稿为新项目", "丢弃冲突草稿"]) {
+    expect(button(label).disabled).toBe(true); await act(async () => button(label).click());
+  }
   expect(onRestore).not.toHaveBeenCalled(); expect(onDiscard).not.toHaveBeenCalled();
 });

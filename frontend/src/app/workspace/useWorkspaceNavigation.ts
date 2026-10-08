@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { discardDraft, findProjectDrafts, hasDraft, type DraftScope } from "../../draft-registry";
 import type { PipelineRun, ServerStageName, WorkspaceProject } from "../../types";
-import { routeFromLocation, stageForPage, type NavigationTarget, type PageId } from "./contracts";
+import { routeFromLocation, stageForPage, type NavigationTarget, type PageId, type ProjectLoadResult } from "./contracts";
 import type { UnsafeDraft, WorkspaceSession } from "./useWorkspaceSession";
 
 type NavigationSession = Pick<WorkspaceSession,
@@ -21,7 +21,7 @@ interface WorkspaceNavigationInput {
     clearRecovery: () => void;
     clearConflict: () => void;
   };
-  loadProject: (projectId: string, epoch?: number) => Promise<void>;
+  loadProject: (projectId: string, epoch?: number) => Promise<ProjectLoadResult>;
   pollRun: (runId: string, projectId?: string) => Promise<void>;
   isProjectClosing: (projectId: string) => boolean;
 }

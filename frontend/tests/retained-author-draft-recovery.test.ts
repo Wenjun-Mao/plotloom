@@ -90,3 +90,49 @@ it.each(["project", "auxiliary"])("distinguishes %s 404 without erasing retained
   expect(document.body.textContent).toContain(target === "project" ? "原项目不存在，草稿已保留" : "暂时无法核实项目，草稿已保留");
   expect(button("恢复草稿")).toBeUndefined(); expect(retained()["retained:brief:4"]).toBeDefined();
 });
+
+it.each([false, true])("explicit unsafe discard cannot resurrect its conflict lineage or erase an unrelated record (newer typing: %s)", async newerTyping => {
+  const unrelated = { ...retained()["retained:brief:4"], key: "other:brief:4", projectId: "other", payload: { title: "Other project input" } };
+  sessionStorage.setItem("plotloom:workbench-drafts:v1", JSON.stringify({ ...retained(), [unrelated.key]: unrelated }));
+  const read = vi.spyOn(plotloomApi, "getProject").mockResolvedValue(authority({ revision: 5 }));
+  const write = vi.spyOn(plotloomApi, "saveAuthoringDraft"), copy = vi.spyOn(plotloomApi, "createProject"), discard = vi.spyOn(plotloomApi, "discardAuthoringDraft");
+  await act(async () => root.render(createElement(App))); await flush();
+  expect(button("复制草稿为新项目")).toBeDefined();
+  if (newerTyping) {
+    const all = retained(), selected = all["retained:brief:4"];
+    sessionStorage.setItem("plotloom:workbench-drafts:v1", JSON.stringify({ ...all, [selected.key]: {
+      ...selected, localRevision: 2, payload: { ...selected.payload, title: "Latest retained typing" },
+    } }));
+  }
+  read.mockRejectedValueOnce(new TypeError("offline during conflict reload"));
+  await act(async () => button("重新加载服务器版本").click()); await flush();
+  expect(button("丢弃不可用草稿")).toBeDefined();
+  await act(async () => button("丢弃不可用草稿").click()); await flush();
+  expect(document.body.textContent).not.toContain("草稿版本已过期");
+  expect(button("复制草稿为新项目")).toBeUndefined(); expect(button("恢复草稿")).toBeUndefined();
+  expect(retained()["retained:brief:4"]).toBeUndefined(); expect(retained()[unrelated.key]).toEqual(unrelated);
+  expect(document.querySelector(".workspace-copy-notice[role=status]")?.textContent).toContain("已丢弃本标签页选中的保留草稿。项目中已保存的草稿和已确认内容未删除。");
+  expect(document.body.textContent).toContain("offline during conflict reload");
+  expect(Element.prototype.scrollIntoView).toHaveBeenCalledExactlyOnceWith({ block: "center", inline: "nearest" });
+  expect(write).not.toHaveBeenCalled(); expect(copy).not.toHaveBeenCalled(); expect(discard).not.toHaveBeenCalled();
+  if (newerTyping) {
+    await act(async () => (document.querySelector('.brand-home') as HTMLButtonElement).click()); await flush();
+  } else {
+    await act(async () => button("知道了").click()); await flush();
+  }
+  expect(document.querySelector(".workspace-copy-notice[role=status]")).toBeNull();
+});
+
+it("requires a fresh discard decision if the selected retained revision changes", async () => {
+  vi.spyOn(plotloomApi, "getProject").mockRejectedValue(new TypeError("offline"));
+  const write = vi.spyOn(plotloomApi, "saveAuthoringDraft"), discard = vi.spyOn(plotloomApi, "discardAuthoringDraft");
+  await act(async () => root.render(createElement(App))); await flush();
+  const newer = { ...retained()["retained:brief:4"], localRevision: 2, payload: { ...demoProject.brief, title: "Newer retained input" } };
+  sessionStorage.setItem("plotloom:workbench-drafts:v1", JSON.stringify({ [newer.key]: newer }));
+  await act(async () => button("丢弃不可用草稿").click()); await flush();
+  expect(retained()[newer.key]).toEqual(newer);
+  expect(document.body.textContent).toContain("保留草稿已变化，请查看最新内容后再丢弃");
+  expect(document.body.textContent).not.toContain("已丢弃本标签页选中的保留草稿");
+  expect((document.querySelector('[aria-label="保留的草稿"]') as HTMLTextAreaElement).value).toContain("Newer retained input");
+  expect(write).not.toHaveBeenCalled(); expect(discard).not.toHaveBeenCalled();
+});

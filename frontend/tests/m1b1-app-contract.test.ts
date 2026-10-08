@@ -134,9 +134,15 @@ describe("M1-B1 App integration contracts", () => {
     expect(button("丢弃冲突草稿")).toBeTruthy();
     expect(window.sessionStorage.getItem("plotloom:workbench-drafts:v1")).toContain(localTitle);
 
-    vi.mocked(plotloomApi.getProject).mockResolvedValue(resource(projectId, "服务器并发版本", 2));
+    let releaseRead!: (value: ProjectListItem) => void;
+    vi.mocked(plotloomApi.getProject).mockReturnValueOnce(new Promise(resolve => { releaseRead = resolve; }));
     await act(async () => button("重新加载服务器版本").click());
     await flush();
+    expect(button("正在重新加载…").disabled).toBe(true);
+    expect(button("复制草稿为新项目").disabled).toBe(true);
+    expect(document.body.textContent).not.toContain("已重新加载服务器");
+    expect(window.sessionStorage.getItem("plotloom:workbench-drafts:v1")).toContain(localTitle);
+    await act(async () => releaseRead(resource(projectId, "服务器并发版本", 2)));
     await flush();
 
     expect(button("已加载服务器版本").disabled).toBe(true);
