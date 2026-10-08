@@ -42,8 +42,10 @@ class VideoJobPreparation:
                 raise InvalidTransitionError("P2 only admits Wan 5-second 720p native-audio requests")
             compiler_version = "p2-wan-v1"
             provider_snapshot = {
+                "adapterId": "atlas_wan", "adapterVersion": "1",
                 "provider": "atlascloud", "model": "alibaba/wan-3.0/image-to-video",
                 "capabilityVersion": 1, "imageField": "image",
+                "costPolicy": "wan_paid_pilot_v1",
             }
             request_snapshot = {
                 "durationSeconds": requested_seconds, "resolution": resolution, "audio": audio,
@@ -242,7 +244,7 @@ class VideoJobPreparation:
             if existing is not None:
                 if existing.request_hash != fingerprint:
                     raise IdempotencyConflictError("video-job idempotency key was reused with different frozen input")
-                return self._currentness.video_job_dict(existing, current=self._currentness.video_job_current_in_session(session, existing)) | {"idempotent": True}
+                return self._currentness.video_job_dict(session, existing) | {"idempotent": True}
             job = VideoJobRow(id=self._currentness.video_job_id(), project_id=project_id, idempotency_key=idempotency_key,
                 request_hash=fingerprint, snapshot=snapshot, snapshot_hash=stable_hash(snapshot), requested_seconds=requested_seconds,
                 state="prepared", provider_prediction_id=None, output_uri=None, output_hash=None, observed=None, error=None,
@@ -257,4 +259,4 @@ class VideoJobPreparation:
                     session, video_job_id=job.id, seconds=requested_seconds, now=now
                 )
             session.flush()
-            return self._currentness.video_job_dict(job, current=True) | {"idempotent": False}
+            return self._currentness.video_job_dict(session, job) | {"idempotent": False}

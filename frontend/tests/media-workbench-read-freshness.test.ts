@@ -23,8 +23,8 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function Harness({ projectId, approvalId = "approval-1", shotId = "shot-1" }: { projectId: string; approvalId?: string; shotId?: string }) {
-  const read = useMediaWorkbenchData({ projectId, approvalId, approvalRevision: 1, storyboardRevision: 1, shotId });
+function Harness({ projectId, approvalId = "approval-1", shotId = "shot-1", lifecycleRevision }: { projectId: string; approvalId?: string; shotId?: string; lifecycleRevision?: number }) {
+  const read = useMediaWorkbenchData({ projectId, lifecycleRevision, approvalId, approvalRevision: 1, storyboardRevision: 1, shotId });
   latestRead = read;
   return createElement("div", null,
     createElement("span", { "data-testid": "phase" }, read.mediaReadPhase),
@@ -34,8 +34,8 @@ function Harness({ projectId, approvalId = "approval-1", shotId = "shot-1" }: { 
   );
 }
 
-async function render(projectId: string, approvalId?: string, shotId?: string) {
-  await act(async () => root.render(createElement(Harness, { projectId, approvalId, shotId })));
+async function render(projectId: string, approvalId?: string, shotId?: string, lifecycleRevision?: number) {
+  await act(async () => root.render(createElement(Harness, { projectId, approvalId, shotId, lifecycleRevision })));
 }
 
 async function settle() { await act(async () => { await Promise.resolve(); await Promise.resolve(); }); }
@@ -156,4 +156,29 @@ it("does not issue a new read for a selection ACK after its media owner unmounts
   await act(async () => { await oldAcknowledgement(99); });
   expect(get).toHaveBeenCalledTimes(2);
   expect(phase()).toBe("ready"); expect(revision()).toBe("1");
+});
+
+it.each(["success", "failure"])("withdraws same-project lifecycle reads and contains held %s after restore", async settlement => {
+  const archived = deferred<VisualWorkbench>();
+  const restored = deferred<VisualWorkbench>();
+  const get = vi.spyOn(plotloomApi, "getVisualWorkbench")
+    .mockResolvedValueOnce(visual(2))
+    .mockImplementationOnce(() => archived.promise)
+    .mockImplementationOnce(() => restored.promise);
+  await render("one", undefined, undefined, 1); await settle();
+  const previousShotAcknowledgement = latestRead.acknowledgeSelectionRevision;
+  await render("one", undefined, undefined, 2);
+  expect(phase()).toBe("loading"); expect(revision()).toBe("0");
+  await render("one", undefined, undefined, 3);
+  await act(async () => {
+    if (settlement === "success") archived.resolve(visual(99));
+    else archived.reject(new Error("old archived failure"));
+  });
+  expect(phase()).toBe("loading"); expect(revision()).toBe("0");
+  await act(async () => restored.resolve(visual(2))); await settle();
+  expect(phase()).toBe("ready"); expect(revision()).toBe("2");
+  expect(get).toHaveBeenCalledTimes(3);
+  get.mockResolvedValueOnce(visual(3));
+  await act(async () => previousShotAcknowledgement(3));
+  expect(phase()).toBe("ready"); expect(revision()).toBe("3");
 });

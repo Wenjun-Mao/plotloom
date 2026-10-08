@@ -133,6 +133,7 @@ export function useImageJobDirectionDraft(
   }, [activeWriterKey, baseCanonicalRevision, contextId, entityId, key, projectId, serverDraftsEnabled, shotId, targetId, writerKey, writerState]);
 
   const flush = useCallback(async (): Promise<boolean> => {
+    if (projectId && quiescence && !quiescence.canWrite(projectId)) return false;
     if (writerState.abandoning || writerState.suspended) return false;
     if (!serverDraftsEnabled || !projectId || !shotId || !baseCanonicalRevision || !entry) return true;
     if (writerState.timer !== undefined) {
@@ -142,6 +143,7 @@ export function useImageJobDirectionDraft(
     if (!writerState.serverReady || writerState.serverConflict) return false;
     const existing = writerState.persistence;
     if (existing) await existing;
+    if (quiescence && !quiescence.canWrite(projectId)) return false;
     if (writerState.abandoning || writerState.suspended) return false;
     if (writerState.serverConflict) return false;
     if (!entry.value.trim()) {
@@ -212,7 +214,7 @@ export function useImageJobDirectionDraft(
     const saved = await persistence;
     if (writerState.persistence === pendingPersistence) writerState.persistence = undefined;
     return saved;
-  }, [activeWriterKey, baseCanonicalRevision, entityId, entry, projectId, serverDraftsEnabled, shotId, targetId, writerKey, writerState]);
+  }, [activeWriterKey, baseCanonicalRevision, entityId, entry, projectId, quiescence, serverDraftsEnabled, shotId, targetId, writerKey, writerState]);
 
   useEffect(() => {
     if (!serverDraftsEnabled || !projectId || !shotId || !baseCanonicalRevision || !entry || !serverReady || serverConflict) return;
@@ -236,7 +238,7 @@ export function useImageJobDirectionDraft(
         await writerState.persistence;
         return () => {
           writerState.suspended = false;
-          if (!writerState.abandoning) writerState.timer = window.setTimeout(() => { writerState.timer = undefined; void flush(); }, 750);
+          if (!writerState.abandoning && quiescence.canWrite(projectId)) writerState.timer = window.setTimeout(() => { writerState.timer = undefined; void flush(); }, 750);
         };
       },
       discardUnsent: async () => {
@@ -257,7 +259,7 @@ export function useImageJobDirectionDraft(
   }, [drafts]);
 
   const update = (next: string) => {
-    if (!projectId || !shotId || quiescence?.isClosing(projectId)) return;
+    if (!projectId || !shotId || quiescence?.isClosing(projectId) || (quiescence && !quiescence.canWrite(projectId))) return;
     setDrafts((current) => {
       if (!next.trim()) {
         // Before a durable draft exists, empty text is clean. Once the server
@@ -276,6 +278,7 @@ export function useImageJobDirectionDraft(
     const buffered = entry;
     if (!buffered) return true;
     await writerState.persistence;
+    if (projectId && quiescence && !quiescence.canWrite(projectId)) return false;
     const removeBuffered = () => setDrafts((current) => {
       if (current[key] !== buffered) return current;
       const next = { ...current };

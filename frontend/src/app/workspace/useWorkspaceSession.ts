@@ -3,7 +3,7 @@ import type { MutableRefObject } from "react";
 import type { DraftRecord, DraftScope } from "../../draft-registry";
 import { hydrateWorkspaceProject, newestMediaTasksByShot, quarantineItemsFromProgress } from "../../workspace-state";
 import type { AuthoringDraft, MediaTask, PipelineRun, ProjectResource, RunExecutionTrace, RunProgress, ServerStageName, StageEnvelope, StageHead, StoryboardReview, TraceEvent, ValidationIssue, WorkspaceProject } from "../../types";
-import { authoringDraftKey, blankWorkspace, headsByStage, newClientDraftOwner, routeFromLocation, type ProjectLoadResult, type WorkspaceOperation } from "./contracts";
+import { authoringDraftKey, blankWorkspace, headsByStage, newClientDraftOwner, routeFromLocation, type ProjectLoadFailure, type ProjectLoadResult, type WorkspaceOperation } from "./contracts";
 
 export type WorkspaceRoute = ReturnType<typeof routeFromLocation>;
 export type ConnectionState = "loading" | "connected" | "demo" | "blank" | "error";
@@ -23,6 +23,7 @@ export interface WorkspaceProjectLoad {
 interface CanonicalWorkspaceSnapshot {
   project: WorkspaceProject;
   connection: ConnectionState;
+  loadFailure: ProjectLoadFailure | undefined;
   run: PipelineRun | undefined;
   runSelectionPending: boolean;
   progress: RunProgress | undefined;
@@ -48,6 +49,7 @@ function emptySnapshot(owner: string, onboarding: boolean, connection: Connectio
   return {
     project: blankWorkspace(owner),
     connection,
+    loadFailure: undefined,
     run: undefined,
     runSelectionPending: false,
     progress: undefined,
@@ -82,7 +84,7 @@ export function useWorkspaceSession() {
   const [route, setRoute] = useState<WorkspaceRoute>(initialRoute);
   const routeRef = useRef(route);
   const epoch = useRef(0);
-  const [snapshot, setSnapshot] = useState<CanonicalWorkspaceSnapshot>(() => emptySnapshot(localOwner.current, !initialRoute.project));
+  const [snapshot, setSnapshot] = useState<CanonicalWorkspaceSnapshot>(() => emptySnapshot(localOwner.current, !initialRoute.project, initialRoute.project ? "loading" : "blank"));
   const snapshotRef = useRef(snapshot);
   const navigationCleanups = useRef(new Set<() => void>());
   const serverDrafts = useRef(new Map<string, AuthoringDraft>());
@@ -138,6 +140,7 @@ export function useWorkspaceSession() {
       onboarding: false,
       review: changedProject ? null : current.review,
       issues: changedProject ? {} : current.issues,
+      loadFailure: undefined,
     }));
     return epoch;
   }, [navigate, updateSnapshot]);
@@ -164,7 +167,7 @@ export function useWorkspaceSession() {
   const replaceCurrentRoute = useCallback(() => writeRoute(routeRef.current, "replace"), []);
 
   const beginProjectLoad = useCallback(() => {
-    updateSnapshot((current) => ({ ...current, connection: "loading" }));
+    updateSnapshot((current) => ({ ...current, connection: "loading", loadFailure: undefined }));
   }, [updateSnapshot]);
   const acceptProjectLoad = useCallback((incoming: WorkspaceProjectLoad) => {
     serverDrafts.current = new Map(
@@ -180,6 +183,7 @@ export function useWorkspaceSession() {
         quarantines: quarantineItemsFromProgress(incoming.progress),
       },
       connection: "connected",
+      loadFailure: undefined,
       run: incoming.run,
       runSelectionPending: false,
       progress: incoming.progress,
@@ -193,7 +197,7 @@ export function useWorkspaceSession() {
       unsafeDraft: undefined,
     }));
   }, [updateSnapshot]);
-  const rejectProjectLoad = useCallback((staleDraft: UnsafeDraft | undefined) => {
+  const rejectProjectLoad = useCallback((staleDraft: UnsafeDraft | undefined, failure?: ProjectLoadFailure) => {
     if (staleDraft) serverDrafts.current.clear();
     const retainedProjectId = routeRef.current.project;
     updateSnapshot((current) => {
@@ -206,12 +210,14 @@ export function useWorkspaceSession() {
         return {
           ...current,
           connection: "error",
+          loadFailure: failure,
           runSelectionPending: false,
           unsafeDraft: staleDraft ?? current.unsafeDraft,
         };
       }
       return {
         ...emptySnapshot(localOwner.current, false, "error"),
+        loadFailure: failure,
         unsafeDraft: staleDraft ?? current.unsafeDraft,
       };
     });
@@ -309,6 +315,7 @@ export function useWorkspaceSession() {
       ...current,
       project: hydrateWorkspaceProject(draft, created, created.stages),
       connection: "connected",
+      loadFailure: undefined,
       run: undefined,
       runSelectionPending: false,
       progress: undefined,
@@ -361,6 +368,7 @@ export function useWorkspaceSession() {
     routeEntity: route.entity,
     project: snapshot.project,
     connection: snapshot.connection,
+    loadFailure: snapshot.loadFailure,
     run: snapshot.run,
     runSelectionPending: snapshot.runSelectionPending,
     progress: snapshot.progress,

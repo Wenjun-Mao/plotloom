@@ -23,10 +23,10 @@ it("reserves a retained segment's review player before any metadata event", asyn
     id: "segment", videoJobId: "take", shotId: "shot", inFrame: 0, outFrame: 144,
     authoredDurationUnits: 6000, sourceProbe: { frameCount: 192, fps: "24/1" },
     derivativeProbe: { frameCount: 144, fps: "24/1" }, derivativeHash: "hash",
-    current: true, selected: false, selectedRevision: null, createdAt: "2026-10-04T00:00:00Z",
+    previewEligible: true, current: true, selected: false, selectedRevision: null, createdAt: "2026-10-04T00:00:00Z",
   };
   const job: VideoJob = {
-    id: "take", projectId: "project", state: "ingested", current: true, selected: false,
+    id: "take", projectId: "project", state: "ingested", lifecycleStatus: "active", inputStatus: "current", current: true, selected: false,
     selectionRevision: 1, requestedSeconds: 8, cancelRequestedAt: null,
     providerPredictionId: null, outputHash: "hash", error: null, reviews: [], segments: [segment],
     observed: { durationSeconds: 8, width: 576, height: 1024, videoCodec: "h264", audioCodec: "aac", frameCount: 192 },

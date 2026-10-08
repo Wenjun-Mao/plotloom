@@ -71,12 +71,12 @@ async function edit(element: HTMLInputElement | HTMLTextAreaElement, value: stri
     element.dispatchEvent(new Event("input", { bubbles: true }));
   });
 }
-async function render() {
+async function render(lifecycleRevision?: number, readOnly = false) {
   await act(async () => root.render(createElement(ManagedMediaWorkbench, {
-    projectId: "project", storyboard: { ...demoProject.storyboard, shots: [shot] },
+    projectId: "project", lifecycleRevision, storyboard: { ...demoProject.storyboard, shots: [shot] },
     bible: demoProject.storyBible, graph: demoProject.storyGraph, sceneBeats: demoProject.sceneBeats,
     selectedShot: shot, storyboardRevision: 1, storyBibleRevision: 1, mediaDraftsEnabled: false,
-    review, readOnly: false,
+    review, readOnly,
   })));
   await settle();
 }
@@ -171,4 +171,35 @@ it.each(["binding", "intent", "review"])("invalidates the buffer for a genuine r
   await act(async () => pending.resolve(snapshot(nextBinding, 8, change === "review" ? "new-review" : "a1-review"))); await settle();
   expect(editor()).toBeNull(); expect(consent()).toBeNull();
   expect(host.textContent).not.toContain("来源绑定：");
+});
+
+it("retains English and seed through archive/restore reads while withdrawing consent and freeze authority", async () => {
+  const archivedMedia = deferred<VisualWorkbench>();
+  const archivedVideos = deferred<Awaited<ReturnType<typeof plotloomApi.getVideoJobs>>>();
+  vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValueOnce(snapshot())
+    .mockReturnValueOnce(archivedMedia.promise).mockResolvedValueOnce(snapshot());
+  vi.mocked(plotloomApi.getVideoJobs).mockResolvedValueOnce({ jobs: [] })
+    .mockReturnValueOnce(archivedVideos.promise).mockResolvedValueOnce({ jobs: [] });
+  vi.spyOn(plotloomApi, "previewH3Prompt").mockResolvedValueOnce(source()).mockResolvedValueOnce(compiled).mockResolvedValue(source());
+  const freeze = vi.spyOn(plotloomApi, "prepareVideoJob");
+  await render(1); await edit(seed(), "4215546708741480"); await click("读取当前来源");
+  await edit(editor(), "The keeper crosses the doorway.");
+  await act(async () => consent().click());
+  await click("预览完整 H3 提示词");
+  const originalEditor = editor();
+  await render(2, true);
+  expect(editor()).toBe(originalEditor);
+  expect(editor().value).toBe("The keeper crosses the doorway.");
+  expect(seed().value).toBe("4215546708741480"); expect(consent().checked).toBe(false);
+  expect(button("读取当前来源").disabled).toBe(true);
+  expect(button("冻结此说明并准备原片")).toBeUndefined();
+  expect(host.querySelector(".video-workflow-nav")).toBeNull();
+  await act(async () => { archivedMedia.resolve(snapshot()); archivedVideos.resolve({ jobs: [] }); }); await settle();
+  expect(editor()).toBe(originalEditor); expect(editor().value).toBe("The keeper crosses the doorway.");
+  await render(3);
+  expect(editor()).toBe(originalEditor); expect(seed().value).toBe("4215546708741480");
+  await click("读取当前来源");
+  expect(editor().value).toBe("The keeper crosses the doorway."); expect(consent().checked).toBe(false);
+  expect(freeze).not.toHaveBeenCalled();
+  expect(plotloomApi.getVideoJobs).toHaveBeenCalledTimes(3);
 });

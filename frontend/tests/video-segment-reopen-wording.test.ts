@@ -9,8 +9,8 @@ import type { VideoJob, VideoSegment } from "../src/types";
 it("keeps reopen guidance true after preparing and selecting a playback segment", async () => {
   const host = document.createElement("div"); document.body.append(host);
   const root = createRoot(host);
-  const segment: VideoSegment = { id: "segment", videoJobId: "job", shotId: "shot", inFrame: 0, outFrame: 120, authoredDurationUnits: 5_000, sourceProbe: { frameCount: 124, fps: "24/1" }, derivativeProbe: { frameCount: 120, fps: "24/1" }, derivativeHash: "a".repeat(64), current: true, selected: false, selectedRevision: null, createdAt: "now" };
-  const job: VideoJob = { id: "job", projectId: "project", state: "ingested", current: true, selected: false, selectionRevision: 1, requestedSeconds: 5, providerPredictionId: "provider", cancelRequestedAt: null, outputHash: "b".repeat(64), error: null, snapshot: { sourceTiming: { durationUnits: 5_000 } }, observed: { durationSeconds: 5.167, width: 832, height: 480, videoCodec: "h264", audioCodec: "aac", frameCount: 124 }, reviews: [
+  const segment: VideoSegment = { id: "segment", videoJobId: "job", shotId: "shot", inFrame: 0, outFrame: 120, authoredDurationUnits: 5_000, sourceProbe: { frameCount: 124, fps: "24/1" }, derivativeProbe: { frameCount: 120, fps: "24/1" }, derivativeHash: "a".repeat(64), previewEligible: true, current: true, selected: false, selectedRevision: null, createdAt: "now" };
+  const job: VideoJob = { id: "job", projectId: "project", state: "ingested", lifecycleStatus: "active", inputStatus: "current", current: true, selected: false, selectionRevision: 1, requestedSeconds: 5, providerPredictionId: "provider", cancelRequestedAt: null, outputHash: "b".repeat(64), error: null, snapshot: { sourceTiming: { durationUnits: 5_000 } }, observed: { durationSeconds: 5.167, width: 832, height: 480, videoCodec: "h264", audioCodec: "aac", frameCount: 124 }, reviews: [
     { id: "reject", decision: "reject", reviewer: "QA", note: "technical only", createdAt: "earlier" },
     { id: "reopen", decision: "reopen", reviewer: "QA", note: "technical reconsideration", createdAt: "now" },
   ] };

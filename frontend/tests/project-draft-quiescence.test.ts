@@ -88,3 +88,15 @@ it("resumes settled suspensions after another writer fails and never resumes era
   const erased = q.beginClose("b"); await erased.suspendWrites(); await erased.discardUnsent(); erased.finish();
   expect(resume).toHaveBeenCalledOnce();
 });
+
+it("withdraws only one project's retained writers and invalidates a drain across admission changes", async () => {
+  const q = createProjectDraftQuiescence(); const first = vi.fn(async () => true), other = vi.fn(async () => true);
+  q.register("first", "retained", first, { retainOnUnmount: true });
+  q.register("other", "retained", other, { retainOnUnmount: true });
+  const close = q.beginClose("first"); await expect(close.drain()).resolves.toBe(true);
+  q.setWriteAdmission("first", false);
+  expect(close.canCommit()).toBe(false); expect(q.canWrite("other")).toBe(true); close.finish();
+  first.mockClear(); await expect(q.flush("first")).resolves.toBe(false); expect(first).not.toHaveBeenCalled();
+  await expect(q.flush("other")).resolves.toBe(true); expect(other).toHaveBeenCalledOnce();
+  q.setWriteAdmission("first", true); await expect(q.flush("first")).resolves.toBe(true); expect(first).toHaveBeenCalledOnce();
+});

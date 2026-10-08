@@ -65,6 +65,34 @@ it.each(["visual", "direction"])("another mounted %s editor cannot resurrect an 
   expect(cache).not.toContain("deleted draft"); expect(cache).toContain("new neighbor draft");
 });
 
+it.each(["visual", "direction"])("a retained %s writer follows current project admission after rejected deletion", async kind => {
+  vi.useFakeTimers();
+  try {
+    vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
+    const save = vi.spyOn(plotloomApi, "saveAuthoringDraft").mockResolvedValue({ draftRevision: 1 } as never);
+    const discard = vi.spyOn(plotloomApi, "discardAuthoringDraft");
+    const q = createProjectDraftQuiescence();
+    if (kind === "visual") {
+      await render({ durable: true, quiescence: q }); await edit("retained A text");
+      await render({ durable: true, quiescence: q, shot: "B" });
+    } else {
+      await renderDirection({ durable: true, quiescence: q });
+      await act(async () => directionEditor.update("retained A text"));
+      await renderDirection({ durable: true, quiescence: q, shot: "B" });
+    }
+    q.setWriteAdmission("project", false);
+    const attempt = q.beginClose("project"); await attempt.suspendWrites(); attempt.finish();
+    await act(async () => vi.advanceTimersByTimeAsync(1_000));
+    await expect(q.flush("project")).resolves.toBe(false);
+    expect(save).not.toHaveBeenCalled(); expect(discard).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem(kind === "visual" ? "plotloom:visual-intent-drafts:v1" : "plotloom:image-job-direction-drafts:v1"))
+      .toContain("retained A text");
+    q.setWriteAdmission("project", true);
+    await expect(q.flush("project")).resolves.toBe(true);
+    expect(save).toHaveBeenCalledOnce(); expect(discard).not.toHaveBeenCalled();
+  } finally { vi.useRealTimers(); }
+});
+
 it("retains separate drafts across shots, candidates, projects, and remounts in session storage only", async () => {
   await render(); await edit("my draft");
   for (const props of [{ shot: "other" }, { asset: "other" }, { project: "other" }]) {

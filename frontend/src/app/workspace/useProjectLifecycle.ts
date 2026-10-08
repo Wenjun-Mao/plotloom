@@ -125,6 +125,10 @@ export function useProjectLifecycle({
         const updated = action === "archive"
           ? await plotloomApi.archiveProject(item.id, item.lifecycleRevision ?? item.revision)
           : await plotloomApi.restoreProject(item.id, item.lifecycleRevision ?? item.revision);
+        // The target may have retained writers even when another project/page
+        // is visible. Publish authoritative admission before any resumed queue.
+        mediaDraftQuiescence.setWriteAdmission(item.id,
+          updated.lifecycleStatus !== "archived" && !updated.archivedAt);
         if (!session.isCurrent(operation)) return;
         if (session.project.id === item.id) session.acceptCanonicalProject({ ...session.project, ...updated });
       } else if (action === "duplicate") {

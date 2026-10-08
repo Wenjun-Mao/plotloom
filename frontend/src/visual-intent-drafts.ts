@@ -152,9 +152,8 @@ export function useVisualIntentDraft(
       writerState.serverReady = true;
       if (activeWriterKey.current === writerKey) setServerReady(true);
     }).catch(() => {
-      // The retained runtime has no media draft route until storage cutover.
-      // Keep the existing local safety buffer there; direct storage still
-      // requires the acknowledged server receipt when the route is available.
+      // Keep the local buffer, but do not write without an authoritative
+      // draft read and its CAS receipt.
       if (!cancelled && writerState.requestEpoch === epoch) {
         writerState.serverReady = false;
         if (activeWriterKey.current === writerKey) setServerReady(false);
@@ -163,6 +162,7 @@ export function useVisualIntentDraft(
     return () => { cancelled = true; };
   }, [activeWriterKey, assetId, baseCanonicalRevision, baseId, entityId, key, projectId, serverDraftsEnabled, shotId, writerKey, writerState]);
   const flush = useCallback(async (): Promise<boolean> => {
+    if (projectId && quiescence && !quiescence.canWrite(projectId)) return false;
     if (writerState.abandoning || writerState.suspended) return false;
     if (!serverDraftsEnabled || !projectId || !shotId || !assetId || !baseCanonicalRevision || !entry) return true;
     if (writerState.timer !== undefined) {
@@ -172,6 +172,7 @@ export function useVisualIntentDraft(
     if (!writerState.serverReady || writerState.serverConflict) return false;
     const existing = writerState.persistence;
     if (existing) await existing;
+    if (quiescence && !quiescence.canWrite(projectId)) return false;
     if (writerState.abandoning || writerState.suspended) return false;
     if (writerState.serverConflict) return false;
     const payload = {
@@ -215,7 +216,7 @@ export function useVisualIntentDraft(
     const saved = await persistence;
     if (writerState.persistence === pendingPersistence) writerState.persistence = undefined;
     return saved;
-  }, [activeWriterKey, assetId, baseCanonicalRevision, dirty, entityId, entry, projectId, serverDraftsEnabled, shotId, writerKey, writerState]);
+  }, [activeWriterKey, assetId, baseCanonicalRevision, dirty, entityId, entry, projectId, quiescence, serverDraftsEnabled, shotId, writerKey, writerState]);
   useEffect(() => {
     if (!serverDraftsEnabled || !projectId || !shotId || !assetId || !baseCanonicalRevision || !entry || !serverReady || serverConflict) return;
     writerState.timer = window.setTimeout(() => {
@@ -240,7 +241,7 @@ export function useVisualIntentDraft(
         await writerState.persistence;
         return () => {
           writerState.suspended = false;
-          if (!writerState.abandoning) writerState.timer = window.setTimeout(() => { writerState.timer = undefined; void flush(); }, 750);
+          if (!writerState.abandoning && quiescence.canWrite(projectId)) writerState.timer = window.setTimeout(() => { writerState.timer = undefined; void flush(); }, 750);
         };
       },
       discardUnsent: async () => {
@@ -264,6 +265,7 @@ export function useVisualIntentDraft(
     const buffered = entry;
     if (!buffered) return true;
     await writerState.persistence;
+    if (projectId && quiescence && !quiescence.canWrite(projectId)) return false;
     const removeBuffered = () => setDrafts((current) => {
       if (current[key] !== buffered) return current;
       const next = { ...current };
@@ -299,7 +301,7 @@ export function useVisualIntentDraft(
   const clear = () => clearWithDisposition(false);
   const clearConsumed = () => clearWithDisposition(true);
   const update = (change: (current: IntentDraft) => IntentDraft) => {
-    if (!projectId || !shotId || !assetId || quiescence?.isClosing(projectId)) return;
+    if (!projectId || !shotId || !assetId || quiescence?.isClosing(projectId) || (quiescence && !quiescence.canWrite(projectId))) return;
     setDrafts((current) => ({ ...current, [key]: {
       baseId: current[key] ? current[key].baseId : baseId ?? null,
       value: change(current[key]?.value ?? saved),

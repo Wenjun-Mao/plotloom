@@ -56,7 +56,7 @@ export function createReviewDraftStore(quiescence: ProjectDraftQuiescence, stora
   const flush = async (projectId: string, editor: ReviewEditor): Promise<boolean> => {
     const key = keyFor(projectId, editor);
     while (entries.has(key)) {
-      if (abandoning.has(key) || suspended.has(key)) return false;
+      if (abandoning.has(key) || suspended.has(key) || !quiescence.canWrite(projectId)) return false;
       const flight = flights.get(key);
       if (flight) { if (!await flight) return false; continue; }
       const entry = entries.get(key)!;
@@ -127,6 +127,7 @@ export function createReviewDraftStore(quiescence: ProjectDraftQuiescence, stora
       const key = keyFor(projectId, editor);
       const entry = entries.get(key);
       await flights.get(key);
+      if (!quiescence.canWrite(projectId)) throw new Error("当前项目不允许修改审阅草稿");
       const receipt = remote.get(key);
       if (receipt && (!entry || entry.expectedDraftRevision === receipt.draftRevision)) {
         await plotloomApi.discardAuthoringDraft(projectId, { editorScope: "review_buffer", entityId: editor, expectedDraftRevision: receipt.draftRevision });

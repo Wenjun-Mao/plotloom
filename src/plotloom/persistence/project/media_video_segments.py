@@ -20,6 +20,7 @@ from ..schema import (
 )
 from .access import ProjectPersistenceAccess
 from .media_video_currentness import VideoJobCurrentness
+from .media_video_integrity import frozen_video_request_is_valid, frozen_video_source_is_valid
 
 
 class VideoSegmentPersistence:
@@ -31,13 +32,9 @@ class VideoSegmentPersistence:
 
     @staticmethod
     def _source(row: VideoJobRow) -> dict[str, Any]:
-        binding = row.snapshot.get("sourceTiming") if isinstance(row.snapshot, dict) else None
-        shot = row.snapshot.get("shot") if isinstance(row.snapshot, dict) else None
-        if not isinstance(binding, dict) or not isinstance(shot, dict) or not isinstance(shot.get("id"), str):
+        if not isinstance(row.snapshot, dict) or not frozen_video_source_is_valid(row.snapshot):
             raise InvalidTransitionError("video job has no frozen authored-timing source")
-        if binding.get("durationUnits") != shot.get("durationUnits"):
-            raise InvalidTransitionError("video job source timing does not match its shot")
-        return binding
+        return row.snapshot["sourceTiming"]
 
     @staticmethod
     def _selection(session: Session, project_id: str, shot_id: str) -> VideoCandidateSelectionRow | None:
@@ -57,22 +54,34 @@ class VideoSegmentPersistence:
 
     @classmethod
     def _valid_metadata(cls, row: VideoSegmentRow, job: VideoJobRow) -> bool:
+        if not frozen_video_request_is_valid(job):
+            return False
         try:
             binding = cls._source(job)
         except InvalidTransitionError:
             return False
+        if (any(type(value) is not int for value in (row.in_frame, row.out_frame, row.authored_duration_units))
+                or not isinstance(row.source_probe, dict) or not isinstance(row.derivative_probe, dict)
+                or type(row.source_probe.get("frameCount")) is not int
+                or type(row.derivative_probe.get("frameCount")) is not int
+                or not isinstance(row.derivative_uri, str) or not row.derivative_uri
+                or not isinstance(row.derivative_hash, str) or len(row.derivative_hash) != 64):
+            return False
         frames = row.out_frame - row.in_frame
         return bool(
-            job.state == "ingested" and job.output_uri is not None
+            job.state == "ingested" and isinstance(job.output_uri, str) and job.output_uri
+            and isinstance(job.output_hash, str) and len(job.output_hash) == 64
             and row.project_id == job.project_id
+            and row.video_job_id == job.id
             and row.shot_id == job.snapshot["shot"]["id"]
             and row.original_hash == job.output_hash
             and row.source_binding == binding
             and row.source_binding_hash == stable_hash(binding)
             and row.proposal_hash == stable_hash(cls._immutable(row))
             and row.authored_duration_units == binding["durationUnits"]
-            and row.in_frame >= 0 and frames > 0
+            and row.in_frame >= 0 and frames > 0 and row.out_frame <= row.source_probe["frameCount"]
             and frames * 1_000 == row.authored_duration_units * 24
+            and row.source_probe.get("fps") == "24/1"
             and row.derivative_probe.get("frameCount") == frames
             and row.derivative_probe.get("fps") == "24/1"
         )
@@ -136,7 +145,7 @@ class VideoSegmentPersistence:
             row.proposal_hash = stable_hash(self._immutable(row))
             session.add(row)
             session.flush()
-            return self._projection(row, current=True, selected=False)
+            return self._projection(row, current=True, selected=False, preview_eligible=True)
 
     def select(
         self, project_id: str, segment_id: str, *, reviewer: str, note: str,
@@ -178,7 +187,7 @@ class VideoSegmentPersistence:
                 id=new_id(), video_job_id=job.id, reviewer=reviewer,
                 decision="select", note=note, created_at=now,
             ))
-            return self._projection(segment, current=True, selected=True)
+            return self._projection(segment, current=True, selected=True, preview_eligible=True)
 
     def reopen_rejected_h3_review(
         self, project_id: str, video_job_id: str, *, reviewer: str, reason: str,
@@ -283,8 +292,8 @@ class VideoSegmentPersistence:
             if segment is None or segment.project_id != project_id:
                 raise NotFoundError("video segment proposal not found")
             job = session.get(VideoJobRow, segment.video_job_id)
-            if job is None or not self._currentness.video_job_current_in_session(session, job) or not self._valid_metadata(segment, job):
-                raise InvalidTransitionError("video segment proposal is stale")
+            if job is None or not self._valid_metadata(segment, job):
+                raise InvalidTransitionError("video segment proposal evidence is invalid")
             return {"uri": segment.derivative_uri, "hash": segment.derivative_hash, "mimeType": "video/mp4"}
 
     def selected_storage(self, project_id: str, video_job_id: str) -> dict[str, Any]:
@@ -320,13 +329,14 @@ class VideoSegmentPersistence:
         return result
 
     @staticmethod
-    def _projection(row: VideoSegmentRow, *, current: bool, selected: bool) -> dict[str, Any]:
+    def _projection(row: VideoSegmentRow, *, current: bool, selected: bool, preview_eligible: bool) -> dict[str, Any]:
         return {
             "id": row.id, "videoJobId": row.video_job_id, "shotId": row.shot_id,
             "inFrame": row.in_frame, "outFrame": row.out_frame,
             "authoredDurationUnits": row.authored_duration_units,
             "sourceProbe": row.source_probe, "derivativeProbe": row.derivative_probe,
             "derivativeHash": row.derivative_hash, "current": current,
+            "previewEligible": preview_eligible,
             "selected": selected, "selectedRevision": row.selected_revision,
             "createdAt": _stored_utc(row.created_at).isoformat(),
         }
@@ -339,6 +349,7 @@ class VideoSegmentPersistence:
         return [
             self._projection(
                 row, current=job_current and self._valid_metadata(row, job),
+                preview_eligible=self._valid_metadata(row, job),
                 selected=bool(
                     job_current and selection is not None
                     and selection.selected_video_job_id == job.id

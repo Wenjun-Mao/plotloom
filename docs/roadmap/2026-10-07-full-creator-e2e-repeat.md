@@ -19,8 +19,8 @@ safe continuation. It does not implement new product capabilities.
 
 | Profile field | Current run |
 |---|---|
-| Last qualified baseline | Published and activated end-frame/read-guidance repair04a4d02:762 frontend/239 browser PASS7.1m without local retries,893 inputs unchanged, types/deterministic build/wheel/smoke PASS; exact-head CI37820366305 is pending, not inherited from earlier gallery CI. Unchanged backend1256-Python qualification reused from c26920b. Fresh196 proves both minimal native routes under04; see the native route/end-frame receipt |
-| Existing evidence | Completed text→installation→three native selected shots and both minimal playable routes; finite type/start/Undo, imported-image lifecycle/snapshot/restored-copy UI, six-sibling desktop and trusted OS blur passed. C50/C52 have full exact readbacks and clean QA baselines. Native195 adds East/West originals/segments, West reject/reopen/reselect, zero-write both-route completion and end-frame read-state pixels. Same-node multishot, video-bearing lifecycle and completed-project revision remain PARTIAL; see current native route/recovery and C52 receipts |
+| Last qualified baseline | Published end-frame/read-guidance repair04a4d02 remains the previous deployed executable. Candidate203 read/lifecycle repair is locally qualified:1,309 Python reused from unchanged201 backend,806 frontend/239 browser PASS,types/lock/compile/deterministic paired build PASS; publication pending. Exact scope/fingerprints and current publication are owned by the [203 receipt](../verification/2026-10-08-load-retained-media-qualification.md), not inferred from earlier CI |
+| Existing evidence | Completed text→installation→three native selected shots and both minimal playable routes; native196–197 media-bearing recovery/snapshot/restored copy deletion/idle restart with unchanged bytes.203 repairs closed-load/archived-evidence admission, actual delayed archive/restore without reload and retained preview,final desktop pixels and both restored routes; six views/15 assets unchanged. Same-node multishot and installed-story revision remain PARTIAL |
 | Runtime boundary | Normal8841 serves checked frontend through its checkout mount with unchanged qualified Python. Owned idle8861/8862 was restarted after native completion and now loads matching Python/static plus explicitly enabled current H3 catalogv7 via process-only configuration; protected settings unchanged. Separate8871 qualifies graph checks; retained8851 is historical. Never restart a busy reservation |
 | Data baseline | Fresh native QA b3a933f7-b6fc-40e3-826f-5162f95a119a; structural QA remains separately identified in the ledger. Three selected five-second segments and both minimal native routes now establish a playable baseline for reversible recovery and draft-revision checks; not same-node multishot or revised production |
 | Protection | Two named owner projects, managed files and protected configuration unchanged; disposable lifecycle/recovery targets identified before actions |
@@ -35,6 +35,12 @@ safe continuation. It does not implement new product capabilities.
   a revised playable production. Keep identity, transaction integrity, retained
   author work/media and frozen-dispatch boundaries; do not add backward-compatibility
   adapters or migrate retired demos to manufacture success.
+- The owner has now selected **one current story with explicit rebuild**. This
+  closes the separate-old-playable-version choice, not the implementation gap.
+  [ADR0138](../adr/0138-one-current-story-explicit-rebuild.md) owns the adopted
+  contract: confirmed edits make affected production outdated; managed media
+  remains; fresh explicit rebuild/reviews precede resumed playback. Draft storage
+  remains recoverability rather than content admission.
 - Define which changes invalidate which reviews/bindings, when outputs are reusable,
   and what an explicit rebuild replaces. Selective regeneration is an acceptance
   claim to prove, not an assumed current capability; honestly record stage-level
@@ -46,6 +52,29 @@ safe continuation. It does not implement new product capabilities.
   approval. Before native execution use a clean committed qualified checkpoint,
   matching loaded runtime and known job state. Routine continuation under existing
   coordination authority does not bypass execution pins or dispatch safety.
+
+### Approved Revise capability slice after the read/lifecycle checkpoint
+
+One source writer, same disposable native project, no compatibility path or
+second version store. Reuse source-map confirmation/application and the bridge
+proposal/intent/presentation/accept endpoints. Extend preparation with exact
+proposal/installation/canonical replacement-target CAS and hash ownership.
+Separate installed-production projection from the latest candidate proposal;
+derive installed authority from its own admission and canonical heads.
+
+Atomically rebuild Bible/SceneBeats/Storyboard and re-admit a Bible-dependent
+source graph only through its source owner after real validation. Preserve
+current entity-effect semantics and fail incompatible content, stale targets,
+busy reservations or uncertain executions without partial writes. Current media
+timing must use the latest installation, never a historical shot-ID match.
+Replace retired first-install-only assertions with current CAS/transaction and
+installed→outdated→rebuilt regressions; retain genuine source/protection guards.
+
+Qualification precedes native execution. Then exercise prose, topology/footage,
+design/reference and Brief changes on the same completed project; prove fresh
+reviews, explicit media decisions and every revised route. Record stage-level
+rebuilds honestly, without claiming selective regeneration. Within-node native
+multishot and downstream Scene/Prop reference consumption remain separate gaps.
 
 ### Three rounds for the next execution
 

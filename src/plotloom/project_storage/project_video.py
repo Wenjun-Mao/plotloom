@@ -135,7 +135,7 @@ class ProjectVideoRepository:
             current.dispatched_at = now
             current.updated_at = now
             response = self._video_currentness.video_job_dict(
-                current, current=True
+                session, current, current=True
             )
         # The project claim is now durable. A failure recording this
         # application event occurs before any transport call and intentionally

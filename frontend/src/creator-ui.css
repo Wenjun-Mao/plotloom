@@ -2,6 +2,8 @@
    deliberately denser/richer styles; routine form metadata is not a status. */
 
 .page { width: min(1500px, 100%); min-height: calc(100vh - 58px); padding: 20px 24px; margin: 0 auto; }
+.project-load-details { min-width: 0; margin-top: 12px; }
+.project-load-details pre { max-width: 100%; max-height: 240px; margin: 0; padding: 12px; overflow: auto; background: var(--bg); color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.5 var(--mono); }
 .page-header { display: flex; gap: 24px; align-items: flex-start; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid var(--line); margin-bottom: var(--space-section); }
 .page-header > div:first-child { min-width: 0; }
 .page-header h1 { margin: 0; font-size: var(--type-page); letter-spacing: -.01em; line-height: 1.3; }

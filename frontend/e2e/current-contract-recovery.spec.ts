@@ -195,7 +195,12 @@ test("unsafe conflict discard removes only the selected retained input without r
     const notice = second.getByRole("status").filter({ hasText: "已丢弃本标签页选中的保留草稿" });
     await expect(notice).toContainText("项目中已保存的草稿和已确认内容未删除");
     const readError = second.getByRole("alert");
-    await expect(readError).toContainText("GET-only unsafe discard fault");
+    await expect(readError).toContainText("暂时无法读取项目");
+    const details = second.locator(".project-load-details");
+    await details.getByText("查看读取详情", { exact: true }).click();
+    await expect(details).toContainText(id);
+    await expect(details.locator("pre")).toContainText("GET-only unsafe discard fault");
+    await details.getByText("查看读取详情", { exact: true }).click();
     await expect(readError).toBeInViewport(); await expect(notice).toBeInViewport();
     await second.screenshot({ path: testInfo.outputPath("discard-after.png") });
     await second.unroute(`**/api/v2/projects/${id}`); await second.goto(url);

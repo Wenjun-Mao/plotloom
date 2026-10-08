@@ -282,9 +282,11 @@ describe("App project/editor rehydration", () => {
     await act(async () => root.render(createElement(App)));
     await flush();
 
-    expect(document.body.textContent).toContain("项目未加载");
+    expect(document.body.textContent).toContain("本次读取未完成");
     expect(document.body.textContent).toContain("没有回退到示例");
-    expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("");
+    expect(document.querySelector('[data-testid="workspace-project-unavailable"]')).not.toBeNull();
+    expect(document.querySelector(".editor-host")).toBeNull();
+    expect(document.body.textContent).not.toContain("尚未保存的项目草稿");
   });
 
   it("retains inspectable drafts when project authority is temporarily unavailable", async () => {

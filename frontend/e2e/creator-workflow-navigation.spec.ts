@@ -166,7 +166,12 @@ test("returns from the secondary workbench after an awaited offline project load
 
   await page.getByRole("button", { name: "刷新服务器版本" }).click();
   await expect.poll(() => rejectedLoads).toBe(1);
-  await expect(page.getByRole("alert")).toContainText(`无法加载项目 ${projectId}`);
+  await expect(page.getByRole("alert")).toContainText("暂时无法读取项目");
+  const details = page.locator(".project-load-details");
+  await details.getByText("查看读取详情", { exact: true }).click();
+  await expect(details).toContainText(projectId);
+  await expect(details.locator("pre")).toContainText("Failed to fetch");
+  await details.getByText("查看读取详情", { exact: true }).click();
   await expect(page.getByTestId("workspace-hydrating")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "分镜工作台" })).toBeVisible();
   await expect(page.locator(".project-switcher strong")).toHaveText("F5A workflow-offline-return");

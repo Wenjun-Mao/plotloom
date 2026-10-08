@@ -5,9 +5,10 @@ import { Button, Field } from "./components";
 import { useConfirmation } from "./confirmation";
 import { verifiedVideoGeometry } from "./features/media/verified-video-geometry";
 import { ReviewedVideoPlayer } from "./features/media/ReviewedVideoPlayer";
+import { frozenVideoSnapshot } from "./features/media/frozen-video-snapshot";
 
 function authoredUnits(job: VideoJob): number | null {
-  const binding = job.snapshot.sourceTiming;
+  const binding = frozenVideoSnapshot(job)?.sourceTiming;
   if (!binding || typeof binding !== "object") return null;
   const units = (binding as Record<string, unknown>).durationUnits;
   return typeof units === "number" && Number.isInteger(units) ? units : null;
@@ -47,7 +48,7 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
     setReopenReviewer(""); setReopenReason(""); setBusy(false); setError("");
     return () => { activeRef.current = false; requestRef.current += 1; };
   }, [projectId, job.id]);
-  const available = (job.segments ?? []).filter((segment) => segment.current);
+  const available = (job.segments ?? []).filter((segment) => segment.previewEligible);
   const rejected = job.reviews.at(-1)?.decision === "reject";
   const previouslyRejected = job.reviews.some((review) => review.decision === "reject");
   const explicitlyReopened = job.reviews.at(-1)?.decision === "reopen";
@@ -59,11 +60,12 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
     const frame = requestAnimationFrame(() => document.getElementById(targetId)?.scrollIntoView({ block: "start" }));
     return () => cancelAnimationFrame(frame);
   }, [job.id, chosen?.id]);
-  const timingReady = job.state === "ingested" && job.current && !rejected && sourceUnits != null
+  const timingReady = job.state === "ingested" && sourceUnits != null
     && sourceUnits > 0 && Number.isInteger(requiredFrames)
     && availableFrames >= requiredFrames;
+  const canPrepare = timingReady && job.current && !rejected && !readOnly;
   const prepare = async () => {
-    if (!timingReady || busy) return;
+    if (!canPrepare || busy) return;
     const request = ++requestRef.current;
     setBusy(true); setError("");
     try {
@@ -80,7 +82,7 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
     }
   };
   const select = async () => {
-    if (!chosen || !chosen.current || rejected || busy) return;
+    if (readOnly || !chosen || !chosen.current || rejected || busy) return;
     const request = ++requestRef.current;
     setBusy(true); setError("");
     try {
@@ -131,27 +133,28 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
     }
   };
   return <section id={`video-segment-review-${job.id}`} className="video-segment-review" data-testid={`video-segment-review-${job.id}`}>
-    <strong>调整片段 · 预览 · 用于故事</strong>
+    <strong>{job.current ? "调整片段 · 预览 · 用于故事" : "保留片段 · 预览与记录"}</strong>
     <small>原稿镜头时长：{sourceUnits == null ? "来源不可用" : `${(sourceUnits / 1000).toFixed(3)} 秒`}；后端请求时长：{job.requestedSeconds} 秒；实测原片：{job.observed ? `${job.observed.durationSeconds.toFixed(3)} 秒 / ${availableFrames} 帧` : "尚无输出"}。</small>
-    <small>原片保留不变。选择连续的 {Number.isInteger(requiredFrames) ? requiredFrames : "—"} 帧及同期声音；片段准备后须听看最终片段，再明确选择。此操作不自动确认创作质量。</small>
-    {rejected && <small className="notice warning">此原片已拒绝，片段选择已锁定。可在下方明确重新开放审阅，也可选择另一候选或重新生成；原片与片段证据仍保留。</small>}
+    <small>{job.current ? <>原片保留不变。选择连续的 {Number.isInteger(requiredFrames) ? requiredFrames : "—"} 帧及同期声音；片段准备后须听看最终片段，再明确选择。此操作不自动确认创作质量。</> : "原片和已准备片段仍保留。这里可查看核验通过的片段证据；预览不会恢复制作资格、改变选择或确认创作质量。"}</small>
+    {job.lifecycleStatus === "archived" && <small className="notice">项目已归档。核验通过的保留片段可预览；恢复项目并重新核对后，才能准备、审阅或选用。</small>}
+    {rejected && <small className="notice warning">此原片已拒绝，片段选择已锁定；原片与片段证据仍保留。{job.lifecycleStatus === "active" && job.current ? "可在下方明确重新开放审阅，再核对并选用。" : "恢复项目及当前输入资格后，才能重新开放审阅。"}</small>}
     {previouslyRejected && explicitlyReopened && <small className="notice">此前拒绝记录仍保留；本次已重新开放审阅。重新开放本身不会准备片段或将视频用于故事。</small>}
-    {!timingReady && !rejected && <small className="notice warning">此候选没有足够的已核验画面与声音覆盖当前原稿时长，或原稿时长不在 24 fps 帧网格上；不能准备播放片段。</small>}
+    {!timingReady && <small className="notice warning">此候选没有足够的已核验画面与声音覆盖冻结的原稿时长，或该时长不在 24 fps 帧网格上；不能准备播放片段。</small>}
     {timingReady && <Field label="片段入点（帧）" hint={`出点（不含）：${inFrame + requiredFrames} / 原片 ${availableFrames} 帧。严格按原稿时长选择连续帧，不按浏览器时间自动裁切。`}>
-      <input type="number" min={0} max={maxStart} step={1} value={inFrame} disabled={readOnly || busy}
+      <input type="number" min={0} max={maxStart} step={1} value={inFrame} disabled={!canPrepare || busy}
         onChange={(event) => setInFrame(Math.max(0, Math.min(maxStart, Math.trunc(Number(event.target.value) || 0))))} />
     </Field>}
-    <Button disabled={readOnly || busy || !timingReady} onClick={() => void prepare()}>准备播放片段</Button>
+    <Button disabled={busy || !canPrepare} onClick={() => void prepare()}>准备播放片段</Button>
     <small>从原片截取可预览片段，不会重新生成视频，也不会加入故事。确认前请听看片段首尾。</small>
-    {available.length > 0 && <label>待审片段
-      <select value={chosen?.id ?? ""} disabled={readOnly || busy} onChange={(event) => setProposalId(event.target.value)}>
-        {available.map((item) => <option key={item.id} value={item.id}>{item.inFrame}–{item.outFrame} 帧{item.selected ? " · 已选择" : " · 待审"}</option>)}
+    {available.length > 0 && <label>{job.current ? "待审片段" : "保留片段预览"}
+      <select value={chosen?.id ?? ""} disabled={busy} onChange={(event) => setProposalId(event.target.value)}>
+        {available.map((item) => <option key={item.id} value={item.id}>{item.inFrame}–{item.outFrame} 帧{item.selected ? " · 已选择" : item.current ? " · 待审" : " · 保留证据"}</option>)}
       </select>
     </label>}
     {chosen && <div className="segment-preview-step" id={`video-segment-preview-${job.id}`}>
       <ReviewedVideoPlayer kind="播放片段" style={verifiedVideoGeometry(job.observed)}
         src={plotloomApi.videoSegmentPreviewUrl(projectId, chosen.id)} testId={`video-segment-preview-${chosen.id}`} />
-      <small>{chosen.selected ? "已选择片段 · 正用于故事" : "待审片段 · 尚未用于故事"}；{chosen.inFrame}–{chosen.outFrame} 帧。请检查对白、动作、字幕和首尾声音是否完整。</small>
+      <small>{chosen.selected && chosen.current ? "已选择片段 · 正用于故事" : chosen.current ? "待审片段 · 尚未用于故事" : "保留片段证据 · 不用于当前故事播放"}；{chosen.inFrame}–{chosen.outFrame} 帧。请检查对白、动作、字幕和首尾声音是否完整。</small>
     </div>}
     <details className="review-annotations"><summary>审核记录（可选）</summary>
       <label>审核人（可选）<input value={reviewer} disabled={readOnly || busy || rejected} onChange={(event) => setReviewer(event.target.value)} /></label>

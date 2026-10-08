@@ -7,6 +7,7 @@ export type PageId = "creator" | "source" | "characters" | "brief" | "bible" | "
 export type NavigationTarget = { project: string; stage: PageId; entity: string; run: string; hash: string; history: "push" | "pop"; forceReload?: boolean; home?: boolean };
 export type WorkspaceOperation = { epoch: number; projectId: string; stage: PageId };
 export type ProjectLoadResult = "loaded" | "failed" | "superseded";
+export type ProjectLoadFailure = { projectId: string; kind: "closed" | "missing" | "unavailable" | "continuation-failed"; diagnostic: string };
 export type DraftRecoverySource = "server" | "session" | "reconcile";
 export type DurableDraftStatus = "idle" | "saving" | "saved" | "failed" | "conflict";
 

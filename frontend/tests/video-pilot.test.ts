@@ -6,6 +6,7 @@ import { BranchingVideoPreview, branchingPreviewManifest } from "../src/branchin
 import { VideoSegmentReview } from "../src/video-segment-review";
 import { plotloomApi } from "../src/api";
 import { isCurrentVideoSelection, videoNextAction } from "../src/features/media/video-next-action";
+import { frozenVideoSnapshot } from "../src/features/media/frozen-video-snapshot";
 import type { ManagedAsset, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBackend, VideoJob } from "../src/types";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -23,7 +24,7 @@ function deferred<T>() {
 
 function job(projectId: string, shotId: string): VideoJob {
   return {
-    id: `job-${projectId}`, projectId, state: "prepared", cancelRequestedAt: null,
+    id: `job-${projectId}`, projectId, state: "prepared", lifecycleStatus: "active", inputStatus: "current", cancelRequestedAt: null,
     requestedSeconds: 5, current: true, selected: false, selectionRevision: 0, providerPredictionId: null,
     outputHash: null, observed: null, error: null, reviews: [], snapshot: { shot: { id: shotId, title: `Shot ${shotId}` } },
   };
@@ -37,7 +38,7 @@ function selectedJob(id: string, order: number, overrides: Partial<VideoJob> = {
       inFrame: 0, outFrame: 144, authoredDurationUnits: 6_000,
       sourceProbe: { frameCount: 192, fps: "24/1" },
       derivativeProbe: { frameCount: 144, fps: "24/1" },
-      derivativeHash: `digest-${id}`, current: true, selected: true,
+      derivativeHash: `digest-${id}`, previewEligible: true, current: true, selected: true,
       selectedRevision: 1, createdAt: "2026-09-23T00:00:00Z",
     },
     snapshot: { shot: { id: `shot-${order}`, title: `Shot ${order}`, sceneId: "scene", order } },
@@ -834,7 +835,7 @@ it("autoplays only the next current source, holds the final frame, and reports c
 it("shows the source-bound question only after opening completion and closes on stale or failed ownership", async () => {
   const fixture = branchingFixture();
   fixture.graph.startNodeId = "decision";
-  fixture.selected = fixture.selected.map(item => ({ ...item, snapshot: { ...item.snapshot, sourceTiming: { kind: "f5_bridge" } } }));
+  fixture.selected = fixture.selected.map(item => ({ ...item, snapshot: { ...frozenVideoSnapshot(item), sourceTiming: { kind: "f5_bridge" } } }));
   const sourceChoice = { sectionId: "decision", prompt: "她今晚应该赴约吗？", outcomes: [
     { outcomeId: "edge-2", endingSectionId: "left", label: "left" },
     { outcomeId: "edge-3", endingSectionId: "right", label: "right" },
@@ -848,7 +849,7 @@ it("shows the source-bound question only after opening completion and closes on 
   expect(host.querySelector('[data-testid="branching-choices"]')?.textContent).toContain("left");
   const next = deferred<Awaited<ReturnType<typeof plotloomApi.getProductionBridge>>>();
   read.mockReturnValue(next.promise);
-  fixture.selected = fixture.selected.map(item => ({ ...item, snapshot: { ...item.snapshot, sourceTiming: { kind: "f5_bridge", revision: 2 } } }));
+  fixture.selected = fixture.selected.map(item => ({ ...item, snapshot: { ...frozenVideoSnapshot(item), sourceTiming: { kind: "f5_bridge", revision: 2 } } }));
   await act(async () => renderFixture());
   expect(host.querySelector('[data-testid="branching-choices"]')).toBeNull();
   await act(async () => { next.reject(new Error("source ownership unavailable")); await Promise.resolve(); });

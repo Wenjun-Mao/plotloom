@@ -100,3 +100,18 @@ it("deletion suspension joins an existing receipt but preserves newer typing unt
   deletion.finish(); await expect(store.flush("a", "source")).resolves.toBe(true);
   expect(save).toHaveBeenCalledTimes(2);
 });
+
+it("an archived retained review cannot save or discard after rejected deletion", async () => {
+  const q = createProjectDraftQuiescence(); const store = createReviewDraftStore(q, sessionStorage);
+  store.hydrate("a", [receipt("saved")]); store.update("a", "source", 1, "source:0", "local archived text");
+  const save = vi.spyOn(plotloomApi, "saveAuthoringDraft").mockResolvedValue(receipt("local archived text", 2));
+  const discard = vi.spyOn(plotloomApi, "discardAuthoringDraft");
+  q.setWriteAdmission("a", false);
+  const attempt = q.beginClose("a"); await attempt.suspendWrites(); attempt.finish();
+  await expect(store.flush("a", "source")).resolves.toBe(false);
+  await expect(store.clear("a", "source")).rejects.toThrow("当前项目不允许修改审阅草稿");
+  expect(save).not.toHaveBeenCalled(); expect(discard).not.toHaveBeenCalled();
+  expect(store.get("a", "source")?.payload.text).toBe("local archived text");
+  q.setWriteAdmission("a", true); await expect(store.flush("a", "source")).resolves.toBe(true);
+  expect(save).toHaveBeenCalledOnce(); expect(save).toHaveBeenCalledWith("a", expect.objectContaining({ expectedDraftRevision: 1 }));
+});

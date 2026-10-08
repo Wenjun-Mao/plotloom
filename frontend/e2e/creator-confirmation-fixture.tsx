@@ -10,7 +10,7 @@ import type { VideoJob } from "../src/types";
 import "../src/styles.css";
 
 const candidate = (id: string): VideoJob => ({
-  id, projectId: "disposable", state: "ingested", current: true, selected: false, selectionRevision: 7,
+  id, projectId: "disposable", state: "ingested", lifecycleStatus: "active", inputStatus: "current", current: true, selected: false, selectionRevision: 7,
   requestedSeconds: 5, cancelRequestedAt: null, providerPredictionId: null, outputHash: "fixture", observed: null, error: null, reviews: [], segments: [],
   snapshot: { shot: { id: "shot_01", title: "Disposable test original", sceneId: demoProject.storyboard.shots[0].sceneId } },
 });

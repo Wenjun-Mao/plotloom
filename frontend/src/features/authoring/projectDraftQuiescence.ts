@@ -30,12 +30,16 @@ export interface ProjectDraftQuiescence {
   flush(projectId: string): Promise<boolean>;
   beginClose(projectId: string): ProjectCloseAttempt;
   isClosing(projectId: string): boolean;
+  setWriteAdmission(projectId: string, admitted: boolean): void;
+  canWrite(projectId: string): boolean;
 }
 
 export function createProjectDraftQuiescence(): ProjectDraftQuiescence {
   const writers = new Map<string, Map<string, ProjectDraftWriterOptions & { flush: ProjectDraftFlush }>>();
   const revisions = new Map<string, number>();
   const closing = new Set<string>();
+  const writeAdmission = new Map<string, boolean>();
+  const canWrite = (projectId: string) => writeAdmission.get(projectId) !== false;
   const revise = (projectId: string) =>
     revisions.set(projectId, (revisions.get(projectId) ?? 0) + 1);
 
@@ -63,6 +67,7 @@ export function createProjectDraftQuiescence(): ProjectDraftQuiescence {
     async flush(projectId) {
       const projectWriters = writers.get(projectId);
       if (!projectWriters) return true;
+      if (!canWrite(projectId)) return false;
       const revision = revisions.get(projectId) ?? 0;
       // A writer can unregister while another writer settles. Snapshotting
       // retains the Close boundary for the writers admitted at its start.
@@ -97,6 +102,7 @@ export function createProjectDraftQuiescence(): ProjectDraftQuiescence {
             drainedRevision = revisions.get(projectId) ?? 0;
             return true;
           }
+          if (!canWrite(projectId)) return false;
           const revision = revisions.get(projectId) ?? 0;
           const results = await Promise.all([...projectWriters.values()].map((writer) => writer.flush()));
           if (!results.every(Boolean) || (revisions.get(projectId) ?? 0) !== revision) return false;
@@ -121,5 +127,11 @@ export function createProjectDraftQuiescence(): ProjectDraftQuiescence {
       };
     },
     isClosing: (projectId) => closing.has(projectId),
+    setWriteAdmission(projectId, admitted) {
+      if (canWrite(projectId) === admitted) return;
+      writeAdmission.set(projectId, admitted);
+      revise(projectId);
+    },
+    canWrite,
   };
 }

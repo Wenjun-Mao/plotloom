@@ -34,6 +34,8 @@ import type { ProjectDraftQuiescence } from "../authoring/projectDraftQuiescence
 
 export function ManagedMediaWorkbench({
   projectId,
+  lifecycleRevision,
+  lifecycleStatus,
   storyboard,
   bible,
   graph,
@@ -53,6 +55,8 @@ export function ManagedMediaWorkbench({
   draftChanged = false,
 }: {
   projectId?: string;
+  lifecycleRevision?: number;
+  lifecycleStatus?: "active" | "archived";
   storyboard: Storyboard;
   bible: StoryBible;
   graph: StoryGraph;
@@ -76,14 +80,15 @@ export function ManagedMediaWorkbench({
     workbench, acknowledgeSelectionRevision, imageJobs, characterProposals, imageExchangeConfigured,
     previewId, setPreviewId, refresh, mediaReadPhase,
   } = useMediaWorkbenchData({
-    projectId, approvalId: currentApproval?.id,
+    projectId, lifecycleRevision, approvalId: currentApproval?.id,
     approvalRevision: currentApproval?.subjectRevision, storyboardRevision,
     shotId: selectedShot?.id,
   });
   const mediaOwnerReadOnly = readOnly || mediaReadPhase !== "ready";
-  // Durable media drafts share this read's project/approval context. A failed
-  // refresh must suspend their autosave and quiescence writers too.
-  const mediaDraftsReady = mediaDraftsEnabled && mediaReadPhase === "ready";
+  // Read readiness does not grant archived authoring permission. Keep local
+  // buffers mounted while suspending autosave and quiescence writers.
+  const mediaDraftsReady = mediaDraftsEnabled && lifecycleStatus !== "archived"
+    && mediaReadPhase === "ready";
   const [imageJobTarget, setImageJobTarget] = useState<ImageJobDraftTarget>({
     kind: "original",
   });
@@ -333,7 +338,7 @@ export function ManagedMediaWorkbench({
       )}
       <div className="shot-workbench-focus">
         <div className="shot-workbench-heading"><div><small>{selectedShot ? `当前镜头 · ${selectedShot.durationUnits / 1000} 秒` : "尚未选择镜头"}</small><strong>{selectedShot ? shotLabel(selectedShot) : "请选择镜头"}</strong>{selectedShot && <p>{selectedShot.action}</p>}</div></div>
-        <VideoPilotPanel projectId={projectId} shot={selectedShot} approvalId={review?.activeApproval?.id}
+        <VideoPilotPanel projectId={projectId} lifecycleRevision={lifecycleRevision} lifecycleStatus={lifecycleStatus} shot={selectedShot} approvalId={review?.activeApproval?.id}
           storyboardRevision={storyboardRevision} selectionRevision={workbench.selectionRevision}
           keyframe={selectedBinding ? assetById.get(selectedBinding.assetId) : undefined}
           reviewedBinding={selectedBinding} samePersonReviewId={selectedBinding ? currentReviewByBinding.get(selectedBinding.id)?.id : undefined}

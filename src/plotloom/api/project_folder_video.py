@@ -246,7 +246,8 @@ def register_project_folder_video_routes(
             job = next((item for item in _local_repository(store).list_video_jobs(project_id) if item["id"] == video_job_id), None)
             if job is None:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="video discard candidate not found")
-            shot = job.get("snapshot", {}).get("shot", {})
+            snapshot = job.get("snapshot")
+            shot = snapshot.get("shot") if isinstance(snapshot, dict) else None
             shot_id = shot.get("id") if isinstance(shot, dict) else None
             if not isinstance(shot_id, str):
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="video candidate has no valid frozen shot")

@@ -118,3 +118,56 @@ it("keeps project image history accessible and attributes jobs to their frozen s
   await act(async () => scoped.click());
   expect(host.querySelector('[data-testid="image-job-foreign-job"]')).toBeNull();
 });
+
+it.each(["visual_intent", "image_direction"])("preserves an unsaved %s buffer without archived autosave, then resumes after a restored read", async (scope) => {
+  const shot = demoProject.storyboard.shots[0];
+  const asset: ManagedAsset = {
+    id: "retained-frame", projectId: "project-1", originalHash: "a".repeat(64), displayHash: "b".repeat(64),
+    mimeType: "image/png", byteSize: 1024, width: 832, height: 480, createdAt: "2026-10-02T00:00:00Z", provenance: null,
+  };
+  const workbench: VisualWorkbench = { ...emptyWorkbench, assets: [asset], reviewedKeyframes: [{
+    id: "retained-binding", assetId: asset.id, shotId: shot.id, sceneId: shot.sceneId,
+    selectionRevision: 1, visualIntentId: "retained-intent", visualIntentRevision: 1, compatibilityNote: "matches",
+  }] };
+  let finishRestore!: (value: VisualWorkbench) => void;
+  const restoredRead = new Promise<VisualWorkbench>((resolve) => { finishRestore = resolve; });
+  vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValueOnce(workbench)
+    .mockResolvedValueOnce(workbench).mockReturnValueOnce(restoredRead);
+  vi.mocked(plotloomApi.getImageJobs).mockResolvedValue({ configured: false, jobs: [] });
+  const save = vi.spyOn(plotloomApi, "saveAuthoringDraft").mockResolvedValue({ draftRevision: 1 } as never);
+  const discard = vi.spyOn(plotloomApi, "discardAuthoringDraft");
+  const render = async (lifecycleRevision: number, lifecycleStatus: "active" | "archived") => {
+    await act(async () => root.render(createElement(ManagedMediaWorkbench, {
+      projectId: "project-1", lifecycleRevision, lifecycleStatus, storyboard: demoProject.storyboard,
+      bible: demoProject.storyBible, graph: demoProject.storyGraph, sceneBeats: demoProject.sceneBeats,
+      selectedShot: shot, storyboardRevision: 1, storyBibleRevision: 1, mediaDraftsEnabled: true,
+      review: null, readOnly: lifecycleStatus === "archived",
+    })));
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+  };
+  const field = () => host.querySelector<HTMLTextAreaElement>(scope === "visual_intent"
+    ? '.intent-editor .field-grid textarea' : '[data-testid="image-job-presentation-change"]')!;
+  const edit = async (element: HTMLTextAreaElement, value: string) => {
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(element, value);
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  };
+  await render(1, "active");
+  await edit(field(), "Unsaved creator text");
+  if (scope === "visual_intent") await edit(host.querySelector('[data-testid="visual-intent-source-refs"]')!, "source:shot");
+  const originalField = field();
+  await render(2, "archived");
+  await act(async () => vi.advanceTimersByTimeAsync(1_000));
+  expect(field()).toBe(originalField); expect(field().value).toBe("Unsaved creator text");
+  expect(field().disabled).toBe(true); expect(save).not.toHaveBeenCalled(); expect(discard).not.toHaveBeenCalled();
+  await render(3, "active");
+  await act(async () => vi.advanceTimersByTimeAsync(1_000));
+  expect(save).not.toHaveBeenCalled(); expect(field().value).toBe("Unsaved creator text");
+  await act(async () => finishRestore(workbench));
+  await act(async () => vi.advanceTimersByTimeAsync(1_000));
+  expect(field()).toBe(originalField); expect(field().disabled).toBe(false);
+  expect(save).toHaveBeenCalledOnce();
+  expect(save).toHaveBeenCalledWith("project-1", expect.objectContaining({ editorScope: scope, expectedDraftRevision: 0 }));
+  expect(discard).not.toHaveBeenCalled();
+});

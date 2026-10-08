@@ -5,11 +5,12 @@ import { Button } from "./components";
 import { useBridgeChoiceRead } from "./useBridgeChoiceRead";
 import { shotLabel, storyShotLabel } from "./shot-label";
 import { nodeFootageGaps } from "./node-footage";
+import { frozenVideoSnapshot } from "./features/media/frozen-video-snapshot";
 
 type FrozenShot = { id?: string; title?: string; action?: string; sceneId?: string };
 
 function frozenShot(job: VideoJob): FrozenShot {
-  const candidate = job.snapshot.shot;
+  const candidate = frozenVideoSnapshot(job)?.shot;
   return candidate && typeof candidate === "object" ? candidate as FrozenShot : {};
 }
 
@@ -94,8 +95,8 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
     [projectId, jobs, storyboard, sceneBeats, graph],
   );
   const playbackJobs = [...manifest.nodes.values()].flatMap(node => node.jobs);
-  const bridgeOwned = playbackJobs.some(job => (job.snapshot.sourceTiming as { kind?: string } | undefined)?.kind === "f5_bridge");
-  const choiceIdentity = JSON.stringify({ projectId, bridgeOwned, media: playbackJobs.map(job => [job.id, job.snapshot.sourceTiming]), scope: manifest.identity, edges: graph.edges });
+  const bridgeOwned = playbackJobs.some(job => (frozenVideoSnapshot(job)?.sourceTiming as { kind?: string } | undefined)?.kind === "f5_bridge");
+  const choiceIdentity = JSON.stringify({ projectId, bridgeOwned, media: playbackJobs.map(job => [job.id, frozenVideoSnapshot(job)?.sourceTiming]), scope: manifest.identity, edges: graph.edges });
   const player = useRef<HTMLVideoElement>(null);
   const transitionRef = useRef("");
   const handledMediaRef = useRef("");

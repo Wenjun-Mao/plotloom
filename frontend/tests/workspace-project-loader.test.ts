@@ -75,6 +75,57 @@ it.each([404, 503])("reports a current HTTP%s read as failed, not loaded", async
     vi.mocked(plotloomApi.getProject).mockRejectedValue(new ApiError("authority failure", status));
     await expect(state.loader.loadProject("a")).resolves.toBe("failed");
     expect(state.session.acceptProjectLoad).not.toHaveBeenCalled(); expect(state.session.rejectProjectLoad).toHaveBeenCalledOnce();
+    expect(state.session.rejectProjectLoad).toHaveBeenCalledWith(undefined, {
+      projectId: "a", kind: status === 404 ? "missing" : "unavailable", diagnostic: "authority failure",
+    });
+  } finally { await state.unmount(); }
+});
+
+it("distinguishes a current Resume503 after admitted reads without discarding their snapshot", async () => {
+  const state = await harness();
+  try {
+    vi.mocked(plotloomApi.getProjectRuns).mockResolvedValue({runs: [{...demoRun, projectId: "a", status: "running",
+      providerSnapshot: {...demoRun.providerSnapshot, textAuthMode: "none"}}]});
+    vi.spyOn(plotloomApi, "getRunProgress").mockResolvedValue({} as RunProgress);
+    vi.spyOn(plotloomApi, "resumeRun").mockRejectedValue(new ApiError("resume transport unavailable", 503));
+    await act(async () => {await expect(state.loader.loadProject("a")).resolves.toBe("loaded");});
+    expect(state.session.acceptProjectLoad).toHaveBeenCalledOnce();
+    expect(state.session.rejectProjectLoad).toHaveBeenCalledWith(undefined, {
+      projectId: "a", kind: "continuation-failed", diagnostic: "resume transport unavailable",
+    });
+    expect(state.reportMessage).toHaveBeenLastCalledWith(expect.stringContaining("项目已读入，当前内容仍保留"));
+    expect(state.reportMessage.mock.lastCall?.[0]).not.toContain("读取未完成");
+    expect(state.observeRun).not.toHaveBeenCalled();
+  } finally {await state.unmount();}
+});
+
+it.each(["closed", "aggregate-404", "network"])("classifies %s without inventing missing-project authority", async kind => {
+  const state = await harness();
+  try {
+    const error = kind === "closed" ? new ApiError("project is closed", 409, {code: "project_closed"})
+      : kind === "aggregate-404" ? new ApiError("stages not found", 404) : new Error("offline");
+    if (kind === "aggregate-404") vi.mocked(plotloomApi.getStages).mockRejectedValue(error);
+    else vi.mocked(plotloomApi.getProject).mockRejectedValue(error);
+    await expect(state.loader.loadProject("a")).resolves.toBe("failed");
+    expect(state.session.rejectProjectLoad).toHaveBeenCalledWith(undefined, expect.objectContaining({
+      projectId: "a", kind: kind === "closed" ? "closed" : "unavailable",
+    }));
+    expect(state.session.acceptProjectLoad).not.toHaveBeenCalled();
+    expect(state.observeRun).not.toHaveBeenCalled();
+  } finally { await state.unmount(); }
+});
+
+it("does not publish a late closed rejection after navigation", async () => {
+  const state = await harness();
+  let reject!: (error: Error) => void;
+  try {
+    vi.mocked(plotloomApi.getProject).mockReturnValue(new Promise((_, fail) => { reject = fail; }));
+    const pending = state.loader.loadProject("a");
+    state.navigate();
+    reject(new ApiError("project is closed", 409, {code: "project_closed"}));
+    await expect(pending).resolves.toBe("superseded");
+    expect(state.session.rejectProjectLoad).not.toHaveBeenCalled();
+    expect(state.reportMessage).not.toHaveBeenCalled();
   } finally { await state.unmount(); }
 });
 

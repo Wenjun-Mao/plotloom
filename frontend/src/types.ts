@@ -371,6 +371,8 @@ export interface VideoJob {
   state: "prepared" | "dispatching" | "submitted" | "outcome_unknown" | "retrieve_needed" | "ingested" | "discard_pending" | "discarded" | "cancelled" | "failed";
   cancelRequestedAt: string | null;
   requestedSeconds: number;
+  lifecycleStatus: "active" | "archived";
+  inputStatus: "current" | "stale" | "invalid";
   current: boolean;
   selected: boolean;
   selectionRevision: number;
@@ -384,7 +386,7 @@ export interface VideoJob {
   segments?: VideoSegment[];
   playbackSegment?: VideoSegment | null;
   error: string | null;
-  snapshot: Record<string, unknown>;
+  snapshot: unknown;
 }
 
 export interface VideoSegment {
@@ -397,6 +399,7 @@ export interface VideoSegment {
   sourceProbe: { frameCount: number; fps: string; [key: string]: unknown };
   derivativeProbe: { frameCount: number; fps: string; [key: string]: unknown };
   derivativeHash: string;
+  previewEligible: boolean;
   current: boolean;
   selected: boolean;
   selectedRevision: number | null;

@@ -1165,54 +1165,6 @@ def test_explicit_h3_gateway_crop_freezes_original_bytes_across_restart_and_tamp
     assert len(provider.submits) == 1
 
 
-def test_historical_h3_letterbox_snapshot_remains_restart_dispatchable(
-    tmp_path: Path,
-) -> None:
-    provider = FakeH3()
-    storage, client = _fixture_app(tmp_path, provider)
-    store = storage.projects.create(FIXED_CHINESE_BRIEF)
-    project_id = store.manifest.project_id
-    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
-    store.close()
-    approval, context = _approved_keyframe(
-        client, storage, project_id, keyframe_bytes=_png(941, 1672)
-    )
-    body = {
-        "approvalId": approval["id"], "shotId": context["shot"].id,
-        "storyboardRevision": context["revision"],
-        "expectedSelectionRevision": context["selection"]["selectionRevision"],
-        "idempotencyKey": "historical-letterbox", "aspectPolicy": "contain_pad",
-        "allowLetterbox": True, "seed": 43,
-    }
-    prepared = client.post(f"/api/v2/projects/{project_id}/video-jobs", json=_reviewed_video_body(client, project_id, body))
-    assert prepared.status_code == 201, prepared.text
-    job = prepared.json()
-    historical = job["snapshot"]
-    # V4 snapshots predate the additive crop consent field. Preserve their
-    # exact request projection and its recalculated stored integrity hashes.
-    historical["request"].pop("allowCenterCrop")
-    home = storage.projects.open(project_id)
-    try:
-        database = home.database_path
-    finally:
-        home.close()
-    with sqlite3.connect(database) as connection:
-        connection.execute(
-            "UPDATE v2_video_jobs SET snapshot = ?, snapshot_hash = ?, request_hash = ? WHERE id = ?",
-            (
-                json.dumps(historical), stable_hash(historical),
-                stable_hash({"snapshot": historical, "idempotencyKey": body["idempotencyKey"]}), job["id"],
-            ),
-        )
-    restarted_client = TestClient(create_project_folder_authoring_app(
-        storage, video_provider=provider, video_adapter=MiniMaxH3GatewayAdapter(),
-        video_probe=lambda _content: ObservedVideo(5.167, 576, 1024, "h264", "aac", frame_rate=24, frame_count=124),
-    ))
-    restored = restarted_client.get(f"/api/v2/projects/{project_id}/video-jobs").json()["jobs"]
-    assert restored[0]["current"] is True
-    assert restarted_client.post(f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/submit").status_code == 200
-    assert provider.submits[0]["aspectPolicy"] == "contain_pad"
-
 
 def test_application_reservation_is_idempotent_and_enforces_cross_project_cap(
     tmp_path: Path,

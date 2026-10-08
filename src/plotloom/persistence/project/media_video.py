@@ -107,7 +107,7 @@ class VideoJobPersistence(VideoJobPreparation):
                 self._accounting.record_dispatch(
                     session, video_job_id=job.id, seconds=job.requested_seconds, now=now
                 )
-            return self._currentness.video_job_dict(job, current=True)
+            return self._currentness.video_job_dict(session, job, current=True)
 
     def record_video_submission(self, project_id: str, video_job_id: str, prediction_id: str) -> dict[str, Any]:
         with self._access.leases.lifecycle_write() as session:
@@ -117,7 +117,7 @@ class VideoJobPersistence(VideoJobPreparation):
             if job.state != "dispatching" or job.provider_prediction_id is not None:
                 raise InvalidTransitionError("video submission cannot be recorded from this state")
             job.provider_prediction_id, job.state, job.updated_at = prediction_id, "submitted", utc_now()
-            return self._currentness.video_job_dict(job, current=self._currentness.video_job_current_in_session(session, job))
+            return self._currentness.video_job_dict(session, job)
 
     def record_video_outcome_unknown(self, project_id: str, video_job_id: str, message: str) -> dict[str, Any]:
         with self._access.leases.lifecycle_write() as session:
@@ -127,7 +127,7 @@ class VideoJobPersistence(VideoJobPreparation):
             if job.state not in {"dispatching", "submitted"}:
                 raise InvalidTransitionError("only a dispatched video job can have unknown outcome")
             job.state, job.error, job.updated_at = "outcome_unknown", message[:2_000], utc_now()
-            return self._currentness.video_job_dict(job, current=False)
+            return self._currentness.video_job_dict(session, job, current=False)
 
     def record_video_output(self, project_id: str, video_job_id: str, *, uri: str, digest: str, observed: dict[str, Any]) -> dict[str, Any]:
         with self._access.leases.lifecycle_write() as session:
@@ -137,7 +137,7 @@ class VideoJobPersistence(VideoJobPreparation):
             if job.state not in {"submitted", "retrieve_needed"}:
                 raise InvalidTransitionError("video output can only be ingested from a known submitted attempt")
             job.output_uri, job.output_hash, job.observed, job.state, job.updated_at = uri, digest, observed, "ingested", utc_now()
-            return self._currentness.video_job_dict(job, current=self._currentness.video_job_current_in_session(session, job))
+            return self._currentness.video_job_dict(session, job)
 
     def record_video_retrieve_needed(self, project_id: str, video_job_id: str, message: str) -> dict[str, Any]:
         with self._access.leases.lifecycle_write() as session:
@@ -147,7 +147,7 @@ class VideoJobPersistence(VideoJobPreparation):
             if job.state not in {"submitted", "retrieve_needed"}:
                 raise InvalidTransitionError("only a known submitted video can await retrieval")
             job.state, job.error, job.updated_at = "retrieve_needed", message[:2_000], utc_now()
-            return self._currentness.video_job_dict(job, current=self._currentness.video_job_current_in_session(session, job))
+            return self._currentness.video_job_dict(session, job)
 
     def record_video_remote_failed(self, project_id: str, video_job_id: str, code: str) -> dict[str, Any]:
         with self._access.leases.lifecycle_write() as session:
@@ -157,7 +157,7 @@ class VideoJobPersistence(VideoJobPreparation):
             if job.state not in {"submitted", "retrieve_needed"}:
                 raise InvalidTransitionError("only a known submitted video can record remote failure")
             job.state, job.error, job.updated_at = "failed", code, utc_now()
-            return self._currentness.video_job_dict(job, current=False)
+            return self._currentness.video_job_dict(session, job, current=False)
 
     def recover_video_dispatches(self) -> list[str]:
         """A restart never replays a POST whose durable claim was entered."""
@@ -190,7 +190,7 @@ class VideoJobPersistence(VideoJobPreparation):
                 # remote state. Keep the known task state recoverable.
                 job.cancel_requested_at = utc_now()
             job.updated_at = utc_now()
-            return self._currentness.video_job_dict(job, current=False)
+            return self._currentness.video_job_dict(session, job, current=False)
 
     def list_video_jobs(self, project_id: str) -> list[dict[str, Any]]:
         with self._access.leases.read() as session:
@@ -217,7 +217,8 @@ class VideoJobPersistence(VideoJobPreparation):
             result = []
             for row in rows:
                 job = self._video_job_projection(session, row, selections)
-                selection = selections.get(self._shot_id(row))
+                shot = row.snapshot.get("shot") if isinstance(row.snapshot, dict) else None
+                selection = selections.get(shot.get("id")) if isinstance(shot, dict) and isinstance(shot.get("id"), str) else None
                 proposals = self._segments.project_segments(
                     session, row, segments.get(row.id, []), selection,
                     job_current=job["current"],
@@ -301,9 +302,10 @@ class VideoJobPersistence(VideoJobPreparation):
         return shot["id"]
 
     def _video_job_projection(self, session: Session, row: VideoJobRow, selections: dict[str, VideoCandidateSelectionRow]) -> dict[str, Any]:
-        current = self._currentness.video_job_current_in_session(session, row)
-        selection = selections.get(self._shot_id(row))
-        return self._currentness.video_job_dict(
-            row, current=current,
-            selected=bool(selection and selection.selected_video_job_id == row.id and current),
-        ) | {"selectionRevision": selection.revision if selection is not None else 0}
+        job = self._currentness.video_job_dict(session, row)
+        shot = row.snapshot.get("shot") if isinstance(row.snapshot, dict) else None
+        selection = selections.get(shot.get("id")) if isinstance(shot, dict) and isinstance(shot.get("id"), str) else None
+        return job | {
+            "selected": bool(selection and selection.selected_video_job_id == row.id and job["current"]),
+            "selectionRevision": selection.revision if selection is not None else 0,
+        }

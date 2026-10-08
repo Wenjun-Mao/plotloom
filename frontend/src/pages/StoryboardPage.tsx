@@ -52,7 +52,7 @@ import {
 } from "../structured-fields";
 import { Badge, Button, EmptyState, Field, PageHeader, Panel } from "../components";
 import { useConfirmation } from "../confirmation";
-import { ManagedMediaWorkbench } from "../managed-media";
+import { ManagedMediaWorkbench } from "../features/media/ManagedMediaWorkbench";
 import { GateStatusBadge, ShotDeletionConfirmation, ShotMigrationConfirmation } from "./storyboard/StoryboardFeedback";
 
 const shotSizes: Array<{ value: Shot["shotSize"]; label: string }> = [
@@ -104,6 +104,8 @@ export function StoryboardPage({
   onSave,
   onDraftChange,
   projectId,
+  lifecycleRevision,
+  lifecycleStatus,
   revision,
   storyBibleRevision,
   contentHash,
@@ -130,6 +132,8 @@ export function StoryboardPage({
   onSave: (storyboard: Storyboard) => Promise<void>;
   onDraftChange?: (storyboard: Storyboard) => void;
   projectId?: string;
+  lifecycleRevision?: number;
+  lifecycleStatus?: "active" | "archived";
   revision?: number;
   storyBibleRevision?: number;
   contentHash?: string | null;
@@ -155,6 +159,13 @@ export function StoryboardPage({
   const enteredUnapprovedEditing = useRef(false);
   const reviewProjectId = useRef(projectId);
   const issueSignature = JSON.stringify(issues);
+  const actionsLocked = saving || readOnly;
+
+  useEffect(() => {
+    if (!actionsLocked) return;
+    setPendingSceneMigration(null);
+    setPendingShotDeletion(null);
+  }, [actionsLocked]);
 
   useEffect(() => {
     if (reviewProjectId.current !== projectId) {
@@ -175,6 +186,7 @@ export function StoryboardPage({
   }, [projectId, Boolean(review), review?.activeApproval?.id, review?.gateEvaluation?.gateSetVersion]);
 
   const update = (next: Storyboard | ((current: Storyboard) => Storyboard)) => {
+    if (actionsLocked) return;
     setStoryboard((current) => {
       const updated = typeof next === "function" ? next(current) : next;
       onDraftChange?.(updated);
@@ -290,7 +302,7 @@ export function StoryboardPage({
     selectShot(shot.id);
   };
   const requestShotSceneMigration = (sceneId: string) => {
-    if (!selectedShot || selectedShot.sceneId === sceneId) return;
+    if (actionsLocked || !selectedShot || selectedShot.sceneId === sceneId) return;
     try {
       setPendingSceneMigration(shotSceneMigrationImpact(storyboard, sceneBeats, selectedShot.id, sceneId));
       setLocalError("");
@@ -299,11 +311,11 @@ export function StoryboardPage({
     }
   };
   const deleteSelectedShot = () => {
-    if (!selectedShot) return;
+    if (actionsLocked || !selectedShot) return;
     setPendingShotDeletion(shotRemovalImpact(storyboard, selectedShot.id));
   };
   const confirmShotDeletion = () => {
-    if (!pendingShotDeletion) return;
+    if (actionsLocked || !pendingShotDeletion) return;
     const removed = storyboard.shots.find((shot) => shot.id === pendingShotDeletion.shotId);
     if (!removed) { setPendingShotDeletion(null); return; }
     const next = removeShot(storyboard, removed.id);
@@ -337,7 +349,7 @@ export function StoryboardPage({
     }
   };
   const decide = async (decision: ApprovalDecision["decision"]) => {
-    if (!projectId || !contentHash || revision === undefined || !review?.gateEvaluation || !reviewer.trim()) return;
+    if (actionsLocked || !projectId || !contentHash || revision === undefined || !review?.gateEvaluation || !reviewer.trim()) return;
     setReviewError("");
     try {
       await plotloomApi.decideStoryboardApproval(projectId, {
@@ -371,7 +383,6 @@ export function StoryboardPage({
       onNavigateIssue?.("beats", `cue:${identity}`);
     }
   };
-  const actionsLocked = saving || readOnly;
   const { requestConfirmation, confirmation } = useConfirmation(JSON.stringify([projectId, revision, storyboard, selectedShot?.id]), actionsLocked);
 
   const requiredGatesPass = Boolean(review?.gateEvaluation?.results.every((gate) => !gate.required || gate.status === "pass"));
@@ -385,7 +396,7 @@ export function StoryboardPage({
     {stale && <div className="notice warning"><strong>分镜已过期</strong><span>前面的设定发生变化。现有手工镜头仍保留；请审阅差异后从合适阶段重建。</span></div>}
     <div className="notice"><strong>媒体工作流</strong><span>选择镜头后，在下方查看原片、调整并预览片段，再明确决定是否用于故事。关键帧、参考素材与准备步骤可展开；未配置视频后端时仍可查看已有候选。</span></div>
     {unresolvedEntity && <div className="notice warning" role="alert" data-testid="unknown-storyboard-entity">请求的镜头不属于当前分镜；未打开其他镜头。请从镜头列表重新选择。</div>}
-    <ManagedMediaWorkbench projectId={projectId} storyboard={storyboard} bible={bible} graph={graph} sceneBeats={sceneBeats} routeId={route?.id} storyboardRevision={revision} storyBibleRevision={storyBibleRevision} mediaDraftsEnabled={mediaDraftsEnabled} draftQuiescence={mediaDraftQuiescence} selectedShot={selectedShot} review={review} draftChanged={JSON.stringify(storyboard) !== JSON.stringify(value)} readOnly={actionsLocked} onSelectShot={selectShot} onEditShot={revealStoryboardEditor} onReturnToBridge={onReturnToBridge} onReview={() => {
+    <ManagedMediaWorkbench projectId={projectId} lifecycleRevision={lifecycleRevision} lifecycleStatus={lifecycleStatus} storyboard={storyboard} bible={bible} graph={graph} sceneBeats={sceneBeats} routeId={route?.id} storyboardRevision={revision} storyBibleRevision={storyBibleRevision} mediaDraftsEnabled={mediaDraftsEnabled} draftQuiescence={mediaDraftQuiescence} selectedShot={selectedShot} review={review} draftChanged={JSON.stringify(storyboard) !== JSON.stringify(value)} readOnly={actionsLocked} onSelectShot={selectShot} onEditShot={revealStoryboardEditor} onReturnToBridge={onReturnToBridge} onReview={() => {
       if (storyboardDetails.current) storyboardDetails.current.open = true;
       if (approvalActions.current) approvalActions.current.open = true;
       requestAnimationFrame(() => {
@@ -396,11 +407,11 @@ export function StoryboardPage({
     }} />
     {(issues.length > 0 || localError) && <Panel className="issue-summary"><strong>需要修正</strong>{localError && <p role="alert">{localError}</p>}{issues.map((issue) => <button key={`${issue.code}:${issue.path}`} onClick={() => focusIssue(issue)}>{issue.code} · {issue.path}<small>{issue.message}</small></button>)}</Panel>}
 
-    {pendingSceneMigration && <ShotMigrationConfirmation impact={pendingSceneMigration} onCancel={() => setPendingSceneMigration(null)} onConfirm={() => { const migration = pendingSceneMigration; update((current) => migrateShotToScene(current, migration.shotId, migration.toSceneId)); setPendingSceneMigration(null); }} />}
-    {pendingShotDeletion && <ShotDeletionConfirmation impact={pendingShotDeletion} title={storyboard.shots.find((shot) => shot.id === pendingShotDeletion.shotId)?.title ?? pendingShotDeletion.shotId} onCancel={() => setPendingShotDeletion(null)} onConfirm={confirmShotDeletion} />}
+    {!actionsLocked && pendingSceneMigration && <ShotMigrationConfirmation impact={pendingSceneMigration} onCancel={() => setPendingSceneMigration(null)} onConfirm={() => { const migration = pendingSceneMigration; update((current) => migrateShotToScene(current, migration.shotId, migration.toSceneId)); setPendingSceneMigration(null); }} />}
+    {!actionsLocked && pendingShotDeletion && <ShotDeletionConfirmation impact={pendingShotDeletion} title={storyboard.shots.find((shot) => shot.id === pendingShotDeletion.shotId)?.title ?? pendingShotDeletion.shotId} onCancel={() => setPendingShotDeletion(null)} onConfirm={confirmShotDeletion} />}
     <details className="storyboard-editor-disclosure" id="storyboard-structure" ref={storyboardDetails}>
       <summary>分镜结构与详细编辑 · {storyboard.shots.length} 个镜头</summary>
-    <div className="storyboard-layout">
+    <fieldset className="storyboard-layout" disabled={actionsLocked}>
       <div className="shot-groups">
         {!visible.length && <EmptyState title="这条路径没有分镜">切换到“全部场景”，或先准备分镜。</EmptyState>}
         {visible.map((group, groupIndex) => <section className="shot-group" key={group.sceneId}>
@@ -473,7 +484,7 @@ export function StoryboardPage({
         <details open={coverage.some((item) => item.primaryShotIds.length !== 1)}><summary>节拍覆盖详情 · {coverage.length} 项</summary><div className="coverage-summary">{coverage.map((item) => <div key={item.beatId}><span>{item.beatId}</span><Badge tone={item.primaryShotIds.length === 1 ? "ok" : "danger"}>主要覆盖 {item.primaryShotIds.length}</Badge><small>辅助覆盖 {item.supportingShotIds.length}</small></div>)}</div></details>
         {review?.gateEvaluation && <details open={!requiredGatesPass}><summary>质量检查详情 · {review.gateEvaluation.results.length} 项 · {requiredGatesPass ? "必需检查已通过" : "必需检查未通过"}</summary><div className="gate-list">{review.gateEvaluation.results.map((gate) => <button key={gate.id} className={`gate-row ${gate.status}`} onClick={() => navigateGate(gate.entityPath)}><GateStatusBadge status={gate.status} /><span><strong>{gate.gateId}</strong><small>{gate.reason}{gate.entityPath.length ? ` · ${gate.entityPath.join(" › ")}` : ""}</small></span></button>)}</div></details>}
       </Panel>
-    </div>
+    </fieldset>
     </details>
   </div>;
 }

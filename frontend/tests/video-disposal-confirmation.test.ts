@@ -12,7 +12,7 @@ let host: HTMLDivElement;
 const descriptors = ["showModal", "close"].map(name => Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, name));
 const shot = demoProject.storyboard.shots[0];
 const candidate = (id: string, segments: VideoSegment[] = []): VideoJob => ({
-  id, projectId: "project", state: "ingested", current: true, selected: false, selectionRevision: 7,
+  id, projectId: "project", state: "ingested", lifecycleStatus: "active", inputStatus: "current", current: true, selected: false, selectionRevision: 7,
   requestedSeconds: 5, cancelRequestedAt: null, providerPredictionId: null, outputHash: "fixture",
   observed: null, error: null, reviews: [], segments, snapshot: { shot },
 });
@@ -20,7 +20,7 @@ const retainedSegment: VideoSegment = {
   id: "retained-segment", videoJobId: "protected", shotId: shot.id,
   inFrame: 0, outFrame: 144, authoredDurationUnits: 6000,
   sourceProbe: { frameCount: 192, fps: "24/1" }, derivativeProbe: { frameCount: 144, fps: "24/1" }, derivativeHash: "fixture", current: false,
-  selected: false, selectedRevision: null, createdAt: "2026-10-02T00:00:00Z",
+  previewEligible: true, selected: false, selectedRevision: null, createdAt: "2026-10-02T00:00:00Z",
 };
 const dialog = () => document.querySelector<HTMLDialogElement>("dialog")!;
 const button = (text: string) => [...host.querySelectorAll<HTMLButtonElement>("button")].find(item => item.textContent === text)!;

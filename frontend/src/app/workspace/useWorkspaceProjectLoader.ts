@@ -4,8 +4,9 @@ import { findProjectDrafts } from "../../draft-registry";
 import { providerSessionKeys } from "../../session-key";
 import { frozenRunCredentialMessage } from "./frozenRunGuidance";
 import type { AuthoringDraft, PipelineRun } from "../../types";
-import { messageFrom, type ProjectLoadResult } from "./contracts";
+import { messageFrom, type ProjectLoadFailure, type ProjectLoadResult } from "./contracts";
 import type { WorkspaceSession } from "./useWorkspaceSession";
+import { projectLoadFailure, projectLoadFailureMessage } from "./projectAvailability";
 
 type ProfileCatalog = { profiles: Array<{ profileId: string; serverKeyAvailable: boolean }> };
 type ProjectLoaderSession = Pick<WorkspaceSession,
@@ -44,7 +45,11 @@ export function useWorkspaceProjectLoader(input: ProjectLoaderInput) {
   useEffect(() => latest.current.session.registerNavigationCleanup(abort), [abort, input.session.registerNavigationCleanup]);
   useEffect(() => abort, [abort]);
 
-  const loadProject = useCallback(async (projectId: string, expectedEpoch?: number): Promise<ProjectLoadResult> => {
+  const loadProject = useCallback(async (
+    projectId: string,
+    expectedEpoch?: number,
+    continuation: "resume-active-run" | "read-only" = "resume-active-run",
+  ): Promise<ProjectLoadResult> => {
     const current = latest.current;
     const operation = current.session.capture();
     if (!projectId || operation.projectId !== projectId || (expectedEpoch !== undefined && expectedEpoch !== operation.epoch)) return "superseded";
@@ -82,19 +87,21 @@ export function useWorkspaceProjectLoader(input: ProjectLoaderInput) {
       const selectedRun = selectedRunId ? runs.runs.find((item) => item.id === selectedRunId) : runs.runs[0];
       const missingSelectedRun = Boolean(selectedRunId && !selectedRun);
       const progress = selectedRun ? await plotloomApi.getRunProgress(selectedRun.id) : undefined;
-      const resumeBlocked = await blockedAutomaticResume(selectedRun, current, request.signal);
+      const resumeBlocked = continuation === "resume-active-run"
+        ? await blockedAutomaticResume(selectedRun, current, request.signal) : "";
 
       if (!ownsRead()) return "superseded";
       current.session.acceptProjectLoad({ project, stages: stages.stages, run: selectedRun, progress, review, media: media.tasks, drafts });
       current.session.clearCanonicalRefresh(projectId);
       current.reportMessage(missingSelectedRun ? `运行 ${selectedRunId} 不属于当前项目或已不存在。` : resumeBlocked);
-      resumeActiveRun(selectedRun, project.id, resumeBlocked, isCurrent, current);
+      if (continuation === "resume-active-run") resumeActiveRun(selectedRun, project.id, resumeBlocked, isCurrent, current);
       return "loaded";
     } catch (error) {
       if (!ownsRead() || isAbortError(error)) return "superseded";
       const stale = findProjectDrafts(projectId)[0];
-      current.session.rejectProjectLoad(stale ? { record: stale, reason: missingAuthority ? "missing" : "temporary" } : undefined);
-      current.reportMessage(`无法加载项目 ${projectId}：${messageFrom(error)}。项目未加载；没有回退到示例。`);
+      const failure = projectLoadFailure(error, projectId, missingAuthority);
+      current.session.rejectProjectLoad(stale ? { record: stale, reason: missingAuthority ? "missing" : "temporary" } : undefined, failure);
+      current.reportMessage(projectLoadFailureMessage(failure));
       return "failed";
     } finally {
       if (controller.current === request) controller.current = undefined;
@@ -159,8 +166,9 @@ function resumeActiveRun(
         input.observeRun(run.id, projectId);
         return;
       }
-      input.session.rejectProjectLoad(undefined);
-      input.reportMessage(`无法加载项目 ${projectId}：${messageFrom(error)}。项目未加载；没有回退到示例。`);
+      const failure: ProjectLoadFailure = {projectId, kind: "continuation-failed", diagnostic: messageFrom(error)};
+      input.session.rejectProjectLoad(undefined, failure);
+      input.reportMessage(projectLoadFailureMessage(failure));
     });
 }
 

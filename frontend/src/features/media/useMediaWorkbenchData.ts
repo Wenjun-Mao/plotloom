@@ -18,15 +18,16 @@ function previewKey(projectId: string): string {
 
 /** A read is current only after all existing media owners finish for this exact context. */
 export function useMediaWorkbenchData({
-  projectId, approvalId, approvalRevision, storyboardRevision, shotId,
+  projectId, lifecycleRevision, approvalId, approvalRevision, storyboardRevision, shotId,
 }: {
   projectId?: string;
+  lifecycleRevision?: number;
   approvalId?: string;
   approvalRevision?: number;
   storyboardRevision?: number;
   shotId?: string;
 }) {
-  const contextKey = JSON.stringify([projectId, approvalId, approvalRevision, storyboardRevision, shotId]);
+  const contextKey = JSON.stringify([projectId, lifecycleRevision, approvalId, approvalRevision, storyboardRevision, shotId]);
   const activeContext = useRef(contextKey);
   activeContext.current = contextKey;
   const selectionOwner = useRef({ projectId, revision: 0 });

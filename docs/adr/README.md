@@ -65,3 +65,6 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0133 Owned project-read acknowledgements](0133-owned-project-read-acknowledgement.md)
 - [0134 Typed Cast/Art currentness diagnostics](0134-typed-review-context-diagnostics.md)
 - [0135 End-frame read qualification](0135-end-frame-read-qualification.md)
+- [0136 Route-owned project load availability](0136-project-load-availability.md)
+- [0137 Retained video evidence and production admission](0137-retained-video-evidence-admission.md)
+- [0138 One current story with explicit production rebuild](0138-one-current-story-explicit-rebuild.md)
