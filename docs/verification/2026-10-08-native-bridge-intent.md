@@ -38,8 +38,16 @@ an initial directory-as-file test error was corrected before the passing rerun.
 - Two deterministic builds matched before the subsequent page-neutral copy edit.
 - Independent review found no other blocking issue in currentness, review,
   late delivery, report binding or transport isolation. This is not a native send.
-- Full backend and final browser qualification are still running; their outcomes
-  must be recorded before calling this candidate broadly qualified.
+- Final unfiltered browser qualification on `0ce6806` passed all 240 tests in
+  6.7 minutes. The final frontend suite passed all 819 tests after the copy edit.
+- The initial full backend run passed 1,363 tests and failed one strict API
+  response assertion that omitted the two newly implemented native capability
+  fields. That assertion now checks both fields explicitly; no production
+  response or guard was changed. Seven unchanged F5A tests moved out of the
+  oversized Art module into a 200-line storyboard-review module. Independent
+  review found no lost coverage. All 38 Art, storyboard-review and native-intent
+  tests pass after this correction (100.98 seconds). Final full backend
+  qualification remains pending.
 
 ## Browser lifecycle test correction
 
@@ -82,6 +90,22 @@ the remaining within-node media and same-completed-project revision journey.
 Do not copy historical approvals into a new baseline or equate fixture playback
 with native delivery. The whole-product state matrix and artistic-quality
 exclusion remain as defined by the current run profile.
+
+## Fresh native walkthrough setup
+
+The isolated service on 8865/8866 loads the `0ce6806` implementation with its
+matching checked UI; normal 8841 remains unchanged. The UI-created disposable
+project `90c0f895-48de-4b57-8725-4b6f72797633`, “QA 原生重建·渡口信号”, has
+a saved Brief and confirmed source. It uses one visible character, one location,
+one two-way signal prop, two endings and a two-shot opening: four planned
+five-second shots and a fifteen-second complete route. This deliberately covers
+within-node advancement as well as route selection; the requested durations are
+targets to verify against later delivery, not delivered-media claims.
+
+The isolated installation's settings now point to the existing text and image
+specialist chats. No model, normal-service setting or protected credential was
+changed. No generation was sent during setup. Complete broad qualification and
+verify clean execution authority before preparing and sending native jobs.
 
 The last normal-service check had no active specialist tasks. Wind's 17 managed
 files, Rain's 67 and three protected configuration files still match aggregate
