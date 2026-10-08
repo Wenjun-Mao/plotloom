@@ -95,7 +95,9 @@ Post-activation owner/protected-file aggregate remains exact in
 generation occurred.
 
 Fresh unfiltered [CI37840593084](https://github.com/Wenjun-Mao/plotloom/actions/runs/37840593084)
-binds executable6284118 and is **in progress**, not yet a passed remote gate.
+binds executable `6284118` and **passed**: verify and both unfiltered browser shards
+completed successfully, read back on 2026-10-08 at 21:17 UTC. This remote gate
+qualifies that finite repair checkpoint, not the pending installed-story rebuild.
 The final publication note is a documentation-only commit, not a different runtime
 qualification. This finite repair checkpoint does not complete the active full run.
 
