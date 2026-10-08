@@ -259,7 +259,7 @@ it("makes a reopened or prepared task prominent rather than claiming its retaine
 });
 
 it.each(["ready", "prepared"] as const)("labels a stale %s cast candidate as needing an update", async (status) => {
-  await renderCast({ status: "stale", acceptedCast: accepted, staleReasons: ["来源已变化"], candidate: {
+  await renderCast({ status: "stale", acceptedCast: accepted, staleReasons: [{ code: "binding_revision_changed", owner: "source", field: "source_revision", technicalMessage: "source revision changed" }], candidate: {
     jobId: "stale-job", expectedCastRevision: 1, binding: accepted.binding, status,
     cast: status === "ready" ? accepted.cast : null,
     deliveryId: null, manifestHash: null, reportAvailable: false, createdAt: "2026-10-04T00:00:00Z", deliveredAt: null,

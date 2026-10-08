@@ -7,6 +7,7 @@ from typing import Any, Literal
 from pydantic import Field, field_validator
 
 from .domain import CamelModel
+from .review_context_diagnostics import ReviewContextDiagnostic
 
 
 ArtStatus = Literal["missing", "prepared", "candidate_ready", "accepted", "reopened", "stale"]
@@ -69,7 +70,7 @@ class ArtReviewState(CamelModel):
     candidate: ArtCandidate | None = None
     accepted_art: AcceptedArtRevision | None = None
     status: ArtStatus
-    stale_reasons: list[str] = Field(default_factory=list)
+    stale_reasons: list[ReviewContextDiagnostic] = Field(default_factory=list)
 
 
 class ArtAcceptRequest(CamelModel):

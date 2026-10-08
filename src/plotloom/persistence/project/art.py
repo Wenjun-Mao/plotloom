@@ -15,6 +15,7 @@ from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffR
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
 from ...domain import ProjectBrief, contains_secret_setting, contains_secret_value, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
+from ...review_context_diagnostics import ReviewContextDiagnostic, ReviewContextError, binding_diagnostics
 from ..schema.project_art import ArtCandidateRow, ArtHeadRow, ArtRevisionRow
 from ..schema.project_cast import CastRevisionRow
 from .access import ProjectPersistenceAccess
@@ -53,15 +54,15 @@ class ProjectArtPersistence:
         cast_head = self._cast._head(session, project_id)
         accepted = session.scalar(select(CastRevisionRow).where(CastRevisionRow.project_id == project_id, CastRevisionRow.revision == cast_head.revision)) if cast_head.revision else None
         if cast_head.status != "accepted" or accepted is None or self._cast._stale(session, project_id, base):
-            raise InvalidTransitionError("a current accepted cast is required before preparing art")
+            raise ReviewContextError(ReviewContextDiagnostic(code="accepted_cast_not_current", owner="characters", technical_message="a current accepted cast is required before preparing art"))
         binding = ArtBinding(**base.model_dump(), cast_revision=accepted.revision, cast_content_hash=accepted.content_hash)
         return binding, source, outline, mapping, accepted.cast
 
-    def _stale(self, session: Any, project_id: str, binding: ArtBinding) -> list[str]:
+    def _stale(self, session: Any, project_id: str, binding: ArtBinding) -> list[ReviewContextDiagnostic]:
         try:
             current, *_ = self._context(session, project_id)
-        except InvalidTransitionError as error:
-            return [str(error)]
+        except ReviewContextError as error:
+            return [error.diagnostic]
         fields = (
             ("source_revision", "source"), ("outline_revision", "accepted outline"),
             ("section_map_revision", "section map"), ("graph_revision", "installed graph"),
@@ -69,11 +70,11 @@ class ProjectArtPersistence:
             ("outline_content_hash", "accepted outline"), ("section_map_content_hash", "section map"),
             ("graph_content_hash", "installed graph"), ("cast_content_hash", "accepted cast"),
         )
-        reasons = [f"{label} {'revision' if field.endswith('revision') else 'content'} changed" for field, label in fields if getattr(current, field) != getattr(binding, field)]
+        reasons = binding_diagnostics(current, binding, fields)
         direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
         if not art_style_current(binding.render_contract, direction):
-            reasons.append("美术风格或项目视觉方向已变更；请重新准备美术任务")
-        return reasons + (["section context changed"] if current.section_ids != binding.section_ids else [])
+            reasons.append(ReviewContextDiagnostic(code="art_render_contract_changed", owner="art", technical_message="美术风格或项目视觉方向已变更；请重新准备美术任务"))
+        return reasons + ([ReviewContextDiagnostic(code="section_context_changed", owner="source", technical_message="section context changed")] if current.section_ids != binding.section_ids else [])
 
     def accepted_current_subject(
         self,

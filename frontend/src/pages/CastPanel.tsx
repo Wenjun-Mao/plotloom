@@ -10,6 +10,7 @@ import { castTextPresentation } from "./cast-text-presentation";
 import { hasValidCastDesign } from "./cast-design-validation";
 import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskActions";
 import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
+import { ReviewContextErrorNotice, ReviewContextNotice, reviewContextFailure, type ReviewContextFailure } from "./ReviewContextNotice";
 
 type CastPanelProps = {
   projectId: string; readOnly: boolean; state: CastReviewState | undefined; loadError: string;
@@ -21,7 +22,7 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
   const ownerDisabled = ownerReadOnly || Boolean(loadError);
   const [assignment, setAssignment] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ReviewContextFailure>("");
   const [editedCast, setEditedCast] = useState<Record<string, unknown>>({});
   const draftDirty = useRef(false);
   const draftBasis = useRef("");
@@ -54,7 +55,7 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
       else { applyResult?.(result); await onRefresh(); }
     }).catch(async (reason: unknown) => {
       if (!isCurrent(capturedProject, capturedOwner)) return;
-      setError(reason instanceof Error ? reason.message : "角色操作失败。");
+      setError(reviewContextFailure(reason, "角色操作失败。"));
       // A failed cancellation can mean its accepted binding changed while the
       // form was open. Re-read that durable state instead of leaving a local
       // editor that implies the prior authority can still be restored.
@@ -87,7 +88,7 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
   return <article className="panel cast-panel" data-testid="cast-review">
     {reviewDraft.notice}
     <header className="cast-panel-heading"><div><span className="eyebrow">角色设定</span><h2>{taskLabel}</h2></div><span className={`reference-state ${state.status === "stale" ? "historical" : state.status === "accepted" ? "selected" : "candidate"}`}>{loadError ? "无法刷新" : state.status === "stale" ? "需更新" : state.status === "accepted" ? "已确认" : state.status === "reopened" ? "编辑中" : candidate?.status === "ready" ? "待审核" : candidate?.status === "prepared" ? "任务未交付" : "待准备"}</span></header>
-    {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
+    <ReviewContextNotice projectId={projectId} diagnostics={state.staleReasons} />
     {accepted && <AcceptedCastSummary accepted={accepted} current={!loadError && state.status === "accepted"} onEdit={() => act(() => plotloomApi.reopenCast(projectId, accepted.revision), undefined, true)} disabled={readOnly || busy || state.status === "reopened"} />}
     {accepted?.reportAvailable && <AcceptedCastReport projectId={projectId} accepted={accepted} />}
     {!candidate && state.status !== "reopened" && <section className="cast-next-action"><div><strong>准备角色设定任务</strong><small>{ownerReadOnly ? "此项目为只读，不能准备或发送角色设定任务。" : "先准备任务，再发送给文字创作助手。结果需要你审核确认。"}</small></div><Button variant="quiet" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.prepareCastCandidate(projectId), (result) => setAssignment(result.assignment))}>准备角色设定任务</Button></section>}
@@ -98,7 +99,7 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
     </>}
     {accepted && state.status === "reopened" && <><CastEditor characters={castCharacters} disabled={readOnly || busy} onChange={updateDirection} editing /><div className="button-row"><Button variant="primary" disabled={readOnly || busy || !canConfirm} onClick={() => canConfirm && act(() => plotloomApi.saveReopenedCast(projectId, { expectedCastRevision: accepted.revision, binding: accepted.binding, cast: editedCast, consumerMappings: accepted.consumerMappings }), undefined, true)}>保存角色修改</Button><Button variant="quiet" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.cancelReopenedCast(projectId, accepted.revision), undefined, true, true)}>取消编辑</Button></div><small>取消会丢弃未保存的修改；只有所依据的故事内容与路线未变，才会恢复 r{accepted.revision} 的已确认状态。</small></>}
     {assignment && <details className="cast-assignment"><summary>查看任务说明（手动方式）</summary><textarea readOnly rows={5} value={assignment} /></details>}
-    {(error || loadError) && <ErrorNotice message={error || loadError} />}
+    {(error || loadError) && <ReviewContextErrorNotice error={error || loadError} projectId={projectId} />}
     {loadError && <Button variant="quiet" onClick={() => void onRefresh()}>重试加载角色设定</Button>}
   </article>;
 }

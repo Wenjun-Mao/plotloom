@@ -7,6 +7,7 @@ from typing import Any, Literal
 from pydantic import Field, field_validator
 
 from .domain import CamelModel
+from .review_context_diagnostics import ReviewContextDiagnostic
 
 
 CastStatus = Literal["missing", "prepared", "candidate_ready", "accepted", "reopened", "stale"]
@@ -75,7 +76,7 @@ class CastReviewState(CamelModel):
     candidate: CastCandidate | None = None
     accepted_cast: AcceptedCastRevision | None = None
     status: CastStatus
-    stale_reasons: list[str] = Field(default_factory=list)
+    stale_reasons: list[ReviewContextDiagnostic] = Field(default_factory=list)
 
 
 class CastAcceptRequest(CamelModel):

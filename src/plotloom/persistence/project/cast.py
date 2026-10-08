@@ -13,6 +13,7 @@ from ...cast_design_validation import validate_cast_design
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
 from ...domain import StageName, StageStatus, contains_secret_setting, contains_secret_value, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
+from ...review_context_diagnostics import ReviewContextDiagnostic, ReviewContextError, binding_diagnostics
 from ..schema.project_authoring import StageHeadRow
 from ..schema.project_cast import CastCandidateRow, CastHeadRow, CastRevisionRow
 from ..schema.project_source_outline import SourceOutlineGraphAdmissionRow, SourceOutlineHeadRow, SourceOutlineRevisionRow, SourceOutlineSectionMapHeadRow, SourceOutlineSectionMapRevisionRow, SourceOutlineSourceRevisionRow
@@ -70,27 +71,26 @@ class ProjectCastPersistence:
         head = session.get(SourceOutlineHeadRow, project_id)
         map_head = session.get(SourceOutlineSectionMapHeadRow, project_id)
         if head is None or map_head is None or not head.source_revision or not head.outline_revision or not map_head.revision or head.outline_status != "accepted" or map_head.status != "current":
-            raise InvalidTransitionError("an accepted source, outline, current section map, and installed graph are required before preparing cast")
+            raise ReviewContextError(ReviewContextDiagnostic(code="source_context_not_ready", owner="source", technical_message="an accepted source, outline, current section map, and installed graph are required before preparing cast"))
         source = session.scalar(select(SourceOutlineSourceRevisionRow).where(SourceOutlineSourceRevisionRow.project_id == project_id, SourceOutlineSourceRevisionRow.revision == head.source_revision))
         outline = session.scalar(select(SourceOutlineRevisionRow).where(SourceOutlineRevisionRow.project_id == project_id, SourceOutlineRevisionRow.revision == head.outline_revision))
         mapping = session.scalar(select(SourceOutlineSectionMapRevisionRow).where(SourceOutlineSectionMapRevisionRow.project_id == project_id, SourceOutlineSectionMapRevisionRow.revision == map_head.revision))
         admission = session.get(SourceOutlineGraphAdmissionRow, project_id)
         graph = session.scalar(select(StageHeadRow).where(StageHeadRow.project_id == project_id, StageHeadRow.stage == StageName.STORY_GRAPH.value))
         if source is None or outline is None or mapping is None or admission is None or graph is None or admission.status != "current" or graph.status != StageStatus.READY.value:
-            raise InvalidTransitionError("the accepted source-map-installed graph is not current")
+            raise ReviewContextError(ReviewContextDiagnostic(code="installed_graph_not_current", owner="source", technical_message="the accepted source-map-installed graph is not current"))
         if not (admission.source_revision == source.revision and admission.source_content_hash == source.content_hash and admission.outline_revision == outline.revision and admission.outline_content_hash == outline.content_hash and admission.section_map_revision == mapping.revision and admission.section_map_content_hash == mapping.content_hash and admission.graph_revision == graph.revision and admission.graph_content_hash == graph.content_hash):
-            raise InvalidTransitionError("the installed graph no longer matches the accepted source-map context")
+            raise ReviewContextError(ReviewContextDiagnostic(code="installed_graph_context_mismatch", owner="source", technical_message="the installed graph no longer matches the accepted source-map context"))
         binding = CastBinding(source_revision=source.revision, source_content_hash=source.content_hash, outline_revision=outline.revision, outline_content_hash=outline.content_hash, section_map_revision=mapping.revision, section_map_content_hash=mapping.content_hash, graph_revision=graph.revision, graph_content_hash=graph.content_hash or "", section_ids=[str(item.get("sectionId", "")) for item in mapping.mapping.get("sections", [])])
         return binding, source.material, outline.outline, mapping.mapping
 
-    def _stale(self, session: Any, project_id: str, binding: CastBinding) -> list[str]:
+    def _stale(self, session: Any, project_id: str, binding: CastBinding) -> list[ReviewContextDiagnostic]:
         try:
             current, *_ = self._context(session, project_id)
-        except InvalidTransitionError as error:
-            return [str(error)]
+        except ReviewContextError as error:
+            return [error.diagnostic]
         fields = (("source_revision", "source"), ("outline_revision", "accepted outline"), ("section_map_revision", "section map"), ("graph_revision", "installed graph"), ("source_content_hash", "source"), ("outline_content_hash", "accepted outline"), ("section_map_content_hash", "section map"), ("graph_content_hash", "installed graph"))
-        reasons = [f"{label} {'revision' if field.endswith('revision') else 'content'} changed" for field, label in fields if getattr(current, field) != getattr(binding, field)]
-        return reasons + (["section context changed"] if current.section_ids != binding.section_ids else [])
+        return binding_diagnostics(current, binding, fields) + ([ReviewContextDiagnostic(code="section_context_changed", owner="source", technical_message="section context changed")] if current.section_ids != binding.section_ids else [])
 
     def identity_context_in_session(
         self, session: Any, project_id: str, consumer_character_id: str

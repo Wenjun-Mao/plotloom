@@ -63,3 +63,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0131 Routine specialist continuation authority](0131-routine-specialist-continuation-authority.md)
 - [0132 Creator UI reading boundaries](0132-creator-ui-reading-boundaries.md)
 - [0133 Owned project-read acknowledgements](0133-owned-project-read-acknowledgement.md)
+- [0134 Typed Cast/Art currentness diagnostics](0134-typed-review-context-diagnostics.md)

@@ -27,6 +27,12 @@ focused checks and fresh unfiltered189 pass236 tests; publication is tracked in
 the receipt. Earlier interrupted182 and failed186 remain documented, with their
 underlying startup/network-change causes unresolved. Reboot recovery does not
 authorize duplicate dispatch or imply native-media product acceptance.
+The [typed Cast/Art guidance checkpoint](../verification/2026-10-08-review-context-diagnostics.md)
+repairs lost prerequisite ownership through the current API and primary Chinese
+instructions, preserving raw technical evidence and existing admission. Final
+local qualification passes1256 Python,723 frontend and unfiltered236 browser
+tests; publication and activation readback are pending. Stale Art's enabled image-task
+affordance is a separately recorded unresolved eligibility defect.
 The supported matrix remains1280×768,1280×460,1700×900; no phone/1024px work.
 
 The owner approved a [fresh full creator E2E repeat](2026-10-07-full-creator-e2e-repeat.md)

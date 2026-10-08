@@ -51,6 +51,9 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .notice code { color: var(--accent-2); font-size: 12px; overflow-wrap: anywhere; }
 .notice.error { display: grid; gap: 7px; }
 .notice.error .page-actions { align-items: center; }
+.notice.review-context-notice { display: grid; min-width: 0; overflow-wrap: anywhere; }
+.review-context-notice .button-row { margin: 4px 0; }
+.review-context-notice details p { margin: 4px 0; }
 .deletion-downstream { display: grid; gap: 7px; padding: 12px; border: 1px solid rgba(233,180,91,.32); border-radius: 6px; margin-top: 13px; background: rgba(233,180,91,.055); }
 .deletion-downstream > strong { color: var(--accent); font: 700 12px var(--mono); }
 .deletion-downstream > small { color: var(--muted); font-size: 12px; }
