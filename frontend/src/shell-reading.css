@@ -316,7 +316,7 @@ input[readonly] { color: var(--dim); }
 .reference-parent code { color: var(--blue); }
 .reference-instructions, .reference-technical, .reference-history { border: 1px solid rgba(40,49,61,.9); border-radius: 5px; }
 .reference-instructions summary, .reference-technical summary, .reference-history summary { padding: 8px 12px; color: var(--accent); cursor: pointer; font: 700 12px var(--mono); }
-.reference-instructions pre { max-height: 250px; padding: 12px; border-top: 1px solid var(--line); margin: 0; overflow: auto; color: var(--muted); white-space: pre-wrap; font: 12px/1.5 var(--mono); }
+.reference-instructions pre, .reference-technical pre { max-height: 250px; padding: 12px; border-top: 1px solid var(--line); margin: 0; overflow: auto; overflow-wrap: anywhere; color: var(--muted); white-space: pre-wrap; font: 12px/1.5 var(--mono); }
 .reference-technical dl { display: grid; gap: 6px; padding: 12px; border-top: 1px solid var(--line); margin: 0; }
 .reference-technical dl div { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 6px; }
 .reference-technical dt, .reference-technical dd { overflow-wrap: anywhere; margin: 0; font: 12px var(--mono); }

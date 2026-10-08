@@ -75,7 +75,9 @@ The earlier published5aff37e CI37701584435 finished successfully at
 It is qualified as one flaky result, not a clean206 first-pass gate. The exact
 Source confirmation race is corrected above. That old CI does not qualify this
 new candidate. Fresh full unfiltered [CI37712695213](https://github.com/Wenjun-Mao/plotloom/actions/runs/37712695213)
-was dispatched on published7f1041c at01:23:35 UTC and is running; no PASS is claimed.
+was dispatched on published7f1041c at01:23:35 UTC and finished success at02:00 UTC:
+Python1,245 PASS and browser shards104+102 first-pass PASS. This qualifies7f1041c,
+not later gallery changes.
 
 ## Candidate identity and distribution checks
 
@@ -125,11 +127,11 @@ two database row/schema sets, Wind17/Rain67 files and three protected
 configuration hashes/modes/UIDs. No native provider call or owner-data mutation
 was made by this repair.
 
-Full lifecycle acceptance remains PARTIAL. The frozen Image same-task continuation
-was sent after owner reconfirmation at2026-10-08 01:28 UTC; the existing specialist
-is active, not yet a qualified delivery. The owner also clarified that already
-authorized routine continuations must not require repeated approval; ADR0131
-records the correction. Native Character/Scene/Prop/pair, keyframe/endframe,
+Full lifecycle acceptance remains PARTIAL. The [native Character/gallery checkpoint](2026-10-08-native-character-gallery.md)
+now qualifies the completed frozen Image delivery and explicit selection; the
+earlier active-task wording is superseded. Already authorized routine continuations
+must not require repeated approval; ADR0131 records the correction.
+Native Scene/Prop/refinement/pair, keyframe/endframe,
 H3/all-route playback, video-bearing lifecycle, configured inference and supported
 post-install revision/rebuild remain separate required journeys. Software gates
 and synthetic media cannot substitute for them.

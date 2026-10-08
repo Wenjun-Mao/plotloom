@@ -2,7 +2,8 @@
 
 Scope: [approved repeat](../roadmap/2026-10-07-full-creator-e2e-repeat.md).
 The permanent C01–C55/P01–P06/E01–E22 checklist owns acceptance. Current status
-is PARTIAL. The [media repair receipt](2026-10-07-media-selection-recovery.md)
+is PARTIAL. The [native Character/gallery checkpoint](2026-10-08-native-character-gallery.md),
+[media repair receipt](2026-10-07-media-selection-recovery.md)
 and [C50 recovery](2026-10-07-c50-draft-recovery.md) / [C52 project ownership](2026-10-07-c52-project-ownership.md) own the latest continuation.
 Dated checkpoints below and the [historical receipt](2026-10-07-full-creator-e2e-repeat-history.md)
 retain earlier failures; historical present-tense claims are not current status.
@@ -306,7 +307,7 @@ the exact frozen image reservation, without restart/reload/send. Root receipts:
 |---|---|---|
 | E01–E04/P01–P05 | Fresh UI Brief/source/Outline r1, native branch review/Confirm/Apply; actual Outline timeline/table PASS, export BLOCKED_BY_DESIGN | Richer native structure not generated merely for counts |
 | E05–E06/selected C graph checks | Separate real structural QA123→222→333 sequence; bypass/unconnected deletion/Undo; Save-close-reopen; partial-key/nonblank C49; real stale-CAS refusal and matched live selection refresh; C44 footage toggles/reversal; C48 legal/refused type/start guards, explicit start/choice/join conversion and exact Undo; C50 endpoint/edge-only deletion/Undo; C51 retain/discard; C55 normal-flow help; preview pixels15–26; C46 actual OS blur automatic380/persisted350 PASS, pixel37 and exact cleanup r33 | Remaining type/kind/ownership permutations; no post-install native revision qualification |
-| E07–E09/P04/P06 | Fresh native Cast/Art confirmed r1 with offscreen style boundary; original gallery provenance, current static readers and original gallery zoom PASS | Native Character/Scene/Prop images and same-subject pair pending |
+| E07–E09/P04/P06 | Fresh native Cast/Art r1; native C01 delivery, exact image bytes/provenance, explicit selection/reload/idle restart and expanded-details desktop repair PASS | Native Scene/Prop, same-subject refinement and eligible reference pair pending |
 | E10–E13 | Fresh Script/Storyboard r1 confirmed; proposal r3 presentation reviewed/installed; ordinary first-shot handoff PASS | Model inference E12 NOT EXERCISED (runtime unavailable); physical direction realization remains unspecified |
 | E14–E18 | No fresh native media-route qualification | Keyframes, managed endframe/dirty guards, multishot preview, H3/all routes/staleness NOT EXERCISED |
 | E19–E21 | C52 distinct A/B incomplete drafts/history/nodes/modes/Brief/Source/close/reopen and unsaved navigation ACK with full exact cleanup; Task/reopen/owned idle restart; exact QA snapshot/operator restore/archive/unarchive/typed disposable-copy delete; imported-image close/reopen/archive/restore, five-file snapshot bytes, overwrite refusal and restored-copy UI/HTTP hashes; offline imported-image archive/typed-delete regression PASS | Native/video-bearing deletion and remaining lifecycle recovery NOT EXERCISED |

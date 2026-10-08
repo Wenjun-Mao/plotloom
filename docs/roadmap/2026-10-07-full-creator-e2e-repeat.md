@@ -19,9 +19,9 @@ safe continuation. It does not implement new product capabilities.
 
 | Profile field | Current run |
 |---|---|
-| Last qualified baseline | Published media authority repair7f1041c with unchanged e941780 Python; independently reviewed601 frontend/206 browser PASS6.2m without local retries, all856 inputs unchanged, Python1,245 qualification reused. Full CI37712695213 is running on exact7f1041c, not yet PASS. Prior5aff37e CI37701584435 finished success with205 first-pass browser results and one retry pass |
+| Last qualified baseline | Native gallery repair independently reviewed:601 frontend/207 browser PASS6.6m without local retries,857 inputs unchanged between mid-gate capture and final readback, types/build/wheel/smoke PASS. Python1,245 qualification reused from unchanged e941780 source. Earlier7f1041c full CI37712695213 finished success,206 first-pass browser results; it does not qualify the later gallery change |
 | Existing evidence | Completed text→installation→first-shot native flow and separate structural QA; finite type/start/Undo, imported-image lifecycle/snapshot/restored-copy UI, six-sibling desktop and trusted OS blur passed. C50 nonempty metadata/reopen/cleanup and C52 distinct A-B-A partial drafts/history/modes/close/reopen/immediate unsaved switch have full exact readbacks and clean QA baselines. Native media and same completed-project revision remain PARTIAL; see current media repair and C52 receipts |
-| Runtime boundary | Normal8841 serves the rebuilt media-repair frontend through its checkout mount with unchanged qualified e941780 Python; separate8871 qualifies disposable graph checks. Retained8851 and busy8861 loaded backends differ. Do not reload newer static against old Python or restart the busy Image reservation |
+| Runtime boundary | Normal8841 serves checked frontend through its checkout mount with unchanged qualified Python. Owned idle8861/8862 was restarted after native completion and now loads matching Python/static plus explicitly enabled current H3 catalogv7 via process-only configuration; protected settings unchanged. Separate8871 qualifies graph checks; retained8851 is historical. Never restart a busy reservation |
 | Data baseline | Fresh native QA b3a933f7-b6fc-40e3-826f-5162f95a119a; structural QA remains separately identified in the ledger. Completed playable/media baseline not yet established for this repeat |
 | Protection | Two named owner projects, managed files and protected configuration unchanged; disposable lifecycle/recovery targets identified before actions |
 | Authority | Approved specialist coordination includes routine follow-ups and safe same-frozen-job continuation in the existing task; renewed consent is not required for a repaired preflight blocker. Verify job/pin/completion state; preserve dispatch identity. No new paid fallback, protected-settings mutation, broad deletion, user/safety-stop bypass or creative/media-quality approval |
@@ -105,17 +105,19 @@ explicitly and leave exact pending task identities.
 
 ## Status
 
-Media authority/owned-ACK repairs and C50/C52 receipts are published at7f1041c.
-Normal8841 is healthy and serves the exact checked frontend through its mount;
-full CI37712695213 is running on that executable. No busy8861 restart or task resend.
-At2026-10-08 01:28 UTC, the owner reconfirmed same-job continuation and clarified
-that routine steps already within the approved run must not seek renewed consent.
-Root sent the unchanged frozen job ij_5be49304cccb4b1bbbc215f08b2f75cd to the
-existing Plotloom Image Specialist, whose status is active; generation/delivery
-is not yet qualified. Earlier separate-continuation-authority wording was an
-over-restrictive coordination decision, superseded by ADR0131. Prerequisite
-capability design remains a separate unanswered scope question. Full
-native/revision acceptance remains PARTIAL.
+The [native Character/gallery checkpoint](../verification/2026-10-08-native-character-gallery.md)
+qualifies the completed same-job delivery, exact original/display bytes, stored
+origin/rights and explicit reference r1 through reload and two idle8861 restarts.
+It also records the owning expanded-details CSS repair, independently reviewed
+601-unit/207-browser gate and unchanged protected owners/settings. Earlier7f1041c
+full CI37712695213 finished success at02:00 UTC with206 first-pass browser results;
+that CI is not evidence for the later gallery change. Current isolated8861 has
+H3 enabled through documented process-only catalogv7, not a protected-file edit.
+The owner clarified that routine steps within the approved run must not seek
+renewed consent; ADR0131 supersedes the earlier over-restrictive coordination.
+Native Scene/Prop/refinement/pair, keyframes/H3/every-route and video recovery
+remain outstanding. Prerequisite capability design is still a separate unanswered
+scope question. Full native/revision acceptance remains PARTIAL.
 
 Actual OS focus loss now passes on owned8871 at1700×900, with automatic380px and
 persisted350px resize cancellation. Playwright focus emulation masked the earlier
