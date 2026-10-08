@@ -135,7 +135,7 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
     <small>原稿镜头时长：{sourceUnits == null ? "来源不可用" : `${(sourceUnits / 1000).toFixed(3)} 秒`}；后端请求时长：{job.requestedSeconds} 秒；实测原片：{job.observed ? `${job.observed.durationSeconds.toFixed(3)} 秒 / ${availableFrames} 帧` : "尚无输出"}。</small>
     <small>原片保留不变。选择连续的 {Number.isInteger(requiredFrames) ? requiredFrames : "—"} 帧及同期声音；片段准备后须听看最终片段，再明确选择。此操作不自动确认创作质量。</small>
     {rejected && <small className="notice warning">此原片已拒绝，片段选择已锁定。可在下方明确重新开放审阅，也可选择另一候选或重新生成；原片与片段证据仍保留。</small>}
-    {previouslyRejected && explicitlyReopened && <small className="notice">此前拒绝记录仍保留；本次已明确重新开放审阅。尚未准备片段或选择故事播放。</small>}
+    {previouslyRejected && explicitlyReopened && <small className="notice">此前拒绝记录仍保留；本次已重新开放审阅。重新开放本身不会准备片段或将视频用于故事。</small>}
     {!timingReady && !rejected && <small className="notice warning">此候选没有足够的已核验画面与声音覆盖当前原稿时长，或原稿时长不在 24 fps 帧网格上；不能准备播放片段。</small>}
     {timingReady && <Field label="片段入点（帧）" hint={`出点（不含）：${inFrame + requiredFrames} / 原片 ${availableFrames} 帧。严格按原稿时长选择连续帧，不按浏览器时间自动裁切。`}>
       <input type="number" min={0} max={maxStart} step={1} value={inFrame} disabled={readOnly || busy}

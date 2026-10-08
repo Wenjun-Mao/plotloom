@@ -33,10 +33,16 @@ at all supported sizes make zero writes; owner/settings fingerprints remain exac
 Its full exact-head CI37801077786 passed verify and both browser shards;
 full native/revision coverage remains open.
 
-The [post-reboot native checkpoint](2026-10-08-native-decoder-recovery.md) now
+The [native-route/end-frame checkpoint](2026-10-08-native-routes-endframe-qualification.md)
+adds both completed minimal native routes, West reject/reopen/reselect history,
+and the owned read-qualification/long-error-layout repair. Its current candidate
+gate and publication are tracked there, not inherited from an older executable.
+Same-node multishot, revised installed production and media-bearing recovery remain open.
+
+The earlier [post-reboot native checkpoint](2026-10-08-native-decoder-recovery.md)
 qualifies exact-original playback, five-second segment preview and explicit
-technical-only selection on the native opening shot. Two route shots, multishot
-and revision/rebuild remain open; the earlier decoder failure is not diagnosed.
+technical-only selection on the native opening shot. Its then-missing route shots
+are covered by the newer checkpoint; the earlier decoder failure is not diagnosed.
 
 ## Recovery repair published 2026 10 07 23 19 UTC
 

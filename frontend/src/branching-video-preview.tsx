@@ -273,7 +273,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
       <small>本段镜头 {clipIndex + 1}/{node.jobs.length}。{isDecision || isEnding ? "最后一帧停留，等待明确操作。" : "单一路径完成后继续。"}</small>
       <div className="button-row"><Button onClick={play}>播放当前</Button></div>
     </>}
-    {!missingMedia.length && !current && <small>此节点没有已编排镜头。</small>}
+    {!missingMedia.length && !current && <small>{node.node.footageMode === "route_only" ? "此节点只控制故事路线，无需播放画面。" : "此节点没有已编排镜头。"}</small>}
     {bridgeOwned && !choiceReady && <div role="status">
       <small>{choiceRead.status === "loading" ? "正在核对当前来源的选择界面；未确认时不能选择分支。" : choiceRead.status === "failed" ? `选择界面读取失败：${choiceRead.error}。可重试核对。` : "选择界面与当前来源、路线或片段不一致；请核对投产提案与媒体后重试。"}</small>
       {choiceRead.status !== "loading" && <Button onClick={choiceRead.retry}>重试核对选择界面</Button>}

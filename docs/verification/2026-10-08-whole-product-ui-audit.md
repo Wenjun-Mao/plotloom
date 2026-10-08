@@ -22,9 +22,15 @@ is healthy on normal8841 with fresh737 frontend/unfiltered236 browser PASS;
 six directly inspected normal Gallery/controls frames make no writes. Its full
 exact-head CI37801077786 passed verify and both browser shards. This does not
 close native-media/revision gaps.
-The [post-reboot native checkpoint](2026-10-08-native-decoder-recovery.md) separately
+The [native-route/end-frame checkpoint](2026-10-08-native-routes-endframe-qualification.md)
+adds actual both-route terminal pixels and end-frame pending/error/recovered
+qualification. Expanded long raw diagnostics now wrap instead of widening the
+page; all three actual native after frames were independently inspected.
+Its current repair gate is separate; broader state/native/revision coverage remains PARTIAL.
+The earlier [post-reboot native checkpoint](2026-10-08-native-decoder-recovery.md) separately
 qualifies the opening original/segment/selection slice and three actual incomplete
-Play viewports. All-route, multishot, revised-media and decoder-cause gaps remain.
+Play viewports. The newer checkpoint closes minimal all-route playback, not
+multishot, revised-media or decoder-cause gaps.
 The [reader/gallery/Bible/run checkpoint](2026-10-08-reader-gallery-ui-states.md)
 extends prerequisite, read-failure, empty and archived-state coverage. Its latest
 gate and publication identity are recorded separately, not inherited from earlier gates.
@@ -127,6 +133,7 @@ file; do not inherit a PASS from a different state or source revision.
 | Original video, collapsed / expanded native error | Explicit read-fault fixture120; both states at all three sizes, root/independent inspection | Scoped PASS; candidate and handler limits in the preview checkpoint. |
 | Segment video, collapsed / expanded native error | Explicit read-fault fixture120; both states at all three sizes, root/independent inspection | Scoped PASS; not native successful playback or media selection. |
 | Native original/segment terminal and selected state; Play missing two route shots | Native194 full CDP/job/HTTP records, inspected terminal/selected pixels and Play at all three desktop sizes | Finite technical PASS in the recovery receipt. Static“待审片段” is an optional wording refinement; selected option/status are accurate. No all-route/multishot or creative/audible acceptance. |
+| Native both-route completion; end-frame pending/error/recovered and expanded long diagnostics | Native195 route CDP/events/full readbacks; three desktop GET-fault/retry viewports and independent source/pixel review | Finite minimal-route technical PASS; long-error/read-authority repair qualification in linked receipt. Same-node multishot, revised-media and remaining lifecycle states stay open. |
 | Cast/gallery, confirmed populated / expanded provenance | Native115, top/details/bottom at all three sizes | Scoped PASS; retained confirmed content, not an empty or failed read. |
 | Cast/gallery, confirmed-no-images / initial failed read / archived guidance | Disposable fixtures129–132, final137 twelve PNGs at all sizes directly inspected | Scoped reading-state qualification in linked checkpoint; archived controls remain disabled, no interactive comparison/retry claim. |
 | Bible, populated premise | Native88 at all three sizes | Scoped PASS for this form, not the selected entity forms. |
