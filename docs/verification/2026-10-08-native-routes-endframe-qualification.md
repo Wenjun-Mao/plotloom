@@ -1,12 +1,14 @@
 # Native routes and end-frame qualification — 2026-10-08
 
-Status: **FINITE NATIVE ROUTES PASS / REPAIR QUALIFIED LOCALLY**.
+Status: **FINITE NATIVE ROUTES PASS / REPAIR PUBLISHED AND ACTIVATED**.
 The full Create → Revise → Recover goal remains PARTIAL. This continues the
 [approved run](../roadmap/2026-10-07-full-creator-e2e-repeat.md), the single
 [playbook](../creative-workflow/graph-workbench-acceptance.md), and the
 [opening native checkpoint](2026-10-08-native-decoder-recovery.md).
-Baseline main is `d5dd723`; executable Python is unchanged from qualified
-`3ad91e4`. The current frontend repair is uncommitted, not a published candidate.
+The repair is committed and pushed as `04a4d02`, with clean main matching origin;
+executable Python is unchanged from qualified `3ad91e4`. Normal8841 serves the
+qualified static assets. [Exact-head CI](https://github.com/Wenjun-Mao/plotloom/actions/runs/37820366305)
+was still running at this checkpoint; local qualification is not a CI result.
 
 ## Exact native baseline and bounded actions
 
@@ -54,7 +56,7 @@ was retracted, not patched as a product defect.
 
 ## Actual all-route playback
 
-At17:27:53 UTC the actual Play UI completed East, restarted, played the opening
+The pre-publication run at17:27:53 UTC completed East, restarted, played the opening
 again and completed West. Each complete route has one opening clip, a paused
 route-only choice with zero video elements, and one ending clip. Each ending
 reached trusted `ended` at5 seconds,120 browser frames, zero drops and no media
@@ -69,11 +71,21 @@ and the West full-page1280×460 capture. No document-width overflow was observed
 at1280×768,1280×460 or1700×900. Lower controls require ordinary page scrolling
 where the viewport is short; this is not clipping or phone support.
 
+A fresh post-publication run at17:58:27 UTC repeated both complete native routes
+under `04a4d02`. Both endings reached trusted `ended` at5 seconds/120 frames,
+zero drops and no errors; writes remained empty and all job readbacks unchanged.
+The route-only view now says **此节点只控制故事路线，无需播放画面。** Root inspected
+all three fresh supported-desktop captures. At1280×460 the lower page uses
+ordinary scrolling; the choice controls remain readable and usable.
+
 Artifacts live under `output/playwright/full-lifecycle-2026-10-07/`:
 `195-native-story-start-diagnostic.txt`, `195-native-story-routes-diagnostic.txt`,
 East/West original/segment diagnostics and terminal/selected captures,
 `195-native-route-{east,west}-terminal.png`, and
 `195-native-route-west-{1280x768,1280x460,1700x900}.png`.
+Current-candidate proof is `196-current-native-routes.txt` and
+`196-route-only-choice-{1280x768,1280x460,1700x900}.png`; the earlier195 artifacts
+remain historical evidence rather than being relabelled as the published run.
 
 This closes finite E17 minimal all-route playback, not same-scene still preview,
 within-node multi-shot advancement, audible acceptance, visual continuity or
