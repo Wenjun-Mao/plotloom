@@ -66,7 +66,11 @@ class NativeBridgeIntentService:
             request, data = self._request(store, project_id, job_id)
             if data["status"] != "queued":
                 raise InvalidTransitionError("only a never-sent native intent candidate can be sent")
-            paths = store.creative_handoff_exchange().write_package(request, store.creative_handoff_execution_pin(request))
+            exchange = store.creative_handoff_exchange()
+            frozen_pin = store.creative_handoff_execution_pin(request)
+            if exchange.current_execution_pin(request.stage) != frozen_pin:
+                raise CreativeHandoffError("execution_pin_mismatch", "当前执行版本与冻结任务不同；未发送，任务与执行锁定保持不变。")
+            paths = exchange.write_package(request, frozen_pin)
             if Path(paths["deliveryPath"]).exists():
                 raise InvalidTransitionError("native intent delivery already exists; do not send a second execution")
             owner = store.repository.production_bridge_intent

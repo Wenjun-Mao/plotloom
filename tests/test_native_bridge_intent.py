@@ -267,6 +267,54 @@ def test_native_execution_pin_refuses_uncommitted_source(monkeypatch):
     assert "scripts/native_bridge_intent.py" in calls[0]
 
 
+@pytest.mark.parametrize("change", ["upstreamRevision", "upstreamSkillHash", "specialistSkillHash", "dirty"])
+def test_send_rechecks_clean_frozen_execution_before_any_dispatch(native, monkeypatch, change):
+    storage, project, _revision, _digest, service, job, calls = native
+    with closing(storage.projects.open(project)) as store:
+        request, frozen_job = service._request(store, project, job)
+        frozen_pin = store.creative_handoff_execution_pin(request)
+        paths = store.creative_handoff_exchange().verified_package_paths(request, frozen_pin)
+    package = Path(paths["packagePath"])
+    frozen_package = {path.relative_to(package): path.read_bytes() for path in package.rglob("*") if path.is_file()}
+    frozen_registry = service.registry.path.read_bytes()
+    if change == "dirty":
+        prior_run = subprocess.run
+
+        def dirty(command, **kwargs):
+            if "--porcelain" in command:
+                return subprocess.CompletedProcess(command, 0, " M scripts/native_bridge_intent.py\n")
+            return prior_run(command, **kwargs)
+
+        monkeypatch.setattr(subprocess, "run", dirty)
+        monkeypatch.setattr(CreativeHandoffExchange, "current_execution_pin",
+            lambda _self, stage: CreativeHandoffExchange._pinned_execution(stage))
+    else:
+        changed_pin = frozen_pin | {change: "0" * len(frozen_pin[change])}
+        monkeypatch.setattr(CreativeHandoffExchange, "current_execution_pin", lambda _self, _stage: changed_pin)
+    with pytest.raises(CreativeHandoffError) as refused:
+        service.send(project, job)
+    assert refused.value.code == ("execution_pin_missing" if change == "dirty" else "execution_pin_mismatch")
+    assert calls == []
+    assert service.registry.path.read_bytes() == frozen_registry
+    assert not service.registry.view()["busy"]
+    assert service.registry.status(job) == {"state": "prepared"}
+    assert not (service.registry.root / "dispatch").exists()
+    assert not Path(paths["deliveryPath"]).exists()
+    assert {path.relative_to(package): path.read_bytes() for path in package.rglob("*") if path.is_file()} == frozen_package
+    with closing(storage.projects.open(project)) as store:
+        assert service._request(store, project, job)[1] == frozen_job
+        assert store.creative_handoff_execution_pin(request) == frozen_pin
+        assert store.production_bridge_state().intent_job.status == "queued"
+    # Restoring the original clean authority permits this exact request once;
+    # refusal did not refresh its pin or manufacture a dispatch attempt.
+    monkeypatch.setattr(CreativeHandoffExchange, "current_execution_pin", lambda _self, _stage: frozen_pin)
+    service.send(project, job)
+    assert len(calls) == 1 and service.registry.view()["busy"]
+    with pytest.raises(InvalidTransitionError):
+        service.send(project, job)
+    assert len(calls) == 1
+
+
 def test_bounded_context_refuses_before_any_new_job(native, monkeypatch):
     storage, project, revision, digest, service, job, calls = native
     service.cancel(project, job)

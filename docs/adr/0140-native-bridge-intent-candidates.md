@@ -19,7 +19,12 @@ complete `id`/`suggestedText` suggestions and a deterministic derived report.
 Preparation freezes a candidate package and its execution pin. An explicit send
 uses the installation's text specialist registry and its existing reservation,
 receipt and unknown-outcome guards. Persist dispatch intent before attempting
-the send. Unknown sends cannot be resent; inspection after restart reads the
+the send. Send first rechecks the clean current execution pin against the stored
+project-owned pin, before reserving, marking dispatch or queueing. Preparation's
+check alone is insufficient: checkout drift between preparation and send would
+otherwise consume a lease for execution the specialist must refuse. A mismatch
+or dirty checkout leaves the queued request and its pin untouched; send never
+regenerates authority. Unknown sends cannot be resent; inspection after restart reads the
 same package/delivery and receipt, without starting a new job. Cancellation
 prevents admission but retains reservations until a validated real delivery.
 

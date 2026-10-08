@@ -163,7 +163,7 @@ class CreativeHandoffExchange:
         }
 
     def current_execution_pin(self, stage: str) -> dict[str, str]:
-        """Capture the current repository pin for a *new* project candidate."""
+        """Read current checkout authority without changing a frozen candidate."""
 
         return self._pinned_execution(stage)
 
