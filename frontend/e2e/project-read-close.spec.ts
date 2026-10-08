@@ -58,7 +58,7 @@ test("busy close fails truthfully and resumes owned report and JSON reads for an
   await expect(textbox).toHaveValue("失败后仍保留这份未确认图草稿。");
   await page.getByRole("dialog", { name: "项目目录", exact: true }).locator("footer").getByRole("button", { name: "关闭窗口", exact: true }).click();
   await page.reload(); await expect(textbox).toHaveValue("失败后仍保留这份未确认图草稿。");
-  await expect(page.frameLocator('iframe[title="static derived upstream script report"]').locator("body")).toContainText("Deterministic upstream-context fixture report");
+  await expect(page.frameLocator('iframe[title="原始剧本交付报告（只读）"]').locator("body")).toContainText("Deterministic upstream-context fixture report");
   await page.getByRole("button", { name: "保存并关闭项目", exact: true }).click();
   await expect(row(page, id)).toContainText("已关闭 · 可安全复制"); expect(closes).toBe(2);
 });

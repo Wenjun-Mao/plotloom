@@ -30,10 +30,10 @@ test("tests a profile only after saving public settings and keeps its key sessio
 
   await page.goto(`${workbench.frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "打开示例项目" }).click();
-  await page.getByRole("button", { name: "供应商与会话 Key" }).click();
+  await page.getByRole("button", { name: "供应商与会话密钥" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByLabel("受信任适配器")).toHaveValue("openai_compatible@1");
-  await page.getByLabel("此 Profile 的临时 API Key").fill("test-session-secret");
+  await page.getByLabel("当前配置的临时密钥").fill("test-session-secret");
   await page.getByRole("button", { name: "测试连接" }).click();
   await expect(page.getByText("后端已就绪：readiness.models_verified")).toBeVisible();
 
@@ -53,7 +53,7 @@ test("tests a profile only after saving public settings and keeps its key sessio
 test("keeps a disabled selected profile visible while rejecting new run admission", async ({ page, request, workbench }) => {
   await page.goto(`${workbench.frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "打开示例项目" }).click();
-  await page.getByRole("button", { name: "供应商与会话 Key" }).click();
+  await page.getByRole("button", { name: "供应商与会话密钥" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
 
   const disabled = page.waitForResponse((response) => response.request().method() === "PUT"
@@ -61,8 +61,8 @@ test("keeps a disabled selected profile visible while rejecting new run admissio
   await page.getByRole("button", { name: "停用后端" }).click();
   expect((await disabled).ok()).toBeTruthy();
   await expect(page.getByText("此后端当前不可用")).toBeVisible();
-  await expect(page.getByLabel("活动 Profile")).toHaveValue("default");
-  await expect(page.getByRole("button", { name: "设为活动" })).toBeDisabled();
+  await expect(page.getByLabel("当前编辑的模型配置")).toHaveValue("default");
+  await expect(page.getByRole("button", { name: "设为当前使用" })).toBeDisabled();
 
   const project = await request.post(`${workbench.apiOrigin}/api/v2/projects`, {
     data: { brief: { title: "停用 admission", synopsis: "停用 Profile 不应接纳新运行。" } },
@@ -112,11 +112,11 @@ test("merges availability without losing an unsaved profile draft, session key, 
 
   await page.goto(`${workbench.frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "打开示例项目" }).click();
-  await page.getByRole("button", { name: "供应商与会话 Key" }).click();
+  await page.getByRole("button", { name: "供应商与会话密钥" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByLabel("文本认证").selectOption("bearer");
   await page.getByLabel("文本模型").fill("draft-model-before-toggle");
-  await page.getByLabel("此 Profile 的临时 API Key").fill("draft-key-before-toggle");
+  await page.getByLabel("当前配置的临时密钥").fill("draft-key-before-toggle");
 
   // The route still forwards the mutation to real FastAPI, but holds its
   // response so this asserts edits made while availability is in flight.
@@ -137,7 +137,7 @@ test("merges availability without losing an unsaved profile draft, session key, 
     await page.getByRole("button", { name: "停用后端" }).click();
     await upstreamReceivedPromise;
     await page.getByLabel("文本模型").fill("draft-model-during-toggle");
-    await page.getByLabel("此 Profile 的临时 API Key").fill("draft-key-during-toggle");
+    await page.getByLabel("当前配置的临时密钥").fill("draft-key-during-toggle");
   } finally {
     releaseAvailabilityResponse();
   }
@@ -146,7 +146,7 @@ test("merges availability without losing an unsaved profile draft, session key, 
 
   await expect(page.getByText("此后端当前不可用")).toBeVisible();
   await expect(page.getByLabel("文本模型")).toHaveValue("draft-model-during-toggle");
-  await expect(page.getByLabel("此 Profile 的临时 API Key")).toHaveValue("draft-key-during-toggle");
+  await expect(page.getByLabel("当前配置的临时密钥")).toHaveValue("draft-key-during-toggle");
   const afterDisable = await readProfile();
   expect(afterDisable).toMatchObject({ revision: before.revision, enabled: false });
   expect(afterDisable.configuration.profileHash).toBe(before.configuration.profileHash);
@@ -157,7 +157,7 @@ test("merges availability without losing an unsaved profile draft, session key, 
   await page.getByRole("button", { name: "启用后端" }).click();
   expect((await reenabled).ok()).toBeTruthy();
   await expect(page.getByLabel("文本模型")).toHaveValue("draft-model-during-toggle");
-  await expect(page.getByLabel("此 Profile 的临时 API Key")).toHaveValue("draft-key-during-toggle");
+  await expect(page.getByLabel("当前配置的临时密钥")).toHaveValue("draft-key-during-toggle");
   const afterReenable = await readProfile();
   expect(afterReenable).toMatchObject({ revision: before.revision, enabled: true });
   expect(afterReenable.configuration.profileHash).toBe(before.configuration.profileHash);
@@ -170,14 +170,14 @@ test("merges availability without losing an unsaved profile draft, session key, 
   });
   expect(externalDisable.ok()).toBeTruthy();
   await page.getByLabel("文本模型").fill("draft-model-after-conflict");
-  await page.getByLabel("此 Profile 的临时 API Key").fill("draft-key-after-conflict");
+  await page.getByLabel("当前配置的临时密钥").fill("draft-key-after-conflict");
   const conflict = page.waitForResponse((response) => response.request().method() === "PUT"
     && new URL(response.url()).pathname.endsWith("/text-provider-profiles/default/availability")
     && response.status() === 409);
   await page.getByRole("button", { name: "停用后端" }).click();
   expect((await conflict).status()).toBe(409);
   await expect(page.getByLabel("文本模型")).toHaveValue("draft-model-after-conflict");
-  await expect(page.getByLabel("此 Profile 的临时 API Key")).toHaveValue("draft-key-after-conflict");
+  await expect(page.getByLabel("当前配置的临时密钥")).toHaveValue("draft-key-after-conflict");
   const afterConflict = await readProfile();
   expect(afterConflict).toMatchObject({ revision: before.revision, enabled: false });
   expect(afterConflict.configuration.profileHash).toBe(before.configuration.profileHash);
@@ -203,7 +203,7 @@ test("merges availability without losing an unsaved profile draft, session key, 
 test("persists a copied profile through the real API without persisting its browser key", async ({ page, request, workbench }) => {
   await page.goto(`${workbench.frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "打开示例项目" }).click();
-  await page.getByRole("button", { name: "供应商与会话 Key" }).click();
+  await page.getByRole("button", { name: "供应商与会话密钥" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
 
   const promptAnswers = ["e2e_profile", "E2E Profile"];
@@ -217,11 +217,11 @@ test("persists a copied profile through the real API without persisting its brow
   });
   await page.getByRole("button", { name: "复制" }).click();
   expect((await createdResponse).ok()).toBeTruthy();
-  await expect(page.getByLabel("活动 Profile")).toHaveValue("e2e_profile");
+  await expect(page.getByLabel("当前编辑的模型配置")).toHaveValue("e2e_profile");
 
   await page.getByLabel("文本模型").fill("e2e-model-after-save");
   await page.getByLabel("文本认证").selectOption("bearer");
-  await page.getByLabel("此 Profile 的临时 API Key").fill("e2e-browser-only-secret");
+  await page.getByLabel("当前配置的临时密钥").fill("e2e-browser-only-secret");
   await page.getByRole("button", { name: "保存设置" }).click();
   await expect(page.getByRole("dialog")).not.toBeVisible();
 
@@ -243,10 +243,10 @@ test("persists a copied profile through the real API without persisting its brow
     session: JSON.stringify({ e2e_profile: "e2e-browser-only-secret" }),
   });
 
-  await page.getByRole("button", { name: "供应商与会话 Key" }).click();
+  await page.getByRole("button", { name: "供应商与会话密钥" }).click();
   // Reopening settings intentionally selects the server's active profile.
   // The copied profile is not active, so select it explicitly before delete.
-  await page.getByLabel("活动 Profile").selectOption("e2e_profile");
+  await page.getByLabel("当前编辑的模型配置").selectOption("e2e_profile");
   await expect(page.getByRole("button", { name: "删除" })).toBeEnabled();
   const deletedResponse = page.waitForResponse((response) => {
     const incoming = response.request();

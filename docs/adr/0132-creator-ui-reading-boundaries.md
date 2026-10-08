@@ -46,6 +46,11 @@ control, wrapping its label into the card's narrow number column.
   and continuation use the same admission boundary. Current responses supply
   required readiness and trusted adapters; retired settings fallback, inferred
   readiness and single-key migration are removed rather than kept as adapters.
+  The selected configuration editor is not the server's current-use configuration:
+  label it “当前编辑的模型配置”; mark only the server-owned active option “当前使用”.
+  Activation is an explicit “设为当前使用” action. Missing/read-failed configuration
+  guidance describes withholding a new execution request, not stopping an existing
+  run. Primary settings labels use “密钥”, with protocol names left in diagnostics.
 - Story-media recovery labels include the owning node and ordered scene/shot
   position, with the node position always included rather than conditionally
   prefixed after a title collision. Display prose is not identity; exact shot IDs still own links and API
@@ -73,6 +78,13 @@ control, wrapping its label into the card's narrow number column.
   An optional Storyboard read failure preserves the qualified Script and selected
   route; its named retry repeats only that read. Currentness and report sandbox
   checks remain unchanged.
+- Script/Storyboard original-report readers share subject-specific Chinese
+  labels and explicitly identify the read-only presentation. Retained originals
+  do not track later confirmed-content edits; report JavaScript is not called
+  “脚本” in creator guidance where it can be confused with the story's “剧本”.
+  Reading labels and helpers do not change static projection, report bytes,
+  admission, sandbox permissions or generation/confirmation actions. Original
+  reports may cover more episodes than the selected route-filtered reader.
 - Failed gallery refreshes retain known images and local author inputs, but
   suspend mutations until a successful owned read. Manual retry pending belongs
   to its retry operation, independently of the latest-read owner; an overlapping
@@ -110,8 +122,10 @@ control, wrapping its label into the card's narrow number column.
   squeeze its recovery controls. Expanded raw evidence wraps without being truncated.
 - Structural card layouts target cards, not every button in their container;
   generic actions retain their normal control layout. Chinese interface fallback
-  errors and directory times use readable Chinese/24-hour presentation while
+  errors and directory/run/configuration times use one readable Chinese/24-hour presentation while
   retaining exact HTTP status, raw error evidence and timestamp values.
+  Timestamp presentation uses the reader's local timezone; it does not normalize
+  or rewrite stored times or raw trace evidence.
 
 ## Alternatives, consequences and guardrails
 
@@ -128,6 +142,8 @@ error presentation is not a decoder fix, timeout workaround or quality approval.
 Native browser gates retain event/decoder snapshots before teardown even on early
 failure. Diagnostic snapshot, byte collection and detach are bounded and mark
 incomplete reads; they must not delay or weaken unchanged playback/ended acceptance.
+Every native collector caller supplies its exact response filter and trace reader;
+the plain fixture probe cannot silently inherit the application playback endpoint.
 Completed partial HTTP byte ranges are data attachments, not standalone MP4s;
 only a complete response object may carry that media filename/type. Retain the
 exact Content-Range, response hash and available bytes without reconstructing media.

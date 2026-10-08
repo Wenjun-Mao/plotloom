@@ -342,7 +342,7 @@ describe("App project/editor rehydration", () => {
     const title = document.querySelector(".form-card input") as HTMLInputElement;
     expect(title.value).toBe("服务器项目");
     await act(async () => setInput(title, "尚未保存的用户修改"));
-    await act(async () => button("供应商与会话 Key").click());
+    await act(async () => button("供应商与会话密钥").click());
     await flush();
     expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("尚未保存的用户修改");
 
@@ -937,7 +937,7 @@ describe("App project/editor rehydration", () => {
     const catalog = fallbackProfiles(); catalog.profiles[0].serverKeyAvailable = true;
     vi.mocked(plotloomApi.getTextProviderProfiles).mockResolvedValue(catalog);
     await renderSample(root);
-    await act(async () => button("供应商与会话 Key").click());
+    await act(async () => button("供应商与会话密钥").click());
     await flush();
 
     expect(document.body.textContent).toContain("服务器已配置文本密钥");

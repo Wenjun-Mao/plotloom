@@ -2,8 +2,11 @@ import { createHash } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import type { CDPSession, ConsoleMessage, Page, Response, TestInfo } from "@playwright/test";
 
+type TraceReader = "readBranchingMediaTrace" | "readNativeTrace";
+type DiagnosticSource = { responseUrl: RegExp; traceReader: TraceReader };
+
 /** Read-only evidence collected before teardown, including early playback failures. */
-export async function collectNativeMediaDiagnostics(page: Page, info: TestInfo) {
+export async function collectNativeMediaDiagnostics(page: Page, info: TestInfo, source: DiagnosticSource) {
   const events: Array<{ type: string; payload: unknown }> = [];
   const responses: Array<{ url: string; status: number; headers: Record<string, string>; bytes?: Buffer; bodyState: "pending" | "complete" | "failed"; error?: string }> = [];
   const pendingReads: Promise<void>[] = [];
@@ -17,7 +20,7 @@ export async function collectNativeMediaDiagnostics(page: Page, info: TestInfo) 
   };
   const onPageError = (error: Error) => { events.push({ type: "pageerror", payload: error.message }); };
   const onResponse = (response: Response) => {
-    if (!/\/video-jobs\/[^/]+\/playback(?:\?|$)/.test(response.url())) return;
+    if (!source.responseUrl.test(response.url())) return;
     const entry: typeof responses[number] = { url: response.url(), status: response.status(), headers: response.headers(), bodyState: "pending" };
     responses.push(entry);
     pendingReads.push((async () => {
@@ -33,8 +36,8 @@ export async function collectNativeMediaDiagnostics(page: Page, info: TestInfo) 
     // Preserve state immediately. A stalled response body must not consume
     // teardown or erase the very evidence needed to diagnose that stall.
     try {
-      const snapshot = await boundedDiagnostic<unknown>(page.evaluate(() => ({
-        trace: (window as typeof window & { readBranchingMediaTrace?: () => unknown[] }).readBranchingMediaTrace?.() ?? [],
+      const snapshot = await boundedDiagnostic<unknown>(page.evaluate((traceReader: TraceReader) => ({
+        trace: (window as typeof window & Partial<Record<TraceReader, () => unknown[]>>)[traceReader]?.() ?? [],
         videos: [...document.querySelectorAll("video")].map(video => ({
           src: video.currentSrc, connected: video.isConnected, identity: video.dataset.playbackIdentity,
           currentTime: video.currentTime, duration: video.duration, paused: video.paused, ended: video.ended,
@@ -43,7 +46,7 @@ export async function collectNativeMediaDiagnostics(page: Page, info: TestInfo) 
           buffered: Array.from({ length: video.buffered.length }, (_, index) => [video.buffered.start(index), video.buffered.end(index)]),
           frames: video.getVideoPlaybackQuality().totalVideoFrames,
         })),
-      })).catch(error => ({ unavailable: String(error) })), { unavailable: "renderer snapshot did not settle within the diagnostic budget" });
+      }), source.traceReader).catch(error => ({ unavailable: String(error) })), { unavailable: "renderer snapshot did not settle within the diagnostic budget" });
       await boundedDiagnostic(Promise.allSettled(pendingReads), []);
       const evidencePath = info.outputPath("native-media-diagnostics.json");
       await writeFile(evidencePath, JSON.stringify({

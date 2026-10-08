@@ -16,6 +16,8 @@ functional walkthroughs included incidental UI inspections, not a completed
 whole-product visual/copy audit. The dedicated pass has executed, with PARTIAL
 state coverage and verified scoped repairs;
 its [view/state observations and repairs](2026-10-08-whole-product-ui-audit.md)
+and [original-report/stale-Art checkpoint](2026-10-08-static-report-art-ui-states.md)
+and [frozen-configuration checkpoint](2026-10-08-frozen-profile-ui-states.md)
 and [native preview error checkpoint](2026-10-08-native-preview-error-ui.md) /
 [reading-state checkpoint](2026-10-08-reader-gallery-ui-states.md) are recorded separately from functional results. Desktop matrix:
 1280×768,1280×460,1700×900; no phone/1024px testing.
@@ -330,8 +332,10 @@ the exact frozen image reservation, without restart/reload/send. Root receipts:
 ### Fresh native identities and review boundaries
 
 Current visual/copy continuation: [whole-product audit](2026-10-08-whole-product-ui-audit.md)
-has executed under E22.1–E22.7, not incidental graph-only observation. Its final
-frozen candidate passes209 browser tests; prior gates do not qualify later changes.
+has executed under E22.1–E22.7, not incidental graph-only observation. Published
+checkpoints have their own gates; the current report/configuration candidate154
+passes220 browser/688 frontend with868 inputs unchanged; its linked receipt owns
+publication status. The earlier209 gate does not qualify these later changes.
 The following first-native checkpoints retain historical failure evidence; later
 native media progress is summarized in the current coverage table, not retroactive
 PASS for the earlier failed or unexecuted operations.

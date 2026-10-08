@@ -58,6 +58,9 @@ it.each(["ensure", "open"])("keeps %s catalog-read failure distinct and closes a
   await act(async () => { expect(await (action === "ensure" ? profiles.ensureFrozenCredential(frozenRun) : profiles.openFrozen("frozen"))).toBe(false); });
   expect(profiles.settingsOpen).toBe(false); expect(profiles.loaded.current).toBe(false);
   expect(setError).toHaveBeenLastCalledWith(frozenRunCredentialMessage("frozen", "read-failed", "Error: catalog unavailable"));
+  expect(setError.mock.lastCall?.[0]).toContain("未发出新的执行请求");
+  expect(setError.mock.lastCall?.[0]).toContain("请刷新页面后重试读取");
+  expect(setError.mock.lastCall?.[0]).not.toContain("没有继续运行");
 });
 
 it.each(["server", "tab"])("accepts an exact frozen %s key without opening settings or dispatching", async source => {
@@ -94,4 +97,8 @@ it("preserves exact server readiness and adapter choices through installation an
   const adapters = [...host.querySelectorAll("select")].find(select => select.value === "server-owned@7")!;
   expect([...adapters.options].map(option => option.value)).toEqual(["server-owned@7"]);
   expect(host.textContent).toContain("readiness.profile_disabled");
+  const editorLabel = [...host.querySelectorAll("label")].find(label => label.textContent?.startsWith("当前编辑的模型配置"))!;
+  expect(editorLabel.querySelector("select")?.value).toBe("frozen");
+  expect(editorLabel.textContent).toContain("default · 当前使用");
+  expect(editorLabel.textContent).not.toContain("活动 Profile");
 });

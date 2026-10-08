@@ -28,8 +28,8 @@ for (const viewport of [{ width: 1280, height: 768 }, { width: 1280, height: 460
     await expect(page.getByRole("heading", { name: "项目简报", exact: true })).toBeVisible();
     // A project with no run does not eagerly load its model catalog. Read it
     // through the real settings owner, then close without saving anything.
-    await page.getByRole("button", { name: "供应商与会话 Key", exact: true }).click();
-    const settings = page.getByRole("dialog", { name: "供应商 Profile 与会话 Key", exact: true });
+    await page.getByRole("button", { name: "供应商与会话密钥", exact: true }).click();
+    const settings = page.getByRole("dialog", { name: "供应商与会话密钥", exact: true });
     await expect(settings).toBeVisible();
     await settings.getByRole("button", { name: "取消", exact: true }).click();
     await expect(page.locator(".topbar-technical-status")).toContainText(longReason);

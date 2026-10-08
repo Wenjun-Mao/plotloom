@@ -1,4 +1,4 @@
-import { ProjectReportFrame } from "../components/ProjectReportFrame";
+import { StaticReportReader } from "../components/StaticReportReader";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { plotloomApi } from "../api";
@@ -144,7 +144,7 @@ function StoryboardStage({ graph, script, names, route, state, onFocus, projectI
   if (state.status === "loading") return <section className="prototype-reading"><Spinner label="正在检查当前分镜评审" /></section>;
   if (state.status === "failed") return <section className="prototype-reading" data-testid="storyboard-read-failed"><h2>暂时无法读取分镜</h2><ErrorNotice message={state.message} /><p>已读取的剧本和路线仍保留。重新读取不会准备任务、生成素材或改变已确认内容。</p><button className="button quiet" onClick={onRetry}>重新读取分镜</button></section>;
   if (state.status === "unavailable") return <section className="prototype-reading storyboard-unavailable" data-testid="storyboard-unavailable"><div><span className="eyebrow">分镜阅读</span><h2>当前分镜不可读</h2><p>{state.message}</p></div><p>这不会影响已确认剧本；可切换回“剧本”继续按路线阅读。</p><a className="button quiet" href={sourceWorkflowHref(projectId, "storyboard-review")}>前往分镜评审</a></section>;
-  return <><StoryboardReader graph={graph} script={script} names={names} route={route} storyboard={state.storyboard} bindings={state.review.binding.sectionBindings} onFocus={onFocus} /><section className="prototype-report"><details><summary>打开上游分镜报告（静态阅读）</summary><p>段落与提示词完整展开；复制、导出与报告内图片放大停用。原始归档与已确认评审内容保持独立。</p><ProjectReportFrame sandbox="" referrerPolicy="no-referrer" title="static upstream storyboard report" url={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, state.review.candidateJobId)} /></details></section></>;
+  return <><StoryboardReader graph={graph} script={script} names={names} route={route} storyboard={state.storyboard} bindings={state.review.binding.sectionBindings} onFocus={onFocus} /><section className="prototype-report"><StaticReportReader kind="storyboard" url={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, state.review.candidateJobId)} /></section></>;
 }
 
 function PrototypeShell({ children }: { children: ReactNode }) { return <div className="prototype-shell">{children}</div>; }

@@ -169,6 +169,7 @@ for (const authority of ["head", "status"] as const) test(`dirty Script retains 
 
 test("dirty Art survives reopened-to-stale status with the same accepted revision", async ({ page, request, workbench }) => {
   const id = await createScriptProject(request, workbench.apiOrigin, "dirty-art-stale");
+  const prior = (await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/art`))).acceptedArt;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#art`);
   const panel = page.getByTestId("art-review");
   await panel.getByRole("button", { name: "重新打开美术提案" }).click();
@@ -184,6 +185,18 @@ test("dirty Art survives reopened-to-stale status with the same accepted revisio
   await expect(retained).toContainText("美术 r1");
   await expect(retained.getByRole("textbox")).toHaveValue(draft);
   await expect(retained.getByRole("button", { name: "保存重新打开的美术" })).toBeDisabled();
+  for (const [width, height] of [[1700, 900], [1280, 768], [1280, 460]]) {
+    await page.setViewportSize({ width, height });
+    await retained.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: test.info().outputPath(`art-retained-stale-top-${width}x${height}.png`) });
+    const discard = retained.getByRole("button", { name: "舍弃美术草稿" });
+    await discard.scrollIntoViewIfNeeded();
+    await expect(discard).toBeInViewport();
+    await expect(retained.getByRole("textbox")).toHaveValue(draft);
+    await page.screenshot({ path: test.info().outputPath(`art-retained-stale-actions-${width}x${height}.png`) });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  }
+  expect((await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/art`))).acceptedArt).toEqual(prior);
   await retained.getByRole("button", { name: "舍弃美术草稿" }).click();
   await expect(retained).toHaveCount(0);
   expect((await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/art`))).acceptedArt.revision).toBe(1);

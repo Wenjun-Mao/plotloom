@@ -12,7 +12,10 @@ const still = path.join(root, "docs/verification/supporting/p0-generated/01-arri
 const retainDiagnostics = new WeakMap<Page, () => Promise<void>>();
 
 test.beforeEach(async ({ page }, info) => {
-  retainDiagnostics.set(page, await collectNativeMediaDiagnostics(page, info));
+  retainDiagnostics.set(page, await collectNativeMediaDiagnostics(page, info, {
+    responseUrl: /\/video-jobs\/[^/]+\/playback(?:\?|$)/,
+    traceReader: "readBranchingMediaTrace",
+  }));
 });
 test.afterEach(async ({ page }) => {
   await retainDiagnostics.get(page)?.();

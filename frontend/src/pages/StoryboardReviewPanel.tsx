@@ -1,4 +1,4 @@
-import { ProjectReportFrame } from "../components/ProjectReportFrame";
+import { StaticReportReader } from "../components/StaticReportReader";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
@@ -67,7 +67,7 @@ export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOp
     {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} stale={state.status === "stale"} busy={busy} run={run} />}
     {candidate?.status === "ready" && <StoryboardReviewInspection title="查看待审阅分镜" value={candidate.storyboard} />}
     {acceptedReview && <section><small>已确认评审 r{acceptedReview.revision} · 已确认剧本 r{acceptedReview.binding.scriptRevision} · hash {acceptedReview.contentHash.slice(0, 12)}</small><StoryboardReviewInspection title="查看当前已确认分镜" value={acceptedReview.storyboard} /></section>}
-    {reportJobId && <details><summary>打开上游分镜报告（静态阅读）</summary><p className="action-prerequisite">静态阅读视图：所有分段与提示词完整展开；复制、导出与报告内图片放大停用。原始归档与已确认分镜保持独立。</p><ProjectReportFrame sandbox="" referrerPolicy="no-referrer" title="static derived upstream storyboard report" className="source-outline-report" url={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, reportJobId)} /></details>}
+    {reportJobId && <StaticReportReader kind="storyboard" url={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, reportJobId)} />}
     {candidate?.status === "prepared" && <details><summary>查看任务说明（手动方式）</summary><Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.recoverStoryboardSourceReviewHandoff(projectId, candidate.jobId), result => setAssignment(result.assignment))}>恢复分镜任务</Button>{assignment && <ManualTaskAssignment key={`${projectId}:${candidate.jobId}:${assignment}`} assignment={assignment} taskName="分镜" />}</details>}
     {error && <ErrorNotice message={error} />}
     {acceptedReview && <ProductionBridgePanel projectId={projectId} readOnly={readOnly || state.status === "stale"} onOpenShot={onOpenShot} onInstalled={onInstalled} />}

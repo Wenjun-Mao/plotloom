@@ -19,7 +19,7 @@ safe continuation. It does not implement new product capabilities.
 
 | Profile field | Current run |
 |---|---|
-| Last qualified baseline | Native gallery repair independently reviewed:601 frontend/207 browser PASS6.6m without local retries,857 inputs unchanged between mid-gate capture and final readback, types/build/wheel/smoke PASS. Python1,245 qualification reused from unchanged e941780 source. Earlier7f1041c full CI37712695213 finished success,206 first-pass browser results; it does not qualify the later gallery change |
+| Last qualified baseline | Published draft/credential checkpoint0c91067:683 frontend/220 browser PASS6.1m, exact-head CI37753998839 success. Later report/configuration audit154 is locally qualified:688 frontend/220 browser PASS6.4m without local retries,868 inputs unchanged before/after, types/build/wheel/smoke PASS; publication pending. Python1,245 qualification reused from unchanged e941780 source |
 | Existing evidence | Completed text→installation→first-shot native flow and separate structural QA; finite type/start/Undo, imported-image lifecycle/snapshot/restored-copy UI, six-sibling desktop and trusted OS blur passed. C50 nonempty metadata/reopen/cleanup and C52 distinct A-B-A partial drafts/history/modes/close/reopen/immediate unsaved switch have full exact readbacks and clean QA baselines. Native media and same completed-project revision remain PARTIAL; see current media repair and C52 receipts |
 | Runtime boundary | Normal8841 serves checked frontend through its checkout mount with unchanged qualified Python. Owned idle8861/8862 was restarted after native completion and now loads matching Python/static plus explicitly enabled current H3 catalogv7 via process-only configuration; protected settings unchanged. Separate8871 qualifies graph checks; retained8851 is historical. Never restart a busy reservation |
 | Data baseline | Fresh native QA b3a933f7-b6fc-40e3-826f-5162f95a119a; structural QA remains separately identified in the ledger. Completed playable/media baseline not yet established for this repeat |
@@ -133,8 +133,11 @@ that CI is not evidence for the later gallery change. Current isolated8861 has
 H3 enabled through documented process-only catalogv7, not a protected-file edit.
 The owner clarified that routine steps within the approved run must not seek
 renewed consent; ADR0131 supersedes the earlier over-restrictive coordination.
-Native Scene/Prop/refinement/pair, keyframes/H3/every-route and video recovery
-remain outstanding. Prerequisite capability design is still a separate unanswered
+The current ledger now records finite native Character refinement/pair and
+Scene/Prop delivery/reference checks, plus opening keyframe/endframe review and
+one ingested H3 candidate. Downstream reference consumption, successful raw-media/
+segment playback, other-route media, every-route/multishot and video recovery
+remain outstanding; ingestion is not playback qualification. Prerequisite capability design is still a separate unanswered
 scope question. Full native/revision acceptance remains PARTIAL.
 
 Actual OS focus loss now passes on owned8871 at1700×900, with automatic380px and

@@ -66,3 +66,16 @@ Do not restore worker sharing by introducing ad-hoc state resets or weakened
 dispatch ownership; regress the scope and dependency ordering explicitly.
 
 This uses [Playwright fixture scope and execution order](https://playwright.dev/docs/test-fixtures#execution-order).
+
+## Setup phase evidence amendment · 2026-10-08
+
+Local121 and145 gates timed out during workbench setup before any UI assertion.
+The trace named only the outer45-second fixture, losing the interrupted setup
+owner. Preserve disposable-root, port-allocation and each owned-process readiness
+phase as named steps nested under that fixture. Phase URLs contain only owned
+loopback origins; do not attach environment values or project/credential payloads.
+Polling, startup/fixture budgets, workers, retries and cleanup ownership remain
+unchanged. Successful146 focused traces qualify emitted phase identity/timing,
+not failure-phase retention or a startup causal fix. An unchanged passing replay
+cannot explain earlier failures. Unbounded in-flight readiness fetch and cumulative
+stage budgets remain explicit follow-ups; choose repairs only after causal evidence.

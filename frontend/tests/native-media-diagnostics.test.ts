@@ -11,7 +11,12 @@ vi.mock("node:fs/promises", async importOriginal => {
 });
 afterEach(() => { vi.useRealTimers(); vi.clearAllMocks(); });
 
-function harness() {
+const branchingSource = {
+  responseUrl: /\/video-jobs\/[^/]+\/playback(?:\?|$)/,
+  traceReader: "readBranchingMediaTrace" as const,
+};
+
+function harness(source: Parameters<typeof collectNativeMediaDiagnostics>[2] = branchingSource) {
   const handlers = new Map<string, (event: unknown) => void>();
   const cdp = { on: vi.fn(), send: vi.fn(async () => {}), detach: vi.fn(async () => {}) };
   const page = {
@@ -22,7 +27,7 @@ function harness() {
   };
   const info = { status: "failed", expectedStatus: "passed", outputPath: (name: string) => `/diagnostics/${name}`, attach: vi.fn(async () => {}) };
   return { page, info, cdp, handlers,
-    collect: () => collectNativeMediaDiagnostics(page as unknown as Page, info as unknown as TestInfo) };
+    collect: () => collectNativeMediaDiagnostics(page as unknown as Page, info as unknown as TestInfo, source) };
 }
 function response(body: () => Promise<Buffer>) {
   return { url: () => "http://localhost/api/v2/projects/qa/video-jobs/qa/playback", status: () => 206,
@@ -41,6 +46,19 @@ it("retains exact failed-playback bytes and their identity before cleaning up", 
   expect(writeFile).toHaveBeenCalledWith("/diagnostics/native-playback-response-0.mp4", bytes);
   expect(fixture.info.attach).toHaveBeenCalledTimes(2);
   expect(fixture.handlers.size).toBe(0); expect(fixture.cdp.detach).toHaveBeenCalledOnce();
+});
+
+it("uses the explicit native trace reader and retains only the configured native response", async () => {
+  const fixture = harness({ responseUrl: /\/native\.mp4(?:\?|$)/, traceReader: "readNativeTrace" });
+  const retain = await fixture.collect();
+  fixture.handlers.get("response")!(response(async () => Buffer.from([0])));
+  fixture.handlers.get("response")!({ ...response(async () => Buffer.from([1, 2, 3, 4])),
+    url: () => "http://localhost/native.mp4", status: () => 200 });
+  await retain();
+  expect(fixture.page.evaluate).toHaveBeenCalledWith(expect.any(Function), "readNativeTrace");
+  const evidence = JSON.parse(vi.mocked(writeFile).mock.calls[0][1] as string);
+  expect(evidence.responses).toHaveLength(1);
+  expect(evidence.responses[0]).toMatchObject({ url: "http://localhost/native.mp4", status: 200, byteCount: 4 });
 });
 
 it("retains pending-body evidence and cleans up even when the renderer and body never settle", async () => {

@@ -54,13 +54,17 @@ function createWorkbenchTest(frontendMode: FrontendMode) {
     // A deliberately requested retained fixture keeps its isolated project
     // bytes for attended inspection; ordinary test runs still clean up.
     const retainedParent = process.env.PLOTLOOM_E2E_RETAIN_PARENT;
-    if (retainedParent) await mkdir(retainedParent, { recursive: true });
-    const temporaryRoot = await mkdtemp(path.join(retainedParent ?? os.tmpdir(), "plotloom-e2e-"));
+    const temporaryRoot = await base.step("Workbench setup: disposable root", async () => {
+      if (retainedParent) await mkdir(retainedParent, { recursive: true });
+      return mkdtemp(path.join(retainedParent ?? os.tmpdir(), "plotloom-e2e-"));
+    });
     const outputsRoot = path.join(temporaryRoot, "outputs");
     const applicationDataRoot = path.join(temporaryRoot, "application");
-    const backendPort = await reserveLoopbackPort();
-    const frontendPort = frontendMode === "vite" ? await reserveLoopbackPort() : undefined;
-    const providerPort = await reserveLoopbackPort();
+    const { backendPort, frontendPort, providerPort } = await base.step("Workbench setup: owned loopback ports", async () => ({
+      backendPort: await reserveLoopbackPort(),
+      frontendPort: frontendMode === "vite" ? await reserveLoopbackPort() : undefined,
+      providerPort: await reserveLoopbackPort(),
+    }));
     const apiOrigin = `http://${loopbackHost}:${backendPort}`;
     const frontendOrigin = frontendPort
       ? `http://${loopbackHost}:${frontendPort}`
@@ -200,6 +204,12 @@ async function waitForHttpUnavailable(url: string): Promise<void> {
 }
 
 async function waitForHttp(url: string, process: ManagedProcess): Promise<void> {
+  // Preserve the interrupted owner phase even if the outer fixture deadline
+  // fires before this await returns. Do not infer its cause or loosen its limits.
+  await base.step(`Workbench readiness: ${process.label} (${url})`, () => pollHttpReadiness(url, process));
+}
+
+async function pollHttpReadiness(url: string, process: ManagedProcess): Promise<void> {
   const deadline = Date.now() + 25_000;
   let lastError = "";
   while (Date.now() < deadline) {

@@ -52,8 +52,8 @@ test("node Story retains every scene and losslessly saves the original dirty sec
   const accepted = (await json(request.get(url))).acceptedScript;
   expect(accepted.script.episodes).toEqual([episode, ...retained.script.episodes.slice(1)]);
   expect(accepted.script.sectionBindings).toEqual(retained.script.sectionBindings);
-  await panel.getByText("打开上游报告（静态阅读）", { exact: true }).click();
-  await expect(page.frameLocator('iframe[title="static derived upstream script report"]').locator("body")).toContainText("does not describe the current accepted revision");
+  await panel.getByText("阅读原始剧本报告（只读）", { exact: true }).click();
+  await expect(page.frameLocator('iframe[title="原始剧本交付报告（只读）"]').locator("body")).toContainText("does not describe the current accepted revision");
   await page.locator('[data-creator-node="power-choice"] .creator-node-select').click();
   await expect(panel).toContainText("没有画面场次");
   await expect(panel.locator("[data-script-occurrence]")).toHaveCount(0);
@@ -86,8 +86,8 @@ test("creator Story retries reads and reuses explicit whole-package prepare, che
   await writeDelivery(prepared, "script", await fixture("script.json"));
   await panel.getByRole("button", { name: "立即检查", exact: true }).click();
   await expect(panel.getByRole("button", { name: "确认使用此剧本", exact: true })).toBeEnabled();
-  await panel.getByText("打开上游报告（静态阅读）", { exact: true }).click();
-  await expect(page.frameLocator('iframe[title="static derived upstream script report"]').locator("body")).toContainText("Deterministic upstream-context fixture report");
+  await panel.getByText("阅读原始剧本报告（只读）", { exact: true }).click();
+  await expect(page.frameLocator('iframe[title="原始剧本交付报告（只读）"]').locator("body")).toContainText("Deterministic upstream-context fixture report");
   await panel.getByRole("button", { name: "确认使用此剧本", exact: true }).click();
   await expect(panel).toContainText("已确认 r1");
   expect((await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/runs`))).runs).toEqual([]);

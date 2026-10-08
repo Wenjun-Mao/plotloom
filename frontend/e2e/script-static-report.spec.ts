@@ -3,6 +3,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test } from "./fixture";
 import { changeScript, createScriptProject, fixture, hash, json, writeDelivery } from "./f5a-fixture";
+import { auditStaticReport } from "./static-report-audit";
 
 test("archived Script static reading reveals long scenes and keeps scripts isolated", async ({ page, request, workbench }) => {
   const id = await createScriptProject(request, workbench.apiOrigin, "static-script-report", {}, ["cast", "art"]);
@@ -37,12 +38,12 @@ test("archived Script static reading reveals long scenes and keeps scripts isola
   await page.setViewportSize({ width: 1280, height: 768 });
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#script`);
   const panel = page.getByTestId("script-review");
-  await panel.getByText("打开上游报告（静态阅读）", { exact: true }).click();
-  await expect(panel).toContainText("静态阅读视图：所有场次与台词完整展开");
+  await panel.getByText("阅读原始剧本报告（只读）", { exact: true }).click();
+  await expect(panel).toContainText("场次与台词已完整展开");
   const iframe = panel.locator("iframe");
   await expect(iframe).toHaveAttribute("sandbox", "");
   await expect(iframe).toHaveAttribute("referrerpolicy", "no-referrer");
-  const frame = page.frameLocator('iframe[title="static derived upstream script report"]');
+  const frame = page.frameLocator('iframe[title="原始剧本交付报告（只读）"]');
   await expect(frame.locator(".scenes.clip").first()).toContainText("Final archived scene.");
   const bounds = await frame.locator(".scenes.clip").first().evaluate(el => ({ height: el.clientHeight, scroll: el.scrollHeight }));
   expect(bounds.height).toBeGreaterThan(300);
@@ -54,12 +55,13 @@ test("archived Script static reading reveals long scenes and keeps scripts isola
   for (const section of ["sec-script", "sec-cast"]) await expect(frame.locator(`#${section} > .sec-h > .note`)).toBeHidden();
   for (const section of ["sec-timing", "sec-scenes"]) await expect(frame.locator(`#${section} > .sec-h > .note`)).toBeVisible();
   for (const selector of [".scmore", ".copy", ".expo"]) for (const control of await frame.locator(selector).all()) await expect(control).toBeHidden();
+  await auditStaticReport(page, panel, "script", test.info());
   expect(await page.locator("body").getAttribute("data-archive-mutation")).toBeNull();
   expect(await frame.locator("body").evaluate(() => (window as unknown as { archiveExecuted?: boolean }).archiveExecuted)).toBeUndefined();
   await frame.locator("#unsafe-action").click();
   expect(attemptedNetwork).toBe(0);
-  await panel.getByText("打开上游报告（静态阅读）", { exact: true }).click();
-  await panel.getByText("打开上游报告（静态阅读）", { exact: true }).click();
+  await panel.getByText("阅读原始剧本报告（只读）", { exact: true }).click();
+  await panel.getByText("阅读原始剧本报告（只读）", { exact: true }).click();
   await expect(frame.locator(".scenes.clip").first()).toContainText("Final archived scene.");
   expect(await (await request.get(archiveUrl)).text()).toBe(report.toString());
   expect(hash(await readFile(path.join(prepared.deliveryPath, "report.html")))).toBe(hash(report));

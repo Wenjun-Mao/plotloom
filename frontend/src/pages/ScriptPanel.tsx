@@ -1,4 +1,4 @@
-import { ProjectReportFrame } from "../components/ProjectReportFrame";
+import { StaticReportReader } from "../components/StaticReportReader";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
@@ -140,7 +140,7 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
       <Button disabled={readOnly || busy || !accepted} onClick={adoptCurrent}>用当前章节替换草稿</Button>
     </section>}
     {draftDirty.current && !retained && <Button disabled={readOnly || busy} onClick={discardDraft}>舍弃当前章节修改</Button>}
-    {reportJobId && <Report key={`${reportJobId}:${accepted?.revision}:${accepted?.contentHash}`} projectId={projectId} jobId={reportJobId} />}
+    {reportJobId && <StaticReportReader key={`${reportJobId}:${accepted?.revision}:${accepted?.contentHash}`} kind="script" url={plotloomApi.scriptCandidateReportUrl(projectId, reportJobId)} />}
     {candidate?.status === "prepared" && <details><summary>查看任务说明（手动方式）</summary><Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.recoverScriptHandoff(projectId, candidate.jobId), result => setAssignment(result.assignment))}>恢复剧本任务</Button>{assignment && <ManualTaskAssignment key={`${projectId}:${candidate.jobId}:${assignment}`} assignment={assignment} taskName="剧本" />}</details>}
     {error && <ErrorNotice message={error} />}
   </article>;
@@ -160,7 +160,7 @@ function CandidateActions({ candidate, projectId, readOnly, stale, busy, run }: 
 function AcceptedReview({ accepted, projectId, readOnly, busy, status, retained, sectionId, draft, onSelect, onDraft, onReopen, onSave }: { accepted: AcceptedScriptRevision; projectId: string; readOnly: boolean; busy: boolean; status: ScriptReviewState["status"]; retained: boolean; sectionId: string; draft: string; onSelect: (sectionId: string) => void; onDraft: (draft: string) => void; onReopen: () => void; onSave: () => void }) {
   const editing = status === "reopened";
   return <section>
-    <small>已确认 r{accepted.revision} · hash {accepted.contentHash.slice(0, 12)}。当前 JSON 可直接检查；上游报告保留原始派生内容，以静态阅读方式显示。</small>
+    <small>已确认 r{accepted.revision} · hash {accepted.contentHash.slice(0, 12)}。可在下方查看当前剧本；原始报告保留最初交付的版本，可能与后续修改不同。</small>
     <ScriptJson title="查看当前已确认剧本" script={accepted.script} />
     {!editing && <Button variant="quiet" disabled={readOnly || busy} onClick={onReopen}>重新打开剧本</Button>}
     {editing && !retained && <SectionEditor accepted={accepted} disabled={readOnly || busy} sectionId={sectionId} draft={draft} onSelect={onSelect} onDraft={onDraft} onSave={onSave} />}
@@ -179,10 +179,6 @@ function SectionEditor({ accepted, disabled, sectionId, draft, onSelect, onDraft
 
 function ScriptJson({ title, script }: { title: string; script: Record<string, unknown> | null }) {
   return <details className="script-json-disclosure"><summary>{title}</summary><pre>{JSON.stringify(script, null, 2)}</pre></details>;
-}
-
-function Report({ projectId, jobId }: { projectId: string; jobId: string }) {
-  return <details><summary>打开上游报告（静态阅读）</summary><p>静态阅读视图：所有场次与台词完整展开；上游脚本、复制与导出操作停用。原始归档文件与确认内容保持独立。</p><ProjectReportFrame sandbox="" title="static derived upstream script report" className="source-outline-report" referrerPolicy="no-referrer" url={plotloomApi.scriptCandidateReportUrl(projectId, jobId)} /></details>;
 }
 
 function episodeForSection(accepted: AcceptedScriptRevision, sectionId: string): string {

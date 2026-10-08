@@ -1,14 +1,28 @@
 import { expect, test } from "./fixture";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import type { Page, TestInfo } from "@playwright/test";
+import { collectNativeMediaDiagnostics } from "./native-media-diagnostics";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const fixturePath = "/__e2e__/offline-h3-fixture.mp4";
+const retainDiagnostics = new WeakMap<Page, () => Promise<void>>();
+
+test.beforeEach(async ({ page }, info) => {
+  retainDiagnostics.set(page, await collectNativeMediaDiagnostics(page, info, {
+    responseUrl: /\/__e2e__\/offline-h3-fixture\.mp4(?:\?|$)/,
+    traceReader: "readNativeTrace",
+  }));
+});
+test.afterEach(async ({ page }) => {
+  await retainDiagnostics.get(page)?.();
+});
 
 async function offlineFixtureBytes(): Promise<Buffer> {
   // The established offline H3 test fixture writes only to TemporaryDirectory.
-  // Keeping the bytes in this test process avoids a new tracked or retained clip.
+  // Serve these exact bytes unchanged; retain responses only as failure evidence.
   const program = [
     "import sys",
     "sys.path.insert(0, 'frontend/e2e/video_backends/minimax_h3')",
@@ -31,8 +45,11 @@ async function offlineFixtureBytes(): Promise<Buffer> {
   });
 }
 
-async function serveFixture(page: import("@playwright/test").Page, origin: string) {
+async function serveFixture(page: Page, origin: string, info: TestInfo) {
   const bytes = await offlineFixtureBytes();
+  await info.attach("offline-h3-fixture-identity", { contentType: "application/json", body: JSON.stringify({
+    path: fixturePath, byteCount: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"),
+  }) });
   await page.route(`${origin}${fixturePath}`, async (route) => {
     await route.fulfill({
       body: bytes,
@@ -70,9 +87,9 @@ async function nativeTrace(page: import("@playwright/test").Page) {
   return page.evaluate(() => (window as typeof window & { readNativeTrace: () => unknown[] }).readNativeTrace());
 }
 
-test("plain same-origin offline H3 video plays and reaches a native end", async ({ page, workbench }) => {
+test("plain same-origin offline H3 video plays and reaches a native end", async ({ page, workbench }, info) => {
   test.setTimeout(30_000);
-  await serveFixture(page, workbench.frontendOrigin);
+  await serveFixture(page, workbench.frontendOrigin, info);
   await installPlainPlayer(page, workbench.frontendOrigin);
   const video = page.locator("#player");
   await expect.poll(() => video.evaluate((element) => (element as HTMLVideoElement).readyState)).toBeGreaterThan(0);
@@ -85,9 +102,9 @@ test("plain same-origin offline H3 video plays and reaches a native end", async 
   expect(trace.every((event) => event.connected && event.identity)).toBeTruthy();
 });
 
-test("isolated native video choice sequence holds, chooses, restarts, and reaches both endings", async ({ page, workbench }) => {
+test("isolated native video choice sequence holds, chooses, restarts, and reaches both endings", async ({ page, workbench }, info) => {
   test.setTimeout(65_000);
-  await serveFixture(page, workbench.frontendOrigin);
+  await serveFixture(page, workbench.frontendOrigin, info);
   await installPlainPlayer(page, workbench.frontendOrigin);
   const video = page.locator("#player");
   const play = page.getByRole("button", { name: "Play" });

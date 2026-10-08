@@ -101,10 +101,10 @@ test("keeps the saved synopsis and shows an actionable proposal-admission failur
   const synopsis = "一名调音师在停电的剧院里听见未来演出的回声。";
   await page.getByLabel("故事梗概").fill(synopsis);
   await page.route("**/api/v2/projects/*/pipeline-runs", async (route) => {
-    await route.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ message: "文本后端尚未就绪；请在供应商与会话 Key 中测试连接后重试。" }) });
+    await route.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ message: "文本后端尚未就绪；请在供应商与会话密钥 中测试连接后重试。" }) });
   });
   await generateLegacyProposal(page);
-  await expect(page.getByText("文本后端尚未就绪；请在供应商与会话 Key 中测试连接后重试。", { exact: true })).toBeVisible();
+  await expect(page.getByText("文本后端尚未就绪；请在供应商与会话密钥 中测试连接后重试。", { exact: true })).toBeVisible();
   await expect(page.getByLabel("故事梗概")).toHaveValue(synopsis);
 });
 

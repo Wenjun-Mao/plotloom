@@ -12,7 +12,17 @@ The [draft/credential/lifecycle reading checkpoint](2026-10-08-dialog-credential
 adds actual consent/recovery and snapshot-disclosure checks; its final gate is
 qualified locally, and it does not close the remaining full-product state matrix.
 That checkpoint is published as executable `0c91067`, serving exact assets on
-normal8841; its new unfiltered remote CI37753998839 is queued at closeout.
+normal8841; its unfiltered exact-head remote CI37753998839 has completed success.
+The [original-report/stale-Art checkpoint](2026-10-08-static-report-art-ui-states.md)
+adds72 directly inspected native/fixture captures, plain shared report copy and
+actual West route/instruction/report reading. Its full browser gate finished218/2;
+the earlier216/4 setup failures, native clock failures and upstream Outline duration tile
+remain explicit. This does not close the whole-product or native-media matrix.
+The [frozen-configuration checkpoint](2026-10-08-frozen-profile-ui-states.md)
+adds all18 inspected desktop configuration-failure/settings frames, clearer current-edit vs
+current-use labels and action-neutral guidance, plus three re-inspected explicit-refresh
+frames. Final unfiltered154 browser qualification passes220 tests6.4m, with868
+inputs unchanged; publication is pending. This does not close the open state matrix.
 Baseline: [full lifecycle ledger](2026-10-07-full-creator-e2e-repeat.md);
 reusable entry: [E22.1–E22.7](../creative-workflow/graph-workbench-acceptance.md#e22-全产品视觉与文案专门检查).
 
@@ -56,7 +66,7 @@ report evidence are not rewritten for cosmetic consistency.
 | Cast/reference gallery |80b/86/115 native confirmed content;129–131 disposable initial failed-read, confirmed-no-images and archived-guidance viewport captures; named recovery and overlapping-read regression | Retained-refresh recovery has unit evidence, not viewport qualification; other proposal/report states remain open |
 | Bible |88 native populated premise;129–131 disposable selected character/location/prop top/bottom and archived-character deep link, all desktop sizes directly inspected | Initial transport failure and other archived entity permutations remain open |
 | Art, Script, Storyboard/production review |87–89 native top/middle/bottom;94 saved/selected;109 loaded heads;112 repaired Art/production viewport pixels at all three sizes;113 actual native optional-Art-task scrolling at all three sizes, zero writes | Deeper selected/failed/stale state permutations not yet pixel-qualified |
-| Script/Storyboard readers |90 native East/West;129/130 seven explicit reader states ×three sizes directly inspected; optional failure retry preserves Script/route and performs no writes | Remaining native West expanded-report/instruction pixels and report permutations |
+| Script/Storyboard readers |90 native East/West;129/130 seven explicit reader states ×three sizes;145 actual native West selection, expanded instructions and original report, all directly inspected; optional failure retry preserves Script/route and performs no writes | Other reader/report permutations remain open; West slice now qualified separately |
 | Play |90/95 native incomplete media;109 missing installed production exposed a misframed request error;112 typed prerequisite state directly inspected at all three sizes with exact owner link and no transport alert | Native playable/all-route progression not established; initial request failure/retry tested separately |
 | Specialist/provider settings, Home/directory |91 native top/bottom;93 repaired overlay hit/scroll/Close;109 desktop views;112 initial top, text-ID scroll and image-ID scroll pixels directly inspected at all three sizes; readable directory times rechecked | Other operational states not yet pixel-qualified |
 | Trace, repair, Beats |97 native idle/populated;109 all18 Pro and three enabled exact-repair viewports;112 one-line Add Scene;137/140 Trace/repair and Inspector pixels directly inspected;141 changed running-event recapture | Additional native event/operational permutations; running fixture is frozen-key blocked, not native execution |
@@ -78,8 +88,8 @@ file; do not inherit a PASS from a different state or source revision.
 
 | Surface / state slice | Class and retained evidence | Visual result / next check |
 |---|---|---|
-| Script reader, populated read-only top/bottom | Native90, six PNGs at all three desktop sizes, root direct review | Layout readable; wide first top still has a pending Storyboard tab. Reader wording repair/re-capture pending. |
-| Storyboard reader, populated read-only top/bottom | Native90, six PNGs at all three desktop sizes, root direct review | Layout readable; current route is East. Does not qualify West pixels or expanded report/instructions. |
+| Script reader, populated read-only top/bottom | Native90, six PNGs at all three desktop sizes; later145 native West route/instruction/report frames directly inspected | Original90 top retained a pending Storyboard tab; later145 qualifies loaded West reading separately. Shared wording repair and exact original-report boundaries are recorded in the report checkpoint. |
+| Storyboard reader, populated read-only top/bottom | Native90, six East PNGs; later145 native West anchor/full-prompt/report frames directly inspected | East90 does not itself qualify West; the later145 slice separately covers West/instructions/original reports. Other permutations remain open. |
 | Reader, no project / missing or reopened Script / stale Storyboard | Explicit fixtures129/130, four states at all three sizes, independent direct inspection | Scoped PASS for prerequisite/refusal and exact preparation-owner links; not native generation. |
 | Reader, initial failed read / pending or failed optional Storyboard / named retry | Explicit faults129/130, three states at all sizes; same-Script/route and zero-write guards | Scoped PASS; Storyboard retry is isolated, missing content is not a transport failure. |
 | Original video, collapsed / expanded native error | Explicit read-fault fixture120; both states at all three sizes, root/independent inspection | Scoped PASS; candidate and handler limits in the preview checkpoint. |
@@ -89,7 +99,7 @@ file; do not inherit a PASS from a different state or source revision.
 | Bible, populated premise | Native88 at all three sizes | Scoped PASS for this form, not the selected entity forms. |
 | Bible, selected character / location / prop / archived character | Disposable129–131 and final137, top/bottom pairs18 PNGs plus archived-character3, direct independent inspection | Scoped PASS for retained values, labels, lower-field reachability and disabled archive controls; location is not a scene beat. |
 | Art, confirmed plus optional new task | Native112/113 at all three sizes | Scoped PASS for current hierarchy/scrolling; no dispatch performed. |
-| Art / Script / Storyboard, stale / dirty / failed | Some fixture109 states and functional guards exist | PARTIAL: bind each final rendered state and its action owner separately. |
+| Art / Script / Storyboard, stale / dirty / failed | Some fixture109 states and functional guards;145 six directly inspected retained dirty-Art/stale captures and exact accepted-object preservation | Dirty-Art/stale slice scoped PASS; Script/Storyboard and other failure permutations remain PARTIAL. |
 | Trace, retained failure / pending cancellation / true idle / key-blocked running |140 twenty-seven directly inspected PNGs, including Professional Inspector;141 three changed running-event pixels; zero-write and cancellation-eligibility guards | Scoped reading PASS after helper/tone/uncertain-kind/timestamp repairs. Native active execution and other populated events remain PARTIAL. |
 | Exact repair, eligible / refusal / unknown result | Enabled109 eligible viewport;140 eighteen directly inspected refusal/unknown-state PNGs, exact codes, explicit duplicate-generation warning and zero writes | Scoped refusal/unknown reading PASS; not a new repair/rebuild execution claim. |
 | Directory/settings, populated / initial top / scrolled lower controls | Native91/93 and repaired112; all three sizes | Scoped PASS; not operation-in-progress or failed-save state. |
@@ -97,10 +107,12 @@ file; do not inherit a PASS from a different state or source revision.
 | Project-saved recovery |143 three final recovery frames directly re-reviewed; exact payload Restore preserves canonical r2 | Scoped checks; session-only/reconciliation/busy have functional tests, not separate pixel qualification. |
 | Snapshot completion / status disclosure |143 actual201 complete; three before failures and three repaired after frames directly inspected | Reading defect repaired; open-only summary reveal preserves normal scrolling. Final gate qualified; does not imply every snapshot/lifecycle failure state. |
 | Permanent deletion challenge |143 disposable blank/wrong/exact title ×three sizes, all nine frames independently inspected; Cancel preserves entire project and sends zero writes | Scoped challenge reading/eligibility PASS; actual deletion and lifecycle failure-state pixels remain PARTIAL. |
-| Frozen profile: missing key / missing profile / read failure | Exact frozen-profile browser and unit guards; repaired single catalog owner and current response contract | Scoped functional qualification; separate final failure-state pixels remain NOT EXERCISED. |
+| Frozen profile: missing key / missing profile / read failure / exact settings |152 eighteen directly inspected fixture PNGs;153 three changed refresh-guidance frames re-inspected; GET-only faults and zero-write/explicit same-job continuation guards | Scoped pixel/operation PASS; final220 browser/688 frontend qualification in linked checkpoint. |
 | Source / Outline / Creator / Pro, populated owner views | Native82–85 and loaded109; scoped fixes rechecked112 | PARTIAL: explicit empty/waiting/failed/stale/dirty/read-only rows still required. |
 | Structural help, hover / keyboard focus | C55 functional and earlier short-desktop checks | PARTIAL: separate final candidate viewport and focused/disabled action receipt. |
-| Cast / Art / Script / Storyboard static reports | Existing report contracts and isolated browser journeys | PARTIAL: register each report's full summary, disclosures, anchors, disabled scripts and short-desktop scroll pixels separately. |
+| Script / Storyboard static reports |145 native33 direct pixels: disclosure/top/middle/bottom, West anchor/full prompt, reopen and archive/canonical/no-write guards;145 reader21 West route/instruction/report pixels | Scoped native reading PASS; original report covers all episodes, route reader only selected route. Other report permutations remain open. |
+| Cast / Art static reports | Existing report contracts and isolated browser journeys | PARTIAL: register each full summary, disclosures, anchors, disabled scripts and short-desktop pixels separately. |
+| Outline original interactive report |144 native12 direct top/table/middle/bottom pixels, all sizes; exact archive/project/no-write, bounds/hit and reopen guards | Reading controls/scroll scoped PASS. Raw fractional-minute tile wraps badly at1280; upstream renderer defect UNRESOLVED, original bytes preserved. |
 
 Next priority: review-state/dialog/help/report
 permutations and the remaining native route/report pixels. Reader/gallery/Bible

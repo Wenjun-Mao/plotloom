@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test } from "./fixture";
 import { createScriptProject, endpoint, fixture, hash, json, writeDelivery } from "./f5a-fixture";
+import { auditStaticReport } from "./static-report-audit";
 
 test("pinned Storyboard static reader reveals long segments/prompts without permissions or archive rewrites", async ({ page, request, workbench }) => {
   const id = await createScriptProject(request, workbench.apiOrigin, "static-storyboard-report");
@@ -34,8 +35,8 @@ test("pinned Storyboard static reader reveals long segments/prompts without perm
   await page.setViewportSize({ width: 1280, height: 768 });
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
   const panel = page.getByTestId("storyboard-review");
-  await panel.getByText("打开上游分镜报告（静态阅读）", { exact: true }).click();
-  await expect(panel).toContainText("所有分段与提示词完整展开");
+  await panel.getByText("阅读原始分镜报告（只读）", { exact: true }).click();
+  await expect(panel).toContainText("分段与提示词已完整展开");
   const iframe = panel.locator("iframe");
   await expect(iframe).toHaveAttribute("sandbox", "");
   await expect(iframe).toHaveAttribute("referrerpolicy", "no-referrer");
@@ -48,11 +49,12 @@ test("pinned Storyboard static reader reveals long segments/prompts without perm
   await expect(frame.locator(".fprompt").first()).not.toBeEmpty();
   for (const section of ["sec-rhythm", "sec-segments", "sec-batches", "sec-dialogue", "sec-gates"]) await expect(frame.locator(`#${section}`)).toBeVisible();
   for (const selector of [".expo", ".copy", ".shmore", ".lightbox"]) for (const control of await frame.locator(selector).all()) await expect(control).toBeHidden();
+  await auditStaticReport(page, panel, "storyboard", test.info());
   expect(await frame.locator("body").evaluate(() => (window as unknown as { storyboardExecuted?: boolean }).storyboardExecuted)).toBeUndefined();
   expect(await page.locator("body").getAttribute("data-storyboard-mutation")).toBeNull();
   expect(network).toBe(0);
-  await panel.getByText("打开上游分镜报告（静态阅读）", { exact: true }).click();
-  await panel.getByText("打开上游分镜报告（静态阅读）", { exact: true }).click();
+  await panel.getByText("阅读原始分镜报告（只读）", { exact: true }).click();
+  await panel.getByText("阅读原始分镜报告（只读）", { exact: true }).click();
   await expect(frame.locator("#seg-LONG_SEGMENT_30")).toBeVisible();
   expect(hash(await readFile(path.join(prepared.deliveryPath, "report.html")))).toBe(hash(report));
   expect(await (await request.get(archiveUrl)).text()).toBe(report.toString());
@@ -66,7 +68,7 @@ test("pinned Storyboard static reader reveals long segments/prompts without perm
     await route.fulfill({ response, body: imageReport + style });
   });
   await page.reload();
-  await panel.getByText("打开上游分镜报告（静态阅读）", { exact: true }).click();
+  await panel.getByText("阅读原始分镜报告（只读）", { exact: true }).click();
   await expect(frame.locator("img.frame").first()).toHaveAttribute("src", "LONG_SEGMENT_1/f1.png");
   await expect(frame.locator("img.frame").first()).toHaveCSS("cursor", "default");
   expect(hash(await readFile(path.join(prepared.deliveryPath, "report.html")))).toBe(hash(report));

@@ -64,13 +64,13 @@ test("switches route-focused screenplay and matching storyboard without appendin
   await expect(storyboard).toContainText("The dock stays on.");
   await expect(storyboard).not.toContainText("Sailors can see the channel now.");
   await expect(prototype.getByTestId("route-reader")).toHaveCount(0);
-  await prototype.getByText("打开上游分镜报告（静态阅读）", { exact: true }).click();
-  await expect(prototype).toContainText("原始归档与已确认评审内容保持独立");
-  const report = prototype.locator('iframe[title="static upstream storyboard report"]');
+  await prototype.getByText("阅读原始分镜报告（只读）", { exact: true }).click();
+  await expect(prototype).toContainText("原始报告独立保留，不会随当前分镜修改");
+  const report = prototype.locator('iframe[title="原始分镜交付报告（只读）"]');
   await expect(report).toHaveAttribute("sandbox", "");
   await expect(report).toHaveAttribute("referrerpolicy", "no-referrer");
   await expect(report).toHaveAttribute("src", /presentation=static/);
-  await prototype.getByText("打开上游分镜报告（静态阅读）", { exact: true }).click();
+  await prototype.getByText("阅读原始分镜报告（只读）", { exact: true }).click();
   await prototype.getByRole("button", { name: /Storm warning/ }).first().click();
   await expect(storyboard).toContainText("The dock stays on.");
   const instructions = storyboard.locator(".generation-instructions").first();
