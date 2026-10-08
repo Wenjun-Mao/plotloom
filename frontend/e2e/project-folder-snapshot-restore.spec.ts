@@ -11,6 +11,73 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const retainedStill = path.join(repositoryRoot, "docs/verification/supporting/p0-generated/01-arrival.png");
 const runFile = promisify(execFile);
 
+for (const viewport of [{ width: 1280, height: 768 }, { width: 1280, height: 460 }, { width: 1700, height: 900 }]) {
+  test(`status disclosure reveals its reading entrance from a scrolled page ${viewport.width}x${viewport.height}`, async ({ page, request, workbench }) => {
+    await page.setViewportSize(viewport);
+    const projectId = await createStoryboardProject(request, workbench.apiOrigin);
+    // Stress the actual catalog-owned diagnostic surface, not a replacement
+    // toolbar or a viewport-specific CSS fixture.
+    const longReason = Array(2000).fill("诊断详情").join(" · ");
+    await page.route("**/api/v2/text-provider-profiles", async route => {
+      const response = await route.fetch();
+      const catalog = await response.json();
+      for (const profile of catalog.profiles) profile.readiness.reasonCode = longReason;
+      await route.fulfill({ response, json: catalog });
+    });
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=brief`);
+    await expect(page.getByRole("heading", { name: "项目简报", exact: true })).toBeVisible();
+    // A project with no run does not eagerly load its model catalog. Read it
+    // through the real settings owner, then close without saving anything.
+    await page.getByRole("button", { name: "供应商与会话 Key", exact: true }).click();
+    const settings = page.getByRole("dialog", { name: "供应商 Profile 与会话 Key", exact: true });
+    await expect(settings).toBeVisible();
+    await settings.getByRole("button", { name: "取消", exact: true }).click();
+    await expect(page.locator(".topbar-technical-status")).toContainText(longReason);
+    const snapshotResponse = page.waitForResponse(response => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/snapshots`);
+    await page.getByRole("button", { name: "创建恢复快照", exact: true }).click();
+    const response = await snapshotResponse;
+    expect(response.ok(), await response.text()).toBeTruthy();
+    const snapshot = await response.json() as { location: string };
+    const receipt = page.getByText("恢复快照已完成：", { exact: false });
+    await expect(receipt).toContainText(snapshot.location);
+    const writes: string[] = [];
+    page.on("request", request => {
+      if (new URL(request.url()).pathname.startsWith("/api/v2/") && !["GET", "HEAD"].includes(request.method())) writes.push(`${request.method()} ${request.url()}`);
+    });
+    const status = page.locator("details.topbar-technical-status");
+    const summary = status.locator("summary");
+    await page.evaluate(() => window.scrollTo(0, 500));
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+    expect(await page.locator(".topbar").evaluate(element => getComputedStyle(element).position)).toBe("sticky");
+    await summary.click();
+    await expect.poll(() => summary.evaluate(element => {
+      const bounds = element.getBoundingClientRect();
+      return bounds.top >= 0 && bounds.bottom <= innerHeight;
+    })).toBe(true);
+    expect(await page.locator(".topbar").evaluate(element => getComputedStyle(element).position)).toBe("relative");
+    expect(await status.evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThan(viewport.height);
+    await receipt.scrollIntoViewIfNeeded();
+    expect(await receipt.evaluate(element => {
+      const bounds = element.getBoundingClientRect();
+      return bounds.bottom > 0 && bounds.top < innerHeight;
+    })).toBe(true);
+    const title = page.getByLabel("片名", { exact: true });
+    await title.scrollIntoViewIfNeeded();
+    expect(await title.evaluate(element => {
+      const bounds = element.getBoundingClientRect();
+      return document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2) === element;
+    })).toBe(true);
+    await summary.click();
+    await expect(status).not.toHaveAttribute("open");
+    await page.evaluate(() => window.scrollTo(0, 500));
+    await summary.click();
+    await expect.poll(() => summary.evaluate(element => element.getBoundingClientRect().top >= 0)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
+    expect(writes).toEqual([]);
+  });
+}
+
 test("snapshots an open project then restores its draft, reviewed media, and lineage into a fresh installation", async ({ page, request, workbench }) => {
   expect(workbench.outputsRoot).toBeTruthy();
   const projectId = await createStoryboardProject(request, workbench.apiOrigin);
@@ -46,7 +113,7 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
   // networkidle state does not prove those later requests have settled.
   await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
   await expect(page.getByRole("heading", { name: "项目简报", exact: true })).toBeVisible();
-  const recovery = page.getByRole("dialog", { name: "发现未保存草稿" });
+  const recovery = page.getByRole("dialog", { name: "发现可恢复草稿" });
   await expect(recovery).toBeVisible();
   await recovery.getByRole("button", { name: "恢复草稿", exact: true }).click();
   await expect(page.getByLabel("片名")).toHaveValue(durableTitle);
@@ -88,7 +155,7 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
 
   await page.evaluate(() => sessionStorage.clear());
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=brief`);
-  await expect(page.getByText("发现未保存草稿", { exact: true })).toBeVisible();
+  await expect(page.getByText("发现可恢复草稿", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "恢复草稿" }).click();
   await expect(page.getByLabel("片名")).toHaveValue(durableTitle);
 

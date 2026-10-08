@@ -2,8 +2,9 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
+import { fallbackProfiles } from "../src/app/workspace/useTextProviderProfiles";
 import { ApiError, plotloomApi } from "../src/api";
-import { defaultProviderSettings, demoProject, demoRun } from "../src/demo";
+import { demoProject, demoRun } from "../src/demo";
 import type { MediaTask, ProjectCreationResponse, ProjectListItem, ProjectResource, RunProgress, RunTrace, ServerStageName, StageEnvelope } from "../src/types";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -125,7 +126,7 @@ describe("App project/editor rehydration", () => {
     root = createRoot(document.getElementById("test-root")!);
     vi.spyOn(plotloomApi, "getProjectRuns").mockResolvedValue({ runs: [] });
     vi.spyOn(plotloomApi, "getProjectMediaTasks").mockResolvedValue({ tasks: [] });
-    vi.spyOn(plotloomApi, "getProviderSettings").mockResolvedValue(defaultProviderSettings);
+    vi.spyOn(plotloomApi, "getTextProviderProfiles").mockResolvedValue(fallbackProfiles());
   });
 
   afterEach(async () => {
@@ -203,7 +204,7 @@ describe("App project/editor rehydration", () => {
 
     await act(async () => root.render(createElement(App)));
     await flush();
-    expect(document.body.textContent).toContain("发现未保存草稿");
+    expect(document.body.textContent).toContain("发现可恢复草稿");
 
     await act(async () => button("恢复草稿").click());
     await flush();
@@ -763,9 +764,10 @@ describe("App project/editor rehydration", () => {
     await act(async () => archiveButton.click());
     await flush();
 
-    expect(document.body.textContent).toContain("保存当前草稿？");
+    expect(document.body.textContent).toContain("归档前保存当前修改？");
+    expect(document.body.textContent).toContain("已保存的草稿仍保留");
     expect(archive).not.toHaveBeenCalled();
-    await act(async () => button("丢弃").click());
+    await act(async () => button("丢弃本页修改并归档").click());
     await flush();
     expect(archive).toHaveBeenCalledWith("archive-project", 1);
   });
@@ -932,7 +934,8 @@ describe("App project/editor rehydration", () => {
   });
 
   it("explains when a server key is available and a session key is only an override", async () => {
-    vi.mocked(plotloomApi.getProviderSettings).mockResolvedValue({ ...defaultProviderSettings, textKeyAvailable: true });
+    const catalog = fallbackProfiles(); catalog.profiles[0].serverKeyAvailable = true;
+    vi.mocked(plotloomApi.getTextProviderProfiles).mockResolvedValue(catalog);
     await renderSample(root);
     await act(async () => button("供应商与会话 Key").click());
     await flush();
@@ -947,11 +950,13 @@ describe("App project/editor rehydration", () => {
     vi.spyOn(plotloomApi, "getProject").mockResolvedValue(incoming);
     vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes() });
     const savedProfile = {
+      ...fallbackProfiles().profiles[0],
       profileId: "default", displayName: "Default", revision: 1, createdAt: "", updatedAt: "", serverKeyAvailable: false,
       adapterId: "openai_compatible", adapterVersion: "1",
-      configuration: { profileId: "default", textModel: "model", textAuthMode: "bearer" },
+      configuration: { ...fallbackProfiles().profiles[0].configuration, profileId: "default", textModel: "model", textAuthMode: "bearer" },
     } as never;
     vi.spyOn(plotloomApi, "getTextProviderProfiles").mockResolvedValue({
+      ...fallbackProfiles(),
       profiles: [savedProfile], activeProfileId: "default", selectionRevision: 0, presets: {},
     } as never);
     const saveProfile = vi.spyOn(plotloomApi, "updateTextProviderProfile").mockResolvedValue(savedProfile);
@@ -977,11 +982,13 @@ describe("App project/editor rehydration", () => {
     vi.spyOn(plotloomApi, "getProject").mockImplementation(async (id) => id === source.id ? source : destination);
     vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes() });
     const savedProfile = {
+      ...fallbackProfiles().profiles[0],
       profileId: "default", displayName: "Default", revision: 1, createdAt: "", updatedAt: "", serverKeyAvailable: false,
       adapterId: "openai_compatible", adapterVersion: "1",
-      configuration: { profileId: "default", textModel: "model", textAuthMode: "none" },
+      configuration: { ...fallbackProfiles().profiles[0].configuration, profileId: "default", textModel: "model", textAuthMode: "none" },
     } as never;
     vi.spyOn(plotloomApi, "getTextProviderProfiles").mockResolvedValue({
+      ...fallbackProfiles(),
       profiles: [savedProfile], activeProfileId: "default", selectionRevision: 0, presets: {},
     } as never);
     const pendingProfileSave = deferred<Awaited<ReturnType<typeof plotloomApi.updateTextProviderProfile>>>();

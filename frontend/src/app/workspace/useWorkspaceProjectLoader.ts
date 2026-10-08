@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { ApiError, plotloomApi } from "../../api";
 import { findProjectDrafts } from "../../draft-registry";
 import { providerSessionKeys } from "../../session-key";
+import { frozenRunCredentialMessage } from "./frozenRunGuidance";
 import type { AuthoringDraft, PipelineRun } from "../../types";
 import { messageFrom } from "./contracts";
 import type { WorkspaceSession } from "./useWorkspaceSession";
@@ -18,6 +19,7 @@ interface ProjectLoaderInput {
   profiles: {
     loaded: React.MutableRefObject<boolean>;
     catalog: React.MutableRefObject<ProfileCatalog>;
+    refresh: (signal?: AbortSignal) => Promise<ProfileCatalog>;
   };
   observeRun: (runId: string, projectId: string) => void;
   reportMessage: (message: string) => void;
@@ -108,15 +110,15 @@ async function blockedAutomaticResume(
   let catalog = input.profiles.catalog.current;
   if (!input.profiles.loaded.current) {
     try {
-      catalog = await plotloomApi.getTextProviderProfiles(signal);
+      catalog = await input.profiles.refresh(signal);
     } catch (error) {
-      return `运行冻结在 Profile ${profileId}；无法确认该 Profile 的密钥状态，因此没有自动恢复：${messageFrom(error)}`;
+      return frozenRunCredentialMessage(profileId, "read-failed", messageFrom(error));
     }
   }
   const profile = catalog.profiles.find((item) => item.profileId === profileId);
-  if (!profile) return `运行冻结在 Profile ${profileId}，但该 Profile 已不存在；不会自动切换模型。`;
+  if (!profile) return frozenRunCredentialMessage(profileId, "missing-profile");
   if (!profile.serverKeyAvailable && !providerSessionKeys.read(profileId)) {
-    return `运行冻结在 Profile ${profileId}；请为这个 Profile 补充当前标签页 Key 后再继续。不会自动切换模型。`;
+    return frozenRunCredentialMessage(profileId, "missing-key");
   }
   return "";
 }

@@ -115,7 +115,7 @@ test.describe("project-folder authoring drafts", () => {
     await workbench.restartBackend();
     await page.reload();
     await page.locator(".topbar-technical-status > summary").click();
-    await expect(page.getByText("发现未保存草稿", { exact: true })).toBeVisible();
+    await expect(page.getByText("发现可恢复草稿", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "恢复草稿" }).click();
     await expect(page.getByLabel("片名")).toHaveValue(restartDraft);
     const editedAfterRecovery = "E2E：恢复后继续编辑的草稿";

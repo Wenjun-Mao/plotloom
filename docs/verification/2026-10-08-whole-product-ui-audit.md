@@ -8,6 +8,9 @@ extends failure-state coverage; it does not qualify the native decoder or all ro
 The [reader/gallery/Bible/run checkpoint](2026-10-08-reader-gallery-ui-states.md)
 extends prerequisite, read-failure, empty and archived-state coverage. Its latest
 gate and publication identity are recorded separately, not inherited from earlier gates.
+The [draft/credential/lifecycle reading checkpoint](2026-10-08-dialog-credential-ui-states.md)
+adds actual consent/recovery and snapshot-disclosure checks; its final gate is
+qualified locally, and it does not close the remaining full-product state matrix.
 Baseline: [full lifecycle ledger](2026-10-07-full-creator-e2e-repeat.md);
 reusable entry: [E22.1–E22.7](../creative-workflow/graph-workbench-acceptance.md#e22-全产品视觉与文案专门检查).
 
@@ -88,7 +91,11 @@ file; do not inherit a PASS from a different state or source revision.
 | Trace, retained failure / pending cancellation / true idle / key-blocked running |140 twenty-seven directly inspected PNGs, including Professional Inspector;141 three changed running-event pixels; zero-write and cancellation-eligibility guards | Scoped reading PASS after helper/tone/uncertain-kind/timestamp repairs. Native active execution and other populated events remain PARTIAL. |
 | Exact repair, eligible / refusal / unknown result | Enabled109 eligible viewport;140 eighteen directly inspected refusal/unknown-state PNGs, exact codes, explicit duplicate-generation warning and zero writes | Scoped refusal/unknown reading PASS; not a new repair/rebuild execution claim. |
 | Directory/settings, populated / initial top / scrolled lower controls | Native91/93 and repaired112; all three sizes | Scoped PASS; not operation-in-progress or failed-save state. |
-| Snapshot / archive / delete / unsaved-navigation dialogs | Lifecycle handler journeys exist | NOT EXERCISED: named dialog/state pixel receipts for this audit candidate. |
+| Navigate / directory Archive / directory Close consent |143 disposable nine cases, three desktop sizes, exact intent/actions and actual cancelled entry points | Scoped pixels/operation checks; final source220 browser/683 frontend gate in linked checkpoint. |
+| Project-saved recovery |143 three final recovery frames directly re-reviewed; exact payload Restore preserves canonical r2 | Scoped checks; session-only/reconciliation/busy have functional tests, not separate pixel qualification. |
+| Snapshot completion / status disclosure |143 actual201 complete; three before failures and three repaired after frames directly inspected | Reading defect repaired; open-only summary reveal preserves normal scrolling. Final gate qualified; does not imply every snapshot/lifecycle failure state. |
+| Permanent deletion challenge |143 disposable blank/wrong/exact title ×three sizes, all nine frames independently inspected; Cancel preserves entire project and sends zero writes | Scoped challenge reading/eligibility PASS; actual deletion and lifecycle failure-state pixels remain PARTIAL. |
+| Frozen profile: missing key / missing profile / read failure | Exact frozen-profile browser and unit guards; repaired single catalog owner and current response contract | Scoped functional qualification; separate final failure-state pixels remain NOT EXERCISED. |
 | Source / Outline / Creator / Pro, populated owner views | Native82–85 and loaded109; scoped fixes rechecked112 | PARTIAL: explicit empty/waiting/failed/stale/dirty/read-only rows still required. |
 | Structural help, hover / keyboard focus | C55 functional and earlier short-desktop checks | PARTIAL: separate final candidate viewport and focused/disabled action receipt. |
 | Cast / Art / Script / Storyboard static reports | Existing report contracts and isolated browser journeys | PARTIAL: register each report's full summary, disclosures, anchors, disabled scripts and short-desktop scroll pixels separately. |
@@ -96,10 +103,9 @@ file; do not inherit a PASS from a different state or source revision.
 Next priority: review-state/dialog/help/report
 permutations and the remaining native route/report pixels. Reader/gallery/Bible
 states now have a bounded checkpoint; unlisted states do not inherit that qualification.
-Source-only next findings: dirty Archive consent says “保存并切换” because the
-shared dialog loses archive intent; frozen-key primary guidance mixes Profile/Key
-terms. These are open until their actual disposable branch/pixels and repairs
-are verified; the current reading checkpoint does not imply all wording is clean.
+The dirty Archive consent and frozen-key primary guidance findings are repaired
+in the linked draft/credential checkpoint; its actual state and qualification
+limits remain explicit. They do not imply every dialog/wording state is clean.
 Use only isolated QA data for state construction. Never manufacture failure or
 archive an owner project just to fill this table.
 

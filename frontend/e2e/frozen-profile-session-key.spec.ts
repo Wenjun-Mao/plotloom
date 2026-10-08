@@ -37,14 +37,15 @@ test("a bearer run waits for its frozen profile key and resumes without switchin
 
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${encodeURIComponent(projectId)}&stage=trace&run=${encodeURIComponent(sourceRun.id)}`);
   await openTechnicalDetails(page);
-  await expect(page.getByText(`运行冻结在 Profile ${frozenProfileId}；请为这个 Profile 补充当前标签页 Key 后再继续。不会自动切换模型。`, { exact: true })).toBeVisible();
-  await expect(page.getByText("冻结 Profile 缺少会话 Key", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "为冻结 Profile 补 Key" })).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText(`配置标识：${frozenProfileId}`);
+  await expect(page.getByRole("alert")).toContainText("补充当前标签页密钥");
+  await expect(page.getByText("此任务缺少可用密钥", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "查看此任务的模型配置" })).toBeVisible();
   await page.waitForTimeout(250);
   expect(automaticResumeRequests).toBe(0);
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem("plotloom:provider-session-keys"))).toBeNull();
 
-  await page.getByRole("button", { name: "为冻结 Profile 补 Key" }).click();
+  await page.getByRole("button", { name: "查看此任务的模型配置" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByLabel("活动 Profile")).toHaveValue(frozenProfileId);
   await page.getByLabel("此 Profile 的临时 API Key").fill("browser-frozen-profile-key");

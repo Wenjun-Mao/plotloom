@@ -118,6 +118,9 @@ Unknown media reads are not empty collections. Say 正在读取镜头视频状�
 loading; on an initial failure offer a named read-only retry. Only a successful
 owned read may say 当前镜头尚无冻结的视频请求. Keep unbounded Brief form columns
 in document flow so their lower help and controls remain reachable on short desktops.
+Expanded service status stays in document flow too. Opening it from a scrolled
+page reveals its summary entrance; long diagnostics and snapshot completion
+remain readable through ordinary scrolling, without covering authoring controls.
 
 A successful playback read with missing production stages says 故事尚未准备好,
 names the missing content and links to its preparation owner. It is not a failed
@@ -151,3 +154,19 @@ The zero-event progress helper must not invite selecting an event that does not
 exist. Pending events use an in-progress label and accent tone, not success green.
 For an unknown result, explain that a full rebuild can submit fresh requests and
 duplicate work; checking the original result is not merely an exact-repair concern.
+
+Draft consent names its actual intent: 保存并切换, 保存并归档 or 保存草稿并关闭.
+Navigation/archive discard affects only unacknowledged local edits; an already
+saved project draft remains. Directory close-discard removes the exact current
+stage's draft, while confirmed content remains. The topbar's explicit save-and-close
+has no disposition question: it saves recoverable drafts before closing. Do not
+promise identical persistence behavior merely because the dialogs look alike.
+Say 发现可恢复草稿 for saved-server recovery, and explain project-saved, session-only
+and comparison/reconciliation states separately. Saving a draft is not confirmation.
+
+Use 此任务缺少可用密钥 and 此任务的模型配置 in primary frozen-run guidance;
+keep the exact profile identifier secondary. A missing configuration and a failed
+configuration read are not missing credentials. Shared credential guidance asks
+the user to retry the previous action after supplying the exact task's key, since
+the caller may be repair or continuation. Saving the key never starts that action
+automatically, changes the frozen model or borrows another profile's key.

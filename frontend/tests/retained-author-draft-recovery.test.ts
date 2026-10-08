@@ -2,8 +2,9 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import App from "../src/App";
+import { fallbackProfiles } from "../src/app/workspace/useTextProviderProfiles";
 import { ApiError, plotloomApi } from "../src/api";
-import { defaultProviderSettings, demoProject } from "../src/demo";
+import { demoProject } from "../src/demo";
 import type { ProjectResource } from "../src/types";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -19,7 +20,7 @@ beforeEach(() => {
   document.body.innerHTML = '<div id="root"></div>'; root = createRoot(document.getElementById("root")!);
   vi.spyOn(plotloomApi, "getProjectRuns").mockResolvedValue({ runs: [] });
   vi.spyOn(plotloomApi, "getProjectMediaTasks").mockResolvedValue({ tasks: [] });
-  vi.spyOn(plotloomApi, "getProviderSettings").mockResolvedValue(defaultProviderSettings);
+  vi.spyOn(plotloomApi, "getTextProviderProfiles").mockResolvedValue(fallbackProfiles());
   vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: [] });
 });
 afterEach(async () => { await act(async () => root.unmount()); vi.restoreAllMocks(); });

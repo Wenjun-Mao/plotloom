@@ -28,6 +28,24 @@ control, wrapping its label into the card's narrow number column.
 - Workspace-wide dialogs mount at the workspace overlay boundary, outside
   navigation/editor sticky or scrolling containers, alongside other global dialogs.
   Local component dialogs are not made global without an owning reason.
+- Shared draft consent carries an explicit navigation, archive or close intent;
+  a close boolean cannot represent archive semantics. Navigation/archive discard
+  removes only unacknowledged local edits and retains already-saved drafts.
+  Directory close-discard deletes the exact current-stage draft after quiescence;
+  close-save retains recoverable drafts without confirming formal content. The
+  topbar's explicit save-and-close goes directly through that save disposition.
+  Recovery distinguishes server-saved, session-only and reconciliation drafts;
+  a server-saved draft is recoverable, not falsely described as unsaved.
+- The profile owner installs the current catalog used for both run admission and
+  Inspector guidance. Durable project loading must refresh through that owner,
+  not read the same catalog behind its back. Missing exact frozen profiles,
+  missing credentials and failed catalog reads remain distinct; a failed read
+  cannot open an unrelated form or be overwritten by a missing-key explanation.
+  Guidance never borrows the active profile's key or automatically resumes work
+  after a key save. Shared credential guidance is action-neutral because repair
+  and continuation use the same admission boundary. Current responses supply
+  required readiness and trusted adapters; retired settings fallback, inferred
+  readiness and single-key migration are removed rather than kept as adapters.
 - Story-media recovery labels include the owning node and ordered scene/shot
   position, with the node position always included rather than conditionally
   prefixed after a title collision. Display prose is not identity; exact shot IDs still own links and API
@@ -42,6 +60,10 @@ control, wrapping its label into the card's narrow number column.
 - Unbounded Brief form columns scroll with the document rather than sticking
   above unreachable lower controls. The bounded graph inspector keeps its own
   positioning contract; this is not a change to graph editing behavior.
+  Expanded service diagnostics also remain in document flow. Opening them from
+  a scrolled sticky toolbar reveals the summary anchor with nearest scrolling;
+  closing does not scroll or change focus. Do not scroll the whole unbounded
+  panel into view or restore a tall sticky overlay above authoring controls.
 - Successfully read but missing playback prerequisites have their own typed
   state and a link to the preparation owner, not a transport-error retry.
   Actual failed reads keep their named read-only retry. Optional new Art tasks

@@ -34,7 +34,7 @@ export function WorkspaceInspector({ currentLabel, project, routeEntity, stageOv
       const stageProgress = progress?.stageProgress.find((candidate) => candidate.stage === stage);
       return <div key={stage}><span>{stageLabels[stage]}{stageProgress && <small>{stageProgress.completedUnitCount}/{stageProgress.unitCount} 个子任务 · {stageProgress.sealed ? "已封存" : "未封存"}</small>}</span><Badge tone={status === "ready" ? "ok" : status === "stale" ? "warning" : "neutral"}>{status === "ready" ? "可用" : status === "stale" ? "需更新" : status === "missing" ? "尚未生成" : status}</Badge></div>;
     })}</div>
-    <div className="inspector-run"><span className="eyebrow">最新运行</span>{run ? <><strong>{runStatusLabels[run.status]} · {runKindLabels[run.kind]}</strong><small>{run.id}</small><small>{run.startedAt ? `开始 ${new Date(run.startedAt).toLocaleString()}` : `创建 ${new Date(run.createdAt).toLocaleString()}`}{run.finishedAt ? ` · 完成 ${new Date(run.finishedAt).toLocaleString()}` : ""}</small>{progress?.failureCode && <small className="danger-copy">{progress.failureCode}</small>}{frozenProfileNeedsKey && <div className="notice warning"><strong>冻结 Profile 缺少会话 Key</strong><span>{frozenProfileId}；补 Key 后继续，不会自动换模型。</span><Button variant="quiet" onClick={onAuthorizeProfile}>为冻结 Profile 补 Key</Button></div>}<Button variant="quiet" onClick={onOpenTrace}>查看提示词与原始响应</Button></> : <small>尚无运行记录</small>}</div>
+    <div className="inspector-run"><span className="eyebrow">最新运行</span>{run ? <><strong>{runStatusLabels[run.status]} · {runKindLabels[run.kind]}</strong><small>{run.id}</small><small>{run.startedAt ? `开始 ${new Date(run.startedAt).toLocaleString()}` : `创建 ${new Date(run.createdAt).toLocaleString()}`}{run.finishedAt ? ` · 完成 ${new Date(run.finishedAt).toLocaleString()}` : ""}</small>{progress?.failureCode && <small className="danger-copy">{progress.failureCode}</small>}{frozenProfileNeedsKey && <div className="notice warning"><strong>此任务缺少可用密钥</strong><span>请为此任务的模型配置补充当前标签页密钥，保存后返回“继续运行”。不会自动切换模型。配置标识：{frozenProfileId}。</span><Button variant="quiet" onClick={onAuthorizeProfile}>查看此任务的模型配置</Button></div>}<Button variant="quiet" onClick={onOpenTrace}>查看提示词与原始响应</Button></> : <small>尚无运行记录</small>}</div>
     {progress && <details className="inspector-units" open={progress.status === "quarantined"}><summary>子任务 · {progress.workUnits.length}</summary>{progress.workUnits.map((unit) => {
       const attempt = unit.latestAttempt;
       const quarantine = project.quarantines.find((item) => item.id === unit.workUnitId);
@@ -48,7 +48,7 @@ export function WorkspaceInspector({ currentLabel, project, routeEntity, stageOv
 
 export function SettingsDialog({ profiles, selectedProfileId, draft, sessionKey, busy, onDraft, onSessionKey, onSelect, onCreate, onCopy, onDelete, onActivate, onAvailability, onProbe, onClose, onSave }: { profiles: TextProviderProfilesResponse; selectedProfileId: string; draft: TextProviderProfileView; sessionKey: string; busy: boolean; onDraft: (draft: TextProviderProfileView) => void; onSessionKey: (key: string) => void; onSelect: (profileId: string) => Promise<void>; onCreate: () => Promise<void>; onCopy: () => Promise<void>; onDelete: () => Promise<void>; onActivate: () => Promise<void>; onAvailability: () => Promise<void>; onProbe: () => Promise<void>; onClose: () => void; onSave: () => Promise<void> }) {
   const configuration = draft.configuration;
-  const trustedAdapters = profiles.trustedAdapters || [{ adapterId: "openai_compatible", adapterVersion: "1" }];
+  const trustedAdapters = profiles.trustedAdapters;
   const update = (patch: Partial<TextProviderProfileConfiguration>) => onDraft({ ...draft, configuration: { ...configuration, ...patch } });
   const field = (key: "textProvider" | "textBaseUrl" | "textModel", label: string) => <label><span>{label}</span><input value={configuration[key]} onChange={(event) => update({ [key]: event.target.value } as Partial<TextProviderProfileConfiguration>)} /></label>;
   const numberField = (key: "textContextWindowTokens" | "textMaxOutputTokens" | "textTemperature" | "textMaxConcurrency" | "textConnectTimeoutSeconds" | "textAttemptTimeoutSeconds" | "maxSemanticCorrections", label: string) => <label><span>{label}</span><input type="number" value={configuration[key]} onChange={(event) => update({ [key]: Number(event.target.value), presetId: "custom" } as Partial<TextProviderProfileConfiguration>)} /></label>;
@@ -77,17 +77,15 @@ export function WelcomeOnboarding({ onBlank, onSample, onDirectory }: { onBlank:
 
 export { ProjectDirectoryDialog } from "./ProjectDirectoryDialog";
 
-export function DraftNavigationDialog({ onSave, onDiscard, onCancel, closing = false }: { onSave: () => void; onDiscard: () => void; onCancel: () => void; closing?: boolean }) {
-  return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="draft-navigation-title"><button className="modal-backdrop" aria-label="继续编辑" onClick={onCancel} /><section className="modal-card compact"><header><div><span>未保存的草稿</span><h2 id="draft-navigation-title">{closing ? "保存草稿并关闭项目？" : "保存当前草稿？"}</h2></div></header><div className="modal-body"><div className="notice warning"><strong>{closing ? "即将关闭项目目录" : "即将切换工作台"}</strong><span>{closing ? "保存会先写入 project.sqlite3；丢弃会以当前 CAS 回执删除这一个草稿。两者都不会替代规范保存或批准。" : "当前阶段有未保存修改。保存会显式写入项目；丢弃只移除本标签页草稿。"}</span></div></div><footer><Button variant="quiet" onClick={onCancel}>取消</Button><Button variant="danger" onClick={onDiscard}>丢弃</Button><Button variant="primary" onClick={onSave}>{closing ? "保存草稿并关闭" : "保存并切换"}</Button></footer></section></div>;
-}
+export { DraftNavigationDialog } from "./DraftNavigationDialog";
 
 export function DraftRecoveryDialog({ source, busy = false, onRestore, onDiscard }: { busy?: boolean; source: DraftRecoverySource; onRestore: () => void; onDiscard: () => void }) {
   const detail = source === "server"
-    ? "此草稿已安全保存在项目目录的 project.sqlite3；规范内容尚未改变。"
+    ? "此草稿已保存在项目中；恢复后可继续修改。"
     : source === "reconcile"
-      ? "当前标签页有尚未确认的输入，服务器也有项目草稿。恢复会保留本标签页内容供比较和重新保存。"
-      : "此草稿只在当前标签页 sessionStorage 中，尚未得到服务器确认。";
-  return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="draft-recovery-title"><button className="modal-backdrop" aria-label="保留提示" /><section className="modal-card compact"><header><div><span>{source === "server" ? "项目中的草稿" : "恢复当前标签页草稿"}</span><h2 id="draft-recovery-title">发现未保存草稿</h2></div></header><div className="modal-body"><div className="notice"><strong>规范内容保持不变</strong><span>{detail}</span></div></div><footer><Button variant="quiet" disabled={busy} onClick={onDiscard}>丢弃草稿</Button><Button variant="primary" disabled={busy} onClick={onRestore}>{busy ? "正在核实…" : "恢复草稿"}</Button></footer></section></div>;
+      ? "当前标签页与项目中各有一份草稿。恢复会保留本标签页的输入，供你比较并重新保存。"
+      : "此草稿只保留在当前标签页，尚未保存到项目中。";
+  return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="draft-recovery-title"><button className="modal-backdrop" aria-label="保留提示" /><section className="modal-card compact"><header><div><span>{source === "server" ? "项目中的草稿" : "恢复当前标签页草稿"}</span><h2 id="draft-recovery-title">发现可恢复草稿</h2></div></header><div className="modal-body"><div className="notice"><strong>正式内容保持不变</strong><span>{detail}</span></div></div><footer><Button variant="quiet" disabled={busy} onClick={onDiscard}>丢弃草稿</Button><Button variant="primary" disabled={busy} onClick={onRestore}>{busy ? "正在核实…" : "恢复草稿"}</Button></footer></section></div>;
 }
 
 export function DraftConflictDialog({ serverReloaded, busy, graphRecovery = false, onReload, onCopy, onDiscard }: { serverReloaded: boolean; busy: boolean; graphRecovery?: boolean; onReload: () => void; onCopy: () => void; onDiscard: () => void }) {

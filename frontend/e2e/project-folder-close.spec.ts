@@ -79,7 +79,7 @@ test.describe("project-folder Close", () => {
     await workbench.restartBackend();
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
     await openBrief(page);
-    await expect(page.getByText("发现未保存草稿", { exact: true })).toBeVisible();
+    await expect(page.getByText("发现可恢复草稿", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "恢复草稿" }).click();
     await expect(page.getByLabel("片名")).toHaveValue(draftTitle);
 
@@ -139,7 +139,7 @@ test.describe("project-folder Close", () => {
       await page.getByRole("button", { name: "当前项目 · 切换" }).click();
       await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
       closeResponse = waitForCloseResponse(page, projectId);
-      await page.getByRole("button", { name: "丢弃" }).click();
+      await page.getByRole("button", { name: "丢弃当前草稿并关闭", exact: true }).click();
     } finally {
       draftHold.release();
     }

@@ -1,9 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PlotloomApiClient } from "../src/api";
-import { providerSessionKey, providerSessionKeys } from "../src/session-key";
+import { providerSessionKeys } from "../src/session-key";
 
 describe("PlotloomApiClient", () => {
   beforeEach(() => { window.sessionStorage.clear(); window.localStorage.clear(); });
+
+  it("never imports an obsolete single key into a profile or Resume request", async () => {
+    window.sessionStorage.setItem("plotloom:provider-session-key", "obsolete-single-secret");
+    expect(providerSessionKeys.read("default")).toBe(""); expect(providerSessionKeys.read("frozen")).toBe("");
+    const fetcher = vi.fn(async (_url: unknown, _init?: RequestInit) => new Response(JSON.stringify({ id: "run-1" }), { status: 200 }));
+    const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
+    await client.resumeRun("run-1", "default", true);
+    expect(new Headers(fetcher.mock.calls[0][1]?.headers).has("X-Plotloom-Session-API-Key")).toBe(false);
+    providerSessionKeys.write("frozen", "current-scoped-secret");
+    expect(providerSessionKeys.read("frozen")).toBe("current-scoped-secret"); expect(providerSessionKeys.read("default")).toBe("");
+    await client.resumeRun("run-1", "frozen", true);
+    expect(new Headers(fetcher.mock.calls[1][1]?.headers).get("X-Plotloom-Session-API-Key")).toBe("current-scoped-secret");
+  });
 
   it("uses a Chinese fallback for transport failures while retaining status and raw evidence", async () => {
     const details = { detail: "unavailable" };
@@ -120,7 +133,7 @@ describe("PlotloomApiClient", () => {
   });
 
   it("keeps the ephemeral provider key out of JSON and sends only the session header", async () => {
-    providerSessionKey.write("  session-secret  ");
+    providerSessionKeys.write("default", "  session-secret  ");
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ id: "run-1", status: "queued" }), { status: 200, headers: { "Content-Type": "application/json" } }));
     const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
 
@@ -252,7 +265,7 @@ describe("PlotloomApiClient", () => {
   });
 
   it("does not echo read-only provider profile or key availability fields in PUT", async () => {
-    providerSessionKey.write("must-not-leave-on-settings-request");
+    providerSessionKeys.write("default", "must-not-leave-on-settings-request");
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ revision: 3, textKeyAvailable: true }), { status: 200, headers: { "Content-Type": "application/json" } }));
     const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
 
@@ -273,7 +286,7 @@ describe("PlotloomApiClient", () => {
   });
 
   it("sends no session credential on reads or canonical project writes", async () => {
-    providerSessionKey.write("must-not-leave-on-non-provider-request");
+    providerSessionKeys.write("default", "must-not-leave-on-non-provider-request");
     const fetcher = vi.fn(async () => new Response(JSON.stringify({}), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -289,7 +302,7 @@ describe("PlotloomApiClient", () => {
   });
 
   it("keeps the legacy media request secret-free and accepts no client media inputs", async () => {
-    providerSessionKey.write("text-profile-session-secret");
+    providerSessionKeys.write("default", "text-profile-session-secret");
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ id: "media-1", shotId: "shot-1", kind: "video", status: "queued" }), { status: 200, headers: { "Content-Type": "application/json" } }));
     const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
 

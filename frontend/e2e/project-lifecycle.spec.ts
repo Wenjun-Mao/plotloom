@@ -106,7 +106,7 @@ test.describe("M1-B0 real project journeys", () => {
 
     page.once("dialog", (dialog) => dialog.accept());
     await page.reload();
-    const recovery = page.getByRole("dialog", { name: "发现未保存草稿" });
+    const recovery = page.getByRole("dialog", { name: "发现可恢复草稿" });
     await expect(recovery).toBeVisible();
     await recovery.getByRole("button", { name: "恢复草稿" }).click();
     await expect(page.getByLabel("片名")).toHaveValue(recoveredTitle);

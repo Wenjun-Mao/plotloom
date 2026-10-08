@@ -82,7 +82,7 @@ test("Trace distinguishes true idle, retained failure, and pending cancellation 
     dispatchedAt: null, responsePersistedAt: null, providerRequestId: null, outcomeUnknown: false, outcomeCode: null,
     startedAt: "2026-10-08T00:00:00Z", finishedAt: null }];
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${project.id}&stage=trace&run=${run.id}`);
-  await expect(page.getByRole("alert")).toContainText("补充当前标签页 Key");
+  await expect(page.getByRole("alert")).toContainText("补充当前标签页密钥");
   await expect(page.locator(".inspector-meta .badge.accent")).toHaveText("进行中");
   await expect(page.locator(".run-progress-panel")).toContainText("选择事件");
   await capture(page, info, "trace-running-key-blocked-event", page.locator(".inspector-meta"));
