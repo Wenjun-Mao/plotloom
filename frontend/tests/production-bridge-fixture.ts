@@ -19,7 +19,7 @@ export function installedProduction(overrides: Partial<InstalledProduction> = {}
 
 export function bridgeState(overrides: Partial<ProductionBridgeState> = {}): ProductionBridgeState {
   return {
-    intentGeneration: { status: "available" }, proposal: null, status: "missing", staleReasons: [],
+    intentGeneration: { status: "available" }, nativeIntentGeneration: { status: "unavailable", reason: "not_configured" }, proposal: null, status: "missing", staleReasons: [],
     installation: null, preparation: { status: "available", request: prepareRequest() }, ...overrides,
   };
 }

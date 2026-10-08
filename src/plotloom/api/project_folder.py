@@ -740,6 +740,9 @@ def create_project_folder_authoring_app(
         executable=specialist_executable, environment=specialist_environment,
     )
     app.state.specialists = specialists
+    from ..native_bridge_intent_service import NativeBridgeIntentService
+    native_intent_service = NativeBridgeIntentService(storage, specialists)
+    app.state.native_bridge_intent_service = native_intent_service
     register_specialist_routes(app, opened_project, specialists)
     register_project_folder_image_job_routes(
         app,
@@ -764,6 +767,7 @@ def create_project_folder_authoring_app(
     register_project_folder_production_bridge_routes(
         app, opened_project, intent_service=bridge_intent_service, text_admission=text_admission,
         simulation_label=bridge_simulation_label,
+        native_intent_service=native_intent_service,
     )
     if run_dispatcher is not None and text_admission is not None:
         register_project_folder_generation_routes(

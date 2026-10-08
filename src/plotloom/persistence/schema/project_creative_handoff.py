@@ -23,4 +23,3 @@ class CreativeHandoffExecutionPinRow(Base):
     stage: Mapped[str] = mapped_column(String(32), nullable=False)
     execution_pin: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    recovered_from_revision: Mapped[str | None] = mapped_column(String(64), nullable=True)

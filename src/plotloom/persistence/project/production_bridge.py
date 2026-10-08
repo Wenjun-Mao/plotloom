@@ -156,7 +156,7 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
             except InvalidTransitionError as error:
                 preparation = BridgePrepareUnavailable(reason=str(error))
             job = session.scalar(select(ProductionBridgeIntentJobRow).where(ProductionBridgeIntentJobRow.project_id == project_id).order_by(ProductionBridgeIntentJobRow.created_at.desc(), ProductionBridgeIntentJobRow.id.desc()).limit(1))
-            job_view = ProductionBridgeIntentJob(id=job.id, status=job.status, proposal_revision=job.proposal_revision, proposal_content_hash=job.proposal_content_hash, profile_id=job.profile_snapshot["profileId"], profile_version=job.profile_snapshot["profileVersion"], prompt_version=job.prompt_trace["prompt_version"], created_at=job.created_at, updated_at=job.updated_at, error_code=job.error_code, error_message=job.error_message, result_proposal_revision=job.result_proposal_revision, provider_request_id=job.provider_request_id, response_hash=job.response_hash) if job else None
+            job_view = ProductionBridgeIntentJob(id=job.id, transport=job.transport, status=job.status, proposal_revision=job.proposal_revision, proposal_content_hash=job.proposal_content_hash, profile_id=job.profile_snapshot.get("profileId"), profile_version=job.profile_snapshot.get("profileVersion"), prompt_version=job.prompt_trace["prompt_version"], created_at=job.created_at, updated_at=job.updated_at, error_code=job.error_code, error_message=job.error_message, result_proposal_revision=job.result_proposal_revision, provider_request_id=job.provider_request_id, response_hash=job.response_hash) if job else None
             return ProductionBridgeState(proposal=proposal, status="stale" if stale else head.status, stale_reasons=stale, installation=installation, preparation=preparation, intent_job=job_view)
 
     def prepare(self, project_id: str, request: ProductionBridgePrepareRequest) -> ProductionBridgeState:
@@ -205,7 +205,7 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
                 provenance=package.provenance,
             )
             payload = self._apply_intent_package(row.proposal["payload"], updated)
-            conflicts = [ProductionBridgeConflict.model_validate(item) for item in row.conflicts if item.get("code") not in {"canonical_validation", "dramatic_intent_required"}]
+            conflicts = [ProductionBridgeConflict.model_validate(item) for item in row.conflicts if item.get("code") not in {"canonical_validation", "dramatic_intent_required", "dramatic_intent_review_required"}]
             conflicts.extend(self._validate_payload(session, project_id, payload))
             proposal = {**row.proposal, "payload": payload, "intentPackage": updated.model_dump(mode="json", by_alias=True)}
             digest, now = self._proposal_digest(row.inputs, proposal, conflicts), utc_now()
@@ -223,7 +223,7 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
             if not ProductionPresentation.model_validate(row.proposal["presentation"]).reviewed:
                 raise InvalidTransitionError("production bridge requires complete reviewed presentation")
             package = self._intent_package(session, row)
-            if package.review_state == "pending" or any(not entry.text.strip() for entry in package.entries):
+            if package.review_state != "author_saved" or any(not entry.text.strip() for entry in package.entries):
                 raise InvalidTransitionError("production bridge requires a complete reviewed dramatic-intent package")
             if self._current(session, project_id, row.inputs): raise InvalidTransitionError("production bridge proposal is stale")
             self._install_bundle(session, project, row)

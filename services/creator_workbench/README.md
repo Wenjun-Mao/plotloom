@@ -104,6 +104,27 @@ An isolated health check is a no-queue readiness probe, never dispatch evidence.
 The existing outcome-unknown policy still forbids blind retry or lease clearing.
 See [ADR 0098](../../docs/adr/0098-isolated-workbench-native-transport.md).
 
+## Native dramatic intent
+
+Both creator launchers compose native intent through the same installation-local
+text specialist registry; no API credentials or text-admission service are needed.
+With a configured text assistant, open 分镜评审 → 投产提案, prepare the proposal,
+then select “准备 Codex 戏剧意图任务” and “发送给 Codex 文字助手”. These are separate
+actions. Preparation requires committed execution source and freezes the exact
+proposal, source inputs and replacement target. The assignment names the runtime's
+absolute checkout, local skill, contract and validator, even when the assistant's
+chat was created in another checkout. Do not switch or reset that chat's repository.
+
+“检查原任务交付” validates the same package and delivery after a restart, including
+an unknown send. It never sends again. Read the original report and disclosed
+limitations, then explicitly save the whole intent package, review presentation
+and confirm production. An unchanged complete suggestion can be saved to record
+that review. Delivery alone cannot install production. Cancellation does not
+stop the assistant or release a reservation; complete validated late delivery
+settles it without adopting suggestions. An unconfigured assistant remains an
+explicit unavailable capability; API inference, when configured independently,
+is a separate generation choice. See [ADR 0140](../../docs/adr/0140-native-bridge-intent-candidates.md).
+
 ## Verification
 
 With no specialist work in flight, the bounded check deliberately terminates

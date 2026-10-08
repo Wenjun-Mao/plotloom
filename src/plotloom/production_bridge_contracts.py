@@ -81,14 +81,14 @@ class ProductionBridgeIntentEntry(CamelModel):
 class ProductionBridgeIntentPackage(CamelModel):
     """One whole-package review binding, never independent questions."""
 
-    suggestion_origin: Literal["none", "model_inference.v1"]
+    suggestion_origin: Literal["none", "model_inference.v1", "codex_native.v1"]
     review_state: Literal["pending", "model_suggested", "author_saved"]
     entries: list[ProductionBridgeIntentEntry] = Field(min_length=1)
     provenance: dict[str, Any] | None = None
 
     @model_validator(mode="after")
     def validate_review_binding(self) -> ProductionBridgeIntentPackage:
-        has_model = self.suggestion_origin == "model_inference.v1"
+        has_model = self.suggestion_origin in {"model_inference.v1", "codex_native.v1"}
         if has_model != (self.provenance is not None):
             raise ValueError("model suggestion origin and provenance must agree")
         if has_model and any(not entry.suggested_text or not entry.suggested_text.strip() for entry in self.entries):
@@ -134,11 +134,12 @@ class ProductionBridgeState(CamelModel):
 
 class ProductionBridgeIntentJob(CamelModel):
     id: str
+    transport: Literal["text_api", "codex_native"]
     status: Literal["queued", "dispatched", "ready", "stale", "failed", "cancelled", "outcome_unknown"]
     proposal_revision: int
     proposal_content_hash: str
-    profile_id: str
-    profile_version: int
+    profile_id: str | None
+    profile_version: int | None
     prompt_version: str
     created_at: datetime
     updated_at: datetime
@@ -147,6 +148,14 @@ class ProductionBridgeIntentJob(CamelModel):
     result_proposal_revision: int | None = None
     provider_request_id: str | None = None
     response_hash: str | None = None
+
+    @model_validator(mode="after")
+    def transport_owns_profile(self):
+        if self.transport == "codex_native" and (self.profile_id is not None or self.profile_version is not None):
+            raise ValueError("native intent cannot claim an API profile")
+        if self.transport == "text_api" and (self.profile_id is None or self.profile_version is None):
+            raise ValueError("API intent requires its frozen profile identity")
+        return self
 
 
 class ProductionBridgeIntentGenerateRequest(CamelModel):

@@ -75,6 +75,8 @@ class ProductionBridgeIntentService:
                 return
             with closing(self.storage.projects.open(project_id)) as store:
                 data = store.repository.production_bridge_intent.load_job(project_id, job_id)
+                if data["transport"] != "text_api":
+                    raise InvalidTransitionError("only API intent jobs may use the API executor")
                 if data["status"] != "queued":
                     raise InvalidTransitionError("only a queued bridge inference job may be submitted")
                 profile = TextProviderProfileSnapshotV3.model_validate(data["profile"])
@@ -177,7 +179,7 @@ class ProductionBridgeIntentService:
 
         with closing(self.storage.projects.open(project_id)) as store:
             latest = store.production_bridge_state().intent_job
-            if latest is not None and latest.status == "dispatched":
+            if latest is not None and latest.transport == "text_api" and latest.status == "dispatched":
                 with self._lock:
                     active = latest.id in self._active
                 if not active:
@@ -185,6 +187,8 @@ class ProductionBridgeIntentService:
 
     def cancel(self, project_id: str, job_id: str) -> None:
         with closing(self.storage.projects.open(project_id)) as store:
+            if store.repository.production_bridge_intent.load_job(project_id, job_id)["transport"] != "text_api":
+                raise InvalidTransitionError("native intent jobs use their own cancellation route")
             store.repository.production_bridge_intent.cancel(project_id, job_id)
 
     def close(self) -> None:

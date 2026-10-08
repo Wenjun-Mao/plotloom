@@ -18,9 +18,9 @@ from plotloom.creative_handoff_exchange import canonical_json
 from plotloom.outline_settings import OUTLINE_SETTINGS_FILENAME, outline_settings
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.source_outline_contracts import (
-    BranchOutcome, OutlineAcceptRequest,
+    OutlineAcceptRequest,
     OutlineReopenRequest,
-    SectionChoice, SectionMap, SectionMapGraphInstallRequest, SectionMapSaveRequest, StorySection,
+    SectionMap, SectionMapGraphInstallRequest,
     SourceMaterial,
 )
 from plotloom.conformance import FIXED_CHINESE_BRIEF
@@ -141,7 +141,7 @@ def test_source_modes_persist_candidate_and_explicit_acceptance(tmp_path: Path, 
         store.close()
 
 
-def test_explicit_recovery_restores_only_a_git_verified_missing_execution_pin(
+def test_current_pin_survives_reopen_and_missing_pin_fails_closed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     storage = _storage(tmp_path)
@@ -159,46 +159,6 @@ def test_explicit_recovery_restores_only_a_git_verified_missing_execution_pin(
             str(path.relative_to(job_root)): path.read_bytes()
             for path in job_root.rglob("*") if path.is_file()
         }
-        with store.repository._write() as session:  # type: ignore[attr-defined]
-            row = session.get(CreativeHandoffExecutionPinRow, request.job_id)
-            assert row is not None
-            session.delete(row)
-        with pytest.raises(CreativeHandoffError, match="execution pin"):
-            store.creative_handoff_execution_pin(request)
-
-        with pytest.raises(CreativeHandoffError, match="recovery revision"):
-            store.recover_creative_handoff_execution_pin(
-                request, trusted_revision="0" * 40
-            )
-        with pytest.raises(CreativeHandoffError, match="execution pin"):
-            store.creative_handoff_execution_pin(request)
-
-        revision = subprocess.run(
-            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
-        ).stdout.strip()
-        package_request = job_root / "package" / "request.json"
-        original_package = package_request.read_bytes()
-        tampered_package = json.loads(original_package)
-        tampered_package["executionPin"]["specialistSkillHash"] = "0" * 64
-        package_request.write_text(json.dumps(tampered_package))
-        with pytest.raises(CreativeHandoffError, match="existing package"):
-            store.recover_creative_handoff_execution_pin(
-                request, trusted_revision=revision
-            )
-        with pytest.raises(CreativeHandoffError, match="execution pin"):
-            store.creative_handoff_execution_pin(request)
-        package_request.write_bytes(original_package)
-
-        assert store.recover_creative_handoff_execution_pin(
-            request, trusted_revision=revision
-        ) == original_pin
-        assert store.creative_handoff_execution_pin(request) == original_pin
-        after = {
-            str(path.relative_to(job_root)): path.read_bytes()
-            for path in job_root.rglob("*") if path.is_file()
-        }
-        assert after == before
-
         project_id = store.manifest.project_id
         store.close()
         store = storage.projects.open(project_id)
@@ -210,6 +170,14 @@ def test_explicit_recovery_restores_only_a_git_verified_missing_execution_pin(
         persisted_pin = store.creative_handoff_execution_pin(request)
         assert persisted_pin == original_pin
         assert store.creative_handoff_exchange().read_delivery(request, persisted_pin) is not None
+        with store.repository._write() as session:
+            row = session.get(CreativeHandoffExecutionPinRow, request.job_id)
+            assert row is not None
+            session.delete(row)
+        with pytest.raises(CreativeHandoffError, match="execution pin"):
+            store.creative_handoff_execution_pin(request)
+        assert {str(path.relative_to(job_root)): path.read_bytes()
+                for path in job_root.rglob("*") if path.is_file()} == before
     finally:
         store.close()
 

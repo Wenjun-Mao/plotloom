@@ -3,9 +3,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 
 from ...domain import StageName, new_id, utc_now
+from ...creative_handoff_contracts import CreativeHandoffRequest
+from ...creative_handoff_exchange import request_hash
+from .creative_execution_pins import freeze_execution_pin
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ...production_bridge_contracts import ProductionBridgeConflict, ProductionBridgeIntentPackage
 from ..schema.project_production_bridge import (
@@ -75,7 +78,10 @@ class ProductionBridgeIntentPersistence:
                     "storyNode": node.model_dump(mode="json", by_alias=True) if node is not None else None,
                     "scriptScene": f4_scene, "cuts": cuts,
                 })
-            context = {"brief": project.brief, "scenes": source_scenes}
+            context = {"brief": project.brief, "scenes": source_scenes, "proposal": {
+                "revision": row.revision, "contentHash": row.content_hash,
+                "inputs": row.inputs, "replacementTarget": row.proposal["replacementTarget"],
+            }}
             prompt_targets = [{
                 "id": item.id, "targetKind": item.target_kind,
                 "sourceExcerpt": item.source_excerpt,
@@ -86,6 +92,8 @@ class ProductionBridgeIntentPersistence:
         self, project_id: str, *, expected_revision: int, expected_hash: str,
         profile_snapshot: dict[str, Any], prompt_trace: dict[str, Any],
         prompt_messages: list[dict[str, Any]], response_schema: dict[str, Any],
+        native_request: CreativeHandoffRequest | None = None,
+        execution_pin: dict[str, str] | None = None,
     ) -> str:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
@@ -98,13 +106,30 @@ class ProductionBridgeIntentPersistence:
             package = self._bridge._intent_package(session, row)
             active = session.scalar(select(ProductionBridgeIntentJobRow).where(
                 ProductionBridgeIntentJobRow.project_id == project_id,
-                ProductionBridgeIntentJobRow.status.in_(("queued", "dispatched")),
+                or_(ProductionBridgeIntentJobRow.status.in_(("queued", "dispatched", "outcome_unknown")), and_(
+                    ProductionBridgeIntentJobRow.transport == "codex_native",
+                    ProductionBridgeIntentJobRow.status == "cancelled",
+                    ProductionBridgeIntentJobRow.dispatched_at.is_not(None),
+                    ProductionBridgeIntentJobRow.response_evidence.is_(None))),
             ).limit(1))
             if active is not None:
                 raise InvalidTransitionError("one bridge inference job is already active")
-            now, job_id = utc_now(), new_id()
+            now, job_id = utc_now(), native_request.job_id if native_request else new_id()
+            if native_request is not None:
+                if (native_request.project_id != project_id or native_request.stage != "bridge-intent"
+                        or native_request.expected_stage_revision != row.revision
+                        or native_request.source["proposal"] != {
+                            "revision": row.revision, "contentHash": row.content_hash,
+                            "inputs": row.inputs, "replacementTarget": row.proposal["replacementTarget"],
+                        }
+                        or native_request.input_artifacts["targets.json"]["entries"] != [entry.model_dump(mode="json", by_alias=True) for entry in package.entries]):
+                    raise InvalidTransitionError("native bridge request differs from project-owned proposal")
+                native_request.assert_secret_free()
+                freeze_execution_pin(session, native_request, execution_pin)
             session.add(ProductionBridgeIntentJobRow(
                 id=job_id, project_id=project_id, status="queued",
+                transport="codex_native" if native_request else "text_api",
+                native_request=native_request.model_dump(mode="json", by_alias=True) if native_request else None,
                 proposal_revision=expected_revision, proposal_content_hash=expected_hash,
                 inputs=row.inputs, profile_snapshot=profile_snapshot,
                 prompt_trace=prompt_trace, prompt_messages=prompt_messages,
@@ -122,6 +147,8 @@ class ProductionBridgeIntentPersistence:
                 "messages": job.prompt_messages, "schema": job.response_schema,
                 "expectedIds": [item["id"] for item in job.expected_entries],
                 "promptHash": job.prompt_trace["rendered_hash"],
+                "transport": job.transport, "nativeRequest": job.native_request,
+                "responseEvidence": job.response_evidence,
             }
 
     def expected_entries(self, project_id: str, job_id: str) -> list[dict[str, Any]]:
@@ -150,10 +177,11 @@ class ProductionBridgeIntentPersistence:
         self, project_id: str, job_id: str, *, suggestions: dict[str, str],
         response_evidence: dict[str, Any], response_hash: str,
         provider_request_id: str | None, usage: dict[str, Any] | None,
+        native_provenance: dict[str, Any] | None = None,
     ) -> None:
         with self._access.leases.lifecycle_write() as session:
             job = self._job(session, project_id, job_id)
-            if job.status not in {"dispatched", "cancelled"}:
+            if job.status not in {"dispatched", "cancelled", "outcome_unknown", "stale"}:
                 return
             job.response_evidence = response_evidence
             job.response_hash = response_hash
@@ -161,7 +189,7 @@ class ProductionBridgeIntentPersistence:
             job.usage = usage
             job.candidate = {"entries": [{"id": key, "suggestedText": value} for key, value in suggestions.items()]}
             job.updated_at = utc_now()
-            if job.status == "cancelled":
+            if job.status in {"cancelled", "stale"}:
                 return
             head = self._bridge._head(session, project_id)
             if head.status == "accepted" or head.revision != job.proposal_revision:
@@ -175,7 +203,7 @@ class ProductionBridgeIntentPersistence:
             if set(suggestions) != {entry.id for entry in package.entries}:
                 job.status, job.error_code = "failed", "intent.target_mismatch"
                 return
-            provenance = {
+            provenance = native_provenance if job.transport == "codex_native" else {
                 "jobId": job.id, "profileId": job.profile_snapshot["profileId"],
                 "profileVersion": job.profile_snapshot["profileVersion"],
                 "profileHash": job.profile_snapshot["profileHash"],
@@ -183,7 +211,7 @@ class ProductionBridgeIntentPersistence:
                 "providerRequestId": provider_request_id, "usage": usage,
             }
             updated = ProductionBridgeIntentPackage(
-                suggestion_origin="model_inference.v1", review_state="model_suggested", provenance=provenance,
+                suggestion_origin="codex_native.v1" if job.transport == "codex_native" else "model_inference.v1", review_state="model_suggested", provenance=provenance,
                 entries=[entry.model_copy(update={
                     "suggested_text": suggestions[entry.id],
                     "text": suggestions[entry.id],
@@ -191,7 +219,8 @@ class ProductionBridgeIntentPersistence:
             )
             payload = self._bridge._apply_intent_package(row.proposal["payload"], updated)
             conflicts = [ProductionBridgeConflict.model_validate(item) for item in row.conflicts
-                         if item.get("code") not in {"dramatic_intent_required", "canonical_validation"}]
+                         if item.get("code") not in {"dramatic_intent_required", "dramatic_intent_review_required", "canonical_validation"}]
+            conflicts.append(ProductionBridgeConflict(code="dramatic_intent_review_required", message="不能安装：请审阅并保存戏剧意图整包；模型交付不是作者确认"))
             conflicts.extend(self._bridge._validate_payload(session, project_id, payload))
             proposal = {**row.proposal, "payload": payload, "intentPackage": updated.model_dump(mode="json", by_alias=True)}
             digest, now = self._bridge._proposal_digest(row.inputs, proposal, conflicts), utc_now()
@@ -232,7 +261,7 @@ class ProductionBridgeIntentPersistence:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             job = self._job(session, project_id, job_id)
-            if job.status in {"queued", "dispatched"}:
+            if job.status in {"queued", "dispatched", "outcome_unknown"}:
                 job.status, job.updated_at = "cancelled", utc_now()
 
     def reconcile_dispatched(self, project_id: str) -> None:
@@ -242,5 +271,6 @@ class ProductionBridgeIntentPersistence:
             for job in session.scalars(select(ProductionBridgeIntentJobRow).where(
                 ProductionBridgeIntentJobRow.project_id == project_id,
                 ProductionBridgeIntentJobRow.status == "dispatched",
+                ProductionBridgeIntentJobRow.transport == "text_api",
             )):
                 job.status, job.error_code, job.updated_at = "outcome_unknown", "provider.outcome_unknown", utc_now()

@@ -121,6 +121,8 @@ def retained_specialist_job_ids(store: object) -> set[str]:
                       "v2_script_candidates", "v2_storyboard_review_candidates"):
             jobs.update(row[0] for row in connection.exec_driver_sql(
                 f"SELECT job_id FROM {table} WHERE project_id = ?", (project_id,)))
+        jobs.update(row[0] for row in connection.exec_driver_sql(
+            "SELECT id FROM v2_production_bridge_intent_jobs WHERE project_id = ? AND transport = 'codex_native'", (project_id,)))
     for records in (store.media.list_image_jobs(project_id),
                     store.media.list_character_reference_proposals(project_id),
                     store.media.list_art_reference_proposals(project_id)):
@@ -146,6 +148,12 @@ def specialist_publication_blockers(store: object) -> list[str]:
     blockers.extend(art_publication_blockers(store))
     blockers.extend(script_publication_blockers(store))
     blockers.extend(storyboard_review_publication_blockers(store))
+    with store.repository.engine.connect() as connection:
+        if connection.exec_driver_sql(
+            "SELECT 1 FROM v2_production_bridge_intent_jobs WHERE project_id = ? "
+            "AND (status IN ('queued', 'dispatched', 'outcome_unknown') OR "
+            "(transport = 'codex_native' AND status = 'cancelled' AND dispatched_at IS NOT NULL AND response_evidence IS NULL)) LIMIT 1", (project_id,)).first():
+            blockers.append("bridge_intent_publication_active")
     return blockers
 
 

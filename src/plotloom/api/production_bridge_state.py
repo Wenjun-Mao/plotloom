@@ -22,6 +22,8 @@ class BridgeIntentUnavailable(CamelModel):
 
 class ProductionBridgeRuntimeState(ProductionBridgeState):
     intent_generation: Annotated[BridgeIntentAvailable | BridgeIntentUnavailable, Field(discriminator="status")]
+    native_intent_generation: Annotated[BridgeIntentAvailable | BridgeIntentUnavailable, Field(discriminator="status")]
+    native_intent_task: dict | None = None
 
 
 class BridgeIntentUnavailableError(Exception):

@@ -35,3 +35,11 @@ def assert_production_quiescent(access, session, project_id):
             owner.project_id == project_id, getattr(owner, field).in_(states),
         ).limit(1)) is not None:
             raise InvalidTransitionError("unresolved publication or execution prevents production rebuild")
+    if session.scalar(select(ProductionBridgeIntentJobRow).where(
+        ProductionBridgeIntentJobRow.project_id == project_id,
+        ProductionBridgeIntentJobRow.transport == "codex_native",
+        ProductionBridgeIntentJobRow.status == "cancelled",
+        ProductionBridgeIntentJobRow.dispatched_at.is_not(None),
+        ProductionBridgeIntentJobRow.response_evidence.is_(None),
+    ).limit(1)) is not None:
+        raise InvalidTransitionError("cancelled native intent still awaits terminal delivery")

@@ -50,7 +50,7 @@ from .canonical import ProjectCanonicalPersistence
 from .cast import ProjectCastPersistence
 from .catalog import ProjectCatalogPersistence
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
-from .creative_execution_pins import execution_pin_for_candidate, recover_execution_pin
+from .creative_execution_pins import execution_pin_for_candidate
 from .creative_terminal import ProjectCreativeTerminalPersistence
 from .drafts import ProjectDraftPersistence
 from .gates import ProjectGatePersistence
@@ -313,17 +313,6 @@ class ProjectSQLiteRepository:
 
         with self._read() as session:
             return execution_pin_for_candidate(session, request)
-
-    def recover_creative_handoff_execution_pin(
-        self, request: Any, pin: dict[str, str], *, trusted_revision: str
-    ) -> None:
-        """Record an explicit operator recovery after byte-level verification."""
-
-        with self._lifecycle_write() as session:
-            self._project_row(session, request.project_id)
-            recover_execution_pin(
-                session, request, pin, trusted_revision=trusted_revision
-            )
 
     def close(self) -> None:
         self._database.close()

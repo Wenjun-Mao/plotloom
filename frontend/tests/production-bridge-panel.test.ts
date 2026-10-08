@@ -104,7 +104,7 @@ it("contains capability responses to their current project owner", async () => {
 
 it.each(["queued", "dispatched"] as const)("disables service-owned %s job controls when runtime inference is unavailable", async status => {
   const unavailable = state("held"); unavailable.intentGeneration = { status: "unavailable", reason: "not_configured" };
-  unavailable.intentJob = { id: "held", status } as never;
+  unavailable.intentJob = { id: "held", transport: "text_api", status } as never;
   vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(unavailable);
   const resume = vi.spyOn(plotloomApi, "resumeProductionBridgeIntent"), cancel = vi.spyOn(plotloomApi, "cancelProductionBridgeIntent");
   await render("held"); await settle();
@@ -293,7 +293,7 @@ it("preserves an unsaved draft when model completion arrives late", async () => 
   try {
     const pending = state("prior");
     pending.intentJob = {
-      id: "job-1", status: "dispatched", proposalRevision: 1, proposalContentHash: pending.proposal!.contentHash,
+      id: "job-1", transport: "text_api", status: "dispatched", proposalRevision: 1, proposalContentHash: pending.proposal!.contentHash,
       profileId: "fake", profileVersion: 1, promptVersion: "1.0.0",
       createdAt: "2026-09-22T00:00:00Z", updatedAt: "2026-09-22T00:00:00Z",
       errorCode: null, errorMessage: null, resultProposalRevision: null, providerRequestId: null, responseHash: null,

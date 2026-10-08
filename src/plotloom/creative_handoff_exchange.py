@@ -107,13 +107,25 @@ class CreativeHandoffExchange:
 
     @staticmethod
     def _candidate_filename(stage: str) -> str:
-        return {"branches": "branches.json", "outline": "outline.json", "characters": "cast.json", "art": "art.json", "script": "script.json", "storyboard": "storyboard.json"}[stage]
+        return {"branches": "branches.json", "outline": "outline.json", "characters": "cast.json", "art": "art.json", "script": "script.json", "storyboard": "storyboard.json", "bridge-intent": "intent.json"}[stage]
 
     @staticmethod
     def _pinned_execution(stage: str) -> dict[str, str]:
         """Freeze the vendored skill and local specialist used by a package."""
 
         repository = Path(__file__).resolve().parents[2]
+        if stage == "bridge-intent":
+            dirty = subprocess.run(["git", "-C", str(repository), "status", "--porcelain", "--",
+                "src/plotloom", "scripts/native_bridge_intent.py", "docs/creative-workflow/native-bridge-intent.md",
+                ".agents/skills/plotloom-intent-specialist"], capture_output=True, text=True, check=False)
+            if dirty.returncode != 0 or dirty.stdout.strip():
+                raise CreativeHandoffError("execution_pin_missing", "native intent execution source must be committed before preparing a package")
+            revision = subprocess.run(["git", "-C", str(repository), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+            return {
+                "upstreamRevision": revision,
+                "upstreamSkillHash": sha256((repository / "docs/creative-workflow/native-bridge-intent.md").read_bytes()).hexdigest(),
+                "specialistSkillHash": sha256((repository / ".agents/skills/plotloom-intent-specialist/SKILL.md").read_bytes()).hexdigest(),
+            }
         submodule = repository / "third_party" / "shuohao-skills"
         stage = "outline" if stage == "branches" else stage
         upstream_skill = repository / "third_party" / "shuohao-skills" / "skills" / f"novel-{stage}" / "SKILL.md"
@@ -155,47 +167,6 @@ class CreativeHandoffExchange:
 
         return self._pinned_execution(stage)
 
-    def execution_pin_at_revision(
-        self, request: CreativeHandoffRequest, trusted_revision: str
-    ) -> tuple[str, dict[str, str]]:
-        """Derive a recovery pin from an operator-selected repository revision.
-
-        The completion manifest never chooses this revision.  This is only for
-        an explicit recovery of a package that predated database pin storage.
-        """
-
-        repository = Path(__file__).resolve().parents[2]
-        resolved = subprocess.run(
-            ["git", "-C", str(repository), "rev-parse", "--verify", f"{trusted_revision}^{{commit}}"],
-            capture_output=True, check=False,
-        )
-        revision = resolved.stdout.decode("ascii", errors="ignore").strip()
-        if resolved.returncode != 0 or len(revision) != 40:
-            raise CreativeHandoffError("execution_pin_missing", "trusted recovery revision is unavailable")
-        gitlink = subprocess.run(
-            ["git", "-C", str(repository), "ls-tree", revision, "--", "third_party/shuohao-skills"],
-            capture_output=True, text=True, check=False,
-        )
-        fields = gitlink.stdout.strip().split(maxsplit=2)
-        if gitlink.returncode != 0 or len(fields) != 3 or fields[:2] != ["160000", "commit"]:
-            raise CreativeHandoffError("execution_pin_missing", "trusted recovery revision has no Shuohao gitlink")
-        upstream_revision = fields[2].split("\t", 1)[0]
-        specialist = subprocess.run(
-            ["git", "-C", str(repository), "show", f"{revision}:.agents/skills/plotloom-shuohao-specialist/SKILL.md"],
-            capture_output=True, check=False,
-        )
-        upstream = subprocess.run(
-            ["git", "-C", str(repository / "third_party" / "shuohao-skills"), "show", f"{upstream_revision}:skills/novel-{'outline' if request.stage == 'branches' else request.stage}/SKILL.md"],
-            capture_output=True, check=False,
-        )
-        if specialist.returncode != 0 or upstream.returncode != 0:
-            raise CreativeHandoffError("execution_pin_missing", "trusted recovery revision cannot resolve pinned skills")
-        return revision, {
-            "upstreamRevision": upstream_revision,
-            "upstreamSkillHash": sha256(upstream.stdout).hexdigest(),
-            "specialistSkillHash": sha256(specialist.stdout).hexdigest(),
-        }
-
     def _projection(
         self, request: CreativeHandoffRequest, execution_pin: dict[str, str]
     ) -> tuple[dict[str, Any], bytes, bytes, set[str]]:
@@ -206,7 +177,7 @@ class CreativeHandoffExchange:
             "requestHash": frozen_hash,
             "candidateFilename": candidate_filename,
             "reportFilename": "report.html",
-            "upstreamSkillPath": f"third_party/shuohao-skills/skills/novel-{'outline' if request.stage == 'branches' else request.stage}/SKILL.md",
+            "upstreamSkillPath": "docs/creative-workflow/native-bridge-intent.md" if request.stage == "bridge-intent" else f"third_party/shuohao-skills/skills/novel-{'outline' if request.stage == 'branches' else request.stage}/SKILL.md",
             "executionPin": execution_pin_for_request(request, execution_pin),
         }
         character_id_instruction = (
@@ -225,12 +196,19 @@ class CreativeHandoffExchange:
             f"uv run --locked python scripts/branch_suggestion.py render {branch_candidate} --request {branch_request} > {branch_report}. Disclose ambiguous proposals in clarifications. "
             if request.stage == "branches" else ""
         )
+        intent_instruction = (
+            "For bridge-intent, the local native intent contract replaces upstream stage authoring. "
+            "Output exactly inputs/intent-schema.json: every frozen target exactly once, only id and suggestedText. "
+            "From the repository root run uv run --locked python scripts/native_bridge_intent.py validate <absolute-delivery/intent.json> --request <absolute-package/request.json>, "
+            "then render with the same arguments to derive report.html. "
+            if request.stage == "bridge-intent" else ""
+        )
         instructions = (
             "Read request.json, each inputs/*.json file, and the pinned upstream skill path. "
             f"Write the stage-shaped candidate JSON to the sibling ../delivery/{candidate_filename}, then derive "
             "../delivery/report.html from that candidate. Never create package/delivery. Finally publish "
             "../delivery/completion.json once. "
-            f"{character_id_instruction}{branch_instruction}"
+            f"{character_id_instruction}{branch_instruction}{intent_instruction}"
             "This is a candidate only: do not edit project canon, approvals, selections, or request files.\n"
         ).encode()
         template = canonical_json({
@@ -239,7 +217,7 @@ class CreativeHandoffExchange:
             "candidate": {"filename": candidate_filename, "sha256": "0" * 64},
             "report": {"filename": "report.html", "sha256": "0" * 64},
             "executorProvenance": {
-                "codeRevision": "checked-out-commit", "skillVersion": "plotloom-shuohao-specialist.v1",
+                "codeRevision": "checked-out-commit", "skillVersion": "plotloom-intent-specialist.v1" if request.stage == "bridge-intent" else "plotloom-shuohao-specialist.v1",
                 "skillHash": projected["executionPin"]["specialistSkillHash"],
                 "upstreamRevision": projected["executionPin"]["upstreamRevision"],
                 "upstreamSkillHash": projected["executionPin"]["upstreamSkillHash"],
@@ -331,6 +309,11 @@ class CreativeHandoffExchange:
             or provenance.upstream_skill_hash != expected_pin["upstreamSkillHash"]
         ):
             raise CreativeHandoffError("delivery_execution_mismatch", "delivery was not produced with the pinned specialist and upstream skill")
+        if request.stage == "bridge-intent" and (
+            provenance.code_revision != expected_pin["upstreamRevision"]
+            or provenance.skill_version != "plotloom-intent-specialist.v1"
+        ):
+            raise CreativeHandoffError("delivery_execution_mismatch", "native intent delivery does not match its pinned local execution revision")
         candidate_bytes = _read_regular(delivery / manifest.candidate.filename, max_bytes=2_000_000)
         report = _read_regular(delivery / manifest.report.filename, max_bytes=2_000_000)
         if sha256(candidate_bytes).hexdigest() != manifest.candidate.sha256 or sha256(report).hexdigest() != manifest.report.sha256:

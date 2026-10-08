@@ -23,7 +23,7 @@ export interface ProductionBridgePrepareRequest {
 
 export interface ProductionBridgeConflict { code: string; message: string; sectionId: string | null; episode: number | null; sceneIndex: number | null; }
 export interface ProductionBridgeIntentEntry { id: string; targetKind: "scene_objective" | "beat_purpose"; targetId: string; sourceCoordinates: Record<string, unknown>; sourceContentHash: string; sourceExcerpt: string; suggestedText: string | null; text: string; }
-export interface ProductionBridgeIntentPackage { suggestionOrigin: "none" | "model_inference.v1"; reviewState: "pending" | "model_suggested" | "author_saved"; entries: ProductionBridgeIntentEntry[]; provenance?: Record<string, unknown> | null; }
+export interface ProductionBridgeIntentPackage { suggestionOrigin: "none" | "model_inference.v1" | "codex_native.v1"; reviewState: "pending" | "model_suggested" | "author_saved"; entries: ProductionBridgeIntentEntry[]; provenance?: Record<string, unknown> | null; }
 export interface PresentationSpan { start: number; end: number; role: "unassigned" | "physical" | "visible_text" | "runtime_choice" | "review_only" | "dialogue"; rendering: string; reason: string; }
 export interface PresentationSource { id: string; kind: "action" | "composition" | "dialogue"; targetId: string; coordinates: Record<string, unknown>; sourceHash: string; sourceText: string; spans: PresentationSpan[]; }
 export interface RuntimeChoice { choiceId: string; sectionId: string; prompt: string; outcomes: Array<{ outcomeId: string; label: string; endingSectionId: string; consequence: string }>; }
@@ -58,10 +58,12 @@ export interface InstalledProduction extends ProductionSceneMapping {
   runtimeChoice: RuntimeChoices | null;
 }
 
-export interface ProductionBridgeIntentJob { id: string; status: "queued" | "dispatched" | "ready" | "stale" | "failed" | "cancelled" | "outcome_unknown"; proposalRevision: number; proposalContentHash: string; profileId: string; profileVersion: number; promptVersion: string; createdAt: string; updatedAt: string; errorCode: string | null; errorMessage: string | null; resultProposalRevision: number | null; providerRequestId: string | null; responseHash: string | null; }
+export interface ProductionBridgeIntentJob { id: string; transport: "text_api" | "codex_native"; status: "queued" | "dispatched" | "ready" | "stale" | "failed" | "cancelled" | "outcome_unknown"; proposalRevision: number; proposalContentHash: string; profileId: string | null; profileVersion: number | null; promptVersion: string; createdAt: string; updatedAt: string; errorCode: string | null; errorMessage: string | null; resultProposalRevision: number | null; providerRequestId: string | null; responseHash: string | null; }
 
 export interface ProductionBridgeState {
   intentGeneration: { status: "available" } | { status: "unavailable"; reason: "not_configured" };
+  nativeIntentGeneration: { status: "available" } | { status: "unavailable"; reason: "not_configured" };
+  nativeIntentTask?: { state: "prepared" | "queued" | "outcome_unknown" | "completed"; candidateStatus: ProductionBridgeIntentJob["status"]; reportAvailable: boolean; limitations: string[]; taskId?: string } | null;
   proposal: ProductionBridgeProposal | null;
   status: "missing" | "ready" | "accepted" | "stale";
   staleReasons: string[];

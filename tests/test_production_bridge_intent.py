@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from plotloom.config import PlotloomSettings
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName, StageStatus
+from plotloom.exceptions import InvalidTransitionError
 from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse
 from plotloom.generation.exceptions import (
     ProviderOutcomeUnknownError,
@@ -132,16 +133,26 @@ def test_model_result_creates_only_reviewable_bridge_revision_then_explicit_inst
             assert state.proposal.intent_package.suggestion_origin == "model_inference.v1"
             assert state.proposal.intent_package.review_state == "model_suggested"
             assert state.proposal.intent_package.provenance["jobId"] == job_id
-            assert state.proposal.installable
+            assert not state.proposal.installable
             for entry in state.proposal.intent_package.entries:
                 assert entry.text == entry.suggested_text and entry.text != ""
                 assert entry.source_excerpt != entry.suggested_text
                 assert entry.source_content_hash
             for stage in (StageName.STORY_BIBLE, StageName.SCENE_BEATS, StageName.STORYBOARD):
                 assert store.authoring.get_stage_head(project_id, stage).status == StageStatus.MISSING
-            accepted = store.accept_production_bridge(ProductionBridgeAcceptRequest(
+            with pytest.raises(InvalidTransitionError):
+                store.accept_production_bridge(ProductionBridgeAcceptRequest(
+                    expected_proposal_revision=state.proposal.revision,
+                    expected_content_hash=state.proposal.content_hash,
+                ))
+            reviewed = store.update_production_bridge_intent_package(ProductionBridgeIntentUpdateRequest(
                 expected_proposal_revision=state.proposal.revision,
                 expected_content_hash=state.proposal.content_hash,
+                entries=[{"id": entry.id, "text": entry.text} for entry in state.proposal.intent_package.entries],
+            ))
+            accepted = store.accept_production_bridge(ProductionBridgeAcceptRequest(
+                expected_proposal_revision=reviewed.proposal.revision,
+                expected_content_hash=reviewed.proposal.content_hash,
             ))
             assert accepted.status == "accepted"
     finally:
