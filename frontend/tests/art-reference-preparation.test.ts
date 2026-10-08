@@ -11,7 +11,7 @@ import type { ArtReferenceProposal } from "../src/types";
 let root: Root;
 let host: HTMLDivElement;
 const art = { style: "live-action", scenes: [{ id: "S01", name: "车站", image: { prompt: "Live-action station", sheet: "Station sheet", negativePrompt: "people" } }, { id: "S02", name: "咖啡馆" }], props: [{ id: "P01", name: "手机" }] };
-const defaults = { projectId: "project", art, acceptedRevision: 1, acceptedContentHash: "hash", studies: [] as ArtReferenceProposal[], decisions: [], decisionStates: [], readOnly: false, busy: false, setAssignment: vi.fn(), refresh: vi.fn(async () => {}) };
+const defaults = { projectId: "project", art, acceptedRevision: 1, acceptedContentHash: "hash", acceptedArtCurrent: true, studies: [] as ArtReferenceProposal[], decisions: [], decisionStates: [], readOnly: false, busy: false, setAssignment: vi.fn(), refresh: vi.fn(async () => {}) };
 const study: ArtReferenceProposal = { id: "study", projectId: "project", subjectType: "scene", subjectId: "S01", state: "prepared", current: true, request: { frozenSnapshot: { renderDirection: "保留雨后积水，柔和晨光。", subject: { content: art.scenes[0] } } }, requestHash: "request", exportedAt: null, cancelledAt: null, cancellationReason: null, createdAt: "now", deliveries: [] };
 
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
@@ -202,4 +202,74 @@ it("retains revised requirements after a preparation failure and blocks blank dr
   expect(host.textContent).toContain("Preparation failed");
   expect(textarea().readOnly).toBe(false);
   expect(textarea().value).toBe("保留本次修改");
+});
+
+it("blocks new image work for retained Art without hiding subjects or requirements", async () => {
+  const prepare = vi.spyOn(plotloomApi, "prepareArtReferenceProposal");
+  await render(); await edit("保留作者要求");
+  await render({ acceptedArtCurrent: false });
+  expect(textarea().value).toBe("保留作者要求");
+  expect(textarea().disabled).toBe(true);
+  expect(button("准备图片生成任务")!.disabled).toBe(true);
+  expect(host.textContent).toContain("图片要求（暂不可编辑）");
+  expect(host.textContent).toContain("当前只能查看已有图片要求；暂不能编辑或准备新图片任务。");
+  expect(host.textContent).not.toContain("可以用中文补充构图");
+  await click("准备图片生成任务");
+  expect(prepare).not.toHaveBeenCalled();
+  expect(host.textContent).toContain("暂不能准备、发送或选用参考图");
+  expect(host.textContent).toContain("保留的美术主体");
+  await select(2);
+  expect(textarea().value).toContain("白色背景");
+  await select(0);
+  await render();
+  expect(textarea().value).toBe("保留作者要求");
+  expect(textarea().disabled).toBe(false);
+  expect(host.textContent).toContain("可以用中文补充构图");
+});
+
+it("retains a revision draft through currentness loss and successful revalidation", async () => {
+  await render({ studies: [delivered] });
+  await click("修改要求，再生成一张"); await edit("保留环境新要求");
+  await render({ acceptedArtCurrent: false, studies: [{ ...delivered, current: false }] });
+  expect(textarea().value).toBe("保留环境新要求");
+  expect(textarea().disabled).toBe(true);
+  await render({ studies: [delivered] });
+  expect(textarea().value).toBe("保留环境新要求");
+  expect(textarea().disabled).toBe(false);
+  expect(button("准备新图片任务")!.disabled).toBe(false);
+  expect(delivered.request.frozenSnapshot).toEqual(study.request.frozenSnapshot);
+});
+
+it("cannot send or revise a retained task even if its proposal projection is current", async () => {
+  const send = vi.spyOn(specialistsApi, "sendArtImage");
+  await render({ acceptedArtCurrent: false, studies: [study] });
+  expect(button("发送给图像生成助手")!.disabled).toBe(true);
+  await click("发送给图像生成助手");
+  expect(send).not.toHaveBeenCalled();
+  await render({ acceptedArtCurrent: false, studies: [delivered] });
+  expect(button("修改要求，再生成一张")!.disabled).toBe(true);
+  await click("修改要求，再生成一张");
+  expect(textarea().readOnly).toBe(true);
+});
+
+it.each(["prepared", "exported"] as const)("keeps cancellation available for a stale %s task", async (state) => {
+  const cancel = vi.spyOn(plotloomApi, "cancelArtReferenceProposal").mockResolvedValue({ ...study, state: "cancelled", current: false });
+  const refresh = vi.spyOn(plotloomApi, "refreshArtReferenceProposal").mockResolvedValue({ state: "awaiting_delivery", candidates: [] });
+  await render({ acceptedArtCurrent: false, studies: [{ ...study, state, current: false }] });
+  expect(button("准备图片生成任务")!.disabled).toBe(true);
+  expect(button("取消图片任务")!.disabled).toBe(false);
+  if (state === "exported") {
+    expect(button("检查图像交付")!.disabled).toBe(false);
+    await click("检查图像交付");
+    expect(refresh).toHaveBeenCalledExactlyOnceWith("project", "study");
+  }
+  await click("取消图片任务");
+  expect(cancel).toHaveBeenCalledExactlyOnceWith("project", "study", "Operator cancelled the F3B reference-study handoff.");
+});
+
+it.each([{ readOnly: true }, { busy: true }])("keeps stale task cleanup locked by owner or pending work: %j", async (restriction) => {
+  await render({ acceptedArtCurrent: false, studies: [{ ...study, state: "exported", current: false }], ...restriction });
+  expect(button("取消图片任务")!.disabled).toBe(true);
+  expect(button("检查图像交付")!.disabled).toBe(true);
+  expect(button("准备图片生成任务")!.disabled).toBe(true);
 });

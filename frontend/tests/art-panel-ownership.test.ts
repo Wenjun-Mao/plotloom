@@ -148,3 +148,58 @@ it("guides recovery of a retained dirty Art draft before a newer accepted result
   expect(continuation.disabled).toBe(false);
   expect(onContinue).not.toHaveBeenCalled();
 });
+
+it.each(["stale", "reopened", "prepared", "candidate_ready"] as const)("does not authorize reference selection from retained Art while %s", async (status) => {
+  vi.spyOn(plotloomApi, "getArt").mockResolvedValue({ ...artState("old"), status });
+  // A retained proposal's flag alone must not confer current Art authority.
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [deliveredStudy] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
+  const choose = vi.spyOn(plotloomApi, "createArtReferenceDecision");
+  await act(async () => root.render(createElement(ArtPanel, { projectId: "old", readOnly: false })));
+  const select = [...host.querySelectorAll("button")].find(button => button.textContent === "选用这张环境参考图")!;
+  expect(select.disabled).toBe(true);
+  await act(async () => select.click());
+  expect(choose).not.toHaveBeenCalled();
+  expect(host.querySelector('img[alt="Held scene 当前查看图片"]')).not.toBeNull();
+  expect(host.textContent).toContain("查看保留的参考图片");
+  expect(host.textContent).toContain("暂不能准备、发送或选用参考图");
+  expect([...host.querySelectorAll("button")].find(button => button.textContent === "修改要求，再生成一张")!.disabled).toBe(true);
+});
+
+it("keeps reference selection blocked while a retained accepted head is being refreshed", async () => {
+  const pending = deferred<ArtReviewState>();
+  const getArt = vi.spyOn(plotloomApi, "getArt").mockResolvedValue(artState("old"));
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [deliveredStudy] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
+  const render = (token: number) => root.render(createElement(ArtPanel, { projectId: "old", readOnly: false, refreshToken: token }));
+  const select = () => [...host.querySelectorAll("button")].find(button => button.textContent === "选用这张环境参考图")!;
+  await act(async () => render(1));
+  expect(select().disabled).toBe(false);
+  getArt.mockReturnValueOnce(pending.promise);
+  await act(async () => render(2));
+  expect(select().disabled).toBe(true);
+  await act(async () => { pending.resolve({ ...artState("old"), status: "stale" }); await pending.promise; });
+  expect(select().disabled).toBe(true);
+});
+
+it("keeps reference selection blocked after a failed refresh until successful revalidation", async () => {
+  const getArt = vi.spyOn(plotloomApi, "getArt").mockResolvedValue(artState("old"));
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [deliveredStudy] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
+  const render = (token: number) => root.render(createElement(ArtPanel, { projectId: "old", readOnly: false, refreshToken: token }));
+  const button = (label: string) => [...host.querySelectorAll("button")].find(entry => entry.textContent === label)!;
+  await act(async () => render(1));
+  getArt.mockRejectedValueOnce(new Error("Temporary read failure"));
+  await act(async () => render(2));
+  expect(button("选用这张环境参考图").disabled).toBe(true);
+  await act(async () => button("重试加载美术参考").click());
+  expect(button("选用这张环境参考图").disabled).toBe(false);
+});
+
+it("allows another still-current older candidate without requiring it to be the newest proposal", async () => {
+  vi.spyOn(plotloomApi, "getArt").mockResolvedValue(artState("old"));
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [study, { ...deliveredStudy, id: "older-study" }] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
+  await act(async () => root.render(createElement(ArtPanel, { projectId: "old", readOnly: false })));
+  expect([...host.querySelectorAll("button")].find(button => button.textContent === "选用这张环境参考图")!.disabled).toBe(false);
+});

@@ -74,7 +74,7 @@ function Demo() {
     <section className="notice warning"><strong>模拟边界：</strong>“选用这张环境/道具参考图”只更新此页面的 React state。后端持久化、重启和真实 F3B 交付由自动化回归另行证明；此页面不访问它们。</section>
     <div className="button-row"><button type="button" onClick={() => markStale("scene")}>模拟环境美术变更 → 标记陈旧</button><button type="button" onClick={() => markStale("prop")}>模拟道具美术变更 → 标记陈旧</button><button type="button" onClick={restore}>恢复当前模拟研究</button></div>
     <article className="panel cast-panel art-panel">
-      <ArtReferenceGallery projectId={projectId} art={art} acceptedRevision={1} acceptedContentHash="portable-local-simulator" studies={studies} decisions={decisions} decisionStates={states} readOnly={false} busy={false} setAssignment={() => undefined} refresh={async () => undefined} createReferenceDecision={choose} onReferenceDecisionCreated={recordDecision} showStudyActions={false} assetUrl={staticCardUrl} />
+      <ArtReferenceGallery projectId={projectId} art={art} acceptedRevision={1} acceptedContentHash="portable-local-simulator" acceptedArtCurrent studies={studies} decisions={decisions} decisionStates={states} readOnly={false} busy={false} setAssignment={() => undefined} refresh={async () => undefined} createReferenceDecision={choose} onReferenceDecisionCreated={recordDecision} showStudyActions={false} assetUrl={staticCardUrl} />
     </article>
   </main>;
 }

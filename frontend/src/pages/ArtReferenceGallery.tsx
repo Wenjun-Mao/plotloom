@@ -19,8 +19,9 @@ type RequirementDraft = { value: string; sourceStudyId?: string };
  * F3B stays in the existing ArtPanel. This is only its image-first review
  * presentation; accepted art, F3B proposals, and managed assets retain ownership.
  */
-export function ArtReferenceGallery({ projectId, art, acceptedRevision, acceptedContentHash, studies, decisions, decisionStates, readOnly, busy, setAssignment, refresh, createReferenceDecision, onReferenceDecisionCreated, showStudyActions = true, assetUrl }: {
+export function ArtReferenceGallery({ projectId, art, acceptedRevision, acceptedContentHash, acceptedArtCurrent, studies, decisions, decisionStates, readOnly, busy, setAssignment, refresh, createReferenceDecision, onReferenceDecisionCreated, showStudyActions = true, assetUrl }: {
   projectId: string; art: Record<string, unknown>; acceptedRevision: number; acceptedContentHash: string;
+  acceptedArtCurrent: boolean;
   studies: ArtReferenceProposal[]; decisions: ArtReferenceDecision[]; decisionStates: ArtReferenceDecisionState[];
   readOnly: boolean; busy: boolean; setAssignment: (value: string) => void;
   refresh: () => Promise<void>;
@@ -95,19 +96,22 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
     setError("");
   };
   const actionable = !readOnly && !studyBusy;
+  // Retained Art is readable, but only its current confirmed head can authorize
+  // generation or selection. Task cancellation and late delivery checks differ.
+  const generationActionable = actionable && acceptedArtCurrent;
   const chooseLabel = selected.subjectType === "scene" ? "这张环境参考图" : "这张道具参考图";
   const candidateIsCurrent = Boolean(viewed?.study.current && viewed.delivery.state === "accepted");
   const candidateAlreadyChosen = currentDecision?.assetId === viewed?.assetId;
   return <section className="art-reference-studies art-reference-gallery" data-testid="art-reference-studies">
-    <header><div><span>环境 / 道具参考图片</span><strong>按已确认的美术设定生成图片</strong></div><small>不会修改已确认的美术设定。</small></header>
-    <p>先选择环境或道具，再准备图片任务。这里选用的图片仅供参考，不会自动用于镜头或生产。</p>
+    <header><div><span>环境 / 道具参考图片</span><strong>{acceptedArtCurrent ? "按已确认的美术设定生成图片" : "查看保留的参考图片"}</strong></div><small>不会修改已确认的美术设定。</small></header>
+    <p>{acceptedArtCurrent ? "先选择环境或道具，再准备图片任务。这里选用的图片仅供参考，不会自动用于镜头或生产。" : "当前美术设定尚未重新确认，暂不能准备、发送或选用参考图。已有图片和任务记录仍可查看。"}</p>
     {demonstration && <p className="reference-demonstration" role="note"><strong>演示声明：</strong>{demonstration}。不代表真实交付、生成或创意批准。</p>}
-    <nav className="reference-subjects" aria-label="环境和道具主体"><span>当前美术主体</span>{subjects.map((subject) => <button key={subjectKey(subject)} type="button" className={subjectKey(subject) === subjectKey(selected) ? "selected" : ""} aria-pressed={subjectKey(subject) === subjectKey(selected)} onClick={() => { setSelectedSubjectKey(subjectKey(subject)); setViewedAssetId(""); clearComparison(); }}><strong>{subject.subjectType === "scene" ? "环境" : "道具"} · {subject.name}</strong><small>{subject.subjectId}</small></button>)}</nav>
+    <nav className="reference-subjects" aria-label="环境和道具主体"><span>{acceptedArtCurrent ? "当前美术主体" : "保留的美术主体"}</span>{subjects.map((subject) => <button key={subjectKey(subject)} type="button" className={subjectKey(subject) === subjectKey(selected) ? "selected" : ""} aria-pressed={subjectKey(subject) === subjectKey(selected)} onClick={() => { setSelectedSubjectKey(subjectKey(subject)); setViewedAssetId(""); clearComparison(); }}><strong>{subject.subjectType === "scene" ? "环境" : "道具"} · {subject.name}</strong><small>{subject.subjectId}</small></button>)}</nav>
     <section className="appearance-workspace" aria-label={`${selected.name} 的环境或道具参考工作区`} data-testid={`art-reference-${selected.subjectType}-${selected.subjectId}`}>
       <div className="appearance-viewer">
         <div className="appearance-viewer-heading"><div><span className="eyebrow">当前查看</span><strong>{selected.subjectType === "scene" ? "环境" : "道具"} · {selected.name}</strong></div><span className={study?.current ? "reference-state selected" : "reference-state historical"}>{status}</span></div>
         {viewed ? <ManagedAssetImage projectId={projectId} subjectId={subjectKey(selected)} asset={viewed.asset} assetId={viewed.assetId} alt={`${selected.name} 当前查看图片`} unavailableLabel="当前查看图片不可用" imageUrl={assetUrl?.(viewed.assetId)} onZoom={() => setExpanded(true)} /> : <div className="reference-no-image"><strong>尚无可显示的候选图片</strong><p>{study ? "本次任务尚无可查看的图片。" : "尚未为此环境或道具准备图片任务。"}</p></div>}
-        <div className="button-row">{viewed && <Button variant="primary" disabled={!actionable || !candidateIsCurrent || candidateAlreadyChosen} onClick={() => void act(() => (createReferenceDecision || ((body) => plotloomApi.createArtReferenceDecision(projectId, body)))({ subjectType: selected.subjectType, subjectId: selected.subjectId, assetId: viewed.assetId, expectedReferenceRevision: decisionState?.revision || 0 }), onReferenceDecisionCreated)}>{candidateAlreadyChosen ? `已选用${chooseLabel}` : `${currentDecision ? "改用" : "选用"}${chooseLabel}`}</Button>}</div>
+        <div className="button-row">{viewed && <Button variant="primary" disabled={!generationActionable || !candidateIsCurrent || candidateAlreadyChosen} onClick={() => void act(() => (createReferenceDecision || ((body) => plotloomApi.createArtReferenceDecision(projectId, body)))({ subjectType: selected.subjectType, subjectId: selected.subjectId, assetId: viewed.assetId, expectedReferenceRevision: decisionState?.revision || 0 }), onReferenceDecisionCreated)}>{candidateAlreadyChosen ? `已选用${chooseLabel}` : `${currentDecision ? "改用" : "选用"}${chooseLabel}`}</Button>}</div>
         {currentDecision && <><p className="reference-decision" role="status"><strong>当前参考图：</strong>{currentDecision.assetId === viewed?.assetId ? "正在查看的候选。" : "在另一张候选中。"}</p><ReferenceDecisionDetails decision={currentDecision} /></>}
         {!currentDecision && latestDecision && <p className="reference-decision stale" role="status">此前的参考决定已过期；保留在历史中，尚未为当前美术主体自动选择候选。</p>}
         <p className="reference-decision-boundary">这里的参考图选择仅用于环境/道具审阅，暂不会传入镜头制作流程。</p>
@@ -119,7 +123,7 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
       </div>
       {viewableCandidates.length > 1 && <div className="appearance-compare-controls" aria-label="同一主体图片比较"><span>比较（已选 {comparisonCandidates.length}/4；至少选择 2 张）</span>{viewableCandidates.map((candidate) => { const compared = comparisonAssetIds.includes(candidate.assetId); return <Button key={candidate.id} variant="quiet" aria-pressed={compared} className="selection-toggle" disabled={!compared && comparisonAtCapacity} onClick={() => toggleComparison(candidate.assetId)}>{compared ? `移出 ${candidate.outputFilename}` : `加入 ${candidate.outputFilename}`}</Button>; })}{comparisonCandidates.length > 0 && <Button variant="quiet" onClick={clearComparison}>清空比较</Button>}{comparisonAtCapacity && <small>已达四张上限；先移出一张再替换。</small>}</div>}
       {comparisonCandidates.length >= 2 && <div className={`appearance-compare comparison-count-${comparisonCandidates.length}`} data-testid="art-reference-comparison"><header><strong>并排比较 · {comparisonCandidates.length} 张</strong><small>仅比较 {selected.subjectType === "scene" ? "环境" : "道具"} {selected.name}；不会选择生产资产。</small></header>{comparisonCandidates.map((candidate) => <figure key={candidate.assetId}><figcaption>{candidate.assetId === viewed?.assetId ? "当前查看" : "对比图片"} · {candidate.outputFilename}</figcaption><ManagedAssetImage projectId={projectId} subjectId={subjectKey(selected)} asset={candidate.asset} assetId={candidate.assetId} alt={`${candidate.outputFilename} 比较图片`} unavailableLabel="对比图片不可用" imageUrl={assetUrl?.(candidate.assetId)} /></figure>)}</div>}
-      {showStudyActions && <ArtReferencePreparation style={art.style} subject={selected} study={study} actionable={actionable} direction={direction} onDirectionChange={setDirection}
+      {showStudyActions && <ArtReferencePreparation style={art.style} subject={selected} study={study} actionable={actionable} generationActionable={generationActionable} direction={direction} onDirectionChange={setDirection}
         revising={revising} onRevise={startRevision} onCancelRevision={() => setDraft({ value: direction })}
         onPrepare={() => void act(() => plotloomApi.prepareArtReferenceProposal(projectId, { subjectType: selected.subjectType, subjectId: selected.subjectId, renderDirection: direction.trim() }))}
         onSend={() => study && void act((isCurrent) => reconcileFailedSend(() => specialistsApi.sendArtImage(projectId, study.id), async () => { if (isCurrent()) await refresh(); }))}
