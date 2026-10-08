@@ -66,6 +66,13 @@ helpers moved into a cohesive module, reducing the 628-line test file below
 retained under `output/playwright/native-intent-2026-10-08/initial-art-close-race`.
 
 The current wheel built and passed installed smoke outside the source checkout.
+Both typechecks, lock check and API F401 lint also pass. A fresh deterministic
+build on `3409c03` leaves checked static unchanged, including JavaScript SHA256
+`b598c9a273550e72ac192ea93b4e1b87dd60c6049687da190d61daa61da086d5`.
+All 47 creator-workbench service tests pass using the documented
+`uv run --locked python -m pytest` invocation (11.42 seconds). An initial direct
+`pytest` invocation could not import the root `tests` package during collection;
+the documented invocation resolves the path without a code or environment patch.
 
 ## Bible read and wording audit
 
@@ -80,7 +87,26 @@ removed after the check. This covers initial read/recovery, not every Bible stat
 The shared unavailable panel incorrectly mentioned a shot position on this
 non-shot page. It now says “当前链接与页面位置仍保留”, with unchanged read-only
 Retry semantics. All ten availability tests pass; the updated bundle was rebuilt.
-Final candidate pixels still need inspection before visual acceptance of this copy.
+The final-candidate recheck below qualifies the corrected copy separately.
+
+On `3409c03`, the fresh disposable project below now supplies six directly
+inspected failure/recovery viewports at all three supported sizes. A browser-only
+503 affects only its initial stages GET; removing the fault and clicking
+“重新读取项目” restores the same Bible URL and exact stages response, with zero
+non-read requests. The corrected page-neutral explanation and both actions are
+readable. Independent screenshot review found no blocker. The short failure
+frame retains prior scroll, so it qualifies the visible banner, explanation and
+actions, not the offscreen heading. Recovered fields are genuinely empty because
+this new project has no installed Bible; content preservation rests on exact
+readback, not the blank screenshot.
+
+The six files are `bible-read-{failure,recovered}-{1700x900,1280x768,1280x460}.png`
+under `output/playwright/native-intent-2026-10-08/`. The two earlier
+`source-confirmed-1700.png` and `source-ready-1700.png` instead show the saved
+specialist-settings dialog, not the Source page. A backdrop-centre click was
+intercepted by that dialog; its actual visible Close button worked normally.
+`source-visible-1700.png` then records the Source page at its retained lower
+scroll. Those naming/method limits are not relabelled as Source-top coverage.
 
 ## Remaining acceptance
 
