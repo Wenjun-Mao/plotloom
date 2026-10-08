@@ -3,8 +3,9 @@
 The media workbench now preserves acknowledged selection authority across rapid
 shot changes. Independent review, 601 frontend tests and focused browser repeats
 pass. The final unfiltered browser gate passed all206 tests6.2m without local
-retries on unchanged856 inputs; publication and full native
-lifecycle acceptance are not yet complete.
+retries on unchanged856 inputs. Root approved and published executable
+`7f1041c8a27b036c2e27b0c9e7b3e6601f88b81c` on 2026-10-08 at01:23 UTC.
+Full native lifecycle acceptance remains PARTIAL.
 
 ## Product failure and durable repair
 
@@ -73,7 +74,8 @@ The earlier published5aff37e CI37701584435 finished successfully at
 2026-10-08 00:02:31 UTC, with205 first-pass browser results and one retry pass.
 It is qualified as one flaky result, not a clean206 first-pass gate. The exact
 Source confirmation race is corrected above. That old CI does not qualify this
-new candidate; fresh CI has not yet been dispatched.
+new candidate. Fresh full unfiltered [CI37712695213](https://github.com/Wenjun-Mao/plotloom/actions/runs/37712695213)
+was dispatched on published7f1041c at01:23:35 UTC and is running; no PASS is claimed.
 
 ## Candidate identity and distribution checks
 
@@ -89,8 +91,9 @@ Deterministic rebuilds retain JS
 CSS remains `d430ea5d72528c509b27446c10eb5ae34cada9c5e8808e8ad72c616570ea10cb`
 and `29912296af73c3c5d3cd1eb885ddd30a6741e0b5ea097d18d848c3ea09c5b1a5`.
 Normal8841's unchanged e941780 Python serves these frontend bytes through its
-checkout mount; read-only health and served-hash checks pass. No busy8861 restart,
-reload, continuation or resend occurred.
+checkout mount; post-publication read-only health and all three served-hash checks
+pass. Main matched origin after push; all856 gate inputs independently recomputed
+to the exact final aggregate. No busy8861 restart, reload, continuation or resend occurred.
 
 Lock, scoped API F401 lint and diff checks pass. Wheel build and installed smoke
 pass; wheel SHA256 is

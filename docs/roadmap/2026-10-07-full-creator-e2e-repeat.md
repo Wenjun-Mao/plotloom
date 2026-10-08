@@ -18,7 +18,7 @@ approve the pending Image continuation or implement new product capabilities.
 
 | Profile field | Current run |
 |---|---|
-| Last qualified baseline | Published5aff37e frontend and unchanged e941780 Python; local597frontend/206browser PASS and unchanged856 inputs, Python1,245 qualification reused. CI37701584435 finished success with205 first-pass browser results and one retry pass. Current media authority repair is independently reviewed with601 frontend and206 browser PASS6.2m without local retries; final856 inputs unchanged, publication pending |
+| Last qualified baseline | Published media authority repair7f1041c with unchanged e941780 Python; independently reviewed601 frontend/206 browser PASS6.2m without local retries, all856 inputs unchanged, Python1,245 qualification reused. Full CI37712695213 is running on exact7f1041c, not yet PASS. Prior5aff37e CI37701584435 finished success with205 first-pass browser results and one retry pass |
 | Existing evidence | Completed text→installation→first-shot native flow and separate structural QA; finite type/start/Undo, imported-image lifecycle/snapshot/restored-copy UI, six-sibling desktop and trusted OS blur passed. C50 nonempty metadata/reopen/cleanup and C52 distinct A-B-A partial drafts/history/modes/close/reopen/immediate unsaved switch have full exact readbacks and clean QA baselines. Native media and same completed-project revision remain PARTIAL; see current media repair and C52 receipts |
 | Runtime boundary | Normal8841 serves the rebuilt media-repair frontend through its checkout mount with unchanged qualified e941780 Python; separate8871 qualifies disposable graph checks. Retained8851 and busy8861 loaded backends differ. Do not reload newer static against old Python or restart the busy Image reservation |
 | Data baseline | Fresh native QA b3a933f7-b6fc-40e3-826f-5162f95a119a; structural QA remains separately identified in the ledger. Completed playable/media baseline not yet established for this repeat |
@@ -103,6 +103,12 @@ alone does not end independent coverage. Report NOT EXERCISED subcontrols
 explicitly and leave exact pending task identities.
 
 ## Status
+
+Media authority/owned-ACK repairs and C50/C52 receipts are published at7f1041c.
+Normal8841 is healthy and serves the exact checked frontend through its mount;
+full CI37712695213 is running on that executable. No busy8861 restart or task resend.
+The held Image same-job continuation and prerequisite capability design questions
+are now pending human direction; full native/revision acceptance remains PARTIAL.
 
 Actual OS focus loss now passes on owned8871 at1700×900, with automatic380px and
 persisted350px resize cancellation. Playwright focus emulation masked the earlier
