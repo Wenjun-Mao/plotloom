@@ -1,12 +1,13 @@
 # Typed Cast/Art currentness guidance — 2026-10-08
 
-Status: **PUBLISHED / ACTIVATED / EXACT-HEAD CI RUNNING**. This is a bounded E22
+Status: **PUBLISHED / ACTIVATED / EXACT-HEAD CI PASSED**. This is a bounded E22
 contract and wording repair within the current full lifecycle run. It does not
 complete Create → Revise → Recover, native-media coverage or creative acceptance.
 Executable`c26920ba69c645fc16384d070603549a31f1a7d0` is pushed to`origin/main`;
 healthy normal8841 serves the checked API/assets. The one unfiltered
 [exact-head CI run](https://github.com/Wenjun-Mao/plotloom/actions/runs/37786734259)
-is running, not yet remotely qualified. Documentation closeout does not change
+has completed success, confirmed during the later gallery-repair closeout.
+Documentation closeout does not change
 the qualified executable inputs.
 Public API decision: [ADR0134](../adr/0134-typed-review-context-diagnostics.md).
 Earlier interrupted182, failed186 and passing189 remain separate historical
@@ -95,7 +96,7 @@ source writer.
   at the manifest above. Default four workers, zero local retries, existing decoder
   and timing bounds remain unchanged. The three offline native-clock cases pass;
   these are not genuine H3 creative/media qualification.
-- Publication and normal activation/readback:PASS; exact-revision full CI:RUNNING.
+- Publication and normal activation/readback:PASS; exact-revision full CI:PASS.
 
 Normal8841 recovered automatically after the owner-reported reboot. Before the
 controlled build stop, the exact protected-owner aggregate remained
@@ -146,6 +147,10 @@ matching remote head, empty index and exact reviewed scope; the subsequent scope
 commit/push succeeded. No force push or permission bypass was used.
 
 ## New finding and explicit limits
+
+The subsequent [reference-gallery repair](2026-10-08-art-reference-eligibility.md)
+addresses the finding below with separate current-head/action/cleanup eligibility.
+It owns later qualification/publication; the original observation remains evidence.
 
 Stale Art's reference gallery still offers **准备图片生成任务**, although the
 server requires current accepted Art and correctly refuses stale preparation.

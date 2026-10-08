@@ -24,6 +24,20 @@ and [native preview error checkpoint](2026-10-08-native-preview-error-ui.md) /
 Reuse disposable data, distinguish fixture/native states and avoid repeated
 generation solely for visual inspection. All Create → Revise → Recover gaps remain.
 
+The [current-Art reference-gallery checkpoint](2026-10-08-art-reference-eligibility.md)
+adds explicit current-head authority, safe stale-task cleanup, zero-write retained
+image reading and independently checked locked-field wording. Executable `3ad91e4`
+is published and healthy on normal8841, with focused43/full737 frontend and fresh
+unfiltered236-browser PASS. Six directly inspected normal Gallery/controls frames
+at all supported sizes make zero writes; owner/settings fingerprints remain exact.
+Its full exact-head CI37801077786 passed verify and both browser shards;
+full native/revision coverage remains open.
+
+The [post-reboot native checkpoint](2026-10-08-native-decoder-recovery.md) now
+qualifies exact-original playback, five-second segment preview and explicit
+technical-only selection on the native opening shot. Two route shots, multishot
+and revision/rebuild remain open; the earlier decoder failure is not diagnosed.
+
 ## Recovery repair published 2026 10 07 23 19 UTC
 
 Root approved and pushed the frontend-only repair as

@@ -14,8 +14,17 @@ The [typed Cast/Art guidance checkpoint](2026-10-08-review-context-diagnostics.m
 adds36 independently inspected disposable diagnostic frames and three root-inspected
 native notice frames, preserving exact technical evidence and prerequisite ownership.
 Executable`c26920b` is published and activated; fresh1256 Python,723 frontend and
-unfiltered236 browser tests pass locally. Exact-head CI37786734259 is running.
-Stale Art's image-task affordance remains a separate unresolved eligibility defect.
+unfiltered236 browser tests pass locally. Exact-head CI37786734259 has completed success.
+The [reference-gallery checkpoint](2026-10-08-art-reference-eligibility.md) repairs
+stale Art's image-task affordance and contradictory disabled-field guidance;
+its own qualification and activation are tracked separately. Executable `3ad91e4`
+is healthy on normal8841 with fresh737 frontend/unfiltered236 browser PASS;
+six directly inspected normal Gallery/controls frames make no writes. Its full
+exact-head CI37801077786 passed verify and both browser shards. This does not
+close native-media/revision gaps.
+The [post-reboot native checkpoint](2026-10-08-native-decoder-recovery.md) separately
+qualifies the opening original/segment/selection slice and three actual incomplete
+Play viewports. All-route, multishot, revised-media and decoder-cause gaps remain.
 The [reader/gallery/Bible/run checkpoint](2026-10-08-reader-gallery-ui-states.md)
 extends prerequisite, read-failure, empty and archived-state coverage. Its latest
 gate and publication identity are recorded separately, not inherited from earlier gates.
@@ -90,10 +99,10 @@ report evidence are not rewritten for cosmetic consistency.
 | Bible |88 native populated premise;129–131 disposable selected character/location/prop top/bottom and archived-character deep link, all desktop sizes directly inspected | Initial transport failure and other archived entity permutations remain open |
 | Art, Script, Storyboard/production review |87–89 native top/middle/bottom;94 saved/selected;109 loaded heads;112 repaired Art/production viewport pixels at all three sizes;113 actual native optional-Art-task scrolling at all three sizes, zero writes | Deeper selected/failed/stale state permutations not yet pixel-qualified |
 | Script/Storyboard readers |90 native East/West;129/130 seven explicit reader states ×three sizes;145 actual native West selection, expanded instructions and original report, all directly inspected; optional failure retry preserves Script/route and performs no writes | Other reader/report permutations remain open; West slice now qualified separately |
-| Play |90/95 native incomplete media;109 missing installed production exposed a misframed request error;112 typed prerequisite state directly inspected at all three sizes with exact owner link and no transport alert | Native playable/all-route progression not established; initial request failure/retry tested separately |
+| Play |90/95 native incomplete media;109 missing installed production exposed a misframed request error;112 typed prerequisite state directly inspected at all three sizes with exact owner link and no transport alert;194 after explicit opening segment selection, actual two-missing-route state at all sizes, zero writes | Full-story/all-route progression not established; the opening playback/selection slice is qualified separately. Initial request failure/retry tested separately |
 | Specialist/provider settings, Home/directory |91 native top/bottom;93 repaired overlay hit/scroll/Close;109 desktop views;112 initial top, text-ID scroll and image-ID scroll pixels directly inspected at all three sizes; readable directory times rechecked | Other operational states not yet pixel-qualified |
 | Trace, repair, Beats |97 native idle/populated;109 all18 Pro and three enabled exact-repair viewports;112 one-line Add Scene;137/140 Trace/repair and Inspector pixels directly inspected;141 changed running-event recapture | Additional native event/operational permutations; running fixture is frozen-key blocked, not native execution |
-| Shot/media details |83 QA;110 current native pending/loaded at three sizes, initial failure at short desktop and successful named retry; root inspected all seven frames, zero POSTs | Native preview/selection/playback quality and remaining subcontrols remain separate/incomplete |
+| Shot/media details |83 QA;110 current native pending/loaded at three sizes, initial failure at short desktop and successful named retry;194 actual native original/segment trusted playback and explicit technical-only selection, independent records/pixel review | First native slice now qualified separately; other routes, multishot/revision, remaining subcontrols and creative/audible quality remain incomplete |
 
 No page-width overflow observed in the measured native89–91 cases. This does not
 prove every view or state. Captured larger frames not explicitly inspected remain
@@ -117,6 +126,7 @@ file; do not inherit a PASS from a different state or source revision.
 | Reader, initial failed read / pending or failed optional Storyboard / named retry | Explicit faults129/130, three states at all sizes; same-Script/route and zero-write guards | Scoped PASS; Storyboard retry is isolated, missing content is not a transport failure. |
 | Original video, collapsed / expanded native error | Explicit read-fault fixture120; both states at all three sizes, root/independent inspection | Scoped PASS; candidate and handler limits in the preview checkpoint. |
 | Segment video, collapsed / expanded native error | Explicit read-fault fixture120; both states at all three sizes, root/independent inspection | Scoped PASS; not native successful playback or media selection. |
+| Native original/segment terminal and selected state; Play missing two route shots | Native194 full CDP/job/HTTP records, inspected terminal/selected pixels and Play at all three desktop sizes | Finite technical PASS in the recovery receipt. Static“待审片段” is an optional wording refinement; selected option/status are accurate. No all-route/multishot or creative/audible acceptance. |
 | Cast/gallery, confirmed populated / expanded provenance | Native115, top/details/bottom at all three sizes | Scoped PASS; retained confirmed content, not an empty or failed read. |
 | Cast/gallery, confirmed-no-images / initial failed read / archived guidance | Disposable fixtures129–132, final137 twelve PNGs at all sizes directly inspected | Scoped reading-state qualification in linked checkpoint; archived controls remain disabled, no interactive comparison/retry claim. |
 | Bible, populated premise | Native88 at all three sizes | Scoped PASS for this form, not the selected entity forms. |
@@ -139,7 +149,7 @@ file; do not inherit a PASS from a different state or source revision.
 | Cast / Art static reports |181 disposable pinned-renderer fixtures,96 report PNGs independently inspected at all supported sizes;18 focused journeys PASS, original/canonical/hash/no-write guards;184 three directly inspected native Art action viewports;189 fresh unfiltered236PASS | Scoped reading PASS; accepted Cast identity marker is not a rich report, four-role fixture is not native delivery and relationship-heading/list pixels do not qualify the whole map. Publication tracked in linked checkpoint. |
 | Native Art prerequisite wording |184 normal Art exposed raw English beside plain StageGuide; successful stale projection lost shared prerequisite ownership | Resolved through ADR0134 typed API/primary guidance in190, with actual activated normal readback. Original184 pixels and raw evidence remain unchanged; no string translation or creative prose rewrite. |
 | Cast/Art typed prerequisite and preparation-refusal guidance |190 disposable real-server six cases ×three desktop sizes ×closed/open details, all36 PNGs independently directly inspected; actual preparation409 and exact no-job/retained-state guards; three additional root-inspected native notice captures | Scoped pixels/operation PASS under ADR0134; fresh local gates, publication and activation are tracked in the [typed guidance receipt](2026-10-08-review-context-diagnostics.md). Broader state/native-media matrix remains PARTIAL. |
-| Stale Art reference-task affordance |190 actual stale Source/Cast/Brief-Art reads expose enabled 准备图片生成任务; backend current-Art refusal independently verified | UNRESOLVED eligibility defect: qualify preparation from current accepted Art while preserving retained gallery reading and server admission. Typed notices do not repair this separate action. |
+| Stale Art reference-task affordance |190 retained failure evidence; later five real-server fixture states ×three sizes,30 initial/30 final pixels, actual zero-write zoom/details and exact stale cancel/refresh/cancel; six directly inspected activated normal Rain Gallery/controls frames | Repaired current-head authority and locked-field copy; independent review closed, fresh local qualification and normal activation PASS. Exact-head remote CI in the [gallery receipt](2026-10-08-art-reference-eligibility.md); not every native/gallery state. |
 | Outline original interactive report |144 native12 direct top/table/middle/bottom pixels, all sizes; exact archive/project/no-write, bounds/hit and reopen guards | Reading controls/scroll scoped PASS. Raw fractional-minute tile wraps badly at1280; upstream renderer defect UNRESOLVED, original bytes preserved. |
 
 The Outline duration source diagnosis is confirmed in the clean pinned
@@ -305,7 +315,7 @@ Fresh owner-protection recapture matches the exact aggregate
 `df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`:
 Wind17/Rain67 managed files, both complete DB row/schema sets and three protected
 configurations. Scoped source qualification is complete; source/push/CI identity
-is reported separately at delivery. The lifecycle run still remains PARTIAL: opening H3 is
-ingested but not selected/playback-qualified; other route media, native multishot
-preview, same-project post-install revision/rebuild and remaining recovery checks
-are not completed by a visual audit.
+is reported separately at delivery. The lifecycle run still remains PARTIAL:
+the later native194 receipt separately qualifies opening H3 playback/selection;
+other route media, native multishot preview, same-project post-install revision/
+rebuild and remaining recovery checks are not completed by a visual audit.

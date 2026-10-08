@@ -32,8 +32,17 @@ repairs lost prerequisite ownership through the current API and primary Chinese
 instructions, preserving raw technical evidence and existing admission. Final
 local qualification passes1256 Python,723 frontend and unfiltered236 browser
 tests. Executable`c26920b` is pushed and healthy normal8841 serves its exact
-API/assets; full exact-head CI37786734259 is running. Stale Art's enabled image-task
-affordance is a separately recorded unresolved eligibility defect.
+API/assets; full exact-head CI37786734259 completed success. The later
+[reference-gallery checkpoint](../verification/2026-10-08-art-reference-eligibility.md)
+repairs stale Art's enabled generation/selection affordance without blocking old
+image reading or eligible task cleanup. Executable `3ad91e4` is published and
+healthy on normal8841 with fresh737 frontend/unfiltered236 browser PASS and six
+directly inspected zero-write normal UI captures. Full exact-head CI37801077786
+passed verify and both browser shards; its final qualification is recorded there.
+The [post-reboot native checkpoint](../verification/2026-10-08-native-decoder-recovery.md)
+qualifies retained opening-shot original/segment playback and explicit technical-only
+selection, without replaying generation. Two route shots and broader revision/
+recovery remain open; the earlier decoder failure's cause remains unknown.
 The supported matrix remains1280×768,1280×460,1700×900; no phone/1024px work.
 
 The owner approved a [fresh full creator E2E repeat](2026-10-07-full-creator-e2e-repeat.md)

@@ -19,10 +19,10 @@ safe continuation. It does not implement new product capabilities.
 
 | Profile field | Current run |
 |---|---|
-| Last qualified baseline | Published report/configuration audit35cc75b:688 frontend/220 browser PASS6.4m without local retries,868 inputs unchanged before/after, types/build/wheel/smoke PASS; exact-head CI37763010686 in progress. Earlier0c91067 exact-head CI37753998839 success is historical. Python1,245 qualification reused from unchanged e941780 source |
-| Existing evidence | Completed text→installation→first-shot native flow and separate structural QA; finite type/start/Undo, imported-image lifecycle/snapshot/restored-copy UI, six-sibling desktop and trusted OS blur passed. C50 nonempty metadata/reopen/cleanup and C52 distinct A-B-A partial drafts/history/modes/close/reopen/immediate unsaved switch have full exact readbacks and clean QA baselines. Native media and same completed-project revision remain PARTIAL; see current media repair and C52 receipts |
+| Last qualified baseline | Published and activated reference-gallery repair3ad91e4:737 frontend/236 browser PASS6.6m without local retries,890 inputs unchanged, types/deterministic build/wheel/smoke PASS; exact-head CI37801077786 passed verify and both browser shards. Unchanged backend1256-Python qualification reused from c26920b, whose exact-head CI37786734259 passed. See the current gallery receipt |
+| Existing evidence | Completed text→installation→first-shot native flow and separate structural QA; finite type/start/Undo, imported-image lifecycle/snapshot/restored-copy UI, six-sibling desktop and trusted OS blur passed. C50/C52 have full exact readbacks and clean QA baselines. Post-reboot194 qualifies opening original, five-second segment and explicit technical-only selection with exact hashes/frozen inputs. Two other route shots, multishot and same completed-project revision remain PARTIAL; see current native recovery and C52 receipts |
 | Runtime boundary | Normal8841 serves checked frontend through its checkout mount with unchanged qualified Python. Owned idle8861/8862 was restarted after native completion and now loads matching Python/static plus explicitly enabled current H3 catalogv7 via process-only configuration; protected settings unchanged. Separate8871 qualifies graph checks; retained8851 is historical. Never restart a busy reservation |
-| Data baseline | Fresh native QA b3a933f7-b6fc-40e3-826f-5162f95a119a; structural QA remains separately identified in the ledger. Completed playable/media baseline not yet established for this repeat |
+| Data baseline | Fresh native QA b3a933f7-b6fc-40e3-826f-5162f95a119a; structural QA remains separately identified in the ledger. Opening native playback/selection is qualified; the full-story/all-route playable baseline is not yet established for this repeat |
 | Protection | Two named owner projects, managed files and protected configuration unchanged; disposable lifecycle/recovery targets identified before actions |
 | Authority | Approved specialist coordination includes routine follow-ups and safe same-frozen-job continuation in the existing task; renewed consent is not required for a repaired preflight blocker. Verify job/pin/completion state; preserve dispatch identity. No new paid fallback, protected-settings mutation, broad deletion, user/safety-stop bypass or creative/media-quality approval |
 | Primary goal | Complete the outstanding creation/media journey, prove revisions on the same completed project, and cover recovery/desktop gaps with current evidence |
@@ -135,9 +135,10 @@ The owner clarified that routine steps within the approved run must not seek
 renewed consent; ADR0131 supersedes the earlier over-restrictive coordination.
 The current ledger now records finite native Character refinement/pair and
 Scene/Prop delivery/reference checks, plus opening keyframe/endframe review and
-one ingested H3 candidate. Downstream reference consumption, successful raw-media/
-segment playback, other-route media, every-route/multishot and video recovery
-remain outstanding; ingestion is not playback qualification. Prerequisite capability design is still a separate unanswered
+one ingested H3 candidate. The later [post-reboot checkpoint](../verification/2026-10-08-native-decoder-recovery.md)
+qualifies that original/segment and technical-only selection. Downstream reference
+consumption, other-route media, every-route/multishot and video recovery remain
+outstanding; a single-shot PASS is not all-route qualification. Prerequisite capability design is still a separate unanswered
 scope question. Full native/revision acceptance remains PARTIAL.
 
 Actual OS focus loss now passes on owned8871 at1700×900, with automatic380px and
