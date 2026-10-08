@@ -1,6 +1,6 @@
 # Reader, gallery, Bible and run reading states — 2026-10-08
 
-Status: **SCOPED LOCAL QUALIFICATION PASSED; PUBLICATION PENDING**. Part of the
+Status: **SCOPED QUALIFIED CHECKPOINT PUBLISHED**. Part of the
 [whole-product visual/text audit](2026-10-08-whole-product-ui-audit.md) and current
 full E2E run. It is not complete lifecycle, native generation or artistic acceptance.
 Stable guardrails are in [ADR0132](../adr/0132-creator-ui-reading-boundaries.md)
@@ -140,7 +140,12 @@ Fixtures are not native generation or complete Create/Revise/Recover acceptance.
   `df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`;
   Wind17/Rain67 files, both full database row/schema sets and three protected files.
 
-Publication/remote-CI identity follows commit/push. Earlier PASS counts do not qualify later changes.
+Executable source `ff1197a70d163e8d4add8afaaf62d3ca3f3c0dc7` is committed and
+pushed to `origin/main`. The exact-head, unfiltered
+[remote CI run](https://github.com/Wenjun-Mao/plotloom/actions/runs/37745186133)
+is in progress at publication; remote success is not yet claimed. Subsequent
+documentation-only closeout does not change the qualified executable fingerprint.
+Earlier PASS counts do not qualify later changes.
 Full backend1245PASS was already run during this same E2E audit chain; this
 frontend-only checkpoint does not claim a second backend run.
 
