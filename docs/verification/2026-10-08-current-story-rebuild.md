@@ -118,6 +118,19 @@ prepared/ready-Script stale-authority tests. No refusal was bypassed or softened
 
 ## Remaining native and deployment work
 
+### Profile-owned credential delta
+
+After the full rebuild gate, the encountered default-profile compatibility
+fallback was removed under ADR0139. Default and named text profiles resolve only
+their own namespaced server key; image/video credentials and protected settings
+were not changed. Independent read-only review found no blocking issue.
+The 36 focused profile/config/extraction/runtime-capability tests pass, as do
+touched-source Ruff F and diff checks. A freshly built wheel passed installed
+smoke outside the checkout. The first smoke invocation mistakenly supplied a
+wheel file rather than its directory; the corrected invocation passed without
+source changes. The earlier 1,347-Python total predates this bounded delta;
+unchanged frontend and browser evidence is reused rather than claimed rerun.
+
 Create a fresh current-schema disposable baseline after the candidate is committed
 and fully qualified, then revise that SAME completed project. Do not initialize
 new authority by rewriting retained receipts or copying old approvals. Current

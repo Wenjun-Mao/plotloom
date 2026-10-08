@@ -291,8 +291,7 @@ def test_environment_template_is_plotloom_only() -> None:
     source = ENV_EXAMPLE.read_text(encoding="utf-8")
     declared_names = set(re.findall(r"(?m)^#?\s*([A-Z][A-Z0-9_]*)=", source))
     assert {
-        "ATLASCLOUD_API_KEY",
-        "TEXT_MODEL_API_KEY",
+        "PLOTLOOM_PROFILE_DEFAULT_TEXT_API_KEY",
         "IMAGE_MODEL_API_KEY",
         "VIDEO_MODEL_API_KEY",
         "TEXT_PROVIDER",
@@ -313,6 +312,7 @@ def test_environment_template_is_plotloom_only() -> None:
     }.issubset(declared_names)
     assert not any(name.startswith(("DIRECTOR_", "NARRATIVE_FORGE_")) for name in declared_names)
     assert "IMAGE_EDIT_MODEL" not in declared_names
+    assert not {"ATLASCLOUD_API_KEY", "TEXT_MODEL_API_KEY"} & declared_names
 
 
 def test_prompt_templates_have_one_package_owned_source_of_truth() -> None:

@@ -27,20 +27,10 @@ def resolve_text_provider_api_key(
     profile_id: str,
     environ: dict[str, str] | None = None,
 ) -> str | None:
-    """Resolve a server-only text key without persisting its source or value.
-
-    The named variable has priority for every profile.  ``default`` keeps the
-    pre-M1.5 fallback order so upgrading a checkout does not silently lose its
-    existing credential.
-    """
+    """Resolve only this profile's server key, including the default profile."""
 
     values = os.environ if environ is None else environ
-    key = values.get(profile_text_api_key_environment_name(profile_id)) or None
-    if key:
-        return key
-    if profile_id == DEFAULT_PROVIDER_PROFILE_ID:
-        return values.get("TEXT_MODEL_API_KEY") or values.get("ATLASCLOUD_API_KEY") or None
-    return None
+    return values.get(profile_text_api_key_environment_name(profile_id)) or None
 
 
 def _source_checkout_root() -> Path | None:

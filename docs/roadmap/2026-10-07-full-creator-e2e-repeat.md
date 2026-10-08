@@ -52,10 +52,16 @@ safe continuation. It does not implement new product capabilities.
   OpenAI-compatible provider stack; native Codex specialist dispatch does not
   implement bridge-intent jobs. Enabling an authorized API backend is distinct
   from adding a native Codex capability; neither is silently substituted for the
-  preauthorized ImageGen/H3 paths. Configuration review also found the explicitly
-  historical `ATLASCLOUD_API_KEY` text-key fallback in `config.py`; remove it in a
-  bounded current-configuration cleanup before final completion, without rewriting
-  protected settings or changing an active frozen job.
+  preauthorized ImageGen/H3 paths. [ADR0139](../adr/0139-profile-owned-text-credentials.md)
+  removes the encountered historical default-profile credential aliases. Every
+  profile now uses its exact namespaced server key; protected settings and active
+  frozen jobs are not rewritten. The owner now explicitly authorized native
+  Codex bridge-intent generation. Implement a frozen candidate-only package,
+  exact current proposal/target binding, durable dispatch and delivery checks,
+  and explicit intent review using the existing specialist infrastructure.
+  Do not add an API fallback, compatibility adapter or automatic acceptance.
+  Qualify source, UI and cancellation/stale/unknown-outcome behavior before
+  exercising a real native intent job in the next current-schema E2E project.
 - Product design/implementation and any scope-changing choices require their own
   approval. Before native execution use a clean committed qualified checkpoint,
   matching loaded runtime and known job state. Routine continuation under existing

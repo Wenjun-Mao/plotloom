@@ -68,3 +68,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0136 Route-owned project load availability](0136-project-load-availability.md)
 - [0137 Retained video evidence and production admission](0137-retained-video-evidence-admission.md)
 - [0138 One current story with explicit production rebuild](0138-one-current-story-explicit-rebuild.md)
+- [0139 Profile owned text credentials](0139-profile-owned-text-credentials.md)
