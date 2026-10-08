@@ -1,7 +1,7 @@
 # Native Codex intent qualification
 
-Status: implementation and focused software checks complete; broad gates and
-real native acceptance remain in progress. Normal 8841 has not been changed.
+Status: implementation and full local software qualification complete;
+real native acceptance remains in progress. Normal 8841 has not been changed.
 This checkpoint extends the existing Create → Revise → Recover run, not its scope.
 
 ## Implemented contract
@@ -46,8 +46,10 @@ an initial directory-as-file test error was corrected before the passing rerun.
   response or guard was changed. Seven unchanged F5A tests moved out of the
   oversized Art module into a 200-line storyboard-review module. Independent
   review found no lost coverage. All 38 Art, storyboard-review and native-intent
-  tests pass after this correction (100.98 seconds). Final full backend
-  qualification remains pending.
+  tests pass after this correction (100.98 seconds). The final full backend
+  rerun passed all 1,368 tests in 634.06 seconds, with one existing Starlette
+  deprecation warning. Its complete output is retained in
+  `output/playwright/native-intent-2026-10-08/final-backend-gate.log`.
 
 ## Browser lifecycle test correction
 
