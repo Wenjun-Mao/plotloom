@@ -22,7 +22,11 @@ it("retries failed playback reads without admitting missing stages or changing c
     expect(getProject).toHaveBeenCalledTimes(2);
     expect(stages).toHaveBeenCalledTimes(2);
     expect(videos).toHaveBeenCalledTimes(2);
-    expect(host.textContent).toContain("尚未具备可播放的故事、场景或分镜内容");
+    expect(host.textContent).toContain("故事尚未准备好");
+    expect(host.textContent).toContain("尚未建立可播放的故事路线、场景内容、分镜内容");
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(host.textContent).not.toContain("重新读取播放内容");
+    expect(host.querySelector('a[href="?project=project&stage=source#storyboard-review"]')?.textContent).toBe("前往分镜评审与制作");
     expect(host.textContent).not.toContain("offline");
     expect(host.querySelector("video")).toBeNull();
   } finally { await act(async () => root.unmount()); }

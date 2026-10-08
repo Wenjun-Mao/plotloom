@@ -204,7 +204,7 @@ test("creator exact operations 123 → 222 → 333, drag, deletion, Undo and rel
   expect(fresh.footageMode).toBe("route_only"); expect(draft.mapping.topology.edges.filter(edge => edge.sourceNodeId === fresh.sectionId && edge.targetNodeId === null)).toHaveLength(2);
   await select(page, "123"); await page.getByRole("button", { name: "保存图草稿", exact: true }).click(); const saved = await read();
   await page.getByRole("button", { name: "专业工作台", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "剧情图与精确合同" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "剧情图与结构规则" })).toBeVisible();
   await page.getByRole("button", { name: "创作工作台", exact: true }).click(); await expect(page.getByRole("textbox", { name: "章节标题", exact: true })).toHaveValue("123");
   await page.reload(); await expect(page.getByRole("textbox", { name: "章节标题", exact: true })).toHaveValue("123"); expect((await read()).mapping).toEqual(saved.mapping);
   expect(saved.mapping.choices.find(choice => choice.sectionId === "choose")!.outcomes.find(option => option.outcomeId === aInput)!.label).toBe("第三个选项，保留身份与文字");

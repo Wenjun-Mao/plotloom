@@ -35,8 +35,10 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, proje
     observed: { videoCodec: "h264", audioCodec: "aac" },
   });
   const review = panel.getByTestId(`video-segment-review-${reconciled.id}`);
-  await review.getByLabel("片段入点（帧）").fill(String(inFrame));
-  await review.getByRole("button", { name: "生成待审片段" }).click();
+  const frameInput = review.getByRole("spinbutton", { name: "片段入点（帧）", exact: true });
+  await expect(frameInput).toHaveAccessibleDescription(/出点（不含）.*原片.*严格按原稿时长/);
+  await frameInput.fill(String(inFrame));
+  await review.getByRole("button", { name: "准备播放片段" }).click();
   const preview = review.locator('video[data-testid^="video-segment-preview-"]');
   await expect(preview).toBeVisible();
   await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).duration)).toBeGreaterThan(0);
@@ -103,7 +105,7 @@ async function prepareSelectedPair(
   // The adjoining fixture follows the same authored review/selection path.
   // Retention is scoped to a shot; explicitly retain the same fixture asset
   // for the adjoining shot rather than inheriting the prior shot's draft.
-  await page.getByLabel("当前媒体镜头").selectOption("shot_03");
+  await page.getByRole("combobox", { name: "当前镜头", exact: true }).selectOption("shot_03");
   await expect(page.locator(".shot-workbench-heading")).toContainText("双键升起");
   await page.getByTestId(/^keep-candidate-/).click();
   await page.getByLabel("审核兼容性说明").fill("Current approved adjoining shot keyframe.");

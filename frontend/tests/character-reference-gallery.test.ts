@@ -160,7 +160,7 @@ it("does not refresh an old image mutation after reopening invalidates its cast 
 
   await renderProject("project");
   for (const label of ["图片标签", "来源声明", "PNG 或 JPEG", "想法"]) {
-    const field = [...host.querySelectorAll(".character-reference-review label")].find(item => item.querySelector("span")?.textContent === `${label} *`)!;
+    const field = [...host.querySelectorAll(".character-reference-review .field")].find(item => item.querySelector("label")?.textContent === `${label} *`)!;
     expect(field.querySelector("input,textarea")?.getAttribute("aria-required")).toBe("true");
     expect(field.querySelector("input,textarea")?.hasAttribute("required")).toBe(false);
   }
@@ -168,7 +168,7 @@ it("does not refresh an old image mutation after reopening invalidates its cast 
   expect(button("编辑角色设定").disabled).toBe(false);
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
-  expect(host.textContent).toContain("已接受角色已过期");
+  expect(host.textContent).toContain("角色设定需重新确认");
   const galleryReadsBeforeOldSuccess = vi.mocked(plotloomApi.getCharacterReferenceProposals).mock.calls.length;
 
   await act(async () => { selection.resolve({}); await Promise.resolve(); });
@@ -198,7 +198,7 @@ it("does not retain an in-flight specialist send from a cast session invalidated
   expect(host.textContent).not.toContain("角色参考操作失败");
   await act(async () => { reopening.resolve({ ...response.cast, status: "reopened" }); await Promise.resolve(); });
   await flushReact();
-  expect(host.textContent).toContain("已接受角色已过期");
+  expect(host.textContent).toContain("角色设定需重新确认");
 });
 
 it("reads the exported character handoff after a wake warning and preserves that warning", async () => {
@@ -241,7 +241,7 @@ it("replaces a held initial gallery read after reopen and save settle a newer sa
   await act(async () => { button("保存角色修改").click(); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).toContain("Current live gallery evidence");
-  expect(host.textContent).toContain("已接受角色 r2");
+  expect(host.textContent).toContain("已确认角色设定 r2");
 
   await resolveGallery(held, initial);
   expect(host.textContent).toContain("Current live gallery evidence");
@@ -368,11 +368,11 @@ it("rejects a late image-mutation error after the same subject is reopened and s
   await flushReact();
   await act(async () => { button("保存角色修改").click(); await Promise.resolve(); });
   await flushReact();
-  expect(host.textContent).toContain("已接受角色 r2");
+  expect(host.textContent).toContain("已确认角色设定 r2");
 
   await act(async () => { selection.reject(new Error("old image mutation rejected")); await Promise.resolve(); });
   await flushReact();
-  expect(host.textContent).toContain("已接受角色 r2");
+  expect(host.textContent).toContain("已确认角色设定 r2");
   expect(host.textContent).not.toContain("old image mutation rejected");
   expect(ideaInput().disabled).toBe(false);
 });

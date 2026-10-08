@@ -189,7 +189,7 @@ test.describe("project-folder Close", () => {
       const drafts = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/authoring-drafts`);
       return (await drafts.json() as Array<{ payload: { title: string } }>).some((draft) => draft.payload.title === draftTitle);
     }).toBe(true);
-    await expect(page.getByRole("dialog", { name: "项目目录" }).getByRole("alert")).toContainText("Plotloom API request failed (503)");
+    await expect(page.getByRole("dialog", { name: "项目目录" }).getByRole("alert")).toContainText("服务请求失败（HTTP 503）");
     await expect(page.getByLabel("片名")).toBeEnabled();
     await page.unroute("**/api/v2/projects/*/close");
     await page.unroute("**/api/v2/projects/*/authoring-drafts");
@@ -260,7 +260,7 @@ test.describe("project-folder Close", () => {
       );
     }).toBe(true);
 
-    const shotSelector = page.getByLabel("当前媒体镜头");
+    const shotSelector = page.getByRole("combobox", { name: "当前镜头", exact: true });
     const shotIds = await shotSelector.locator("option").evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value));
     expect(shotIds.length).toBeGreaterThan(1);
     await shotSelector.selectOption(shotIds[1]);
@@ -276,7 +276,7 @@ test.describe("project-folder Close", () => {
     await workbench.restartBackend();
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
     await openMediaWorkbench(page);
-    await page.getByLabel("当前媒体镜头").selectOption(shotIds[0]);
+    await page.getByRole("combobox", { name: "当前镜头", exact: true }).selectOption(shotIds[0]);
     await expect(page.getByTestId("image-job-presentation-change")).toHaveValue(originalDirection);
   });
 
@@ -291,7 +291,7 @@ test.describe("project-folder Close", () => {
       return (await drafts.json() as Array<{ editorScope: string }>).some((draft) => draft.editorScope === "image_direction");
     }).toBe(true);
 
-    const shotSelector = page.getByLabel("当前媒体镜头");
+    const shotSelector = page.getByRole("combobox", { name: "当前镜头", exact: true });
     const shotIds = await shotSelector.locator("option").evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value));
     if (shotIds.length > 1) {
       await shotSelector.selectOption(shotIds[1]);

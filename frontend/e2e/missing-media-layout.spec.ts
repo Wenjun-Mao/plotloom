@@ -12,7 +12,7 @@ for (const width of [1280, 1700]) for (const count of [2, 24]) {
     project.sceneBeats.beats = project.sceneBeats.beats.filter(beat => ["b1", "b9"].includes(beat.id));
     project.sceneBeats.dialogueCues = [];
     project.storyboard.shots = Array.from({ length: count }, (_, index) => {
-      return { ...original, id: `missing-${index}`, sceneId: index === count - 1 ? "scene_ending_city" : original.sceneId, order: index === count - 1 ? 1 : index + 1, durationUnits, audioPlan: { events: [] }, cueIds: [], title: `${"UnbrokenSourceToken".repeat(3)}${index}` };
+      return { ...original, id: `missing-${index}`, sceneId: index === count - 1 ? "scene_ending_city" : original.sceneId, order: index === count - 1 ? 1 : index + 1, durationUnits, audioPlan: { events: [] }, cueIds: [], title: "UnbrokenSourceToken".repeat(5), action: "UnbrokenSourceToken".repeat(3) };
     });
     project.storyboard.shotBeatLinks = project.storyboard.shots.map((shot, index) => ({ shotId: shot.id, beatId: index === count - 1 ? "b9" : "b1", role: index === 0 || index === count - 1 ? "primary" : "supporting", coverageWeight: 1 }));
     const response = await request.post(`${workbench.apiOrigin}/api/v2/projects`, { data: { brief: project.brief, initialStages: [
@@ -27,7 +27,9 @@ for (const width of [1280, 1700]) for (const count of [2, 24]) {
     await expect(warning).toContainText("待审原片不会自动用于故事。");
     const links = warning.getByRole("link");
     await expect(links).toHaveCount(count);
+    await expect(warning.locator("small")).toHaveText(`故事还不能播放：${count} 个镜头缺少当前已确认的播放片段。待审原片不会自动用于故事。`);
     await expect(warning).toContainText("UnbrokenSourceToken".repeat(2));
+    expect(new Set(await links.allTextContents()).size).toBe(count);
     const geometry = await warning.evaluate(element => ({ width: element.clientWidth, proseWidth: element.querySelector("small")!.getBoundingClientRect().width, scroll: element.scrollWidth, documentWidth: document.documentElement.scrollWidth }));
     expect(geometry.proseWidth).toBeGreaterThan(geometry.width * 0.8);
     expect(geometry.scroll).toBeLessThanOrEqual(geometry.width);

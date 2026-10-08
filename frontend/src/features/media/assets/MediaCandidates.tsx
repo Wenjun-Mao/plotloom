@@ -24,7 +24,7 @@ export function CandidateCard({
         {projectId && (
           <img
             src={plotloomApi.managedAssetUrl(projectId, asset.id)}
-            alt={`Imported candidate ${asset.id}`}
+            alt={`候选图片 ${asset.id}`}
           />
         )}
         <strong>

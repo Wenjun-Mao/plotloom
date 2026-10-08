@@ -65,6 +65,10 @@ it.each(["ready", "accepted"] as const)("does not invent stale guidance for %s s
   await render(status); await settle();
   expect(host.textContent).not.toContain("来源上下文已变化");
   expect(host.textContent).not.toContain("来源过期诊断（原文）");
+  expect(host.textContent).toContain(status === "accepted"
+    ? "场景与镜头数据已建立；此次确认不会自动生成图片或视频。"
+    : "确认投产后，会建立后续制作使用的场景与镜头数据；不会自动生成图片或视频。");
+  expect(host.textContent).not.toContain("确认后，将建立后续制作使用的场景与镜头数据");
 });
 
 it("disables unavailable inference without dispatch while preserving authored intent save", async () => {
@@ -185,7 +189,7 @@ it("requires the displayed dramatic-intent package to be saved before accepting 
   await act(async () => button("确认投产提案").click()); await settle();
   expect(accept).toHaveBeenCalledWith("first", { expectedProposalRevision: 2, expectedContentHash: "c".repeat(64) });
   expect(host.textContent).toContain("投产提案已确认");
-  expect(host.textContent).toContain("确认后，将建立后续制作使用的场景与镜头数据；不会自动生成图片或视频。");
+  expect(host.textContent).toContain("场景与镜头数据已建立；此次确认不会自动生成图片或视频。");
   expect(host.textContent).not.toContain("安装");
 });
 

@@ -51,7 +51,7 @@ it("does not call a catalog-matching eight-second shot ready when prerequisites 
   expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("8 秒在当前请求目录内");
   expect(host.textContent).toContain("缺少当前批准");
   expect(host.textContent).toContain("未配置；不能准备或提交视频");
-  expect(host.textContent).toContain("不是投产许可");
+  expect(host.textContent).toContain("批准分镜、审核素材和选用故事片段仍需在对应步骤完成");
 });
 
 it.each([[2.5, 60, 5, 124], [6, 144, 6, 158], [8, 192, 8, 192]])(
@@ -115,7 +115,7 @@ it.each([2.5, 1.001, 0.001])("reports actual current fractional source %s second
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({ enabled: true, adapterId: "minimax_h3_gateway", qualifiedDurationSeconds: [5, 6, 8, 15] });
   await render(seconds);
   expect(host.textContent).toContain(`精确来源时长 ${seconds} 秒 · 当前绑定`);
-  expect(host.textContent).toContain("段 1 / 段内场次 1 / cut 1");
+  expect(host.textContent).toContain("段 1 / 段内场次 1 / 镜头 1");
   expect(host.querySelector('[data-testid="bridge-source-unavailable"]')).toBeNull();
   const timing = host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent;
   if (seconds === 2.5) {

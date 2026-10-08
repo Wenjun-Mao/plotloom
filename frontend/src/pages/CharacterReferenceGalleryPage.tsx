@@ -108,16 +108,16 @@ export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, 
 
   if (error) return <section className="character-reference-review"><ErrorNotice message={error} /></section>;
   if (!data || !castState) return <section className="character-reference-review reference-gallery-loading"><Spinner label="正在读取角色参考" /></section>;
-  if (!castState.acceptedCast) return <section className="character-reference-review"><EmptyState title="尚无已接受角色" message="先在上方审核并接受角色文字提案；图像选择不会创建角色或示例图像。" /></section>;
-  if (!selected) return <section className="character-reference-review"><EmptyState title="角色中没有可查看的主体" message="当前已接受角色未提供可映射的主体；这里不会猜测或创建主体。" /></section>;
+  if (!castState.acceptedCast) return <section className="character-reference-review"><EmptyState title="尚未确认角色设定" message="先在上方审核并确认角色设定；图像选择不会创建角色或示例图像。" /></section>;
+  if (!selected) return <section className="character-reference-review"><EmptyState title="角色中没有可查看的主体" message="当前已确认角色未提供可映射的主体；这里不会猜测或创建主体。" /></section>;
 
   return <section className="character-reference-review" data-testid="character-reference-gallery">
     <section className="reference-gallery-intro">
       <div><span className="eyebrow">角色外观</span><h2>外观参考</h2><p>{data.title} · 先比较已有图片，再明确选用身份参考；也可基于当前查看图片探索调整。创建提案只冻结请求；必须明确发送给图像生成助手，且不会自动选择。</p></div>
-      <div className={`reference-gallery-cast-state ${castState.status === "accepted" && !castTransitionPending ? "current" : "stale"}`}><strong>{castTransitionPending ? "角色文字正在更新" : castState.status === "accepted" ? `已接受角色 r${castState.acceptedCast.revision}` : "已接受角色已过期"}</strong><span>{castTransitionPending ? "角色更新完成前，保留图像仅供核对。" : castState.status === "accepted" ? "可以审阅、选择、准备并发送新提案。" : "保留图像仅供核对；重新接受角色前不能选择、细化、准备或发送新提案。"}</span></div>
+      <div className={`reference-gallery-cast-state ${castState.status === "accepted" && !castTransitionPending ? "current" : "stale"}`}><strong>{castTransitionPending ? "角色文字正在更新" : castState.status === "accepted" ? `已确认角色设定 r${castState.acceptedCast.revision}` : "角色设定需重新确认"}</strong><span>{castTransitionPending ? "角色更新完成前，保留图像仅供核对。" : castState.status === "accepted" ? "可以审阅、选择、准备并发送新提案。" : "保留图像仅供核对；重新确认角色设定前不能选择、细化、准备或发送新提案。"}</span></div>
     </section>
     <div className="reference-gallery-layout">
-      <nav className="reference-subjects" aria-label="角色主体"><span>角色主体</span>{subjects.map((subject) => <button key={subject.id} type="button" className={subject.id === selected.id ? "selected" : ""} aria-pressed={subject.id === selected.id} onClick={() => setSelectedSubjectId(subject.id)}><strong>{subject.name}</strong><small>{subject.inAcceptedCast ? "已接受角色" : "仅保留的历史主体"}</small></button>)}</nav>
+      <nav className="reference-subjects" aria-label="角色主体"><span>角色主体</span>{subjects.map((subject) => <button key={subject.id} type="button" className={subject.id === selected.id ? "selected" : ""} aria-pressed={subject.id === selected.id} onClick={() => setSelectedSubjectId(subject.id)}><strong>{subject.name}</strong><small>{subject.inAcceptedCast ? "已确认角色" : "仅保留的历史主体"}</small></button>)}</nav>
       <SubjectGallery key={`${castSession}:${selected.id}`} projectId={projectId} subject={selected} data={data} readOnly={readOnly || castTransitionPending || castState.status !== "accepted"} castRevision={castState.acceptedCast.revision} rootSession={castSession} session={`${castSession}:${selected.id}`} castSessionOwner={castSessionOwner} onRefresh={refresh} />
     </div>
   </section>;

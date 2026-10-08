@@ -98,7 +98,7 @@ export function StoryPrototypePage() {
   return <PrototypeShell>
     <header className="prototype-header">
       <a className="brand" href={`?project=${encodeURIComponent(projectId)}&stage=source`}><span className="brand-mark">PL</span><span><strong>Plotloom</strong><small>故事与分支 · 原型</small></span></a>
-      <div><Badge tone="accent">只读阅读</Badge><Badge tone="ok">已确认剧本</Badge></div>
+      <div><Badge tone="accent">只读模式</Badge><Badge tone="ok">已确认剧本</Badge></div>
     </header>
     <main className="story-prototype" data-testid="story-prototype">
       <WorkflowReturn projectId={projectId} />

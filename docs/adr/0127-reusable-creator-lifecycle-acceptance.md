@@ -35,6 +35,13 @@ exact disposable targets and distinguishes simulated faults from actual failures
 Software qualification, native functional acceptance and author creative/media
 quality approval remain separate conclusions.
 
+October8 owner-requested extension: a complete E2E includes a dedicated
+whole-product visual-and-copy pass, including unnatural or misleading wording,
+under E22.1–E22.7 in the same playbook. Incidental inspection during functional
+steps is insufficient. Reuse QA data at the existing three desktop sizes;
+do not add provider generation or restore retired narrow-screen support for it.
+Record visual/copy acceptance separately and retain unobserved required states.
+
 ## Alternatives and consequences
 
 Reject three independently maintained plans and restarting every walkthrough from

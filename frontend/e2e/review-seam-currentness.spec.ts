@@ -85,7 +85,7 @@ for (const stage of ["cast", "script"] as const) {
     await expect(accept).toBeEnabled();
     expect((await json(request.get(url)))[acceptedKey]).toEqual(retained);
     await accept.click();
-    await expect(panel).toContainText(stage === "cast" ? "已接受角色设定 r2" : "已确认 r2");
+    await expect(panel).toContainText(stage === "cast" ? "已确认角色设定 r2" : "已确认 r2");
     expect(sends()).toBe(0);
   });
 }

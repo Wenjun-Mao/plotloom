@@ -48,7 +48,7 @@ export function ProductionPresentationReview({ projectId, proposal, disabled, ac
     setEntries(current => ({ ...current, [source.id]: splitPresentationSpans(current[source.id], selection.start, selection.end) })); setConfirmed(false); setSelection(undefined);
   };
   const complete = pkg.sources.every(source => entries[source.id]?.every(span => span.role !== "unassigned" && (span.role !== "physical" || span.rendering.trim()) && (!["runtime_choice", "review_only"].includes(span.role) || span.reason.trim())));
-  return <details open data-testid="production-presentation-review"><summary>实体画面、可见文字与选择界面：整包归属审阅</summary>
+  return <details open data-testid="production-presentation-review"><summary>逐项审阅内容的呈现方式</summary>
     <p>原始剧本与分镜保持不变。逐项核对所有动作、限制与文字；混合描述可选中文本后拆分；只有被拆开的片段需要重新填写归属，其他编辑保持不变。播放器负责提问和按钮；画面内文字须保留原文且不发声。预留区域不代表已有文字合成器，实际媒体仍须检查。</p>
     {pkg.runtimeChoice.choices.map(choice => <p key={choice.choiceId}>播放器选择：{choice.prompt} · {choice.outcomes.map(outcome => outcome.label).join(" / ")}</p>)}
     {pkg.sources.map(source => <fieldset key={source.id} disabled={disabled || busy || accepted}>
@@ -77,8 +77,8 @@ export function ProductionPresentationReview({ projectId, proposal, disabled, ac
           .then(next => { if (ownership.current === epoch) { onSaved(next); onDirty(false); setConfirmed(false); } })
           .catch(reason => { if (ownership.current === epoch) setError(reason instanceof Error ? reason.message : "无法保存呈现审阅"); })
           .finally(() => { if (ownership.current === epoch) { setBusy(false); onBusy(false); } });
-      }}>保存呈现归属整包</Button></>}
-    {pkg.reviewed && <p>此来源包已保存呈现审阅；修改后需重新保存。实际媒体尚未因此获得接受。</p>}
+      }}>保存呈现方式审阅</Button></>}
+    {pkg.reviewed && <p>{accepted ? "呈现方式审阅已保存；实际媒体仍需单独审核并选用。" : "呈现方式审阅已保存；修改后请重新保存。实际媒体仍需单独审核并选用。"}</p>}
     {error && <ErrorNotice message={error} />}
   </details>;
 }

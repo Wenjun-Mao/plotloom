@@ -11,7 +11,7 @@ type ProviderStatus = {
   requests: Array<{ type: string; target: string | null; failed: boolean; contentHash: string }>;
 };
 
-test("repairs exactly one late scene-beats shard through the real browser and public contracts", async ({ page, request, workbench }) => {
+test("repairs exactly one late scene-beats shard through the real browser and public contracts", async ({ page, request, workbench }, info) => {
   // The current nine-node seed has six footage nodes. Route-only decisions
   // and joins produce no scene shard, so fault the final actual work request.
   const footageCount = 6;
@@ -42,11 +42,24 @@ test("repairs exactly one late scene-beats shard through the real browser and pu
   expect(providerBeforeRepair.requests.filter((entry) => entry.type === "scene_beats" && !entry.failed)).toHaveLength(footageCount - 1);
 
   await navigateToStage(page, "07 隔离修复");
-  const exactRepair = page.locator("#workspace-main").getByRole("button", { name: "修复这个 work unit" });
+  const exactRepair = page.locator("#workspace-main").getByRole("button", { name: "重新执行此子任务" });
   // The API has already proved the quarantined unit. Under the four-worker
   // suite, give the independently fetched repair projection time to hydrate
   // rather than treating the default locator timeout as product behavior.
   await expect(exactRepair).toBeVisible({ timeout: 30_000 });
+  await expect(exactRepair).toBeEnabled({ timeout: 30_000 });
+  // Inspect the actual failed-unit UI before recovery. These are offline
+  // provider-fault fixtures, not evidence of a native provider failure.
+  for (const viewport of [
+    { width: 1700, height: 900 },
+    { width: 1280, height: 768 },
+    { width: 1280, height: 460 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await exactRepair.scrollIntoViewIfNeeded();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: info.outputPath(`repair-eligible-${viewport.width}x${viewport.height}-viewport.png`) });
+  }
   const repairResponse = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/runs/${sourceRun.id}/work-units/${failedUnit!.workUnitId}/repairs`);
   await exactRepair.click();

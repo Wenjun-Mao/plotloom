@@ -98,7 +98,7 @@ async function selectEndingKeyframe(page: Page, request: APIRequestContext, work
   const imported = await importResponse;
   expect(imported.ok(), await imported.text()).toBeTruthy();
   const assetId = (await imported.json() as { id: string }).id;
-  await page.getByRole("button", { name: new RegExp(`Imported candidate ${assetId}`) }).click();
+  await page.getByRole("button", { name: new RegExp(`候选图片 ${assetId}`) }).click();
   await page.getByTestId(`keep-candidate-${assetId}`).click();
   await page.getByTestId("visual-intent-source-refs").fill("Synthetic test-only ending still.");
   const intentResponse = page.waitForResponse((response) => response.request().method() === "POST"
@@ -148,7 +148,7 @@ async function ingestEightSecondOriginal(page: Page, request: APIRequestContext,
 async function prepareAndChoose(page: Page, jobId: string, inFrame: number, expectedOutFrame: number, annotation = "") {
   const review = page.getByTestId(`video-segment-review-${jobId}`);
   await review.getByLabel("片段入点（帧）").fill(String(inFrame));
-  await review.getByRole("button", { name: "生成待审片段" }).click();
+  await review.getByRole("button", { name: "准备播放片段" }).click();
   const preview = review.locator('video[data-testid^="video-segment-preview-"]');
   await expect(preview).toBeVisible();
   await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).duration)).toBe((expectedOutFrame - inFrame) / 24);

@@ -38,7 +38,7 @@ test("keeps creator links compact and gives secondary tools one current heading"
     await expect(tool.locator(":scope > span")).toHaveCount(0);
     await expect(tool.locator("small")).toHaveCount(0);
     await tool.click();
-    await expect(page.getByRole("heading", { name: label === "剧情 DAG" ? "剧情图与精确合同" : label, exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: label === "剧情 DAG" ? "剧情图与结构规则" : label, exact: true })).toBeVisible();
     if (label !== "剧情 DAG") await expect(page.locator(".page-header .eyebrow")).toHaveCount(0);
   }
 

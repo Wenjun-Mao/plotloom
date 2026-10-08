@@ -3,7 +3,7 @@ import type { ManagedAsset, ReviewedKeyframe, SceneBeatPlan, Shot, StoryGraph, S
 import { plotloomApi } from "./api";
 import type { H3ReviewedDirections, VideoJobPrepareBody } from "./api";
 import type { VideoEndFrameDecision } from "./api";
-import { Button, Panel } from "./components";
+import { Button, Panel, Spinner } from "./components";
 import { deriveRoutes, groupStoryboard } from "./model";
 import { BranchingVideoPreview } from "./branching-video-preview";
 import { VideoSegmentReview } from "./video-segment-review";
@@ -204,6 +204,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   const [budget, setBudget] = useState<VideoPilotBudget | null>(null);
   const [backend, setBackend] = useState<VideoBackend | null>(null);
   const [jobs, setJobs] = useState<VideoJob[]>([]);
+  const [loadedProjectId, setLoadedProjectId] = useState<string>();
   const { requestConfirmation, confirmation } = useConfirmation(JSON.stringify([projectId, shot?.id, selectionRevision, jobs.map(job => [job.id, job.selectionRevision, job.state, job.selected, job.current, job.segments?.map(segment => segment.id)])]), readOnly);
   const [h3ProfileId, setH3ProfileId] = useState("");
   const [h3DurationSeconds, setH3DurationSeconds] = useState(5);
@@ -219,16 +220,22 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     const requestedProjectId = projectId;
     if (requestedProjectId !== currentProjectRef.current) return;
     const token = ++refreshToken.current;
-    const [nextBudget, nextBackend, nextJobs] = await Promise.all([
-      plotloomApi.getVideoPilotBudget(), plotloomApi.getVideoBackend(), plotloomApi.getVideoJobs(requestedProjectId),
-    ]);
-    // A slow response from a formerly selected project cannot replace the
-    // currently visible project's recovery controls or budget.
-    if (token !== refreshToken.current || requestedProjectId !== currentProjectRef.current) return;
-    setBudget(nextBudget); setBackend(nextBackend); setJobs(nextJobs.jobs);
+    setError("");
+    try {
+      const [nextBudget, nextBackend, nextJobs] = await Promise.all([
+        plotloomApi.getVideoPilotBudget(), plotloomApi.getVideoBackend(), plotloomApi.getVideoJobs(requestedProjectId),
+      ]);
+      // A slow response from a formerly selected project cannot replace the
+      // currently visible project's recovery controls or budget.
+      if (token !== refreshToken.current || requestedProjectId !== currentProjectRef.current) return;
+      setBudget(nextBudget); setBackend(nextBackend); setJobs(nextJobs.jobs);
+      setLoadedProjectId(requestedProjectId);
+    } catch (reason) {
+      if (token === refreshToken.current && requestedProjectId === currentProjectRef.current) throw reason;
+    }
   };
   useEffect(() => {
-    setBudget(null); setBackend(null); setJobs([]); setError(""); setH3ProfileId(""); setH3DurationSeconds(5); setH3InputFrameMode("reject_mismatch");
+    setBudget(null); setBackend(null); setJobs([]); setLoadedProjectId(undefined); setError(""); setH3ProfileId(""); setH3DurationSeconds(5); setH3InputFrameMode("reject_mismatch");
     void refresh().catch((reason) => setError(reason instanceof Error ? reason.message : "无法读取视频试点状态"));
     return () => { refreshToken.current += 1; };
   }, [projectId]);
@@ -323,6 +330,15 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   const currentH3Timing = h3Timing(shot?.durationUnits ?? 0, h3DurationSeconds, backend?.qualifiedDurationSeconds);
   const h3RequestedFrames = currentH3Timing.requestFrames;
   const h3TimingMismatch = h3 && !currentH3Timing.playbackIntent;
+  // Empty jobs mean "none" only after an owned, complete project read. Do not
+  // expose missing-media advice or production actions from an unknown snapshot.
+  if (!projectId || loadedProjectId !== projectId) return <Panel className="video-pilot-workflow" data-testid="video-pilot-panel">
+    <strong>镜头视频</strong>
+    {!projectId ? <p>先保存项目，再查看或准备镜头视频。</p> : error ? <>
+      <p className="notice warning" role="alert">无法读取镜头视频状态：{error}</p>
+      <Button variant="quiet" onClick={() => void refresh().catch(reason => setError(reason instanceof Error ? reason.message : "读取失败"))}>重新读取镜头视频状态</Button>
+    </> : <Spinner label="正在读取镜头视频状态" />}
+  </Panel>;
   return <Panel className="video-pilot-workflow" data-testid="video-pilot-panel">
     <header className="video-workflow-header"><strong>原片 → 调整片段 → 预览 → 用于故事</strong>
       <small>{visibleJobs.length ? `当前镜头有 ${visibleJobs.length} 个原片候选；仅明确选择的片段会进入故事。` : "当前镜头还没有原片候选。"}</small>
@@ -379,7 +395,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
           keyframeHash={keyframe?.originalHash ?? ""} endFrameHash={currentEndFrame?.originalHash ?? null} quality={selectedProfile?.quality ?? 0}
           requestedSeconds={h3DurationSeconds} frameCount={h3RequestedFrames ?? 0}
           onFreeze={(packageValue, seed, key) => prepare(packageValue, seed, key)} />
-      : <div className="button-row"><Button disabled={cannotPrepare || h3TimingMismatch} onClick={() => void prepare()}>生成另一候选（冻结当前审核关键帧）</Button></div>}
+      : <div className="button-row"><Button disabled={cannotPrepare || h3TimingMismatch} onClick={() => void prepare()}>准备新视频任务（冻结当前审核关键帧）</Button></div>}
     </details>
     {error && <small className="notice warning">{error}</small>}
     {visibleJobs.map((job, index) => <article id={index === 0 ? "shot-original" : undefined} className="video-job-card" key={job.id} data-testid={`video-job-${job.id}`}><header><strong>原片 · {shotLabel(frozenShot(job))}</strong><span>{job.selected ? "已选择片段" : job.state === "ingested" ? "待审原片" : job.state}</span></header>

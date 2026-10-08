@@ -90,7 +90,7 @@ test.describe("P1 self-contained specialist image brief", () => {
 
     const originalDirection =
       "Render the approved arrival shot with clear practical control-room lighting and readable facial detail.";
-    const shotPicker = page.getByLabel("当前媒体镜头");
+    const shotPicker = page.getByRole("combobox", { name: "当前镜头", exact: true });
     const originalShotId = await shotPicker.inputValue();
     const alternateShotId = await shotPicker
       .locator("option")
@@ -259,7 +259,7 @@ test.describe("P1 self-contained specialist image brief", () => {
       );
     await page.getByTestId("select-reviewed-keyframe").click();
     await expect(page.getByTestId("current-reviewed-keyframe")).toContainText(
-      "intent r1",
+      "画面意图 r1",
     );
     await recordSamePersonReview(page, "char_ruanxing");
     const frozenComparison = page.getByTestId("frozen-reference-comparison");

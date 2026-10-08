@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type {
   ApprovalDecision,
   SamePersonComparison,
@@ -28,6 +28,7 @@ import { useImageJobActions } from "./image-jobs/useImageJobActions";
 import { useCharacterReferenceActions } from "./references/useCharacterReferenceActions";
 import { useMediaSelectionContext } from "./keyframes/useMediaSelectionContext";
 import { ShotPreparationSummary } from "./ShotPreparationSummary";
+import { revealMediaOwner } from "./media-owner-navigation";
 import { useMediaWorkbenchData } from "./useMediaWorkbenchData";
 import type { ProjectDraftQuiescence } from "../authoring/projectDraftQuiescence";
 
@@ -115,16 +116,9 @@ export function ManagedMediaWorkbench({
   const [presentationReview, setPresentationReview] = useState<{ shotId: string; revision: number }>();
   const [playing, setPlaying] = useState(false);
   const [frameIndex, setFrameIndex] = useState(0);
-  const preparationDetails = useRef<HTMLDetailsElement>(null);
-  const keyframeDetails = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
     const openDeepLink = () => {
-      const targetId = window.location.hash.slice(1);
-      if (targetId === "shot-character-references" && preparationDetails.current) preparationDetails.current.open = true;
-      if (targetId === "shot-keyframe-review" && keyframeDetails.current) keyframeDetails.current.open = true;
-      if (["shot-workbench", "shot-original", "shot-segment", "shot-story-preview", "shot-character-references", "shot-keyframe-review"].includes(targetId)) {
-        requestAnimationFrame(() => document.getElementById(targetId)?.scrollIntoView({ block: "start" }));
-      }
+      revealMediaOwner(window.location.hash.slice(1), "auto");
     };
     openDeepLink();
     window.addEventListener("hashchange", openDeepLink);
@@ -308,7 +302,7 @@ export function ManagedMediaWorkbench({
         onLoaded={revision => setPresentationReview({ shotId: selectedShot.id, revision })} onSaved={refresh} quiescence={draftQuiescence}
       />}
       <div className="button-row">
-        <Field label="当前媒体镜头">
+        <Field label="当前镜头">
           <select
             value={selectedShot?.id ?? ""}
             onChange={(event) => onSelectShot?.(event.target.value)}
@@ -329,7 +323,7 @@ export function ManagedMediaWorkbench({
       </div>
       {selectedShot && (
         <small>
-          当前镜头：{selectedShot.action} · {selectedShot.durationUnits}ms
+          镜头动作：{selectedShot.action} · {selectedShot.durationUnits}ms
         </small>
       )}
       {error && (
@@ -338,7 +332,7 @@ export function ManagedMediaWorkbench({
         </div>
       )}
       <div className="shot-workbench-focus">
-        <div className="shot-workbench-heading"><div><small>{selectedShot ? `当前镜头 · ${selectedShot.durationUnits / 1000} 秒` : "尚未选择媒体镜头"}</small><strong>{selectedShot ? shotLabel(selectedShot) : "请选择镜头"}</strong>{selectedShot && <p>{selectedShot.action}</p>}</div></div>
+        <div className="shot-workbench-heading"><div><small>{selectedShot ? `当前镜头 · ${selectedShot.durationUnits / 1000} 秒` : "尚未选择镜头"}</small><strong>{selectedShot ? shotLabel(selectedShot) : "请选择镜头"}</strong>{selectedShot && <p>{selectedShot.action}</p>}</div></div>
         <VideoPilotPanel projectId={projectId} shot={selectedShot} approvalId={review?.activeApproval?.id}
           storyboardRevision={storyboardRevision} selectionRevision={workbench.selectionRevision}
           keyframe={selectedBinding ? assetById.get(selectedBinding.assetId) : undefined}
@@ -346,7 +340,7 @@ export function ManagedMediaWorkbench({
           mediaReadPhase={mediaReadPhase}
           storyboard={storyboard} sceneBeats={sceneBeats} graph={graph} routeId={routeId} readOnly={mediaOwnerReadOnly} />
       </div>
-      <details className="workbench-support" ref={preparationDetails}><summary>准备与参考 · 图片、角色、导入</summary>
+      <details className="workbench-support"><summary>准备与参考 · 图片、角色、导入</summary>
       {selectedShot && <ShotPreparationSummary projectId={projectId} shot={selectedShot} storyboardRevision={storyboardRevision} draftChanged={draftChanged} review={review} workbench={workbench} mediaReadPhase={mediaReadPhase} onRetryMedia={() => void refresh().catch(() => undefined)} onReview={onReview} onReturnToBridge={onReturnToBridge} />}
       <div id="shot-character-references"><CharacterReferencesPanel
         projectId={projectId}
@@ -427,7 +421,7 @@ export function ManagedMediaWorkbench({
       />
       {selectedBinding && (
         <small data-testid="current-reviewed-keyframe">
-          当前 Shot 已保存资产 {selectedBinding.assetId.slice(0, 8)} · intent r
+          当前镜头已保存图片 {selectedBinding.assetId.slice(0, 8)} · 画面意图 r
           {selectedBinding.visualIntentRevision ?? "—"}
         </small>
       )}
@@ -449,7 +443,7 @@ export function ManagedMediaWorkbench({
         onRecord={() => void recordSamePersonReview()}
       />
       </details>
-      <details className="workbench-support" ref={keyframeDetails}><summary>关键帧与静帧预览</summary>
+      <details className="workbench-support"><summary>关键帧与静帧预览</summary>
       <div id="shot-keyframe-review"><KeyframeAndPreviewPanel
         projectId={projectId}
         workbench={workbench}

@@ -7,6 +7,7 @@ import { isMiniMaxH3Capability } from "../../video-backends/minimax-h3";
 import { h3RequestFrameCount, h3SourceFrameCount, h3Timing } from "../../video-backends/minimax-h3-timing";
 import type { ProductionBridgeState, Shot, StoryboardReview, VideoBackend, VisualWorkbench } from "../../types";
 import type { MediaReadPhase } from "./useMediaWorkbenchData";
+import { revealMediaOwner } from "./media-owner-navigation";
 
 interface ReadonlySources {
   projectId: string;
@@ -16,10 +17,6 @@ interface ReadonlySources {
   backend?: VideoBackend;
   bridgeError?: string;
   backendError?: string;
-}
-
-function ownerAction(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 /** Explain existing owner state only; this view never approves or prepares media. */
@@ -106,19 +103,19 @@ export function ShotPreparationSummary({
     {mediaReadPhase === "error" && <p className="warning">媒体证据读取失败；当前角色参考与关键帧状态未知。<Button variant="quiet" onClick={onRetryMedia}>重试媒体读取</Button></p>}
     {current?.bridge && (!cut || !sourceMatches) && <p className="warning" data-testid="bridge-source-unavailable">
       {current.bridge.status === "stale" ? "投产提案已过期；此镜头不具有当前投产来源绑定。"
-        : cut ? "镜头时长或未保存编辑与已安装 F5 来源不一致；先审阅并保存当前合同，不能将其视为来源匹配。"
+        : cut ? "镜头时长或未保存编辑与已应用的原稿来源不一致；先审阅并保存当前分镜设定，不能将其视为来源匹配。"
           : "当前镜头不属于此已确认投产提案，或分镜版本已变化；来源坐标不适用。"}
     </p>}
-    {cut && <p>F5 来源：{cut.sectionId} / 第 {cut.episode} 集 / 场次 {cut.sceneIndex} / 段 {cut.segmentIndex} / 段内场次 {cut.segmentSceneIndex} / cut {cut.sourceCutIndex}；精确来源时长 {cut.seconds} 秒{sourceMatches ? " · 当前绑定" : " · 绑定未确认"}。</p>}
+    {cut && <p>原稿位置（F5）：{cut.sectionId} / 第 {cut.episode} 集 / 场次 {cut.sceneIndex} / 段 {cut.segmentIndex} / 段内场次 {cut.segmentSceneIndex} / 镜头 {cut.sourceCutIndex}；精确来源时长 {cut.seconds} 秒{sourceMatches ? " · 当前绑定" : " · 绑定未确认"}。</p>}
     <ul>
       <li>分镜批准：{approvalCurrent ? `当前批准 ${review!.activeApproval!.id.slice(0, 8)}` : review?.decisions.length ? "无当前批准（历史决定不适用）" : "缺少当前批准"}。<Button variant="quiet" onClick={onReview}>前往分镜审核</Button></li>
-      <li>角色身份参考：{mediaReadPhase === "loading" ? "正在读取" : mediaReadPhase === "error" ? "未知（读取失败）" : referenceStatus.length ? referenceStatus.map((item) => `${item.characterId} ${item.status}`).join("；") : "此镜头无可见角色，不适用"}。{referenceStatus.length > 0 && <Button variant="quiet" onClick={() => ownerAction("shot-character-references")}>查看身份参考</Button>}</li>
-      <li>美术参考：F3 场景/道具选择由美术参考工作区持有；当前镜头媒体准备未消费这些决定，不计为已选关键帧。</li>
-      <li>审核关键帧：{mediaReadPhase === "loading" ? "正在读取" : mediaReadPhase === "error" ? "未知（读取失败）" : selectedKeyframe ? `当前选择 ${selectedKeyframe.assetId.slice(0, 8)}` : approvalCurrent ? "缺少当前审核关键帧" : "无当前批准，关键帧不可用"}。<Button variant="quiet" onClick={() => ownerAction("shot-keyframe-review")}>查看关键帧</Button></li>
-      <li>视频后端：{!current?.backend ? "未知" : current.backend.enabled ? "已配置" : "未配置；不能准备或提交视频"}。</li>
-      <li data-testid="shot-duration-compatibility">时长目录：{durationStatus}。</li>
+      <li>角色身份参考：{mediaReadPhase === "loading" ? "正在读取" : mediaReadPhase === "error" ? "未知（读取失败）" : referenceStatus.length ? referenceStatus.map((item) => `${item.characterId} ${item.status}`).join("；") : "此镜头无可见角色，不适用"}。{referenceStatus.length > 0 && <Button variant="quiet" onClick={() => revealMediaOwner("shot-character-references")}>查看身份参考</Button>}</li>
+      <li>美术参考：在“美术参考”中选用的环境/道具图片暂不会传入镜头制作流程，也不算已选关键帧。</li>
+      <li>审核关键帧：{mediaReadPhase === "loading" ? "正在读取" : mediaReadPhase === "error" ? "未知（读取失败）" : selectedKeyframe ? `当前选择 ${selectedKeyframe.assetId.slice(0, 8)}` : approvalCurrent ? "缺少当前审核关键帧" : "无当前批准，关键帧不可用"}。<Button variant="quiet" onClick={() => revealMediaOwner("shot-keyframe-review")}>查看关键帧</Button></li>
+      <li>视频生成服务：{!current?.backend ? "未知" : current.backend.enabled ? "已配置" : "未配置；不能准备或提交视频"}。</li>
+      <li data-testid="shot-duration-compatibility">可请求时长：{durationStatus}。</li>
     </ul>
     {onReturnToBridge && <Button variant="quiet" onClick={onReturnToBridge}>返回分镜评审</Button>}
-    <small>此摘要只解释现有合同和当前证据；不是投产许可、媒体质量审核或可播放证明。</small>
+    <small>此摘要展示已有设定和读取到的状态；批准分镜、审核素材和选用故事片段仍需在对应步骤完成。</small>
   </section>;
 }

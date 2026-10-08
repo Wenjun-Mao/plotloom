@@ -70,6 +70,24 @@ qualification, native functional acceptance and creative/media quality separate.
 Stop when scoped checks close or new authority/access is required; preserve exact
 pending jobs and report PARTIAL rather than claiming full lifecycle acceptance.
 
+### Whole-product visual and text audit in this run
+
+The owner explicitly added a dedicated whole-product visual-and-text pass,
+including “weird wording”, to this full E2E run. Execute E22.1–E22.7 in the existing
+playbook across all product views and applicable states, not only the new graph UI.
+Use 1280×768, 1280×460 and 1700×900; phone and 1024px support remain retired.
+Reuse current disposable stories/media and product-shaped fixtures where needed,
+with evidence classes explicit; no additional generation solely for this audit.
+
+Inspect actual pixels and scroll behavior, plus natural Chinese, consistent terms,
+understandable state/recovery guidance and action labels that match their effects.
+Record awkward wording verbatim, diagnose its owning copy/contract before changing
+it, and verify that clearer wording does not conceal limits or change semantics.
+Functional acceptance, dedicated visual/copy acceptance and creative/media quality
+remain separate. Earlier incidental UI observations do not complete this pass.
+The run ledger records its per-view/state coverage, defects, repairs and gaps;
+remaining work elsewhere in Create → Revise → Recover stays in scope.
+
 ## Deliverable and boundaries
 
 Use new disposable UI-origin QA data and current native specialists. Complete

@@ -138,7 +138,7 @@ test("navigation revalidation preserves a same-project unsaved scoped Script dra
   const draft = `${await textarea.inputValue()}\n `;
   await textarea.fill(draft);
   await navigate(page, "美术参考");
-  await expect(page.getByTestId("art-review")).toContainText("已接受 r1");
+  await expect(page.getByTestId("art-review")).toContainText("已确认美术设定 r1");
   await navigate(page, "剧本");
   await expect(script.getByRole("button", { name: "保存此章节，不覆盖其他章节" })).toBeEnabled();
   await expect(textarea).toHaveValue(draft);

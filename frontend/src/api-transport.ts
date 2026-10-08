@@ -29,7 +29,7 @@ export class ApiTransport {
         if (init.signal?.aborted || (reason instanceof Error && reason.name === "AbortError")) throw reason;
         return undefined;
       });
-      if (!response.ok) throw new ApiError(body && typeof body === "object" && "message" in body ? String(body.message) : `Plotloom API request failed (${response.status})`, response.status, body);
+      if (!response.ok) throw new ApiError(body && typeof body === "object" && "message" in body ? String(body.message) : `服务请求失败（HTTP ${response.status}）`, response.status, body);
       return { body: body as T, response };
     });
   }

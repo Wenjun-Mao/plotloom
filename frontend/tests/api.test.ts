@@ -5,6 +5,20 @@ import { providerSessionKey, providerSessionKeys } from "../src/session-key";
 describe("PlotloomApiClient", () => {
   beforeEach(() => { window.sessionStorage.clear(); window.localStorage.clear(); });
 
+  it("uses a Chinese fallback for transport failures while retaining status and raw evidence", async () => {
+    const details = { detail: "unavailable" };
+    const fetcher = vi.fn(async () => new Response(JSON.stringify(details), { status: 503 }));
+    const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
+    await expect(client.getProject("p1")).rejects.toMatchObject({ message: "服务请求失败（HTTP 503）", status: 503, details });
+  });
+
+  it("preserves the server's explicit diagnostic message rather than translating stored evidence", async () => {
+    const details = { message: "SOURCE_BINDING_STALE: frozen revision changed", evidence: "unchanged" };
+    const fetcher = vi.fn(async () => new Response(JSON.stringify(details), { status: 409 }));
+    const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
+    await expect(client.getProject("p1")).rejects.toMatchObject({ message: details.message, status: 409, details });
+  });
+
   it("invokes a browser fetch implementation with the platform global receiver", async () => {
     const fetcher = vi.fn(function (this: unknown) {
       if (this !== globalThis) throw new TypeError("Illegal invocation");

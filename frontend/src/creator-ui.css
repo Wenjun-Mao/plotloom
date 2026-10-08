@@ -23,7 +23,7 @@
 .field-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .field-grid.compact { gap: 8px; }
 .field { display: block; margin-bottom: var(--space-field); color: var(--muted); font-size: var(--type-label); }
-.field > span, .modal-card label > span { display: block; margin-bottom: 6px; }
+.field > label, .field > span, .modal-card label > span { display: block; margin-bottom: 6px; }
 .field small { display: block; margin-top: 6px; color: var(--dim); font-size: var(--type-support); line-height: 1.6; }
 .required-mark { color: var(--text); font-weight: 600; }
 .required-legend, .action-prerequisite { color: var(--muted); font-size: var(--type-support); line-height: 1.6; }
@@ -171,16 +171,14 @@ fieldset legend, .structured-editor legend, .section-map legend { color: var(--m
 .brief-directions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 20px 0; }
 .brief-directions .direction-presets { margin: 0; align-content: start; }
 .brief-directions .field { margin-bottom: 0; }
-.brief-settings { position: sticky; top: 78px; }
+/* This unbounded form must scroll with the document, including its help dock. */
+.brief-settings { align-self: start; }
 
 .context-help > button:hover, .context-help > button[aria-expanded="true"] { color: var(--accent); background: #342a1c; }
 .source-outline-accepted { grid-column: 1 / -1; }
 .source-outline-grid > .section-map { grid-column: 1 / -1; }
 @media (max-width: 1280px) {
   .brief-directions { grid-template-columns: 1fr; }
-}
-@media (max-width: 1120px) {
-  .brief-settings { position: static; }
 }
 @media (max-width: 620px) {
   .button, .creator-workflow-links a, .sidebar nav button, .reader-tabs button { min-height: 44px; }

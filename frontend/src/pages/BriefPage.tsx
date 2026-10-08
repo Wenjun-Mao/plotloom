@@ -66,18 +66,18 @@ export function BriefPage({ value, hasSavedProject, saving, readOnly = false, on
       <p id="brief-save-hint" className="action-prerequisite">{saveHint}</p>
       {hasSavedProject && onContinueToSource && <Button variant="quiet" disabled={saving} onClick={onContinueToSource}>返回来源与大纲</Button>}
     </div>} />
-    <StageGuide title={hasSavedProject ? "修改当前项目的创作设置" : "从故事想法开始"}>{hasSavedProject ? "修改结构后，已保存的分支及后续内容需要重新检查；旧内容与媒体仍保留。新任务必须使用当前设置，不会自动重建或替换已安装投产。来源正文独立保存，不随简报梗概改写。" : "写清主角、处境和观众要做的选择。剧情结构与分镜设置可保留默认值，后续仍可调整。"}</StageGuide>
+    <StageGuide title={hasSavedProject ? "修改当前项目的创作设置" : "从故事想法开始"}>{hasSavedProject ? "修改结构后，已保存的分支及后续内容需要重新检查；旧内容与媒体仍保留。新任务必须使用当前设置，不会自动重建或替换现有制作内容。故事来源正文独立保存，不会随简报梗概的修改而改变。" : "写清主角、处境和观众要做的选择。剧情结构与分镜设置可保留默认值，后续仍可调整。"}</StageGuide>
     <div className="two-column wide-left brief-layout">
       <Panel className="form-card">
         <div className="section-title"><strong>故事想法</strong><p className="required-legend">* 为必填项；其他信息可稍后完善。</p></div>
-        <Field label="片名"><input placeholder={defaultWorkingTitle} value={draft.title} onChange={(event) => set("title", event.target.value)} /><small>可选工作片名；留空时保存为“未命名故事”。</small></Field>
+        <Field label="片名" hint="可选工作片名；留空时保存为“未命名故事”。"><input placeholder={defaultWorkingTitle} value={draft.title} onChange={(event) => set("title", event.target.value)} /></Field>
         <Field label="故事梗概" required><textarea aria-required="true" rows={5} placeholder="主角遇到了什么？观众可以替主角做什么选择？不同选择会带来怎样的结局？" value={draft.synopsis} onChange={(event) => set("synopsis", event.target.value)} /></Field>
         <div className="brief-directions"><DirectionPresets label="类型" groups={genreGroups} selections={draft.genreSelections || []} detail={draft.genre || ""} disabled={readOnly || saving} onSelections={value => set("genreSelections", value)} onDetail={value => set("genre", value)} />
         <DirectionPresets label="视觉风格" groups={visualGroups} selections={draft.visualStyleSelections || []} detail={draft.visualStyle || ""} disabled={readOnly || saving} onSelections={value => set("visualStyleSelections", value)} onDetail={value => set("visualStyle", value)} /></div>
         <div className="field-grid three">
           <Field label="语言"><select value={draft.language} onChange={(event) => set("language", event.target.value)}><option value="zh-CN">简体中文</option><option value="en-US">English</option></select></Field>
           <Field label="画幅"><select value={draft.aspectRatio} onChange={(event) => set("aspectRatio", event.target.value)}><option>16:9</option><option>9:16</option><option>1:1</option></select></Field>
-          <Field label="目标游玩时长（秒）" required><input aria-required="true" type="number" min={3} value={draft.targetPlaythroughSeconds} onChange={(event) => numeric("targetPlaythroughSeconds", event.target.value)} /><small>至少 3 秒；这是创作目标，不是最终播放时长的承诺。</small></Field>
+          <Field label="目标游玩时长（秒）" required hint="至少 3 秒；这是创作目标，不是最终播放时长的承诺。"><input aria-required="true" type="number" min={3} value={draft.targetPlaythroughSeconds} onChange={(event) => numeric("targetPlaythroughSeconds", event.target.value)} /></Field>
         </div>
       </Panel>
       <div className="stack brief-settings">
@@ -97,7 +97,7 @@ export function BriefPage({ value, hasSavedProject, saving, readOnly = false, on
             <Field label="最少"><input type="number" min={1} value={draft.shotsPerSceneMin} onChange={(event) => numeric("shotsPerSceneMin", event.target.value)} /></Field>
             <Field label="最多"><input type="number" min={draft.shotsPerSceneMin} value={draft.shotsPerSceneMax} onChange={(event) => numeric("shotsPerSceneMax", event.target.value)} /></Field>
           </div>
-          <Field label="镜头数量规则"><select value={draft.shotCountPolicy} onChange={(event) => set("shotCountPolicy", event.target.value as ProjectBrief["shotCountPolicy"])}><option value="advisory">创作建议（超出时提示）</option><option value="strict">严格限制（超出时阻止确认）</option></select><small>这只控制每场镜头数量；镜头时长、资源与供应商能力限制仍须满足。</small></Field>
+          <Field label="镜头数量规则" hint="这只控制每场镜头数量；镜头时长、资源与供应商能力限制仍须满足。"><select value={draft.shotCountPolicy} onChange={(event) => set("shotCountPolicy", event.target.value as ProjectBrief["shotCountPolicy"])}><option value="advisory">创作建议（超出时提示）</option><option value="strict">严格限制（超出时阻止确认）</option></select></Field>
           </details>
         </Panel>
       </div>

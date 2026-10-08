@@ -151,7 +151,7 @@ async function prepareOfflineCandidate(page: Page, panel: Locator, projectId: st
 
 async function selectPlaybackSegment(panel: Locator, jobId: string) {
   const review = panel.getByTestId(`video-segment-review-${jobId}`);
-  await review.getByRole("button", { name: "生成待审片段" }).click();
+  await review.getByRole("button", { name: "准备播放片段" }).click();
   const preview = review.locator('video[data-testid^="video-segment-preview-"]');
   await expect(preview).toBeVisible();
   await expectAuthoredDuration(preview);

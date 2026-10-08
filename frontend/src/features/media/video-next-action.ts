@@ -18,7 +18,7 @@ export function videoNextAction(jobs: readonly VideoJob[], authoredDurationUnits
   if (reviewable.some(job => job.segments?.some(segment => segment.current))) {
     return "下一步：听看待审片段，再明确确认用于故事。";
   }
-  if (reviewable.length) return "下一步：从原片选择连续帧，生成待审片段。";
+  if (reviewable.length) return "下一步：从原片选择连续帧，准备播放片段。";
   if (jobs.some(job => job.state === "ingested")) {
     return "保留的原片或片段已过期、被拒绝或不再适用。请核对当前分镜与关键帧，按需重新准备视频；旧选择不会进入故事播放。";
   }

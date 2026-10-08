@@ -24,8 +24,9 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await expect(page.getByTestId("source-outline-source")).not.toBeVisible();
   await expect(page.getByLabel("故事内容")).not.toBeVisible();
   await expect(page.getByTestId("art-review").locator("header > span")).toHaveText("美术参考");
-  await expect(page.getByTestId("art-review").locator(":scope > small").first()).toContainText("参考图片在下方单独显示");
-  await expect(page.getByTestId("art-review").locator(":scope > small").first()).not.toContainText("F3B");
+  const artReadingHelp = page.getByTestId("art-review").getByText("文本与原始报告可在这里审阅；参考图片在下方单独显示。", { exact: true });
+  await expect(artReadingHelp).toContainText("参考图片在下方单独显示");
+  await expect(artReadingHelp).not.toContainText("F3B");
   await expect(page.locator(".topbar")).not.toContainText("美术参考");
   await expect(workflow.getByRole("link", { name: "美术参考" })).toHaveAttribute("aria-current", "step");
   await expect(workflow.getByRole("link", { name: "剧本" })).not.toHaveAttribute("aria-current", "step");
@@ -107,7 +108,7 @@ test("keeps missing and stale F5A review explanations at their source-bound owne
   await expect(review).toContainText("上下文已过期");
   await expect(review).toContainText("已确认剧本 r");
   await expect(review).not.toContainText("F4 script r");
-  await expect(review).toContainText("确认评审不会自动投产或生成媒体");
+  await expect(review).toContainText("确认方案不会自动建立镜头或生成媒体");
 });
 
 test("keeps an independent owner usable when the aggregate source read fails", async ({ page, request, workbench }) => {

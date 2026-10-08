@@ -27,6 +27,6 @@ export function DirectionPresets({ label, groups, selections, detail, disabled, 
     <div className="preset-selections" aria-label={`已选${label}`}>{selections.length ? selections.map(item => <Button key={`${item.group}:${item.value}`} variant="quiet" disabled={disabled} aria-label={`移除${item.value}`} onClick={() => onSelections(selections.filter(next => next !== item))}>{item.value} ×</Button>) : <span className="muted">尚未选择</span>}</div>
     {groups.map(group => <PresetGroup key={group.id} group={group} value={selections} disabled={disabled || selections.length >= 40} onChange={onSelections} />)}
     {label === "视觉风格" && <p className="action-prerequisite">建议明确主要表现形式；也可以有意混搭，请在细节中说明如何结合。</p>}
-    <Field label={`${label}细节（可选）`}><textarea rows={2} disabled={disabled} value={detail} onChange={event => onDetail(event.target.value)} /><small>原有自由文本保留在这里，与已选内容一起用于创作。</small></Field>
+    <Field label={`${label}细节（可选）`} hint="原有自由文本保留在这里，与已选内容一起用于创作。"><textarea rows={2} disabled={disabled} value={detail} onChange={event => onDetail(event.target.value)} /></Field>
   </section>;
 }

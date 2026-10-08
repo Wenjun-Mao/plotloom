@@ -46,15 +46,16 @@ test("whole presentation review preserves source evidence and requires explicit 
   const panel = page.getByTestId("production-bridge");
   const presentation = panel.getByTestId("production-presentation-review");
   await expect(panel.getByRole("button", { name: "确认投产提案" })).toBeDisabled();
-  await expect(presentation.getByRole("button", { name: "保存呈现归属整包" })).toBeDisabled();
+  await expect(presentation.locator(":scope > summary")).toHaveText("逐项审阅内容的呈现方式");
+  await expect(presentation.getByRole("button", { name: "保存呈现方式审阅" })).toBeDisabled();
   for (const source of before.proposal.presentation.sources) {
     await presentation.getByLabel(`归属 ${source.id} 1`, { exact: true }).selectOption(source.kind === "dialogue" ? "dialogue" : "physical");
     if (source.kind !== "dialogue") await presentation.getByLabel(`画面描述 ${source.id} 1`, { exact: true }).fill(source.sourceText);
   }
-  await expect(presentation.getByRole("button", { name: "保存呈现归属整包" })).toBeDisabled();
+  await expect(presentation.getByRole("button", { name: "保存呈现方式审阅" })).toBeDisabled();
   await presentation.getByRole("checkbox").check();
   const saved = page.waitForResponse(response => response.url().endsWith("/proposals/presentation") && response.request().method() === "PUT");
-  await presentation.getByRole("button", { name: "保存呈现归属整包" }).click();
+  await presentation.getByRole("button", { name: "保存呈现方式审阅" }).click();
   expect((await saved).ok()).toBe(true);
   const after = await json(request.get(endpoint));
   expect(after.proposal.presentation.reviewed).toBe(true);
@@ -62,7 +63,7 @@ test("whole presentation review preserves source evidence and requires explicit 
   expect(after.proposal.presentation.runtimeChoice).toEqual(before.proposal.presentation.runtimeChoice);
   expect(after.proposal.installable).toBe(false);
   await page.reload();
-  await expect(presentation).toContainText("此来源包已保存呈现审阅");
+  await expect(presentation).toContainText("呈现方式审阅已保存；修改后请重新保存。实际媒体仍需单独审核并选用。");
   const textareas = panel.locator(".bridge-intent-field textarea");
   for (let index = 0; index < await textareas.count(); index++) await textareas.nth(index).fill(`明确的技术测试戏剧目的 ${index + 1}`);
   await panel.getByRole("button", { name: "保存戏剧意图整包" }).click();

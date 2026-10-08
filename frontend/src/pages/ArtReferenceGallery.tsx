@@ -95,11 +95,11 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
     setError("");
   };
   const actionable = !readOnly && !studyBusy;
-  const chooseLabel = selected.subjectType === "scene" ? "用作此环境的参考图" : "用作此道具的参考图";
+  const chooseLabel = selected.subjectType === "scene" ? "这张环境参考图" : "这张道具参考图";
   const candidateIsCurrent = Boolean(viewed?.study.current && viewed.delivery.state === "accepted");
   const candidateAlreadyChosen = currentDecision?.assetId === viewed?.assetId;
   return <section className="art-reference-studies art-reference-gallery" data-testid="art-reference-studies">
-    <header><div><span>环境 / 道具参考图片</span><strong>按已接受的美术设定生成图片</strong></div><small>不会修改已接受的美术设定。</small></header>
+    <header><div><span>环境 / 道具参考图片</span><strong>按已确认的美术设定生成图片</strong></div><small>不会修改已确认的美术设定。</small></header>
     <p>先选择环境或道具，再准备图片任务。这里选用的图片仅供参考，不会自动用于镜头或生产。</p>
     {demonstration && <p className="reference-demonstration" role="note"><strong>演示声明：</strong>{demonstration}。不代表真实交付、生成或创意批准。</p>}
     <nav className="reference-subjects" aria-label="环境和道具主体"><span>当前美术主体</span>{subjects.map((subject) => <button key={subjectKey(subject)} type="button" className={subjectKey(subject) === subjectKey(selected) ? "selected" : ""} aria-pressed={subjectKey(subject) === subjectKey(selected)} onClick={() => { setSelectedSubjectKey(subjectKey(subject)); setViewedAssetId(""); clearComparison(); }}><strong>{subject.subjectType === "scene" ? "环境" : "道具"} · {subject.name}</strong><small>{subject.subjectId}</small></button>)}</nav>
@@ -107,10 +107,10 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
       <div className="appearance-viewer">
         <div className="appearance-viewer-heading"><div><span className="eyebrow">当前查看</span><strong>{selected.subjectType === "scene" ? "环境" : "道具"} · {selected.name}</strong></div><span className={study?.current ? "reference-state selected" : "reference-state historical"}>{status}</span></div>
         {viewed ? <ManagedAssetImage projectId={projectId} subjectId={subjectKey(selected)} asset={viewed.asset} assetId={viewed.assetId} alt={`${selected.name} 当前查看图片`} unavailableLabel="当前查看图片不可用" imageUrl={assetUrl?.(viewed.assetId)} onZoom={() => setExpanded(true)} /> : <div className="reference-no-image"><strong>尚无可显示的候选图片</strong><p>{study ? "本次任务尚无可查看的图片。" : "尚未为此环境或道具准备图片任务。"}</p></div>}
-        <div className="button-row">{viewed && <Button variant="primary" disabled={!actionable || !candidateIsCurrent || candidateAlreadyChosen} onClick={() => void act(() => (createReferenceDecision || ((body) => plotloomApi.createArtReferenceDecision(projectId, body)))({ subjectType: selected.subjectType, subjectId: selected.subjectId, assetId: viewed.assetId, expectedReferenceRevision: decisionState?.revision || 0 }), onReferenceDecisionCreated)}>{currentDecision ? `替换为${chooseLabel}` : chooseLabel}</Button>}</div>
+        <div className="button-row">{viewed && <Button variant="primary" disabled={!actionable || !candidateIsCurrent || candidateAlreadyChosen} onClick={() => void act(() => (createReferenceDecision || ((body) => plotloomApi.createArtReferenceDecision(projectId, body)))({ subjectType: selected.subjectType, subjectId: selected.subjectId, assetId: viewed.assetId, expectedReferenceRevision: decisionState?.revision || 0 }), onReferenceDecisionCreated)}>{candidateAlreadyChosen ? `已选用${chooseLabel}` : `${currentDecision ? "改用" : "选用"}${chooseLabel}`}</Button>}</div>
         {currentDecision && <><p className="reference-decision" role="status"><strong>当前参考图：</strong>{currentDecision.assetId === viewed?.assetId ? "正在查看的候选。" : "在另一张候选中。"}</p><ReferenceDecisionDetails decision={currentDecision} /></>}
         {!currentDecision && latestDecision && <p className="reference-decision stale" role="status">此前的参考决定已过期；保留在历史中，尚未为当前美术主体自动选择候选。</p>}
-        <p className="reference-decision-boundary">此决定目前仅供环境/道具参考审阅；尚未被镜头或生产流程消费。</p>
+        <p className="reference-decision-boundary">这里的参考图选择仅用于环境/道具审阅，暂不会传入镜头制作流程。</p>
         {viewed && <CandidateDetails candidate={viewed} study={viewed.study} />}
       </div>
       <div className="appearance-thumbnails" aria-label="同一主体的已有图片">

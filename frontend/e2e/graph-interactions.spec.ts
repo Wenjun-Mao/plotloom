@@ -7,7 +7,7 @@ test.describe("current shared graph authoring", () => {
     const id = await createScriptProject(request, workbench.apiOrigin, "graph-commands", {}, []);
     const url = `${workbench.apiOrigin}/api/v2/projects/${id}`;
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=graph`);
-    await expect(page.getByRole("heading", { name: "剧情图与精确合同" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "剧情图与结构规则" })).toBeVisible();
     await page.getByRole("button", { name: "新增未连接剧情节点", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "确认结构修改" });
     await expect(dialog).toContainText("新增节点");

@@ -63,7 +63,7 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onNavigate, onO
     }
   }, [owner.selectedNodeId, layout.nodes.find(node => node.id === owner.selectedNodeId)?.rank, geometry.ready]);
   return <section className="page creator-workbench" data-testid="creator-workbench">
-    <PageHeader eyebrow="故事 → 制作" title="创作工作台" description="在同一份故事图上编辑剧情、检查路线并进入制作。保存草稿、确认内容与应用路线分别进行。" />
+    <PageHeader eyebrow="故事 → 制作" title="创作工作台" description="在同一份故事图上编辑剧情、检查路线并进入制作。保存图草稿、确认图内容、应用到故事路线是三项独立操作。" />
     <div className="creator-toolbar">
       <Button onClick={() => onNavigate("source", "source")}>来源、分支建议与报告</Button><Button onClick={() => onNavigate("characters")}>角色</Button><Button onClick={() => onNavigate("source", "art")}>美术参考</Button><Button onClick={() => onNavigate("brief")}>项目简报与结构设置</Button>
       <Button disabled={disabled || !owner.canUndo} onClick={() => void owner.undo()}>撤销结构修改</Button><GraphDraftDiscard disabled={disabled} />
@@ -78,7 +78,7 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onNavigate, onO
       <p>{structure.actual.pending} 条待连接 · {structure.actual.detached} 个未接入节点。{structure.mismatches.join("；")}</p><p>实际结构与简报分别保留。修改目标请返回简报预览并确认；不会自动改图或提高容量。最终确认由当前来源与规范验证。</p>
     </details>
     <div ref={geometry.layout} className="creator-layout">
-      <div className="creator-chart-column"><p className="creator-pan-hint">图按连接自动排列；宽行可在图内横向平移。页面滚动查看后续剧情。</p>
+      <div className="creator-chart-column"><p className="creator-pan-hint">图按连接自动排列；剧情图较宽时，可在图内横向平移。向下滚动页面可查看后续剧情。</p>
         <div ref={geometry.chart} className="creator-chart-scroll" tabIndex={0} aria-label="剧情图横向平移"><CreatorChart layout={layout} disabled={disabled} onEdit={setAction} /></div>
         {draft.mapping.topology.edges.some(edge => !edge.sourceNodeId || !edge.targetNodeId) && <details className="creator-pending"><summary>待连接关系 · {structure.actual.pending}</summary>{draft.mapping.topology.edges.filter(edge => !edge.sourceNodeId || !edge.targetNodeId).map(edge => <p key={edge.id}>{edge.id} · {edge.sourceNodeId || "待定起点"} → {edge.targetNodeId || "待定目标"}<Button disabled={disabled || !edge.sourceNodeId} onClick={() => setAction({ type: "connection", nodeId: edge.sourceNodeId!, endpoint: "target", edgeId: edge.id })}>连接目标</Button></p>)}<Button onClick={() => onNavigate("graph")}>专业工作台：保留的文字与效果</Button></details>}
       </div>

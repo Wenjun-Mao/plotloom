@@ -820,12 +820,12 @@ describe("App project/editor rehydration", () => {
 
     expect(getTrace).not.toHaveBeenCalled();
     expect(document.body.textContent).toContain("unit-restored");
-    expect(document.body.textContent).toContain("修复这个 work unit");
+    expect(document.body.textContent).toContain("重新执行此子任务");
     await act(async () => button("运行轨迹").click());
     await flush();
     expect(getTrace).toHaveBeenCalledWith("run-restored");
     expect(document.body.textContent).toContain("run-restored");
-    await act(async () => button("Payload").click());
+    await act(async () => button("事件数据").click());
     expect(document.body.textContent).toContain("missing premise");
   });
 
@@ -927,8 +927,8 @@ describe("App project/editor rehydration", () => {
     expect(document.body.textContent).toContain("图片：查看关键帧与参考素材");
     expect(document.body.textContent).toContain("视频：在上方工作台审核片段");
     expect(startMedia).not.toHaveBeenCalled();
-    expect(document.body.textContent).toContain("Approval");
-    expect(document.body.textContent).toContain("ProductionSnapshot");
+    expect(document.body.textContent).toContain("覆盖检查与分镜批准");
+    expect(document.body.textContent).toContain("尚无可查看的历史关键帧任务提示词");
   });
 
   it("explains when a server key is available and a session key is only an override", async () => {

@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
-import { shotLabel } from "../src/shot-label";
+import { shotLabel, storyShotLabel } from "../src/shot-label";
+import { demoProject } from "../src/demo";
 import { shotImageJobs } from "../src/features/media/image-jobs/image-job-visibility";
 import type { ImageJob } from "../src/types";
 
@@ -21,4 +22,39 @@ it("defaults image-job history to the exact shot and retains full project histor
   ] as ImageJob[];
   expect(shotImageJobs(jobs, "b2").map(job => job.id)).toEqual(["current"]);
   expect(shotImageJobs(jobs)).toBe(jobs);
+});
+
+it("distinguishes story positions with identical shot prose without changing source", () => {
+  const project = structuredClone(demoProject);
+  for (const shot of project.storyboard.shots) { shot.title = ""; shot.action = "相同的镜头动作"; }
+  for (const node of project.storyGraph.nodes) node.title = "同名剧情节点";
+  const original = JSON.stringify(project);
+  const labels = project.storyboard.shots.map(shot => storyShotLabel(shot.id, project.storyboard, project.sceneBeats, project.storyGraph));
+  expect(new Set(labels).size).toBe(labels.length);
+  expect(labels.every(label => label.startsWith("节点 "))).toBe(true);
+  expect(labels.every(label => label.includes("场次 ") && label.includes("镜头 ") && label.endsWith("相同的镜头动作"))).toBe(true);
+  expect(storyShotLabel("unknown-shot", project.storyboard, project.sceneBeats, project.storyGraph)).toBe("unknown-shot");
+  expect(JSON.stringify(project)).toBe(original);
+});
+
+it("keeps node positions distinct when authored titles imitate their qualifiers", () => {
+  const project = structuredClone(demoProject);
+  const nodeTitles = ["Ending", "Ending", "节点 1：Ending"];
+  const shots = project.storyGraph.nodes.slice(0, 3).map((node, index) => {
+    node.title = nodeTitles[index];
+    const scene = project.sceneBeats.scenes.find(item => item.storyNodeId === node.id)!;
+    const shot = project.storyboard.shots.filter(item => item.sceneId === scene.id).sort((a, b) => a.order - b.order)[0];
+    shot.title = "";
+    shot.action = "相同的镜头动作";
+    return shot;
+  });
+  const original = JSON.stringify(project);
+  const labels = shots.map(shot => storyShotLabel(shot.id, project.storyboard, project.sceneBeats, project.storyGraph));
+  expect(labels).toEqual([
+    "节点 1：Ending · 场次 1 · 镜头 1：相同的镜头动作",
+    "节点 2：Ending · 场次 1 · 镜头 1：相同的镜头动作",
+    "节点 3：节点 1：Ending · 场次 1 · 镜头 1：相同的镜头动作",
+  ]);
+  expect(new Set(labels).size).toBe(shots.length);
+  expect(JSON.stringify(project)).toBe(original);
 });

@@ -42,11 +42,22 @@ test("accepted bridge opens exact canonical shots and reports owner readiness wi
   await expect(summary).toContainText(`当前镜头准备状态 · ${first.shotId}`);
   await expect(summary).toContainText(`精确来源时长 ${first.seconds} 秒`);
   await expect(summary).toContainText("缺少当前批准");
-  await expect(summary).toContainText("视频后端：已配置");
+  await expect(summary).toContainText("视频生成服务：已配置");
   await expect(summary).toContainText("精确来源时长 2.5 秒 · 当前绑定");
   await expect(summary.getByTestId("bridge-source-unavailable")).toHaveCount(0);
   await expect(summary.getByTestId("shot-duration-compatibility")).toContainText("2.5 秒原稿需要 60 帧；目录内 5 秒请求提供 124 帧容量");
   await expect(summary.getByTestId("shot-duration-compatibility")).toContainText("不会自动裁切或用于故事");
+
+  await page.getByText("准备与参考 · 图片、角色、导入", { exact: true }).click();
+  const keyframeOwner = page.locator("details.workbench-support").filter({ has: page.locator("#shot-keyframe-review") });
+  for (const viewport of [{ width: 1700, height: 900 }, { width: 1280, height: 768 }, { width: 1280, height: 460 }]) {
+    await page.setViewportSize(viewport);
+    await expect(keyframeOwner).not.toHaveAttribute("open", "");
+    await summary.getByRole("button", { name: "查看关键帧", exact: true }).click();
+    await expect(keyframeOwner).toHaveAttribute("open", "");
+    await expect(page.locator("#shot-keyframe-review")).toBeVisible();
+    await keyframeOwner.locator(":scope > summary").click();
+  }
 
   await page.reload();
   await expect(summary).toContainText(`当前镜头准备状态 · ${first.shotId}`);

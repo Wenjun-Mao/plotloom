@@ -59,14 +59,14 @@ test.describe("F2B cast-owned reference studies", () => {
     await cast.getByRole("button", { name: "确认使用此角色设定" }).click();
     expect((await accepting).ok()).toBeTruthy();
     const gallery = page.getByTestId("character-reference-gallery");
-    await expect(gallery).toContainText("已接受角色 r1");
+    await expect(gallery).toContainText("已确认角色设定 r1");
     await expect(gallery.getByLabel("想法")).toBeEditable();
 
     const reopening = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/reopen`);
     await cast.getByRole("button", { name: "编辑角色设定" }).click();
     expect((await reopening).ok()).toBeTruthy();
-    await expect(gallery).toContainText("已接受角色已过期");
+    await expect(gallery).toContainText("角色设定需重新确认");
     await expect(gallery.getByLabel("想法")).toBeDisabled();
 
     const cancelling = page.waitForResponse((response) => response.request().method() === "POST"
@@ -74,7 +74,7 @@ test.describe("F2B cast-owned reference studies", () => {
     await cast.getByLabel("外观").fill("Unsaved edit must not create r2.");
     await cast.getByRole("button", { name: "取消编辑" }).click();
     expect((await cancelling).ok()).toBeTruthy();
-    await expect(gallery).toContainText("已接受角色 r1");
+    await expect(gallery).toContainText("已确认角色设定 r1");
     await expect(gallery.getByLabel("想法")).toBeEditable();
     await expect(cast).toContainText("Rain-dark hair and a weathered beacon coat");
 
@@ -87,7 +87,7 @@ test.describe("F2B cast-owned reference studies", () => {
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/save`);
     await cast.getByRole("button", { name: "保存角色修改" }).click();
     expect((await saving).ok()).toBeTruthy();
-    await expect(gallery).toContainText("已接受角色 r2");
+    await expect(gallery).toContainText("已确认角色设定 r2");
     await expect(gallery.getByLabel("想法")).toBeEditable();
     await expect(gallery.getByLabel("想法")).toHaveValue("");
     await expectOnlySourceMapGraph(request, workbench.apiOrigin, projectId);
@@ -221,7 +221,7 @@ test.describe("F2B cast-owned reference studies", () => {
       data: { expectedSourceRevision: sourceState.source.revision, material: { ...sourceState.source.material, text: "A U3 stale-selection presentation check." } },
     }));
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
-    await expect(page.getByTestId("character-reference-gallery")).toContainText("已接受角色已过期");
+    await expect(page.getByTestId("character-reference-gallery")).toContainText("角色设定需重新确认");
     await expect(page.getByText("历史选择，当前不可用", { exact: true }).first()).toBeVisible();
     await expectOnlySourceMapGraph(request, workbench.apiOrigin, projectId);
   });
@@ -333,7 +333,7 @@ test.describe("F2B cast-owned reference studies", () => {
     await expect(gallery).toContainText("已选择身份参考 r1");
     const cast = page.getByTestId("cast-review");
     await cast.getByRole("button", { name: "编辑角色设定" }).click();
-    await expect(gallery).toContainText("已接受角色已过期");
+    await expect(gallery).toContainText("角色设定需重新确认");
     const restoredCast = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/reopen/cancel`);
     await cast.getByRole("button", { name: "取消编辑" }).click();
@@ -392,10 +392,10 @@ test.describe("F2B cast-owned reference studies", () => {
     expect(changed.ok(), await changed.text()).toBeTruthy();
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${staleProjectId}&stage=characters`);
     await expect(page.getByTestId("cast-review")).toContainText("上下文已过期");
-    await expect(page.getByTestId("character-reference-gallery")).toContainText("重新接受角色前不能选择");
+    await expect(page.getByTestId("character-reference-gallery")).toContainText("重新确认角色设定前不能选择");
     const staleCast = await getJson<any>(request.get(`${workbench.apiOrigin}/api/v2/projects/${staleProjectId}/cast`));
     expect(staleCast.status).toBe("stale");
-    await expect(page.getByTestId("character-reference-gallery")).toContainText("已接受角色已过期");
+    await expect(page.getByTestId("character-reference-gallery")).toContainText("角色设定需重新确认");
 
     const firstProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "held-first");
     const secondProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "held-second");
@@ -497,7 +497,7 @@ test.describe("F2B cast-owned reference studies", () => {
     await holdImport("Held stale-cast import", async () => {
       const cast = page.getByTestId("cast-review");
       await cast.getByRole("button", { name: "编辑角色设定" }).click();
-      await expect(firstPanel).toContainText("已接受角色已过期");
+      await expect(firstPanel).toContainText("角色设定需重新确认");
       const state = await getJson<{ status: string }>(request.get(
         `${workbench.apiOrigin}/api/v2/projects/${firstProjectId}/cast`,
       ));
@@ -509,7 +509,7 @@ test.describe("F2B cast-owned reference studies", () => {
     expect(attachmentPosts).toBe(0);
     const cast = page.getByTestId("cast-review");
     await cast.getByRole("button", { name: "取消编辑" }).click();
-    await expect(firstPanel).toContainText("已接受角色 r1");
+    await expect(firstPanel).toContainText("已确认角色设定 r1");
   });
 
   test("invalidates held gallery reads after a project change", async ({ page, request, workbench }) => {

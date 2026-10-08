@@ -97,7 +97,7 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
   expect((await restoredWorkbench.json() as { reviewedKeyframes: unknown[] }).reviewedKeyframes).toHaveLength(1);
   await navigateToSecondaryTool(page, "分镜工作台");
   await openMediaPreparation(page);
-  await expect(page.getByAltText(/Imported candidate/)).toBeVisible();
+  await expect(page.getByAltText(/候选图片/)).toBeVisible();
   // The explicit restart helper still returns this journey to its original
   // installation after proving the isolated restore.
   await workbench.restartBackend();

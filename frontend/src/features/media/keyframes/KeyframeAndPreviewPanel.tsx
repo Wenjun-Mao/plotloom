@@ -271,7 +271,7 @@ export function KeyframeAndPreviewPanel({
               ))}
               onClick={() => void onSaveIntent()}
             >
-              {activeIntent ? `细化意图 r${activeIntent.revision}` : "保存意图"}
+              {activeIntent ? "保存意图修改" : "保存意图"}
             </Button>
             {activeIntent && (
               <small>
@@ -354,11 +354,11 @@ export function KeyframeAndPreviewPanel({
             ? `尚缺 ${missingPreviewShotIds.length} 个审核关键帧：${missingPreviewShotIds.join("、")}`
             : identityReviewMissingShotIds.length
               ? `尚缺 ${identityReviewMissingShotIds.length} 个身份感知关键帧的人工复核：${identityReviewMissingShotIds.join("、")}`
-              : "所有镜头已有当前审核关键帧和所需身份复核，可冻结预览。"}
+              : "所有镜头已有当前审核关键帧和所需身份复核，可创建静帧预览。"}
         </small>
       )}
       <div className="preview-history">
-        <strong>冻结预览历史</strong>
+        <strong>已保存的静帧预览</strong>
         {workbench.previews.map((item) => (
           <button
             key={item.id}

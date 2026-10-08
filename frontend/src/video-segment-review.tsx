@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { VideoJob, VideoSegment } from "./types";
 import { ApiError, plotloomApi } from "./api";
-import { Button } from "./components";
+import { Button, Field } from "./components";
 import { useConfirmation } from "./confirmation";
 import { verifiedVideoGeometry } from "./features/media/verified-video-geometry";
 
@@ -136,13 +136,12 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
     {rejected && <small className="notice warning">此原片已拒绝，片段选择已锁定。可在下方明确重新开放审阅，也可选择另一候选或重新生成；原片与片段证据仍保留。</small>}
     {previouslyRejected && explicitlyReopened && <small className="notice">此前拒绝记录仍保留；本次已明确重新开放审阅。尚未准备片段或选择故事播放。</small>}
     {!timingReady && !rejected && <small className="notice warning">此候选没有足够的已核验画面与声音覆盖当前原稿时长，或原稿时长不在 24 fps 帧网格上；不能准备播放片段。</small>}
-    {timingReady && <label>片段入点（帧）
+    {timingReady && <Field label="片段入点（帧）" hint={`出点（不含）：${inFrame + requiredFrames} / 原片 ${availableFrames} 帧。严格按原稿时长选择连续帧，不按浏览器时间自动裁切。`}>
       <input type="number" min={0} max={maxStart} step={1} value={inFrame} disabled={readOnly || busy}
         onChange={(event) => setInFrame(Math.max(0, Math.min(maxStart, Math.trunc(Number(event.target.value) || 0))))} />
-      <small>出点（不含）：{inFrame + requiredFrames} / 原片 {availableFrames} 帧。严格按原稿时长选择连续帧，不按浏览器时间自动裁切。</small>
-    </label>}
-    <Button disabled={readOnly || busy || !timingReady} onClick={() => void prepare()}>生成待审片段</Button>
-    <small>只生成可预览的片段，不会加入故事。确认前请听看片段首尾。</small>
+    </Field>}
+    <Button disabled={readOnly || busy || !timingReady} onClick={() => void prepare()}>准备播放片段</Button>
+    <small>从原片截取可预览片段，不会重新生成视频，也不会加入故事。确认前请听看片段首尾。</small>
     {available.length > 0 && <label>待审片段
       <select value={chosen?.id ?? ""} disabled={readOnly || busy} onChange={(event) => setProposalId(event.target.value)}>
         {available.map((item) => <option key={item.id} value={item.id}>{item.inFrame}–{item.outFrame} 帧{item.selected ? " · 已选择" : " · 待审"}</option>)}

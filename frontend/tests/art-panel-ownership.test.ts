@@ -52,6 +52,22 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); });
 
+it("uses creator-confirmation wording and selection labels for accepted Art", async () => {
+  vi.spyOn(plotloomApi, "getArt").mockResolvedValue(artState("old"));
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [deliveredStudy] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({
+    states: [{ subjectType: "scene", subjectId: "S01", revision: 0, activeDecisionId: null, current: false }], decisions: [],
+  });
+
+  await act(async () => { root.render(createElement(ArtPanel, { projectId: "old", readOnly: false })); });
+
+  expect(host.textContent).toContain("已确认美术设定 r1");
+  expect(host.querySelector('section[aria-label="准备美术设定候选"]')?.textContent).toContain("准备新的美术候选（可选）");
+  expect(host.textContent).toContain("新候选需要单独审核并确认，不会自动替换已有设定");
+  expect(host.textContent).toContain("按已确认的美术设定生成图片");
+  expect([...host.querySelectorAll("button")].some(button => button.textContent === "选用这张环境参考图")).toBe(true);
+});
+
 it("settles a deferred F3B send after unmount without refresh, assignment, or error publication", async () => {
   const copied = deferred<{ proposal: ArtReferenceProposal; assignment: string; packagePath: string; deliveryPath: string }>();
   const getArt = vi.spyOn(plotloomApi, "getArt").mockImplementation(async (projectId) => artState(projectId));
@@ -90,7 +106,7 @@ it("settles a deferred explicit F3B reference choice after unmount without a sta
   const createDecision = vi.spyOn(plotloomApi, "createArtReferenceDecision").mockReturnValue(chosen.promise as Promise<any>);
 
   await act(async () => { root.render(createElement(ArtPanel, { projectId: "old", readOnly: false })); });
-  const choose = [...host.querySelectorAll("button")].find((button) => button.textContent === "用作此环境的参考图");
+  const choose = [...host.querySelectorAll("button")].find((button) => button.textContent === "选用这张环境参考图");
   expect(choose).toBeDefined();
   await act(async () => choose?.click());
   expect(createDecision).toHaveBeenCalledWith("old", {

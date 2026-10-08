@@ -85,3 +85,48 @@ silently save, apply or generate content. See the bounded
    responses must not claim success or affect another project/task.
 6. Rebuild shipped assets and inspect representative rendered screens;
    source searches alone do not establish visual or usability acceptance.
+
+## Whole-product visual and text pass
+
+Run [E22.1–E22.7](../creative-workflow/graph-workbench-acceptance.md#e22-全产品视觉与文案专门检查)
+after major UI iterations, adapting the view/state matrix to the actual run.
+Include awkward translations, unexplained implementation terms, mixed-language
+primary guidance and labels that imply a different action. Follow the handler,
+not the API field name: a manually confirmed Cast design can say 已确认, whereas
+validator acceptance or an ingested delivery must not imply creator approval.
+
+Separate saved draft, confirmed content, applied story routes and selected media.
+Preparing a preview from an original video is not a new video-generation request.
+Keep exact codes, IDs, contracts and original creative/report text available;
+do not rewrite those as a cosmetic cleanup. Use natural guidance for the primary
+title, explanation and next action, including in Professional views.
+
+Record a rendered before/after, action-semantic check and regression result for
+each fix. A loading screen or captured screenshot alone is not a visual PASS:
+wait for the intended content, inspect actual viewport pixels and scroll it.
+Use the supported desktop matrix only (1280×768,1280×460,1700×900).
+
+Help belongs in a field's accessible description, not its control name. Workspace
+dialogs must actually paint above sticky surfaces: bounds and `isVisible` alone
+are not enough. Recovery links identify the story position as well as retaining
+the exact shot target; identical creative descriptions must not make separate
+actions indistinguishable. “查看” actions must reveal their owning disclosure,
+not just scroll to hidden content; share that behavior with deep links without
+generation or selection writes. See [ADR0132](../adr/0132-creator-ui-reading-boundaries.md).
+
+Unknown media reads are not empty collections. Say 正在读取镜头视频状态 while
+loading; on an initial failure offer a named read-only retry. Only a successful
+owned read may say 当前镜头尚无冻结的视频请求. Keep unbounded Brief form columns
+in document flow so their lower help and controls remain reachable on short desktops.
+
+A successful playback read with missing production stages says 故事尚未准备好,
+names the missing content and links to its preparation owner. It is not a failed
+request and does not offer a transport retry. Optional new Art candidates are
+labelled separately from the confirmed revision. Generic service failures use a
+Chinese fallback with the HTTP status; explicit server messages and raw evidence
+remain unchanged. Directory times use Chinese 24-hour display with the original
+timestamp retained. Scene-card layout must not style text-only action buttons.
+
+The Brief help dock intentionally reserves space to avoid shifting later fields
+when help opens. Settings-dialog captures must include both its initial body and
+scrolled lower fields; a body scrolled to image settings is not missing text settings.

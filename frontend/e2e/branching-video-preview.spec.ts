@@ -114,7 +114,7 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, proje
   const job = await reconciledResponse.json() as { id: string };
   const review = panel.getByTestId(`video-segment-review-${job.id}`);
   await review.getByLabel("片段入点（帧）").fill(String(inFrame));
-  await review.getByRole("button", { name: "生成待审片段" }).click();
+  await review.getByRole("button", { name: "准备播放片段" }).click();
   const preview = review.locator('video[data-testid^="video-segment-preview-"]');
   await expect(preview).toBeVisible();
   await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).duration)).toBeGreaterThan(0);
@@ -153,7 +153,7 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
   const jobIds: string[] = [];
   for (const [index, shotName] of shotNames.entries()) {
     if (index > 0) {
-      await page.getByLabel("当前媒体镜头").selectOption(project.storyboard.shots[index].id);
+      await page.getByRole("combobox", { name: "当前镜头", exact: true }).selectOption(project.storyboard.shots[index].id);
       await page.getByTestId(/^keep-candidate-/).click();
     }
     await page.getByLabel("审核兼容性说明").fill(`Current approved ${shotName} fixture keyframe.`);

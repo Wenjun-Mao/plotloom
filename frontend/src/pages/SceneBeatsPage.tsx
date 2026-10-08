@@ -290,7 +290,7 @@ function DeleteConfirmation({
   const summary = [
     `${impact.sceneIds.length} 个场景`,
     `${impact.beatIds.length} 个节拍`,
-    `${impact.cueIds.length} 条 cue`,
+    `${impact.cueIds.length} 条对白条目`,
   ].join("、");
   return (
     <div
@@ -308,12 +308,12 @@ function DeleteConfirmation({
       <section className="modal-card compact">
         <header>
           <div>
-            <span>Structural deletion</span>
+            <span>删除影响</span>
             <h2 id="scene-beats-delete-title">删除影响确认</h2>
           </div>
         </header>
         <div className="modal-body">
-          <p>将删除 {summary}。删除会精确级联下级记录，不保留悬挂引用。</p>
+          <p>将删除 {summary}。所列的下级记录会一并删除，不会留下失效关联。</p>
           <ul className="deletion-impact-list">
             <li>
               <strong>删除场景</strong>：{impact.sceneIds.join(", ") || "无"}
@@ -322,7 +322,7 @@ function DeleteConfirmation({
               <strong>删除节拍</strong>：{impact.beatIds.join(", ") || "无"}
             </li>
             <li>
-              <strong>删除 DialogueCue</strong>：
+              <strong>删除对白条目</strong>：
               {impact.cueIds.join(", ") || "无"}
             </li>
             <li>
@@ -335,12 +335,12 @@ function DeleteConfirmation({
             </li>
           </ul>
           <section className="deletion-downstream" data-testid="downstream-storyboard-refs">
-            <strong>下游分镜引用（保留但会变为 stale）</strong>
+            <strong>相关分镜引用（保留，但会显示为过期）</strong>
             {impact.retainedStoryboardReferences.length > 0 ? <ul>{impact.retainedStoryboardReferences.map((reference) => <li key={`${reference.kind}:${reference.path}`}><code>{reference.kind} · {reference.id}</code> · <code>{reference.path}</code></li>)}</ul> : <p>没有引用这些删除记录的分镜字段。</p>}
-            <small>此确认不会修改、级联删除或重排分镜数据；请在分镜工作台显式处理这些 stale 引用。</small>
+            <small>此操作不会修改、删除或重排分镜数据。请在分镜工作台重新检查这些引用。</small>
           </section>
           <p className="danger-copy">
-            确认后只会修改当前未保存草稿；仍需点击“保存节拍计划”才会写入规范项目。
+            确认后只会修改当前未保存草稿；仍需点击“保存节拍计划”才会保存到项目。
           </p>
         </div>
         <footer>
@@ -371,7 +371,7 @@ function MigrationConfirmation({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  const subject = impact.kind === "beat" ? "节拍" : "DialogueCue";
+  const subject = impact.kind === "beat" ? "节拍" : "对白条目";
   return (
     <Panel
       className="notice warning"
@@ -379,14 +379,14 @@ function MigrationConfirmation({
     >
       <strong>关系迁移确认</strong>
       <p>
-        将 {subject} {impact.targetId} 从 {impact.fromParentId} 迁移到{" "}
-        {impact.toParentId}。稳定 ID 保持不变；受影响的顺序和 scene.beatIds
-        会确定性归一化。
+        将{subject} {impact.targetId} 从 {impact.fromParentId} 移到{" "}
+        {impact.toParentId}。ID 保持不变；相关顺序会自动整理，
+        场景中的节拍 ID 列表也会同步更新。
       </p>
       <small>
-        关联 cue：{impact.affectedCueIds.join(", ") || "无"}
-        。不会自动重写分镜中的 cue 调度或
-        ShotBeatLink/coverage；如存在跨场景关系，请在分镜工作台显式调整。
+        相关对白条目 ID：{impact.affectedCueIds.join(", ") || "无"}
+        。分镜里的对白安排或节拍覆盖关系不会自动更改；
+        如涉及其他场景，请到分镜工作台检查并调整。
       </small>
       <div className="page-actions">
         <Button
@@ -431,7 +431,7 @@ function CueCard({
       <Panel className="beat-card" data-testid={`cue-card-${cue.id}`}>
         <div className="section-bar">
           <div>
-            <span className="eyebrow">DialogueCue · {cue.id}</span>
+            <span className="eyebrow">对白条目 · {cue.id}</span>
             <strong>顺序 {cue.order}</strong>
           </div>
           <div className="page-actions">
@@ -442,7 +442,7 @@ function CueCard({
               ↓
             </Button>
             <Button type="button" variant="danger" onClick={onDelete}>
-              删除 cue
+              删除对白条目
             </Button>
           </div>
         </div>
@@ -451,7 +451,7 @@ function CueCard({
             <Field label="所属节拍">
               <select
                 {...focusProps(entity, "beatId")}
-                aria-label="迁移 cue 到节拍"
+                aria-label="将对白条目移到节拍"
                 value={cue.beatId}
                 onChange={(event) => onMigrate(event.target.value)}
               >
@@ -519,7 +519,7 @@ function CueCard({
               onChange={(event) => onPatch({ language: event.target.value })}
             />
           </Field>
-          <Field label="Delivery">
+          <Field label="对白速度">
             <select
               {...focusProps(entity, "delivery")}
               value={cue.delivery}
@@ -529,9 +529,9 @@ function CueCard({
                 })
               }
             >
-              <option value="measured">measured</option>
-              <option value="natural">natural</option>
-              <option value="brisk">brisk</option>
+              <option value="measured">较慢</option>
+              <option value="natural">自然</option>
+              <option value="brisk">较快</option>
             </select>
           </Field>
           <Field label="预估时长（毫秒）">
@@ -615,7 +615,7 @@ function BeatCard({
       <Panel className="beat-card" data-testid={`beat-card-${beat.id}`}>
         <div className="section-bar">
           <div>
-            <span className="eyebrow">Beat · {beat.id}</span>
+            <span className="eyebrow">节拍 · {beat.id}</span>
             <h3>顺序 {beat.order}</h3>
           </div>
           <div className="page-actions">
@@ -691,7 +691,7 @@ function BeatCard({
               }
             />
           </Field>
-          <Field label="连续性 anchors（每行一条）">
+          <Field label="连续性锚点（每行一条）">
             <textarea
               {...focusProps(entity, "continuityAnchors")}
               rows={2}
@@ -702,7 +702,7 @@ function BeatCard({
             />
           </Field>
           <TypedRecordEditor
-            label="连续性 delta"
+            label="连续性变化（结构化记录）"
             value={beat.continuityDelta}
             onChange={(continuityDelta) => onPatch({ continuityDelta })}
             testId={`continuity-delta-${beat.id}`}
@@ -730,11 +730,11 @@ function BeatCard({
         />
         <div className="section-bar">
           <div>
-            <span className="eyebrow">Canonical dialogue</span>
-            <h3>DialogueCue</h3>
+            <span className="eyebrow">本节拍对白</span>
+            <h3>对白条目</h3>
           </div>
           <Button type="button" variant="quiet" onClick={onAddCue}>
-            ＋ 添加 cue
+            ＋ 添加对白条目
           </Button>
         </div>
         {cues.map((cue) => (
@@ -896,7 +896,7 @@ export function SceneBeatsPage({
     <div className="page" data-testid="scene-beats-page">
       <PageHeader
         title="场景节拍"
-        description="场景按剧情节点排序；节拍与 DialogueCue 用稳定 ID 和结构化连续性数据驱动分镜。"
+        description="场景按剧情节点排列；分镜会引用这里的节拍、对白和连续性信息。"
         actions={
           <>
             <span className={`stage-chip ${stale ? "stale" : "ready"}`}>
@@ -980,7 +980,7 @@ export function SceneBeatsPage({
               <strong>{scene.title || scene.id}</strong>
               <small>
                 {plan.beats.filter((beat) => beat.sceneId === scene.id).length}{" "}
-                beats · {scene.storyNodeId || "未绑定节点"}
+                个节拍 · {scene.storyNodeId || "未绑定节点"}
               </small>
             </button>
           ))}
@@ -1014,7 +1014,7 @@ export function SceneBeatsPage({
                 <div className="section-bar">
                   <div>
                     <span className="eyebrow">
-                      DramaticScene · {selected.id}
+                      场景 · {selected.id}
                     </span>
                     <h2>{selected.title || "未命名场景"}</h2>
                   </div>
@@ -1178,7 +1178,7 @@ export function SceneBeatsPage({
                       ))}
                     </select>
                   </Field>
-                  <Field label="声明的 beat IDs">
+                  <Field label="本场节拍 ID（只读，按顺序）">
                     <textarea
                       {...focusProps(
                         { kind: "scene", id: selected.id },
@@ -1223,7 +1223,7 @@ export function SceneBeatsPage({
             <>
               <div className="section-bar">
                 <div>
-                  <span className="eyebrow">Beat order</span>
+                  <span className="eyebrow">节拍顺序</span>
                   <h2>节拍</h2>
                 </div>
                 <Button

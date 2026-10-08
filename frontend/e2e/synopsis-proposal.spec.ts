@@ -51,7 +51,7 @@ test("turns a synopsis into a reviewable Bible/Graph proposal without entering d
   expect((await readJson<{ revision: number }>(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}`)).revision).toBe(initialBrief.revision);
 
   await page.getByRole("button", { name: "细化人物与设定" }).click();
-  await page.getByLabel("Logline").fill("夜班气象员要在亲人与整座岛之间决定哪一种真相得以留下。");
+  await page.getByLabel("一句话概述（Logline）").fill("夜班气象员要在亲人与整座岛之间决定哪一种真相得以留下。");
   const bibleSave = page.waitForResponse((response) => response.request().method() === "PATCH"
     && /\/api\/v2\/projects\/[^/]+\/stages\/story_bible$/.test(new URL(response.url()).pathname));
   await page.getByRole("button", { name: "保存故事圣经" }).click();
@@ -123,7 +123,7 @@ test("keeps an authored Bible intact when its graph-only proposal regeneration i
 
   await page.getByRole("button", { name: "细化人物与设定" }).click();
   const authoredLogline = "海关译员必须决定让港口记住真相，还是让她失踪的弟弟回家。";
-  await page.getByLabel("Logline").fill(authoredLogline);
+  await page.getByLabel("一句话概述（Logline）").fill(authoredLogline);
   const bibleSave = page.waitForResponse((response) => response.request().method() === "PATCH"
     && /\/api\/v2\/projects\/[^/]+\/stages\/story_bible$/.test(new URL(response.url()).pathname));
   await page.getByRole("button", { name: "保存故事圣经" }).click();

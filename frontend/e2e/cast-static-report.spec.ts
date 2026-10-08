@@ -94,7 +94,7 @@ checkedStaticTest("accepted Cast keeps its original report through reopen and ed
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=characters`);
   const panel = page.getByTestId("cast-review");
   await panel.getByRole("button", { name: "确认使用此角色设定" }).click();
-  await expect(panel).toContainText("已接受角色设定 r1");
+  await expect(panel).toContainText("已确认角色设定 r1");
   const acceptedState = await json(request.get(root));
   expect(acceptedState.acceptedCast.candidateJobId).toBe(prepared.jobId);
   const acceptedReport = panel.locator("details.cast-accepted-report");
@@ -116,7 +116,7 @@ checkedStaticTest("accepted Cast keeps its original report through reopen and ed
   await expect(frame.locator("body")).toContainText("Original delivered Cast report marker.");
   await expect(acceptedReport).not.toContainText("当前已确认角色设定与交付内容不同");
   await panel.getByRole("button", { name: "保存角色修改" }).click();
-  await expect(panel).toContainText("已接受角色设定 r2");
+  await expect(panel).toContainText("已确认角色设定 r2");
   await expect(acceptedReport).toContainText("当前已确认角色设定与交付内容不同");
   await expect(frame.locator("body")).toContainText("Original delivered Cast report marker.");
   const savedState = await json(request.get(root));

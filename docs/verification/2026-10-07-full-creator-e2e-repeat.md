@@ -8,6 +8,19 @@ and [C50 recovery](2026-10-07-c50-draft-recovery.md) / [C52 project ownership](2
 Dated checkpoints below and the [historical receipt](2026-10-07-full-creator-e2e-repeat-history.md)
 retain earlier failures; historical present-tense claims are not current status.
 
+## Dedicated whole-product visual and text audit added
+
+Owner-requested scope: execute E22.1–E22.7 as part of this full E2E run, including
+awkward, opaque, misleading or inconsistent wording (“weird wording”). Prior
+functional walkthroughs included incidental UI inspections, not a completed
+whole-product visual/copy audit. The dedicated pass has executed, with PARTIAL
+state coverage and verified scoped repairs;
+its [view/state observations and repairs](2026-10-08-whole-product-ui-audit.md)
+are recorded separately from functional results. Desktop matrix:
+1280×768,1280×460,1700×900; no phone/1024px testing.
+Reuse disposable data, distinguish fixture/native states and avoid repeated
+generation solely for visual inspection. All Create → Revise → Recover gaps remain.
+
 ## Recovery repair published 2026 10 07 23 19 UTC
 
 Root approved and pushed the frontend-only repair as
@@ -307,13 +320,20 @@ the exact frozen image reservation, without restart/reload/send. Root receipts:
 |---|---|---|
 | E01–E04/P01–P05 | Fresh UI Brief/source/Outline r1, native branch review/Confirm/Apply; actual Outline timeline/table PASS, export BLOCKED_BY_DESIGN | Richer native structure not generated merely for counts |
 | E05–E06/selected C graph checks | Separate real structural QA123→222→333 sequence; bypass/unconnected deletion/Undo; Save-close-reopen; partial-key/nonblank C49; real stale-CAS refusal and matched live selection refresh; C44 footage toggles/reversal; C48 legal/refused type/start guards, explicit start/choice/join conversion and exact Undo; C50 endpoint/edge-only deletion/Undo; C51 retain/discard; C55 normal-flow help; preview pixels15–26; C46 actual OS blur automatic380/persisted350 PASS, pixel37 and exact cleanup r33 | Remaining type/kind/ownership permutations; no post-install native revision qualification |
-| E07–E09/P04/P06 | Fresh native Cast/Art r1; native C01 delivery, exact image bytes/provenance, explicit selection/reload/idle restart and expanded-details desktop repair PASS | Native Scene/Prop, same-subject refinement and eligible reference pair pending |
+| E07–E09/P04/P06 | Fresh native Cast/Art r1; C01 native delivery/refinement and explicit primary/complement pair revoke/restore; native S01 environment/P01 prop deliveries and reference selection with ACK/readback; final native gallery/provenance/long-text115 and independent pixels | Remaining empty/failed-state pixels and downstream reference-consumption qualification |
 | E10–E13 | Fresh Script/Storyboard r1 confirmed; proposal r3 presentation reviewed/installed; ordinary first-shot handoff PASS | Model inference E12 NOT EXERCISED (runtime unavailable); physical direction realization remains unspecified |
-| E14–E18 | No fresh native media-route qualification | Keyframes, managed endframe/dirty guards, multishot preview, H3/all routes/staleness NOT EXERCISED |
+| E14–E18 | Native opening image delivered; explicit keyframe and managed endframe review with ACK/readback and dirty guards; one H3 submit/reconcile ingested a5.167s832×480 candidate | Actual raw-media playback/audio, exact segment review/selection, other route media, all-route playback, native multishot and revised-media chain remain unqualified |
 | E19–E21 | C52 distinct A/B incomplete drafts/history/nodes/modes/Brief/Source/close/reopen and unsaved navigation ACK with full exact cleanup; Task/reopen/owned idle restart; exact QA snapshot/operator restore/archive/unarchive/typed disposable-copy delete; imported-image close/reopen/archive/restore, five-file snapshot bytes, overwrite refusal and restored-copy UI/HTTP hashes; offline imported-image archive/typed-delete regression PASS | Native/video-bearing deletion and remaining lifecycle recovery NOT EXERCISED |
-| E22/C37–C39 |18 earlier graph pixels across three sizes/two preferences reviewed independently; separate six-sibling QA at1700/1280/short desktop directly inspected;34s exploratory navigation and earlier clean nine-seed reset; current repaired preview, centered-plus and deletion pixels15–26/36, recovery28–33/35/37; reviewed stdin/Source ACK corrections, focused repeats and final206 browser gate PASS; actual trusted OS blur PASS | Native journey remains partial |
+| E22/C37–C39 | Earlier graph layout/centered-plus/deletion/OS-blur evidence retained; dedicated whole-product E22.1–E22.7 view/state/copy sweep82–115, independent direct pixels, scoped repairs,628 frontend and final209 browser PASS; see linked audit for exact candidate and exclusions | Unobserved visual state permutations and native lifecycle/media acceptance remain partial |
 
 ### Fresh native identities and review boundaries
+
+Current visual/copy continuation: [whole-product audit](2026-10-08-whole-product-ui-audit.md)
+has executed under E22.1–E22.7, not incidental graph-only observation. Its final
+frozen candidate passes209 browser tests; prior gates do not qualify later changes.
+The following first-native checkpoints retain historical failure evidence; later
+native media progress is summarized in the current coverage table, not retroactive
+PASS for the earlier failed or unexecuted operations.
 
 Project `b3a933f7-b6fc-40e3-826f-5162f95a119a` is the new minimal two-route film.
 Brief/Outline/branch/Cast/Art/Script/Storyboard used supported first dispatches.

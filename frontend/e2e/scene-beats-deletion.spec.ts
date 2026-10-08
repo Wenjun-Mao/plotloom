@@ -37,7 +37,7 @@ test.describe("scene-beats structural deletion", () => {
     // A cue has no same-stage child cascade, yet its scheduled Shot is still
     // disclosed and must be explicitly reviewed before the draft can change.
     const cue = page.getByTestId("cue-card-cue_b1");
-    await cue.getByRole("button", { name: "删除 cue" }).click();
+    await cue.getByRole("button", { name: "删除对白条目" }).click();
     const cueDialog = page.getByTestId("delete-impact");
     const cueDownstream = cueDialog.getByTestId("downstream-storyboard-refs");
     await expect(cueDownstream).toContainText("shot_cue_schedule · shot_01");

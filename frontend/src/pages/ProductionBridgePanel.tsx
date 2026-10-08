@@ -143,7 +143,7 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot, onInsta
     <p>将已确认的故事、剧本与分镜证据整理成待审阅的投产提案。戏剧意图须单独推断或由作者填写；这里不会批准镜头、选择参考、创建资产或发起媒体任务。</p>
     {state.status === "stale" && <div className="notice warning">来源上下文已变化。请检查来源、剧本与分镜评审，核对当前已确认版本。旧提案与已有媒体仍保留；不会自动重新生成、替换投产内容或配置推断服务。</div>}
     {canPrepare && <><Button variant="primary" disabled={readOnly || busy || localEdits || unresolvedJob} onClick={() => run(() => plotloomApi.prepareProductionBridge(projectId), true, true)}>{proposal ? "重新准备投产提案" : "准备投产提案"}</Button>
-      {proposal && <p>按当前来源新建提案，保留旧版本；戏剧意图与呈现归属需要重新审阅。{localEdits ? "请先复制所需文字，再明确放弃本地编辑。" : unresolvedJob ? "仍有执行中或结果不明的意图任务，暂不能重新准备。" : ""}</p>}
+      {proposal && <p>按当前来源新建提案，保留旧版本；戏剧意图与呈现方式需要重新审阅。{localEdits ? "请先复制所需文字，再明确放弃本地编辑。" : unresolvedJob ? "仍有执行中或结果不明的意图任务，暂不能重新准备。" : ""}</p>}
       {proposal && localEdits && <Button disabled={busy || readOnly} onClick={() => { adopt(state); setPresentationTouched(false); setPresentationDirty(false); setPresentationEditorNonce(value => value + 1); }}>放弃本地编辑，保留已保存提案</Button>}</>}
     {proposal && <>
       <p><small>提案 r{proposal.revision} · {proposal.scenes.length} 个场次 · {proposal.cuts.length} 个镜头</small></p>
@@ -171,10 +171,10 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot, onInsta
       </details>
       <ProductionPresentationReview key={`${projectId}:${presentationEditorNonce}`} projectId={projectId} proposal={proposal} accepted={state.status === "accepted"} disabled={readOnly || busy || activeJob || state.status === "stale" || intentDirty || draftConflict} onSaved={adopt} onDirty={setPresentationDirty} onEdited={() => setPresentationTouched(true)} onBusy={setBusy} />
       <details><summary>技术详情（版本、来源与冻结输入）</summary><code>{proposal.contentHash}</code>{state.staleReasons.length > 0 && <><p>来源过期诊断（原文）</p><ul>{state.staleReasons.map((reason, index) => <li key={index}>{reason}</li>)}</ul></>}{job && <p><small>推断任务 {job.id} · 配置 {job.profileId} r{job.profileVersion} · 提示 v{job.promptVersion}</small></p>}{proposal.intentPackage.provenance && <p><small>建议来源任务：{String(proposal.intentPackage.provenance.jobId ?? "")}</small></p>}</details>
-      <p>确认后，将建立后续制作使用的场景与镜头数据；不会自动生成图片或视频。</p>
+      <p>{state.status === "accepted" ? "场景与镜头数据已建立；此次确认不会自动生成图片或视频。" : "确认投产后，会建立后续制作使用的场景与镜头数据；不会自动生成图片或视频。"}</p>
       {state.status !== "accepted" && <Button variant="primary" disabled={readOnly || busy || !proposal.installable || unsaved || state.status === "stale" || state.hasInstallation} onClick={() => run(() => plotloomApi.acceptProductionBridge(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash }), false, false, true)}>确认投产提案</Button>}
       {state.status !== "accepted" && (readOnly || busy || unsaved || state.hasInstallation) && <p className="action-prerequisite">{readOnly ? "项目当前只读。" : busy ? "正在处理提案，请稍候。" : unsaved ? "请先保存当前编辑，再确认投产。" : "已安装过投产内容；当前工作流不支持替换。"}</p>}
-      {state.status !== "accepted" && !proposal.installable && <p>请先完成戏剧意图与呈现归属审阅，并显式解决项目规划冲突；系统不会拆分场次或静默改写规则。</p>}
+      {state.status !== "accepted" && !proposal.installable && <p>请先完成戏剧意图与呈现方式审阅，并显式解决项目规划冲突；系统不会拆分场次或静默改写规则。</p>}
       {state.status === "accepted" && <StageGuide next={state.installedStoryboardCurrent && state.staleReasons.length === 0 && firstCut && onOpenShot && <Button variant="primary" disabled={readOnly || busy || !canonicalReady} onClick={() => { if (onOpenShot(firstCut.shotId) === false) setError("来源文字仍有未保存的编辑；请先保存或明确放弃，再打开投产镜头。"); }}>继续：打开第一个镜头</Button>}>
         {state.installedStoryboardCurrent
           ? "投产提案已确认。打开镜头后，依次完成分镜审核、参考选择、关键帧审核与视频片段审核。也可展开“查看场次与镜头”选择其他镜头。"

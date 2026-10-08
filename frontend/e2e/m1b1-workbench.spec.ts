@@ -62,7 +62,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
     // Parent migration is explicit.  The confirmation names both stable IDs;
     // the cue's scene remains the same, so the downstream schedule stays
     // meaningful while the beat relationship is deliberately changed.
-    await cue.getByLabel("迁移 cue 到节拍").selectOption("b2");
+    await cue.getByLabel("将对白条目移到节拍").selectOption("b2");
     const migration = page.getByTestId("relationship-migration-impact");
     await expect(migration).toContainText("cue_b1");
     await expect(migration).toContainText("b1");
@@ -73,7 +73,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
     await page.reload();
     await expect(page.getByLabel("场景标题")).toHaveValue(sceneTitle);
     await expect(page.getByTestId("beat-card-b1").getByLabel("节拍描述")).toHaveValue(beatDescription);
-    await expect(page.getByTestId("cue-card-cue_b1").getByLabel("迁移 cue 到节拍")).toHaveValue("b2");
+    await expect(page.getByTestId("cue-card-cue_b1").getByLabel("将对白条目移到节拍")).toHaveValue("b2");
     await expect(page.getByTestId("cue-card-cue_b1").getByLabel("对白文本")).toHaveValue(cueText);
     await expect(page.getByTestId("cue-card-cue_b1").getByLabel("预估时长（毫秒）")).toHaveValue("4200");
 
@@ -86,7 +86,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
 
     // AudioPlan, scheduled DialogueCue, required entity state, continuity,
     // and a ShotBeatLink are all mutable authored fields of a real shot.
-    const audioPlan = page.getByRole("group", { name: "AudioPlan" });
+    const audioPlan = page.getByRole("group", { name: "声音计划" });
     await audioPlan.getByLabel("描述").fill("E2E：气密门密封声与通风系统低鸣");
     const cueSchedule = page.getByRole("group", { name: "对白调度" });
     const scheduledCue = cueSchedule.getByRole("checkbox", { name: /琥珀读数/ });
@@ -131,7 +131,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
     await page.reload();
     await expect(page.getByLabel("镜头 ID")).toHaveValue("shot_01");
     await expect(page.getByRole("textbox", { name: "动作", exact: true })).toHaveValue(action);
-    await expect(page.getByRole("group", { name: "AudioPlan" }).getByLabel("描述")).toHaveValue("E2E：气密门密封声与通风系统低鸣");
+    await expect(page.getByRole("group", { name: "声音计划" }).getByLabel("描述")).toHaveValue("E2E：气密门密封声与通风系统低鸣");
     await expect(page.getByRole("group", { name: "镜头要求的实体状态" }).getByLabel("状态")).toHaveValue("focused");
     await expect(page.locator('[data-entity-key="link:shot_01:b1"]').getByLabel("覆盖权重")).toHaveValue("0.9");
 
@@ -146,7 +146,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
     await navigateToStage(page, "02 故事圣经");
     await page.getByTestId("select-character-char_ruanxing").click();
     await expect(page).toHaveURL(/entity=bible%3Acharacter%3Achar_ruanxing/);
-    await expect(page.getByRole("heading", { name: "角色检查器" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "角色设定" })).toBeVisible();
     await page.reload();
     await expect(page).toHaveURL(/entity=bible%3Acharacter%3Achar_ruanxing/);
     await expect(page.getByLabel("姓名")).toHaveValue("阮星");
@@ -177,16 +177,16 @@ test.describe("M1-B1 canonical workbench journey", () => {
     }));
 
     await navigateToStage(page, "02 故事圣经");
-    await page.getByLabel("Logline").fill(logline);
+    await page.getByLabel("一句话概述（Logline）").fill(logline);
     await page.getByTestId("select-character-char_ruanxing").click();
     await page.getByTestId("character-visual-anchors").fill(visualAnchors);
     await page.getByTestId("character-allowed-states").fill(allowedStates);
     await savePatchedStage(page, projectId, "story_bible", "保存故事圣经");
     await page.reload();
-    await expect(page.getByLabel("Logline")).toHaveValue(logline);
+    await expect(page.getByLabel("一句话概述（Logline）")).toHaveValue(logline);
     await expect(page.getByTestId("character-visual-anchors")).toHaveValue(visualAnchors);
     await expect(page.getByTestId("character-allowed-states")).toHaveValue(allowedStates);
-    await expect(page.getByLabel("稳定 ID")).toHaveValue("char_ruanxing");
+    await expect(page.getByLabel("固定标识（ID）")).toHaveValue("char_ruanxing");
     const staleReview = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/storyboard-review`)).json();
     expect(staleReview.activeApproval).toBeNull();
     expect(staleReview.decisions).toContainEqual(expect.objectContaining({ decision: expect.objectContaining({ reviewer: "E2E local workbench reviewer" }) }));

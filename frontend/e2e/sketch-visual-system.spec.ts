@@ -12,6 +12,14 @@ async function fitsViewport(page: Page) {
     expect(bounds!.x).toBeGreaterThanOrEqual(0); expect(bounds!.y).toBeGreaterThanOrEqual(0);
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width);
     expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(viewport.height);
+    // Geometry alone misses dialogs trapped beneath a sibling sticky surface.
+    for (const control of await card.locator("header h2, footer button").all()) {
+      expect(await control.evaluate(element => {
+        const bounds = element.getBoundingClientRect();
+        const painted = document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+        return element.contains(painted);
+      })).toBe(true);
+    }
   }
   const readability = await page.evaluate(() => {
     const luminance = (value: string) => {
@@ -33,14 +41,21 @@ async function fitsViewport(page: Page) {
   for (const role of readability) { expect(role.size).toBeGreaterThanOrEqual(12); expect(role.contrast).toBeGreaterThanOrEqual(4.5); }
 }
 
-for (const width of [1700, 1280]) {
-  test(`desktop visual journey and protected review states at ${width}px`, async ({ page, request, workbench }, info) => {
+const desktopViewports = [
+  { width: 1700, height: 900 },
+  { width: 1280, height: 768 },
+  { width: 1280, height: 460 },
+];
+
+for (const viewport of desktopViewports) {
+  const { width, height } = viewport;
+  test(`desktop visual journey and protected review states at ${width}x${height}`, async ({ page, request, workbench }, info) => {
     test.setTimeout(120_000);
-    await page.setViewportSize({ width, height: 900 });
+    await page.setViewportSize(viewport);
     const capture = async (name: string) => {
       await fitsViewport(page);
-      await page.screenshot({ path: info.outputPath(`${name}-${width}.png`), fullPage: true });
-      await page.screenshot({ path: info.outputPath(`${name}-${width}-viewport.png`) });
+      await page.screenshot({ path: info.outputPath(`${name}-${width}x${height}.png`), fullPage: true });
+      await page.screenshot({ path: info.outputPath(`${name}-${width}x${height}-viewport.png`) });
     };
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await expect(page.getByRole("heading", { name: "从一个项目开始" })).toBeVisible();
@@ -56,8 +71,10 @@ for (const width of [1700, 1280]) {
     await help.focus();
     const tip = page.getByRole("tooltip").filter({ visible: true });
     await expect(tip).toHaveCount(1);
+    await tip.evaluate(element => element.scrollIntoView({ block: "center", inline: "nearest" }));
     const box = await tip.boundingBox();
     expect(box!.x).toBeGreaterThanOrEqual(0); expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+    expect(box!.y).toBeGreaterThanOrEqual(0); expect(box!.y + box!.height).toBeLessThanOrEqual(height);
     expect(await help.evaluate(el => getComputedStyle(el).outlineStyle)).not.toBe("none");
     await capture("help-focus");
     await help.press("Escape"); await expect(tip).toHaveCount(0);
@@ -71,25 +88,33 @@ for (const width of [1700, 1280]) {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开项目目录" }).click();
     await expect(page.locator(".directory-item")).toHaveCount(1);
+    const updatedAt = page.locator(".directory-item time");
+    await expect(updatedAt).toHaveAttribute("datetime", /\d{4}-\d{2}-\d{2}T/);
+    await expect(updatedAt).not.toContainText(/AM|PM/);
     await capture("directory-populated");
     await page.locator(".directory-dialog > footer").getByRole("button", { name: "关闭窗口", exact: true }).click();
-    for (const [name, route, heading] of [
-      ["source-accepted", "stage=source#source", "来源与大纲"],
-      ["characters", "stage=characters", "角色"],
-      ["art", "stage=source#art", "美术参考"],
-      ["script", "stage=source#script", "剧本"],
-      ["storyboard-production", "stage=source#storyboard-review", "分镜评审"],
+    for (const [name, route, heading, owner, readyText] of [
+      ["source-accepted", "stage=source#source", "来源与大纲", "source-outline-accepted", "已确认 r1"],
+      ["characters", "stage=characters", "角色", "cast-review", "已确认角色设定 r1"],
+      ["art", "stage=source#art", "美术参考", "art-review", "已确认美术设定 r1"],
+      ["script", "stage=source#script", "剧本", "script-review", "已确认 r1"],
+      ["storyboard-production", "stage=source#storyboard-review", "分镜评审", "storyboard-review", "已确认评审 r1"],
     ]) {
       await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&${route}`);
       await expect(page.getByRole("heading", { name: heading, exact: true }).first()).toBeVisible();
+      // A painted heading is not evidence that its async review read settled.
+      await expect(page.getByTestId(owner)).toContainText(readyText);
       await capture(name);
     }
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&view=story-prototype`);
     await expect(page.getByTestId("route-reader")).toBeVisible();
     await capture("reader");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&view=play`);
-    await expect(page.locator(".play-stage")).toBeVisible();
-    await capture("player");
+    // This fixture has confirmed reviews, not an installed production storyboard.
+    await expect(page.getByRole("heading", { name: "故事尚未准备好", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "前往分镜评审与制作", exact: true })).toHaveAttribute("href", `?project=${id}&stage=source#storyboard-review`);
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    await capture("player-before-production");
 
     // Reopening preserves acceptance and exposes the waiting task without dispatch.
     const root = `${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`;
@@ -151,21 +176,49 @@ test("professional tools and media consent retain the supported desktop vocabula
   const id = await createCreatorGraph(request, workbench.apiOrigin, "visual-tools");
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=graph`);
   await page.getByText("编辑与工具", { exact: true }).click();
-  for (const width of [1700, 1280]) {
-    await page.setViewportSize({ width, height: 900 });
+  for (const viewport of desktopViewports) {
+    const { width, height } = viewport;
+    await page.setViewportSize(viewport);
     for (const label of ["故事圣经", "剧情 DAG", "场景节拍", "分镜工作台", "运行轨迹", "隔离修复"]) {
       await page.getByRole("navigation", { name: "编辑与工具" }).getByRole("button", { name: label, exact: false }).click();
-      await expect(page.getByRole("heading", { name: label === "剧情 DAG" ? "剧情图与精确合同" : label, exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: label === "剧情 DAG" ? "剧情图与结构规则" : label, exact: true })).toBeVisible();
+      if (label === "场景节拍") {
+        const addScene = page.getByRole("button", { name: "＋ 添加场景", exact: true });
+        expect(await addScene.evaluate(element => getComputedStyle(element).gridTemplateColumns)).toBe("none");
+        const textHeight = await addScene.evaluate(element => {
+          const range = document.createRange(); range.selectNodeContents(element);
+          return { height: range.getBoundingClientRect().height, lineHeight: parseFloat(getComputedStyle(element).lineHeight) };
+        });
+        expect(textHeight.height).toBeLessThanOrEqual(textHeight.lineHeight + 1);
+      }
       await fitsViewport(page);
-      await page.screenshot({ path: info.outputPath(`${label}-${width}.png`), fullPage: true });
+      await page.screenshot({ path: info.outputPath(`${label}-${width}x${height}.png`), fullPage: true });
+      await page.screenshot({ path: info.outputPath(`${label}-${width}x${height}-viewport.png`) });
     }
   }
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("button", { name: "生成助手设置", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await page.setViewportSize({ width: 1280, height: 768 });
-  await fitsViewport(page);
-  await page.screenshot({ path: info.outputPath("assistant-settings-1280.png") });
+  const settings = page.getByRole("dialog", { name: "生成助手设置", exact: true });
+  await settings.getByRole("textbox", { name: "聊天 ID", exact: true }).nth(1).waitFor();
+  for (const viewport of [{ width: 1700, height: 900 }, { width: 1280, height: 768 }, { width: 1280, height: 460 }]) {
+    await page.setViewportSize(viewport);
+    await settings.locator(".modal-body").evaluate(element => { element.scrollTop = 0; });
+    await expect(settings.locator("legend").filter({ hasText: "文字创作助手" })).toBeInViewport();
+    await fitsViewport(page);
+    await page.screenshot({ path: info.outputPath(`assistant-settings-${viewport.width}x${viewport.height}-top.png`) });
+    await settings.getByRole("textbox", { name: "聊天 ID", exact: true }).nth(0).scrollIntoViewIfNeeded();
+    await expect(settings.getByRole("textbox", { name: "聊天 ID", exact: true }).nth(0)).toBeInViewport();
+    await fitsViewport(page);
+    await page.screenshot({ path: info.outputPath(`assistant-settings-${viewport.width}x${viewport.height}-text.png`) });
+    await fitsViewport(page);
+    await settings.getByRole("textbox", { name: "聊天 ID", exact: true }).nth(1).scrollIntoViewIfNeeded();
+    await expect(settings.getByRole("textbox", { name: "聊天 ID", exact: true }).nth(1)).toBeInViewport();
+    await fitsViewport(page);
+    await page.screenshot({ path: info.outputPath(`assistant-settings-${viewport.width}x${viewport.height}.png`) });
+  }
+  await settings.getByRole("button", { name: "关闭", exact: true }).click();
+  await expect(settings).toHaveCount(0);
   // Existing real controls with a test-only mutation recorder exercise DOM consent.
   await page.goto(`${workbench.frontendOrigin}/v2/e2e/creator-confirmation-fixture.html`);
   await page.getByRole("region", { name: "Rejection fixture" }).getByRole("button", { name: "拒绝此原片并撤销选择" }).click();

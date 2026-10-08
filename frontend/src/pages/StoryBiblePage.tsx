@@ -9,6 +9,11 @@ import type {
 import { plotloomApi } from "../api";
 import { Button, Field, PageHeader, Panel } from "../components";
 import {
+  CharacterInspector,
+  LinesField,
+  WorldEntityInspector,
+} from "./bible-entity-fields";
+import {
   addBibleEntity,
   bibleEntityImpacts,
   deleteBibleEntity,
@@ -33,202 +38,8 @@ type StoryBiblePageProps = {
   onSave: (value: StoryBible) => Promise<void>;
   onDraftChange?: (value: StoryBible) => void;
 };
-const splitLines = (value: string) =>
-  value
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-const joinLines = (value: string[]) => value.join("\n");
 const freshEntityId = (type: BibleEntityType) =>
   `${type}-${crypto.randomUUID()}`;
-
-function LinesField({
-  label,
-  value,
-  onChange,
-  testId,
-  field,
-}: {
-  label: string;
-  value: string[];
-  onChange: (next: string[]) => void;
-  testId: string;
-  field?: string;
-}) {
-  return (
-    <Field label={label}>
-      <textarea
-        data-testid={testId}
-        data-bible-field={field}
-        rows={3}
-        value={joinLines(value)}
-        onChange={(event) => onChange(splitLines(event.target.value))}
-      />
-    </Field>
-  );
-}
-
-function CharacterInspector({
-  entity,
-  onChange,
-}: {
-  entity: CharacterCard;
-  onChange: (patch: Partial<CharacterCard>) => void;
-}) {
-  return (
-    <div className="field-grid two" data-testid="character-inspector">
-      <Field label="稳定 ID">
-        <input
-          data-bible-field="id"
-          value={entity.id}
-          readOnly
-          aria-readonly="true"
-        />
-      </Field>
-      <Field label="姓名">
-        <input
-          data-testid="character-name"
-          data-bible-field="name"
-          value={entity.name}
-          onChange={(event) => onChange({ name: event.target.value })}
-        />
-      </Field>
-      <Field label="叙事职责">
-        <input
-          data-bible-field="role"
-          value={entity.role ?? ""}
-          onChange={(event) => onChange({ role: event.target.value || null })}
-        />
-      </Field>
-      <Field label="目标">
-        <input
-          data-bible-field="goal"
-          value={entity.goal}
-          onChange={(event) => onChange({ goal: event.target.value })}
-        />
-      </Field>
-      <Field label="角色描述">
-        <textarea
-          data-bible-field="description"
-          rows={3}
-          value={entity.description}
-          onChange={(event) => onChange({ description: event.target.value })}
-        />
-      </Field>
-      <LinesField
-        label="特质（每行一条）"
-        value={entity.traits}
-        onChange={(traits) => onChange({ traits })}
-        testId="character-traits"
-        field="traits"
-      />
-      <LinesField
-        label="视觉 anchors（每行一条）"
-        value={entity.visualAnchors}
-        onChange={(visualAnchors) => onChange({ visualAnchors })}
-        testId="character-visual-anchors"
-        field="visualAnchors"
-      />
-      <LinesField
-        label="声音 anchors（每行一条）"
-        value={entity.soundAnchors}
-        onChange={(soundAnchors) => onChange({ soundAnchors })}
-        testId="character-sound-anchors"
-        field="soundAnchors"
-      />
-      <LinesField
-        label="语音 anchors（每行一条）"
-        value={entity.voiceAnchors}
-        onChange={(voiceAnchors) => onChange({ voiceAnchors })}
-        testId="character-voice-anchors"
-        field="voiceAnchors"
-      />
-      <LinesField
-        label="允许状态（每行一条）"
-        value={entity.allowedStates}
-        onChange={(allowedStates) => onChange({ allowedStates })}
-        testId="character-allowed-states"
-        field="allowedStates"
-      />
-      <LinesField
-        label="连续性规则（每行一条）"
-        value={entity.continuityRules}
-        onChange={(continuityRules) => onChange({ continuityRules })}
-        testId="character-continuity-rules"
-        field="continuityRules"
-      />
-    </div>
-  );
-}
-
-function WorldEntityInspector({
-  type,
-  entity,
-  onChange,
-}: {
-  type: "location" | "prop";
-  entity: LocationCard | PropCard;
-  onChange: (patch: Partial<LocationCard | PropCard>) => void;
-}) {
-  const label = type === "location" ? "地点" : "道具";
-  return (
-    <div className="field-grid two" data-testid={`${type}-inspector`}>
-      <Field label="稳定 ID">
-        <input
-          data-bible-field="id"
-          value={entity.id}
-          readOnly
-          aria-readonly="true"
-        />
-      </Field>
-      <Field label={`${label}名称`}>
-        <input
-          data-testid={`${type}-name`}
-          data-bible-field="name"
-          value={entity.name}
-          onChange={(event) => onChange({ name: event.target.value })}
-        />
-      </Field>
-      <Field label={`${label}描述`}>
-        <textarea
-          data-bible-field="description"
-          rows={3}
-          value={entity.description}
-          onChange={(event) => onChange({ description: event.target.value })}
-        />
-      </Field>
-      <LinesField
-        label="视觉 anchors（每行一条）"
-        value={entity.visualAnchors}
-        onChange={(visualAnchors) => onChange({ visualAnchors })}
-        testId={`${type}-visual-anchors`}
-        field="visualAnchors"
-      />
-      <LinesField
-        label="声音 anchors（每行一条）"
-        value={entity.soundAnchors}
-        onChange={(soundAnchors) => onChange({ soundAnchors })}
-        testId={`${type}-sound-anchors`}
-        field="soundAnchors"
-      />
-      <LinesField
-        label="允许状态（每行一条）"
-        value={entity.allowedStates}
-        onChange={(allowedStates) => onChange({ allowedStates })}
-        testId={`${type}-allowed-states`}
-        field="allowedStates"
-      />
-      <LinesField
-        label="连续性规则（每行一条）"
-        value={entity.continuityRules}
-        onChange={(continuityRules) => onChange({ continuityRules })}
-        testId={`${type}-continuity-rules`}
-        field="continuityRules"
-      />
-    </div>
-  );
-}
-
 
 export function StoryBiblePage({
   value,
@@ -351,7 +162,7 @@ export function StoryBiblePage({
     <div className="page" data-testid="story-bible-editor">
       <PageHeader
         title="故事圣经"
-        description="人物、地点与道具只在这里定义；下游阶段只引用稳定 ID。"
+        description="在这里维护人物、地点和道具设定；后续创作通过稳定标识引用这些设定，避免重复定义。"
         actions={
           <>
             <span className={`stage-chip ${stale ? "stale" : "ready"}`}>
@@ -369,7 +180,10 @@ export function StoryBiblePage({
       />
       <Panel className="form-card">
         <div className="field-grid two">
-          <Field label="Logline">
+          <Field
+            label="一句话概述（Logline）"
+            hint="用一句话概括主角、核心冲突和故事吸引力；详细背景写在“故事前提”中。"
+          >
             <textarea
               data-bible-field="logline"
               rows={3}
@@ -475,7 +289,7 @@ export function StoryBiblePage({
       </Panel>
       {issues.length > 0 && (
         <Panel className="form-card" data-testid="bible-issues">
-          <span className="eyebrow">Validation issues</span>
+          <span className="eyebrow">设定检查</span>
           <h2>需要处理的问题</h2>
           {issues.map((issue, index) => (
             <Button
@@ -492,7 +306,7 @@ export function StoryBiblePage({
         <section key={type} data-testid={`${type}-collection`}>
           <div className="section-bar">
             <div>
-              <span className="eyebrow">Stable identity</span>
+              <span className="eyebrow">可引用的设定</span>
               <h2>{title}</h2>
             </div>
             <Button
@@ -541,13 +355,13 @@ export function StoryBiblePage({
         <Panel className="form-card" data-testid="bible-entity-rail">
           <div className="section-bar">
             <div>
-              <span className="eyebrow">Type-specific inspector</span>
+              <span className="eyebrow">设定编辑</span>
               <h2>
                 {selection.type === "character"
-                  ? "角色检查器"
+                  ? "角色设定"
                   : selection.type === "location"
-                    ? "地点检查器"
-                    : "道具检查器"}
+                    ? "地点设定"
+                    : "道具设定"}
               </h2>
             </div>
             <Button
@@ -575,14 +389,14 @@ export function StoryBiblePage({
       {pendingDeletion && (
         <Panel className="form-card">
           <div data-testid="bible-delete-dialog" role="alertdialog">
-            <span className="eyebrow">Deletion review</span>
+            <span className="eyebrow">删除确认</span>
             <h2>
-              删除 {pendingDeletion.type} · {pendingDeletion.id}
+              删除{pendingDeletion.type === "character" ? "角色" : pendingDeletion.type === "location" ? "地点" : "道具"} · {pendingDeletion.id}
             </h2>
             {impacts.length > 0 ? (
               <>
                 <p>
-                  删除已拒绝。请先在下游场景、镜头、状态或对白中解除以下引用；编辑器不会隐藏级联删除。
+                  此设定仍被引用，暂时无法删除。请先在场景、镜头、状态或对白中解除以下引用。
                 </p>
                 <ul>
                   {impacts.map((impact) => (
@@ -601,7 +415,7 @@ export function StoryBiblePage({
               </>
             ) : (
               <>
-                <p>没有已知下游引用。确认后将只删除这个实体。</p>
+                <p>没有已知引用。确认后将只删除这条设定。</p>
                 <Button
                   variant="danger"
                   data-testid="confirm-entity-delete"

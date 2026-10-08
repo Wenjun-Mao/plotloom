@@ -11,16 +11,21 @@ test.describe("first-save project bootstrap", () => {
     await expectServiceStatus(page, "Plotloom 服务：未连接");
     await navigateToSecondaryTool(page, "故事圣经");
 
+    // Help mentions the adjacent field but is a description, not another label.
+    await expect(page.getByLabel("故事前提")).toHaveCount(1);
+    await expect(page.getByLabel("一句话概述（Logline）")).toHaveAccessibleName("一句话概述（Logline）");
+    await expect(page.getByLabel("一句话概述（Logline）")).toHaveAccessibleDescription("用一句话概括主角、核心冲突和故事吸引力；详细背景写在“故事前提”中。");
+
     const logline = "E2E：未保存工作台从故事圣经开始建立规范项目。";
     const premise = "E2E：一份作者填写的故事前提必须随首次保存成为规范数据。";
-    await page.getByLabel("Logline").fill(logline);
+    await page.getByLabel("一句话概述（Logline）").fill(logline);
     await page.getByLabel("故事前提").fill(premise);
     const created = captureProjectCreate(page);
     await page.getByRole("button", { name: "保存故事圣经" }).click();
     const createRequest = await created;
 
     await expect(page).toHaveURL(/[?&]project=/);
-    await expect(page.getByLabel("Logline")).toHaveValue(logline);
+    await expect(page.getByLabel("一句话概述（Logline）")).toHaveValue(logline);
     await expect(page.getByLabel("故事前提")).toHaveValue(premise);
     const projectId = currentProjectId(page);
     const requestBody = createRequest.postDataJSON() as ProjectCreateBody;
@@ -31,7 +36,7 @@ test.describe("first-save project bootstrap", () => {
     await page.reload();
     await expectServiceStatus(page, "Plotloom 服务：已连接");
     await navigateToSecondaryTool(page, "故事圣经");
-    await expect(page.getByLabel("Logline")).toHaveValue(logline);
+    await expect(page.getByLabel("一句话概述（Logline）")).toHaveValue(logline);
     await expect(page.getByLabel("故事前提")).toHaveValue(premise);
   });
 
@@ -39,6 +44,17 @@ test.describe("first-save project bootstrap", () => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await openSampleProject(page);
     const title = "E2E Brief-first project";
+    for (const [role, label, hint] of [
+      ["textbox", "片名", "可选工作片名；留空时保存为“未命名故事”。"],
+      ["spinbutton", "目标游玩时长（秒）", "至少 3 秒；这是创作目标，不是最终播放时长的承诺。"],
+      ["combobox", "镜头数量规则", "这只控制每场镜头数量；镜头时长、资源与供应商能力限制仍须满足。"],
+      ["textbox", "类型细节（可选）", "原有自由文本保留在这里，与已选内容一起用于创作。"],
+      ["textbox", "视觉风格细节（可选）", "原有自由文本保留在这里，与已选内容一起用于创作。"],
+    ] as const) {
+      // Role queries use the computed accessible name, excluding the decorative *.
+      await expect(page.getByRole(role, { name: label, exact: true })).toHaveAccessibleName(label);
+      await expect(page.getByRole(role, { name: label, exact: true })).toHaveAccessibleDescription(hint);
+    }
     await page.getByLabel("片名").fill(title);
     await expect(page.locator(".page-header .button")).toHaveCount(1);
     await expect(page.getByRole("button", { name: "保存修改" })).toHaveCount(0);
@@ -64,7 +80,7 @@ test.describe("first-save project bootstrap", () => {
 
     await navigateToSecondaryTool(page, "故事圣经");
     const logline = "E2E：先保存简报，再保存故事圣经。";
-    await page.getByLabel("Logline").fill(logline);
+    await page.getByLabel("一句话概述（Logline）").fill(logline);
     await page.getByLabel("故事前提").fill("先建立项目，再为它写入第一条可追溯的故事规范。");
     // The canonical read below is only valid after the PATCH response: waiting
     // for the request alone races the backend transaction and can read the
@@ -80,7 +96,7 @@ test.describe("first-save project bootstrap", () => {
     await page.reload();
     await expectServiceStatus(page, "Plotloom 服务：已连接");
     await navigateToSecondaryTool(page, "故事圣经");
-    await expect(page.getByLabel("Logline")).toHaveValue(logline);
+    await expect(page.getByLabel("一句话概述（Logline）")).toHaveValue(logline);
   });
 
   test("persists a complete storyboard prefix and renders it after a browser refresh", async ({ page, request, workbench }) => {
@@ -114,7 +130,7 @@ test.describe("first-save project bootstrap", () => {
     // Bootstrap persists the Gate receipt transactionally. The first project
     // view must fetch it immediately, rather than misleading the creator
     // until a manual reload.
-    await expect(page.getByText(/质量门详情/)).toBeVisible();
+    await expect(page.getByText(/质量检查详情/)).toBeVisible();
 
     await page.reload();
     await expectServiceStatus(page, "Plotloom 服务：已连接");
@@ -128,7 +144,7 @@ test.describe("first-save project bootstrap", () => {
     await openSampleProject(page);
     await navigateToSecondaryTool(page, "故事圣经");
     const logline = "E2E：失败后仍可安全重试同一份首次保存。";
-    await page.getByLabel("Logline").fill(logline);
+    await page.getByLabel("一句话概述（Logline）").fill(logline);
 
     const idempotencyKeys: string[] = [];
     let failedOnce = false;
@@ -150,7 +166,7 @@ test.describe("first-save project bootstrap", () => {
       await page.getByRole("button", { name: "保存故事圣经" }).click();
       await expect(page.getByRole("alert")).toContainText("temporary E2E failure");
       expect(page.url()).not.toContain("project=");
-      await expect(page.getByLabel("Logline")).toHaveValue(logline);
+      await expect(page.getByLabel("一句话概述（Logline）")).toHaveValue(logline);
 
       await page.getByRole("button", { name: "保存故事圣经" }).click();
       await expect(page).toHaveURL(/[?&]project=/);

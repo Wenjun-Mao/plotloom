@@ -428,6 +428,23 @@ it("pins selected media by canonical node order and surfaces missing branching m
   expect(missing.nodes.get("right")?.missingShotTitles).toEqual(["right"]);
 });
 
+it("keeps structural footage gaps and exact missing-clip recovery visible together", async () => {
+  const fixture = branchingFixture();
+  fixture.sceneBeats.scenes = fixture.sceneBeats.scenes.filter(scene => scene.storyNodeId !== "scene");
+  fixture.storyboard.shots = fixture.storyboard.shots.filter(shot => shot.sceneId !== "scene-scene");
+  await act(async () => root.render(createElement(BranchingVideoPreview, {
+    projectId: "project", jobs: fixture.selected.filter(item => item.id !== "right-job"),
+    storyboard: fixture.storyboard, sceneBeats: fixture.sceneBeats, graph: fixture.graph,
+  })));
+  const warning = host.querySelector('[data-testid="branching-missing-media"]')!;
+  expect(warning.querySelector("small")?.textContent).toContain("1 个镜头缺少当前已确认的播放片段");
+  expect(warning.textContent).toContain("scene（缺少已编排场景或镜头）");
+  expect(warning.querySelectorAll("a")).toHaveLength(1);
+  expect(warning.querySelector("a")?.getAttribute("href")).toBe("?project=project&stage=storyboard&entity=shot%3Aright-shot#shot-workbench");
+  expect(warning.querySelector("a")?.textContent).toBe("返回镜头 节点 4：right · 场次 1 · 镜头 1：right 审核片段");
+  expect(host.querySelector('[data-testid^="branching-video-job"]')).toBeNull();
+});
+
 it("does not mount branching playback while any route shot lacks a reviewed segment", async () => {
   const fixture = branchingFixture();
   await act(async () => root.render(createElement(BranchingVideoPreview, {
@@ -450,7 +467,7 @@ it("prepares a synthetic review window without auto-selecting and ignores late u
   const select = vi.spyOn(plotloomApi, "selectVideoSegment").mockResolvedValue({} as never);
   const refresh = vi.fn().mockResolvedValue(undefined);
   await act(async () => root.render(createElement(VideoSegmentReview, { projectId: "old", job: candidate, readOnly: false, onRefresh: refresh })));
-  await act(async () => { [...host.querySelectorAll("button")].find((item) => item.textContent?.includes("生成待审片段"))?.click(); });
+  await act(async () => { [...host.querySelectorAll("button")].find((item) => item.textContent?.includes("准备播放片段"))?.click(); });
   expect(prepare).toHaveBeenCalledWith("old", candidate.id, 0, 144, 0);
   expect(select).not.toHaveBeenCalled();
   await act(async () => root.render(createElement(VideoSegmentReview, { projectId: "new", job: candidate, readOnly: false, onRefresh: refresh })));
@@ -473,7 +490,7 @@ it("keeps a rejected H3 take locked until its review is explicitly reopened", as
     projectId: "project", job: candidate, readOnly: false, onRefresh: async () => undefined,
   })));
   expect(host.textContent).toContain("此原片已拒绝");
-  expect([...host.querySelectorAll("button")].find((item) => item.textContent?.includes("生成待审片段"))?.disabled).toBe(true);
+  expect([...host.querySelectorAll("button")].find((item) => item.textContent?.includes("准备播放片段"))?.disabled).toBe(true);
   expect([...host.querySelectorAll("button")].find((item) => item.textContent?.includes("确认用于故事"))?.disabled).toBe(true);
   const reopenPanel = host.querySelector('[data-testid="video-review-reopen-rejected-h3"]')!;
   expect(reopenPanel.querySelector("input")?.required).toBe(true);

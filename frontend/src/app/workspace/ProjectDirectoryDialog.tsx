@@ -24,7 +24,7 @@ export function ProjectDirectoryDialog({ projects, currentProjectId, showArchive
           const archived = item.lifecycleStatus === "archived" || Boolean(item.archivedAt);
           const closed = item.operationalState === "closed";
           return <article key={item.id} className="directory-item" data-project-id={item.id}>
-            <button className="directory-open" disabled={rowBusy} onClick={() => onOpen(item)}><strong>{item.brief.title || "未命名项目"}</strong><small>{closed ? "已关闭 · 可安全复制" : archived ? "已归档 · 只读" : item.id === currentProjectId ? "当前项目" : "可打开"} · r{item.revision} · {new Date(item.updatedAt).toLocaleString()}</small></button>
+            <button className="directory-open" disabled={rowBusy} onClick={() => onOpen(item)}><strong>{item.brief.title || "未命名项目"}</strong><small>{closed ? "已关闭 · 可安全复制" : archived ? "已归档 · 只读" : item.id === currentProjectId ? "当前项目" : "可打开"} · r{item.revision} · <time dateTime={item.updatedAt}>{new Date(item.updatedAt).toLocaleString("zh-CN", { hour12: false })}</time></small></button>
             <div className="directory-actions">
               <Button variant="quiet" disabled={rowBusy} onClick={() => void onAction(item, "duplicate")}>复制简报与规范内容</Button>
               {closed ? <Button variant="quiet" disabled={rowBusy} onClick={() => void onAction(item, "open")}>重新打开</Button> : archived ? <Button variant="quiet" disabled={rowBusy} onClick={() => void onAction(item, "restore")}>恢复</Button> : <>

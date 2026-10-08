@@ -100,7 +100,7 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
   expect((await reconcile).ok()).toBeTruthy();
   await expect(page.getByTestId(`video-job-player-${prepared.id}`)).toBeVisible();
   const segment = panel.getByTestId(`video-segment-review-${prepared.id}`);
-  await segment.getByRole("button", { name: "生成待审片段" }).click();
+  await segment.getByRole("button", { name: "准备播放片段" }).click();
   await expect(segment.locator('video[data-testid^="video-segment-preview-"]')).toBeVisible();
   await segment.getByRole("button", { name: "确认用于故事" }).click();
   await expect(segment.getByText("已选择片段 · 正用于故事", { exact: false })).toBeVisible();

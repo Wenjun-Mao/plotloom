@@ -59,7 +59,7 @@ test.describe("F3A production art review", () => {
     await expect(scene.getByRole("img", { name: "Beacon room 当前查看图片" })).toBeVisible();
     const decision = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art-reference-decisions`);
-    await scene.getByRole("button", { name: "用作此环境的参考图" }).click();
+    await scene.getByRole("button", { name: "选用这张环境参考图" }).click();
     expect((await decision).status()).toBe(201);
     await expect(scene.getByRole("status")).toHaveText("当前参考图：正在查看的候选。");
     await expect(scene.locator("details.reference-decision-technical")).toContainText("参考版本r1");
@@ -143,9 +143,9 @@ test.describe("F3A production art review", () => {
     const simulator = page.getByTestId("f3b-local-decision-simulator");
     await expect(simulator).toContainText("只更新此页面的 React state");
     const scene = page.getByTestId("art-reference-scene-S-DEMO");
-    await scene.getByRole("button", { name: "用作此环境的参考图" }).click();
+    await scene.getByRole("button", { name: "选用这张环境参考图" }).click();
     await scene.getByRole("button", { name: /scene-B.svg 缩略图/ }).click();
-    await scene.getByRole("button", { name: "替换为用作此环境的参考图" }).click();
+    await scene.getByRole("button", { name: "改用这张环境参考图" }).click();
     await expect(scene.getByRole("status")).toHaveText("当前参考图：正在查看的候选。");
     await expect(scene.getByText("当前参考图", { exact: true })).toBeVisible();
     const sceneDecisionDetails = scene.locator("details.reference-decision-technical");
@@ -154,9 +154,9 @@ test.describe("F3A production art review", () => {
 
     await simulator.getByRole("button", { name: /道具 · Prop · brass compass/ }).click();
     const prop = page.getByTestId("art-reference-prop-P-DEMO");
-    await prop.getByRole("button", { name: "用作此道具的参考图" }).click();
+    await prop.getByRole("button", { name: "选用这张道具参考图" }).click();
     await prop.getByRole("button", { name: /prop-B.svg 缩略图/ }).click();
-    await prop.getByRole("button", { name: "替换为用作此道具的参考图" }).click();
+    await prop.getByRole("button", { name: "改用这张道具参考图" }).click();
     await simulator.getByRole("button", { name: "模拟道具美术变更 → 标记陈旧" }).click();
     await expect(prop).toContainText("此前的参考决定已过期");
     expect(apiRequests).toEqual([]);
@@ -226,7 +226,7 @@ test.describe("F3A production art review", () => {
     const acceptedCandidate = withSummary(candidate, "Author accepted wording, distinct from the original specialist candidate.");
     await editor.fill(JSON.stringify(acceptedCandidate, null, 2));
     await panel.getByRole("button", { name: "确认使用此美术提案" }).click();
-    await expect(panel).toContainText("已接受 r1");
+    await expect(panel).toContainText("已确认美术设定 r1");
 
     // The editable candidate has become immutable canon. It must remain
     // inspectable here, without turning "reopen" into the only read surface.
@@ -255,7 +255,7 @@ test.describe("F3A production art review", () => {
     const reopened = withSummary(JSON.parse(await current.inputValue()) as Record<string, unknown>, "Author saved r2 wording after reopen.");
     await current.fill(JSON.stringify(reopened, null, 2));
     await panel.getByRole("button", { name: "保存重新打开的美术" }).click();
-    await expect(panel).toContainText("已接受 r2");
+    await expect(panel).toContainText("已确认美术设定 r2");
     await expect(current).toBeDisabled();
     await expect(current).toHaveValue(/Author saved r2 wording/);
 
@@ -263,7 +263,7 @@ test.describe("F3A production art review", () => {
     await expect(current).toHaveValue(/Author saved r2 wording/);
     await workbench.restartBackend();
     await page.reload();
-    await expect(panel).toContainText("已接受 r2");
+    await expect(panel).toContainText("已确认美术设定 r2");
     await expect(current).toHaveValue(/Author saved r2 wording/);
     await expectOnlySourceMapGraph(request, workbench.apiOrigin, projectId);
 

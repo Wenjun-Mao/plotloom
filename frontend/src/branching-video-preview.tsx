@@ -3,7 +3,7 @@ import type { SceneBeatPlan, StoryEdge, StoryGraph, StoryNode, Storyboard, Video
 import { plotloomApi } from "./api";
 import { Button } from "./components";
 import { useBridgeChoiceRead } from "./useBridgeChoiceRead";
-import { shotLabel } from "./shot-label";
+import { shotLabel, storyShotLabel } from "./shot-label";
 import { nodeFootageGaps } from "./node-footage";
 
 type FrozenShot = { id?: string; title?: string; action?: string; sceneId?: string };
@@ -204,6 +204,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   const missingMedia = [...new Set([...incompleteShots, ...(mediaFailure ? [mediaFailure] : [])])];
   const failedShotId = mediaFailure && current ? frozenShot(current).id : undefined;
   const returnShotIds = [...new Set([...missingShotIds, ...(failedShotId ? [failedShotId] : [])])];
+  const footageGaps = graph.nodes.flatMap(item => nodeFootageGaps(item, sceneBeats, storyboard));
   const play = () => {
     const active = player.current;
     if (!active || !mediaIdentity) {
@@ -247,8 +248,9 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
     <strong>{title}</strong>
     <small>当前段落：{node.node.title || node.node.id}。选择历史：{choiceLabels.length ? choiceLabels.join(" → ") : "尚未选择"}</small>
     {missingMedia.length > 0 && <div className="notice warning branching-missing-media" data-testid="branching-missing-media">
-      <small>{mediaFailure ? `故事已暂停：${mediaFailure} 的所选片段无法读取或播放。` : `故事还不能播放：${missingMedia.join("、")} 缺少当前已确认的播放片段。`}待审原片不会自动用于故事。</small>
-      <ul>{returnShotIds.map((shotId) => <li key={shotId}><a href={`?${new URLSearchParams({ project: projectId, stage: "storyboard", entity: `shot:${shotId}` }).toString()}#shot-workbench`}>返回镜头 {shotLabel(storyboard.shots.find((shot) => shot.id === shotId) ?? { id: shotId })} 审核片段</a></li>)}</ul>
+      <small>{mediaFailure ? `故事已暂停：${mediaFailure} 的所选片段无法读取或播放。` : returnShotIds.length ? `故事还不能播放：${returnShotIds.length} 个镜头缺少当前已确认的播放片段。` : "故事还不能播放：请先处理下方的画面编排问题。"}待审原片不会自动用于故事。</small>
+      {footageGaps.length > 0 && <ul>{footageGaps.map((gap, index) => <li key={index}>{gap}</li>)}</ul>}
+      <ul>{returnShotIds.map((shotId) => <li key={shotId}><a href={`?${new URLSearchParams({ project: projectId, stage: "storyboard", entity: `shot:${shotId}` }).toString()}#shot-workbench`}>返回镜头 {storyShotLabel(shotId, storyboard, sceneBeats, graph)} 审核片段</a></li>)}</ul>
     </div>}
     {!missingMedia.length && current && <>
       <video

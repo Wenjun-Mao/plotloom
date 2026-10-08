@@ -5,8 +5,10 @@ import { Button, Field } from "../src/components";
 import { CastPanel } from "../src/pages/CastPanel";
 import { BriefPage } from "../src/pages/BriefPage";
 import { QuarantinePage } from "../src/pages/QuarantinePage";
-import { demoProject } from "../src/demo";
+import { demoProject, demoRun } from "../src/demo";
 import { specialistsApi } from "../src/features/specialists/api";
+import { plotloomApi } from "../src/api";
+import { TracePage } from "../src/pages/TracePage";
 import type { CastReviewState } from "../src/types";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -32,10 +34,54 @@ async function renderCast(state?: CastReviewState, loadError = "") {
 
 it("marks required labels inline without giving optional inputs a native validation constraint", async () => {
   await act(async () => root.render(createElement(Field, { label: "故事内容", required: true, children: createElement("textarea", { "aria-required": true }) })));
-  expect(host.querySelector("label > span")?.textContent).toBe("故事内容 *");
+  expect(host.querySelector(".field > label")?.textContent).toBe("故事内容 *");
   expect(host.querySelector(".required-mark")?.getAttribute("aria-hidden")).toBe("true");
   expect(host.querySelector("textarea")?.hasAttribute("required")).toBe(false);
   expect(host.querySelector("textarea")?.getAttribute("aria-required")).toBe("true");
+});
+
+it.each(["input", "select", "textarea"])("keeps %s field names separate from help text and retains existing descriptions", async (control) => {
+  await act(async () => root.render(createElement(Field, {
+    label: "一句话概述", hint: "详细背景写在故事前提中。",
+    children: createElement(control, { "aria-describedby": "existing-help" }),
+  })));
+  const input = host.querySelector(control)!;
+  const label = host.querySelector("label")!;
+  const descriptionIds = input.getAttribute("aria-describedby")!.split(" ");
+  expect(label.textContent).toBe("一句话概述");
+  expect(label.htmlFor).toBe(input.id);
+  expect(descriptionIds[0]).toBe("existing-help");
+  expect(document.getElementById(descriptionIds[1])?.textContent).toBe("详细背景写在故事前提中。");
+  expect(label.contains(document.getElementById(descriptionIds[1]))).toBe(false);
+});
+
+it("preserves explicit control names and custom field children", async () => {
+  await act(async () => root.render(createElement(Field, {
+    label: "通用字段", hint: "说明", children: [
+      createElement("input", { key: "named", "aria-label": "专用字段" }),
+      createElement("textarea", { key: "referenced", "aria-labelledby": "external-label" }),
+      createElement("div", { key: "custom", "data-testid": "custom" }, "自定义控件"),
+    ],
+  })));
+  expect(host.querySelector("input")?.getAttribute("aria-label")).toBe("专用字段");
+  expect(host.querySelector("input")?.hasAttribute("aria-labelledby")).toBe(false);
+  expect(host.querySelector("textarea")?.getAttribute("aria-labelledby")).toBe("external-label");
+  expect(host.querySelector('[data-testid="custom"]')?.textContent).toBe("自定义控件");
+  expect(host.querySelector(".field")?.getAttribute("role")).toBe("group");
+});
+
+it.each(["aria-label", "aria-labelledby"])("preserves a single control's explicit id and %s when adding help", async (nameAttribute) => {
+  await act(async () => root.render(createElement(Field, {
+    label: "通用字段", hint: "新说明",
+    children: createElement("input", { id: "owned-control", [nameAttribute]: "explicit-name", "aria-describedby": "existing-help" }),
+  })));
+  const control = host.querySelector("input")!;
+  expect(control.id).toBe("owned-control");
+  expect(control.getAttribute(nameAttribute)).toBe("explicit-name");
+  expect(host.querySelector("label")?.control).toBe(control);
+  const descriptions = control.getAttribute("aria-describedby")!.split(" ");
+  expect(descriptions[0]).toBe("existing-help");
+  expect(document.getElementById(descriptions[1])?.textContent).toBe("新说明");
 });
 
 it("exposes busy separately from unavailable while keeping the caller's disable authority", async () => {
@@ -52,7 +98,50 @@ it("does not claim validation success from an empty quarantine projection", asyn
     items: [], repairing: false, onRepair: vi.fn(async () => {}), onRebuildStage: vi.fn(async () => {}),
   })));
   expect(host.textContent).toContain("当前未显示隔离结果");
+  expect(host.textContent).toContain("符合修复条件时，可以只重做其中一个任务");
   expect(host.textContent).not.toContain("所有阶段输出都已通过合同验证");
+});
+
+it("explains the empty trace's actual next action without initiating a run", async () => {
+  const onRun = vi.fn(async () => {});
+  await act(async () => root.render(createElement(TracePage, {
+    trace: [], running: false, onRun, onResume: vi.fn(async () => {}), onCancel: vi.fn(async () => {}),
+  })));
+  expect(host.textContent).toContain("运行事件");
+  expect(host.textContent).toContain("事件详情");
+  expect(host.textContent).toContain("勾选要生成的阶段，再点击“运行所选阶段”启动任务");
+  expect(host.textContent).not.toContain("pipeline run");
+  expect(onRun).not.toHaveBeenCalled();
+});
+
+it.each([undefined, { ...demoRun, status: "running" as const }])("waits for empty active trace events without telling the user to start again", async (run) => {
+  const onRun = vi.fn(async () => {});
+  await act(async () => root.render(createElement(TracePage, {
+    run, trace: [], running: true, onRun, onResume: vi.fn(async () => {}), onCancel: vi.fn(async () => {}),
+  })));
+  expect(host.textContent).toContain("正在等待运行事件");
+  expect(host.textContent).toContain("无需再次启动任务");
+  expect(host.textContent).not.toContain("勾选要生成的阶段，再点击");
+  expect(onRun).not.toHaveBeenCalled();
+});
+
+it("does not interpret a recorded task's empty event list as no task or success", async () => {
+  await act(async () => root.render(createElement(TracePage, {
+    run: demoRun, trace: [], running: false, onRun: vi.fn(async () => {}), onResume: vi.fn(async () => {}), onCancel: vi.fn(async () => {}),
+  })));
+  expect(host.textContent).toContain("当前任务暂无事件记录");
+  expect(host.textContent).toContain("暂无事件记录不代表任务已通过");
+  expect(host.textContent).not.toContain("勾选要生成的阶段，再点击");
+});
+
+it("states that Brief edits retain production and leave the separate source unchanged", async () => {
+  await act(async () => root.render(createElement(BriefPage, {
+    value: demoProject.brief, hasSavedProject: true, saving: false,
+    onSave: vi.fn(async () => {}), onSaveAndContinue: vi.fn(async () => {}),
+  })));
+  expect(host.textContent).toContain("不会自动重建或替换现有制作内容");
+  expect(host.textContent).toContain("故事来源正文独立保存，不会随简报梗概的修改而改变");
+  expect(host.textContent).not.toContain("已安装投产");
 });
 
 it("keeps both legacy generation controls disabled when a ready Brief is read-only", async () => {
@@ -114,19 +203,39 @@ it("retains accepted cast on failed refresh but suspends mutations until a succe
   const state: CastReviewState = { status: "accepted", acceptedCast: accepted, candidate: null, staleReasons: [] };
   await renderCast(state, "network failed");
   expect(host.querySelector("h2")?.textContent).toBe("无法刷新角色设定");
-  expect(host.textContent).toContain("保留的已接受角色");
+  expect(host.textContent).toContain("保留的已确认角色");
   const edit = [...host.querySelectorAll("button")].find(button => button.textContent === "编辑角色设定")!;
   expect(edit.disabled).toBe(true);
   expect(host.textContent).toContain("重试加载角色设定");
   await renderCast(state);
   expect(edit.disabled).toBe(false);
-  expect(host.querySelector("h2")?.textContent).toBe("已接受角色设定 r1");
+  expect(host.querySelector("h2")?.textContent).toBe("已确认角色设定 r1");
+});
+
+it("prepares a character assignment without sending it or confirming a new design", async () => {
+  const prepare = vi.spyOn(plotloomApi, "prepareCastCandidate").mockResolvedValue({
+    jobId: "prepared-job", expectedCastRevision: 1, binding: accepted.binding, status: "prepared",
+    deliveryId: null, manifestHash: null, cast: null, reportAvailable: false,
+    createdAt: "2026-10-08T00:00:00Z", deliveredAt: null,
+    packagePath: "/qa/package", deliveryPath: "/qa/delivery", assignment: "Frozen QA assignment",
+  });
+  const send = vi.spyOn(specialistsApi, "send");
+  const confirm = vi.spyOn(plotloomApi, "acceptCastCandidate");
+  await renderCast({ status: "accepted", acceptedCast: accepted, candidate: null, staleReasons: [] });
+  const button = [...host.querySelectorAll("button")].find(item => item.textContent === "准备角色设定任务")!;
+  expect(button.disabled).toBe(false);
+  await act(async () => button.click());
+  expect(prepare).toHaveBeenCalledExactlyOnceWith("project");
+  expect(send).not.toHaveBeenCalled();
+  expect(confirm).not.toHaveBeenCalled();
+  expect(host.querySelector(".cast-assignment textarea")?.textContent).toBe("Frozen QA assignment");
+  expect(host.textContent).toContain("已确认角色设定 r1");
 });
 
 it("makes a reopened or prepared task prominent rather than claiming its retained result is complete", async () => {
   await renderCast({ status: "reopened", acceptedCast: accepted, candidate: null, staleReasons: [] });
   expect(host.querySelector("h2")?.textContent).toBe("角色设定修订轮次已打开");
-  expect(host.textContent).toContain("保留的已接受角色");
+  expect(host.textContent).toContain("保留的已确认角色");
   await renderCast({ status: "prepared", acceptedCast: accepted, staleReasons: [], candidate: {
     jobId: "new-job", expectedCastRevision: 1, binding: accepted.binding, status: "prepared", cast: null,
     deliveryId: null, manifestHash: null, reportAvailable: false, createdAt: "2026-10-04T00:00:00Z", deliveredAt: null,

@@ -103,7 +103,7 @@ test("shipped H3 UI reviews an end frame and selects a seven-and-half-second pla
   const review = panel.getByTestId(`video-segment-review-${jobId}`);
   await expect(review).toBeVisible();
   await review.getByLabel("片段入点（帧）").fill("6");
-  await review.getByRole("button", { name: "生成待审片段" }).click();
+  await review.getByRole("button", { name: "准备播放片段" }).click();
   await expect(review).toContainText("6–186 帧");
   await expect(review.locator('video[data-testid^="video-segment-preview-"]')).toBeVisible();
   await review.getByRole("button", { name: "确认用于故事" }).click();
