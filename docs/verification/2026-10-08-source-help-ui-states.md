@@ -1,6 +1,6 @@
 # Source and structural-help UI audit — 2026-10-08
 
-Status: **LOCALLY QUALIFIED / PUBLICATION PENDING**. This E22 checkpoint extends
+Status: **PUBLISHED / REMOTE CI PENDING**. This E22 checkpoint extends
 the [whole-product visual/text audit](2026-10-08-whole-product-ui-audit.md).
 It is not completion of Create → Revise → Recover or native-media acceptance.
 
@@ -93,7 +93,7 @@ Unfiltered177 passes all230 browser tests6.5m on875 frozen source/test/config/st
 inputs. Before/after SHA256 is identical:
 `7cc3dec21a00f72f29537f7776d0606fad90793723f0c5fd325dfeda3561e715`.
 Default4 workers/zero local retries remain unchanged. Final pixel inspection and
-local gates are complete; publication identity/remote CI will be recorded separately.
+local gates are complete.
 
 Owner/protected-setting readback is exact before and after qualification:
 `df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`
@@ -107,4 +107,10 @@ Normal 8841 returns HTTP 200 and serves the qualified checkout assets byte-for-b
 - Unchanged `workbench2.css`: `42beb639a4681beb6bea3a3b04916ee1eb63481a821eb42994f152de7e2d6850`.
 
 No backend source, service restart or credential/settings write is required.
-Publication identity and exact-head remote CI are recorded at delivery.
+
+Executable `210c33c604055916d35251ed8af1a5318251910d` is pushed to `origin/main`.
+The full unfiltered [CI37773930608](https://github.com/Wenjun-Mao/plotloom/actions/runs/37773930608)
+is queued at that exact head. Commit-ref dispatch requests were explicitly refused
+with HTTP 422 and created no runs. A fresh remote-main read established the same
+SHA; one branch-ref dispatch then returned the matching run. No duplicate run was
+created. Remote success is not yet established.
