@@ -117,5 +117,6 @@ owns the next candidate, gate and serving identity; the hash above is historical
 The later154 stable unfiltered gate passes220 tests6.4m on unchanged868 inputs;
 the linked checkpoint owns latest688 frontend, package/protection and serving
 readbacks. Earlier145/146 failures remain retained and their causes unresolved.
-Publication is pending closeout. Other visual-state permutations,
+Executable35cc75b is published; the linked checkpoint owns exact serving bytes,
+remote CI status and protection. Other visual-state permutations,
 native successful/all-route playback and the broader lifecycle remain PARTIAL.

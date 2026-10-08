@@ -1,6 +1,6 @@
 # Frozen configuration reading and diagnostics — 2026-10-08
 
-Status: **SCOPED QUALIFIED; PUBLICATION PENDING**. This extends
+Status: **SCOPED QUALIFIED AND PUBLISHED**. This extends
 the [whole-product UI audit](2026-10-08-whole-product-ui-audit.md) within the
 current full E2E run. It does not close Create → Revise → Recover, all visual
 states, native playback or image/video artistic acceptance.
@@ -103,8 +103,16 @@ serves exact checked JS `2098d0968924e96988d7806c21fb556b856322c5ae775be16d195a4
 base CSS `3b0c81ad3f5e2d92a455826ba114d269fedb3ddbf192ffed70c5381bbe1ea35d`
 and product CSS `42beb639a4681beb6bea3a3b04916ee1eb63481a821eb42994f152de7e2d6850`.
 No service restart or protected-setting write was needed. Independent Sol/Medium
-source review and Luna/Max pixel review are closed; final receipt review and
-publication identity are pending. Do not inherit qualification from
+source/receipt review and Luna/Max pixel review are closed. Root approved and
+published executable `35cc75ba022f7bec1bac9723cd156efc81a17f1f`; origin/main identity
+is exact. Its unfiltered exact-head
+[CI37763010686](https://github.com/Wenjun-Mao/plotloom/actions/runs/37763010686)
+is in progress, not claimed successful. The earlier published baseline's
+CI37753998839 completed success and is not a substitute for this candidate.
+Post-publication owner/config protection remains exact. Only the owned read-only
+report audit browser was closed; evidence, QA objects and user browsers remain.
+Documentation-only closeout does not change the qualified executable fingerprint.
+Do not inherit qualification from
 the earlier145/146 failed gates or treat a passing focused native run as their fix.
 
 The next bounded recovery slice remains open: actual tab/project reconciliation,

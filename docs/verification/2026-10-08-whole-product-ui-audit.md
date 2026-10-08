@@ -22,7 +22,8 @@ The [frozen-configuration checkpoint](2026-10-08-frozen-profile-ui-states.md)
 adds all18 inspected desktop configuration-failure/settings frames, clearer current-edit vs
 current-use labels and action-neutral guidance, plus three re-inspected explicit-refresh
 frames. Final unfiltered154 browser qualification passes220 tests6.4m, with868
-inputs unchanged; publication is pending. This does not close the open state matrix.
+inputs unchanged. Executable35cc75b is published on normal8841; exact-head remote
+CI37763010686 is in progress, not yet qualified remotely. This does not close the open state matrix.
 Baseline: [full lifecycle ledger](2026-10-07-full-creator-e2e-repeat.md);
 reusable entry: [E22.1–E22.7](../creative-workflow/graph-workbench-acceptance.md#e22-全产品视觉与文案专门检查).
 
