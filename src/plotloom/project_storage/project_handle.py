@@ -98,12 +98,7 @@ from .recovery_control import (
     recovered_generation_run_ids,
     recovery_operations_present,
 )
-from .video_candidate_transition import (
-    ProjectSchemaTransitionRequiredError,
-    project_schema_status,
-    transition_project_schema,
-    transition_required_error,
-)
+from .current_schema import assert_current_project_database
 
 
 class ProjectRecoveryRequiredError(ProjectStorageError):
@@ -221,7 +216,6 @@ class ProjectStore(ProjectCreativeHandoffs):
         read_only: bool = False,
         defer_wal: bool = False,
         access_lease: ProjectAccessLease | None = None,
-        apply_project_schema_transition: bool = True,
     ) -> ProjectStore:
         if project_home.is_symlink() or not project_home.is_dir():
             raise ProjectStorageConfinementError(
@@ -240,26 +234,7 @@ class ProjectStore(ProjectCreativeHandoffs):
             raise ProjectStorageCorruptionError(
                 "project database is missing or not a regular file"
             )
-        schema_status = project_schema_status(database_path, manifest.project_id)
-        if schema_status != "current":
-            if read_only:
-                raise transition_required_error(
-                    schema_status, reason="a writable project open"
-                )
-            if not apply_project_schema_transition:
-                # Explicit reopen performs its state transition before calling
-                # the same bounded schema transition under its exclusive lease.
-                pass
-            elif (
-                access_lease is None
-                or access_lease.descriptor < 0
-                or access_lease.mode != "exclusive"
-            ):
-                raise transition_required_error(
-                    schema_status, reason="an exclusive project lease"
-                )
-            else:
-                transition_project_schema(database_path, manifest.project_id)
+        assert_current_project_database(database_path, manifest.project_id)
         store = cls(
             home,
             manifest,
@@ -274,27 +249,6 @@ class ProjectStore(ProjectCreativeHandoffs):
             store.repository.close()
             raise
         return store
-
-    def transition_project_schema(
-        self, *, allow_closed: bool = False
-    ) -> bool:
-        """Complete the known one-time folder transition under this lease."""
-
-        if self._read_only:
-            raise ProjectSchemaTransitionRequiredError(
-                "project schema transition requires a writable project open"
-            )
-        if (
-            self._access_lease is None
-            or self._access_lease.descriptor < 0
-            or self._access_lease.mode != "exclusive"
-        ):
-            raise ProjectSchemaTransitionRequiredError(
-                "project schema transition requires an exclusive project lease"
-            )
-        return transition_project_schema(
-            self.database_path, self.manifest.project_id, allow_closed=allow_closed
-        )
 
     def _validate_opened_project(self) -> None:
         if not self.database_path.exists() or not self.database_path.is_file():

@@ -1,6 +1,5 @@
 """Source-bound creator review preserves unrelated selected synthetic media."""
 import shutil
-import sqlite3
 import subprocess
 from contextlib import closing
 from pathlib import Path
@@ -11,9 +10,6 @@ from plotloom.canonical_schema import AuthoredVisibleText, V2CoverageRole
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName
 from plotloom.project_generation_storage import ProjectPipelineExecutor
-from plotloom.project_storage.video_candidate_transition import (
-    ProjectShotPresentationTransitionRequiredError,
-)
 from tests.project_storage_fixtures import FixtureResolver, fixture_profile
 from tests.test_project_storage_image_workflow import _approve
 from tests.test_project_storage_video import FakeH3, _fixture_app, _png, _prepare_video
@@ -127,22 +123,3 @@ def test_amendment_shares_image_h3_projection_and_preserves_six_selected_clips(t
         assert kept["current"] and kept["selected"]
         assert kept["snapshot"] == original["snapshot"] and kept["snapshotHash"] == original["snapshotHash"]
     assert client.get(f"{base}/stages").json() == unchanged
-
-
-def test_exact_predecessor_schema_adds_only_empty_decision_table(tmp_path: Path):
-    storage, _ = _fixture_app(tmp_path, FakeH3())
-    store = storage.projects.create(FIXED_CHINESE_BRIEF)
-    project, database = store.manifest.project_id, store.database_path
-    store.close()
-    with sqlite3.connect(database) as connection:
-        connection.execute("DROP TABLE v2_shot_presentations")
-        retained = connection.execute("SELECT * FROM v2_projects").fetchall()
-    original = database.read_bytes()
-    with pytest.raises(ProjectShotPresentationTransitionRequiredError):
-        storage.projects.inspect(project)
-    assert database.read_bytes() == original
-    with closing(storage.projects.open(project)):
-        pass
-    with sqlite3.connect(database) as connection:
-        assert connection.execute("SELECT * FROM v2_projects").fetchall() == retained
-        assert connection.execute("SELECT * FROM v2_shot_presentations").fetchall() == []

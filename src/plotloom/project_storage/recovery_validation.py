@@ -8,10 +8,8 @@ from collections.abc import Iterable
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from sqlalchemy import create_engine
-
 from ..domain import contains_secret_value, is_secret_setting_name
-from ..persistence.schema import PROJECT_TEXT_PIPELINE_TABLE_NAMES, Base
+from ..persistence.schema import PROJECT_TEXT_PIPELINE_TABLE_NAMES
 from .format import (
     PROJECT_DATABASE_RELATIVE_PATH,
     PROJECT_MANIFEST_FILENAME,
@@ -28,7 +26,7 @@ from .snapshot_files import (
     _sha256_path,
     _source_file,
 )
-from .video_candidate_transition import expected_project_schema_objects
+from .current_schema import assert_current_schema
 
 _ASSET_PREFIX = PurePosixPath("assets")
 
@@ -56,83 +54,6 @@ def database_connection(path: Path) -> sqlite3.Connection:
     return connection
 
 
-def _schema_objects(connection: object) -> list[tuple[str, str, str, str | None]]:
-    query = getattr(connection, "exec_driver_sql", None)
-    rows = (
-        query(
-            "SELECT type, name, tbl_name, sql FROM sqlite_master "
-            "WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name"
-        )
-        if query is not None
-        else connection.execute(
-            "SELECT type, name, tbl_name, sql FROM sqlite_master "
-            "WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name"
-        )
-    )
-    return [
-        (str(kind), str(name), str(table_name), sql if isinstance(sql, str) else None)
-        for kind, name, table_name, sql in rows
-    ]
-
-
-def _expected_schema_objects() -> list[tuple[str, str, str, str | None]]:
-    engine = create_engine("sqlite://")
-    try:
-        Base.metadata.create_all(
-            engine,
-            tables=[Base.metadata.tables[name] for name in PROJECT_TEXT_PIPELINE_TABLE_NAMES],
-        )
-        with engine.connect() as connection:
-            return _schema_objects(connection)
-    finally:
-        engine.dispose()
-
-
-_EXPECTED_SCHEMA_OBJECTS = _expected_schema_objects()
-_PRE_SELECTION_SCHEMA_OBJECTS = expected_project_schema_objects(
-    include_video_candidate_selection=False
-)
-_PRE_ART_REFERENCE_SCHEMA_OBJECTS = expected_project_schema_objects(
-    include_video_candidate_selection=True,
-    include_art_reference_proposals=False,
-)
-_PRE_VIDEO_SEGMENT_SCHEMA_OBJECTS = expected_project_schema_objects(
-    include_video_candidate_selection=True,
-    include_video_segments=False,
-)
-_PRE_CREATIVE_EXECUTION_PIN_SCHEMA_OBJECTS = expected_project_schema_objects(
-    include_video_candidate_selection=True,
-    include_creative_execution_pins=False,
-)
-
-
-def _assert_schema_contract(connection: sqlite3.Connection) -> None:
-    """Reject schema objects before reading any application-controlled table."""
-
-    actual = _schema_objects(connection)
-    if actual == list(_PRE_SELECTION_SCHEMA_OBJECTS):
-        raise ProjectStorageCorruptionError(
-            "project snapshot requires a writable video selection transition before restore"
-        )
-    if actual == list(_PRE_ART_REFERENCE_SCHEMA_OBJECTS):
-        raise ProjectStorageCorruptionError(
-            "project snapshot requires a writable art reference transition before restore"
-        )
-    if actual == list(_PRE_VIDEO_SEGMENT_SCHEMA_OBJECTS):
-        raise ProjectStorageCorruptionError(
-            "project snapshot requires a writable reviewed video segment transition before restore"
-        )
-    if actual == list(_PRE_CREATIVE_EXECUTION_PIN_SCHEMA_OBJECTS):
-        raise ProjectStorageCorruptionError(
-            "project snapshot requires a writable creative execution-pin transition before restore"
-        )
-    prohibited = {kind for kind, _name, _table, _sql in actual} - {"table", "index"}
-    if prohibited or actual != _EXPECTED_SCHEMA_OBJECTS:
-        raise ProjectStorageCorruptionError(
-            "project database schema is unsupported by this restore format"
-        )
-
-
 def _database_strings(connection: sqlite3.Connection) -> Iterable[str]:
     """Read only known, prevalidated tables; names never come from imported SQL."""
 
@@ -149,7 +70,7 @@ def assert_database_contract(path: Path, manifest: ProjectManifest) -> None:
     try:
         connection = database_connection(path)
         try:
-            _assert_schema_contract(connection)
+            assert_current_schema(connection)
             integrity = [row[0] for row in connection.execute("PRAGMA integrity_check")]
             foreign_keys = list(connection.execute("PRAGMA foreign_key_check"))
             project_rows = list(connection.execute("SELECT id FROM v2_projects"))

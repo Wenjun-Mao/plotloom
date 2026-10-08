@@ -22,26 +22,16 @@ from plotloom.canonical_schema import DialogueCue
 from tests.test_project_storage_image_identity_contracts import _install_visible_fixture_character
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName
-from plotloom.persistence.codec import stable_hash
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import (
     ProjectArtifactStore,
     ProjectFolderStorage,
     ProjectStorageConflictError,
     ProjectStorageError,
-    ProjectStore,
-)
-from plotloom.project_storage.operational_state import ProjectAccessLease
-from plotloom.project_storage.recovery_validation import assert_database_contract
-from plotloom.project_storage.video_candidate_transition import (
-    ProjectSelectionTransitionRequiredError,
-    ProjectVideoSegmentTransitionRequiredError,
-    ProjectVideoEndFrameTransitionRequiredError,
 )
 from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
 from plotloom.video_contracts import VideoReviewRequest
 from plotloom.video_ingestion import ObservedVideo, probe_video
-from plotloom.video_jobs import VideoJobService
 from plotloom.video_provider import VideoBackendInstanceIdentity
 from tests.project_storage_fixtures import FixtureResolver as _FixtureResolver
 from tests.project_storage_fixtures import fixture_profile as _fixture_profile
@@ -151,7 +141,6 @@ def _fixture_app(
     )
 
 
-
 def _approved_keyframe(
     client: TestClient, storage: ProjectFolderStorage, project_id: str,
     *, keyframe_bytes: bytes | None = None, author_frame_grid: bool = True,
@@ -258,46 +247,6 @@ def test_h3_off_grid_authored_shot_is_rejected_before_review_or_dispatch(tmp_pat
     assert response.status_code == 409 and "not representable" in response.text
     assert client.get(f"/api/v2/projects/{project_id}/video-jobs").json()["jobs"] == []
     assert provider.submits == []
-
-
-@pytest.mark.parametrize("missing_segments", [False, True])
-def test_retained_project_adds_end_frame_table_without_touching_existing_assets(
-    tmp_path: Path, missing_segments: bool,
-) -> None:
-    storage, client = _fixture_app(tmp_path, FakeH3())
-    store = storage.projects.create(FIXED_CHINESE_BRIEF)
-    project_id, database = store.manifest.project_id, store.database_path
-    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
-    store.close()
-    approval, context = _approved_keyframe(client, storage, project_id)
-    job = _prepare_video(client, project_id, approval, context, key=f"retained-pre-end-{missing_segments}")
-    retained = storage.projects.open(project_id)
-    try:
-        start = retained.media.get_managed_asset_storage(project_id, context["selection"]["assetId"])
-        original_bytes = retained.artifacts.get(start["originalUri"])
-    finally:
-        retained.close()
-    with sqlite3.connect(database) as connection:
-        connection.execute("DROP TABLE v2_video_end_frame_decisions")
-        if missing_segments:
-            connection.execute("DROP TABLE v2_video_segments")
-        connection.commit()
-    before = database.read_bytes()
-    with pytest.raises(ProjectVideoEndFrameTransitionRequiredError):
-        storage.projects.inspect(project_id)
-    assert database.read_bytes() == before
-    reopened = storage.projects.open(project_id)
-    try:
-        assert reopened.artifacts.get(start["originalUri"]) == original_bytes
-        restored = reopened.media.direct_video.list_video_jobs(project_id)
-        assert len(restored) == 1 and restored[0]["id"] == job["id"]
-        assert restored[0]["snapshotHash"] == job["snapshotHash"]
-        assert restored[0]["current"] is True
-    finally:
-        reopened.close()
-    assert _sqlite_rows(database, "SELECT name FROM sqlite_master WHERE name = 'v2_video_end_frame_decisions'")
-    assert _sqlite_rows(database, "SELECT name FROM sqlite_master WHERE name = 'v2_video_segments'")
-    storage.projects.open(project_id).close()
 
 
 def test_h3_end_frame_decision_freezes_prompt_bytes_and_stales_after_clear(
@@ -555,32 +504,6 @@ def test_synthetic_reviewed_segment_survives_reopen_and_blocks_old_revision(
     assert client.get(f"{base}/video-jobs/{job_id}/media").status_code == 200
 
 
-def test_existing_project_adds_only_empty_segment_table_on_writable_open(tmp_path: Path) -> None:
-    storage, _client = _fixture_app(tmp_path, FakeH3())
-    store = storage.projects.create(FIXED_CHINESE_BRIEF)
-    project_id, database = store.manifest.project_id, store.database_path
-    store.close()
-    with sqlite3.connect(database) as connection:
-        connection.execute("DROP TABLE v2_video_segments")
-        connection.commit()
-    prior = database.read_bytes()
-    shared_lease = ProjectAccessLease.acquire(database.parent, mode="shared")
-    try:
-        with pytest.raises(ProjectVideoSegmentTransitionRequiredError, match="exclusive project lease"):
-            ProjectStore.open(database.parent, access_lease=shared_lease)
-    finally:
-        shared_lease.close()
-    assert database.read_bytes() == prior
-    with pytest.raises(ProjectStorageError, match="video segment transition"):
-        storage.projects.inspect(project_id)
-    assert database.read_bytes() == prior
-    opened = storage.projects.open(project_id)
-    opened.close()
-    assert _sqlite_rows(database, "SELECT name FROM sqlite_master WHERE name = 'v2_video_segments'") == [("v2_video_segments",)]
-    reopened = storage.projects.open(project_id)
-    reopened.close()
-
-
 @pytest.mark.parametrize(
     "endpoint",
     [
@@ -726,77 +649,6 @@ def test_video_candidates_dispose_only_named_unselected_shared_bytes(
     reopened = storage.projects.open(project_id)
     reopened.close()
     assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{second['id']}/media").status_code == 200
-
-
-def test_prechange_project_folder_transitions_selection_on_writable_production_open(
-    tmp_path: Path,
-) -> None:
-    """A format-8 folder from before candidate selection must move once, not fall back."""
-
-    provider = FakeH3()
-    storage, client = _fixture_app(tmp_path, provider)
-    store = storage.projects.create(FIXED_CHINESE_BRIEF)
-    project_id = store.manifest.project_id
-    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
-    store.close()
-    approval, context = _approved_keyframe(client, storage, project_id)
-    candidate = _prepare_video(client, project_id, approval, context, key="prechange-selection")
-    assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/submit").status_code == 200
-    assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/reconcile").status_code == 200
-
-    current = storage.projects.open(project_id)
-    try:
-        database = current.database_path
-    finally:
-        current.close()
-    with sqlite3.connect(database) as connection:
-        connection.execute("PRAGMA foreign_keys=OFF")
-        connection.execute("DROP TABLE v2_video_candidate_selections")
-        connection.commit()
-    before_inspection = database.read_bytes()
-
-    # A regular shared work handle cannot advance schema authority while a
-    # second handle may still observe the old folder. Registry.open first
-    # obtains an exclusive transition lease, then returns a new shared handle.
-    shared_lease = ProjectAccessLease.acquire(database.parent, mode="shared")
-    try:
-        with pytest.raises(ProjectSelectionTransitionRequiredError, match="exclusive project lease"):
-            ProjectStore.open(database.parent, access_lease=shared_lease)
-    finally:
-        shared_lease.close()
-    assert database.read_bytes() == before_inspection
-
-    # The real read-only project-folder path must identify the required
-    # transition without changing a closed-over historical database.
-    with pytest.raises(ProjectStorageError, match="selection transition"):
-        storage.projects.inspect(project_id)
-    assert database.read_bytes() == before_inspection
-    with pytest.raises(ProjectStorageError, match="writable video selection transition"):
-        assert_database_contract(database, store.manifest)
-    assert database.read_bytes() == before_inspection
-
-    # Registry.open is the production writable path. It performs one bounded
-    # transition and leaves no invented selection for an unreviewed H3 take.
-    transitioned = storage.projects.open(project_id)
-    try:
-        selected = [
-            item
-            for item in transitioned.media.direct_video.list_video_jobs(project_id)
-            if item["selected"]
-        ]
-        assert selected == []
-    finally:
-        transitioned.close()
-    reopened = storage.projects.open(project_id)
-    try:
-        selected = [
-            item
-            for item in reopened.media.direct_video.list_video_jobs(project_id)
-            if item["selected"]
-        ]
-        assert selected == []
-    finally:
-        reopened.close()
 
 
 def test_bulk_video_discard_keeps_candidates_arriving_after_confirmation(
@@ -1163,7 +1015,6 @@ def test_explicit_h3_gateway_crop_freezes_original_bytes_across_restart_and_tamp
     assert next(item for item in listed if item["id"] == tampered_job["id"])["current"] is False
     assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{tampered_job['id']}/submit").status_code == 409
     assert len(provider.submits) == 1
-
 
 
 def test_application_reservation_is_idempotent_and_enforces_cross_project_cap(

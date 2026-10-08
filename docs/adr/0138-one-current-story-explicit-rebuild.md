@@ -29,6 +29,11 @@ story and explicit rebuild, rather than a separate next-version workflow.
   identity and current canonical replacement revisions/hashes. Bind that target
   into the proposal hash; acceptance rechecks it under the write transaction.
   Concurrent edits cannot be overwritten by an older rebuild.
+- Pending proposal freshness includes its replacement target. If canonical work
+  changes during review, reads expose the proposal as stale and offer a fresh
+  preparation; author edits and inference dispatch/adoption cannot advance the
+  obsolete review. An accepted receipt is checked against its installed heads,
+  not its necessarily superseded pre-install replacement target.
 - Read latest proposal state separately from installed-production authority.
   Installed identity/currentness comes from the latest immutable admission, its
   own frozen source inputs and exact canonical heads. Preparing another proposal
@@ -86,6 +91,15 @@ same-hash canonical writes have no identity and cannot authorize F2–F5. This i
 breaking current-schema requirement. Exact schema classification rejects prior
 folders before ordinary open; there is no reader fallback or automatic backfill.
 Any disposable cutover is a separate exact operation, not implemented here.
+
+Project-folder admission now has one exact current schema shared by open and
+snapshot/restore validation. Retired additive transitions, physical-layout
+exceptions and automatic open/reopen/startup backfills are removed. Unsupported
+folders are rejected before repository admission without changing database or
+manifest contents. Read-only SQLite validation includes committed WAL authority
+and may maintain WAL/SHM sidecars; it does not promise a byte-identical directory.
+Fresh creation and current-folder inspect, close/reopen, archive and portable
+snapshot/restore retain their existing identity, lease and integrity contracts.
 
 The bridge response has required `installation` and `preparation` fields;
 installation includes its own frozen inputs, cuts, scenes and runtime choices.

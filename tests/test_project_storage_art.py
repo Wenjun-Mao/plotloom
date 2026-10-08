@@ -8,7 +8,6 @@ import json
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
-import sqlite3
 
 import pytest
 from fastapi.testclient import TestClient
@@ -29,13 +28,9 @@ from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.project_storage.format import ProjectStorageCorruptionError
 from plotloom.project_storage.operational_state import ProjectBusyError
 from plotloom.project_storage.operational_state import close_blockers, specialist_publication_blockers
-from plotloom.project_storage.video_candidate_transition import (
-    ProjectSchemaTransitionRequiredError,
-    project_schema_status,
-)
 from plotloom.source_outline_contracts import (
     BranchOutcome, OutlineAcceptRequest, SectionChoice, SectionMap,
-    SectionMapGraphInstallRequest, SectionMapSaveRequest, SourceMaterial,
+    SectionMapGraphInstallRequest, SourceMaterial,
     StorySection,
 )
 
@@ -153,123 +148,6 @@ def test_art_routes_are_user_reachable(tmp_path: Path) -> None:
     response = client.get(f"/api/v2/projects/{project_id}/art")
     assert response.status_code == 200
     assert response.json() == {"candidate": None, "acceptedArt": None, "status": "missing", "staleReasons": []}
-
-
-def test_f3a_project_schema_gets_the_empty_f3b_tables_on_admitted_open(tmp_path: Path) -> None:
-    """The exact F3A project schema upgrades without rewriting project data."""
-
-    storage = ProjectFolderStorage(
-        outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application"
-    )
-    store = storage.projects.create(FIXED_CHINESE_BRIEF)
-    project_id, database = store.manifest.project_id, store.database_path
-    store.close()
-    with sqlite3.connect(database) as connection:
-        connection.execute("PRAGMA foreign_keys=OFF")
-        for table in (
-            "v2_art_reference_proposal_candidates",
-            "v2_art_reference_proposal_deliveries",
-            "v2_art_reference_proposals",
-        ):
-            connection.execute(f"DROP TABLE {table}")
-        connection.commit()
-
-    assert project_schema_status(database, project_id) == "art_reference_transition_required"
-    with pytest.raises(ProjectSchemaTransitionRequiredError, match="writable project open"):
-        storage.projects.inspect(project_id)
-
-    # Normal writable admission holds the exclusive lease for this empty-table
-    # transition; all existing F3A rows remain untouched.
-    transitioned = storage.projects.open(project_id)
-    try:
-        assert transitioned.manifest.project_id == project_id
-        assert transitioned.media.list_art_reference_proposals(project_id) == []
-    finally:
-        transitioned.close()
-    assert project_schema_status(database, project_id) == "current"
-
-
-def test_current_f3b_folder_adds_art_reference_decision_tables_on_admitted_open(tmp_path: Path) -> None:
-    """The F3B decision schema is additive and does not rewrite prior rows."""
-
-    storage = ProjectFolderStorage(
-        outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application"
-    )
-    store = storage.projects.create(FIXED_CHINESE_BRIEF)
-    project_id, database = store.manifest.project_id, store.database_path
-    store.close()
-    with sqlite3.connect(database) as connection:
-        connection.execute("DROP TABLE v2_art_reference_decision_states")
-        connection.execute("DROP TABLE v2_art_reference_decisions")
-        connection.commit()
-
-    assert project_schema_status(database, project_id) == "art_reference_decision_transition_required"
-    with pytest.raises(ProjectSchemaTransitionRequiredError, match="writable project open"):
-        storage.projects.inspect(project_id)
-    opened = storage.projects.open(project_id)
-    opened.close()
-    assert project_schema_status(database, project_id) == "current"
-    with sqlite3.connect(database) as connection:
-        assert {row[1] for row in connection.execute("PRAGMA table_info(v2_art_reference_decisions)")} >= {
-            "subject_type", "subject_id", "accepted_art_hash", "asset_hash", "candidate_id",
-        }
-
-
-def test_retained_project_adds_only_empty_production_bridge_tables_on_admitted_open(tmp_path: Path) -> None:
-    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
-    store = storage.projects.create(FIXED_CHINESE_BRIEF)
-    project_id, database = store.manifest.project_id, store.database_path
-    store.close()
-    with sqlite3.connect(database) as connection:
-        for table in ("v2_production_bridge_intent_jobs", "v2_production_bridge_admissions", "v2_production_bridge_revisions", "v2_production_bridge_heads"):
-            connection.execute(f"DROP TABLE {table}")
-        connection.commit()
-    assert project_schema_status(database, project_id) == "production_bridge_transition_required"
-    with pytest.raises(ProjectSchemaTransitionRequiredError, match="writable project open"):
-        storage.projects.inspect(project_id)
-    opened = storage.projects.open(project_id)
-    try:
-        assert opened.production_bridge_state().status == "missing"
-    finally:
-        opened.close()
-    assert project_schema_status(database, project_id) == "current"
-
-
-def test_existing_bridge_project_adds_only_empty_intent_job_table_on_admitted_open(tmp_path: Path) -> None:
-    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
-    store = storage.projects.create(FIXED_CHINESE_BRIEF)
-    project_id, database = store.manifest.project_id, store.database_path
-    store.close()
-    with sqlite3.connect(database) as connection:
-        connection.execute("DROP TABLE v2_production_bridge_intent_jobs")
-        connection.commit()
-    assert project_schema_status(database, project_id) == "bridge_intent_job_transition_required"
-    with pytest.raises(ProjectSchemaTransitionRequiredError, match="writable project open"):
-        storage.projects.inspect(project_id)
-    opened = storage.projects.open(project_id)
-    try:
-        assert opened.production_bridge_state().intent_job is None
-    finally:
-        opened.close()
-    assert project_schema_status(database, project_id) == "current"
-
-
-def test_existing_project_adds_empty_creative_execution_pin_table_on_admitted_open(tmp_path: Path) -> None:
-    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
-    store = storage.projects.create(FIXED_CHINESE_BRIEF)
-    project_id, database = store.manifest.project_id, store.database_path
-    store.close()
-    with sqlite3.connect(database) as connection:
-        connection.execute("DROP TABLE v2_creative_handoff_execution_pins")
-        connection.commit()
-    before_inspection = database.read_bytes()
-    assert project_schema_status(database, project_id) == "creative_execution_pin_transition_required"
-    with pytest.raises(ProjectSchemaTransitionRequiredError, match="writable project open"):
-        storage.projects.inspect(project_id)
-    assert database.read_bytes() == before_inspection
-    opened = storage.projects.open(project_id)
-    opened.close()
-    assert project_schema_status(database, project_id) == "current"
 
 
 def _reference_png() -> bytes:

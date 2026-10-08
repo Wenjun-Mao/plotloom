@@ -123,10 +123,10 @@ def _activate_fixture_profile(client: TestClient) -> None:
     ).status_code == 200
 
 
-def test_runtime_startup_admits_the_known_writable_selection_transition(
+def test_runtime_startup_rejects_retired_schema_without_migrating_project(
     tmp_path: Path,
 ) -> None:
-    """Startup must not inspect a known active legacy folder before admitting it."""
+    """Startup indexing never backfills unsupported project folders."""
 
     settings = _settings(tmp_path)
     app = build_runtime_app(settings, text_provider_resolver=FixtureResolver())
@@ -143,20 +143,25 @@ def test_runtime_startup_admits_the_known_writable_selection_transition(
         finally:
             store.close()
 
-    # This is the exact immediately preceding schema, not an arbitrary DB
-    # mutation supported by runtime. The next production startup must route it
-    # through the registry's admitted writable transition before recovery reads.
     with sqlite3.connect(database) as connection:
         connection.execute("DROP TABLE v2_video_candidate_selections")
         connection.commit()
+    original_database = database.read_bytes()
+    manifest = database.parent / "project.json"
+    original_manifest = manifest.read_bytes()
 
     restarted = build_runtime_app(settings, text_provider_resolver=FixtureResolver())
     with TestClient(restarted) as client:
-        assert client.get(f"/api/v2/projects/{project_id}").status_code == 200
+        response = client.get(f"/api/v2/projects/{project_id}")
+        assert response.status_code == 422
+        assert "current schema required" in response.text
+        assert restarted.state.project_folder_storage.projects.discover() == []
+    assert database.read_bytes() == original_database
+    assert manifest.read_bytes() == original_manifest
     with sqlite3.connect(database) as connection:
         assert connection.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'v2_video_candidate_selections'"
-        ).fetchone() == ("v2_video_candidate_selections",)
+        ).fetchone() is None
 
 
 def _png() -> bytes:
