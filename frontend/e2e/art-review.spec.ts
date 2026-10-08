@@ -216,7 +216,7 @@ test.describe("F3A production art review", () => {
     await panel.getByRole("button", { name: "放大阅读报告" }).click();
     const candidateReport = page.getByRole("dialog", { name: "美术设定报告（静态阅读）" });
     await expect(candidateReport).toBeVisible();
-    await expect(candidateReport).toContainText("静态阅读视图保留助手交付时的内容");
+    await expect(candidateReport).toContainText("报告保留助手交付时的美术设定");
     await candidateReport.getByRole("button", { name: "关闭报告" }).click();
     await expect(candidateReport).not.toBeVisible();
 

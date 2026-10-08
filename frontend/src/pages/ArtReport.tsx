@@ -4,7 +4,7 @@ import { plotloomApi } from "../api";
 import { Button } from "../components";
 import "./ArtReport.css";
 
-const reportCaveat = "静态阅读视图保留助手交付时的内容；提示词完整展开，复制、导出与报告内图片放大停用。若已编辑 art.json，请以当前 JSON 为准；阅读不会接受或修改提案。";
+const reportCaveat = "报告保留助手交付时的美术设定；提示词已完整展开，报告内的复制、导出和图片放大功能已停用。如果之后修改了设定，请以当前内容为准。阅读报告不会确认或修改设定。";
 
 /** Readable review comes first; the immutable report never substitutes for edited JSON. */
 export function ArtReport({ projectId, jobId }: { projectId: string; jobId: string }) {

@@ -33,8 +33,8 @@ async function installMediaTrace(page: Page) {
       type, identity: identity(video), connected: video.isConnected,
       currentTime: Number(video.currentTime.toFixed(3)), paused: video.paused,
     });
-    const observe = (node: Node) => {
-      if (!(node instanceof HTMLVideoElement) || !node.dataset.testid?.startsWith("branching-video-job-")) return;
+    const observe = (node: HTMLVideoElement) => {
+      if (!node.dataset.testid?.startsWith("branching-video-job-")) return;
       if (!observed.has(node)) {
         observed.add(node);
         record("attached", node);
@@ -42,9 +42,13 @@ async function installMediaTrace(page: Page) {
       }
       if (!node.isConnected) record("removed", node);
     };
+    const observeTree = (node: Node) => {
+      if (node instanceof HTMLVideoElement) observe(node);
+      else if (node instanceof Element) node.querySelectorAll<HTMLVideoElement>("video").forEach(observe);
+    };
     new MutationObserver((records) => records.forEach((record) => {
-      record.addedNodes.forEach(observe);
-      record.removedNodes.forEach(observe);
+      record.addedNodes.forEach(observeTree);
+      record.removedNodes.forEach(observeTree);
     })).observe(document, { childList: true, subtree: true });
     const nativePlay = HTMLMediaElement.prototype.play;
     HTMLMediaElement.prototype.play = function () {
@@ -64,7 +68,10 @@ async function installMediaTrace(page: Page) {
     (window as typeof window & { readBranchingMediaTrace: () => Trace[] }).readBranchingMediaTrace = () => trace;
     (window as typeof window & { clearBranchingMediaTrace: () => void }).clearBranchingMediaTrace = () => {
       trace.splice(0, trace.length);
-      document.querySelectorAll<HTMLVideoElement>('[data-testid^="branching-video-job-"]').forEach((video) => record("attached", video));
+      document.querySelectorAll<HTMLVideoElement>('[data-testid^="branching-video-job-"]').forEach((video) => {
+        observe(video);
+        record("attached", video);
+      });
     };
   });
 }
@@ -257,9 +264,9 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
   await expect(preview.getByRole("button", { name: "从头开始" })).toBeVisible();
   const beforeReopenTrace = await page.evaluate(() => (window as typeof window & { readBranchingMediaTrace: () => MediaTrace[] }).readBranchingMediaTrace());
   expect(beforeReopenTrace.filter((event) => event.type === "play-called")).toHaveLength(6);
-  // Each path's native `ended` state is asserted above. React may replace the
-  // first direct-entry element before the observer receives its event, so the
-  // trace is supplemental transition evidence rather than player authority.
+  expect(new Set(beforeReopenTrace.filter((event) => event.type === "playing").map((event) => event.identity)).size).toBe(6);
+  // Native clock/ended assertions remain authority. The trace additionally
+  // observes initial videos mounted inside wrappers and later replacements.
   expect(beforeReopenTrace.filter((event) => event.type === "ended").length).toBeGreaterThanOrEqual(5);
   const closed = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
   expect(closed.ok(), await closed.text()).toBeTruthy();
@@ -296,6 +303,7 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
   const trace = await page.evaluate(() => (window as typeof window & { readBranchingMediaTrace: () => MediaTrace[] }).readBranchingMediaTrace());
   expect(trace.filter((event) => event.type === "play-called")).toHaveLength(6);
   expect(trace.filter((event) => event.type === "play-resolved")).toHaveLength(6);
+  expect(new Set(trace.filter((event) => event.type === "playing").map((event) => event.identity)).size).toBe(6);
   expect(trace.filter((event) => event.type === "ended").length).toBeGreaterThanOrEqual(5);
   expect(new Set(trace.filter((event) => event.type === "play-called").map((event) => event.identity)).size).toBe(6);
   expect(new Set(trace.filter((event) => event.type === "ended").map((event) => event.identity)).size).toBeGreaterThanOrEqual(5);
