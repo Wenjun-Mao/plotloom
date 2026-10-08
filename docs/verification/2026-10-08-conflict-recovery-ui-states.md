@@ -1,6 +1,6 @@
 # Conflict and retained-draft recovery audit — 2026-10-08
 
-Status: **LOCALLY QUALIFIED / PUBLICATION PENDING**. This bounded E22 checkpoint is part
+Status: **PUBLISHED / SCOPED QUALIFICATION COMPLETE**. This bounded E22 checkpoint is part
 of the [whole-product visual/text audit](2026-10-08-whole-product-ui-audit.md),
 not completion of Create → Revise → Recover, all visual states or native media.
 Artistic image/video acceptance remains owner/H3 scope.
@@ -124,6 +124,12 @@ Normal8841 serves the final checked JavaScript bytes, SHA256
 Base CSS remains `3b0c81ad3f5e2d92a455826ba114d269fedb3ddbf192ffed70c5381bbe1ea35d`;
 product CSS remains `42beb639a4681beb6bea3a3b04916ee1eb63481a821eb42994f152de7e2d6850`.
 
-Next: exact publication/readback. The prior published35cc75b CI37763010686 is
-successful; it is not this candidate's qualification.
+Executable `8ea291aae6cc2089566c6cb49640e3afe225cb12` is pushed to `origin/main`;
+normal8841 serves the exact checked assets without a service restart. The single
+unfiltered [exact-head CI37769739148](https://github.com/Wenjun-Mao/plotloom/actions/runs/37769739148)
+is running; remote success is not claimed. The prior published35cc75b CI37763010686
+is successful; it is not this candidate's qualification.
+
+Next: remaining Source/help/review-state pixels and native-media/lifecycle gaps in
+the full audit register. This receipt closes only the bounded recovery slice.
 Do not inherit final qualification from an earlier candidate or relabel failed runs.
