@@ -4,40 +4,54 @@ from __future__ import annotations
 from hashlib import sha256
 from typing import Any
 
+from pydantic import ValidationError
 from sqlalchemy import select
 
-from pydantic import ValidationError
-
-from ...canonical_schema import SceneBeatPlanV2, StoryBibleV2, StoryboardV2, default_dialogue_timing_profile
+from ...canonical_schema import (
+    SceneBeatPlanV2,
+    StoryBibleV2,
+    StoryboardV2,
+    default_dialogue_timing_profile,
+)
 from ...creative_handoff_exchange import canonical_json
-from ...domain import ProjectBrief, StageName, StageStatus, new_id, utc_now
+from ...domain import ProjectBrief, StageName, new_id, utc_now
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ...production_bridge_contracts import (
-    ProductionBridgeAcceptRequest, ProductionBridgeConflict,
+    BridgePrepareAvailable,
+    BridgePrepareUnavailable,
+    ProductionBridgeAcceptRequest,
+    ProductionBridgeConflict,
+    ProductionBridgeIntentJob,
     ProductionBridgeIntentPackage,
-    ProductionBridgeIntentJob, ProductionBridgeIntentUpdateRequest, ProductionBridgeProposal, ProductionBridgeState,
+    ProductionBridgeIntentUpdateRequest,
+    ProductionBridgePrepareRequest,
+    ProductionBridgeProposal,
+    ProductionBridgeState,
 )
+from ...production_presentation import ProductionPresentation, prepare_presentation
+from ...storyboard_review_contracts import StoryboardReviewBinding
+from ...validation import DomainValidationError, validate_stage_payload
 from ..schema.project_production_bridge import (
-    ProductionBridgeAdmissionRow, ProductionBridgeHeadRow, ProductionBridgeIntentJobRow, ProductionBridgeRevisionRow,
+    ProductionBridgeHeadRow,
+    ProductionBridgeIntentJobRow,
+    ProductionBridgeRevisionRow,
 )
 from ..schema.project_storyboard_review import StoryboardReviewRevisionRow
 from .access import ProjectPersistenceAccess
 from .canonical import ProjectCanonicalPersistence
-from .storyboard_review import ProjectStoryboardReviewPersistence
-from ...validation import DomainValidationError, validate_stage_payload
-
-
-from .production_bridge_projection import ProductionBridgeProjection
-from ...production_presentation import prepare_presentation, ProductionPresentation
+from .production_bridge_installation import ProductionBridgeInstallation
 from .production_bridge_presentation import ProductionBridgePresentationPersistence
-from ...storyboard_review_contracts import StoryboardReviewBinding
+from .production_bridge_projection import ProductionBridgeProjection
+from .production_rebuild_quiescence import assert_production_quiescent
+from .storyboard_review import ProjectStoryboardReviewPersistence
 
 
-class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePresentationPersistence):
+class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePresentationPersistence, ProductionBridgeInstallation):
     """Own F5-to-V2 projection and explicit, source-bound review admission."""
 
-    def __init__(self, access: ProjectPersistenceAccess, canonical: ProjectCanonicalPersistence, review: ProjectStoryboardReviewPersistence) -> None:
+    def __init__(self, access: ProjectPersistenceAccess, canonical: ProjectCanonicalPersistence, review: ProjectStoryboardReviewPersistence, source_graph) -> None:
         self._access, self._canonical, self._review = access, canonical, review
+        self._source_graph = source_graph
 
     def initialize(self, session: Any, project_id: str, *, created_at: Any) -> None:
         if session.get(ProductionBridgeHeadRow, project_id) is None:
@@ -87,13 +101,14 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
             project = self._access.rows.project(session, project_id)
             brief = ProjectBrief.model_validate(project.brief)
             bible = StoryBibleV2.model_validate(payload["bible"])
+            self._source_graph.validate_graph_bible_in_session(session, project, bible)
             beats = SceneBeatPlanV2.model_validate(payload["sceneBeats"])
             board = StoryboardV2.model_validate(payload["storyboard"])
             graph = self._canonical._load_stage_payload(session, project_id, StageName.STORY_GRAPH)
             validate_stage_payload(StageName.SCENE_BEATS, beats, schema_version=2, brief=brief, bible=bible, graph=graph, dialogue_timing_profile=default_dialogue_timing_profile())
             validate_stage_payload(StageName.STORYBOARD, board, schema_version=2, brief=brief, bible=bible, scene_beats=beats, dialogue_timing_profile=default_dialogue_timing_profile())
             return []
-        except (ValidationError, DomainValidationError, TypeError, ValueError) as error:
+        except (ValidationError, DomainValidationError, InvalidTransitionError, TypeError, ValueError) as error:
             return [ProductionBridgeConflict(code="canonical_validation", message=f"不能安装：规范提案验证失败：{error}")]
 
     @staticmethod
@@ -129,26 +144,25 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
             self._access.rows.project(session, project_id); head = self._head(session, project_id)
             row = session.scalar(select(ProductionBridgeRevisionRow).where(ProductionBridgeRevisionRow.project_id == project_id, ProductionBridgeRevisionRow.revision == head.revision)) if head.revision else None
             stale = self._current(session, project_id, row.inputs) if row else []
-            proposal = ProductionBridgeProposal(revision=row.revision, content_hash=row.content_hash, inputs=row.inputs, intent_package=self._intent_package(session, row), presentation=ProductionPresentation.model_validate(row.proposal["presentation"]), scenes=row.proposal["scenes"], cuts=row.proposal["cuts"], conflicts=[ProductionBridgeConflict.model_validate(item) for item in row.conflicts], advisories=[ProductionBridgeConflict.model_validate(item) for item in row.proposal["advisories"]], installable=row.installable, prepared_at=row.prepared_at) if row else None
-            admission = session.scalar(select(ProductionBridgeAdmissionRow).where(ProductionBridgeAdmissionRow.project_id == project_id).order_by(ProductionBridgeAdmissionRow.accepted_at.desc()).limit(1))
-            storyboard_head = self._access.rows.stage(session, project_id, StageName.STORYBOARD) if admission else None
-            installed_storyboard_current = bool(
-                admission and not stale and head.status == "accepted" and storyboard_head and
-                storyboard_head.status == StageStatus.READY.value and
-                storyboard_head.revision == admission.installed_stage_revisions.get(StageName.STORYBOARD.value)
-            )
+            proposal = ProductionBridgeProposal(revision=row.revision, content_hash=row.content_hash, inputs=row.inputs, replacement_target=row.proposal["replacementTarget"], intent_package=self._intent_package(session, row), presentation=ProductionPresentation.model_validate(row.proposal["presentation"]), scenes=row.proposal["scenes"], cuts=row.proposal["cuts"], conflicts=[ProductionBridgeConflict.model_validate(item) for item in row.conflicts], advisories=[ProductionBridgeConflict.model_validate(item) for item in row.proposal["advisories"]], installable=row.installable, prepared_at=row.prepared_at) if row else None
+            installation = self.installation_in_session(session, project_id)
+            try:
+                inputs, *_ = self._context(session, project_id)
+                assert_production_quiescent(self._access, session, project_id)
+                preparation = BridgePrepareAvailable(request=self._prepare_request(session, project_id, inputs))
+            except InvalidTransitionError as error:
+                preparation = BridgePrepareUnavailable(reason=str(error))
             job = session.scalar(select(ProductionBridgeIntentJobRow).where(ProductionBridgeIntentJobRow.project_id == project_id).order_by(ProductionBridgeIntentJobRow.created_at.desc(), ProductionBridgeIntentJobRow.id.desc()).limit(1))
             job_view = ProductionBridgeIntentJob(id=job.id, status=job.status, proposal_revision=job.proposal_revision, proposal_content_hash=job.proposal_content_hash, profile_id=job.profile_snapshot["profileId"], profile_version=job.profile_snapshot["profileVersion"], prompt_version=job.prompt_trace["prompt_version"], created_at=job.created_at, updated_at=job.updated_at, error_code=job.error_code, error_message=job.error_message, result_proposal_revision=job.result_proposal_revision, provider_request_id=job.provider_request_id, response_hash=job.response_hash) if job else None
-            return ProductionBridgeState(proposal=proposal, status="stale" if stale else head.status, stale_reasons=stale, installed_stage_revisions=admission.installed_stage_revisions if admission and not stale else None, installed_storyboard_current=installed_storyboard_current, has_installation=admission is not None, intent_job=job_view, runtime_choice=row.proposal["presentation"]["runtimeChoice"] if row and row.proposal["presentation"]["reviewed"] and installed_storyboard_current else None)
+            return ProductionBridgeState(proposal=proposal, status="stale" if stale else head.status, stale_reasons=stale, installation=installation, preparation=preparation, intent_job=job_view)
 
-    def prepare(self, project_id: str) -> ProductionBridgeState:
+    def prepare(self, project_id: str, request: ProductionBridgePrepareRequest) -> ProductionBridgeState:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id)); head = self._head(session, project_id)
-            if session.scalar(select(ProductionBridgeAdmissionRow.id).where(ProductionBridgeAdmissionRow.project_id == project_id).limit(1)):
-                raise InvalidTransitionError("production bridge preparation is limited to before first installation")
-            if session.scalar(select(ProductionBridgeIntentJobRow.id).where(ProductionBridgeIntentJobRow.project_id == project_id, ProductionBridgeIntentJobRow.status.in_(("queued", "dispatched", "outcome_unknown"))).limit(1)):
-                raise InvalidTransitionError("unresolved production bridge intent execution prevents fresh preparation")
+            assert_production_quiescent(self._access, session, project_id)
             inputs, storyboard, script, cast_art = self._context(session, project_id)
+            if request != self._prepare_request(session, project_id, inputs):
+                raise InvalidTransitionError("production bridge preparation target changed")
             payload, intent_package, conflicts, advisories, scenes, cuts = self._build(session, project_id, inputs=inputs, storyboard=storyboard, script=script, cast_and_art=cast_art)
             presentation = prepare_presentation(inputs=inputs, script=script, storyboard=storyboard, mapping=cast_art["__section_map__"])
             conflicts.append(ProductionBridgeConflict(code="presentation_required", message="不能安装：请完整审阅实体动作、可见文字与运行时选择的呈现归属"))
@@ -156,7 +170,7 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
             # The prepared payload intentionally has blank semantic fields.
             # Validate the complete canonical contract only after one whole
             # inferred or author-written package has been bound.
-            proposal = {"presentation": presentation.model_dump(mode="json", by_alias=True), "payload": payload, "intentPackage": intent_package.model_dump(mode="json", by_alias=True), "scenes": scenes, "cuts": cuts, "advisories": [item.model_dump(mode="json") for item in advisories]}; digest = self._proposal_digest(inputs, proposal, conflicts); now = utc_now()
+            proposal = {"replacementTarget": request.replacement_target.model_dump(mode="json", by_alias=True), "presentation": presentation.model_dump(mode="json", by_alias=True), "payload": payload, "intentPackage": intent_package.model_dump(mode="json", by_alias=True), "scenes": scenes, "cuts": cuts, "advisories": [item.model_dump(mode="json") for item in advisories]}; digest = self._proposal_digest(inputs, proposal, conflicts); now = utc_now()
             head.revision += 1; head.status, head.updated_at = "ready", now
             session.add(ProductionBridgeRevisionRow(id=new_id(), project_id=project_id, revision=head.revision, content_hash=digest, inputs=inputs, proposal=proposal, conflicts=[item.model_dump(mode="json") for item in conflicts], installable=not conflicts, prepared_at=now))
         return self.get_state(project_id)
@@ -199,6 +213,7 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
     def accept(self, project_id: str, request: ProductionBridgeAcceptRequest) -> ProductionBridgeState:
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id); self._access.guards.active(project); head = self._head(session, project_id)
+            assert_production_quiescent(self._access, session, project_id)
             if head.revision != request.expected_proposal_revision: raise RevisionConflictError("production bridge", request.expected_proposal_revision, head.revision)
             row = session.scalar(select(ProductionBridgeRevisionRow).where(ProductionBridgeRevisionRow.project_id == project_id, ProductionBridgeRevisionRow.revision == head.revision))
             if row is None or row.content_hash != request.expected_content_hash or not row.installable: raise InvalidTransitionError("production bridge proposal is not installable")
@@ -208,12 +223,5 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
             if package.review_state == "pending" or any(not entry.text.strip() for entry in package.entries):
                 raise InvalidTransitionError("production bridge requires a complete reviewed dramatic-intent package")
             if self._current(session, project_id, row.inputs): raise InvalidTransitionError("production bridge proposal is stale")
-            for stage in (StageName.STORY_BIBLE, StageName.SCENE_BEATS, StageName.STORYBOARD):
-                if self._access.rows.stage(session, project_id, stage).status != StageStatus.MISSING.value: raise InvalidTransitionError("first production bridge install requires empty canonical Bible, SceneBeats, and Storyboard heads")
-            payload = row.proposal["payload"]; now = utc_now()
-            bible = StoryBibleV2.model_validate(payload["bible"]); self._canonical._install_stage_in_session(session, project, StageName.STORY_BIBLE, bible, expected_revision=0, now=now, allow_noop=False)
-            beats = SceneBeatPlanV2.model_validate(payload["sceneBeats"]); self._canonical._install_stage_in_session(session, project, StageName.SCENE_BEATS, beats, expected_revision=0, now=now, allow_noop=False)
-            board = StoryboardV2.model_validate(payload["storyboard"]); self._canonical._install_stage_in_session(session, project, StageName.STORYBOARD, board, expected_revision=0, now=now, allow_noop=False)
-            revisions = {stage.value: self._access.rows.stage(session, project_id, stage).revision for stage in (StageName.STORY_BIBLE, StageName.SCENE_BEATS, StageName.STORYBOARD)}
-            session.add(ProductionBridgeAdmissionRow(id=new_id(), project_id=project_id, proposal_revision=row.revision, proposal_content_hash=row.content_hash, inputs=row.inputs, installed_stage_revisions=revisions, accepted_at=now)); head.status, head.updated_at = "accepted", now
+            self._install_bundle(session, project, row)
         return self.get_state(project_id)

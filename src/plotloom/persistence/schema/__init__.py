@@ -1,36 +1,94 @@
-from .base import Base
-from .project_shot_presentation import ShotPresentationRow
-from .project_authoring import (
-    ApprovalDecisionRow, AuthoringDraftRow, EntityRevisionRow, GateResultRow,
-    ProjectCreationIdempotencyRow, ProjectDuplicateIdempotencyRow, ProjectOperationalStateRow, ProjectRow, StageHeadRow,
+from .application_control import (
+    ProviderProfileSelectionRow,
+    ProviderSettingsRow,
+    TextProviderProfileRow,
+    VideoPilotLedgerEventRow,
+    VideoPilotLedgerRow,
 )
-from .project_source_outline import (
-    SourceOutlineCandidateRow, SourceOutlineHeadRow, SourceOutlineRevisionRow,
-    SourceOutlineGraphAdmissionRow,
-    SourceOutlineSectionMapHeadRow, SourceOutlineSectionMapRevisionRow,
-    SourceOutlineSourceRevisionRow,
+from .base import Base
+from .project_art import ArtCandidateRow, ArtHeadRow, ArtRevisionRow
+from .project_authoring import (
+    ApprovalDecisionRow,
+    AuthoringDraftRow,
+    EntityRevisionRow,
+    GateResultRow,
+    ProjectCreationIdempotencyRow,
+    ProjectDuplicateIdempotencyRow,
+    ProjectOperationalStateRow,
+    ProjectRow,
+    StageHeadRow,
 )
 from .project_cast import CastCandidateRow, CastHeadRow, CastRevisionRow
-from .project_art import ArtCandidateRow, ArtHeadRow, ArtRevisionRow
-from .project_script import ScriptCandidateRow, ScriptHeadRow, ScriptRevisionRow
-from .project_storyboard_review import StoryboardReviewCandidateRow, StoryboardReviewHeadRow, StoryboardReviewRevisionRow
 from .project_creative_handoff import CreativeHandoffExecutionPinRow
-from .project_production_bridge import ProductionBridgeAdmissionRow, ProductionBridgeHeadRow, ProductionBridgeIntentJobRow, ProductionBridgeRevisionRow
 from .project_generation import (
-    ArtifactRow, FragmentReuseBindingRow, GenerationAttemptRow, GenerationPlanRow,
-    GenerationRunRow, GenerationWorkUnitRow, MediaTaskRow, SealedStageAggregateRow, StagePlanRow,
-    StoryGraphTopologyRow, RunArtifactBlobRow, WorkUnitRepairIdempotencyRow, WorkUnitRepairScopeRow,
+    ArtifactRow,
+    FragmentReuseBindingRow,
+    GenerationAttemptRow,
+    GenerationPlanRow,
+    GenerationRunRow,
+    GenerationWorkUnitRow,
+    MediaTaskRow,
+    RunArtifactBlobRow,
+    SealedStageAggregateRow,
+    StagePlanRow,
+    StoryGraphTopologyRow,
+    WorkUnitRepairIdempotencyRow,
+    WorkUnitRepairScopeRow,
 )
 from .project_media import (
-    ArtReferenceDecisionRow, ArtReferenceDecisionStateRow,
-    ArtReferenceProposalCandidateRow, ArtReferenceProposalDeliveryRow, ArtReferenceProposalRow,
-    CharacterImportedAppearanceRow, CharacterReferenceDecisionRow, CharacterReferenceProposalCandidateRow,
-    CharacterReferenceProposalDeliveryRow, CharacterReferenceProposalRow, CharacterReferenceStateRow,
-    ImageJobCandidateRow, ImageJobDeliveryRow, ImageJobRow, ManagedAssetProvenanceRow, ManagedAssetRow,
-    ProductionUnitRow, ReviewedShotBindingRow, SamePersonReviewRow, SamePersonReviewStateRow,
-    StillPreviewRow, VideoJobRow, VideoReviewRow, VideoCandidateSelectionRow, VideoSegmentRow, VideoEndFrameDecisionRow, ProjectVideoDispatchRow, VisualIntentRow, VisualSelectionStateRow,
+    ArtReferenceDecisionRow,
+    ArtReferenceDecisionStateRow,
+    ArtReferenceProposalCandidateRow,
+    ArtReferenceProposalDeliveryRow,
+    ArtReferenceProposalRow,
+    CharacterImportedAppearanceRow,
+    CharacterReferenceDecisionRow,
+    CharacterReferenceProposalCandidateRow,
+    CharacterReferenceProposalDeliveryRow,
+    CharacterReferenceProposalRow,
+    CharacterReferenceStateRow,
+    ImageJobCandidateRow,
+    ImageJobDeliveryRow,
+    ImageJobRow,
+    ManagedAssetProvenanceRow,
+    ManagedAssetRow,
+    ProductionUnitRow,
+    ProjectVideoDispatchRow,
+    ReviewedShotBindingRow,
+    SamePersonReviewRow,
+    SamePersonReviewStateRow,
+    StillPreviewRow,
+    VideoCandidateSelectionRow,
+    VideoEndFrameDecisionRow,
+    VideoJobRow,
+    VideoReviewRow,
+    VideoSegmentRow,
+    VisualIntentRow,
+    VisualSelectionStateRow,
 )
-from .application_control import ProviderProfileSelectionRow, ProviderSettingsRow, TextProviderProfileRow, VideoPilotLedgerEventRow, VideoPilotLedgerRow
+from .project_production_bridge import (
+    ProductionBridgeAdmissionRow,
+    ProductionBridgeHeadRow,
+    ProductionBridgeIntentJobRow,
+    ProductionBridgeRevisionRow,
+)
+from .project_script import ScriptCandidateRow, ScriptHeadRow, ScriptRevisionRow
+from .project_shot_presentation import ShotPresentationRow
+from .project_source_outline import (
+    SourceGraphIdentityRow,
+    SourceOutlineCandidateRow,
+    SourceOutlineGraphAdmissionRow,
+    SourceOutlineHeadRow,
+    SourceOutlineRevisionRow,
+    SourceOutlineSectionMapHeadRow,
+    SourceOutlineSectionMapRevisionRow,
+    SourceOutlineSourceRevisionRow,
+)
+from .project_storyboard_review import (
+    StoryboardReviewCandidateRow,
+    StoryboardReviewHeadRow,
+    StoryboardReviewRevisionRow,
+)
 
 # This intentionally names the project-owned port instead of using Base.metadata wholesale.
 PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset({
@@ -54,7 +112,7 @@ PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset({
     "v2_source_outline_heads", "v2_source_outline_source_revisions",
     "v2_source_outline_candidates", "v2_source_outline_revisions",
     "v2_source_outline_section_map_heads", "v2_source_outline_section_map_revisions",
-    "v2_source_outline_graph_admissions",
+    "v2_source_outline_graph_admissions", "v2_source_graph_identities",
     "v2_cast_heads", "v2_cast_candidates", "v2_cast_revisions",
     "v2_art_heads", "v2_art_candidates", "v2_art_revisions",
     "v2_script_heads", "v2_script_candidates", "v2_script_revisions",

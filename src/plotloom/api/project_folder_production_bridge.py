@@ -1,16 +1,28 @@
 """User-reachable, explicit F5 proposal review and canonical installation."""
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from ..production_bridge_contracts import ProductionBridgeAcceptRequest, ProductionBridgeIntentGenerateRequest, ProductionBridgeIntentUpdateRequest, ProductionBridgeState
-from ..production_presentation import ProductionPresentationUpdateRequest
+from ..production_bridge_contracts import (
+    ProductionBridgeAcceptRequest,
+    ProductionBridgeIntentGenerateRequest,
+    ProductionBridgeIntentUpdateRequest,
+    ProductionBridgePrepareRequest,
+    ProductionBridgeState,
+)
 from ..production_bridge_intent_service import ProductionBridgeIntentService
+from ..production_presentation import ProductionPresentationUpdateRequest
+from .production_bridge_state import (
+    BridgeIntentAvailable,
+    BridgeIntentUnavailable,
+    BridgeIntentUnavailableError,
+    ProductionBridgeRuntimeState,
+)
 from .text_admission import TextAdmissionService
-from .production_bridge_state import BridgeIntentAvailable, BridgeIntentUnavailable, BridgeIntentUnavailableError, ProductionBridgeRuntimeState
 
 
 def register_project_folder_production_bridge_routes(
@@ -45,9 +57,9 @@ def register_project_folder_production_bridge_routes(
             return response(store.production_bridge_state())
 
     @app.post("/api/v2/projects/{project_id}/production-bridge/proposals", response_model=ProductionBridgeRuntimeState)
-    def prepare_production_bridge(project_id: str) -> ProductionBridgeState:
+    def prepare_production_bridge(project_id: str, body: ProductionBridgePrepareRequest) -> ProductionBridgeState:
         with opened_project(project_id) as store:
-            return response(store.prepare_production_bridge())
+            return response(store.prepare_production_bridge(body))
 
     @app.put("/api/v2/projects/{project_id}/production-bridge/proposals/intent", response_model=ProductionBridgeRuntimeState)
     def update_production_bridge_intent(project_id: str, body: ProductionBridgeIntentUpdateRequest) -> ProductionBridgeState:

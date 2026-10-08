@@ -14,17 +14,32 @@ from plotloom.config import PlotloomSettings
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName, StageStatus
 from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse
-from plotloom.generation.exceptions import ProviderOutcomeUnknownError, ProviderRequestNotSentError
+from plotloom.generation.exceptions import (
+    ProviderOutcomeUnknownError,
+    ProviderRequestNotSentError,
+)
 from plotloom.generation.prompts import PromptRenderer
 from plotloom.pipeline import RunSecretBroker
-from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest, ProductionBridgeIntentUpdateRequest
-from plotloom.production_bridge_intent_contract import bind_intent_suggestions, intent_response_schema
+from plotloom.production_bridge_contracts import (
+    ProductionBridgeAcceptRequest,
+    ProductionBridgeIntentUpdateRequest,
+)
+from plotloom.production_bridge_intent_contract import (
+    bind_intent_suggestions,
+    intent_response_schema,
+)
 from plotloom.production_bridge_intent_service import ProductionBridgeIntentService
-from plotloom.provider_profiles import StageMaxOutputTokens, TextProviderProfileSnapshotV3
 from plotloom.project_storage.composition import ProjectFolderStorage
+from plotloom.provider_profiles import (
+    StageMaxOutputTokens,
+    TextProviderProfileSnapshotV3,
+)
 from plotloom.runtime import build_runtime_app
 from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
-from tests.test_production_bridge import _source_shaped_review_board, _review_fixture_presentation
+from tests.test_production_bridge import (
+    _review_fixture_presentation,
+    _source_shaped_review_board,
+)
 from tests.test_project_storage_art import _accepted_f4_script, _deliver_stage
 
 
@@ -51,7 +66,7 @@ def _pending_project(tmp_path: Path) -> tuple[ProjectFolderStorage, str, int, st
         store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(
             job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding,
         ))
-        proposal = store.prepare_production_bridge().proposal
+        proposal = store.prepare_production_bridge(store.production_bridge_state().preparation.request).proposal
         assert proposal and not proposal.installable
         proposal = _review_fixture_presentation(store, proposal)
         return storage, store.manifest.project_id, proposal.revision, proposal.content_hash
@@ -346,7 +361,7 @@ def test_runtime_http_fake_inference_review_edit_save_then_explicit_install(tmp_
             store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
             project_id = store.manifest.project_id
         base = f"/api/v2/projects/{project_id}/production-bridge"
-        prepared = client.post(f"{base}/proposals")
+        prepared = client.post(f"{base}/proposals", json=client.get(base).json()["preparation"]["request"])
         assert prepared.status_code == 200, prepared.text
         assert prepared.json()["simulationLabel"] == "模拟数据 · 假模型演示"
         assert prepared.json()["intentGeneration"] == {"status": "available"}

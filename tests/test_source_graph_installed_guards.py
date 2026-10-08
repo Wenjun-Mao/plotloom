@@ -1,4 +1,4 @@
-"""Installed production protects source graph structure and first installation."""
+"""Installed production permits explicit source changes without erasing evidence."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ from sqlalchemy import select
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName, StageStatus
-from plotloom.exceptions import InvalidTransitionError
 from plotloom.persistence.schema import ProductionBridgeAdmissionRow
 from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest
 from plotloom.source_outline_contracts import (
@@ -30,7 +29,7 @@ def _store_with_installed_bridge(tmp_path):
         expected_proposal_revision=proposal.revision,
         expected_content_hash=proposal.content_hash,
     ))
-    assert accepted.installed_storyboard_current
+    assert accepted.installation.status == "current"
     project_id = store.manifest.project_id
     with store.repository._read() as session:
         admission = session.scalar(select(ProductionBridgeAdmissionRow).where(
@@ -99,17 +98,15 @@ def _changed_mapping(mapping: SectionMap, change: str) -> SectionMap:
 
 
 @pytest.mark.parametrize("change", ["topology", "footage_mode"])
-def test_installed_bridge_blocks_section_map_structure_changes_without_writes(tmp_path, change):
+def test_installed_bridge_allows_exact_section_map_confirmation_and_stales_production(tmp_path, change):
     store, media_uri, media_bytes = _store_with_installed_bridge(tmp_path)
     try:
         before = store.source_outline_state()
         current_mapping = before.accepted_section_map.mapping
         changed_mapping = _changed_mapping(current_mapping, change)
         draft_receipt = save_graph_mapping(store, changed_mapping)
-        before_attempt = _snapshot(store)
-
-        with pytest.raises(InvalidTransitionError, match="已安装的投产|当前流程不能替换"):
-            store.save_section_map(SectionMapSaveRequest(
+        installed = store.production_bridge_state().installation
+        saved = store.save_section_map(SectionMapSaveRequest(
                 expected_graph_draft_revision=draft_receipt.draft_revision,
                 expected_section_map_revision=before.accepted_section_map.revision,
                 expected_source_revision=before.source.revision,
@@ -117,23 +114,23 @@ def test_installed_bridge_blocks_section_map_structure_changes_without_writes(tm
                 expected_outline_content_hash=before.accepted_outline.content_hash,
                 mapping=changed_mapping,
             ))
-
-        assert _snapshot(store) == before_attempt
+        assert saved.accepted_section_map.mapping == changed_mapping
+        assert saved.graph_admission.status == "stale"
+        current = store.production_bridge_state().installation
+        assert current.admission_id == installed.admission_id
+        assert current.status == "outdated"
         assert store.artifacts.get(media_uri) == media_bytes
     finally:
         store.close()
 
 
-def test_installed_bridge_blocks_reinstall_of_unchanged_source_graph_without_writes(tmp_path):
+def test_installed_bridge_allows_exact_graph_apply_and_retains_media(tmp_path):
     store, media_uri, media_bytes = _store_with_installed_bridge(tmp_path)
     try:
         before = store.source_outline_state()
         mapping = before.accepted_section_map.mapping
         draft_receipt = save_graph_mapping(store, mapping)
-        before_attempt = _snapshot(store)
-
-        with pytest.raises(InvalidTransitionError, match="已安装的投产内容受到保护"):
-            store.install_section_map_graph(SectionMapGraphInstallRequest(
+        installed = store.install_section_map_graph(SectionMapGraphInstallRequest(
                 expected_source_revision=before.source.revision,
                 expected_source_content_hash=before.source.content_hash,
                 expected_outline_revision=before.accepted_outline.revision,
@@ -143,8 +140,9 @@ def test_installed_bridge_blocks_reinstall_of_unchanged_source_graph_without_wri
                 expected_graph_revision=before.graph_admission.graph_revision,
                 expected_graph_draft_revision=draft_receipt.draft_revision,
             ))
-
-        assert _snapshot(store) == before_attempt
+        assert installed.graph_admission.graph_revision == before.graph_admission.graph_revision + 1
+        assert not store.authoring_drafts()
+        assert store.production_bridge_state().installation.status == "outdated"
         assert store.artifacts.get(media_uri) == media_bytes
     finally:
         store.close()
@@ -155,7 +153,7 @@ def test_uninstalled_bridge_still_allows_a_reviewed_footage_change(tmp_path):
     store = storage.projects.create(FIXED_CHINESE_BRIEF)
     try:
         _prepare_installable_bridge(store)
-        assert not store.production_bridge_state().has_installation
+        assert store.production_bridge_state().installation is None
         before = store.source_outline_state()
         changed_mapping = _changed_mapping(before.accepted_section_map.mapping, "footage_mode")
         draft_receipt = save_graph_mapping(store, changed_mapping)

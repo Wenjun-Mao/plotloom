@@ -7,13 +7,12 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...production_timing import source_seconds_to_milliseconds
 from ...domain import StageName, StageStatus
 from ...exceptions import InvalidTransitionError
+from ...production_timing import source_seconds_to_milliseconds
 from ..codec import stable_hash
 from ..schema import (
     ProductionBridgeAdmissionRow,
-    ProductionBridgeHeadRow,
     ProductionBridgeRevisionRow,
 )
 from .access import ProjectPersistenceAccess
@@ -29,12 +28,12 @@ class VideoSourceTiming:
     def binding_in_session(
         self, session: Session, project_id: str, shot_id: str, duration_units: int
     ) -> dict[str, Any]:
-        admissions = session.scalars(
+        admission = session.scalar(
             select(ProductionBridgeAdmissionRow)
             .where(ProductionBridgeAdmissionRow.project_id == project_id)
-            .order_by(ProductionBridgeAdmissionRow.accepted_at.desc(), ProductionBridgeAdmissionRow.id.desc())
+            .order_by(ProductionBridgeAdmissionRow.accepted_at.desc(), ProductionBridgeAdmissionRow.id.desc()).limit(1)
         )
-        for admission in admissions:
+        if admission is not None:
             revision = session.scalar(
                 select(ProductionBridgeRevisionRow).where(
                     ProductionBridgeRevisionRow.project_id == project_id,
@@ -42,26 +41,14 @@ class VideoSourceTiming:
                 )
             )
             if revision is None:
-                continue
+                raise InvalidTransitionError("installed bridge proposal is missing")
             cut = next(
                 (item for item in revision.proposal.get("cuts", []) if item.get("shotId") == shot_id), None
             )
             if not isinstance(cut, dict):
-                continue
-            head = session.get(ProductionBridgeHeadRow, project_id)
-            current = bool(
-                head is not None and head.status == "accepted"
-                and head.revision == admission.proposal_revision
-                and admission.proposal_content_hash == revision.content_hash
-            )
-            if current:
-                for stage, expected_revision in admission.installed_stage_revisions.items():
-                    stage_head = self._access.rows.stage(session, project_id, StageName(stage))
-                    if stage_head.revision != expected_revision or stage_head.status != StageStatus.READY.value:
-                        current = False
-                        break
-            if current and self._bridge is not None:
-                current = not self._bridge._current(session, project_id, admission.inputs)
+                raise InvalidTransitionError("shot is not a member of the latest installed bridge")
+            installation = self._bridge.installation_in_session(session, project_id) if self._bridge else None
+            current = installation is not None and installation.status == "current" and installation.admission_id == admission.id
             if not current:
                 raise InvalidTransitionError("bridge source-cut provenance is stale")
             seconds = cut.get("seconds")

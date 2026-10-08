@@ -8,7 +8,26 @@ from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from ..art_contracts import (
+    ArtAcceptRequest,
+    ArtCandidate,
+    ArtReopenRequest,
+    ArtReviewState,
+    ArtSaveRequest,
+)
+from ..art_style import ArtRenderStyle
+from ..cast_contracts import (
+    CastAcceptRequest,
+    CastCancelReopenRequest,
+    CastCandidate,
+    CastReopenRequest,
+    CastReviewState,
+    CastSaveRequest,
+)
+from ..creative_handoff_contracts import CreativeHandoffRequest
+from ..creative_handoff_exchange import ValidatedCreativeDelivery
 from ..domain import (
+    STAGE_ORDER,
     AuthoringDraft,
     AuthoringDraftScope,
     FragmentReuseBinding,
@@ -18,7 +37,6 @@ from ..domain import (
     ProjectBrief,
     RunExecutionTrace,
     RunTrace,
-    STAGE_ORDER,
     StageEnvelope,
     StageHead,
     StageName,
@@ -26,23 +44,42 @@ from ..domain import (
     WorkUnitRepairScope,
 )
 from ..exceptions import NotFoundError, RevisionConflictError
-from ..source_outline_contracts import (
-    OutlineAcceptRequest, OutlineCandidate, OutlineReopenRequest, SourceMaterial,
-    SectionMapGraphInstallRequest, SectionMapSaveRequest, SourceOutlineReviewState,
-)
-from ..creative_handoff_contracts import CreativeHandoffRequest
-from ..creative_handoff_exchange import ValidatedCreativeDelivery
-from ..cast_contracts import CastAcceptRequest, CastCancelReopenRequest, CastCandidate, CastReopenRequest, CastReviewState, CastSaveRequest
-from ..art_contracts import ArtAcceptRequest, ArtCandidate, ArtReopenRequest, ArtReviewState, ArtSaveRequest
-from ..art_style import ArtRenderStyle
-from ..script_contracts import ScriptAcceptRequest, ScriptCandidate, ScriptReopenRequest, ScriptReviewState, ScriptSectionSaveRequest
-from ..storyboard_review_contracts import StoryboardReviewAcceptRequest, StoryboardReviewCandidate, StoryboardReviewState
-from ..production_bridge_contracts import ProductionBridgeAcceptRequest, ProductionBridgeIntentUpdateRequest, ProductionBridgeState
 from ..persistence import ProjectSQLiteRepository
-from .artifacts import _OwnedArtifactStore, ProjectArtifactStore, ProjectRunArtifactStore
+from ..production_bridge_contracts import (
+    ProductionBridgeAcceptRequest,
+    ProductionBridgeIntentUpdateRequest,
+    ProductionBridgePrepareRequest,
+    ProductionBridgeState,
+)
+from ..script_contracts import (
+    ScriptAcceptRequest,
+    ScriptCandidate,
+    ScriptReopenRequest,
+    ScriptReviewState,
+    ScriptSectionSaveRequest,
+)
+from ..source_outline_contracts import (
+    OutlineAcceptRequest,
+    OutlineCandidate,
+    OutlineReopenRequest,
+    SectionMapGraphInstallRequest,
+    SectionMapSaveRequest,
+    SourceMaterial,
+    SourceOutlineReviewState,
+)
+from ..storyboard_review_contracts import (
+    StoryboardReviewAcceptRequest,
+    StoryboardReviewCandidate,
+    StoryboardReviewState,
+)
+from .artifacts import (
+    ProjectArtifactStore,
+    ProjectRunArtifactStore,
+    _OwnedArtifactStore,
+)
 from .format import (
-    OwnedArtifact,
     PROJECT_MANIFEST_FILENAME,
+    OwnedArtifact,
     ProjectManifest,
     ProjectStorageConfinementError,
     ProjectStorageConflictError,
@@ -64,8 +101,8 @@ from .recovery_control import (
 from .video_candidate_transition import (
     ProjectSchemaTransitionRequiredError,
     project_schema_status,
-    transition_required_error,
     transition_project_schema,
+    transition_required_error,
 )
 
 
@@ -158,7 +195,7 @@ class ProjectStore(ProjectCreativeHandoffs):
         *,
         initial_stages: tuple[InitialStage, ...] = (),
         access_lease: ProjectAccessLease | None = None,
-    ) -> "ProjectStore":
+    ) -> ProjectStore:
         if project.id != manifest.project_id:
             raise ProjectStorageCorruptionError(
                 "new project and manifest identities differ"
@@ -185,7 +222,7 @@ class ProjectStore(ProjectCreativeHandoffs):
         defer_wal: bool = False,
         access_lease: ProjectAccessLease | None = None,
         apply_project_schema_transition: bool = True,
-    ) -> "ProjectStore":
+    ) -> ProjectStore:
         if project_home.is_symlink() or not project_home.is_dir():
             raise ProjectStorageConfinementError(
                 "project home must be a real directory"
@@ -567,8 +604,8 @@ class ProjectStore(ProjectCreativeHandoffs):
     def update_production_bridge_presentation(self, request):
         return self.repository.production_bridge.update_presentation(self.manifest.project_id, request)
 
-    def prepare_production_bridge(self) -> ProductionBridgeState:
-        return self.repository.production_bridge.prepare(self.manifest.project_id)
+    def prepare_production_bridge(self, request: ProductionBridgePrepareRequest) -> ProductionBridgeState:
+        return self.repository.production_bridge.prepare(self.manifest.project_id, request)
 
     def update_production_bridge_intent_package(self, request: ProductionBridgeIntentUpdateRequest) -> ProductionBridgeState:
         return self.repository.production_bridge.update_intent_package(self.manifest.project_id, request)

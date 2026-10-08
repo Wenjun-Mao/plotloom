@@ -1,14 +1,19 @@
-from copy import deepcopy
 from contextlib import closing
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
 
-from plotloom.production_timing import source_seconds_to_milliseconds
-from plotloom.production_presentation import prepare_presentation, review_presentation, project_presentation, ProductionPresentationUpdateRequest
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName
 from plotloom.exceptions import InvalidTransitionError
+from plotloom.production_presentation import (
+    ProductionPresentationUpdateRequest,
+    prepare_presentation,
+    project_presentation,
+    review_presentation,
+)
+from plotloom.production_timing import source_seconds_to_milliseconds
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.script_contracts import ScriptReopenRequest, ScriptSectionSaveRequest
 from tests.test_production_bridge import _prepare_installable_bridge
@@ -29,15 +34,16 @@ def test_fresh_prepare_cannot_launder_stale_accepted_f5(tmp_path: Path):
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     with closing(storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}))) as store:
         before = _prepare_installable_bridge(store)
+        prepare_request = store.production_bridge_state().preparation.request
         script = store.script_state().accepted_script
         store.reopen_script(ScriptReopenRequest(expected_script_revision=script.revision))
         with pytest.raises(InvalidTransitionError):
-            store.prepare_production_bridge()
+            store.prepare_production_bridge(prepare_request)
         episode = deepcopy(script.script["episodes"][0]); episode["cliff"] = "Changed accepted authority"
         store.save_script_section(ScriptSectionSaveRequest(expected_script_revision=script.revision, binding=script.binding, section_id="opening", episode=episode))
         assert store.storyboard_review_state().status == "stale"
         with pytest.raises(InvalidTransitionError, match="stale"):
-            store.prepare_production_bridge()
+            store.prepare_production_bridge(prepare_request)
         after = store.production_bridge_state().proposal
         assert after.revision == before.revision and after.content_hash == before.content_hash
         assert store.authoring.get_stage_head(store.manifest.project_id, StageName.STORYBOARD).revision == 0
@@ -110,8 +116,8 @@ def test_review_refuses_incomplete_or_wrong_authority(mutation):
 
 
 def test_media_context_does_not_reactivate_narrative_ui_prose(tmp_path: Path):
-    from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest
     from plotloom.persistence.project.media_image_currentness import ImageJobCurrentness
+    from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     with closing(storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}))) as store:
         proposal = _prepare_installable_bridge(store)
@@ -130,8 +136,8 @@ def test_media_context_does_not_reactivate_narrative_ui_prose(tmp_path: Path):
 
 
 def test_fractional_source_installs_exact_sums_and_accepted_cut_lineage(tmp_path: Path):
-    from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest
     from plotloom.persistence.project.media_video_source import VideoSourceTiming
+    from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     with closing(storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}))) as store:
         proposal = _prepare_installable_bridge(store, seconds=2.5)
@@ -165,10 +171,9 @@ def test_dialogue_only_cut_keeps_spoken_words_exclusively_cue_owned():
 
 
 def test_raw_f5_accepts_submillisecond_time_but_production_conflicts_explicitly(tmp_path: Path):
-    from tests.test_production_bridge import _source_shaped_review_board
-    from tests.test_project_storage_art import _accepted_f4_script
-    from tests.test_project_storage_art import _deliver_stage
     from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
+    from tests.test_production_bridge import _source_shaped_review_board
+    from tests.test_project_storage_art import _accepted_f4_script, _deliver_stage
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     with closing(storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}))) as store:
         _accepted_f4_script(store)
@@ -176,15 +181,15 @@ def test_raw_f5_accepts_submillisecond_time_but_production_conflicts_explicitly(
         ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", _source_shaped_review_board(2.5001), "submillisecond"))
         accepted = store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
         assert accepted.status == "accepted"
-        proposal = store.prepare_production_bridge().proposal
+        proposal = store.prepare_production_bridge(store.production_bridge_state().preparation.request).proposal
         assert proposal is not None and not proposal.installable
         assert any(conflict.code == "cut_duration_invalid" for conflict in proposal.conflicts)
 
 
 def test_fresh_prepare_retains_the_accepted_longer_cut_review_policy(tmp_path: Path):
+    from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
     from tests.test_production_bridge import _source_shaped_review_board
     from tests.test_project_storage_art import _accepted_f4_script, _deliver_stage
-    from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     with closing(storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}))) as store:
         _accepted_f4_script(store)
@@ -194,13 +199,14 @@ def test_fresh_prepare_retains_the_accepted_longer_cut_review_policy(tmp_path: P
         ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", board, "longer-policy"))
         accepted = store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
         assert accepted.accepted_review.binding.review_max_cut_seconds == 12
-        assert store.prepare_production_bridge().proposal is not None
+        assert store.prepare_production_bridge(store.production_bridge_state().preparation.request).proposal is not None
         assert store.storyboard_review_state().accepted_review.binding.review_max_cut_seconds == 12
 
 
 @pytest.mark.parametrize("words", ["  今晚不去了，明天见。  ", "\t我还在老地方。\n"])
 def test_exact_visible_span_survives_projection_canonical_serialization_and_media_prompt(tmp_path: Path, words: str):
     import json
+
     from plotloom.canonical_schema import ShotV2
     from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest
     from plotloom.video_backends.minimax_h3.prompt import compile_i2va_prompt

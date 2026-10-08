@@ -21,7 +21,9 @@ from ..schema import (
     SourceOutlineSectionMapRevisionRow,
     SourceOutlineSourceRevisionRow,
 )
+from ..schema.project_source_outline import SourceGraphIdentityRow
 from .graph_draft_context import assert_graph_draft_context, graph_draft_binding
+from .production_rebuild_quiescence import assert_production_quiescent
 
 
 class SourceGraphAdmission:
@@ -46,6 +48,7 @@ class SourceGraphAdmission:
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
             self._access.guards.active(project)
+            assert_production_quiescent(self._access, session, project_id)
             graph_draft, draft = self._exact_draft(session, project_id, request.expected_graph_draft_revision)
             if draft.admitted_mapping() != request.mapping:
                 raise InvalidTransitionError("确认内容必须与已保存的当前图草稿完全一致。")
@@ -75,15 +78,6 @@ class SourceGraphAdmission:
                 raise NotFoundError("accepted outline revision is missing")
             if outline.content_hash != request.expected_outline_content_hash:
                 raise RevisionConflictError("source-outline outline content", 0, 1)
-            prior_mapping = self._source._section_map_for_head(session, project_id, section_map_head)
-            if prior_mapping is not None:
-                from ..schema import ProductionBridgeAdmissionRow
-                realization_changed = [(item.section_id, item.footage_mode) for item in prior_mapping.mapping.sections] != [(item.section_id, item.footage_mode) for item in request.mapping.sections]
-                bridge_installed = session.scalar(select(ProductionBridgeAdmissionRow.id).where(
-                    ProductionBridgeAdmissionRow.project_id == project_id,
-                ).limit(1)) is not None
-                if (prior_mapping.mapping.topology != request.mapping.topology or realization_changed) and bridge_installed:
-                    raise InvalidTransitionError("此项目已安装投产，当前流程不能替换其剧情结构。已保存内容与媒体仍保留。")
             payload = request.mapping.model_dump(mode="json", by_alias=True)
             now = utc_now()
             self._source._mark_source_map_graph_stale(
@@ -113,6 +107,7 @@ class SourceGraphAdmission:
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
             self._access.guards.active(project)
+            assert_production_quiescent(self._access, session, project_id)
             outline_head = self._source._head(session, project_id, create=True)
             map_head = self._source._section_map_head(session, project_id, create=True)
             if map_head.status != "current" or not map_head.revision:
@@ -140,30 +135,68 @@ class SourceGraphAdmission:
             if draft.admitted_mapping() != mapping.mapping:
                 raise InvalidTransitionError("当前图草稿与已确认来源结构不同；请先确认当前草稿。")
             admission = session.get(SourceOutlineGraphAdmissionRow, project_id)
-            if graph_head.revision and (admission is None or admission.graph_revision != graph_head.revision):
+            identity = session.get(SourceGraphIdentityRow, graph_head.entity_revision_id) if graph_head.entity_revision_id else None
+            if graph_head.revision and (admission is None or admission.graph_revision != graph_head.revision or identity is None or identity.project_id != project_id or identity.canonical_revision != graph_head.revision or identity.content_hash != graph_head.content_hash):
                 raise InvalidTransitionError("the current canonical graph is not source-map-owned and cannot be overwritten")
             graph = compile_section_map_graph(mapping.mapping)
             from ...domain import ProjectBrief
             bible_head = self._access.rows.stage(session, project_id, StageName.STORY_BIBLE)
             bible = self._canonical._load_stage_payload(session, project_id, StageName.STORY_BIBLE) if bible_head.status == StageStatus.READY.value else None
             validate_section_map_graph(graph, ProjectBrief.model_validate(project.brief), bible)
-            from ..schema import ProductionBridgeAdmissionRow
-            bridge_installed = session.scalar(select(ProductionBridgeAdmissionRow.id).where(
-                ProductionBridgeAdmissionRow.project_id == project_id,
-            ).limit(1)) is not None
-            if bridge_installed:
-                raise InvalidTransitionError("已安装的投产内容受到保护；当前工作流不支持替换其剧情结构。")
             now = utc_now()
             installed = self._canonical.install_source_map_graph_in_session(
                 session, project, graph, expected_revision=request.expected_graph_revision, now=now
             )
             session.delete(graph_draft)
-            session.merge(SourceOutlineGraphAdmissionRow(
+            receipt = SourceOutlineGraphAdmissionRow(
                 project_id=project_id,
                 source_revision=source.revision, source_content_hash=source.content_hash,
                 outline_revision=outline.revision, outline_content_hash=outline.content_hash,
                 section_map_revision=mapping.revision, section_map_content_hash=mapping.content_hash,
                 graph_revision=installed.revision, graph_content_hash=installed.content_hash or "",
                 status="current", stale_reasons=[], installed_at=now,
-            ))
+            )
+            self._record_identity(session, receipt, installed, installed.revision, now)
+            session.merge(receipt)
             return self._source._state_in_session(session, project_id, outline_head)
+
+    @staticmethod
+    def _record_identity(session, admission, installed, authored_revision, now):
+        binding = {name: getattr(admission, name) for name in (
+            "source_revision", "source_content_hash", "outline_revision", "outline_content_hash",
+            "section_map_revision", "section_map_content_hash",
+        )}
+        session.add(SourceGraphIdentityRow(
+            entity_revision_id=installed.entity_revision_id, project_id=admission.project_id,
+            canonical_revision=installed.revision, authored_revision=authored_revision,
+            content_hash=installed.content_hash, source_binding=binding, admitted_at=now,
+        ))
+
+    def validate_graph_bible_in_session(self, session, project, bible):
+        head = self._access.rows.stage(session, project.id, StageName.STORY_GRAPH)
+        admission = session.get(SourceOutlineGraphAdmissionRow, project.id)
+        identity = session.get(SourceGraphIdentityRow, head.entity_revision_id)
+        if admission is None or identity is None or admission.status != "current" or admission.graph_revision != head.revision or identity.project_id != project.id or identity.canonical_revision != head.revision or identity.content_hash != head.content_hash:
+            raise InvalidTransitionError("current graph requires exact source-owned identity")
+        mapping = self._source._section_map_for_head(session, project.id, self._source._section_map_head(session, project.id, create=False))
+        if mapping is None or mapping.revision != admission.section_map_revision or mapping.content_hash != admission.section_map_content_hash:
+            raise InvalidTransitionError("current graph source mapping changed")
+        graph = compile_section_map_graph(mapping.mapping)
+        from ...domain import ProjectBrief
+        from ..codec import stable_hash
+        if stable_hash(graph.model_dump(mode="json", by_alias=False)) != head.content_hash:
+            raise InvalidTransitionError("compiled source mapping differs from canonical graph")
+        validate_section_map_graph(graph, ProjectBrief.model_validate(project.brief), bible)
+        return graph, admission, identity
+
+    def rebind_graph_bible_in_session(self, session, project, bible, *, now):
+        graph, admission, identity = self.validate_graph_bible_in_session(session, project, bible)
+        if not any(edge.entity_state_effects for edge in graph.edges):
+            return
+        head = self._access.rows.stage(session, project.id, StageName.STORY_GRAPH)
+        installed = self._canonical.install_source_map_graph_in_session(
+            session, project, graph, expected_revision=head.revision, now=now,
+        )
+        self._record_identity(session, admission, installed, identity.authored_revision, now)
+        admission.graph_revision, admission.graph_content_hash = installed.revision, installed.content_hash
+        admission.status, admission.stale_reasons, admission.installed_at = "current", [], now

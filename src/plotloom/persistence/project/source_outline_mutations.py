@@ -13,12 +13,20 @@ from ...domain import ProjectBrief, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...outline_settings import assert_outline_settings_current
 from ...source_outline_contracts import (
-    OutlineAcceptRequest, OutlineCandidate, OutlineReopenRequest,
-    SourceMaterial, SourceOutlineReviewState,
+    OutlineAcceptRequest,
+    OutlineCandidate,
+    OutlineReopenRequest,
+    SourceMaterial,
+    SourceOutlineReviewState,
 )
-from ..schema import SourceOutlineCandidateRow, SourceOutlineRevisionRow, SourceOutlineSourceRevisionRow
+from ..schema import (
+    SourceOutlineCandidateRow,
+    SourceOutlineRevisionRow,
+    SourceOutlineSourceRevisionRow,
+)
 from .access import ProjectPersistenceAccess
 from .creative_execution_pins import freeze_execution_pin
+from .production_rebuild_quiescence import assert_production_quiescent
 
 if TYPE_CHECKING:
     from .source_outline import ProjectSourceOutlinePersistence
@@ -44,6 +52,7 @@ class SourceOutlineMutations:
             if head.source_revision != expected_source_revision:
                 raise RevisionConflictError("source-outline source", expected_source_revision, head.source_revision)
             self._owner._assert_no_prepared_publication(session, project_id)
+            assert_production_quiescent(self._access, session, project_id)
             if head.source_revision:
                 prior = session.scalar(select(SourceOutlineSourceRevisionRow).where(
                     SourceOutlineSourceRevisionRow.project_id == project_id,
@@ -151,6 +160,7 @@ class SourceOutlineMutations:
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
             self._access.guards.active(project)
+            assert_production_quiescent(self._access, session, project_id)
             head = self._owner._head(session, project_id, create=True)
             if head.source_revision != request.expected_source_revision:
                 raise RevisionConflictError("source-outline source", request.expected_source_revision, head.source_revision)
@@ -195,6 +205,7 @@ class SourceOutlineMutations:
             if not head.outline_revision:
                 raise InvalidTransitionError("no accepted outline exists to reopen")
             self._owner._assert_no_prepared_publication(session, project_id)
+            assert_production_quiescent(self._access, session, project_id)
             head.outline_status = "reopened"
             head.candidate_job_id = None
             head.updated_at = utc_now()

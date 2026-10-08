@@ -8,14 +8,18 @@ from pydantic import ValidationError
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName, StageStatus
 from plotloom.exceptions import InvalidTransitionError, RevisionConflictError
-from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest, ProductionBridgeIntentUpdateRequest, ProductionBridgeProposal
+from plotloom.production_bridge_contracts import (
+    ProductionBridgeAcceptRequest,
+    ProductionBridgeIntentUpdateRequest,
+    ProductionBridgeProposal,
+)
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.project_storage.project_handle import ProjectStore
 from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
 from tests.test_project_storage_art import _accepted_f4_script, _deliver_stage
 
 
-def _source_shaped_review_board(seconds: int | float = 3, episodes=(1, 2, 3)) -> dict[str, object]:
+def _source_shaped_review_board(seconds: float = 3, episodes=(1, 2, 3)) -> dict[str, object]:
     """Pass the pinned upstream validator; no review-validation bypass is used."""
 
     def segment(ep: int, segment_index: int, beat_ranges: list[list[int]]) -> dict[str, object]:
@@ -41,12 +45,12 @@ def _review_fixture_presentation(store, proposal):
     )).proposal
 
 
-def _prepare_installable_bridge(store: ProjectStore, seconds: int | float = 3, structure_factory=None) -> ProductionBridgeProposal:
+def _prepare_installable_bridge(store: ProjectStore, seconds: float = 3, structure_factory=None) -> ProductionBridgeProposal:
     _accepted_f4_script(store, structure_factory)
     candidate, request = store.prepare_storyboard_review_candidate("ch_" + "b" * 32)
     ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", _source_shaped_review_board(seconds, [item.episode for item in candidate.binding.section_bindings]), "bridge-fixture"))
     store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
-    proposal = store.prepare_production_bridge().proposal
+    proposal = store.prepare_production_bridge(store.production_bridge_state().preparation.request).proposal
     assert proposal and not proposal.installable
     assert proposal.intent_package.review_state == "pending"
     assert proposal.intent_package.suggestion_origin == "none"
@@ -58,7 +62,7 @@ def _prepare_installable_bridge(store: ProjectStore, seconds: int | float = 3, s
         expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash,
         entries=authored,
     )).proposal
-    assert ready and ready.installable
+    assert ready and ready.installable, ready.conflicts if ready else None
     return ready
 
 
@@ -74,8 +78,8 @@ def test_bridge_projects_one_f4_scene_to_one_canonical_scene_and_installs_atomic
         assert revised and revised.revision == proposal.revision + 1 and revised.intent_package.entries[0].text
         accepted = store.accept_production_bridge(ProductionBridgeAcceptRequest(expected_proposal_revision=revised.revision, expected_content_hash=revised.content_hash))
         assert accepted.status == "accepted"
-        assert accepted.installed_stage_revisions == {"story_bible": 1, "scene_beats": 1, "storyboard": 1}
-        assert accepted.installed_storyboard_current
+        assert accepted.installation.installed_stage_revisions == {"story_bible": 1, "story_graph": 1, "scene_beats": 1, "storyboard": 1}
+        assert accepted.installation.status == "current"
         installed = store.authoring.get_stage_payload(store.manifest.project_id, StageName.SCENE_BEATS)
         assert {scene.objective for scene in installed.scenes} == {edited_text}
         assert revised.intent_package.review_state == "author_saved"
@@ -106,7 +110,7 @@ def test_bridge_handoff_stops_when_installed_storyboard_revision_drifts(tmp_path
         accepted = store.accept_production_bridge(ProductionBridgeAcceptRequest(
             expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash,
         ))
-        assert accepted.installed_storyboard_current
+        assert accepted.installation.status == "current"
         project_id = store.manifest.project_id
         board = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
         edited = board.model_copy(update={"shots": [
@@ -116,8 +120,8 @@ def test_bridge_handoff_stops_when_installed_storyboard_revision_drifts(tmp_path
         store.update_stage(StageName.STORYBOARD, edited, expected_revision=1)
         state = store.production_bridge_state()
         assert state.status == "accepted"  # Source acceptance is not undone by downstream editing.
-        assert state.installed_stage_revisions == accepted.installed_stage_revisions
-        assert not state.installed_storyboard_current
+        assert state.installation.installed_stage_revisions == accepted.installation.installed_stage_revisions
+        assert state.installation.status == "outdated"
     finally:
         store.close()
 
@@ -139,7 +143,10 @@ def test_bridge_rejects_stale_brief_and_stale_f4_inputs(tmp_path: Path) -> None:
         proposal = _prepare_installable_bridge(store)
         script = store.script_state().accepted_script
         assert script is not None
-        from plotloom.script_contracts import ScriptReopenRequest, ScriptSectionSaveRequest
+        from plotloom.script_contracts import (
+            ScriptReopenRequest,
+            ScriptSectionSaveRequest,
+        )
 
         store.reopen_script(ScriptReopenRequest(expected_script_revision=script.revision))
         opening = dict(script.script["episodes"][0]); opening["cliff"] = "Changed F4 authority after the bridge proposal."
@@ -207,7 +214,7 @@ def test_bridge_install_rolls_back_all_heads_when_a_later_stage_fails(tmp_path: 
         with pytest.raises(RuntimeError, match="injected scene-beats"):
             store.accept_production_bridge(ProductionBridgeAcceptRequest(expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash))
         state = store.production_bridge_state()
-        assert state.status == "ready" and state.installed_stage_revisions is None
+        assert state.status == "ready" and state.installation is None
         for stage in (StageName.STORY_BIBLE, StageName.SCENE_BEATS, StageName.STORYBOARD):
             head = store.authoring.get_stage_head(store.manifest.project_id, stage)
             assert head.revision == 0 and head.status == StageStatus.MISSING
@@ -224,7 +231,7 @@ def test_bridge_surfaces_brief_policy_conflict_without_splitting_source_scene(tm
         board = _source_shaped_review_board()
         ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", board, "bridge-conflict"))
         store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
-        proposal = store.prepare_production_bridge().proposal
+        proposal = store.prepare_production_bridge(store.production_bridge_state().preparation.request).proposal
         assert proposal and not proposal.installable
         assert len(proposal.scenes) == 3 and len(proposal.cuts) == 27
         assert proposal.conflicts[0].message == "不能安装：源场次有 9 个镜头，当前项目规则为 1–4 个"

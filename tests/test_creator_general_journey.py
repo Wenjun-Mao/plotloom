@@ -1,17 +1,25 @@
 """General Source topology reaches every existing downstream contract."""
-from tests.graph_draft_fixtures import graph_draft_revision
-from copy import deepcopy
 import json
+from copy import deepcopy
 from pathlib import Path
+
 from plotloom.art_contracts import ArtAcceptRequest
 from plotloom.cast_contracts import CastAcceptRequest, CastConsumerMapping
+from plotloom.production_bridge_contracts import (
+    ProductionBridgeAcceptRequest,
+    ProductionBridgeIntentUpdateRequest,
+)
 from plotloom.script_contracts import ScriptAcceptRequest
-from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
-from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest, ProductionBridgeIntentUpdateRequest
 from plotloom.source_outline_contracts import SectionMapGraphInstallRequest
-from tests.test_creator_branch_suggestions import store, prepare, proposal, save_map
+from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
+from tests.graph_draft_fixtures import graph_draft_revision
+from tests.test_creator_branch_suggestions import prepare, proposal, save_map
+from tests.test_creator_branch_suggestions import store as store
+from tests.test_production_bridge import (
+    _review_fixture_presentation,
+    _source_shaped_review_board,
+)
 from tests.test_project_storage_art import _deliver_stage, _pilot_script
-from tests.test_production_bridge import _source_shaped_review_board, _review_fixture_presentation
 
 FIXTURES = Path(__file__).parents[1] / "frontend/e2e/fixtures/f5a"
 
@@ -56,13 +64,13 @@ def test_general_structure_reaches_script_storyboard_and_installed_production(st
         board["episodes"].append(current)
     ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", board, "general-storyboard"))
     store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
-    proposed = store.prepare_production_bridge().proposal
+    proposed = store.prepare_production_bridge(store.production_bridge_state().preparation.request).proposal
     assert len(proposed.presentation.runtime_choice["choices"]) == 2
     proposed = _review_fixture_presentation(store, proposed)
     proposed = store.update_production_bridge_intent_package(ProductionBridgeIntentUpdateRequest(expected_proposal_revision=proposed.revision,
         expected_content_hash=proposed.content_hash, entries=[{"id": item.id, "text": "Reviewed dramatic purpose."} for item in proposed.intent_package.entries])).proposal
     assert proposed.installable, proposed.conflicts
     accepted = store.accept_production_bridge(ProductionBridgeAcceptRequest(expected_proposal_revision=proposed.revision, expected_content_hash=proposed.content_hash))
-    assert accepted.installed_storyboard_current
-    assert len(accepted.runtime_choice["choices"]) == 2
-    assert sorted(len(choice["outcomes"]) for choice in accepted.runtime_choice["choices"]) == [2, 3]
+    assert accepted.installation.status == "current"
+    assert len(accepted.installation.runtime_choice["choices"]) == 2
+    assert sorted(len(choice["outcomes"]) for choice in accepted.installation.runtime_choice["choices"]) == [2, 3]

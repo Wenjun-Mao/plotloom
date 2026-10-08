@@ -3,17 +3,18 @@ from contextlib import contextmanager
 from unittest.mock import Mock
 
 import pytest
-from fastapi import FastAPI
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
-from plotloom.api.project_folder_production_bridge import register_project_folder_production_bridge_routes
+from plotloom.api.project_folder_production_bridge import (
+    register_project_folder_production_bridge_routes,
+)
 from plotloom.production_bridge_contracts import ProductionBridgeState
 
 
 @pytest.mark.parametrize("service_wired,admission_wired", [(False, False), (True, False), (False, True), (True, True)])
 def test_runtime_capability_enriches_every_bridge_response_without_changing_stored_state(service_wired, admission_wired):
-    state = ProductionBridgeState(status="missing")
+    state = ProductionBridgeState(status="missing", installation=None, preparation={"status": "unavailable", "reason": "no accepted source"})
     before = state.model_dump()
     store, service, admission = Mock(), Mock(), Mock()
     for method in ["production_bridge_state", "prepare_production_bridge", "update_production_bridge_intent_package", "update_production_bridge_presentation", "accept_production_bridge"]:
@@ -30,9 +31,13 @@ def test_runtime_capability_enriches_every_bridge_response_without_changing_stor
     expected = {"status": "available"} if available else {"status": "unavailable", "reason": "not_configured"}
     base = "/api/v2/projects/project/production-bridge"
     version = {"expectedProposalRevision": 1, "expectedContentHash": "a" * 64}
+    empty_head = {"revision": 0, "entityRevisionId": None, "contentHash": None, "status": "missing"}
+    prepare = {"expectedProposalRevision": 0, "expectedProposalContentHash": None,
+               "expectedSourceInputsHash": "a" * 64,
+               "replacementTarget": {"installedAdmissionId": None, **{key: empty_head for key in ("bible", "graph", "sceneBeats", "storyboard")}}}
     with TestClient(app) as client:
         for method, suffix, body in [
-            ("GET", "", None), ("POST", "/proposals", None),
+            ("GET", "", None), ("POST", "/proposals", prepare),
             ("PUT", "/proposals/intent", {**version, "entries": [{"id": "entry", "text": "Author intent"}]}),
             ("PUT", "/proposals/presentation", {**version, "sourceHash": "b" * 64, "reviewedComplete": True, "entries": []}),
             ("POST", "/accept", version),
@@ -59,7 +64,7 @@ def test_runtime_capability_enriches_every_bridge_response_without_changing_stor
 
 
 def test_available_capability_does_not_mask_configured_profile_failure():
-    state = ProductionBridgeState(status="missing")
+    state = ProductionBridgeState(status="missing", installation=None, preparation={"status": "unavailable", "reason": "no accepted source"})
     service, admission = Mock(), Mock()
     admission.provider_snapshot.side_effect = HTTPException(
         status_code=422, detail={"code": "profile_not_ready"}

@@ -6,17 +6,50 @@ from typing import Any
 
 from sqlalchemy import select
 
-from ...cast_contracts import AcceptedCastRevision, CastAcceptRequest, CastBinding, CastCancelReopenRequest, CastCandidate, CastConsumerMapping, CastReopenRequest, CastReviewState, CastSaveRequest
-from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
-from ...cast_writing_contract import CONTRACT_FILENAME, cast_writing_contract, validate_cast_notes
+from ...cast_contracts import (
+    AcceptedCastRevision,
+    CastAcceptRequest,
+    CastBinding,
+    CastCancelReopenRequest,
+    CastCandidate,
+    CastConsumerMapping,
+    CastReopenRequest,
+    CastReviewState,
+    CastSaveRequest,
+)
 from ...cast_design_validation import validate_cast_design
+from ...cast_writing_contract import (
+    CONTRACT_FILENAME,
+    cast_writing_contract,
+    validate_cast_notes,
+)
+from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
-from ...domain import StageName, StageStatus, contains_secret_setting, contains_secret_value, new_id, utc_now
+from ...domain import (
+    StageName,
+    StageStatus,
+    contains_secret_setting,
+    contains_secret_value,
+    new_id,
+    utc_now,
+)
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
-from ...review_context_diagnostics import ReviewContextDiagnostic, ReviewContextError, binding_diagnostics
+from ...review_context_diagnostics import (
+    ReviewContextDiagnostic,
+    ReviewContextError,
+    binding_diagnostics,
+)
 from ..schema.project_authoring import StageHeadRow
 from ..schema.project_cast import CastCandidateRow, CastHeadRow, CastRevisionRow
-from ..schema.project_source_outline import SourceOutlineGraphAdmissionRow, SourceOutlineHeadRow, SourceOutlineRevisionRow, SourceOutlineSectionMapHeadRow, SourceOutlineSectionMapRevisionRow, SourceOutlineSourceRevisionRow
+from ..schema.project_source_outline import (
+    SourceGraphIdentityRow,
+    SourceOutlineGraphAdmissionRow,
+    SourceOutlineHeadRow,
+    SourceOutlineRevisionRow,
+    SourceOutlineSectionMapHeadRow,
+    SourceOutlineSectionMapRevisionRow,
+    SourceOutlineSourceRevisionRow,
+)
 from .access import ProjectPersistenceAccess
 from .creative_execution_pins import freeze_execution_pin
 
@@ -77,11 +110,12 @@ class ProjectCastPersistence:
         mapping = session.scalar(select(SourceOutlineSectionMapRevisionRow).where(SourceOutlineSectionMapRevisionRow.project_id == project_id, SourceOutlineSectionMapRevisionRow.revision == map_head.revision))
         admission = session.get(SourceOutlineGraphAdmissionRow, project_id)
         graph = session.scalar(select(StageHeadRow).where(StageHeadRow.project_id == project_id, StageHeadRow.stage == StageName.STORY_GRAPH.value))
+        identity = session.get(SourceGraphIdentityRow, graph.entity_revision_id) if graph and graph.entity_revision_id else None
         if source is None or outline is None or mapping is None or admission is None or graph is None or admission.status != "current" or graph.status != StageStatus.READY.value:
             raise ReviewContextError(ReviewContextDiagnostic(code="installed_graph_not_current", owner="source", technical_message="the accepted source-map-installed graph is not current"))
-        if not (admission.source_revision == source.revision and admission.source_content_hash == source.content_hash and admission.outline_revision == outline.revision and admission.outline_content_hash == outline.content_hash and admission.section_map_revision == mapping.revision and admission.section_map_content_hash == mapping.content_hash and admission.graph_revision == graph.revision and admission.graph_content_hash == graph.content_hash):
+        if not (identity is not None and identity.project_id == project_id and identity.canonical_revision == graph.revision and identity.content_hash == graph.content_hash and identity.source_binding == {name: getattr(admission, name) for name in ("source_revision", "source_content_hash", "outline_revision", "outline_content_hash", "section_map_revision", "section_map_content_hash")} and admission.source_revision == source.revision and admission.source_content_hash == source.content_hash and admission.outline_revision == outline.revision and admission.outline_content_hash == outline.content_hash and admission.section_map_revision == mapping.revision and admission.section_map_content_hash == mapping.content_hash and admission.graph_revision == graph.revision and admission.graph_content_hash == graph.content_hash):
             raise ReviewContextError(ReviewContextDiagnostic(code="installed_graph_context_mismatch", owner="source", technical_message="the installed graph no longer matches the accepted source-map context"))
-        binding = CastBinding(source_revision=source.revision, source_content_hash=source.content_hash, outline_revision=outline.revision, outline_content_hash=outline.content_hash, section_map_revision=mapping.revision, section_map_content_hash=mapping.content_hash, graph_revision=graph.revision, graph_content_hash=graph.content_hash or "", section_ids=[str(item.get("sectionId", "")) for item in mapping.mapping.get("sections", [])])
+        binding = CastBinding(source_revision=source.revision, source_content_hash=source.content_hash, outline_revision=outline.revision, outline_content_hash=outline.content_hash, section_map_revision=mapping.revision, section_map_content_hash=mapping.content_hash, graph_revision=identity.authored_revision, graph_content_hash=identity.content_hash, section_ids=[str(item.get("sectionId", "")) for item in mapping.mapping.get("sections", [])])
         return binding, source.material, outline.outline, mapping.mapping
 
     def _stale(self, session: Any, project_id: str, binding: CastBinding) -> list[ReviewContextDiagnostic]:

@@ -9,6 +9,7 @@ from sqlalchemy import select
 from ...canonical_schema import default_dialogue_timing_profile
 from ...creative_handoff_exchange import canonical_json
 from ...domain import ProjectBrief, StageName
+from ...edge_entry_states import compile_edge_entry_state_contract
 from ...production_bridge_contracts import ProductionBridgeConflict, ProductionBridgeIntentEntry, ProductionBridgeIntentPackage
 from ..schema.project_cast import CastRevisionRow
 from ...production_timing import source_seconds_to_milliseconds
@@ -25,6 +26,7 @@ class ProductionBridgeProjection:
         project = self._access.rows.project(session, project_id)
         brief = ProjectBrief.model_validate(project.brief)
         graph = self._canonical._load_stage_payload(session, project_id, StageName.STORY_GRAPH)
+        entry_contract = compile_edge_entry_state_contract(graph)
         graph_nodes = {node.id: node for node in getattr(graph, "nodes", [])}
         cast, art = dict(cast_and_art), cast_and_art["__art__"]
         cast.pop("__art__", None)
@@ -102,7 +104,10 @@ class ProductionBridgeProjection:
                         conflicts.append(ProductionBridgeConflict(code="cut_duration_invalid", message="不能安装：F5 镜头时长不能精确表示为正整数毫秒", section_id=section_id, episode=ep, scene_index=index))
                 scene_id = f"{section_id}-s{index}"; flow = source_scene.get("flow", []) if isinstance(source_scene.get("flow"), list) else []
                 beat_ids = [f"{scene_id}-b{order}" for order in range(1, max(1, len(flow)) + 1)]
-                state = self._state(); canonical_character_ids = {item["id"] for item in characters}
+                state = self._state()
+                state["entityStates"] = [{"entityType": item.entity_type.value, "entityId": item.entity_id, "state": item.state}
+                    for item in entry_contract.requirements_by_target.get(section_id, ())]
+                canonical_character_ids = {item["id"] for item in characters}
                 source_characters = source_scene.get("characters") if isinstance(source_scene.get("characters"), list) else []
                 character_ids = [mappings.get(value) for value in source_characters if isinstance(value, str)]
                 if len(character_ids) != len(source_characters) or any(value not in canonical_character_ids for value in character_ids):

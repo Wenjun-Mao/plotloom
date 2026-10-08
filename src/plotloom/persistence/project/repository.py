@@ -2,21 +2,21 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, ContextManager, Sequence
+from typing import Any, ContextManager
 
 from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from ...domain import (
+    STAGE_ORDER,
     InitialStage,
     Project,
     StageName,
     StageStatus,
-    STAGE_ORDER,
     stage_payload_model,
     utc_now,
     validate_initial_stage_prefix,
@@ -24,26 +24,43 @@ from ...domain import (
 from ...exceptions import InvalidTransitionError, NotFoundError
 from ..database import RepositoryDatabase
 from ..schema import (
-    PROJECT_TEXT_PIPELINE_TABLE_NAMES, GenerationRunRow, ProjectOperationalStateRow,
-    ProjectRow, SourceOutlineCandidateRow, SourceOutlineHeadRow,
-    SourceOutlineGraphAdmissionRow,
-    SourceOutlineRevisionRow, SourceOutlineSectionMapHeadRow,
-    SourceOutlineSectionMapRevisionRow, SourceOutlineSourceRevisionRow, StageHeadRow,
-    CastCandidateRow, CastHeadRow, CastRevisionRow, ArtCandidateRow, ArtHeadRow, ArtRevisionRow,
-    ScriptCandidateRow, ScriptHeadRow, ScriptRevisionRow,
-    StoryboardReviewCandidateRow, StoryboardReviewHeadRow, StoryboardReviewRevisionRow,
-    CreativeHandoffExecutionPinRow,
-    ProductionBridgeAdmissionRow, ProductionBridgeHeadRow, ProductionBridgeIntentJobRow, ProductionBridgeRevisionRow, VideoEndFrameDecisionRow,
+    PROJECT_TEXT_PIPELINE_TABLE_NAMES,
+    GenerationRunRow,
+    ProjectOperationalStateRow,
+    ProjectRow,
+    StageHeadRow,
 )
-from ..transactions import bootstrap_lease, lifecycle_lease, read_lease, work_unit_claim_lease, write_lease
-from .access import ProjectCodecs, ProjectGuards, ProjectLeases, ProjectPersistenceAccess, ProjectRows
+from ..transactions import (
+    bootstrap_lease,
+    lifecycle_lease,
+    read_lease,
+    work_unit_claim_lease,
+    write_lease,
+)
+from .access import (
+    ProjectCodecs,
+    ProjectGuards,
+    ProjectLeases,
+    ProjectPersistenceAccess,
+    ProjectRows,
+)
 from .approvals import ProjectApprovalPersistence
+from .art import ProjectArtPersistence
 from .canonical import ProjectCanonicalPersistence
+from .cast import ProjectCastPersistence
 from .catalog import ProjectCatalogPersistence
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
+from .creative_execution_pins import execution_pin_for_candidate, recover_execution_pin
+from .creative_terminal import ProjectCreativeTerminalPersistence
 from .drafts import ProjectDraftPersistence
 from .gates import ProjectGatePersistence
-from .generation_access import GenerationAdmission, GenerationCodecs, GenerationLeases, GenerationPersistenceAccess, GenerationRows
+from .generation_access import (
+    GenerationAdmission,
+    GenerationCodecs,
+    GenerationLeases,
+    GenerationPersistenceAccess,
+    GenerationRows,
+)
 from .generation_admission import ProjectGenerationAdmission
 from .generation_aggregates import ProjectGenerationAggregatePersistence
 from .generation_attempts import ProjectGenerationAttemptPersistence
@@ -56,32 +73,44 @@ from .generation_recovery import ProjectGenerationRecoveryPersistence
 from .generation_repair_eligibility import GenerationRepairEligibility
 from .generation_repair_scope import GenerationRepairScopePolicy
 from .generation_repairs import ProjectGenerationRepairPersistence
-from .generation_runtime_artifacts import ProjectGenerationRuntimeArtifactPersistence
 from .generation_reuse import ProjectGenerationReusePersistence
+from .generation_runtime_artifacts import ProjectGenerationRuntimeArtifactPersistence
 from .generation_snapshots import ProjectGenerationSnapshots
 from .lifecycle import ProjectLifecyclePersistence
 from .media import ProjectMediaPersistence
-from .source_outline import ProjectSourceOutlinePersistence
-from .cast import ProjectCastPersistence
-from .art import ProjectArtPersistence
-from .script import ProjectScriptPersistence
-from .storyboard_review import ProjectStoryboardReviewPersistence
 from .production_bridge import ProductionBridgePersistence
 from .production_bridge_intent import ProductionBridgeIntentPersistence
 from .repository_codecs import (
-    approval_decision_from_row, artifact_from_row, assert_active_project,
-    assert_lifecycle_revision, attempt_from_row, decode_current_stage_payload,
-    decode_stage_payload, entity_revision_from_row, fragment_reuse_binding_from_row,
-    gate_result_from_row, generation_plan_trace_from_row, latest_run_summary_from_row,
-    media_task_from_row, media_task_row, project_from_row, project_is_busy_in_session,
-    project_row, repair_scope_from_row, run_from_row, run_row,
-    sealed_aggregate_trace_from_row, stage_head_from_row, stage_row,
-    stage_plan_trace_from_row, story_graph_topology_trace_from_row,
+    approval_decision_from_row,
+    artifact_from_row,
+    assert_active_project,
+    assert_lifecycle_revision,
+    attempt_from_row,
+    decode_current_stage_payload,
+    decode_stage_payload,
+    entity_revision_from_row,
+    fragment_reuse_binding_from_row,
+    gate_result_from_row,
+    generation_plan_trace_from_row,
+    latest_run_summary_from_row,
+    media_task_row,
+    project_from_row,
+    project_is_busy_in_session,
+    project_row,
+    repair_scope_from_row,
+    run_from_row,
+    run_row,
+    sealed_aggregate_trace_from_row,
+    stage_head_from_row,
+    stage_plan_trace_from_row,
+    stage_row,
+    story_graph_topology_trace_from_row,
     work_unit_trace_from_row,
 )
+from .script import ProjectScriptPersistence
+from .source_outline import ProjectSourceOutlinePersistence
+from .storyboard_review import ProjectStoryboardReviewPersistence
 from .workflow import ProjectAuthoringWorkflow
-from .creative_execution_pins import execution_pin_for_candidate, recover_execution_pin
-from .creative_terminal import ProjectCreativeTerminalPersistence
 
 
 @dataclass(frozen=True)
@@ -123,31 +152,6 @@ class ProjectSQLiteRepository:
         self.engine, self._sessions, self._write_lock = (
             self._database.engine, self._database.sessions, self._database.write_lock
         )
-        if not read_only:
-            # Project folders predate F1A. This is a narrow additive migration:
-            # it creates only the independent review tables and never rewrites
-            # a source, canonical stage, media record, or project manifest.
-            from ..schema import Base
-
-            Base.metadata.create_all(
-                self.engine,
-                tables=[
-                    SourceOutlineHeadRow.__table__,
-                    SourceOutlineSourceRevisionRow.__table__,
-                    SourceOutlineCandidateRow.__table__,
-                    SourceOutlineRevisionRow.__table__,
-                    SourceOutlineSectionMapHeadRow.__table__,
-                    SourceOutlineSectionMapRevisionRow.__table__,
-                    SourceOutlineGraphAdmissionRow.__table__,
-                    CastHeadRow.__table__, CastCandidateRow.__table__, CastRevisionRow.__table__,
-                    ArtHeadRow.__table__, ArtCandidateRow.__table__, ArtRevisionRow.__table__,
-                    ScriptHeadRow.__table__, ScriptCandidateRow.__table__, ScriptRevisionRow.__table__,
-                    StoryboardReviewHeadRow.__table__, StoryboardReviewCandidateRow.__table__, StoryboardReviewRevisionRow.__table__,
-                    CreativeHandoffExecutionPinRow.__table__,
-                    ProductionBridgeHeadRow.__table__, ProductionBridgeRevisionRow.__table__, ProductionBridgeAdmissionRow.__table__, ProductionBridgeIntentJobRow.__table__,
-                    VideoEndFrameDecisionRow.__table__,
-                ],
-            )
         self._generation_admission = ProjectGenerationAdmission()
 
         self._project_access = ProjectPersistenceAccess(
@@ -189,7 +193,7 @@ class ProjectSQLiteRepository:
         self.script = ProjectScriptPersistence(self._project_access, self.art)
         self.storyboard_review = ProjectStoryboardReviewPersistence(self._project_access, self.script)
         self.creative_terminal = ProjectCreativeTerminalPersistence(self._project_access)
-        self.production_bridge = ProductionBridgePersistence(self._project_access, self._canonical, self.storyboard_review)
+        self.production_bridge = ProductionBridgePersistence(self._project_access, self._canonical, self.storyboard_review, self.source_outline._graph_writer)
         self.production_bridge_intent = ProductionBridgeIntentPersistence(self._project_access, self.production_bridge)
         self._media = ProjectMediaPersistence(
             self._project_access, self._canonical, self._drafts, self.cast, self.art, accounting=None,

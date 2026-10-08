@@ -47,7 +47,7 @@ def test_three_routes_inserted_step_and_join_install_exact_footage_subset(tmp_pa
         accepted = store.accept_production_bridge(ProductionBridgeAcceptRequest(
             expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash,
         ))
-        assert accepted.installed_storyboard_current
+        assert accepted.installation.status == "current"
         graph = store.authoring.get_stage_payload(store.manifest.project_id, StageName.STORY_GRAPH)
         plan = store.authoring.get_stage_payload(store.manifest.project_id, StageName.SCENE_BEATS)
         board = store.authoring.get_stage_payload(store.manifest.project_id, StageName.STORYBOARD)
@@ -59,8 +59,8 @@ def test_three_routes_inserted_step_and_join_install_exact_footage_subset(tmp_pa
         assert next(edge for edge in graph.edges if edge.id == "branch-input").state_effects == {
             "retainedFact": "original traversal",
         }
-        assert accepted.runtime_choice["choices"][0]["sectionId"] == "choose"
-        assert [outcome["outcomeId"] for outcome in accepted.runtime_choice["choices"][0]["outcomes"]] == [
+        assert accepted.installation.runtime_choice["choices"][0]["sectionId"] == "choose"
+        assert [outcome["outcomeId"] for outcome in accepted.installation.runtime_choice["choices"][0]["outcomes"]] == [
             "option-123", "option-222", "option-333",
         ]
     finally:

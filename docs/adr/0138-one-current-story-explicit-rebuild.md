@@ -66,6 +66,34 @@ story and explicit rebuild, rather than a separate next-version workflow.
 
 ## Alternatives and guardrails
 
+### Typed entry-state projection and persistence identity
+
+The rebuild implementation probe found that bridge projection emitted empty
+SceneState values even when the exact admitted graph assigned typed direct-edge
+entity states. Canonical coverage correctly refused the first target scene.
+Trusted projection now uses the existing `edge_entity_entry_states.v1` compiler:
+only unanimously assigned direct-edge states become target scene/beat/shot
+entry and unchanged exit facts. It invents no authored state changes, path
+variants or inferred semantic intent. Partial or conflicting converging inputs
+refuse at graph/entry-contract validation; proposed Bible incompatibility still
+fails before any bundle revision is committed.
+
+An append-only `v2_source_graph_identities` table binds each source-owned canonical
+entity revision to its authored revision/hash and exact source/outline/map
+admission. Explicit graph Apply writes a new authored identity; trusted dependency
+rebind appends a canonical identity with the original authored identity. Arbitrary
+same-hash canonical writes have no identity and cannot authorize F2–F5. This is a
+breaking current-schema requirement. Exact schema classification rejects prior
+folders before ordinary open; there is no reader fallback or automatic backfill.
+Any disposable cutover is a separate exact operation, not implemented here.
+
+The bridge response has required `installation` and `preparation` fields;
+installation includes its own frozen inputs, cuts, scenes and runtime choices.
+Duplicated flat installation/currentness fields retire. Proposal preparation
+requires the server-proved typed body, including proposal CAS, source-input hash
+and the exact canonical replacement target. Intent/presentation revisions retain
+that target unchanged in their proposal hash.
+
 Rejected: retaining an independently playable old story while editing a second
 version; deleting/resetting production to get through empty-head guards; changing
 frozen jobs to match new content; weakening graph effects or copying approvals.
