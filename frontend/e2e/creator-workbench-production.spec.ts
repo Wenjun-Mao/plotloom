@@ -58,11 +58,25 @@ test("creator Production shows every repeated scene and exact cut, guards drafts
   await page.getByRole("tab", { name: "故事", exact: true }).click();
   await page.getByLabel("包含画面与剧本场景").check();
   await expect(page.getByRole("button", { name: "确认图内容", exact: true })).toBeDisabled();
+  const restoredGraphAck = page.waitForResponse(response => {
+    if (response.request().method() !== "PUT" || new URL(response.url()).pathname !== `/api/v2/projects/${id}/authoring-drafts`) return false;
+    const draft = response.request().postDataJSON();
+    return draft.editorScope === "story_graph" && draft.payload.selectedNodeId === controlId
+      && draft.payload.mapping.sections.some((section: { sectionId: string; footageMode: string }) => section.sectionId === controlId && section.footageMode === "route_only");
+  });
   await page.getByLabel("包含画面与剧本场景").uncheck();
+  // Drain and acknowledge the restored graph before external board drift and
+  // reload; interrupting autosave would correctly protect an older local receipt.
+  const graphSave = page.getByRole("button", { name: "保存图草稿", exact: true });
+  await graphSave.click();
+  const restoredGraph = await json(await restoredGraphAck);
+  await expect(graphSave).toBeEnabled();
+  expect((await json(request.get(`${root}/graph-workbench`))).draft.payload).toEqual(restoredGraph.payload);
   // Drift only this disposable installed board. Old production remains readable.
   const board = retained.stages.find((stage: { head: { stage: string } }) => stage.head.stage === "storyboard");
   await json(request.patch(`${root}/stages/storyboard`, { data: { expectedRevision: board.head.revision, payload: { ...board.payload, shots: board.payload.shots.map((shot: { id: string; title: string }) => shot.id === exact.shotId ? { ...shot, title: `${shot.title} revised` } : shot) } } }));
   await page.reload();
+  await expect(page.getByRole("dialog", { name: "草稿版本已过期", exact: true })).toHaveCount(0);
   await page.locator('[data-creator-node="opening"] .creator-node-select').click();
   await page.getByRole("tab", { name: "制作", exact: true }).click();
   await expect(production.locator(`[data-production-shot="${exact.shotId}"]`)).toContainText("镜头版本不同");

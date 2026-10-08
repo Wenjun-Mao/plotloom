@@ -36,7 +36,7 @@ export function useAssetKeyframeActions({
   activeIntent,
   compatibility,
   workbench,
-  setWorkbench,
+  acknowledgeSelectionRevision,
   previewShotIds,
   missingPreviewShotIds,
   presentationRevision,
@@ -62,7 +62,7 @@ export function useAssetKeyframeActions({
   activeIntent: VisualIntent | undefined;
   compatibility: string;
   workbench: VisualWorkbench;
-  setWorkbench: Dispatch<SetStateAction<VisualWorkbench>>;
+  acknowledgeSelectionRevision: (revision: number) => Promise<void>;
   previewShotIds: string[];
   missingPreviewShotIds: string[];
   presentationRevision?: number;
@@ -188,18 +188,7 @@ export function useAssetKeyframeActions({
         visualIntentRevision: activeIntent.revision,
         expectedPresentationRevision: presentationRevision ?? 0,
       });
-      // A shot change can supersede the read refresh that follows a successful
-      // selection. The mutation response is the authoritative revision, so
-      // advance the local concurrency token before enabling the next shot.
-      // The full refresh below still owns bindings, intents, and preview state.
-      setWorkbench((current) => ({
-        ...current,
-        selectionRevision: Math.max(
-          current.selectionRevision,
-          selected.selectionRevision,
-        ),
-      }));
-      await refresh();
+      await acknowledgeSelectionRevision(selected.selectionRevision);
     } catch (selectionError) {
       setError(
         selectionError instanceof Error ? selectionError.message : "选择失败",

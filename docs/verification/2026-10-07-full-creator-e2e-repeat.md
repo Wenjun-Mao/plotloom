@@ -2,17 +2,17 @@
 
 Scope: [approved repeat](../roadmap/2026-10-07-full-creator-e2e-repeat.md).
 The permanent C01–C55/P01–P06/E01–E22 checklist owns acceptance. Current status
-is PARTIAL, not full E2E acceptance. Dated failures, interrupted gates, native
-receipts and prior checkpoints are preserved verbatim in the linked
-[historical receipt](2026-10-07-full-creator-e2e-repeat-history.md).
-Historical present-tense statements there do not describe current deployment.
+is PARTIAL. The [media repair receipt](2026-10-07-media-selection-recovery.md)
+and [C50 recovery](2026-10-07-c50-draft-recovery.md) / [C52 project ownership](2026-10-07-c52-project-ownership.md) own the latest continuation.
+Dated checkpoints below and the [historical receipt](2026-10-07-full-creator-e2e-repeat-history.md)
+retain earlier failures; historical present-tense claims are not current status.
 
 ## Recovery repair published 2026 10 07 23 19 UTC
 
 Root approved and pushed the frontend-only repair as
 `5aff37e885fdd8b32f9282d8cc14a5366ee1a99e`; origin/main identity was verified.
 Full unfiltered [CI37701584435](https://github.com/Wenjun-Mao/plotloom/actions/runs/37701584435)
-has passed verify; both browser shards are running at23:37 UTC, not yet full PASS. Final
+finished success at00:02 UTC with205 first-pass browser results and one retry pass. Final
 206-browser gate PASS6.0m; all856 source/test/config/static inputs stayed unchanged.
 Their aggregate is `bbc702df320b991ae67a0dba5eed064866fa642d2a6dafe1da7f0b1da7430c3c`.
 Normal8841's Python remains the qualified e941780 source, unchanged;
@@ -158,8 +158,8 @@ the graph-interactions harness reloaded21ms after starting Save, aborting the
 browser PUT receipt while the server committed r4 with the exact prose. Its local
 buffer still bound r3, so the explicit conflict guard correctly protected it.
 Root and independent read-only review identified an E2E ACK race, not data loss.
-The harness now waits for Save-owner settlement, polls exact server prose, and
-asserts no conflict dialog after reload; it does not dismiss or bypass one.
+That checkpoint waited for Save-owner settlement and exact server prose; the current
+media repair receipt adds owned ACK/full-payload readback without bypassing conflicts.
 Focused three-repeat3 PASS/6.4s; final206-test browser gate PASS/6.3m.
 App/E2E typechecks, lock, API F401 lint, diff and deterministic build
 PASS. Final checked JS is
@@ -305,11 +305,11 @@ the exact frozen image reservation, without restart/reload/send. Root receipts:
 | Contract | Current qualification | Remaining scope |
 |---|---|---|
 | E01–E04/P01–P05 | Fresh UI Brief/source/Outline r1, native branch review/Confirm/Apply; actual Outline timeline/table PASS, export BLOCKED_BY_DESIGN | Richer native structure not generated merely for counts |
-| E05–E06/C01–C55 | Separate real structural QA123→222→333 sequence; bypass/unconnected deletion/Undo; Save-close-reopen; partial-key/nonblank C49; real stale-CAS refusal and matched live selection refresh; C44 footage toggles/reversal; C48 legal/refused type/start guards, explicit start/choice/join conversion and exact Undo; C50 endpoint/edge-only deletion/Undo; C51 retain/discard; C55 normal-flow help; preview pixels15–26; C46 actual OS blur automatic380/persisted350 PASS, pixel37 and exact cleanup r33 | Remaining type/kind/ownership permutations; no post-install native revision qualification |
+| E05–E06/selected C graph checks | Separate real structural QA123→222→333 sequence; bypass/unconnected deletion/Undo; Save-close-reopen; partial-key/nonblank C49; real stale-CAS refusal and matched live selection refresh; C44 footage toggles/reversal; C48 legal/refused type/start guards, explicit start/choice/join conversion and exact Undo; C50 endpoint/edge-only deletion/Undo; C51 retain/discard; C55 normal-flow help; preview pixels15–26; C46 actual OS blur automatic380/persisted350 PASS, pixel37 and exact cleanup r33 | Remaining type/kind/ownership permutations; no post-install native revision qualification |
 | E07–E09/P04/P06 | Fresh native Cast/Art confirmed r1 with offscreen style boundary; original gallery provenance, current static readers and original gallery zoom PASS | Native Character/Scene/Prop images and same-subject pair pending |
 | E10–E13 | Fresh Script/Storyboard r1 confirmed; proposal r3 presentation reviewed/installed; ordinary first-shot handoff PASS | Model inference E12 NOT EXERCISED (runtime unavailable); physical direction realization remains unspecified |
 | E14–E18 | No fresh native media-route qualification | Keyframes, managed endframe/dirty guards, multishot preview, H3/all routes/staleness NOT EXERCISED |
-| E19–E21 | Task/reopen/owned idle restart; exact QA snapshot/operator restore/archive/unarchive/typed disposable-copy delete; imported-image close/reopen/archive/restore, five-file snapshot bytes, overwrite refusal and restored-copy UI/HTTP hashes; offline imported-image archive/typed-delete regression PASS | Native/video-bearing deletion and remaining lifecycle recovery NOT EXERCISED |
+| E19–E21 | C52 distinct A/B incomplete drafts/history/nodes/modes/Brief/Source/close/reopen and unsaved navigation ACK with full exact cleanup; Task/reopen/owned idle restart; exact QA snapshot/operator restore/archive/unarchive/typed disposable-copy delete; imported-image close/reopen/archive/restore, five-file snapshot bytes, overwrite refusal and restored-copy UI/HTTP hashes; offline imported-image archive/typed-delete regression PASS | Native/video-bearing deletion and remaining lifecycle recovery NOT EXERCISED |
 | E22/C37–C39 |18 earlier graph pixels across three sizes/two preferences reviewed independently; separate six-sibling QA at1700/1280/short desktop directly inspected;34s exploratory navigation and earlier clean nine-seed reset; current repaired preview, centered-plus and deletion pixels15–26/36, recovery28–33/35/37; reviewed stdin/Source ACK corrections, focused repeats and final206 browser gate PASS; actual trusted OS blur PASS | Native journey remains partial |
 
 ### Fresh native identities and review boundaries

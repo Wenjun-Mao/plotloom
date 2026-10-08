@@ -9,6 +9,7 @@ import type { VisualWorkbench } from "../src/types";
 
 let root: Root;
 let host: HTMLDivElement;
+let latestRead: ReturnType<typeof useMediaWorkbenchData>;
 const visual = (revision: number): VisualWorkbench => ({
   assets: [], selectionRevision: revision, visualIntents: [], reviewedKeyframes: [],
   characterReferences: { states: [], decisions: [] },
@@ -22,8 +23,9 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function Harness({ projectId, approvalId = "approval-1" }: { projectId: string; approvalId?: string }) {
-  const read = useMediaWorkbenchData({ projectId, approvalId, approvalRevision: 1, storyboardRevision: 1, shotId: "shot-1" });
+function Harness({ projectId, approvalId = "approval-1", shotId = "shot-1" }: { projectId: string; approvalId?: string; shotId?: string }) {
+  const read = useMediaWorkbenchData({ projectId, approvalId, approvalRevision: 1, storyboardRevision: 1, shotId });
+  latestRead = read;
   return createElement("div", null,
     createElement("span", { "data-testid": "phase" }, read.mediaReadPhase),
     createElement("span", { "data-testid": "revision" }, read.workbench.selectionRevision),
@@ -32,8 +34,8 @@ function Harness({ projectId, approvalId = "approval-1" }: { projectId: string; 
   );
 }
 
-async function render(projectId: string, approvalId?: string) {
-  await act(async () => root.render(createElement(Harness, { projectId, approvalId })));
+async function render(projectId: string, approvalId?: string, shotId?: string) {
+  await act(async () => root.render(createElement(Harness, { projectId, approvalId, shotId })));
 }
 
 async function settle() { await act(async () => { await Promise.resolve(); await Promise.resolve(); }); }
@@ -93,4 +95,65 @@ it("ignores late success and rejection from an old project or approval context",
   expect(phase()).toBe("ready"); expect(revision()).toBe("4");
   await act(async () => oldFailure.reject(new Error("late failure"))); await settle();
   expect(phase()).toBe("ready"); expect(revision()).toBe("4");
+});
+
+it("refreshes the current shot after a previous-shot selection ACK and ignores the pre-ACK read", async () => {
+  const beforeAck = deferred<VisualWorkbench>(), afterAck = deferred<VisualWorkbench>();
+  const get = vi.spyOn(plotloomApi, "getVisualWorkbench")
+    .mockResolvedValueOnce(visual(1))
+    .mockImplementationOnce(() => beforeAck.promise)
+    .mockImplementationOnce(() => afterAck.promise);
+  await render("one"); await settle();
+  const acknowledgePreviousShot = latestRead.acknowledgeSelectionRevision;
+  await render("one", undefined, "shot-2");
+  expect(phase()).toBe("loading");
+  let acknowledged!: Promise<void>;
+  await act(async () => { acknowledged = acknowledgePreviousShot(2); });
+  expect(get).toHaveBeenCalledTimes(3);
+  await act(async () => beforeAck.resolve(visual(1))); await settle();
+  expect(phase()).toBe("loading"); expect(revision()).toBe("0");
+  await act(async () => { afterAck.resolve(visual(2)); await acknowledged; }); await settle();
+  expect(phase()).toBe("ready"); expect(revision()).toBe("2");
+  // A late completion cannot roll the now-current token backwards either.
+  expect(latestRead.workbench.selectionRevision).toBe(2);
+});
+
+it("withdraws a lower-revision read instead of making an obsolete selection token actionable", async () => {
+  vi.spyOn(plotloomApi, "getVisualWorkbench")
+    .mockResolvedValueOnce(visual(2))
+    .mockResolvedValueOnce(visual(1))
+    .mockResolvedValueOnce(visual(2));
+  await render("one"); await settle();
+  await act(async () => host.querySelector("button")!.click()); await settle();
+  expect(phase()).toBe("error"); expect(revision()).toBe("0");
+  await act(async () => host.querySelector("button")!.click()); await settle();
+  expect(phase()).toBe("ready"); expect(revision()).toBe("2");
+});
+
+it("does not apply an old selection ACK to another project or a later A-B-A visit", async () => {
+  const get = vi.spyOn(plotloomApi, "getVisualWorkbench")
+    .mockResolvedValueOnce(visual(3))
+    .mockResolvedValueOnce(visual(1))
+    .mockResolvedValueOnce(visual(2));
+  await render("one"); await settle();
+  const oldAcknowledgement = latestRead.acknowledgeSelectionRevision;
+  await render("two"); await settle();
+  await act(async () => { await oldAcknowledgement(99); });
+  expect(revision()).toBe("1"); expect(get).toHaveBeenCalledTimes(2);
+  await render("one"); await settle();
+  await act(async () => { await oldAcknowledgement(99); });
+  expect(phase()).toBe("ready"); expect(revision()).toBe("2");
+  expect(get).toHaveBeenCalledTimes(3);
+});
+
+it("does not issue a new read for a selection ACK after its media owner unmounts", async () => {
+  const get = vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValue(visual(1));
+  await render("one"); await settle();
+  const oldAcknowledgement = latestRead.acknowledgeSelectionRevision;
+  await act(async () => root.unmount());
+  root = createRoot(host);
+  await render("two"); await settle();
+  await act(async () => { await oldAcknowledgement(99); });
+  expect(get).toHaveBeenCalledTimes(2);
+  expect(phase()).toBe("ready"); expect(revision()).toBe("1");
 });

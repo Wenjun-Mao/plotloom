@@ -73,7 +73,12 @@ test("returns to the current Brief and rejects a branch proposal frozen before s
   await expect(page).toHaveURL(/[?&]project=/);
   const id = new URL(page.url()).searchParams.get("project")!;
   const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
+  const sourceAck = page.waitForResponse(response => response.request().method() === "PUT"
+    && new URL(response.url()).pathname === `/api/v2/projects/${id}/source-outline/source`);
   await page.getByRole("button", { name: "确认改编内容" }).click();
+  const savedSource = await json(await sourceAck);
+  expect(savedSource.source.revision).toBe(1);
+  await expect(page.getByText("改编内容 r1", { exact: true })).toBeVisible();
   const prepared = await json<Preparation>(request.post(`${base}/source-outline/candidates`));
   await writeDelivery(prepared, "outline", { source: "潮汐灯", episodes: [{ ep: 1, synopsis: "两次选择、三个结局与一个汇合点。" }] });
   await json(request.post(`${base}/source-outline/candidates/${prepared.jobId}/refresh`));

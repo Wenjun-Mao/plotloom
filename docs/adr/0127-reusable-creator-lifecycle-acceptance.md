@@ -22,6 +22,12 @@ adapt emphasis and bounded generation effort but cannot relax required gates or
 promote older evidence, fake delivery or API-seeded state into a new native/UI PASS.
 Unknown or unexercised required behavior remains PARTIAL/NOT EXERCISED.
 
+October7 guardrail: ordinary save-then-reload/restart/external-upstream-edit
+automation must establish the owner-specific successful write ACK and independent
+full payload/revision readback. Click return, an enabled button or one persisted
+field alone is insufficient. Delayed-ACK, mid-save navigation and interrupted-save
+recovery scenarios remain intentional exceptions; blanket waits must not hide them.
+
 Creation establishes a completed baseline. Revision modifies that SAME project
 and verifies affected dependencies, preserved unrelated work, explicit rebuilds
 and revised-route playback using actual artifact identities/hashes. Recovery uses

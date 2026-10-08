@@ -27,16 +27,23 @@ test.describe("current shared graph authoring", () => {
     expect(state.draft.payload.mapping.topology.nodes).toHaveLength(4);
     await page.getByText("全部稳定身份与待连接关系", { exact: true }).click();
     await page.getByRole("button", { name: "Beacon lit", exact: true }).click();
+    const proseAck = page.waitForResponse(response => {
+      if (response.request().method() !== "PUT" || new URL(response.url()).pathname !== `/api/v2/projects/${id}/authoring-drafts`) return false;
+      const draft = response.request().postDataJSON();
+      return draft.editorScope === "story_graph" && draft.entityId === "root"
+        && draft.payload.mapping.sections.some((section: { sectionId: string; summary: string }) =>
+          section.sectionId === "beacon" && section.summary === "Unfinished current author prose");
+    });
     await page.getByRole("textbox", { name: "剧情摘要", exact: true }).fill("Unfinished current author prose");
     const save = page.getByRole("button", { name: "保存图草稿", exact: true });
     await save.click();
     // A click starts the asynchronous flush; reload must not abort its receipt
     // and leave the session buffer on an older CAS revision than the server.
+    const savedProse = await json(await proseAck);
     await expect(save).toBeEnabled();
-    await expect.poll(async () => {
-      const saved = await json(request.get(`${url}/graph-workbench`));
-      return saved.draft.payload.mapping.sections.find((section: any) => section.sectionId === "beacon").summary;
-    }).toBe("Unfinished current author prose");
+    const saved = await json(request.get(`${url}/graph-workbench`));
+    expect(saved.draft.draftRevision).toBe(savedProse.draftRevision);
+    expect(saved.draft.payload).toEqual(savedProse.payload);
     await page.reload();
     await expect(page.getByRole("dialog", { name: "草稿版本已过期", exact: true })).toHaveCount(0);
     await page.getByText("全部稳定身份与待连接关系", { exact: true }).click();

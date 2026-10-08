@@ -1,5 +1,6 @@
 import { navigateToSecondaryTool, openMediaPreparation, openMediaKeyframes } from "./workbench-controls";
 import { expect, test } from "./fixture";
+import { json } from "./f5a-fixture";
 import { demoProject } from "../src/demo";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -121,11 +122,28 @@ test.describe("P0 imported still preview journey", () => {
     await expect(page.getByText(/已保存 r1/)).toBeVisible();
     await page.getByLabel("审核兼容性说明").fill("Reapproved board compatibility is explicit, not inherited.");
     await expect(page.getByTestId("select-reviewed-keyframe")).toBeEnabled();
+    const reapprovedSelectionAck = page.waitForResponse(response =>
+      response.request().method() === "POST" && new URL(response.url()).pathname ===
+        `/api/v2/projects/${projectId}/reviewed-keyframes`
+        && response.request().postDataJSON().shotId === "shot_01",
+    );
     await page.getByTestId("select-reviewed-keyframe").click();
+    const reapprovedResponse = await reapprovedSelectionAck;
+    const reapprovedSelection = await json(reapprovedResponse);
+    await expect(page.getByTestId("select-reviewed-keyframe")).toBeEnabled();
+    const media = await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/visual-workbench`));
+    expect(media.selectionRevision).toBe(reapprovedSelection.selectionRevision);
+    const reapprovedRequest = reapprovedResponse.request().postDataJSON();
+    expect(media.reviewedKeyframes.find((binding: { id: string }) => binding.id === reapprovedSelection.id)).toMatchObject({
+      id: reapprovedSelection.id, selectionRevision: reapprovedSelection.selectionRevision,
+      assetId: reapprovedRequest.assetId, shotId: reapprovedRequest.shotId, sceneId: reapprovedRequest.sceneId,
+      visualIntentId: reapprovedRequest.visualIntentId, visualIntentRevision: reapprovedRequest.visualIntentRevision,
+      compatibilityNote: reapprovedRequest.compatibilityNote,
+    });
 
-    // Leave the media workbench before taking the exclusive archive lease.
-    // This gives its final project reads a chance to finish; lifecycle itself
-    // remains covered through the normal directory controls elsewhere.
+    // Ordinary cleanup starts only after the exact final selection ACK and its
+    // complete current read. Earlier rapid shot changes deliberately keep their
+    // race coverage; interrupted-write lifecycle is exercised separately.
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await expect(page.getByRole("heading", { name: "从一个项目开始" })).toBeVisible();
     const project = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}`);

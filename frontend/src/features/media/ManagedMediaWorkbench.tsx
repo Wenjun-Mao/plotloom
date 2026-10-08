@@ -72,7 +72,7 @@ export function ManagedMediaWorkbench({
 }) {
   const currentApproval: ApprovalDecision | undefined = review?.activeApproval ?? undefined;
   const {
-    workbench, setWorkbench, imageJobs, characterProposals, imageExchangeConfigured,
+    workbench, acknowledgeSelectionRevision, imageJobs, characterProposals, imageExchangeConfigured,
     previewId, setPreviewId, refresh, mediaReadPhase,
   } = useMediaWorkbenchData({
     projectId, approvalId: currentApproval?.id,
@@ -210,7 +210,7 @@ export function ManagedMediaWorkbench({
     activeIntent,
     compatibility,
     workbench,
-    setWorkbench,
+    acknowledgeSelectionRevision,
     previewShotIds,
     missingPreviewShotIds,
     presentationRevision: presentationReview?.shotId === selectedShot?.id ? presentationReview?.revision : 0,
