@@ -162,7 +162,7 @@ export function StoryBiblePage({
     <div className="page" data-testid="story-bible-editor">
       <PageHeader
         title="故事圣经"
-        description="在这里维护人物、地点和道具设定；后续创作通过稳定标识引用这些设定，避免重复定义。"
+        description="在这里维护人物、地点和道具设定；后续场景和镜头可复用这些设定，不必重复填写。"
         actions={
           <>
             <span className={`stage-chip ${stale ? "stale" : "ready"}`}>
@@ -331,7 +331,7 @@ export function StoryBiblePage({
                 <div className="card-index">
                   {String(index + 1).padStart(2, "0")}
                 </div>
-                <strong>{entity.name || "未命名实体"}</strong>
+                <strong>{entity.name || `未命名${type === "character" ? "角色" : type === "location" ? "地点" : "道具"}`}</strong>
                 <small>{entity.id}</small>
                 <p>{entity.description || "尚未填写描述"}</p>
                 <Button

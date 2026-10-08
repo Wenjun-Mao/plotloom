@@ -16,7 +16,8 @@ functional walkthroughs included incidental UI inspections, not a completed
 whole-product visual/copy audit. The dedicated pass has executed, with PARTIAL
 state coverage and verified scoped repairs;
 its [view/state observations and repairs](2026-10-08-whole-product-ui-audit.md)
-and [native preview error checkpoint](2026-10-08-native-preview-error-ui.md) are recorded separately from functional results. Desktop matrix:
+and [native preview error checkpoint](2026-10-08-native-preview-error-ui.md) /
+[reading-state checkpoint](2026-10-08-reader-gallery-ui-states.md) are recorded separately from functional results. Desktop matrix:
 1280×768,1280×460,1700×900; no phone/1024px testing.
 Reuse disposable data, distinguish fixture/native states and avoid repeated
 generation solely for visual inspection. All Create → Revise → Recover gaps remain.

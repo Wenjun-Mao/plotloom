@@ -38,10 +38,10 @@ export function prototypeReadiness(
   graphHead: Pick<StageHead, "status" | "revision" | "contentHash"> | undefined,
   binding: Pick<ScriptBinding, "graphRevision" | "graphContentHash">,
 ): string | undefined {
-  if (scriptStatus !== "accepted") return "当前剧本不是可阅读的已接受版本。请先在工作台完成当前版本的审核。";
-  if (!graphHead || graphHead.status !== "ready") return "当前剧情图不可用或已过期。请先在工作台恢复规范剧情图。";
+  if (scriptStatus !== "accepted") return "当前剧本尚未确认，或已有新的修改。请先在剧本步骤审阅并确认当前版本。";
+  if (!graphHead || graphHead.status !== "ready") return "当前故事路线尚未准备好或已过期。请先在创作工作台检查并确认路线。";
   if (graphHead.revision !== binding.graphRevision || graphHead.contentHash !== binding.graphContentHash) {
-    return "剧本绑定的剧情图不是当前版本。请先处理工作台中的版本变更。";
+    return "剧本对应的故事路线不是当前版本。请先重新审阅并确认当前剧本。";
   }
   return undefined;
 }
@@ -61,14 +61,14 @@ export function storyboardPrototypeReadiness(
   const accepted = review.acceptedReview;
   if (review.status !== "accepted" || !accepted) return "当前没有可阅读的已确认分镜评审。请先在工作台完成当前分镜评审。";
   if (accepted.binding.scriptRevision !== script.revision || accepted.binding.scriptContentHash !== script.contentHash) {
-    return "分镜评审绑定的剧本不是当前已接受版本。请先处理工作台中的版本变更。";
+    return "分镜方案对应的剧本不是当前已确认版本。请先重新审阅并确认分镜方案。";
   }
   if (accepted.binding.graphRevision !== script.binding.graphRevision || accepted.binding.graphContentHash !== script.binding.graphContentHash) {
-    return "分镜评审绑定的故事图不是当前版本。请先处理工作台中的版本变更。";
+    return "分镜方案对应的故事路线不是当前版本。请先重新审阅并确认分镜方案。";
   }
   const expected = script.binding.sectionBindings.map(({ sectionId, episode }) => `${sectionId}:${episode}`);
   const actual = accepted.binding.sectionBindings.map(({ sectionId, episode }) => `${sectionId}:${episode}`);
-  if (expected.join("|") !== actual.join("|")) return "分镜评审的章节对应与当前剧本不一致，不能混合阅读。";
+  if (expected.join("|") !== actual.join("|")) return "分镜方案的章节与当前剧本不一致，不能一起阅读。";
   return undefined;
 }
 

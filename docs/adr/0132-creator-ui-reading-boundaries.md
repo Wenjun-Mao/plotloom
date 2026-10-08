@@ -46,6 +46,39 @@ control, wrapping its label into the card's narrow number column.
   state and a link to the preparation owner, not a transport-error retry.
   Actual failed reads keep their named read-only retry. Optional new Art tasks
   are visibly distinct from the confirmed revision and never replace it implicitly.
+- The story reader distinguishes missing/stale story routes or Script from
+  transport failures, linking to the owning Creator or Script preparation view.
+  An optional Storyboard read failure preserves the qualified Script and selected
+  route; its named retry repeats only that read. Currentness and report sandbox
+  checks remain unchanged.
+- Failed gallery refreshes retain known images and local author inputs, but
+  suspend mutations until a successful owned read. Manual retry pending belongs
+  to its retry operation, independently of the latest-read owner; an overlapping
+  observation cannot strand the retry button. Session changes invalidate both.
+  Read-only/error states do not start automatic delivery observation. Guidance
+  must reflect that authority, and an empty gallery must not claim a selected
+  identity reference. The archived workspace fieldset still disables its controls;
+  reading retained values is not a claim of interactive archived comparison/retry.
+- Run, attempt and subtask states have distinct Chinese presentation labels;
+  stable codes and original attempt data remain inspectable. A persisted failed
+  attempt with `outcomeUnknown=true` is presented as uncertain, not known failure.
+  Pending cancellation remains observable; the deliberate server re-signal action
+  says “再次请求取消,” not an apparently first cancellation. This is presentation
+  alignment, not a new cancellation/retry contract or a compatibility adapter.
+  Trace stage selection, status and failure explanation use separate rows;
+  adding evidence must not squeeze a short status badge or task identity into
+  fragmented text. This is a surface layout rule, not a short-screen workaround.
+  Both empty event details and their progress helper must follow actual event
+  availability; an in-progress event uses an accent tone, never success green.
+  Uncertain attempts use a neutral request event kind, not a failure-record tag.
+  Full timestamps occupy their own row above event context; a fixed time column
+  cannot safely contain ISO dates. Desktop capture asserts non-overlapping bounds.
+  Outcome-unknown guidance describes the uncertain result, not only whether the
+  request arrived. Rebuild guidance warns that fresh requests can duplicate work;
+  it does not add or remove server-issued operation eligibility.
+  The obsolete trace-to-quarantine adapter, its historical test and deprecated
+  raw-output/repair-hint fields are retired. Current progress owns repair lists
+  and eligibility; original trace evidence remains readable, not rewritten.
 - Reviewed original/segment previews surface native browser media errors with
   readable recovery guidance and exact secondary error evidence. An explicit
   reload reads only that same media; it never generates, selects or autoplays.
@@ -70,5 +103,11 @@ Direct viewport inspection remains required by E22; DOM visibility is insufficie
 Do not infer completed playback from reaching duration: a decoder may disconnect
 without a native ended event. Preserve that failure and diagnose it separately;
 error presentation is not a decoder fix, timeout workaround or quality approval.
+Native browser gates retain event/decoder snapshots before teardown even on early
+failure. Diagnostic snapshot, byte collection and detach are bounded and mark
+incomplete reads; they must not delay or weaken unchanged playback/ended acceptance.
+Completed partial HTTP byte ranges are data attachments, not standalone MP4s;
+only a complete response object may carry that media filename/type. Retain the
+exact Content-Range, response hash and available bytes without reconstructing media.
 Screenshot journeys wait for the intended content state, not just a page heading;
 an eligible repair capture must show an enabled repair control before recovery.

@@ -212,6 +212,18 @@ it("retains accepted cast on failed refresh but suspends mutations until a succe
   expect(host.querySelector("h2")?.textContent).toBe("已确认角色设定 r1");
 });
 
+it("describes archived Cast preparation as unavailable rather than inviting dispatch", async () => {
+  const prepare = vi.spyOn(plotloomApi, "prepareCastCandidate");
+  await act(async () => root.render(createElement(CastPanel, {
+    ...props, readOnly: true, state: { status: "accepted", acceptedCast: accepted, candidate: null, staleReasons: [] },
+  })));
+  const action = host.querySelector(".cast-next-action")!;
+  expect(action.textContent).toContain("此项目为只读，不能准备或发送角色设定任务");
+  expect(action.textContent).not.toContain("先准备任务，再发送");
+  expect(action.querySelector("button")?.disabled).toBe(true);
+  expect(prepare).not.toHaveBeenCalled();
+});
+
 it("prepares a character assignment without sending it or confirming a new design", async () => {
   const prepare = vi.spyOn(plotloomApi, "prepareCastCandidate").mockResolvedValue({
     jobId: "prepared-job", expectedCastRevision: 1, binding: accepted.binding, status: "prepared",
@@ -234,7 +246,9 @@ it("prepares a character assignment without sending it or confirming a new desig
 
 it("makes a reopened or prepared task prominent rather than claiming its retained result is complete", async () => {
   await renderCast({ status: "reopened", acceptedCast: accepted, candidate: null, staleReasons: [] });
-  expect(host.querySelector("h2")?.textContent).toBe("角色设定修订轮次已打开");
+  expect(host.querySelector("h2")?.textContent).toBe("正在编辑角色设定");
+  expect(host.textContent).toContain("只有所依据的故事内容与路线未变");
+  expect(host.textContent).not.toContain("既有授权");
   expect(host.textContent).toContain("保留的已确认角色");
   await renderCast({ status: "prepared", acceptedCast: accepted, staleReasons: [], candidate: {
     jobId: "new-job", expectedCastRevision: 1, binding: accepted.binding, status: "prepared", cast: null,
@@ -250,7 +264,7 @@ it.each(["ready", "prepared"] as const)("labels a stale %s cast candidate as nee
     cast: status === "ready" ? accepted.cast : null,
     deliveryId: null, manifestHash: null, reportAvailable: false, createdAt: "2026-10-04T00:00:00Z", deliveredAt: null,
   } });
-  expect(host.querySelector("h2")?.textContent).toBe("上下文已过期");
+  expect(host.querySelector("h2")?.textContent).toBe("角色设定需重新确认");
   expect(host.querySelector(".reference-state")?.textContent).toBe("需更新");
   const mutation = [...host.querySelectorAll("button")].find(button => button.textContent === (status === "ready" ? "确认使用此角色设定" : "发送给文字创作助手"));
   expect(mutation?.disabled).toBe(true);

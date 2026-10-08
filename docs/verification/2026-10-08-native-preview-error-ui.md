@@ -79,8 +79,8 @@ keeps recovery labels readable; raw browser evidence is preserved, not translate
 - Fresh owner/protected settings recapture remains exact:
   `df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`.
 
-Publication identity is recorded after commit/push; later reader changes need
-their own qualification and cannot inherit this gate.
+Executable checkpoint is committed and pushed on main as `552f1da`.
+Later reader/gallery changes need their own qualification and cannot inherit this gate.
 No mute, media rewrite, timeout, worker-count, fake-ended or retry workaround
 was introduced. Native canvas spinner behavior is unchanged. The native candidate
 remains unselected; raw/segment/all-route native acceptance remains unfinished.

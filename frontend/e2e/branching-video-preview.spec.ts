@@ -5,9 +5,18 @@ import { demoProject } from "../src/demo";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Locator, Page } from "@playwright/test";
+import { collectNativeMediaDiagnostics } from "./native-media-diagnostics";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const still = path.join(root, "docs/verification/supporting/p0-generated/01-arrival.png");
+const retainDiagnostics = new WeakMap<Page, () => Promise<void>>();
+
+test.beforeEach(async ({ page }, info) => {
+  retainDiagnostics.set(page, await collectNativeMediaDiagnostics(page, info));
+});
+test.afterEach(async ({ page }) => {
+  await retainDiagnostics.get(page)?.();
+});
 
 type MediaTrace = { type: string; identity: string; connected: boolean; currentTime: number; paused: boolean };
 
@@ -26,7 +35,7 @@ async function installMediaTrace(page: Page) {
       if (!observed.has(node)) {
         observed.add(node);
         record("attached", node);
-        for (const event of ["play", "playing", "pause", "ended", "error"]) node.addEventListener(event, () => record(event, node));
+        for (const event of ["play", "playing", "pause", "ended", "error", "waiting", "stalled", "loadedmetadata", "canplay", "timeupdate"]) node.addEventListener(event, () => record(event, node));
       }
       if (!node.isConnected) record("removed", node);
     };

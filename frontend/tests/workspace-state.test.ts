@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { demoProject, demoRun, emptyStageContent } from "../src/demo";
-import type { MediaTask, ProjectResource, RunProgress, RunTrace, ServerStageName, StageEnvelope } from "../src/types";
-import { editorRevisionKey, hydrateWorkspaceProject, newestMediaTasksByShot, quarantineItemsFromProgress, quarantineItemsFromTrace } from "../src/workspace-state";
+import { demoProject, emptyStageContent } from "../src/demo";
+import type { MediaTask, ProjectResource, RunProgress, ServerStageName, StageEnvelope } from "../src/types";
+import { editorRevisionKey, hydrateWorkspaceProject, newestMediaTasksByShot, quarantineItemsFromProgress } from "../src/workspace-state";
 
 const mediaTask = (overrides: Partial<MediaTask>): MediaTask => ({
   id: "task",
@@ -80,25 +80,6 @@ describe("workspace hydration contracts", () => {
     });
   });
 
-  it("reconstructs an actionable quarantine item from durable trace evidence", () => {
-    const trace: RunTrace = {
-      run: { ...demoRun, id: "run-1", projectId: "p1", status: "quarantined", requestedStages: ["story_bible"] },
-      attempts: [
-        { id: "attempt-old", runId: "run-1", workUnitId: null, stage: "story_bible", attemptNumber: 1, attemptKind: "primary", sourceAttemptId: null, status: "failed", provider: null, model: null, error: "old error", dispatchedAt: null, responsePersistedAt: null, providerRequestId: null, outcomeUnknown: false, outcomeCode: "schema_invalid", startedAt: "2026-08-29T00:00:00Z", finishedAt: "2026-08-29T00:00:01Z" },
-        { id: "attempt-1", runId: "run-1", workUnitId: null, stage: "story_bible", attemptNumber: 2, attemptKind: "correction", sourceAttemptId: "attempt-old", status: "failed", provider: null, model: null, error: "schema invalid", dispatchedAt: null, responsePersistedAt: null, providerRequestId: null, outcomeUnknown: false, outcomeCode: "schema_invalid", startedAt: "2026-08-30T00:00:00Z", finishedAt: "2026-08-30T00:00:01Z" },
-      ],
-      artifacts: [
-        { id: "old-response", runId: "run-1", attemptId: "attempt-old", workUnitId: null, sourceArtifactId: null, stage: "story_bible", kind: "response", mediaType: "application/json", content: { rawResponse: "OLD RAW" }, contentHash: "old", createdAt: "2026-08-29T00:00:01Z" },
-        { id: "response-1", runId: "run-1", attemptId: "attempt-1", workUnitId: null, sourceArtifactId: null, stage: "story_bible", kind: "response", mediaType: "application/json", content: { rawResponse: "CURRENT RAW" }, contentHash: "raw", createdAt: "2026-08-30T00:00:01Z" },
-        { id: "artifact-1", runId: "run-1", attemptId: "attempt-1", workUnitId: null, sourceArtifactId: null, stage: "story_bible", kind: "validation", mediaType: "application/json", content: { accepted: false, issues: [{ code: "missing.logline", message: "missing logline" }] }, contentHash: "abc", createdAt: "2026-08-30T00:00:02Z" },
-      ],
-      snapshotIsCurrent: true,
-    };
-    expect(quarantineItemsFromTrace(trace)[0]).toMatchObject({ id: "attempt-1", stage: "story_bible", message: "schema invalid" });
-    expect(quarantineItemsFromTrace(trace)[0].code).toBe("missing.logline");
-    expect(quarantineItemsFromTrace(trace)[0].rawOutput).toBe("CURRENT RAW");
-  });
-
   it("uses server-issued repair eligibility and never infers it from stale, sealed, or unknown work units", () => {
     const progress: RunProgress = {
       runId: "run-1",
@@ -134,5 +115,7 @@ describe("workspace hydration contracts", () => {
       "repair.target_outcome_unknown", "repair.target_sealed", "repair.snapshot_stale",
     ]);
     expect(JSON.stringify(items)).not.toContain("rawResponse");
+    expect(items[0].message).toContain("请求的结果不确定");
+    expect(items[0].message).not.toContain("是否到达");
   });
 });

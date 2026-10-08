@@ -391,7 +391,7 @@ test.describe("F2B cast-owned reference studies", () => {
     });
     expect(changed.ok(), await changed.text()).toBeTruthy();
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${staleProjectId}&stage=characters`);
-    await expect(page.getByTestId("cast-review")).toContainText("上下文已过期");
+    await expect(page.getByTestId("cast-review")).toContainText("角色设定需重新确认");
     await expect(page.getByTestId("character-reference-gallery")).toContainText("重新确认角色设定前不能选择");
     const staleCast = await getJson<any>(request.get(`${workbench.apiOrigin}/api/v2/projects/${staleProjectId}/cast`));
     expect(staleCast.status).toBe("stale");

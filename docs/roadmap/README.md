@@ -9,6 +9,14 @@ coverage and the first-install-only revision/rebuild and intent-generation prere
 Playbook adoption is documentation/planning approval, not dispatch or implementation
 authority; native media and the post-install revision journey remain PARTIAL.
 
+The owner requested a dedicated whole-product visual-and-text pass on October8,
+including “weird wording.” It is now mandatory E22 in the reusable playbook,
+not incidental observation during functional tests. The
+[current view/state audit](../verification/2026-10-08-whole-product-ui-audit.md)
+and [reading-state checkpoint](../verification/2026-10-08-reader-gallery-ui-states.md)
+separate inspected desktop pixels, demonstrated repairs and still-unqualified states.
+The supported matrix remains1280×768,1280×460,1700×900; no phone/1024px work.
+
 The owner approved a [fresh full creator E2E repeat](2026-10-07-full-creator-e2e-repeat.md)
 with demonstrated repairs on October7, including candidate provenance. Its
 [run ledger](../verification/2026-10-07-full-creator-e2e-repeat.md) is in progress;

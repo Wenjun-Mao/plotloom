@@ -164,22 +164,25 @@
 .prompt-details { margin-top: 12px; border: 1px solid var(--line); }
 .prompt-details summary { padding: 12px 12px; color: var(--accent); cursor: pointer; font: 700 12px var(--mono); }
 .prompt-details textarea { min-height: 150px; border: 0; border-top: 1px solid var(--line); border-radius: 0; font: 12px/1.55 var(--mono); }
-.run-console { display: flex; gap: 16px; align-items: center; justify-content: space-between; padding: 13px; margin-bottom: 14px; }
+.run-console { display: grid; gap: 12px; padding: 13px; margin-bottom: 14px; }
+.run-console > .event-detail { min-width: 0; margin: 0; overflow-wrap: anywhere; }
 .topology-trace { margin-bottom: 14px; padding: 14px; }
 .stage-selector { display: flex; flex-wrap: wrap; gap: 7px; }
 .stage-selector label { display: flex; gap: 6px; align-items: center; padding: 7px 12px; border: 1px solid var(--line); color: var(--muted); cursor: pointer; }
 .stage-selector input { width: auto; margin: 0; accent-color: var(--accent); }
-.run-state { display: flex; gap: 12px; align-items: center; }
-.run-state code { color: var(--dim); font-size: 12px; }
+.run-state { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.run-state .badge, .run-state .spinner { flex-shrink: 0; }
+.run-state code { min-width: 0; color: var(--dim); font-size: 12px; overflow-wrap: anywhere; }
 .trace-layout { display: grid; grid-template-columns: minmax(330px, .72fr) minmax(0, 1.28fr); gap: 14px; }
 .trace-list, .prompt-inspector { min-height: 580px; padding: 15px; }
-.trace-event { display: grid; width: 100%; grid-template-columns: 11px 60px minmax(0,1fr); gap: 8px; align-items: start; padding: 11px 8px; border: 0; border-top: 1px solid var(--line); color: var(--muted); text-align: left; background: transparent; }
+.trace-event { display: grid; width: 100%; grid-template-columns: 11px minmax(0,1fr); gap: 5px 8px; align-items: start; padding: 11px 8px; border: 0; border-top: 1px solid var(--line); color: var(--muted); text-align: left; background: transparent; }
 .trace-event.active { color: var(--text); background: rgba(233,180,91,.07); }
 .trace-dot { width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: var(--dim); }
 .trace-dot.ok { background: var(--success); }
 .trace-dot.warning { background: var(--accent); }
 .trace-dot.error { background: var(--danger); }
-.trace-event time { color: var(--dim); font: 12px var(--mono); }
+.trace-event time { min-width: 0; color: var(--dim); font: 12px var(--mono); overflow-wrap: anywhere; }
+.trace-event > div { grid-column: 2; min-width: 0; overflow-wrap: anywhere; }
 .trace-event small, .trace-event strong { display: block; }
 .trace-event small { color: var(--accent); font: 12px var(--mono); }
 .trace-event strong { margin-top: 3px; font-size: 12px; }

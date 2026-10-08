@@ -73,9 +73,9 @@ describe("Plotloom workspace model", () => {
     const currentHead = { status: "ready" as const, revision: 4, contentHash: "graph-hash" };
 
     expect(prototypeReadiness("accepted", currentHead, binding)).toBeUndefined();
-    expect(prototypeReadiness("stale", currentHead, binding)).toContain("不是可阅读的已接受版本");
-    expect(prototypeReadiness("reopened", currentHead, binding)).toContain("不是可阅读的已接受版本");
-    expect(prototypeReadiness("accepted", { ...currentHead, status: "stale" }, binding)).toContain("剧情图不可用或已过期");
+    expect(prototypeReadiness("stale", currentHead, binding)).toContain("当前剧本尚未确认，或已有新的修改");
+    expect(prototypeReadiness("reopened", currentHead, binding)).toContain("当前剧本尚未确认，或已有新的修改");
+    expect(prototypeReadiness("accepted", { ...currentHead, status: "stale" }, binding)).toContain("当前故事路线尚未准备好或已过期");
     expect(prototypeReadiness("accepted", { ...currentHead, contentHash: "newer-graph-hash" }, binding)).toContain("不是当前版本");
   });
 
@@ -106,9 +106,9 @@ describe("Plotloom workspace model", () => {
     expect(storyboardPrototypeReadiness("accepted", { status: "ready", revision: 4, contentHash: "graph-hash" }, script, review)).toBeUndefined();
     expect(storyboardEpisodesForRoute(review.acceptedReview.storyboard, binding.sectionBindings, routes[0]).map((item) => item.episode.ep)).toEqual([1, 2]);
     expect(storyboardPrototypeReadiness("accepted", { status: "ready", revision: 4, contentHash: "graph-hash" }, script, { ...review, status: "stale" })).toContain("没有可阅读的已确认分镜评审");
-    expect(storyboardPrototypeReadiness("accepted", { status: "ready", revision: 4, contentHash: "graph-hash" }, script, { ...review, acceptedReview: { ...review.acceptedReview, binding: { ...review.acceptedReview.binding, scriptContentHash: "old-script" } } })).toContain("绑定的剧本不是当前已接受版本");
-    expect(storyboardPrototypeReadiness("accepted", { status: "ready", revision: 4, contentHash: "graph-hash" }, script, { ...review, acceptedReview: { ...review.acceptedReview, binding: { ...review.acceptedReview.binding, graphContentHash: "old-graph" } } })).toContain("绑定的故事图不是当前版本");
-    expect(storyboardPrototypeReadiness("accepted", { status: "ready", revision: 4, contentHash: "graph-hash" }, script, { ...review, acceptedReview: { ...review.acceptedReview, binding: { ...review.acceptedReview.binding, sectionBindings: [{ sectionId: "opening", episode: 1 }, { sectionId: "beacon", episode: 3 }] } } })).toContain("章节对应与当前剧本不一致");
+    expect(storyboardPrototypeReadiness("accepted", { status: "ready", revision: 4, contentHash: "graph-hash" }, script, { ...review, acceptedReview: { ...review.acceptedReview, binding: { ...review.acceptedReview.binding, scriptContentHash: "old-script" } } })).toContain("对应的剧本不是当前已确认版本");
+    expect(storyboardPrototypeReadiness("accepted", { status: "ready", revision: 4, contentHash: "graph-hash" }, script, { ...review, acceptedReview: { ...review.acceptedReview, binding: { ...review.acceptedReview.binding, graphContentHash: "old-graph" } } })).toContain("对应的故事路线不是当前版本");
+    expect(storyboardPrototypeReadiness("accepted", { status: "ready", revision: 4, contentHash: "graph-hash" }, script, { ...review, acceptedReview: { ...review.acceptedReview, binding: { ...review.acceptedReview.binding, sectionBindings: [{ sectionId: "opening", episode: 1 }, { sectionId: "beacon", episode: 3 }] } } })).toContain("章节与当前剧本不一致");
   });
 
   it("marks only downstream stages stale", () => {
@@ -172,12 +172,17 @@ describe("Plotloom workspace model", () => {
     };
 
     const [event] = traceEvents(trace);
-    expect(event.title).toBe("Attempt 2/3 · failed");
-    expect(event.detail).toContain("Outcome: schema_invalid");
-    expect(event.detail).toContain("Lineage: correction ← attempt-1");
-    expect(event.detail).toContain("Elapsed: 2000 ms");
-    expect(event.detail).toContain("Tokens: input 120 · output 45");
-    expect(event.detail).toContain("Failure: schema rejected");
+    expect(event.title).toBe("第 2/3 次执行 · 执行失败");
+    expect(event.detail).toContain("执行结果：schema_invalid");
+    expect(event.detail).toContain("执行来源：更正 ← attempt-1");
+    expect(event.detail).toContain("耗时：2000 ms");
+    expect(event.detail).toContain("令牌用量：输入 120 · 输出 45");
+    expect(event.detail).toContain("失败信息：schema rejected");
+    const uncertainAttempt = { ...trace.attempts[0], outcomeUnknown: true, outcomeCode: "transport.outcome_unknown" };
+    const [uncertain] = traceEvents({ ...trace, attempts: [uncertainAttempt] });
+    expect(uncertain).toMatchObject({ kind: "request", title: "第 2/3 次执行 · 请求结果不确定", status: "warning", payload: uncertainAttempt });
+    expect(uncertain.detail).toContain("请求结果不确定 · transport.outcome_unknown");
+    expect(uncertain.payload).toMatchObject({ status: "failed", outcomeUnknown: true });
   });
 
   it("adds the frozen story topology to the same inspectable trace timeline", () => {
@@ -189,7 +194,7 @@ describe("Plotloom workspace model", () => {
     });
 
     expect(events).toContainEqual(expect.objectContaining({
-      stage: "story_graph", title: "Story graph topology frozen", payload: topology,
+      stage: "story_graph", title: "已冻结剧情图结构", payload: topology,
     }));
   });
 
@@ -205,6 +210,6 @@ describe("Plotloom workspace model", () => {
       workUnits: [unit, { ...unit, id: "unit-2", sequence: 2, status: "quarantined" as const }],
     };
 
-    expect(summarizeWorkUnitStatuses(execution)).toBe("1 failed · 1 quarantined");
+    expect(summarizeWorkUnitStatuses(execution)).toBe("1 个执行失败 · 1 个输出未通过校验（已隔离）");
   });
 });

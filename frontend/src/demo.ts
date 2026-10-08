@@ -84,7 +84,7 @@ export const demoProject: WorkspaceProject = {
     ],
     shotBeatLinks: [["shot_01", "b1"], ["shot_02", "b2"], ["shot_03", "b3"], ["shot_04", "b4"], ["shot_05", "b5"], ["shot_06", "b6"], ["shot_07", "b7"], ["shot_08", "b8"], ["shot_09", "b9"], ["shot_10", "b10"], ["shot_11", "b11"]].map(([shotId, beatId]) => ({ shotId, beatId, role: "primary" as const, coverageWeight: 1 })),
   } satisfies Storyboard,
-  quarantines: [{ id: "q1", stage: "story_graph", code: "GRAPH_ENDING_COUNT", message: "模型返回 2 个结局，合同要求 3 个。", rawOutput: "{\"nodes\":[...],\"endings\":[\"city\",\"brother\"]}", repairHint: "保留已有节点，增加一个由角色主动交出选择权形成的第三结局。" }], staleStages: [],
+  quarantines: [{ id: "q1", stage: "story_graph", code: "GRAPH_ENDING_COUNT", message: "模型返回 2 个结局，合同要求 3 个。", status: "quarantined", repairEligible: false, repairReasonCode: "repair.not_eligible" }], staleStages: [],
 };
 
 const demoStageHead = (stage: "story_bible" | "story_graph" | "scene_beats" | "storyboard", status: "ready" | "stale") => ({ stage, status, revision: 1, schemaVersion: 2 as const, entityRevisionId: `demo-${stage}-r1`, contentHash: `demo-${stage}-hash`, inputRevisions: {}, staleReasons: status === "stale" ? ["教学草案中的上游示例已变化"] : [], updatedAt: "2026-08-30T00:00:00Z" });
@@ -98,5 +98,5 @@ export const demoTrace: TraceEvent[] = [
   { id: "t2", at: "10:42:08", stage: "story_bible", kind: "validation", title: "Schema and continuity checks passed", status: "ok", detail: "2 characters · 3 world rules · 3 themes" },
   { id: "t3", at: "10:42:09", stage: "story_graph", kind: "prompt", title: "Graph generation requested", status: "ok", systemPrompt: "构造有向无环叙事图；遵守节点预算、出度和结局数。", userPrompt: "节点预算 10；每路径 2 个决定；3 个结局；期望 1 个汇合。" },
   { id: "t4", at: "10:42:17", stage: "story_graph", kind: "validation", title: "Graph contract rejected", status: "error", detail: "GRAPH_ENDING_COUNT: expected 3, received 2", payload: { expectedEndingCount: 3, actualEndingCount: 2 } },
-  { id: "t5", at: "10:42:17", stage: "story_graph", kind: "error", title: "Output moved to quarantine", status: "warning", detail: "No project stage was overwritten. Repair can reuse the raw output." },
+  { id: "t5", at: "10:42:17", stage: "story_graph", kind: "error", title: "输出已隔离", status: "warning", detail: "未覆盖任何正式内容。此教学记录不提供可执行的单独修复。" },
 ];

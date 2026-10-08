@@ -5,7 +5,6 @@ import type {
   ProjectResource,
   QuarantineItem,
   RunProgress,
-  RunTrace,
   SceneBeatPlan,
   ServerStageName,
   StageEnvelope,
@@ -67,42 +66,6 @@ export function hydrateWorkspaceProject(
   );
 }
 
-export function quarantineItemsFromTrace(trace: RunTrace): QuarantineItem[] {
-  // Legacy runs have no work-unit progress projection. Keep this reader only
-  // for historical trace display; M1-R actions must come from server-issued
-  // repair eligibility in `quarantineItemsFromProgress` below.
-  if (trace.run.status !== "quarantined") return [];
-  const failed = [...trace.attempts].reverse().find((attempt) => attempt.status === "failed");
-  if (!failed) return [];
-  const response = [...trace.artifacts]
-    .reverse()
-    .find((artifact) => artifact.attemptId === failed.id && artifact.kind === "response");
-  const validation = [...trace.artifacts]
-    .reverse()
-    .find((artifact) => artifact.attemptId === failed.id && artifact.kind === "validation");
-  const validationContent = validation?.content && typeof validation.content === "object"
-    ? validation.content as Record<string, unknown>
-    : {};
-  const issues = Array.isArray(validationContent.issues) ? validationContent.issues : [];
-  const firstIssue = issues.find((issue) => issue && typeof issue === "object") as Record<string, unknown> | undefined;
-  const responseContent = response?.content && typeof response.content === "object"
-    ? response.content as Record<string, unknown>
-    : undefined;
-  const rawResponse = typeof responseContent?.rawResponse === "string"
-    ? responseContent.rawResponse
-    : response
-      ? JSON.stringify(response.content, null, 2)
-      : "没有可展示的原始响应。";
-  return [{
-    id: failed.id,
-    stage: failed.stage,
-    code: typeof firstIssue?.code === "string" ? firstIssue.code : "QUARANTINED_OUTPUT",
-    message: failed.error || (typeof firstIssue?.message === "string" ? firstIssue.message : "生成输出未通过阶段合同。"),
-    rawOutput: rawResponse,
-    repairHint: "检查验证证据，并为修复运行提供最小、明确的纠正指令。",
-  }];
-}
-
 /**
  * Turns the intentionally small server progress projection into a workbench
  * list. Eligibility is copied verbatim from the server: the browser never
@@ -125,8 +88,8 @@ export function quarantineItemsFromProgress(progress: RunProgress | undefined): 
         status: unit.status,
         code,
         message: unit.status === "outcome_unknown"
-          ? "本次请求是否到达模型端未知；为避免重复生成，不能自动或精确重放。"
-          : "该 work unit 已隔离；规范内容尚未安装。",
+          ? "本次模型请求的结果不确定；为避免重复生成，不能自动重试或单独重做。"
+          : "这个子任务的输出已隔离；尚未保存为正式内容。",
         attempt: unit.latestAttempt,
         maxAttempts: unit.maxAttempts,
         sealed: unit.sealed,

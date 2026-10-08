@@ -1,4 +1,5 @@
 import { expect, test } from "./fixture";
+import type { Locator, Page, TestInfo } from "@playwright/test";
 import { changeScript, createScriptProject, endpoint, fixture, json, writeDelivery } from "./f5a-fixture";
 
 async function acceptStoryboardReview(request: Parameters<typeof createScriptProject>[0], origin: string, id: string) {
@@ -15,7 +16,9 @@ test("reads ordered multi-scene canonical screenplay without a storyboard review
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${workbench.frontendOrigin}/v2/?view=story-prototype&project=${id}`);
   const prototype = page.getByTestId("story-prototype");
-  await expect(prototype).toContainText("界面为中文；已确认原文内容按接受版本呈现。");
+  await expect(prototype).toContainText("原文按已确认的版本显示，不在这里改写。");
+  await expect(prototype).toContainText("这里不会更改内容、生成素材或建立正式镜头。");
+  await expect(prototype).not.toContainText("产品镜头");
   await expect(prototype).toContainText("已确认原文");
   await expect(prototype).not.toContainText("英文原文");
   await expect(prototype).not.toContainText("英文源内容保持原样");
@@ -87,7 +90,7 @@ test("switches route-focused screenplay and matching storyboard without appendin
   expect(writes).toEqual([]);
 });
 
-test("refuses a stale storyboard locally while retaining the current screenplay", async ({ page, request, workbench }) => {
+test("refuses a stale storyboard locally while retaining the current screenplay", async ({ page, request, workbench }, testInfo) => {
   const id = await createScriptProject(request, workbench.apiOrigin, "story-prototype-stale");
   await acceptStoryboardReview(request, workbench.apiOrigin, id);
   await changeScript(request, workbench.apiOrigin, id);
@@ -96,13 +99,15 @@ test("refuses a stale storyboard locally while retaining the current screenplay"
   await expect(prototype.getByTestId("route-reader")).toContainText("Deterministic edited route status");
   await prototype.getByRole("button", { name: "分镜 · 当前不可读" }).click();
   await expect(prototype.getByTestId("storyboard-unavailable")).toContainText("当前没有可阅读的已确认分镜评审");
+  await expect(prototype.getByTestId("storyboard-unavailable").getByRole("link", { name: "前往分镜评审" })).toHaveAttribute("href", `?project=${id}&stage=source#storyboard-review`);
+  await inspectReaderState(page, testInfo, "reader-stale-storyboard", prototype.getByTestId("storyboard-unavailable"));
 });
 
-test("shows pending storyboard reads distinctly and retries fatal reader errors without writes", async ({ page, request, workbench }) => {
+test("shows pending storyboard reads distinctly and retries fatal reader errors without writes", async ({ page, request, workbench }, testInfo) => {
   const id = await createScriptProject(request, workbench.apiOrigin, "story-prototype-read-recovery");
   let rejectScriptRead = true;
   await page.route(`**/api/v2/projects/${id}/script`, async route => {
-    if (rejectScriptRead) { await route.fulfill({ status: 503, json: { detail: "暂时无法读取剧本" } }); }
+    if (rejectScriptRead) { await route.fulfill({ status: 503, json: { message: "暂时无法读取剧本" } }); }
     else await route.continue();
   });
   let finishStoryboard!: () => void;
@@ -113,17 +118,97 @@ test("shows pending storyboard reads distinctly and retries fatal reader errors 
   try {
     await page.goto(`${workbench.frontendOrigin}/v2/?view=story-prototype&project=${id}`);
     await expect(page.getByRole("heading", { name: "暂时无法阅读故事" })).toBeVisible();
+    await expect(page.locator(".prototype-empty")).toContainText("暂时无法读取剧本");
     await expect(page.getByRole("link", { name: "返回创作流程", exact: true })).toBeVisible();
+    await inspectReaderState(page, testInfo, "reader-fatal-read", page.locator(".prototype-empty"));
     rejectScriptRead = false;
     await page.getByRole("button", { name: "重新读取故事" }).click();
     await expect(page.getByTestId("story-prototype")).toBeVisible();
     await expect(page.getByRole("button", { name: "分镜 · 正在检查" })).toBeVisible();
     await expect(page.getByRole("button", { name: "分镜 · 当前不可读" })).toHaveCount(0);
+    await page.getByRole("button", { name: "分镜 · 正在检查" }).click();
+    await inspectReaderState(page, testInfo, "reader-pending-storyboard", page.locator(".prototype-reading"));
     finishStoryboard();
     await expect(page.getByRole("button", { name: "分镜 · 当前不可读" })).toBeVisible();
     expect(writes).toEqual([]);
   } finally { finishStoryboard(); }
 });
+
+test("missing or reopened screenplay offers its preparation owner rather than a transport retry", async ({ page, request, workbench }, testInfo) => {
+  const writes: string[] = [];
+  page.on("request", pending => { if (pending.url().includes("/api/v2/") && pending.method() !== "GET") writes.push(pending.method()); });
+  await page.goto(`${workbench.frontendOrigin}/v2/?view=story-prototype`);
+  const noProject = page.locator(".prototype-empty");
+  await expect(noProject).toContainText("打开故事路线和剧本均已确认的项目");
+  await expect(noProject).not.toContainText("已有已确认");
+  await expect(noProject.getByRole("link", { name: "返回项目首页" })).toHaveAttribute("href", "/v2/");
+  await inspectReaderState(page, testInfo, "reader-no-project", noProject);
+  const id = await createScriptProject(request, workbench.apiOrigin, "reader-prerequisites", {}, ["cast", "art"]);
+  await page.goto(`${workbench.frontendOrigin}/v2/?view=story-prototype&project=${id}`);
+  const prerequisites = page.getByTestId("reader-prerequisites");
+  await expect(prerequisites).toContainText("当前尚无已确认剧本");
+  await expect(prerequisites.getByRole("link", { name: "前往剧本审阅" })).toHaveAttribute("href", `?project=${id}&stage=source#script`);
+  await expect(page.getByRole("button", { name: "重新读取故事" })).toHaveCount(0);
+  await inspectReaderState(page, testInfo, "reader-missing-script", prerequisites);
+
+  const reopenedId = await createScriptProject(request, workbench.apiOrigin, "reader-reopened-script");
+  await json(request.post(`${workbench.apiOrigin}/api/v2/projects/${reopenedId}/script/reopen`, { data: { expectedScriptRevision: 1 } }));
+  await page.goto(`${workbench.frontendOrigin}/v2/?view=story-prototype&project=${reopenedId}`);
+  await expect(prerequisites).toContainText("当前剧本尚未确认，或已有新的修改");
+  await expect(prerequisites.getByRole("link", { name: "前往剧本审阅" })).toHaveAttribute("href", `?project=${reopenedId}&stage=source#script`);
+  await expect(page.getByRole("button", { name: "重新读取故事" })).toHaveCount(0);
+  await inspectReaderState(page, testInfo, "reader-reopened-script", prerequisites);
+  expect(writes).toEqual([]);
+});
+
+test("optional storyboard read failure preserves route and retries only that read", async ({ page, request, workbench }, testInfo) => {
+  const id = await createScriptProject(request, workbench.apiOrigin, "reader-storyboard-read-failure");
+  await acceptStoryboardReview(request, workbench.apiOrigin, id);
+  let failRead = true;
+  await page.route(`**/api/v2/projects/${id}/storyboard-source-review`, async route => {
+    if (failRead) await route.fulfill({ status: 503, json: { message: "分镜读取服务暂时不可用" } });
+    else await route.continue();
+  });
+  const writes: string[] = [];
+  let scriptReads = 0;
+  page.on("request", pending => {
+    if (pending.url().includes("/api/v2/") && pending.method() !== "GET") writes.push(pending.method());
+    if (pending.url().endsWith(`/projects/${id}/script`)) scriptReads++;
+  });
+  await page.goto(`${workbench.frontendOrigin}/v2/?view=story-prototype&project=${id}`);
+  const prototype = page.getByTestId("story-prototype");
+  const route = prototype.getByRole("button", { name: /播放路线 .*Light the dock/ });
+  await route.click();
+  await expect(prototype.getByTestId("route-reader")).toContainText("Dock first.");
+  await prototype.getByRole("button", { name: "分镜 · 读取失败" }).click();
+  const failure = prototype.getByTestId("storyboard-read-failed");
+  await expect(failure).toContainText("分镜读取服务暂时不可用");
+  await expect(failure).not.toContainText("当前没有可阅读");
+  await inspectReaderState(page, testInfo, "reader-failed-storyboard", failure);
+  const scriptReadsBeforeRetry = scriptReads;
+  expect(scriptReadsBeforeRetry).toBeGreaterThan(0);
+  failRead = false;
+  await failure.getByRole("button", { name: "重新读取分镜" }).click();
+  await expect(prototype.getByTestId("storyboard-reader")).toContainText("The dock stays on.");
+  await expect(route).toHaveAttribute("aria-pressed", "true");
+  await expect(failure).toHaveCount(0);
+  expect(scriptReads).toBe(scriptReadsBeforeRetry);
+  expect(writes).toEqual([]);
+});
+
+async function inspectReaderState(page: Page, testInfo: TestInfo, name: string, state: Locator) {
+  for (const [width, height] of [[1700, 900], [1280, 768], [1280, 460]]) {
+    await page.setViewportSize({ width, height });
+    await state.evaluate(element => element.scrollIntoView({ block: "center" }));
+    await expect(state).toBeVisible();
+    const bounds = await state.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.y).toBeGreaterThanOrEqual(0);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(height - 12);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`${name}-${width}x${height}.png`) });
+  }
+}
 
 async function multiSceneCandidates() {
   const [cast, art, script] = await Promise.all([fixture("cast.json"), fixture("art.json"), fixture("script.json")]);

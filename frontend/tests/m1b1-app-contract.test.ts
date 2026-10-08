@@ -181,10 +181,10 @@ describe("M1-B1 App integration contracts", () => {
 
     const inspector = document.querySelector('[data-testid="workspace-inspector"]');
     expect(inspector?.textContent).toContain("validation.canonical_rejected");
-    expect(inspector?.textContent).toContain("scene_beats · #2");
-    expect(inspector?.textContent).toContain("quarantined · seal yes");
-    expect(inspector?.textContent).toContain("Attempt 2/3");
-    expect(inspector?.textContent).toContain("token 120/44");
+    expect(inspector?.textContent).toContain("场景节拍 · #2");
+    expect(inspector?.textContent).toContain("输出未通过校验（已隔离） · 已封存");
+    expect(inspector?.textContent).toContain("执行次数 2/3");
+    expect(inspector?.textContent).toContain("令牌用量 120/44");
     expect(inspector?.textContent).toContain("SCENE_DURATION");
   });
 

@@ -51,7 +51,7 @@ for (const stage of ["cast", "script"] as const) {
     expect(state[stage === "cast" ? "acceptedCast" : "acceptedScript"]).toBeNull();
     expect(state.status).toBe("stale");
     await page.reload();
-    await expect(panel).toContainText("上下文已过期");
+    await expect(panel).toContainText(stage === "cast" ? "角色设定需重新确认" : "上下文已过期");
     if (ready) {
       await expect(panel.getByRole("button", { name: stage === "cast" ? "确认使用此角色设定" : "确认使用此剧本" })).toBeDisabled();
     } else {

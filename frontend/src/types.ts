@@ -650,10 +650,6 @@ export interface QuarantineItem {
   sealed?: boolean;
   repairEligible?: boolean;
   repairReasonCode?: string | null;
-  /** @deprecated Legacy trace-only evidence; never populated from progress. */
-  rawOutput?: string;
-  /** @deprecated Legacy trace-only hint; exact repair accepts no client guidance. */
-  repairHint?: string;
 }
 
 export interface WorkspaceProject {

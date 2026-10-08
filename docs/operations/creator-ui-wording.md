@@ -130,3 +130,24 @@ timestamp retained. Scene-card layout must not style text-only action buttons.
 The Brief help dock intentionally reserves space to avoid shifting later fields
 when help opens. Settings-dialog captures must include both its initial body and
 scrolled lower fields; a body scrolled to image settings is not missing text settings.
+
+Reader prerequisites name their preparation owner instead of suggesting that
+reloading creates missing content. An optional Storyboard read failure keeps the
+current Script/route available and offers only a Storyboard read retry. Gallery
+read failure, no images and no selected reference are different facts; headings
+and badges must agree. Archived guidance must not invite a disabled prepare/send
+or selection action. Known content and local inputs remain visible after a failed
+refresh, without claiming they authorize current edits. Cast cancellation explains
+that restoring confirmed status depends on unchanged story/route bindings.
+Bible locations are 地点设定, not scene beats; unnamed cards identify their type.
+
+Run, subtask and attempt outcomes are distinct. Display Chinese state labels,
+keep exact codes and original attempt data in the event details, and present an
+unknown request result as uncertain even when its persisted attempt is failed.
+Pending cancellation says 已请求取消，等待运行结束; the server-authorized re-signal
+action is 再次请求取消. No execution record means 执行来源未记录, not 首次执行.
+Status and failure explanations must not compete for one cramped flex row.
+The zero-event progress helper must not invite selecting an event that does not
+exist. Pending events use an in-progress label and accent tone, not success green.
+For an unknown result, explain that a full rebuild can submit fresh requests and
+duplicate work; checking the original result is not merely an exact-repair concern.

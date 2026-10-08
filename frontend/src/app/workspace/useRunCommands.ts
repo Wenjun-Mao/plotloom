@@ -4,6 +4,7 @@ import { providerSessionKeys } from "../../session-key";
 import { headsByStage, stageForPage, type WorkspaceOperation } from "./contracts";
 import type { PipelineRun, QuarantineItem, ServerStageName, TextProviderProfileView } from "../../types";
 import type { WorkspaceSession } from "./useWorkspaceSession";
+import { canRequestRunCancellation } from "../../run-presentation";
 
 type Currentness = { capture: () => WorkspaceOperation; isCurrent: (operation: WorkspaceOperation) => boolean };
 type RunCommandSession = Pick<WorkspaceSession, "project" | "activePage" | "run" | "route" | "capture" | "isCurrent" | "acceptRun">;
@@ -114,7 +115,7 @@ export function useRunCommands({ session, profiles, pollRun, openTrace, setBusy,
     finally { if (currentness.isCurrent(operation)) setBusy(false); }
   }, [currentness, pollRun, prepareProfile, profiles.draft.enabled, session, setBusy, setError]);
   const cancelRun = useCallback(async () => {
-    if (!isSelectedRun(run)) return;
+    if (!isSelectedRun(run) || !canRequestRunCancellation(run)) return;
     const operation = currentness.capture();
     try { const cancelled = await plotloomApi.cancelRun(run.id); if (!currentness.isCurrent(operation)) return; session.acceptRun(cancelled); void pollRun(cancelled.id, cancelled.projectId).catch((error) => setError(describeError(error))); }
     catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
@@ -127,7 +128,7 @@ export function useRunCommands({ session, profiles, pollRun, openTrace, setBusy,
     catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
   }, [currentness, pollRun, profiles, run, session, setError]);
   const repair = useCallback(async (item: QuarantineItem) => {
-    if (!isSelectedRun(run) || !item.repairEligible) { setError("这个 work unit 当前不具备精确修复资格。"); return; }
+    if (!isSelectedRun(run) || !item.repairEligible) { setError("这个子任务当前不符合单独修复条件。"); return; }
     if (!await profiles.ensureFrozenCredential(run)) return;
     const operation = currentness.capture(); setBusy(true);
     try { const profileId = String(run.providerSnapshot.profileId || "default"); const identity = `${run.id}:${item.id}`; let key = repairKeys.current.get(identity); if (!key) { key = `work-unit-repair-${crypto.randomUUID()}`; repairKeys.current.set(identity, key); } const next = await plotloomApi.repairWorkUnit(run.id, item.id, profileId, key, run.providerSnapshot.textAuthMode !== "none"); if (!currentness.isCurrent(operation)) return; repairKeys.current.delete(identity); openTrace(next); }
