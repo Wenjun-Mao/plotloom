@@ -176,6 +176,22 @@ human-facing explanations, retaining raw evidence in technical details. Do not a
 string-matching translation adapters or weaken currentness/admission. This finding
 is recorded, not fixed, and remains part of E22 before full-run completion.
 
+### Revised Art expanded-reader evidence
+
+Root opened the current r2 static report through `放大阅读报告`, scrolled the
+iframe with the mouse through middle and end, and directly inspected viewport
+captures `art-r2-expanded-{top,middle,end}-1700.png` plus
+`art-r2-expanded-end-1280x768.png` and `art-r2-expanded-end-1280x460.png`.
+All reside in the native evidence directory. At1700×900 the iframe's actual
+document bottom is reached: scrollTop4362 + viewport743 = scrollHeight5105.
+The final footnote is visible below the dialog header at every size; long prompt
+text wraps inside the card, and the close control remains reachable. Escape
+closes the reader and restores focus to `放大阅读报告`; reopening works.
+This is current native expanded-reader evidence, not a claim that every inline
+report/state/desktop combination has been re-exercised. The upstream report's
+explicit skipped-check wording remains visible; its green summary is not treated
+as full creative acceptance or proof that the skipped check ran.
+
 Protection recapture05:53 UTC matches aggregate
 `df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`:
 Wind17 managed files, Rain67 managed files and three protected files unchanged.
