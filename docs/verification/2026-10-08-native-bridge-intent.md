@@ -439,3 +439,14 @@ isolated; no service restart or normal8841 deployment occurred.
 Still open: technical report headings and English limitation text, mixed12-hour
 task clocks, delivered image cards retaining a send control, and native media,
 same-project Revise and remaining full-product coverage. No full E2E PASS is claimed.
+
+At02:18–02:19 UTC the first H3 result was ingested: H.264/AAC,960×544,124frames
+at24fps,5.167seconds. UI preparation created segment
+`eb56d0bd-af21-4e0a-b5ce-0fc3ecba41b6`, frames0–120, with exactly5seconds and
+160000 decoded audio samples at32000Hz. Actual browser playback reached its end
+with120 rendered frames,zero dropped frames,no media error and audio enabled.
+Root viewed early/late frames, then explicitly selected it for functional QA.
+The review records the visible extra wiping cloth as a model fidelity defect;
+audio semantics and artistic quality are not approved. Three shots still lack
+selected media. Protected-owner/config aggregate remains
+`df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`.
