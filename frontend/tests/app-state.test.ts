@@ -129,7 +129,7 @@ describe("App project/editor rehydration", () => {
     vi.spyOn(plotloomApi, "getTextProviderProfiles").mockResolvedValue(fallbackProfiles());
     vi.spyOn(plotloomApi, "getRuntimeCapabilities").mockResolvedValue({
       durableProjectDrafts: false, durableMediaDrafts: false, explicitProjectClose: false,
-      portableSnapshots: false, textProviderProfiles: true,
+      portableSnapshots: false, apiTextPipeline: true,
     });
   });
 

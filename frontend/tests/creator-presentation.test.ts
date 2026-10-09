@@ -94,7 +94,7 @@ it("exposes busy separately from unavailable while keeping the caller's disable 
 });
 
 it("does not claim validation success from an empty quarantine projection", async () => {
-  await act(async () => root.render(createElement(QuarantinePage, {
+  await act(async () => root.render(createElement(QuarantinePage, { apiTextPipeline: true,
     items: [], repairing: false, onRepair: vi.fn(async () => {}), onRebuildStage: vi.fn(async () => {}),
   })));
   expect(host.textContent).toContain("当前未显示隔离结果");
@@ -104,7 +104,7 @@ it("does not claim validation success from an empty quarantine projection", asyn
 
 it("explains the empty trace's actual next action without initiating a run", async () => {
   const onRun = vi.fn(async () => {});
-  await act(async () => root.render(createElement(TracePage, {
+  await act(async () => root.render(createElement(TracePage, { apiTextPipeline: true,
     trace: [], running: false, onRun, onResume: vi.fn(async () => {}), onCancel: vi.fn(async () => {}),
   })));
   expect(host.textContent).toContain("运行事件");
@@ -116,7 +116,7 @@ it("explains the empty trace's actual next action without initiating a run", asy
 
 it.each([undefined, { ...demoRun, status: "running" as const }])("waits for empty active trace events without telling the user to start again", async (run) => {
   const onRun = vi.fn(async () => {});
-  await act(async () => root.render(createElement(TracePage, {
+  await act(async () => root.render(createElement(TracePage, { apiTextPipeline: true,
     run, trace: [], running: true, onRun, onResume: vi.fn(async () => {}), onCancel: vi.fn(async () => {}),
   })));
   expect(host.textContent).toContain("正在等待运行事件");
@@ -126,7 +126,7 @@ it.each([undefined, { ...demoRun, status: "running" as const }])("waits for empt
 });
 
 it("does not interpret a recorded task's empty event list as no task or success", async () => {
-  await act(async () => root.render(createElement(TracePage, {
+  await act(async () => root.render(createElement(TracePage, { apiTextPipeline: true,
     run: demoRun, trace: [], running: false, onRun: vi.fn(async () => {}), onResume: vi.fn(async () => {}), onCancel: vi.fn(async () => {}),
   })));
   expect(host.textContent).toContain("当前任务暂无事件记录");
@@ -135,7 +135,7 @@ it("does not interpret a recorded task's empty event list as no task or success"
 });
 
 it("states that Brief edits retain production and leave the separate source unchanged", async () => {
-  await act(async () => root.render(createElement(BriefPage, {
+  await act(async () => root.render(createElement(BriefPage, { apiTextPipeline: true,
     value: demoProject.brief, hasSavedProject: true, saving: false,
     onSave: vi.fn(async () => {}), onSaveAndContinue: vi.fn(async () => {}),
   })));
@@ -147,7 +147,7 @@ it("states that Brief edits retain production and leave the separate source unch
 it("keeps both legacy generation controls disabled when a ready Brief is read-only", async () => {
   const onGenerateProposal = vi.fn(async () => {});
   const onGenerateStoryboard = vi.fn(async () => {});
-  const briefProps = { value: demoProject.brief, hasSavedProject: true, saving: false, readOnly: true,
+  const briefProps = { apiTextPipeline: true, value: demoProject.brief, hasSavedProject: true, saving: false, readOnly: true,
     onSave: vi.fn(async () => {}), onSaveAndContinue: vi.fn(async () => {}),
     bible: demoProject.storyBible, graph: demoProject.storyGraph, proposalReady: true,
     onGenerateProposal, onGenerateStoryboard };
@@ -167,7 +167,7 @@ it("keeps both legacy generation controls disabled when a ready Brief is read-on
 it("opens Brief structure and shots by default without changing retained settings or overriding manual collapse", async () => {
   const value = { ...demoProject.brief, decisionPointsPerPath: 3, endingCount: 4, nodeBudget: 16,
     maxOutDegree: 4, desiredJoinCount: 2, shotsPerSceneMin: 2, shotsPerSceneMax: 5, shotCountPolicy: "strict" as const };
-  const briefProps = { value, hasSavedProject: true, saving: false,
+  const briefProps = { apiTextPipeline: true, value, hasSavedProject: true, saving: false,
     onSave: vi.fn(async () => {}), onSaveAndContinue: vi.fn(async () => {}),
     onDraftChange: vi.fn(), onGenerateProposal: vi.fn(async () => {}) };
   await act(async () => root.render(createElement(BriefPage, briefProps)));

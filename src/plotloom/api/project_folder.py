@@ -365,7 +365,7 @@ def create_project_folder_authoring_app(
             "durableMediaDrafts": True,
             "explicitProjectClose": True,
             "portableSnapshots": True,
-            "textProviderProfiles": text_admission is not None and run_dispatcher is not None,
+            "apiTextPipeline": text_admission is not None and run_dispatcher is not None,
         }
 
     @app.post(

@@ -13,7 +13,7 @@ function deferred<T>() { let resolve!: (value: T) => void; const promise = new P
 const project = { id: "a", revision: 1, brief: demoProject.brief, createdAt: "2026-10-08", updatedAt: "2026-10-08",
   lifecycleRevision: 1, lifecycleStatus: "active", archivedAt: null } satisfies ProjectResource;
 
-async function harness() {
+async function harness(apiTextPipeline = true) {
   let epoch = 1;
   const cleanups = new Set<() => void>();
   const session = {
@@ -31,13 +31,30 @@ async function harness() {
   const reportMessage = vi.fn();
   const observeRun = vi.fn();
   let loader!: ReturnType<typeof useWorkspaceProjectLoader>;
-  function Harness() { loader = useWorkspaceProjectLoader({ session, durableDrafts: { current: false },
+  function Harness() { loader = useWorkspaceProjectLoader({ session, apiTextPipeline: { current: apiTextPipeline }, durableDrafts: { current: false },
     profiles: { loaded: { current: true }, catalog: { current: { profiles: [] } }, refresh: vi.fn() }, observeRun, reportMessage }); return null; }
   const root = createRoot(document.createElement("div"));
   await act(async () => root.render(createElement(Harness)));
   return { loader, session, reportMessage, observeRun, navigate: () => { epoch++; cleanups.forEach(cleanup => cleanup()); },
     unmount: () => act(async () => root.unmount()) };
 }
+
+it.each(["failed", "queued", "running", "cancel_requested"] as const)("loads a retained native %s run summary without absent progress or credential routes", async status => {
+  const state = await harness(false);
+  const progress = vi.spyOn(plotloomApi, "getRunProgress");
+  const profiles = vi.spyOn(plotloomApi, "getTextProviderProfiles");
+  const resume = vi.spyOn(plotloomApi, "resumeRun");
+  const run = { ...demoRun, projectId: "a", status };
+  vi.mocked(plotloomApi.getProjectRuns).mockResolvedValue({ runs: [run] });
+  state.session.routeRef.current.run = run.id;
+  try {
+    await expect(state.loader.loadProject("a")).resolves.toBe("loaded");
+    expect(state.session.acceptProjectLoad).toHaveBeenCalledWith(expect.objectContaining({ run, progress: undefined }));
+    expect(state.session.rejectProjectLoad).not.toHaveBeenCalled();
+    expect(progress).not.toHaveBeenCalled(); expect(profiles).not.toHaveBeenCalled();
+    expect(resume).not.toHaveBeenCalled(); expect(state.observeRun).not.toHaveBeenCalled();
+  } finally { await state.unmount(); }
+});
 
 it("acknowledges only an admitted aggregate and refuses mismatched route requests", async () => {
   const state = await harness();

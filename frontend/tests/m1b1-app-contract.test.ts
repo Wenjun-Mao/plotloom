@@ -81,6 +81,10 @@ describe("M1-B1 App integration contracts", () => {
     vi.spyOn(plotloomApi, "getProjectMediaTasks").mockResolvedValue({ tasks: [] });
     vi.spyOn(plotloomApi, "getStoryboardReview").mockRejectedValue(new ApiError("no storyboard review", 404));
     vi.spyOn(plotloomApi, "getTextProviderProfiles").mockResolvedValue(fallbackProfiles());
+    vi.spyOn(plotloomApi, "getRuntimeCapabilities").mockResolvedValue({
+      durableProjectDrafts: false, durableMediaDrafts: false, explicitProjectClose: false,
+      portableSnapshots: false, apiTextPipeline: true,
+    });
   });
 
   afterEach(async () => {
@@ -196,7 +200,7 @@ describe("M1-B1 App integration contracts", () => {
   });
 
   it.each([false, true])("does not auto-resume a bearer run until its exact frozen profile has a key with durable drafts %s", async durable => {
-    vi.spyOn(plotloomApi, "getRuntimeCapabilities").mockResolvedValue({ durableProjectDrafts: durable, durableMediaDrafts: durable, explicitProjectClose: true, portableSnapshots: true, textProviderProfiles: true });
+    vi.spyOn(plotloomApi, "getRuntimeCapabilities").mockResolvedValue({ durableProjectDrafts: durable, durableMediaDrafts: durable, explicitProjectClose: true, portableSnapshots: true, apiTextPipeline: true });
     vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
     const projectId = "frozen-key-project";
     const frozenProfileId = "locked_profile";

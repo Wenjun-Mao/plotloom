@@ -5,9 +5,11 @@ import { DirectionPresets, genreGroups, visualGroups } from "./DirectionPresets"
 import { ContextHelp, ContextHelpGroup } from "../components/ContextHelp";
 import { StageGuide } from "../components/StageGuide";
 import { GraphWorkbenchContext } from "../features/graph/GraphWorkbenchContext";
+import { apiTextPipelineMessage } from "../app/workspace/apiTextPipeline";
 import { BriefTargetPreview, structureTargets } from "../features/graph/BriefTargetPreview";
 
 type BriefPageProps = {
+  apiTextPipeline?: boolean | null;
   value: ProjectBrief;
   hasSavedProject: boolean;
   saving: boolean;
@@ -33,7 +35,7 @@ const defaultWorkingTitle = "未命名故事";
  * The brief remains the canonical input. This page only composes its first two
  * canonical downstream stages into a review; it does not own proposal state.
  */
-export function BriefPage({ value, hasSavedProject, saving, readOnly = false, onSave, onSaveAndContinue, onContinueToSource, onDraftChange, bible, graph, proposalRunning = false, proposalReady = true, storyboardRunning = false, onGenerateProposal, onGenerateStoryboard, onReviewStage, onContinueToPlanning }: BriefPageProps) {
+export function BriefPage({ apiTextPipeline = null, value, hasSavedProject, saving, readOnly = false, onSave, onSaveAndContinue, onContinueToSource, onDraftChange, bible, graph, proposalRunning = false, proposalReady = true, storyboardRunning = false, onGenerateProposal, onGenerateStoryboard, onReviewStage, onContinueToPlanning }: BriefPageProps) {
   const [draft, setDraft] = useState(value);
   const graphOwner = useContext(GraphWorkbenchContext);
   const [targetPreview, setTargetPreview] = useState<ProjectBrief | null>(null);
@@ -102,7 +104,8 @@ export function BriefPage({ value, hasSavedProject, saving, readOnly = false, on
         </Panel>
       </div>
     </div>
-    {onGenerateProposal && <Panel className="brief-alternate-workflow"><details><summary>其他工作流：旧版故事提案</summary><p>{hasSavedProject ? "直接从简报生成故事设定与分支图。通常请从左侧“来源与大纲”开始，逐步审阅并确认。" : "直接从简报生成故事设定与分支图。通常请先使用上方“保存并继续到来源”，逐步审阅并确认。"}</p><Button variant="quiet" busy={proposalRunning} disabled={!canSave || proposalRunning} onClick={() => void onGenerateProposal(canonicalDraft())}>{proposalRunning ? "正在生成提案…" : "生成故事提案"}</Button>{!canSave && <p className="action-prerequisite">{saveHint}</p>}</details></Panel>}
+    {apiTextPipeline !== true && <p role="note">{apiTextPipelineMessage(apiTextPipeline)}</p>}
+    {apiTextPipeline === true && onGenerateProposal && <Panel className="brief-alternate-workflow"><details><summary>其他工作流：旧版故事提案</summary><p>{hasSavedProject ? "直接从简报生成故事设定与分支图。通常请从左侧“来源与大纲”开始，逐步审阅并确认。" : "直接从简报生成故事设定与分支图。通常请先使用上方“保存并继续到来源”，逐步审阅并确认。"}</p><Button variant="quiet" busy={proposalRunning} disabled={!canSave || proposalRunning} onClick={() => void onGenerateProposal(canonicalDraft())}>{proposalRunning ? "正在生成提案…" : "生成故事提案"}</Button>{!canSave && <p className="action-prerequisite">{saveHint}</p>}</details></Panel>}
     {hasProposal && bible && graph && <div className="stack proposal-review" data-testid="story-proposal-review">
       <Panel>
         <div className="section-title"><span>待审阅的故事提案</span><strong>{bible.logline}</strong></div>
@@ -122,7 +125,7 @@ export function BriefPage({ value, hasSavedProject, saving, readOnly = false, on
         <p>已推导：{graph.nodes.length} 个叙事节点、{graph.edges.filter((edge) => edge.kind === "choice").length} 个选择、{endings.length} 个结局。场景与分镜仅在下方明确请求后生成；媒体不在本步骤内。</p>
         <p>计划目标：每条路径约 {draft.targetPlaythroughSeconds} 秒、每场偏好 {draft.shotsPerSceneMin}–{draft.shotsPerSceneMax} 个镜头（{draft.shotCountPolicy === "strict" ? "严格限制" : "超出时提示"}）；这些不是成本或实际时长估算。</p>
         {!proposalReady && <p className="event-detail">提案的上游内容已变更。请重新生成故事设定与分支图后，再进入分镜规划；不会覆盖任何下游内容。</p>}
-        <div className="button-row"><Button variant="quiet" onClick={() => onReviewStage?.("bible")}>细化人物与设定</Button><Button variant="quiet" onClick={() => onReviewStage?.("graph")}>细化分支与结局</Button>{onContinueToPlanning && <Button variant="quiet" disabled={!proposalReady} onClick={onContinueToPlanning}>进入场景编辑</Button>}{onGenerateStoryboard && <Button variant="primary" busy={storyboardRunning} disabled={readOnly || !proposalReady || saving || storyboardRunning} onClick={() => void onGenerateStoryboard()}>{storyboardRunning ? "正在生成场景与分镜…" : "生成可编辑场景与分镜"}</Button>}</div>
+        <div className="button-row"><Button variant="quiet" onClick={() => onReviewStage?.("bible")}>细化人物与设定</Button><Button variant="quiet" onClick={() => onReviewStage?.("graph")}>细化分支与结局</Button>{onContinueToPlanning && <Button variant="quiet" disabled={!proposalReady} onClick={onContinueToPlanning}>进入场景编辑</Button>}{apiTextPipeline === true && onGenerateStoryboard && <Button variant="primary" busy={storyboardRunning} disabled={readOnly || !proposalReady || saving || storyboardRunning} onClick={() => void onGenerateStoryboard()}>{storyboardRunning ? "正在生成场景与分镜…" : "生成可编辑场景与分镜"}</Button>}</div>
       </Panel>
     </div>}
     {targetPreview && <BriefTargetPreview before={value} after={targetPreview} draft={graphOwner?.draft ?? null} busy={saving} onCancel={() => setTargetPreview(null)} onConfirm={() => { const next = targetPreview; setTargetPreview(null); void onSave(next); }} />}

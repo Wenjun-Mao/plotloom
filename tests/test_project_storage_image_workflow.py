@@ -92,7 +92,7 @@ def test_project_owned_image_handoff_isolated_across_restart_and_stales_after_in
         "durableMediaDrafts": True,
         "explicitProjectClose": True,
         "portableSnapshots": True,
-        "textProviderProfiles": False,
+        "apiTextPipeline": False,
     }
     approval = _approve(client, first_id, storage)
     _approve(client, second_id, storage)

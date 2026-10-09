@@ -4,10 +4,11 @@ import { Badge, Button, ErrorNotice } from "../../components";
 import { stageLabels } from "../../model";
 import { canRequestRunCancellation, runCancellationLabel, runKindLabels, runStatusLabels, workUnitStatusLabels } from "../../run-presentation";
 import type { PipelineRun, QuarantineItem, RunProgress, ServerStageName, StoryboardReview, WorkspaceProject } from "../../types";
+import { apiTextPipelineMessage } from "./apiTextPipeline";
 type DraftRecoverySource = "server" | "session" | "reconcile";
 function formatDuration(durationMs: number | null | undefined): string { return durationMs == null ? "—" : durationMs < 1000 ? `${durationMs}ms` : `${(durationMs / 1000).toFixed(1)}s`; }
 
-export function WorkspaceInspector({ currentLabel, project, routeEntity, stageOverview, run, progress, review, readOnly, frozenProfileId, frozenProfileNeedsKey, onAuthorizeProfile, onOpenTrace, onResume, onCancel, onRepair, onRebuild }: {
+export function WorkspaceInspector({ currentLabel, project, routeEntity, stageOverview, run, progress, review, readOnly, frozenProfileId, frozenProfileNeedsKey, onAuthorizeProfile, onOpenTrace, onResume, onCancel, onRepair, onRebuild, apiTextPipeline = null }: {
   currentLabel: string;
   project: WorkspaceProject;
   routeEntity: string;
@@ -16,6 +17,7 @@ export function WorkspaceInspector({ currentLabel, project, routeEntity, stageOv
   progress?: RunProgress;
   review: StoryboardReview | null;
   readOnly: boolean;
+  apiTextPipeline?: boolean | null;
   frozenProfileId: string;
   frozenProfileNeedsKey: boolean;
   onAuthorizeProfile: () => void;
@@ -34,13 +36,14 @@ export function WorkspaceInspector({ currentLabel, project, routeEntity, stageOv
       const stageProgress = progress?.stageProgress.find((candidate) => candidate.stage === stage);
       return <div key={stage}><span>{stageLabels[stage]}{stageProgress && <small>{stageProgress.completedUnitCount}/{stageProgress.unitCount} 个子任务 · {stageProgress.sealed ? "已封存" : "未封存"}</small>}</span><Badge tone={status === "ready" ? "ok" : status === "stale" ? "warning" : "neutral"}>{status === "ready" ? "可用" : status === "stale" ? "需更新" : status === "missing" ? "尚未生成" : status}</Badge></div>;
     })}</div>
-    <div className="inspector-run"><span className="eyebrow">最新运行</span>{run ? <><strong>{runStatusLabels[run.status]} · {runKindLabels[run.kind]}</strong><small>{run.id}</small><small>{run.startedAt ? `开始 ${formatUiTimestamp(run.startedAt)}` : `创建 ${formatUiTimestamp(run.createdAt)}`}{run.finishedAt ? ` · 完成 ${formatUiTimestamp(run.finishedAt)}` : ""}</small>{progress?.failureCode && <small className="danger-copy">{progress.failureCode}</small>}{frozenProfileNeedsKey && <div className="notice warning"><strong>此任务缺少可用密钥</strong><span>请为此任务的模型配置补充当前标签页密钥，保存后返回“继续运行”。不会自动切换模型。配置标识：{frozenProfileId}。</span><Button variant="quiet" onClick={onAuthorizeProfile}>查看此任务的模型配置</Button></div>}<Button variant="quiet" onClick={onOpenTrace}>查看提示词与原始响应</Button></> : <small>尚无运行记录</small>}</div>
-    {progress && <details className="inspector-units" open={progress.status === "quarantined"}><summary>子任务 · {progress.workUnits.length}</summary>{progress.workUnits.map((unit) => {
+    <div className="inspector-run"><span className="eyebrow">最新运行</span>{run ? <><strong>{runStatusLabels[run.status]} · {runKindLabels[run.kind]}</strong><small>{run.id}</small><small>{run.startedAt ? `开始 ${formatUiTimestamp(run.startedAt)}` : `创建 ${formatUiTimestamp(run.createdAt)}`}{run.finishedAt ? ` · 完成 ${formatUiTimestamp(run.finishedAt)}` : ""}</small>{progress?.failureCode && <small className="danger-copy">{progress.failureCode}</small>}{apiTextPipeline === true && frozenProfileNeedsKey && <div className="notice warning"><strong>此任务缺少可用密钥</strong><span>请为此任务的模型配置补充当前标签页密钥，保存后返回“继续运行”。不会自动切换模型。配置标识：{frozenProfileId}。</span><Button variant="quiet" onClick={onAuthorizeProfile}>查看此任务的模型配置</Button></div>}<Button variant="quiet" onClick={onOpenTrace}>{apiTextPipeline === true ? "查看提示词与原始响应" : "查看运行摘要"}</Button></> : <small>尚无运行记录</small>}</div>
+    {apiTextPipeline !== true && <p role="note">{apiTextPipelineMessage(apiTextPipeline)}</p>}
+    {apiTextPipeline === true && progress && <details className="inspector-units" open={progress.status === "quarantined"}><summary>子任务 · {progress.workUnits.length}</summary>{progress.workUnits.map((unit) => {
       const attempt = unit.latestAttempt;
       const quarantine = project.quarantines.find((item) => item.id === unit.workUnitId);
       return <div className="inspector-unit" key={unit.workUnitId}><strong>{stageLabels[unit.stage]} · #{unit.sequence}</strong><small>{workUnitStatusLabels[unit.status]} · {unit.sealed ? "已封存" : "未封存"}</small><small>执行次数 {attempt ? `${attempt.attemptNumber}/${unit.maxAttempts}` : `—/${unit.maxAttempts}`} · {formatDuration(attempt?.durationMs)} · 令牌用量 {attempt?.inputTokens ?? "—"}/{attempt?.outputTokens ?? "—"}</small>{attempt?.outcomeCode && <small>{attempt.outcomeCode}</small>}{unit.repairEligible && quarantine && <Button variant="quiet" disabled={readOnly} onClick={() => void onRepair(quarantine)}>单独修复此子任务</Button>}</div>;
     })}</details>}
-    {progress && <div className="inspector-actions"><span className="eyebrow">当前可用操作</span>{progress.actions.canResume && <Button variant="quiet" disabled={readOnly} onClick={() => void onResume()}>继续运行</Button>}{progress.actions.canCancel && <Button variant="danger" disabled={readOnly || !canRequestRunCancellation(run)} onClick={() => void onCancel()}>{runCancellationLabel(run)}</Button>}{progress.actions.canRebuildStage && <Button variant="quiet" disabled={readOnly || !progress.failedStage} onClick={() => progress.failedStage && onRebuild(progress.failedStage)}>从失败阶段完整重建</Button>}</div>}
+    {apiTextPipeline === true && progress && <div className="inspector-actions"><span className="eyebrow">当前可用操作</span>{progress.actions.canResume && <Button variant="quiet" disabled={readOnly} onClick={() => void onResume()}>继续运行</Button>}{progress.actions.canCancel && <Button variant="danger" disabled={readOnly || !canRequestRunCancellation(run)} onClick={() => void onCancel()}>{runCancellationLabel(run)}</Button>}{progress.actions.canRebuildStage && <Button variant="quiet" disabled={readOnly || !progress.failedStage} onClick={() => progress.failedStage && onRebuild(progress.failedStage)}>从失败阶段完整重建</Button>}</div>}
     <div className="inspector-review"><span className="eyebrow">校验与批准</span>{review?.gateEvaluation ? <><strong>{failedRequiredGates.length ? `${failedRequiredGates.length} 个必需校验项未通过` : `${requiredGates.length} 个必需校验项已通过`}</strong><small>{review.gateEvaluation.gateSetVersion}</small></> : <small>尚无校验记录</small>}{review?.activeApproval ? <><Badge tone="ok">已批准</Badge><small>{review.activeApproval.reviewer} · r{review.activeApproval.subjectRevision}</small></> : <Badge tone={failedRequiredGates.length ? "danger" : "neutral"}>未批准</Badge>}</div>
     {readOnly && <p>归档项目不可编辑或运行。请在项目目录中恢复后继续。</p>}
   </aside>;

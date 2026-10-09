@@ -3,6 +3,7 @@ import type { PipelineRun, RunExecutionTrace, RunProgress, ServerStageName, Trac
 import { stageLabels, summarizeWorkUnitStatuses, toggleContiguousStageRange } from "../model";
 import { Badge, Button, EmptyState, JsonPreview, PageHeader, Panel, Spinner } from "../components";
 import { canRequestRunCancellation, runCancellationLabel, runStatusLabels, traceKindLabels, traceStatusLabels, workUnitStatusLabels } from "../run-presentation";
+import { apiTextPipelineMessage } from "../app/workspace/apiTextPipeline";
 
 function progressElapsed(attempt: RunProgress["workUnits"][number]["latestAttempt"]): string {
   if (!attempt) return "—";
@@ -12,18 +13,20 @@ function progressElapsed(attempt: RunProgress["workUnits"][number]["latestAttemp
   return Number.isFinite(elapsed) && elapsed >= 0 ? `${elapsed}ms` : "—";
 }
 
-export function TracePage({ run, progress, trace, executionTrace, running, onRun, onResume, onCancel }: { run?: PipelineRun; progress?: RunProgress; trace: TraceEvent[]; executionTrace?: RunExecutionTrace; running: boolean; onRun: (stages: ServerStageName[]) => Promise<void>; onResume: () => Promise<void>; onCancel: () => Promise<void> }) {
+export function TracePage({ run, progress, trace, executionTrace, running, onRun, onResume, onCancel, apiTextPipeline = null }: { apiTextPipeline?: boolean | null; run?: PipelineRun; progress?: RunProgress; trace: TraceEvent[]; executionTrace?: RunExecutionTrace; running: boolean; onRun: (stages: ServerStageName[]) => Promise<void>; onResume: () => Promise<void>; onCancel: () => Promise<void> }) {
   const [selectedStages, setSelectedStages] = useState<ServerStageName[]>(["story_bible", "story_graph", "scene_beats", "storyboard"]);
   const [selectedId, setSelectedId] = useState(trace.at(-1)?.id || "");
   const [promptTab, setPromptTab] = useState<"system" | "user" | "payload">("user");
   const selected = trace.find((event) => event.id === selectedId) || trace.at(-1);
+  const observing = running && apiTextPipeline === true;
   const currentStage = [...trace].reverse().find((event) => event.status === "pending")?.stage;
   const toggle = (stage: ServerStageName) => setSelectedStages((current) => toggleContiguousStageRange(current, stage));
   return <div className="page">
-    <PageHeader title="运行轨迹" description="请求、提示词、原始响应、校验与保存记录按顺序保留；请求成功不等于内容通过校验。" actions={running ? <>{run?.status === "queued" && <Button onClick={() => void onResume()}>继续排队运行</Button>}<Button variant="danger" disabled={!canRequestRunCancellation(run)} onClick={() => void onCancel()}>{runCancellationLabel(run)}</Button></> : <Button variant="primary" disabled={!selectedStages.length} onClick={() => void onRun(selectedStages)}>运行所选阶段</Button>} />
+    <PageHeader title="运行轨迹" description="请求、提示词、原始响应、校验与保存记录按顺序保留；请求成功不等于内容通过校验。" actions={apiTextPipeline !== true ? undefined : running ? <>{run?.status === "queued" && <Button onClick={() => void onResume()}>继续排队运行</Button>}<Button variant="danger" disabled={!canRequestRunCancellation(run)} onClick={() => void onCancel()}>{runCancellationLabel(run)}</Button></> : <Button variant="primary" disabled={!selectedStages.length} onClick={() => void onRun(selectedStages)}>运行所选阶段</Button>} />
+    {apiTextPipeline !== true && <p role="note">{apiTextPipelineMessage(apiTextPipeline)}</p>}
     <Panel className="run-console">
-      <div className="stage-selector">{(["story_bible", "story_graph", "scene_beats", "storyboard"] as ServerStageName[]).map((stage) => <label key={stage}><input type="checkbox" checked={selectedStages.includes(stage)} onChange={() => toggle(stage)} /><span>{stageLabels[stage]}</span></label>)}</div>
-      <div className="run-state"><Badge tone={run?.status === "failed" ? "danger" : run?.status === "quarantined" ? "warning" : running ? "accent" : "neutral"}>{run ? runStatusLabels[run.status] : "尚未启动"}</Badge>{running && <Spinner label={run?.status === "cancel_requested" ? "正在等待运行结束" : currentStage ? `正在执行 ${stageLabels[currentStage]}` : "正在启动"} />}<code>{run?.id || "尚无运行任务"}</code></div>
+      <div className="stage-selector">{(["story_bible", "story_graph", "scene_beats", "storyboard"] as ServerStageName[]).map((stage) => <label key={stage}><input type="checkbox" disabled={apiTextPipeline !== true} checked={selectedStages.includes(stage)} onChange={() => toggle(stage)} /><span>{stageLabels[stage]}</span></label>)}</div>
+      <div className="run-state"><Badge tone={run?.status === "failed" ? "danger" : run?.status === "quarantined" ? "warning" : running ? "accent" : "neutral"}>{run ? runStatusLabels[run.status] : "尚未启动"}</Badge>{running && apiTextPipeline === true && <Spinner label={run?.status === "cancel_requested" ? "正在等待运行结束" : currentStage ? `正在执行 ${stageLabels[currentStage]}` : "正在启动"} />}<code>{run?.id || "尚无运行任务"}</code></div>
       {run?.failureCode && <p className="event-detail">{run.failedStage ? `${stageLabels[run.failedStage]} · ` : ""}{run.failureCode}{run.error ? ` · ${run.error}` : ""}</p>}
     </Panel>
     {progress && <Panel className="run-progress-panel">
@@ -49,7 +52,9 @@ export function TracePage({ run, progress, trace, executionTrace, running, onRun
     <div className="trace-layout">
       <Panel className="trace-list">
         <div className="section-title"><span>运行事件</span><strong>{trace.length} 个事件</strong></div>
-        {!trace.length && (running
+        {!trace.length && (apiTextPipeline !== true
+          ? <EmptyState title="API 运行详情不可用">{apiTextPipelineMessage(apiTextPipeline)}</EmptyState>
+          : running
           ? <EmptyState title="正在等待运行事件">正在读取当前任务的运行记录；无需再次启动任务。</EmptyState>
           : run
             ? <EmptyState title="当前任务暂无事件记录">请查看上方的任务状态和失败信息；暂无事件记录不代表任务已通过。</EmptyState>
@@ -57,7 +62,7 @@ export function TracePage({ run, progress, trace, executionTrace, running, onRun
         {trace.map((event) => <button key={event.id} className={`trace-event ${event.id === selected?.id ? "active" : ""}`} onClick={() => setSelectedId(event.id)}><span className={`trace-dot ${event.status}`} /><time>{event.at}</time><div><small>{stageLabels[event.stage]} · {traceKindLabels[event.kind]}</small><strong>{event.title}</strong></div></button>)}
       </Panel>
       <Panel className="prompt-inspector">
-        <div className="section-title"><span>事件详情</span><strong>{selected?.title || (running ? "正在等待记录" : "暂无事件详情")}</strong></div>
+        <div className="section-title"><span>事件详情</span><strong>{selected?.title || (observing ? "正在等待记录" : "暂无事件详情")}</strong></div>
         {selected ? <>
           <div className="inspector-meta"><Badge tone={selected.status === "error" ? "danger" : selected.status === "warning" ? "warning" : selected.status === "pending" ? "accent" : "ok"}>{traceStatusLabels[selected.status]}</Badge><code>{selected.stage} / {selected.kind}</code></div>
           {selected.detail && <p className="event-detail">{selected.detail}</p>}
@@ -67,7 +72,7 @@ export function TracePage({ run, progress, trace, executionTrace, running, onRun
           <div role="tabpanel" className="prompt-panel">
             <JsonPreview value={promptTab === "system" ? selected.systemPrompt || "此事件没有系统提示词。" : promptTab === "user" ? selected.userPrompt || "此事件没有任务提示词。" : selected.payload || { note: "此事件没有结构化数据。" }} />
           </div>
-        </> : <EmptyState title={running ? "正在等待事件详情" : "暂无事件详情"}>{running
+        </> : <EmptyState title={observing ? "正在等待事件详情" : "暂无事件详情"}>{observing
           ? "收到运行记录后，可以在这里查看详情；无需再次启动任务。"
           : run ? "当前任务尚无可查看的事件；请查看上方的任务状态和失败信息。"
           : "任务启动后，运行详情会显示在这里。"}</EmptyState>}

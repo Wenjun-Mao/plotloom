@@ -28,6 +28,19 @@ function Harness() {
   return null;
 }
 
+it("refuses native observation and trace reads even when called directly", async () => {
+  input.apiTextPipeline = false;
+  const progress = vi.spyOn(plotloomApi, "getRunProgress");
+  const trace = vi.spyOn(plotloomApi, "getTrace");
+  const execution = vi.spyOn(plotloomApi, "getRunExecutionTrace");
+  await mount();
+  await act(async () => {
+    await observer.pollRun("retained", "project-1");
+    await observer.loadTraceEvidence("retained", "project-1");
+  });
+  expect(progress).not.toHaveBeenCalled(); expect(trace).not.toHaveBeenCalled(); expect(execution).not.toHaveBeenCalled();
+});
+
 async function mount(strict = false) {
   root = createRoot(document.createElement("div"));
   await act(async () => root!.render(strict
@@ -42,7 +55,7 @@ async function unmount() {
 
 beforeEach(() => {
   const route = { project: "project-1", stage: "brief" as const, entity: "", run: "", hash: "" };
-  input = {
+  input = { apiTextPipeline: true,
     session: {
       route, routeRef: { current: route },
       capture: vi.fn(() => ({ epoch: 1, projectId: route.project, stage: route.stage })),

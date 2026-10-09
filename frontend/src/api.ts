@@ -84,7 +84,7 @@ export type RuntimeCapabilities = {
   durableMediaDrafts: boolean;
   explicitProjectClose: boolean;
   portableSnapshots: boolean;
-  textProviderProfiles: boolean;
+  apiTextPipeline: boolean;
 };
 
 export type H3ReviewedDirections = {
@@ -443,7 +443,7 @@ export class PlotloomApiClient {
 
   async getRuntimeCapabilities(signal?: AbortSignal): Promise<RuntimeCapabilities> {
     const result = await this.request<RuntimeCapabilities>("/runtime-capabilities", { signal });
-    for (const field of ["durableProjectDrafts", "durableMediaDrafts", "explicitProjectClose", "portableSnapshots", "textProviderProfiles"] as const) {
+    for (const field of ["durableProjectDrafts", "durableMediaDrafts", "explicitProjectClose", "portableSnapshots", "apiTextPipeline"] as const) {
       if (typeof result?.[field] !== "boolean") throw new Error("服务功能响应不完整，请刷新后重试。");
     }
     return result;

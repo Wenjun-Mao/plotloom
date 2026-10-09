@@ -30,7 +30,7 @@ it.each(Object.keys(runStatusLabels) as Array<keyof typeof runStatusLabels>)("ca
   const host = document.createElement("div"); const root = createRoot(host);
   let commands!: ReturnType<typeof useRunCommands>;
   function Harness() {
-    commands = useRunCommands({
+    commands = useRunCommands({ apiTextPipeline: true,
       session: { project: { id: run.projectId }, run, route: { run: run.id }, capture: vi.fn(), isCurrent: () => true, acceptRun },
       profiles: { draft: { enabled: true }, save: saveProfile }, pollRun, openTrace: vi.fn(), setBusy: vi.fn(), setError: vi.fn(), hasDraft: () => false,
     } as never);
@@ -53,7 +53,7 @@ it("explains and deliberately re-signals a pending cancellation rather than impl
   const host = document.createElement("div"); document.body.append(host);
   const root = createRoot(host); const onCancel = vi.fn(async () => {});
   try {
-    await act(async () => root.render(createElement(TracePage, {
+    await act(async () => root.render(createElement(TracePage, { apiTextPipeline: true,
       run: { ...demoRun, status: "cancel_requested" }, trace: [], running: true,
       onRun: vi.fn(async () => {}), onResume: vi.fn(async () => {}), onCancel,
     })));
@@ -74,10 +74,10 @@ it("does not invite selecting nonexistent events and presents pending events wit
       actions: { canResume: false, canCancel: true, canRebuildStage: false, repairEligible: false } },
   };
   try {
-    await act(async () => root.render(createElement(TracePage, { ...props, trace: [] })));
+    await act(async () => root.render(createElement(TracePage, { apiTextPipeline: true, ...props, trace: [] })));
     expect(host.querySelector(".run-progress-panel")?.textContent).toContain("当前暂无可查看的事件详情");
     expect(host.textContent).not.toContain("选择事件");
-    await act(async () => root.render(createElement(TracePage, { ...props, trace: [{
+    await act(async () => root.render(createElement(TracePage, { apiTextPipeline: true, ...props, trace: [{
       id: "pending", at: "12:00:00", stage: "story_graph", kind: "request", title: "正在执行", status: "pending",
     }] })));
     expect(host.querySelector(".run-progress-panel")?.textContent).toContain("选择事件");
@@ -90,7 +90,7 @@ it("warns that rebuilding an uncertain result can duplicate generation without d
   const host = document.createElement("div"); const root = createRoot(host);
   const onRebuildStage = vi.fn(async () => {}); const onRepair = vi.fn(async () => {});
   try {
-    await act(async () => root.render(createElement(QuarantinePage, {
+    await act(async () => root.render(createElement(QuarantinePage, { apiTextPipeline: true,
       items: [{ id: "unknown", stage: "story_graph", status: "outcome_unknown", code: "transport.outcome_unknown",
         message: "请求的结果不确定", repairEligible: false, repairReasonCode: "repair.target_outcome_unknown" }],
       repairing: false, onRebuildStage, onRepair,
@@ -100,5 +100,22 @@ it("warns that rebuilding an uncertain result can duplicate generation without d
     const rebuild = [...host.querySelectorAll("button")].find(button => button.textContent === "重建本阶段及后续阶段")!;
     expect(rebuild.disabled).toBe(false);
     await act(async () => rebuild.click()); expect(onRebuildStage).toHaveBeenCalledExactlyOnceWith("story_graph");
+  } finally { await act(async () => root.unmount()); }
+});
+
+it.each([false, null, undefined])("keeps Quarantine recovery controls disabled for capability %s", async apiTextPipeline => {
+  const host = document.createElement("div"), root = createRoot(host);
+  const onRepair = vi.fn(async () => {}), onRebuildStage = vi.fn(async () => {});
+  try {
+    await act(async () => root.render(createElement(QuarantinePage, { apiTextPipeline,
+      items: [{ id: "eligible", stage: "story_graph", code: "failed", message: "failed", repairEligible: true }],
+      repairing: false, onRepair, onRebuildStage,
+    })));
+    const buttons = [...host.querySelectorAll("button")].filter(button =>
+      ["重新执行此子任务", "重建本阶段及后续阶段"].includes(button.textContent || ""));
+    expect(buttons).toHaveLength(2);
+    for (const button of buttons) { expect(button.disabled).toBe(true); await act(async () => button.click()); }
+    expect(onRepair).not.toHaveBeenCalled(); expect(onRebuildStage).not.toHaveBeenCalled();
+    expect(host.textContent).toContain(apiTextPipeline === false ? "未启用 API" : "尚未读入");
   } finally { await act(async () => root.unmount()); }
 });

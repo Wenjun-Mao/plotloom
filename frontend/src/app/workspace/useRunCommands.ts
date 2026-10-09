@@ -5,6 +5,7 @@ import { headsByStage, stageForPage, type WorkspaceOperation } from "./contracts
 import type { PipelineRun, QuarantineItem, ServerStageName, TextProviderProfileView } from "../../types";
 import type { WorkspaceSession } from "./useWorkspaceSession";
 import { canRequestRunCancellation } from "../../run-presentation";
+import { apiTextPipelineMessage } from "./apiTextPipeline";
 
 type Currentness = { capture: () => WorkspaceOperation; isCurrent: (operation: WorkspaceOperation) => boolean };
 type RunCommandSession = Pick<WorkspaceSession, "project" | "activePage" | "run" | "route" | "capture" | "isCurrent" | "acceptRun">;
@@ -18,7 +19,8 @@ type ProfileCommands = {
 };
 
 /** Commands that spend, resume, cancel, repair, or observe one pipeline run. */
-export function useRunCommands({ session, profiles, pollRun, openTrace, setBusy, setError, hasDraft }: {
+export function useRunCommands({ session, profiles, pollRun, openTrace, setBusy, setError, hasDraft, apiTextPipeline }: {
+  apiTextPipeline: boolean | null;
   session: RunCommandSession;
   profiles: ProfileCommands;
   pollRun: (runId: string, projectId?: string) => Promise<void>;
@@ -32,6 +34,11 @@ export function useRunCommands({ session, profiles, pollRun, openTrace, setBusy,
   const currentness: Currentness = { capture: session.capture, isCurrent: session.isCurrent };
   const isSelectedRun = (candidate: PipelineRun | undefined): candidate is PipelineRun => Boolean(candidate && (!session.route.run || session.route.run === candidate.id));
   const describeError = (error: unknown) => error instanceof Error ? error.message : "未知错误";
+  const requireApiTextPipeline = useCallback(() => {
+    if (apiTextPipeline === true) return true;
+    setError(apiTextPipelineMessage(apiTextPipeline));
+    return false;
+  }, [apiTextPipeline, setError]);
   const prepareProfile = useCallback(async (): Promise<TextProviderProfileView> => {
     let draft = profiles.draft;
     let key = profiles.sessionKey;
@@ -43,14 +50,16 @@ export function useRunCommands({ session, profiles, pollRun, openTrace, setBusy,
     return profiles.save(draft, key);
   }, [profiles]);
   const startRun = useCallback(async (stages: ServerStageName[]) => {
+    if (!requireApiTextPipeline()) return;
     if (!project.id) { setError("请先保存项目，再启动生成流水线。"); return; }
     if (profiles.draft.enabled === false) { setError("当前活动 Profile 已停用；请先在设置中启用可用 Profile。不会自动切换后端。"); return; }
     const operation = currentness.capture(); setBusy(true); setError("");
     try { const saved = await prepareProfile(); if (!currentness.isCurrent(operation)) return; const started = await plotloomApi.startRun(project.id, stages, saved.profileId, saved.configuration.textAuthMode === "bearer"); if (currentness.isCurrent(operation)) openTrace(started); }
     catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
     finally { if (currentness.isCurrent(operation)) setBusy(false); }
-  }, [currentness, openTrace, prepareProfile, profiles.draft.enabled, project.id, setBusy, setError]);
+  }, [requireApiTextPipeline, currentness, openTrace, prepareProfile, profiles.draft.enabled, project.id, setBusy, setError]);
   const startProposal = useCallback(async (projectId: string) => {
+    if (!requireApiTextPipeline()) return;
     if (!projectId) { setError("请先保存梗概，再生成故事提案。"); return; }
     if (profiles.draft.enabled === false) { setError("当前活动 Profile 已停用；请先在设置中启用可用 Profile。不会自动切换后端。"); return; }
     const operation = currentness.capture(); setBusy(true); setError("");
@@ -81,8 +90,9 @@ export function useRunCommands({ session, profiles, pollRun, openTrace, setBusy,
       await pollRun(started.id, projectId);
     } catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
     finally { if (currentness.isCurrent(operation)) setBusy(false); }
-  }, [currentness, pollRun, prepareProfile, profiles.draft.enabled, session, setBusy, setError]);
+  }, [requireApiTextPipeline, currentness, pollRun, prepareProfile, profiles.draft.enabled, session, setBusy, setError]);
   const startStoryboard = useCallback(async (projectId: string) => {
+    if (!requireApiTextPipeline()) return;
     if (!projectId) { setError("请先保存并审阅故事提案，再生成场景与分镜。"); return; }
     if (profiles.draft.enabled === false) { setError("当前活动 Profile 已停用；请先在设置中启用可用 Profile。不会自动切换后端。"); return; }
     const operation = currentness.capture(); setBusy(true); setError("");
@@ -113,35 +123,44 @@ export function useRunCommands({ session, profiles, pollRun, openTrace, setBusy,
       await pollRun(started.id, projectId);
     } catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
     finally { if (currentness.isCurrent(operation)) setBusy(false); }
-  }, [currentness, pollRun, prepareProfile, profiles.draft.enabled, session, setBusy, setError]);
+  }, [requireApiTextPipeline, currentness, pollRun, prepareProfile, profiles.draft.enabled, session, setBusy, setError]);
   const cancelRun = useCallback(async () => {
+    if (!requireApiTextPipeline()) return;
     if (!isSelectedRun(run) || !canRequestRunCancellation(run)) return;
     const operation = currentness.capture();
     try { const cancelled = await plotloomApi.cancelRun(run.id); if (!currentness.isCurrent(operation)) return; session.acceptRun(cancelled); void pollRun(cancelled.id, cancelled.projectId).catch((error) => setError(describeError(error))); }
     catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
-  }, [currentness, pollRun, run, session, setError]);
+  }, [requireApiTextPipeline, currentness, pollRun, run, session, setError]);
   const resumeRun = useCallback(async () => {
+    if (!requireApiTextPipeline()) return;
     if (!isSelectedRun(run) || (run.status !== "queued" && run.status !== "running")) return;
     if (!await profiles.ensureFrozenCredential(run)) return;
     const operation = currentness.capture();
     try { const profileId = String(run.providerSnapshot.profileId || "default"); const resumed = await plotloomApi.resumeRun(run.id, profileId, run.providerSnapshot.textAuthMode !== "none"); if (!currentness.isCurrent(operation)) return; session.acceptRun(resumed); void pollRun(run.id).catch((error) => setError(describeError(error))); }
     catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
-  }, [currentness, pollRun, profiles, run, session, setError]);
+  }, [requireApiTextPipeline, currentness, pollRun, profiles, run, session, setError]);
   const repair = useCallback(async (item: QuarantineItem) => {
+    if (!requireApiTextPipeline()) return;
     if (!isSelectedRun(run) || !item.repairEligible) { setError("这个子任务当前不符合单独修复条件。"); return; }
     if (!await profiles.ensureFrozenCredential(run)) return;
     const operation = currentness.capture(); setBusy(true);
     try { const profileId = String(run.providerSnapshot.profileId || "default"); const identity = `${run.id}:${item.id}`; let key = repairKeys.current.get(identity); if (!key) { key = `work-unit-repair-${crypto.randomUUID()}`; repairKeys.current.set(identity, key); } const next = await plotloomApi.repairWorkUnit(run.id, item.id, profileId, key, run.providerSnapshot.textAuthMode !== "none"); if (!currentness.isCurrent(operation)) return; repairKeys.current.delete(identity); openTrace(next); }
     catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
     finally { if (currentness.isCurrent(operation)) setBusy(false); }
-  }, [currentness, openTrace, profiles, run, setBusy, setError]);
+  }, [requireApiTextPipeline, currentness, openTrace, profiles, run, setBusy, setError]);
   const rebuild = useCallback(async (fromStage: ServerStageName) => {
+    if (!requireApiTextPipeline()) return;
     if (!project.id) { setError("请先保存项目，再重建下游阶段。"); return; }
     if (hasDraft(stageForPage(activePage))) { setError("请先保存或丢弃当前阶段草稿，再创建重建运行。"); return; }
     const operation = currentness.capture(); setBusy(true);
     try { const saved = await prepareProfile(); if (!currentness.isCurrent(operation)) return; const next = await plotloomApi.rebuild(project.id, fromStage, saved.profileId, saved.configuration.textAuthMode === "bearer"); if (currentness.isCurrent(operation)) openTrace(next); }
     catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
     finally { if (currentness.isCurrent(operation)) setBusy(false); }
-  }, [activePage, currentness, hasDraft, openTrace, prepareProfile, project.id, setBusy, setError]);
-  return { startRun, startProposal, startStoryboard, cancelRun, resumeRun, repair, rebuild };
+  }, [requireApiTextPipeline, activePage, currentness, hasDraft, openTrace, prepareProfile, project.id, setBusy, setError]);
+  const saveAndStartProposal = useCallback(async (saveBrief: () => Promise<string | undefined>) => {
+    if (!requireApiTextPipeline()) return;
+    const projectId = await saveBrief();
+    if (projectId) await startProposal(projectId);
+  }, [requireApiTextPipeline, startProposal]);
+  return { requireApiTextPipeline, saveAndStartProposal, startRun, startProposal, startStoryboard, cancelRun, resumeRun, repair, rebuild };
 }

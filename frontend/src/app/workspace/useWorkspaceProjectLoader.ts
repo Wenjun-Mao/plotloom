@@ -15,6 +15,7 @@ type ProjectLoaderSession = Pick<WorkspaceSession,
 >;
 
 interface ProjectLoaderInput {
+  apiTextPipeline: React.MutableRefObject<boolean>;
   session: ProjectLoaderSession;
   durableDrafts: React.MutableRefObject<boolean>;
   profiles: {
@@ -86,15 +87,15 @@ export function useWorkspaceProjectLoader(input: ProjectLoaderInput) {
       const selectedRunId = current.session.routeRef.current.run;
       const selectedRun = selectedRunId ? runs.runs.find((item) => item.id === selectedRunId) : runs.runs[0];
       const missingSelectedRun = Boolean(selectedRunId && !selectedRun);
-      const progress = selectedRun ? await plotloomApi.getRunProgress(selectedRun.id) : undefined;
-      const resumeBlocked = continuation === "resume-active-run"
+      const progress = selectedRun && current.apiTextPipeline.current ? await plotloomApi.getRunProgress(selectedRun.id) : undefined;
+      const resumeBlocked = current.apiTextPipeline.current && continuation === "resume-active-run"
         ? await blockedAutomaticResume(selectedRun, current, request.signal) : "";
 
       if (!ownsRead()) return "superseded";
       current.session.acceptProjectLoad({ project, stages: stages.stages, run: selectedRun, progress, review, media: media.tasks, drafts });
       current.session.clearCanonicalRefresh(projectId);
       current.reportMessage(missingSelectedRun ? `运行 ${selectedRunId} 不属于当前项目或已不存在。` : resumeBlocked);
-      if (continuation === "resume-active-run") resumeActiveRun(selectedRun, project.id, resumeBlocked, isCurrent, current);
+      if (current.apiTextPipeline.current && continuation === "resume-active-run") resumeActiveRun(selectedRun, project.id, resumeBlocked, isCurrent, current);
       return "loaded";
     } catch (error) {
       if (!ownsRead() || isAbortError(error)) return "superseded";

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { plotloomApi, type RuntimeCapabilities } from "../../api";
 
 type CapabilityRead =
@@ -8,18 +8,23 @@ type CapabilityRead =
 
 /** A failed capability read cannot establish that a feature is unavailable. */
 export function useRuntimeCapabilities() {
+  const apiTextPipelineEnabledRef = useRef(false);
   const [read, setRead] = useState<CapabilityRead>({ state: "loading", data: null });
   const [attempt, setAttempt] = useState(0);
   const retry = useCallback(() => setAttempt(value => value + 1), []);
   useEffect(() => {
     const controller = new AbortController();
+    apiTextPipelineEnabledRef.current = false;
     setRead({ state: "loading", data: null });
     void plotloomApi.getRuntimeCapabilities(controller.signal).then(data => {
-      if (!controller.signal.aborted) setRead({ state: "ready", data });
+      if (!controller.signal.aborted) {
+        apiTextPipelineEnabledRef.current = data.apiTextPipeline;
+        setRead({ state: "ready", data });
+      }
     }).catch(() => {
       if (!controller.signal.aborted) setRead({ state: "failed", data: null });
     });
     return () => controller.abort();
   }, [attempt]);
-  return { ...read, retry };
+  return { ...read, retry, apiTextPipelineEnabledRef };
 }

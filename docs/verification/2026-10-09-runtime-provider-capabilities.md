@@ -113,3 +113,32 @@ the JSON's preliminary screenshot-prefix reference; root reconciled it to the
 `inspected-native` files and explicitly excluded both preliminary capture failures.
 This is separate from its already closed fixture/source review. Normal8841 remains
 unchanged; broader API-run controls and the full lifecycle goal remain open.
+
+## Generic API-run controls — reviewed extension
+
+The next native audit reproduced an enabled “运行所选阶段” and guidance to start
+an API run, although that runtime deliberately omits those routes. The same
+assumption affected Brief generation, repair/rebuild and retained-run loading;
+the Brief callback could save before its unsupported execution request failed.
+Before-fix actual-native Trace pixels are retained as
+`native-api-trace-before-{size}.png` under the run's native evidence directory.
+
+ADR0144 now assigns the complete profile/execution/progress/trace route group to
+one required `apiTextPipeline` capability, replacing the unpublished profile-only
+field without an alias. Every generic command checks admission before reads,
+credentials or mutations, including before Brief saving. Native retained runs
+remain readable summaries, without polling, auto-resume or missing-route reads.
+Unknown reads stay unknown with explicit retry; native specialist flows remain.
+
+The stable source passes923 frontend checks,10 focused Python checks, both
+typechecks and11 browser journeys. Root independently reran67 command/loader/
+session/presentation checks and directly inspected all six retained failed/running
+summary PNGs at the three supported desktop sizes. Independent source/test/pixel
+review found no actionable issue; its suspected late-capability race was checked
+against the loader's synchronous capability ref and cleared. These summaries are
+controlled browser responses against the real native composition, not new native
+run-lifecycle evidence. The full backend gate is still running at this checkpoint.
+
+The checked static build is regenerated before commit. Actual native activation
+and preservation readback remain a separate gate; normal8841 is unchanged.
+Graph/directory read-recovery defects and full lifecycle acceptance remain open.

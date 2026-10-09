@@ -98,8 +98,11 @@ repairs native provider availability and unknown-read/status ownership:908 front
 11 focused Python and17 combined browser journeys pass, with independent review.
 Native8865 now loads committed814264e with H3v7 retained and unchanged8 domain
 readbacks/42 assets; actual native reload makes zero unsupported profile requests
-or mutations. Broader generic API-run affordances remain a separate diagnosed
-gap; there is no API fallback or protected settings change.
+or mutations. The broader generic API-run repair is now independently reviewed:
+923 frontend/10 focused Python/11 browser journeys pass, with67 root-rerun checks
+and six directly inspected retained-summary pixels. Its required `apiTextPipeline`
+contract replaces the unpublished profile-only field; checked build and isolated
+activation are manager-owned gates. There is no API fallback or protected settings change.
 Other applicable
 recovery slices, revised routes and E22 completion remain incomplete.
 

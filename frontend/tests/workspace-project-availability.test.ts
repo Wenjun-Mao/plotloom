@@ -39,7 +39,7 @@ beforeEach(() => {
   vi.spyOn(plotloomApi, "getProjectRuns").mockResolvedValue({runs: []});
   vi.spyOn(plotloomApi, "getProjectMediaTasks").mockResolvedValue({tasks: []});
   vi.spyOn(plotloomApi, "getStoryboardReview").mockRejectedValue(new ApiError("No storyboard review", 404));
-  vi.spyOn(plotloomApi, "getRuntimeCapabilities").mockResolvedValue({durableProjectDrafts: false, explicitProjectClose: true, portableSnapshots: true, durableMediaDrafts: true, textProviderProfiles: true});
+  vi.spyOn(plotloomApi, "getRuntimeCapabilities").mockResolvedValue({durableProjectDrafts: false, explicitProjectClose: true, portableSnapshots: true, durableMediaDrafts: true, apiTextPipeline: true});
   vi.spyOn(plotloomApi, "getTextProviderProfiles").mockResolvedValue(fallbackProfiles());
   vi.spyOn(plotloomApi, "listProjects").mockResolvedValue({projects: [], nextCursor: null});
 });
@@ -48,7 +48,7 @@ afterEach(async () => {await act(async () => root.unmount()); vi.restoreAllMocks
 it("does not expose or request API profiles when the service explicitly omits them", async () => {
   vi.mocked(plotloomApi.getRuntimeCapabilities).mockResolvedValue({
     durableProjectDrafts: false, durableMediaDrafts: false, explicitProjectClose: true,
-    portableSnapshots: true, textProviderProfiles: false,
+    portableSnapshots: true, apiTextPipeline: false,
   });
   await render("/?project=a&stage=brief");
   expect(document.body.textContent).toContain("API 文本供应商未启用");
@@ -56,6 +56,25 @@ it("does not expose or request API profiles when the service explicitly omits th
   expect(document.body.textContent).not.toContain("readiness.not_checked");
   expect(plotloomApi.getTextProviderProfiles).not.toHaveBeenCalled();
   expect(button("生成助手设置")).toBeTruthy();
+  expect([...document.querySelectorAll("button")].some(item => item.textContent === "生成故事提案")).toBe(false);
+  expect(document.body.textContent).toContain("请在来源与大纲中使用生成助手");
+});
+
+it.each(["failed", "running"] as const)("retains the native %s run on Trace without generic run/progress/profile requests", async status => {
+  vi.mocked(plotloomApi.getRuntimeCapabilities).mockResolvedValue({durableProjectDrafts: false, durableMediaDrafts: false,
+    explicitProjectClose: true, portableSnapshots: true, apiTextPipeline: false});
+  const run = {...demoRun, projectId: "a", status};
+  vi.mocked(plotloomApi.getProjectRuns).mockResolvedValue({runs: [run]});
+  const progress = vi.spyOn(plotloomApi, "getRunProgress"), trace = vi.spyOn(plotloomApi, "getTrace");
+  const execution = vi.spyOn(plotloomApi, "getRunExecutionTrace"), resume = vi.spyOn(plotloomApi, "resumeRun");
+  const save = vi.spyOn(plotloomApi, "patchProject");
+  await render(`/?project=a&stage=trace&run=${run.id}`);
+  expect(document.querySelector('[data-testid="workspace-project-unavailable"]')).toBeNull();
+  expect(document.querySelector(".run-console")?.textContent).toContain(run.id);
+  expect(document.body.textContent).toContain("保留的 API 运行仅显示摘要");
+  for (const request of [progress, trace, execution, resume, save, plotloomApi.getTextProviderProfiles]) expect(request).not.toHaveBeenCalled();
+  for (const label of ["运行所选阶段", "继续排队运行", "取消运行", "从失败阶段完整重建"])
+    expect([...document.querySelectorAll("button")].some(item => item.textContent === label)).toBe(false);
 });
 
 it("keeps failed capabilities unknown and retries explicitly without a provider fallback", async () => {
@@ -66,7 +85,7 @@ it("keeps failed capabilities unknown and retries explicitly without a provider 
   expect(plotloomApi.getTextProviderProfiles).not.toHaveBeenCalled();
   expect(capabilities).toHaveBeenCalledTimes(1);
   capabilities.mockResolvedValue({ durableProjectDrafts: false, durableMediaDrafts: false,
-    explicitProjectClose: true, portableSnapshots: true, textProviderProfiles: true });
+    explicitProjectClose: true, portableSnapshots: true, apiTextPipeline: true });
   await act(async () => button("重新读取服务功能").click());
   await flush();
   await act(async () => button("供应商与会话密钥").click());
@@ -188,7 +207,7 @@ it("preserves a real unsaved editor buffer when the late capability reread fails
   expect(input.value).toBe("本页尚未保存的修改");
   let reject!: (error: Error) => void;
   vi.mocked(plotloomApi.getProject).mockReturnValueOnce(new Promise((_, fail) => {reject = fail;}));
-  await act(async () => resolveCapability({durableProjectDrafts: true, explicitProjectClose: true, portableSnapshots: true, durableMediaDrafts: true, textProviderProfiles: true}));
+  await act(async () => resolveCapability({durableProjectDrafts: true, explicitProjectClose: true, portableSnapshots: true, durableMediaDrafts: true, apiTextPipeline: true}));
   await flush();
   expect(document.querySelector(".form-card input")).toBe(input);
   expect(document.querySelector<HTMLFieldSetElement>(".editor-host")?.disabled).toBe(true);

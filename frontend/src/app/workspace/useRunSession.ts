@@ -9,7 +9,8 @@ type RunProjectionSession = Pick<WorkspaceSession,
 >;
 
 /** Submits route-current progress and trace evidence to the workspace session. */
-export function useRunSession({ session, setError, describeError }: {
+export function useRunSession({ session, setError, describeError, apiTextPipeline }: {
+  apiTextPipeline: boolean;
   session: RunProjectionSession;
   setError: (message: string) => void;
   describeError: (error: unknown) => string;
@@ -42,6 +43,7 @@ export function useRunSession({ session, setError, describeError }: {
   }, [invalidateTraceRequests]);
 
   const pollRun = useCallback(async (runId: string, projectId = session.route.project) => {
+    if (!apiTextPipeline) return;
     const operation = session.capture();
     if (!projectId || operation.projectId !== projectId || pollingEpochs.current.get(runId) === operation.epoch) return;
     pollingEpochs.current.set(runId, operation.epoch);
@@ -60,9 +62,10 @@ export function useRunSession({ session, setError, describeError }: {
     } finally {
       if (pollingEpochs.current.get(runId) === operation.epoch) pollingEpochs.current.delete(runId);
     }
-  }, [describeError, session, setError]);
+  }, [apiTextPipeline, describeError, session, setError]);
 
   const loadTraceEvidence = useCallback(async (runId: string, projectId: string) => {
+    if (!apiTextPipeline) return;
     if (loadedEvidenceFor.current === runId || loadingEvidenceFor.current === runId) return;
     const operation = session.capture();
     if (operation.projectId !== projectId || operation.stage !== "trace") return;
@@ -91,7 +94,7 @@ export function useRunSession({ session, setError, describeError }: {
     } finally {
       if (loadingEvidenceFor.current === runId) loadingEvidenceFor.current = undefined;
     }
-  }, [describeError, session, setError]);
+  }, [apiTextPipeline, describeError, session, setError]);
 
   return { pollRun, loadTraceEvidence, resetTrace };
 }

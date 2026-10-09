@@ -5,7 +5,9 @@ import { providerSessionKeys } from "../src/session-key";
 describe("PlotloomApiClient", () => {
   beforeEach(() => { window.sessionStorage.clear(); window.localStorage.clear(); });
 
-  it.each([null, {}, { durableProjectDrafts: true, durableMediaDrafts: true, explicitProjectClose: true, portableSnapshots: true }])(
+  it.each([null, {}, { durableProjectDrafts: true, durableMediaDrafts: true, explicitProjectClose: true, portableSnapshots: true },
+    { durableProjectDrafts: true, durableMediaDrafts: true, explicitProjectClose: true, portableSnapshots: true, apiTextPipeline: "false" },
+    { durableProjectDrafts: true, durableMediaDrafts: true, explicitProjectClose: true, portableSnapshots: true, textProviderProfiles: true }])(
     "rejects incomplete runtime capabilities rather than inferring unsupported controls", async payload => {
       const client = new PlotloomApiClient(vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 })) as typeof fetch);
       await expect(client.getRuntimeCapabilities()).rejects.toThrow("服务功能响应不完整");
