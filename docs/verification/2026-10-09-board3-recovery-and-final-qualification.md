@@ -337,7 +337,7 @@ The two updated Storyboard frames settle the accepted-review read only: their
 production proposal still says loading/processing. No settled production-ready
 or all-state qualification follows from those frames or their filenames.
 
-## Explicit gaps and next action
+## Earlier gap checkpoint — OS criterion superseded by settled run below
 
 Actual current-candidate OS blur remains **NOT EXERCISED**. Two held-resize attempts
 delivered no trusted blur; method reassessment and a third no-drag diagnostic also
@@ -462,3 +462,31 @@ text retained. No project command, provider dispatch or OS permission changed.
 Root and independent read-only reviewer agree these evidence boundaries. The
 ignored native receipt is `output/playwright/board3-r12-2026-10-09/
 native-hide-focus-pilot-20261009.json` in the normal source checkout.
+
+## Settled held OS-blur qualification
+
+The current4bbf8c2 criterion now passes on owned structural QA at1280×460.
+Explicit UI Save drained the clean authoring boundary; GET200 retained exact
+draft3/updatedAt21:57:12.022579Z. Public focus emulation was disabled only on
+that page. Twelve consecutive baseline frames proved caret0/textarea scroll0.
+Real captured pointer movement changed width300→370; native-menu-open remained
+370. CUA Hide Chrome changed LaunchServices foreground60986→2512 and produced
+trusted element/window blur. Width rolled back to300 before lost pointer capture.
+CLI tab-select13 restored foreground60986 and trusted focus. Continued buttons1
+movement and release did not resume resizing or persist370. Exact text, caret,
+active field, both internal scroll positions, automatic-width/null preference
+and the complete server draft matched; zero mutation requests. Diagnostics were
+removed, pointer released and focus emulation restored. No product patch needed.
+
+Initial scroll comparison was confounded: macOS plain End started an animation
+21→191.5→262. Idle End independently reproduced0→171→262 with width300 and caret0,
+without resize/OS actions; settled resize/release retained scroll0. Evidence is
+retained, not erased. The playbook now requires a stable scroll/caret baseline.
+Ignored receipts in normal `output/playwright/board3-r12-2026-10-09/`:
+`native-held-os-blur-20261009.json` (confounded scroll),
+`textarea-scroll-setup-diagnosis-20261009.json`,
+`native-held-os-blur-settled-20261009.json` and settled return viewport PNG.
+Independent read-only review inspected all three JSON receipts and the return PNG:
+no actionable finding. Server equality, zero writes and cleanup are retained
+execution assertions, not a second server replay. This closes only the named
+held-resize/OS-focus slice, not all dirty-input states or whole-product acceptance.

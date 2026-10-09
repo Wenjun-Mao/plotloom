@@ -6,7 +6,7 @@ The [Board3 recovery/final-candidate receipt](2026-10-09-board3-recovery-and-fin
 owns the latest58-asset/four-clip recovery, revised/restored routes, structural
 stress, exploration and directory-feedback qualification. Explicit unassessable
 review and the owned renderer fork are implemented; native/API capability
-guidance is repaired. Actual current OS blur, unobserved state permutations and
+guidance is repaired. Actual held OS blur now passes its settled, saved-text criterion; unobserved state permutations and
 listed capability/creative boundaries keep whole-product coverage PARTIAL.
 Final4bbf8c2 adds synchronous directory-command ownership, held-confirmation
 feedback and stale archive-decision protection, plus real manual Brief and typed
@@ -337,7 +337,7 @@ restored native routes, within-node multishot, source media-bearing lifecycle,
 qualifies the named directory command, manual Brief and graph recovery deltas.
 These later slices supersede older “revised routes/multishot incomplete” and
 “graph reconciliation open” notes only for their exact recorded scope; creative
-quality, trusted current OS blur and other unobserved states are not upgraded.
+quality and other unobserved states are not upgraded. The final receipt separately closes current held OS blur only.
 
 | Surface / state slice | Class and retained evidence | Visual result / next check |
 |---|---|---|

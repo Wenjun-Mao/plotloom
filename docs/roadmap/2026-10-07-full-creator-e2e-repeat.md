@@ -17,8 +17,8 @@ implementations are now complete in the isolated candidate; native lifecycle
 qualification is still partial. The current
 [recovery/final-candidate receipt](../verification/2026-10-09-board3-recovery-and-final-qualification.md)
 records both revised/restored native routes,58 assets/four clips, source lifecycle
-and idle restart, structural stress and85-second exploration. Actual current OS
-blur and explicitly unobserved E22/capability states remain open; software gates
+and idle restart, structural stress and85-second exploration. Actual held OS
+blur now passes the settled baseline/return criterion; unobserved E22/capability states remain open. Software gates
 and publication are tracked there, not inferred from historical counts below. The
 final4bbf8c2 command-ownership/recovery delta passes1,463 Python,1,025 frontend,
 unfiltered274 browser tests and independent source/pixel review. Separate actual
