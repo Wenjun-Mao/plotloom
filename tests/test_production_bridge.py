@@ -82,6 +82,10 @@ def test_bridge_projects_one_f4_scene_to_one_canonical_scene_and_installs_atomic
         assert accepted.installation.status == "current"
         installed = store.authoring.get_stage_payload(store.manifest.project_id, StageName.SCENE_BEATS)
         assert {scene.objective for scene in installed.scenes} == {edited_text}
+        board = store.authoring.get_stage_payload(store.manifest.project_id, StageName.STORYBOARD)
+        for shot in board.shots:
+            assert shot.title == f"场次 1 · 镜头 {shot.order}"
+            assert shot.composition == "medium shot of an empty beacon room at dawn, cinematic film still, cool gray palette, 16:9"
         assert revised.intent_package.review_state == "author_saved"
         assert revised.intent_package.suggestion_origin == "none"
     finally:

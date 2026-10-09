@@ -8,6 +8,17 @@ owner-data protection remain required before publication.
 
 ## Reusable playbook and current continuation profile
 
+Latest continuation (October9 07:32UTC): same-project native rebuild is installed;
+its first revised H3 original/segment played and was explicitly selected for
+functional QA, with creative deviation recorded. Opening2 image delivered, but
+hand-only identity cannot pass the current review contract; video-source admission
+refused and no second video was dispatched. The assessment-semantics question is
+open. Remaining revised clips/routes, recovery and E22 closure remain in scope.
+Shot-title and request-status repairs are uncommitted and under qualification.
+The [native rebuild receipt](../verification/2026-10-09-native-rebuilt-production.md)
+owns exact evidence; earlier tables/checkpoints below are historical baselines,
+not current completion claims. Normal8841 is unchanged by this continuation.
+
 On October7 the owner agreed to ONE reusable Create → Revise → Recover playbook,
 with a tailored profile and dated evidence for each major update/iteration.
 Extend the existing [C/P/E playbook](../creative-workflow/graph-workbench-acceptance.md),
@@ -111,7 +122,13 @@ now records delivered/explicitly selected Character reference r3 and Prop refere
 native accepted Art/Script/Storyboard r2, and the compact portrait-preview repair.
 Typed Script/Storyboard diagnostics and historical-task wording are qualified
 (1,413 Python/859 frontend/242 browser PASS, independent review clear). Continue fresh native
-intent review, explicit rebuild and every revised route. This does not
+intent review, explicit rebuild and every revised route. The subsequent
+[native rebuild checkpoint](../verification/2026-10-09-native-rebuilt-production.md)
+now proves native intent delivery, explicit intent/presentation review, same-project
+production rebuild, fresh Storyboard approval and revised character-reference
+selection. First revised keyframe is delivered, explicitly selected and reviewed;
+its H3 request is submitted, and the second opening image is executing in the
+existing specialist task. Revised route playback is not yet verified. This does not
 replace the remaining Recover or whole-product E22 obligations below.
 
 1. **Create:** finish distinct native Character/Scene/Prop images and one same-subject

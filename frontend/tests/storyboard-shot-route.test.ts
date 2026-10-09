@@ -51,6 +51,28 @@ it("selects the exact routed shot and refuses a no-longer-owned ID without falli
   expect(host.querySelector(".shot-inspector .section-title strong")?.textContent).toBe("选择镜头");
 });
 
+it("bounds card and inspector headings while preserving full authored fields", async () => {
+  const value = structuredClone(demoProject.storyboard);
+  const shot = value.shots[0];
+  shot.title = "Long photographic composition. ".repeat(40);
+  shot.composition = shot.title;
+  shot.action = "阿岚伸手握住开关。";
+  const original = JSON.stringify(value);
+  const changed = vi.fn();
+  await act(async () => root.render(createElement(StoryboardPage, {
+    bible: demoProject.storyBible, graph: demoProject.storyGraph,
+    sceneBeats: demoProject.sceneBeats, value, stale: false, mediaTasks: {},
+    saving: false, readOnly: false, entityId: `shot:${shot.id}`,
+    onSave: async () => undefined, onDraftChange: changed,
+  })));
+  expect(host.querySelector(".shot-copy strong")?.textContent).toBe(shot.action);
+  expect(host.querySelector(".shot-inspector .section-title strong")?.textContent).toBe(shot.action);
+  expect([...host.querySelectorAll<HTMLInputElement>(".shot-inspector input")].some(input => input.value === shot.title)).toBe(true);
+  expect([...host.querySelectorAll<HTMLTextAreaElement>(".shot-inspector textarea")].some(input => input.value === shot.composition)).toBe(true);
+  expect(changed).not.toHaveBeenCalled();
+  expect(JSON.stringify(value)).toBe(original);
+});
+
 it("passes lifecycle revision to the media read owner without remounting the shot editor", async () => {
   const entity = `shot:${demoProject.storyboard.shots[0].id}`;
   await render(entity, false, false, 1);

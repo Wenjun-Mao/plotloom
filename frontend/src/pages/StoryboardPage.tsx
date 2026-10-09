@@ -16,6 +16,7 @@ import type {
 import { plotloomApi } from "../api";
 import type { ProjectDraftQuiescence } from "../features/authoring/projectDraftQuiescence";
 import { deriveRoutes, groupStoryboard } from "../model";
+import { shotLabel } from "../shot-label";
 import {
   addAudioEvent,
   addShot,
@@ -419,9 +420,9 @@ export function StoryboardPage({
               const imageTask = mediaTasks[`${shot.id}:image`];
               const shotLinks = storyboard.shotBeatLinks.filter((link) => link.shotId === shot.id);
               return <article key={shot.id} data-entity-key={encodeStoryboardEntity({ kind: "shot", shotId: shot.id })} className={`shot-card ${shot.id === selectedShotId ? "selected" : ""}`} onClick={() => editShot(shot.id)}>
-                <button className="shot-select" aria-label={`编辑镜头 ${shot.title}`} onClick={(event) => { event.stopPropagation(); editShot(shot.id); }}>
-                  <div className="shot-frame">{imageTask?.outputUri ? <img src={imageTask.outputUri} alt={`${shot.title} 历史关键帧`} /> : <span>{String(shot.order).padStart(2, "0")}</span>}{stale && <Badge tone="warning">已过期</Badge>}</div>
-                  <div className="shot-copy"><strong>{shot.title}</strong><small>{shotSizes.find((size) => size.value === shot.shotSize)?.label} · {shot.durationUnits} 毫秒 · {shotLinks.length} 项节拍覆盖</small><p>{shot.action}</p></div>
+                <button className="shot-select" aria-label={`编辑镜头 ${shotLabel(shot)}`} onClick={(event) => { event.stopPropagation(); editShot(shot.id); }}>
+                  <div className="shot-frame">{imageTask?.outputUri ? <img src={imageTask.outputUri} alt={`${shotLabel(shot)} 历史关键帧`} /> : <span>{String(shot.order).padStart(2, "0")}</span>}{stale && <Badge tone="warning">已过期</Badge>}</div>
+                  <div className="shot-copy"><strong>{shotLabel(shot)}</strong><small>{shotSizes.find((size) => size.value === shot.shotSize)?.label} · {shot.durationUnits} 毫秒 · {shotLinks.length} 项节拍覆盖</small><p>{shot.action}</p></div>
                 </button>
                 <div className="media-controls"><small>图片：查看关键帧与参考素材</small><small>视频：在上方工作台审核片段</small></div>
               </article>;
@@ -431,7 +432,7 @@ export function StoryboardPage({
       </div>
 
       <Panel className="shot-inspector" data-focus-key={selectedShot ? storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: "entity" }) : undefined} tabIndex={selectedShot ? -1 : undefined}>
-        <div className="section-title"><span>镜头细节</span><strong>{selectedShot?.title || "选择镜头"}</strong></div>
+        <div className="section-title"><span>镜头细节</span><strong>{selectedShot ? shotLabel(selectedShot) : "选择镜头"}</strong></div>
         {selectedShot && <>
           <Field label="镜头 ID"><input data-focus-key={storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: "id" })} readOnly value={selectedShot.id} /></Field>
           <Field label="所属场景"><select data-focus-key={storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: "sceneId" })} aria-label="迁移镜头到场景" value={selectedShot.sceneId} onChange={(event) => requestShotSceneMigration(event.target.value)}>{sceneBeats.scenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.title || scene.id} · {scene.id}</option>)}</select></Field>

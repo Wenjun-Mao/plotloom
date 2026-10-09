@@ -1,5 +1,13 @@
 # Whole-product visual and text audit — 2026-10-08
 
+October9 continuation: [native rebuilt-production evidence](2026-10-09-native-rebuilt-production.md)
+adds real original/segment playback and preserved quality caveats. Two E22 defects
+have source repairs under qualification: overlong composition-as-title and raw
+video-state badges. A review found and closed the related selected-original versus
+selected-segment status/navigation mismatch. The hand-only identity gate remains
+an open semantics question, and its raw English refusal is a recorded copy gap.
+These changes do not complete the whole-product state matrix.
+
 Status: **EXECUTED / PARTIAL COVERAGE**. Included in the current full E2E run,
 with scoped repairs verified; unqualified states remain listed below. This is
 not full lifecycle acceptance. Artistic image/video quality remains owner/H3 scope.
@@ -175,6 +183,7 @@ file; do not inherit a PASS from a different state or source revision.
 | Outline original interactive report |144 native12 direct top/table/middle/bottom pixels, all sizes; exact archive/project/no-write, bounds/hit and reopen guards | Reading controls/scroll scoped PASS. Raw fractional-minute tile wraps badly at1280; upstream renderer defect UNRESOLVED, original bytes preserved. |
 | Revised Script/Storyboard typed stale guidance | October9 current isolated diagnostic bundle: seven simulated-GET captures at all three desktop sizes, root and independent direct inspection; five new backend and five new frontend regressions,18 focused browser checks and242 full browser PASS | Scoped warning/owner-link/technical-detail presentation PASS; full Python gate pending. No claim that fixture pixels are native stale behavior. See the native reference revision receipt. |
 | Revised native Storyboard r2 report | October9 accepted r2 on same revised native project; root-inspected1700 top/end plus1280×768 and1280×460 top/middle/end, actual wheel scrolling and exact bottom geometry, disclosure close/reopen | Reading scoped PASS. Upstream footer hardcodes2–5s despite frozen2–8s; generation-call and environment-reference claims require owning-layer clarification. Retained report unchanged. |
+| Revised native Art r2 enlarged report | October9 current Art report, nine root-inspected top/middle/end viewport captures at all three sizes; real wheel scrolling, exact bottom geometry, zero writes, Escape/focus restoration and explicit Close/reopen | Scoped reading PASS in rebuilt-production receipt. Green skipped-Cast gate remains a report-validation provenance question; original bytes retained, no creative acceptance. |
 | Rebuild r5 with retained native intent job | October9 same-project actual preparation; completed task frozen to proposal1 versus current proposal5; three final native desktop captures root/independently inspected | Repaired: provenance distinguishes historical delivery from current suggestions across author-save revisions. Ten focused tests and859 frontend PASS; new full browser gate pending. Current intent remains pending; no false admission observed. |
 
 The Outline duration source diagnosis is confirmed in the clean pinned
@@ -196,6 +205,21 @@ Use only isolated QA data for state construction. Never manufacture failure or
 archive an owner project just to fill this table.
 
 ## Findings, root causes and bounded repairs
+
+October9 native rebuilt H3 preparation also exposes raw `prepared` in the primary
+job badge (`rebuilt-h3-frozen.yml` in native-intent browser evidence). This is
+interface status copy, unlike retained English source composition. It remains
+OPEN for the owning shared video-status presentation repair after native execution.
+The current image waiting-state UI was directly inspected at all three desktop
+sizes; readable current/history distinctions and check/cancel controls pass only
+that state, not the rest of the whole-product matrix.
+
+October9 native rebuild inspection adds an open defect: full English composition
+is projected into `shot.title` and repeated as large card/detail headings. Exact
+source diagnosis and direct pixels are in the
+[rebuilt-production receipt](2026-10-09-native-rebuilt-production.md).
+Retain source composition and immutable reports; fix concise display identity at
+its owner rather than translating or discarding creative evidence. Not yet repaired.
 
 | Finding | Root cause / repair boundary | Verification so far |
 |---|---|---|

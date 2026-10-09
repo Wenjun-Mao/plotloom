@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Any, Literal
-from pydantic import Field, StrictInt
-from .domain import CamelModel
 from hashlib import sha256
+from typing import Any, Literal
+
+from pydantic import Field, StrictInt
+
 from .creative_handoff_exchange import canonical_json
+from .domain import CamelModel
 
 
 def stable_hash(value: Any) -> str:
@@ -139,7 +141,6 @@ def project_presentation(payload: dict, package: ProductionPresentation) -> dict
         covered = [link["beatId"] for link in links if link["shotId"] == shot["id"]]
         shot["action"] = "\n".join(beats[beat]["visibleEvent"] for beat in covered if beats[beat]["visibleEvent"])
         shot["composition"] = physical_text(source)
-        shot["title"] = shot["composition"] or shot["action"] or shot["id"]
         shot["visibleTexts"] = [
             {"text": entry.source_text[span.start:span.end], "sourceCoordinates": entry.coordinates,
              "sourceContentHash": entry.source_hash}

@@ -10,9 +10,13 @@ from ...canonical_schema import default_dialogue_timing_profile
 from ...creative_handoff_exchange import canonical_json
 from ...domain import ProjectBrief, StageName
 from ...edge_entry_states import compile_edge_entry_state_contract
-from ...production_bridge_contracts import ProductionBridgeConflict, ProductionBridgeIntentEntry, ProductionBridgeIntentPackage
-from ..schema.project_cast import CastRevisionRow
+from ...production_bridge_contracts import (
+    ProductionBridgeConflict,
+    ProductionBridgeIntentEntry,
+    ProductionBridgeIntentPackage,
+)
 from ...production_timing import source_seconds_to_milliseconds
+from ..schema.project_cast import CastRevisionRow
 
 
 class ProductionBridgeProjection:
@@ -183,7 +187,7 @@ class ProductionBridgeProjection:
                     cue_ids = [cue["id"] for cue in cues if cue["beatId"] in selected]
                     action = "\n".join(value["action"] for value in flow[start - 1:end] if isinstance(value, dict) and isinstance(value.get("action"), str) and value["action"].strip())
                     visible_props = list(dict.fromkeys([*source_props, *cut_props]))
-                    shots.append({"id": shot_id, "sceneId": scene_id, "order": order, "title": frame or action, "shotSize": size, "durationUnits": cut_durations[order], "cameraAngle": "", "cameraMovement": cut.get("camera") if isinstance(cut.get("camera"), str) else "", "composition": frame or "", "visualIntent": "", "motionIntent": "", "action": action, "transition": "", "cueIds": cue_ids, "audioPlan": {"events": []}, "characterIds": mapped_cut_characters, "locationId": location_id, "propIds": visible_props, "requiredEntityStates": [], "entryState": state, "exitState": state})
+                    shots.append({"id": shot_id, "sceneId": scene_id, "order": order, "title": f"场次 {index} · 镜头 {order}", "shotSize": size, "durationUnits": cut_durations[order], "cameraAngle": "", "cameraMovement": cut.get("camera") if isinstance(cut.get("camera"), str) else "", "composition": frame or "", "visualIntent": "", "motionIntent": "", "action": action, "transition": "", "cueIds": cue_ids, "audioPlan": {"events": []}, "characterIds": mapped_cut_characters, "locationId": location_id, "propIds": visible_props, "requiredEntityStates": [], "entryState": state, "exitState": state})
                     links.extend({"shotId": shot_id, "beatId": beat_id, "role": "primary", "coverageWeight": 1 / len(selected)} for beat_id in selected)
                     visual_cuts.append({"sectionId": section_id, "episode": ep, "sceneIndex": index, "cutIndex": order, "shotId": shot_id, "seconds": cut["seconds"], "beats": cut.get("beats"), "frame": frame, "h3Prompt": segment.get("h3Prompt"), "source": {"segmentIndex": segment_order, "segmentSceneIndex": index, "cutIndex": source_cut_index}})
         package = ProductionBridgeIntentPackage(suggestion_origin="none", review_state="pending", entries=intent_entries)

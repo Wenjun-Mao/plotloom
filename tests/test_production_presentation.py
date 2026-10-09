@@ -88,9 +88,10 @@ def _request(pkg, entries):
 def test_complete_review_preserves_order_text_constraints_and_runtime_separation():
     pkg = _package(); reviewed = review_presentation(pkg, _request(pkg, _updates(pkg)))
     raw = {"sceneBeats": {"beats": [{"id": source.target_id} for source in pkg.sources if source.kind != "composition"]}, "storyboard": {
-        "shots": [{"id": "opening-s1-c1"}], "shotBeatLinks": [{"shotId": "opening-s1-c1", "beatId": f"opening-s1-b{i}"} for i in range(1, 6)]}}
+        "shots": [{"id": "opening-s1-c1", "title": "作者的镜头名"}], "shotBeatLinks": [{"shotId": "opening-s1-c1", "beatId": f"opening-s1-b{i}"} for i in range(1, 6)]}}
     projected = project_presentation(raw, reviewed)
     shot = projected["storyboard"]["shots"][0]
+    assert shot["title"] == "作者的镜头名"
     assert shot["action"].startswith("停步。抬眼。\n留在门廊。")
     assert "发送，保留已发文字，不出现新回信。" in shot["action"]
     assert "怎么办" not in str(shot) and "预留" not in str(shot)

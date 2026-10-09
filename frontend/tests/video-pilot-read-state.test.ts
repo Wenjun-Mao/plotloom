@@ -69,6 +69,41 @@ it.each(["prepared", "submitted", "failed", "ingested"] as const)("describes %s 
   expect(host.querySelector('a[href="#shot-original"]')?.textContent).toBe("请求与原片");
 });
 
+it.each([
+  ["prepared", "已准备 · 尚未提交"],
+  ["dispatching", "正在提交 · 请勿重复操作"],
+  ["submitted", "已提交 · 等待结果"],
+  ["outcome_unknown", "提交结果待核实 · 请勿重复提交"],
+  ["retrieve_needed", "结果待获取"],
+  ["ingested", "待审原片"],
+  ["discard_pending", "删除待完成"],
+  ["discarded", "已删除"],
+  ["cancelled", "已取消"],
+  ["failed", "生成未完成"],
+] as const)("presents %s with truthful Chinese request-state copy", async (state, label) => {
+  vi.mocked(plotloomApi.getVideoJobs).mockResolvedValue({ jobs: [{ ...preparedJob("a"), state }] });
+  await render("a");
+  expect(host.querySelector('[data-testid="video-job-job-a"] header span')?.textContent).toBe(label);
+});
+
+it("does not label a retained historical selection as currently selected", async () => {
+  vi.mocked(plotloomApi.getVideoJobs).mockResolvedValue({ jobs: [{ ...preparedJob("a"), state: "ingested", current: false, selected: true, inputStatus: "stale" }] });
+  await render("a");
+  expect(host.querySelector('[data-testid="video-job-job-a"] header span')?.textContent).toBe("保留原片");
+  expect(host.textContent).not.toContain("已为当前镜头选择播放片段");
+});
+
+it("distinguishes a selected original from an admitted playback segment", async () => {
+  vi.mocked(plotloomApi.getVideoJobs).mockResolvedValue({ jobs: [{
+    ...preparedJob("a"), state: "ingested", selected: true, playbackSegment: null,
+  }] });
+  await render("a");
+  expect(host.querySelector('[data-testid="video-job-job-a"] header span')?.textContent).toBe("已选原片 · 片段待确认");
+  expect(host.textContent).toContain("已选原片，但尚无当前可用的播放片段；暂不能用于故事播放");
+  expect(host.textContent).not.toContain("已为当前镜头选择播放片段");
+  expect(host.querySelector('a[href="#shot-story-preview"]')).toBeNull();
+});
+
 it("waits for all owned reads before confirming an empty job list", async () => {
   const backend = deferred<Awaited<ReturnType<typeof plotloomApi.getVideoBackend>>>();
   vi.mocked(plotloomApi.getVideoBackend).mockReturnValue(backend.promise);
@@ -168,6 +203,8 @@ it("rereads archived retained previews and restores story controls only from a f
     .mockResolvedValueOnce({ jobs: [selectedJob()] });
   await render("a", 1);
   expect(host.querySelector('a[href="#shot-story-preview"]')).not.toBeNull();
+  expect(host.querySelector('[data-testid="video-job-job-a"] header span')?.textContent).toBe("已选择片段");
+  expect(host.textContent).toContain("已为当前镜头选择播放片段");
   await render("a", 2, true, "archived");
   expect(host.querySelector('a[href="#shot-story-preview"]')).toBeNull();
   expect(host.querySelector(".branching-video-preview")).toBeNull();

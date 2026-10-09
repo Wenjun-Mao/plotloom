@@ -20,6 +20,7 @@ import { verifiedVideoGeometry } from "./features/media/verified-video-geometry"
 import { ReviewedVideoPlayer } from "./features/media/ReviewedVideoPlayer";
 import { isCurrentVideoSelection, videoNextAction } from "./features/media/video-next-action";
 import { frozenVideoSnapshot } from "./features/media/frozen-video-snapshot";
+import { videoJobLabel } from "./features/media/video-job-label";
 
 type FrozenShot = { id?: string; title?: string; action?: string; sceneId?: string; order?: number };
 
@@ -90,7 +91,10 @@ function jobStatus(job: VideoJob): string {
   if (job.lifecycleStatus === "archived") return "项目已归档 · 保留媒体证据";
   if (job.inputStatus === "invalid") return "冻结输入证据未通过核验";
   if (job.inputStatus === "stale") return "冻结输入与当前内容不一致";
-  if (job.selected) return "已为当前镜头选择播放片段";
+  if (isCurrentVideoSelection(job)) return "已为当前镜头选择播放片段";
+  if (job.selected) return job.current
+    ? "已选原片，但尚无当前可用的播放片段；暂不能用于故事播放"
+    : "保留先前选择记录，不用于当前故事播放";
   if (job.state === "discard_pending") return "正在永久删除候选媒体；可安全重试";
   if (job.state === "discarded") return "已永久删除候选媒体；仅保留最小记录";
   return "当前";
@@ -364,7 +368,7 @@ export function VideoPilotPanel({ projectId, lifecycleRevision, lifecycleStatus,
         {hasPreviewSegment && navigationJob ? <a href={`#video-segment-preview-${navigationJob.id}`}>预览片段</a> : <span aria-disabled="true">预览片段 · 待准备</span>}
         {lifecycleStatus === "archived" ? <span aria-disabled="true">用于故事 · 已停用</span>
           : hasReviewableSegment && navigationJob ? <a href={`#video-segment-confirm-${navigationJob.id}`}>用于故事 · 确认</a> : <span aria-disabled="true">用于故事 · 待审核</span>}
-        {visibleJobs.some((job) => job.selected) && <a href="#shot-story-preview">故事播放</a>}
+        {visibleJobs.some(isCurrentVideoSelection) && <a href="#shot-story-preview">故事播放</a>}
       </nav>}</header>
     {!videoReadCurrent && error && <Button variant="quiet" onClick={() => void refresh().catch(reason => { if (videoContext === currentContextRef.current) setError(reason instanceof Error ? reason.message : "读取失败"); })}>重新读取镜头视频状态</Button>}
     {unassignedInvalidJobs.length > 0 && <div className="notice warning" role="alert">
@@ -423,7 +427,7 @@ export function VideoPilotPanel({ projectId, lifecycleRevision, lifecycleStatus,
       : <div className="button-row"><Button disabled={cannotPrepare || h3TimingMismatch} onClick={() => void prepare()}>准备新视频任务（冻结当前审核关键帧）</Button></div>}
     </details>
     {error && <small className="notice warning">{error}</small>}
-    {visibleJobs.map((job, index) => <article id={index === 0 ? "shot-original" : undefined} className="video-job-card" key={job.id} data-testid={`video-job-${job.id}`}><header><strong>原片 · {shotLabel(frozenShot(job))}</strong><span>{job.selected ? "已选择片段" : job.state === "ingested" ? job.current ? "待审原片" : "保留原片" : job.state}</span></header>
+    {visibleJobs.map((job, index) => <article id={index === 0 ? "shot-original" : undefined} className="video-job-card" key={job.id} data-testid={`video-job-${job.id}`}><header><strong>原片 · {shotLabel(frozenShot(job))}</strong><span>{videoJobLabel(job)}</span></header>
       <small>{isH3Job(job) ? `质量 ${frozenH3Quality(job)} · ` : ""}请求 {job.requestedSeconds} 秒 {job.observed ? `· 实测 ${job.observed.durationSeconds.toFixed(2)} 秒` : ""}</small>
       <small> · {jobStatus(job)}</small>
       <details className="video-technical-history"><summary>审核历史与技术详情</summary>
