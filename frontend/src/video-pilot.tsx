@@ -401,7 +401,7 @@ export function VideoPilotPanel({ projectId, lifecycleRevision, lifecycleStatus,
       <label>首帧与末帧统一输入处理<select value={h3InputFrameMode} disabled={readOnly} onChange={(event) => setH3InputFrameMode(event.target.value as typeof h3InputFrameMode)}>
         <option value="reject_mismatch">比例不符则拒绝</option><option value="contain_pad">黑边画布</option><option value="cover_center_crop">居中裁切</option>
       </select></label></div>}
-    {h3 && selectedProfile && keyframe && h3AspectMismatch && <div className="notice warning" data-testid="h3-aspect-preparation">
+    {h3 && selectedProfile && keyframe && h3AspectMismatch && <div className="notice warning h3-aspect-options" data-testid="h3-aspect-preparation">
       <strong>当前审核关键帧 {keyframe.width}×{keyframe.height} 与 {selectedProfile.width}×{selectedProfile.height} 比例不符。</strong>
       <small>默认拒绝比例不符。以下选择只会冻结对原审核关键帧的网关输入处理，不会替换原始字节、来源、审核选择或当前性检查。</small>
       <label><input type="radio" name="h3-input-frame-mode" checked={h3InputFrameMode === "reject_mismatch"} disabled={readOnly} onChange={() => setH3InputFrameMode("reject_mismatch")} /> 保持拒绝比例不符（默认）</label>

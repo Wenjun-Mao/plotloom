@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from hashlib import sha256
 from io import BytesIO
-import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -13,12 +13,15 @@ from PIL import Image
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.canonical_schema import CharacterV2
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import StageName, RunStatus
+from plotloom.domain import RunStatus
+from plotloom.persistence.project.cast import ProjectCastPersistence
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import ProjectFolderStorage, ProjectStore
-from plotloom.persistence.project.cast import ProjectCastPersistence
-
-from tests.project_storage_fixtures import FixtureProvider, FixtureResolver, fixture_profile
+from tests.project_storage_fixtures import (
+    FixtureProvider,
+    FixtureResolver,
+    fixture_profile,
+)
 
 
 def _png(color: tuple[int, int, int]) -> bytes:
@@ -338,9 +341,14 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
             "storyboardRevision": storyboard["head"]["revision"],
             "approvalId": approval.json()["decision"]["id"],
         }
-        assert client.post(
+        refused = client.post(
             f"/api/v2/projects/{project_id}/still-previews", json=preview_payload
-        ).status_code == 409
+        )
+        assert refused.status_code == 409
+        assert refused.json()["code"] == "same_person_review_required"
+        assert refused.json()["shotId"] == shot["id"]
+        assert refused.json()["bindingId"] == binding.json()["id"]
+        assert "无法确认身份时不要标记通过" in refused.json()["message"]
         review = client.post(
             f"/api/v2/projects/{project_id}/same-person-reviews",
             json={

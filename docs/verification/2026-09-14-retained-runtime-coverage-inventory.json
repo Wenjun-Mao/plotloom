@@ -1206,7 +1206,7 @@
       ]
     },
     "tests/test_project_storage_image_identity_contracts.py::test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacement": {
-      "source_sha256": "b808488289a7d4ecc58a9bf5c55bb1b124f366903df62e0e19950a7c613d0f33",
+      "source_sha256": "a938b76d1961e183d44485acf44b379063acf267e76e06980e4f89ee56362509",
       "assertions": [
         "approval.status_code == 201",
         "missing.status_code == 422",
@@ -1229,7 +1229,11 @@
         "intent_draft.status_code == 200",
         "intent.status_code == 201",
         "binding.status_code == 201",
-        "client.post(f'/api/v2/projects/{project_id}/still-previews', json=preview_payload).status_code == 409",
+        "refused.status_code == 409",
+        "refused.json()['code'] == 'same_person_review_required'",
+        "refused.json()['shotId'] == shot['id']",
+        "refused.json()['bindingId'] == binding.json()['id']",
+        "'无法确认身份时不要标记通过' in refused.json()['message']",
         "review.status_code == 201",
         "preview.status_code == 201",
         "preview.json()['manifest']['frames'][0]['identityReviewId'] == review.json()['id']",

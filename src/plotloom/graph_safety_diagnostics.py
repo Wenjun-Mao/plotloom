@@ -2,7 +2,7 @@
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from .exceptions import InvalidTransitionError
+from .exceptions import InvalidTransitionError, SamePersonReviewRequiredError
 from .review_context_diagnostics import ReviewContextError
 
 
@@ -26,6 +26,14 @@ class GraphEditSafetyError(InvalidTransitionError):
 
 
 def transition_error_content(error: InvalidTransitionError) -> dict[str, Any]:
+    if isinstance(error, SamePersonReviewRequiredError):
+        return {
+            "code": error.code,
+            "message": str(error),
+            "shotId": error.shot_id,
+            "bindingId": error.binding_id,
+            "technicalMessage": error.technical_message,
+        }
     if isinstance(error, ReviewContextError):
         return {"code": error.code, "message": str(error), "diagnostic": error.diagnostic.model_dump(mode="json", by_alias=True)}
     if isinstance(error, GraphEditSafetyError):

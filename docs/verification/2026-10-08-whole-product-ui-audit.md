@@ -19,6 +19,93 @@ cropped faces in media candidate thumbnails, caused by the shared96px cover-fit
 rule. The October9 08:27UTC continuation repairs that shared rule to contain-fit;
 the comparison panel's separate contain-fit did not qualify thumbnail cards.
 
+### H3 aspect-choice layout — October9 08:48UTC candidate
+
+The prior refusal frames exposed a form incorrectly using `.notice`'s horizontal
+flex row; the nonshrinking heading left little width for prose and radio labels.
+A scoped `h3-aspect-options` class now stacks the notice contents and aligns each
+radio with its full-width label. Defaults, disabled eligibility, consent, request
+fields and provider handling are unchanged. No narrow-screen support was added.
+
+The extended existing H3 browser journey failed before the repair with a105.6px
+label width at1700px. After repair it passes12.2s, including all three desktop
+viewports, notice/control containment above the fold, labels wider than400px,
+nonoverlap,16px controls, no page overflow and selecting every choice. Reject
+keeps source reading disabled; explicit crop or padding enables it. The journey
+then retains its exact frozen crop request, offline submit/reconcile, segment
+selection and actual backend-restart checks. This is a product-shaped offline
+fixture, not additional native video generation or quality acceptance.
+
+Root and independent GPT-6 Luna/Max review directly inspected all three repaired
+screenshots, with no material findings. Before capture exists at1700px; earlier
+identity-refusal frames separately show the1280px defect. Evidence directories:
+`output/playwright/native-intent-2026-10-08/h3-aspect-layout-before/` and
+`h3-aspect-layout-after/`. All872 frontend tests, types and deterministic build
+pass. The combined full browser gate passes243 tests in7.9m. Product/test diff
+SHA256 `72db13c1b2591786b7a3b601d92ba2723ce1ca658af20a75115d0428fb36774f`
+and all three new test-file hashes match the pre-run snapshot. Evidence lives in
+`frontend/test-results/identity-and-aspect-full-gate/`. Normal8841 is unchanged.
+
+### Identity-review refusal — October9 08:40UTC candidate
+
+The existing still-preview/video gates correctly reject identity-bound keyframes
+without a current passing review. Their generic English refusals and the panel's
+preview-only explanation hid the video consequence. ADR0143 introduces one typed
+Chinese diagnostic with exact shot/binding identity. Both API compositions use
+the shared serializer; eligibility and dispatch predicates remain unchanged.
+
+The initial implementation registered a handler only in the general composition;
+the real project-folder tests caught the resulting generic code. The shared
+serializer repair passes both compositions. Browser checks use actual endpoints
+for missing and explicitly failed reviews, exact refusal identities, no created
+jobs/previews, and the existing subsequent explicit-pass preview flow. The UI
+correctly disables still-preview creation; its server refusal is tested directly,
+not by forcing a click on a disabled control. A failed helper iteration and a
+missing approval/revision fixture payload are retained, not product failures.
+
+Four focused browser journeys pass (final identity image journey20.8s; three adjacent
+H3/still/restart journeys10.1s),124 focused Python checks and all872 frontend
+tests pass; application/E2E types, deterministic build, lock and scoped lint pass.
+Independent GPT-6 Luna/Max review caught an incorrect disclosure name in the
+initial guidance. The final message names “准备与参考 · 图片、角色、导入”, and the
+browser now asserts that this exact disclosure contains the identity panel.
+The reviewer rechecked source and all three final frames, closing the finding.
+The11 identity/graph Python checks and browser journey pass again after the
+wording correction. Full Python finished1,414 PASS/1 FAIL in22m36s. Its process
+started before that wording-only correction, so it is not a frozen final gate.
+The sole failure was the authored retained-coverage inventory: this test's old
+inline409 assertion/hash had not been reconciled with the new response variable
+and typed diagnostic assertions. Comparing the complete test confirms original
+missing-reference, delivery, passing-review and stale-reference behavior remains;
+the new assertions strengthen refusal identity/copy. Only this catalog entry's
+hash/assertions were updated; no checker, baseline or disposition was changed.
+All four inventory/identity API/storage tests then pass2.46s. Earlier final-copy
+11 focused checks remain valid. No claim of a second all-green Python run.
+The final combined wheel builds and passes installed smoke outside the checkout;
+lock, scoped Ruff and diff checks pass. Native8865 still loads66b1cbd Python;
+normal8841 remains unchanged. The existing independent reviewer checked the
+inventory delta and AST-extracted hash, finding no weakening or unrelated edit.
+Root directly inspected all three `identity-refusal-{width}x{height}.png` frames
+at1700×900,1280×768,1280×460: the complete refusal is readable without horizontal
+overflow. Evidence is under ignored
+`output/playwright/native-intent-2026-10-08/identity-refusal-reviewed-guidance/`;
+the earlier `identity-refusal-verified/` captures pre-review wording; sibling
+`identity-refusal-disabled-control-failure/` and
+`identity-refusal-fixture-payload-failure/` preserve the harness failures.
+
+Those frames also expose a separate1280px layout defect: the H3 aspect-mismatch
+notice lays prose and three radio labels out as competing flex columns, squeezing
+the labels into narrow vertical text. Its owning `.notice` flex layout needs a
+scoped form layout, not shorter or less accurate safety guidance. The later
+H3 layout section above owns its repair; identity-copy checks alone do not
+qualify the aspect-choice layout.
+
+No native backend restart or dispatch occurred. The held East job remains a
+terminal pre-tool capacity failure (same thread/turn confirmed08:40UTC), not a
+running generation. Native8865 still loads66b1cbd backend; checked static was
+rebuilt, but the new server refusal is only qualified on isolated test runtimes.
+Normal8841 and protected projects/settings remain untouched.
+
 ### Thumbnail framing repair — October9 08:27UTC
 
 Root cause: `.media-candidate img` combined a fixed96px height with `cover`,

@@ -22,7 +22,8 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); })
 it("uses Chinese review instructions while retaining the actual reviewer and judgment values", async () => {
   await act(async () => root.render(createElement(SamePersonReviewPanel, props)));
   expect(host.textContent).toContain("由 Codex 完成的技术或视觉检查，审阅者须写为 Codex");
-  expect(host.textContent).toContain("完成复核后才能纳入连续静帧预览");
+  expect(host.textContent).toContain("复核通过后才能生成视频或创建连续静帧预览");
+  expect(host.textContent).toContain("无法确认身份时不要标记通过");
   expect(host.querySelector("select")?.value).toBe("pass");
   expect(host.querySelector('option[value="pass"]')?.textContent).toBe("通过");
   expect(host.querySelector('option[value="fail"]')?.textContent).toBe("不通过");

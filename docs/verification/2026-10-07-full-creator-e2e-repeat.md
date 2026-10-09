@@ -29,14 +29,32 @@ Revised West image is ingested/reviewed; its H3 original and120-frame segment
 played to trusted browser ended events and were explicitly selected for technical
 QA at08:18UTC. Two revised shots remain; neither full revised route is complete.
 East image's pre-tool capacity failure received one safe same-frozen-job
-continuation, which also failed before tools. No further retry, model change or
-duplicate dispatch. Revised branch playback is still pending.
+continuation, which also failed before tools. After forty minutes, authoritative
+terminal-task/package/hash/absent-pin checks allowed one bounded continuation
+at08:51UTC without model or settings changes. The specialist then delivered;
+output SHA256 `27d49fd60d8eb78b1edaa4a3ec2a6300123d1a9560d62d211c317cf202c1dfee`
+matches the exact frozen-job receipt. UI ingestion and revised branch playback
+remain pending at this checkpoint. No duplicate job was dispatched.
 
 The [E22 thumbnail repair](2026-10-08-whole-product-ui-audit.md#thumbnail-framing-repair--october9-0827utc)
 closes demonstrated portrait cropping: shared contain-fit, fail-before/pass-after
 regression, five focused browser journeys, both typechecks/build, six directly
 and independently inspected fixture/native desktop captures. Source changes are
 CSS/test/static only; native backend66b1cbd and held East job are not restarted.
+The next ADR0143 candidate repairs identity-review refusal guidance in both API
+compositions without weakening admission. Four focused browser journeys,124
+focused Python checks,872 frontend tests, types/build/lock/lint and wheel smoke
+pass; independent source/pixel review closed its incorrect-disclosure finding.
+Final11 identity/graph checks and browser20.8s pass after the wording correction.
+Full Python finished1,414 PASS/1 FAIL (started before that wording-only correction).
+The sole stale assertion-inventory record is reconciled, preserving the checker
+and original contract; four focused inventory/identity checks then pass.
+The [E22 receipt](2026-10-08-whole-product-ui-audit.md) records exact evidence and
+the reviewed H3 aspect-choice layout repair. Its fail-before/pass-after check and
+all three desktop pixel inspections pass. The combined unchanged-input full
+browser gate passes243 tests in7.9m. Final combined wheel/installed smoke pass;
+the independent reviewer cleared the inventory delta without further findings.
+No native restart or duplicate specialist dispatch; backend66b1cbd remains loaded.
 Full-run acceptance remains PARTIAL.
 
 Latest published checkpoint: [203 project-load/retained-media repair](2026-10-08-load-retained-media-qualification.md),

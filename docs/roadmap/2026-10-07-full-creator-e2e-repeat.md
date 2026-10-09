@@ -17,15 +17,26 @@ open. Remaining revised clips/routes, recovery and E22 closure remain in scope.
 Shot-title and request-status repairs are qualified and committed at66b1cbd;
 the isolated runtime matches. Revised West image is ingested/reviewed and its
 H3 original and segment played successfully and were selected for technical QA
-at08:18UTC. East image encountered pre-tool model capacity twice
-(initial plus one same-job continuation); no further retry or model change.
+at08:18UTC. East image encountered pre-tool model capacity twice.
+After a forty-minute interval, exact package/hash, absent pin/delivery and terminal
+task checks justified one bounded same-job continuation at08:51UTC. The specialist
+completed it; its output SHA matches the receipt. UI ingestion remains next.
 West standalone playback is verified; complete revised routes remain open.
 Frozen East inputs remain preserved.
 The shared gallery thumbnail crop is repaired and independently reviewed, with
 five focused browser journeys and native pixels at all three desktop sizes;
 the [E22 receipt](../verification/2026-10-08-whole-product-ui-audit.md) owns evidence.
-Typed identity-refusal copy, report context and remaining state-matrix work still
-need attention while revised media prerequisites remain blocked.
+Typed identity-refusal copy now has a shared API diagnostic and independently
+reviewed desktop/guard checks (ADR0143); native backend activation is deferred
+while native generation remains active. Full Python finished1,414 PASS/1 FAIL;
+the sole stale coverage-inventory record is reconciled and four focused checks
+pass. Final combined wheel/installed smoke pass; independent inventory-delta
+review is clear. East's reviewed keyframe is ingested and one current H3 request
+was submitted09:02UTC; no revised East playback is claimed yet.
+Report context and remaining state-matrix work still need attention. Cramped H3
+aspect-choice columns are now repaired and independently reviewed at all three
+desktop sizes. The combined unchanged-input browser gate passes243 tests (7.9m).
+Revised route playback and the hand-only review semantics remain incomplete.
 The [native rebuild receipt](../verification/2026-10-09-native-rebuilt-production.md)
 owns exact evidence; earlier tables/checkpoints below are historical baselines,
 not current completion claims. Normal8841 is unchanged by this continuation.

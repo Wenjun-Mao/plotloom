@@ -1,6 +1,7 @@
 import { openMediaPreparation, openMediaKeyframes } from "../../workbench-controls";
 import { expect, test } from "../../fixture";
 import { freezeReviewedFixtureDirections } from "./review-directions";
+import { inspectAspectChoiceLayout } from "./aspect-choice-layout";
 import { demoProject } from "../../../src/demo";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 const still = path.join(root, "docs/verification/supporting/p0-generated/01-arrival.png");
 
-test("H3 browser path freezes a selected no-stretch catalog profile", async ({ page, request, workbench }) => {
+test("H3 browser path freezes a selected no-stretch catalog profile", async ({ page, request, workbench }, testInfo) => {
   test.setTimeout(90_000);
   const created = await request.post(`${workbench.apiOrigin}/api/v2/projects`, { data: { brief: demoProject.brief, initialStages: [
     { stage: "story_bible", payload: demoProject.storyBible }, { stage: "story_graph", payload: demoProject.storyGraph },
@@ -70,6 +71,7 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
   await panel.getByTestId("h3-directions-review").locator("summary").click();
   await expect(panel.getByTestId("h3-directions-review").getByRole("button", { name: "读取当前来源" })).toBeDisabled();
   await expect(panel.getByTestId("h3-aspect-preparation")).toContainText("默认拒绝比例不符");
+  await inspectAspectChoiceLayout(page, testInfo);
 
   // Crop consent is an author decision made before the job is frozen. The
   // original selected bytes remain bound; only the gateway transforms them.

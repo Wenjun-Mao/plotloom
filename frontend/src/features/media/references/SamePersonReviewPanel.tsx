@@ -61,7 +61,7 @@ export function SamePersonReviewPanel({
             跨镜头同一人物视觉复核
           </strong>
           <p className="muted">
-            创建连续静帧预览前，逐一比较此候选与任务冻结的主参考图和补充参考图。
+            生成视频或创建连续静帧预览前，逐一比较此候选与任务冻结的主参考图和补充参考图。
             记录实际审阅者的视觉判断；由 Codex 完成的技术或视觉检查，审阅者须写为
             Codex，不能记作真人的创作确认。此复核不使用人脸识别，也不替代作者对服装、道具和镜头状态的设定。
           </p>
@@ -229,7 +229,7 @@ export function SamePersonReviewPanel({
             </small>
           ) : (
             <div className="notice warning">
-              此关键帧尚无当前人物复核，完成复核后才能纳入连续静帧预览。
+              此关键帧没有适用于当前内容且已通过的人物身份复核。复核通过后才能生成视频或创建连续静帧预览；无法确认身份时不要标记通过。
             </div>
           )}
           {workbench.samePersonReviews.reviews
@@ -238,7 +238,7 @@ export function SamePersonReviewPanel({
             )
             .map((item) => (
               <small className="notice" key={item.id}>
-                历史或已过期复核 {item.id.slice(0, 8)} · 审阅者 {item.reviewer}{" "}
+                未通过或已过期的复核 {item.id.slice(0, 8)} · 审阅者 {item.reviewer}{" "}
                 · 仍可在上方查看任务冻结的参考图。
               </small>
             ))}

@@ -7,7 +7,12 @@ from typing import Any
 from sqlalchemy import select
 
 from ...domain import StageName, new_id, utc_now
-from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
+from ...exceptions import (
+    InvalidTransitionError,
+    NotFoundError,
+    RevisionConflictError,
+    SamePersonReviewRequiredError,
+)
 from ..codec import _stored_utc, stable_hash
 from ..schema import (
     ImageJobCandidateRow,
@@ -201,9 +206,7 @@ class ReviewedKeyframePersistence:
                 if identity_mapping:
                     review = self._same_person.current_same_person_review_for_binding(session, project_id, binding)
                     if review is None:
-                        raise InvalidTransitionError(
-                            "identity-aware reviewed keyframe needs a current explicit same-person review before preview admission"
-                        )
+                        raise SamePersonReviewRequiredError(shot_id=shot_id, binding_id=binding.id)
                     frame["identityReviewId"] = review.id
                     frame["identityReferenceDecisionIds"] = [item["referenceDecisionId"] for item in identity_mapping]
                 frames.append(frame)

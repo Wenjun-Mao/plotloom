@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "./fixture";
 import { inspectLongProvenanceLayout } from "./provenance-layout";
+import { inspectIdentityReviewRefusal } from "./image-jobs/identity-review-refusal";
 import {
   createCanonicalProject, imageJob, latestImageJob, prepareImageJob,
   readJson, recordSamePersonReview, retainedComplementary, retainedStill,
@@ -261,6 +262,7 @@ test.describe("P1 self-contained specialist image brief", () => {
     await expect(page.getByTestId("current-reviewed-keyframe")).toContainText(
       "画面意图 r1",
     );
+    await inspectIdentityReviewRefusal(page, request, workbench.apiOrigin, projectId, testInfo);
     await recordSamePersonReview(page, "char_ruanxing");
     const frozenComparison = page.getByTestId("frozen-reference-comparison");
     await expect(

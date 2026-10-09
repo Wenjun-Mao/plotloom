@@ -124,6 +124,11 @@
 .h3-direction-check { display: flex; align-items: center; gap: 8px; max-width: 840px; line-height: 1.5; }
 .h3-direction-check input { width: 16px; min-width: 16px; height: 16px; min-height: 16px; padding: 0; margin: 0; accent-color: var(--accent); }
 .h3-direction-actions { display: flex; justify-content: flex-start; }
+/* Consent options are a form, not parallel columns in the shared notice row. */
+.notice.h3-aspect-options { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.h3-aspect-options > * { min-width: 0; overflow-wrap: anywhere; }
+.h3-aspect-options > label { display: flex; align-items: flex-start; gap: 8px; line-height: 1.5; }
+.h3-aspect-options input[type="radio"] { flex: 0 0 16px; width: 16px; min-width: 16px; height: 16px; min-height: 16px; padding: 0; margin: 2px 0 0; accent-color: var(--accent); }
 .review-annotations { display: grid; gap: 12px; }
 .review-annotations label { display: grid; gap: 5px; max-width: 640px; }
 .managed-media-workbench > .muted { margin: 0; color: var(--muted); font-size: 12px; }

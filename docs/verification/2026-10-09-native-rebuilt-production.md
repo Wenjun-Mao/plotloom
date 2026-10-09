@@ -387,3 +387,31 @@ selection revision2, review `2a195f39-d21d-4011-a9fb-b4ff8f6508f1`, reviewer
 acceptance. Original and derivative remain preserved. Revised opening1 and West
 are now selected; opening2 and East still prevent both revised routes completing.
 Evidence also includes `west-video-ingested.yml` and `west-segment-ready.yml`.
+
+### East recovered delivery and native dispatch — 09:02 UTC
+
+After forty minutes from the two pre-tool capacity failures, root verified the
+same frozen package/hash, terminal specialist and absent pin/delivery. One bounded
+same-job continuation at08:51UTC completed without model/settings changes or a
+new image job. Delivery `3882a842-98a4-4b59-9bd6-53b4e49cb689` auto-ingested as
+candidate `c4a37658-ed3a-42c1-919c-0b86da313cff`; UI shows one validated delivery,
+not automatic selection. The original1536×1024 PNG matches receipt SHA256
+`27d49fd60d8eb78b1edaa4a3ec2a6300123d1a9560d62d211c317cf202c1dfee`.
+Root directly inspected the original and frozen C01 reference, saved source-bound
+intent, selected the technical-QA keyframe and recorded a Codex identity review.
+Face/hair consistency is visible; lamp geometry, background and later lighting/
+turn behavior are explicitly not creative or continuity acceptance.
+
+Root read and reviewed all current source fields, retained quiet/no added sound,
+previewed the complete English prompt, then froze and submitted once at09:02:21:
+`vj_6ffe08fe459544ba9cd45b95a3cf96ca`, provider
+`h3_683e334c12a4465e92f62f4df611c6a8`. Request SHA256
+`60a8b2e52b94dd38353e50729d6c4f8b205036f7523c6eb93249a0e45d25f84a`;
+prompt SHA256 `d11178284eacbd297cf5559ef36e46ea6221c32bf71ed6c6a68ff6ecb52252ef`.
+Exact readback: quality8,960×544,24fps,5seconds/124frames,contain_pad,
+seed2417798707053268,native audio,no end frame. State submitted/current with
+errornull and selectedfalse; generation/segment/playback remain pending.
+Snapshots `east-delivery-controls.yml`, `east-reviewed.yml`, `east-h3-source.yml`,
+`east-h3-preview.yml`, `east-h3-frozen-settled.yml`, `east-h3-submitted.yml` live in
+the same native-intent evidence directory. An attempted dimension value failed
+before selection; the observed label succeeded and frozen readback confirms960×544.
