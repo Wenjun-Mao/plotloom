@@ -92,8 +92,12 @@ The provider-settings continuation reproduces and repairs hidden failed-save
 feedback and dismissible/editable pending saves in the API-enabled fixture.
 Six browser journeys,903 frontend checks, types/build and nine independently inspected
 desktop captures pass. Review's keyboard bypass was reproduced and repaired with
-native modal ownership; nine adjacent proposal/snapshot journeys pass. Native runtime capability
-exposure remains unresolved, with no API fallback or protected settings changes.
+native modal ownership; nine adjacent proposal/snapshot journeys pass. The subsequent
+[runtime-capability checkpoint](../verification/2026-10-09-runtime-provider-capabilities.md)
+repairs native provider availability and unknown-read/status ownership:908 frontend,
+11 focused Python and17 combined browser journeys pass, with independent review.
+Actual native activation and broader generic API-run affordances remain separate;
+there is no API fallback or protected settings change.
 Other applicable
 recovery slices, revised routes and E22 completion remain incomplete.
 

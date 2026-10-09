@@ -358,13 +358,14 @@ def create_project_folder_authoring_app(
             content={"code": "authoring_draft_invalid", "message": str(error)},
         )
 
-    @app.get("/api/v2/authoring-draft-capabilities")
-    def authoring_draft_capabilities() -> dict[str, bool]:
+    @app.get("/api/v2/runtime-capabilities")
+    def runtime_capabilities() -> dict[str, bool]:
         return {
             "durableProjectDrafts": True,
             "durableMediaDrafts": True,
             "explicitProjectClose": True,
             "portableSnapshots": True,
+            "textProviderProfiles": text_admission is not None and run_dispatcher is not None,
         }
 
     @app.post(

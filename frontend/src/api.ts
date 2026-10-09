@@ -79,6 +79,14 @@ import { projectCreationBody } from "./project-creation";
 
 type FetchLike = typeof fetch;
 
+export type RuntimeCapabilities = {
+  durableProjectDrafts: boolean;
+  durableMediaDrafts: boolean;
+  explicitProjectClose: boolean;
+  portableSnapshots: boolean;
+  textProviderProfiles: boolean;
+};
+
 export type H3ReviewedDirections = {
   sourceHash: string;
   fields: Array<{ path: string; english: string }>;
@@ -433,16 +441,12 @@ export class PlotloomApiClient {
     return { stage: result.body, consumedDraftRevision: receipt ? Number(receipt) : undefined };
   }
 
-  getAuthoringDraftCapability(): Promise<{
-    durableProjectDrafts: boolean;
-    /** Media buffers are project-owned only in the direct format-5 composition. */
-    durableMediaDrafts?: boolean;
-    /** True only for the direct project-folder composition. */
-    explicitProjectClose?: boolean;
-    /** True only when the backend can create a verified portable snapshot. */
-    portableSnapshots?: boolean;
-  }> {
-    return this.request("/authoring-draft-capabilities");
+  async getRuntimeCapabilities(signal?: AbortSignal): Promise<RuntimeCapabilities> {
+    const result = await this.request<RuntimeCapabilities>("/runtime-capabilities", { signal });
+    for (const field of ["durableProjectDrafts", "durableMediaDrafts", "explicitProjectClose", "portableSnapshots", "textProviderProfiles"] as const) {
+      if (typeof result?.[field] !== "boolean") throw new Error("服务功能响应不完整，请刷新后重试。");
+    }
+    return result;
   }
 
   getAuthoringDrafts(projectId: string, signal?: AbortSignal): Promise<AuthoringDraft[]> {

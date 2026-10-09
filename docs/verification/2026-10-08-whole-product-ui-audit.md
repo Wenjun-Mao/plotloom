@@ -275,6 +275,10 @@ report evidence are not rewritten for cosmetic consistency.
 
 ## Current view/state coverage
 
+The [runtime-provider capability checkpoint](2026-10-09-runtime-provider-capabilities.md)
+adds explicit native/unknown/API-enabled availability and six desktop pixels;
+broader native run controls and the remaining state matrix are not closed by it.
+
 | Surface | Actual evidence / inspection | Remaining scope |
 |---|---|---|
 | Brief, Creator, source, Pro |82–85 native/QA;109 loaded review captures, long graph and all18 Pro viewports; root/independent direct pixels | All applicable state permutations not yet pixel-qualified |

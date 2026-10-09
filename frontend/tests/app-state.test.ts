@@ -127,6 +127,10 @@ describe("App project/editor rehydration", () => {
     vi.spyOn(plotloomApi, "getProjectRuns").mockResolvedValue({ runs: [] });
     vi.spyOn(plotloomApi, "getProjectMediaTasks").mockResolvedValue({ tasks: [] });
     vi.spyOn(plotloomApi, "getTextProviderProfiles").mockResolvedValue(fallbackProfiles());
+    vi.spyOn(plotloomApi, "getRuntimeCapabilities").mockResolvedValue({
+      durableProjectDrafts: false, durableMediaDrafts: false, explicitProjectClose: false,
+      portableSnapshots: false, textProviderProfiles: true,
+    });
   });
 
   afterEach(async () => {

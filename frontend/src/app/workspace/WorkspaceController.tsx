@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type SyntheticEvent } from "react";
-import { formatUiTimestamp } from "../../ui-time";
 import type { SceneBeatPlan, StoryBible, StoryGraph, Storyboard } from "../../types";
-import { plotloomApi } from "../../api";
 import { providerSessionKeys } from "../../session-key";
 import { findProjectDrafts, hasDraft, type DraftScope } from "../../draft-registry";
 import { stageLabels } from "../../model";
@@ -31,6 +29,8 @@ import { ReviewDraftContext } from "../../features/authoring/ReviewDraftContext"
 import { useRunCommands } from "./useRunCommands";
 import { useRunSession } from "./useRunSession";
 import { useTextProviderProfiles } from "./useTextProviderProfiles";
+import { useRuntimeCapabilities } from "./useRuntimeCapabilities";
+import { ProviderSettingsLauncher, RuntimeTextStatus } from "./RuntimeProviderControls";
 import { useWorkspaceNavigation } from "./useWorkspaceNavigation";
 import { useWorkspaceProjectLoader } from "./useWorkspaceProjectLoader";
 import { useWorkspaceSession } from "./useWorkspaceSession";
@@ -55,10 +55,11 @@ export default function WorkspaceController() {
   const [error, setError] = useState("");
   const discardNoticeTarget = useRef<HTMLDivElement>(null);
   const [rebuildOpen, setRebuildOpen] = useState(false);
-  const [durableDraftsEnabled, setDurableDraftsEnabled] = useState(false);
-  const [durableMediaDraftsEnabled, setDurableMediaDraftsEnabled] = useState(false);
-  const [explicitProjectCloseEnabled, setExplicitProjectCloseEnabled] = useState(false);
-  const [portableSnapshotsEnabled, setPortableSnapshotsEnabled] = useState(false);
+  const runtimeCapabilities = useRuntimeCapabilities();
+  const durableDraftsEnabled = runtimeCapabilities.data?.durableProjectDrafts === true;
+  const durableMediaDraftsEnabled = runtimeCapabilities.data?.durableMediaDrafts === true;
+  const explicitProjectCloseEnabled = runtimeCapabilities.data?.explicitProjectClose === true;
+  const portableSnapshotsEnabled = runtimeCapabilities.data?.portableSnapshots === true;
   const durableDraftsEnabledRef = useRef(false);
   const mediaDraftQuiescence = useRef(createProjectDraftQuiescence()).current;
   useEffect(() => {
@@ -162,30 +163,12 @@ export default function WorkspaceController() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadProject]);
   useEffect(() => {
-    void plotloomApi.getAuthoringDraftCapability()
-      .then((capability) => {
-        durableDraftsEnabledRef.current = capability.durableProjectDrafts === true;
-        setDurableDraftsEnabled(durableDraftsEnabledRef.current);
-        setDurableMediaDraftsEnabled(capability.durableMediaDrafts === true);
-        setExplicitProjectCloseEnabled(capability.explicitProjectClose === true);
-        setPortableSnapshotsEnabled(capability.portableSnapshots === true);
-        if (!durableDraftsEnabledRef.current) {
-          void profiles.refresh().catch(() => undefined);
-        }
-        if (durableDraftsEnabledRef.current && session.routeRef.current.project) {
-          const epoch = session.refreshCurrentRoute();
-          void loadProject(session.routeRef.current.project, epoch);
-        }
-      })
-      .catch(() => {
-        durableDraftsEnabledRef.current = false;
-        setDurableDraftsEnabled(false);
-        setDurableMediaDraftsEnabled(false);
-        setExplicitProjectCloseEnabled(false);
-        setPortableSnapshotsEnabled(false);
-        void profiles.refresh().catch(() => undefined);
-      });
-  }, [loadProject, profiles.refresh, session.refreshCurrentRoute, session.routeRef]);
+    durableDraftsEnabledRef.current = durableDraftsEnabled;
+    if (durableDraftsEnabled && session.routeRef.current.project) {
+      const epoch = session.refreshCurrentRoute();
+      void loadProject(session.routeRef.current.project, epoch);
+    }
+  }, [durableDraftsEnabled, loadProject, session.refreshCurrentRoute, session.routeRef]);
   useEffect(() => {
     if (session.activePage !== "trace" || !session.run?.id) return;
     void loadTraceEvidence(session.run.id, session.run.projectId);
@@ -313,10 +296,10 @@ export default function WorkspaceController() {
       <button className={`project-brief-navigation${activePage === "brief" ? " active" : ""}`} aria-current={activePage === "brief" ? "page" : undefined} disabled={projectClosing || projectSnapshotting || workspaceHydrating} onClick={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "brief" })}><strong>项目简报与创作设置</strong><small>当前项目的剧情结构、风格与分镜偏好</small></button>
       <CreatorWorkflowNavigation projectId={navigationProjectId} activePage={activePage} activeHash={session.route.hash} disabled={projectClosing || projectSnapshotting || workspaceHydrating} onNavigate={({ stage, hash }) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage, hash })} />
       <details className="workspace-tools-navigation"><summary>编辑与工具</summary><nav aria-label="编辑与工具">{secondaryNavigation.map((item) => <button key={item.id} disabled={projectClosing || projectSnapshotting || workspaceHydrating} className={activePage === item.id ? "active" : ""} onClick={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: item.id, run: item.id === "trace" ? run?.id || "" : "" })}><strong>{item.label}</strong>{item.id === "quarantine" && project.quarantines.length > 0 && <i>{project.quarantines.length}</i>}</button>)}</nav></details>
-      <div className="sidebar-footer"><Button variant="quiet" onClick={() => setSpecialistsOpen(true)}>生成助手设置</Button><Button variant="quiet" onClick={() => void profiles.openSettings()}>供应商与会话密钥</Button><small>设置不会写入项目</small></div>
+      <div className="sidebar-footer"><Button variant="quiet" onClick={() => setSpecialistsOpen(true)}>生成助手设置</Button><ProviderSettingsLauncher capability={runtimeCapabilities} onOpen={() => void profiles.openSettings()} /></div>
     </aside>
     <div className="workspace-shell">
-<header className="topbar"><div className="topbar-actions">{projectClosing ? <Badge tone="accent">{projectTransitionLabel}</Badge> : projectSnapshotting ? <Badge tone="accent">正在创建恢复快照</Badge> : projectReadOnly && <Badge tone="warning">归档只读</Badge>}{running && <Spinner label={runProgress?.failedStage ? stageLabels[runProgress.failedStage] : "Pipeline"} />}{explicitProjectCloseEnabled && <Button variant="quiet" disabled={!project.id || projectReadOnly || connection !== "connected" || busy} onClick={() => void lifecycle.saveAndCloseCurrent()}>保存并关闭项目</Button>}{playUrl && <a className="button quiet" href={playUrl}>播放故事</a>}<Button variant="quiet" disabled={!project.id || connection === "loading" || projectClosing || projectSnapshotting} onClick={requestProjectRefresh}>刷新服务器版本</Button>{portableSnapshotsEnabled && <Button variant="quiet" disabled={!project.id || projectReadOnly || connection === "loading"} onClick={() => void lifecycle.createSnapshot()}>{projectSnapshotting ? "正在创建恢复快照…" : "创建恢复快照"}</Button>}{staleCount > 0 && <Button variant="quiet" disabled={projectReadOnly} onClick={() => setRebuildOpen(true)}>{staleCount} 个阶段待重建</Button>}{toolbarHint && <span className="toolbar-prerequisite" role="note">{toolbarHint}</span>}{lifecycle.latestSnapshot && lifecycle.latestSnapshot.projectId === project.id && <details className="topbar-snapshot-receipt" onToggle={revealOpenedStatus}><summary><span role="status">恢复快照已完成</span> · 查看位置</summary><p>本地快照位置（可选中复制）：<code>{lifecycle.latestSnapshot.location}</code></p></details>}<details className="topbar-technical-status" onToggle={revealOpenedStatus}><summary>服务状态</summary><div>{durableDraftsEnabled && <Badge tone={authoring.durableDraftStatus === "saved" ? "ok" : authoring.durableDraftStatus === "failed" || authoring.durableDraftStatus === "conflict" ? "danger" : authoring.durableDraftStatus === "saving" ? "accent" : "warning"}>草稿：{authoring.durableDraftStatus === "saving" ? "正在保存" : authoring.durableDraftStatus === "saved" ? "已保存" : authoring.durableDraftStatus === "failed" ? "保存失败" : authoring.durableDraftStatus === "conflict" ? "冲突" : "等待编辑"}</Badge>}<Badge tone={connection === "connected" ? "ok" : connection === "loading" ? "accent" : "warning"}>Plotloom 服务：{connection === "connected" ? "已连接" : connection === "loading" ? "连接中" : "未连接"}</Badge><Badge tone={profiles.profileDraft.readiness?.state === "available" ? "ok" : ["unreachable", "authentication_failed", "model_mismatch", "capability_mismatch"].includes(profiles.profileDraft.readiness?.state || "unverified") ? "danger" : "warning"}>文本后端：{profiles.profileDraft.readiness?.state || "unverified"} · {profiles.profileDraft.profileId} · {profiles.profileDraft.readiness?.reasonCode || "readiness.not_checked"}{profiles.profileDraft.readiness?.observedAt ? ` · ${formatUiTimestamp(profiles.profileDraft.readiness.observedAt)}` : " · 未检测"}</Badge></div></details></div></header>
+<header className="topbar"><div className="topbar-actions">{projectClosing ? <Badge tone="accent">{projectTransitionLabel}</Badge> : projectSnapshotting ? <Badge tone="accent">正在创建恢复快照</Badge> : projectReadOnly && <Badge tone="warning">归档只读</Badge>}{running && <Spinner label={runProgress?.failedStage ? stageLabels[runProgress.failedStage] : "Pipeline"} />}{explicitProjectCloseEnabled && <Button variant="quiet" disabled={!project.id || projectReadOnly || connection !== "connected" || busy} onClick={() => void lifecycle.saveAndCloseCurrent()}>保存并关闭项目</Button>}{playUrl && <a className="button quiet" href={playUrl}>播放故事</a>}<Button variant="quiet" disabled={!project.id || connection === "loading" || projectClosing || projectSnapshotting} onClick={requestProjectRefresh}>刷新服务器版本</Button>{portableSnapshotsEnabled && <Button variant="quiet" disabled={!project.id || projectReadOnly || connection === "loading"} onClick={() => void lifecycle.createSnapshot()}>{projectSnapshotting ? "正在创建恢复快照…" : "创建恢复快照"}</Button>}{staleCount > 0 && <Button variant="quiet" disabled={projectReadOnly} onClick={() => setRebuildOpen(true)}>{staleCount} 个阶段待重建</Button>}{toolbarHint && <span className="toolbar-prerequisite" role="note">{toolbarHint}</span>}{lifecycle.latestSnapshot && lifecycle.latestSnapshot.projectId === project.id && <details className="topbar-snapshot-receipt" onToggle={revealOpenedStatus}><summary><span role="status">恢复快照已完成</span> · 查看位置</summary><p>本地快照位置（可选中复制）：<code>{lifecycle.latestSnapshot.location}</code></p></details>}<details className="topbar-technical-status" onToggle={revealOpenedStatus}><summary>服务状态</summary><div>{durableDraftsEnabled && <Badge tone={authoring.durableDraftStatus === "saved" ? "ok" : authoring.durableDraftStatus === "failed" || authoring.durableDraftStatus === "conflict" ? "danger" : authoring.durableDraftStatus === "saving" ? "accent" : "warning"}>草稿：{authoring.durableDraftStatus === "saving" ? "正在保存" : authoring.durableDraftStatus === "saved" ? "已保存" : authoring.durableDraftStatus === "failed" ? "保存失败" : authoring.durableDraftStatus === "conflict" ? "冲突" : "等待编辑"}</Badge>}<Badge tone={connection === "connected" ? "ok" : connection === "loading" ? "accent" : "warning"}>Plotloom 服务：{connection === "connected" ? "已连接" : connection === "loading" ? "连接中" : "未连接"}</Badge><RuntimeTextStatus capability={runtimeCapabilities} catalog={profiles.profiles} loaded={profiles.loaded.current} /></div></details></div></header>
       {error && <div className="global-error"><ErrorNotice message={error} /><button aria-label="关闭错误" onClick={() => setError("")}>×</button></div>}
       {lifecycle.duplicateNotice && <div className="notice workspace-copy-notice" role="status"><span>{lifecycle.duplicateNotice}</span><Button onClick={lifecycle.dismissDuplicateNotice}>知道了</Button></div>}
       {recovery.discardNotice?.projectId === navigationProjectId && <div ref={discardNoticeTarget} className="notice workspace-copy-notice" role="status"><span>已丢弃本标签页选中的保留草稿。项目中已保存的草稿和已确认内容未删除。</span><Button onClick={recovery.dismissDiscardNotice}>知道了</Button></div>}

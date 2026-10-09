@@ -196,7 +196,7 @@ describe("M1-B1 App integration contracts", () => {
   });
 
   it.each([false, true])("does not auto-resume a bearer run until its exact frozen profile has a key with durable drafts %s", async durable => {
-    vi.spyOn(plotloomApi, "getAuthoringDraftCapability").mockResolvedValue({ durableProjectDrafts: durable });
+    vi.spyOn(plotloomApi, "getRuntimeCapabilities").mockResolvedValue({ durableProjectDrafts: durable, durableMediaDrafts: durable, explicitProjectClose: true, portableSnapshots: true, textProviderProfiles: true });
     vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
     const projectId = "frozen-key-project";
     const frozenProfileId = "locked_profile";

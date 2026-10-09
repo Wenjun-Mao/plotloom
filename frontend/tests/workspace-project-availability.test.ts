@@ -39,11 +39,42 @@ beforeEach(() => {
   vi.spyOn(plotloomApi, "getProjectRuns").mockResolvedValue({runs: []});
   vi.spyOn(plotloomApi, "getProjectMediaTasks").mockResolvedValue({tasks: []});
   vi.spyOn(plotloomApi, "getStoryboardReview").mockRejectedValue(new ApiError("No storyboard review", 404));
-  vi.spyOn(plotloomApi, "getAuthoringDraftCapability").mockResolvedValue({durableProjectDrafts: false, explicitProjectClose: true, portableSnapshots: true});
+  vi.spyOn(plotloomApi, "getRuntimeCapabilities").mockResolvedValue({durableProjectDrafts: false, explicitProjectClose: true, portableSnapshots: true, durableMediaDrafts: true, textProviderProfiles: true});
   vi.spyOn(plotloomApi, "getTextProviderProfiles").mockResolvedValue(fallbackProfiles());
   vi.spyOn(plotloomApi, "listProjects").mockResolvedValue({projects: [], nextCursor: null});
 });
 afterEach(async () => {await act(async () => root.unmount()); vi.restoreAllMocks();});
+
+it("does not expose or request API profiles when the service explicitly omits them", async () => {
+  vi.mocked(plotloomApi.getRuntimeCapabilities).mockResolvedValue({
+    durableProjectDrafts: false, durableMediaDrafts: false, explicitProjectClose: true,
+    portableSnapshots: true, textProviderProfiles: false,
+  });
+  await render("/?project=a&stage=brief");
+  expect(document.body.textContent).toContain("API 文本供应商未启用");
+  expect([...document.querySelectorAll("button")].some(item => item.textContent === "供应商与会话密钥")).toBe(false);
+  expect(document.body.textContent).not.toContain("readiness.not_checked");
+  expect(plotloomApi.getTextProviderProfiles).not.toHaveBeenCalled();
+  expect(button("生成助手设置")).toBeTruthy();
+});
+
+it("keeps failed capabilities unknown and retries explicitly without a provider fallback", async () => {
+  const capabilities = vi.mocked(plotloomApi.getRuntimeCapabilities).mockRejectedValueOnce(new ApiError("offline", 503));
+  await render("/?project=a&stage=brief");
+  expect(document.body.textContent).toContain("暂时无法读取服务功能");
+  expect(document.body.textContent).not.toContain("API 文本供应商未启用");
+  expect(plotloomApi.getTextProviderProfiles).not.toHaveBeenCalled();
+  expect(capabilities).toHaveBeenCalledTimes(1);
+  capabilities.mockResolvedValue({ durableProjectDrafts: false, durableMediaDrafts: false,
+    explicitProjectClose: true, portableSnapshots: true, textProviderProfiles: true });
+  await act(async () => button("重新读取服务功能").click());
+  await flush();
+  await act(async () => button("供应商与会话密钥").click());
+  await flush();
+  expect(capabilities).toHaveBeenCalledTimes(2);
+  expect(plotloomApi.getTextProviderProfiles).toHaveBeenCalledTimes(1);
+  expect(document.querySelector("dialog[open]")).not.toBeNull();
+});
 
 it("keeps a closed shot link unavailable without claiming a missing shot or unsaved draft", async () => {
   vi.mocked(plotloomApi.getProject).mockRejectedValue(closed());
@@ -142,9 +173,9 @@ it("keeps the same accepted editor mounted during a pending and failed refresh",
 });
 
 it("preserves a real unsaved editor buffer when the late capability reread fails", async () => {
-  type Capability = Awaited<ReturnType<typeof plotloomApi.getAuthoringDraftCapability>>;
+  type Capability = Awaited<ReturnType<typeof plotloomApi.getRuntimeCapabilities>>;
   let resolveCapability!: (capability: Capability) => void;
-  vi.mocked(plotloomApi.getAuthoringDraftCapability).mockReturnValue(new Promise(resolve => {resolveCapability = resolve;}));
+  vi.mocked(plotloomApi.getRuntimeCapabilities).mockReturnValue(new Promise(resolve => {resolveCapability = resolve;}));
   vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
   const save = vi.spyOn(plotloomApi, "saveAuthoringDraft");
   const patch = vi.spyOn(plotloomApi, "patchProject");
@@ -157,7 +188,7 @@ it("preserves a real unsaved editor buffer when the late capability reread fails
   expect(input.value).toBe("本页尚未保存的修改");
   let reject!: (error: Error) => void;
   vi.mocked(plotloomApi.getProject).mockReturnValueOnce(new Promise((_, fail) => {reject = fail;}));
-  await act(async () => resolveCapability({durableProjectDrafts: true, explicitProjectClose: true, portableSnapshots: true}));
+  await act(async () => resolveCapability({durableProjectDrafts: true, explicitProjectClose: true, portableSnapshots: true, durableMediaDrafts: true, textProviderProfiles: true}));
   await flush();
   expect(document.querySelector(".form-card input")).toBe(input);
   expect(document.querySelector<HTMLFieldSetElement>(".editor-host")?.disabled).toBe(true);

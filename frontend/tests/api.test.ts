@@ -5,6 +5,13 @@ import { providerSessionKeys } from "../src/session-key";
 describe("PlotloomApiClient", () => {
   beforeEach(() => { window.sessionStorage.clear(); window.localStorage.clear(); });
 
+  it.each([null, {}, { durableProjectDrafts: true, durableMediaDrafts: true, explicitProjectClose: true, portableSnapshots: true }])(
+    "rejects incomplete runtime capabilities rather than inferring unsupported controls", async payload => {
+      const client = new PlotloomApiClient(vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 })) as typeof fetch);
+      await expect(client.getRuntimeCapabilities()).rejects.toThrow("服务功能响应不完整");
+    },
+  );
+
   it("never imports an obsolete single key into a profile or Resume request", async () => {
     window.sessionStorage.setItem("plotloom:provider-session-key", "obsolete-single-secret");
     expect(providerSessionKeys.read("default")).toBe(""); expect(providerSessionKeys.read("frozen")).toBe("");
