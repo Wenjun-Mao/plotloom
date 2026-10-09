@@ -12,7 +12,7 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 55
     steps:
       # The retained-runtime inventory compares fixed historical commits.
       - uses: actions/checkout@v4
@@ -58,7 +58,10 @@ jobs:
       - name: Verify checked production bundle
         run: git diff --exit-code -- src/plotloom/static
       - name: Python and distribution contracts
-        run: uv run pytest -q
+        # The full serial suite exceeded the old job budget while still advancing.
+        # Bound this step separately and retain time for wheel/smoke qualification.
+        timeout-minutes: 45
+        run: uv run pytest -q --durations=20
       - name: Build wheel
         run: uv build --wheel
       - name: Smoke installed wheel

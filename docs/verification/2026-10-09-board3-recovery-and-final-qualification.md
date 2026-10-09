@@ -379,6 +379,12 @@ change or product patch followed. Browser revision is proven; actual OS-window
 identity and the cause of persistent focus remain unproven. A true/false toggle
 would not improve this exact setter path and is not another acceptance method.
 
+Further read-only target correlation obtains browser PID60986 through public
+`SystemInfo.getProcessInfo`, matches it to LaunchServices' foreground PID, and
+reads the exact owned QA URL in the native Chrome AX window. This strengthens
+present-target identification only; it does not retroactively prove a foreground
+switch or trusted blur in any earlier attempt. No OS permission changed.
+
 E22's register still explicitly retains unobserved view/state permutations. Native
 API model-inference E12 is unavailable by configuration, distinct from the built
 and exercised Codex-native intent path. Scene/Prop downstream reference consumption
@@ -414,3 +420,24 @@ documentation files only. Exact-head [CI37997439888](https://github.com/Wenjun-M
 was dispatched once with unfiltered `browser_grep=.*`; observed in progress at
 22:07UTC, not a remote PASS. Normal main stays7d79d18 and its mounted static bytes
 remain unchanged. This later record-only reconciliation is not a source/pin change.
+
+## Remote verification budget: observed failure and owning correction
+
+Exact CI37997439888/e04e428 ended cancelled at22:38:07UTC. Verify job114046970043
+exceeded its30-minute budget; browser never started. Its pytest log steadily
+advanced from4% at22:09:18 through83% at22:37:58 before cancellation at22:38:04,
+without reported failure/error markers. This is not a remote PASS or a demonstrated
+stalled test. The local full suite's24m15s does not establish hosted-runner capacity.
+
+The owning workflow now bounds Python at45 minutes inside a55-minute verification
+job, preserving the full serial suite and adding only `--durations=20` reporting.
+There is no filter, removed test, product timeout change or browser-shard change.
+The new contract case failed against the old workflow (1FAIL/3PASS), then all four
+CI contract cases passed after the repair; focused Ruff and diff checks also pass.
+Independent read-only diff review agrees the layer and selection are correct;
+its future-margin finding is closed by requiring a configured gap of at least10
+minutes for setup/wheel/smoke, not guaranteeing10 minutes after pytest. Product
+source, checked static and renderer
+pin are unchanged from4bbf8c2; only CI configuration/test and this record change.
+A fresh exact-head unfiltered CI run is required, not a retry claimed from the
+cancelled run or automatic acceptance from the earlier local totals.

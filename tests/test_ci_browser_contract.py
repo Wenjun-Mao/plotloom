@@ -1,4 +1,4 @@
-"""Guard the manual browser gate's evidence and acceptance boundaries."""
+"""Guard manual release-gate evidence, acceptance and bounded runner budgets."""
 
 import re
 from pathlib import Path
@@ -44,3 +44,15 @@ def test_playwright_deadline_leaves_time_to_finalize_and_upload_evidence():
     global_timeout = int(re.search(r"--global-timeout=(\d+)", step["run"])[1])
     assert global_timeout < int(step["timeout-minutes"]) * 60_000
     assert int(step["timeout-minutes"]) < int(browser["timeout-minutes"])
+
+
+def test_full_python_gate_has_measured_runner_budget_and_cleanup_margin():
+    verify = _workflow()["jobs"]["verify"]
+    step = next(item for item in verify["steps"] if item.get("name") == "Python and distribution contracts")
+    # The growing serial suite reached 83% before the former 30-minute job ended.
+    # Preserve the full selection and leave wheel/smoke time outside its budget.
+    assert 45 <= int(step["timeout-minutes"]) < int(verify["timeout-minutes"]) <= 60
+    assert int(verify["timeout-minutes"]) - int(step["timeout-minutes"]) >= 10
+    command = step["run"].split()
+    assert command[:4] == ["uv", "run", "pytest", "-q"]
+    assert command[4:] == ["--durations=20"]
