@@ -82,8 +82,22 @@ it("starts new identity reviews without fabricated findings and requires both ob
   expect(comparisons).toEqual([{ characterId: "lin", judgment: "", identityNotes: "", stateNotes: "" }]);
   await act(async () => root.render(createElement(SamePersonReviewPanel, { ...props, comparisons })));
   expect(host.querySelector("button")?.disabled).toBe(true);
-  expect(host.querySelector('input[placeholder^="比较面貌"]')?.getAttribute("value")).toBe("");
+  expect(host.querySelector<HTMLTextAreaElement>('textarea[placeholder^="比较可见"]')?.value).toBe("");
   await act(async () => root.render(createElement(SamePersonReviewPanel, { ...props, comparisons: [{ ...comparisons[0], identityNotes: "面貌一致" }] })));
   expect(host.querySelector("button")?.disabled).toBe(true);
   expect(props.onRecord).not.toHaveBeenCalled();
+});
+
+it("keeps multiline identity and state evidence readable without implying a human reviewer", async () => {
+  const comparisons = [{ ...props.comparisons[0], identityNotes: "可见外观对比\n无法观察的身份信息", stateNotes: "当前服装与动作\n道具状态仍有不确定性" }];
+  await act(async () => root.render(createElement(SamePersonReviewPanel, { ...props, comparisons })));
+  const identity = host.querySelector<HTMLTextAreaElement>('textarea[placeholder^="比较可见"]')!;
+  const state = host.querySelector<HTMLTextAreaElement>('textarea[placeholder^="说明本镜头"]')!;
+  expect(identity.value).toBe(comparisons[0].identityNotes);
+  expect(state.value).toBe(comparisons[0].stateNotes);
+  expect(identity.rows).toBe(3);
+  expect(state.rows).toBe(3);
+  expect(host.querySelector('textarea[placeholder^="记录实际视觉判断"]')).not.toBeNull();
+  expect(host.innerHTML).not.toContain("记录人眼判断");
+  expect(host.querySelector("button")?.disabled).toBe(false);
 });

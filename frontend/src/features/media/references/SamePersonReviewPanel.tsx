@@ -192,7 +192,7 @@ export function SamePersonReviewPanel({
                   </select>
                 </Field>
                 <Field label="构图与身份不确定性说明" required>
-                  <textarea aria-required="true" rows={2} value={comparison.uncertaintyReason ?? ""}
+                  <textarea aria-required="true" rows={3} value={comparison.uncertaintyReason ?? ""}
                     placeholder="说明为何有意采用此构图、无法辨认的身份信息，以及接受的不确定性。"
                     disabled={readOnly || busy}
                     onChange={event => setSamePersonComparisons(current => current.map((item, itemIndex) => itemIndex === index
@@ -200,10 +200,11 @@ export function SamePersonReviewPanel({
                 </Field>
               </>}
               <Field label="身份对比说明" required>
-                <input
+                <textarea
                   aria-required="true"
+                  rows={3}
                   value={comparison.identityNotes}
-                  placeholder="比较面貌、体态和稳定外观，说明一致或不同之处。"
+                  placeholder="比较可见的面貌、体态和稳定外观；无法比较时，说明原因。"
                   disabled={readOnly || busy}
                   onChange={(event) =>
                     setSamePersonComparisons((current) =>
@@ -217,8 +218,9 @@ export function SamePersonReviewPanel({
                 />
               </Field>
               <Field label="镜头状态说明" required>
-                <input
+                <textarea
                   aria-required="true"
+                  rows={3}
                   value={comparison.stateNotes}
                   placeholder="说明本镜头的服装、动作和道具状态；不要把它们当作身份特征。"
                   disabled={readOnly || busy}
@@ -238,10 +240,10 @@ export function SamePersonReviewPanel({
           <Field label="复核备注" required>
             <textarea
               aria-required="true"
-              rows={2}
+              rows={3}
               value={samePersonNotes}
               disabled={readOnly || busy}
-              placeholder="记录人眼判断和任何可见限制。"
+              placeholder="记录实际视觉判断及其限制；无法判断时说明原因。"
               onChange={(event) => setSamePersonNotes(event.target.value)}
             />
           </Field>

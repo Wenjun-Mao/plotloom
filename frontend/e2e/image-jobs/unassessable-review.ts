@@ -11,6 +11,8 @@ export async function inspectUnassessableReview(page: Page, request: APIRequestC
   const record = panel.getByTestId("record-same-person-review");
   const identityNotes = panel.getByLabel("身份对比说明");
   const stateNotes = panel.getByLabel("镜头状态说明");
+  await expect(identityNotes).toHaveJSProperty("tagName", "TEXTAREA");
+  await expect(stateNotes).toHaveJSProperty("tagName", "TEXTAREA");
   await identityNotes.fill("");
   await stateNotes.fill("");
   await judgment.selectOption("unassessable");

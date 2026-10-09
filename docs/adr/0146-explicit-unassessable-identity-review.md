@@ -13,13 +13,15 @@ truthful way to accept the uncertainty of intentional nonidentifying framing.
 
 ## Decision
 
-Allow a distinct human judgment, `unassessable`, alongside `pass` and `fail`.
+Allow a distinct explicit reviewer judgment, `unassessable`, alongside `pass` and `fail`.
 Unassessable is not PASS. It requires an explicit separate choice to hold or
 authorize production, plus a nonblank explanation of the intended framing and
 accepted identity uncertainty. Untouched controls or missing fields never
 authorize anything. Bind the decision to the existing exact selected image,
 frozen shot composition, character references and current source dependencies;
 do not infer observability from model prose, shot size or character membership.
+Record the actual reviewer. A Codex functional or visual check is not a human
+author's creative acceptance and must not be attributed to one.
 
 Separate source currentness from production eligibility. Every involved
 character must have either PASS or explicitly authorized unassessable judgment.

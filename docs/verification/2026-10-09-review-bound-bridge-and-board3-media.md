@@ -122,10 +122,32 @@ deterministic build, Python16 and all8 affected browser journeys in1.9 minutes.
 Root inspected the three aspect-option captures; no clipping or overflow observed.
 Independent review exposed inherited notes in the offline unassessable case; its
 guard check now starts from blank identity/state notes and tests both state-only
-and identity-only refusal before filling both. Its final focused image journey
+and identity-only refusal before filling both. That prior blank-note change's focused image journey
 and E2E typecheck PASS (one test,22.4 seconds), separately from the8-pass sweep.
 
 ## Next execution and remaining coverage
+
+Actual Opening2 HOLD review`5e0fe916-ea12-4fb5-9ade-a501dfb56622` is current
+and production-ineligible. Initial decision was blank/submit disabled; review
+recorded201 with nonblank identity/state observations and uncertainty rationale.
+Still creation was disabled; actual H3 source-preview request returned409 with
+the precise same-person review guidance and no freeze control or generated job.
+Root inspected its1700×900,1280×768,1280×460 captures without document overflow.
+They exposed explanatory notes using single-line inputs, making long prose hard
+to review, plus “人眼判断” placeholder conflicting with permitted Codex review.
+At a confirmed idle checkpoint, the owning review component uses multiline
+three-row evidence fields and neutral visual-judgment copy. Required values,
+judgment/decision semantics, stored evidence and backend admission stay unchanged.
+This presentational repair passes frontend1,015, application/E2E types,
+deterministic build, static freshness3 and the focused image browser journey
+(one test,23.2 seconds). Independent scoped review found no domain/callback
+change. Root inspected refreshed native captures at all three supported sizes:
+explanations wrap into editable multiline controls; longer prose remains vertically
+scrollable/resizable rather than horizontally hidden. No document overflow.
+Reload starts judgment/identity/state blank and submission disabled while retaining
+the actual saved HOLD history. Served JS SHA256
+`02c065724f2b71117224b571dfb7772c7c544576e2c49777131beb211e41a48c`
+matches the checked build. This qualifies presentation, not production authorization.
 
 Freeze this qualified wording/checklist candidate and reload only the isolated
 UI. Complete four Board3 ImageGen→H3 chains in total: Opening1 is already
