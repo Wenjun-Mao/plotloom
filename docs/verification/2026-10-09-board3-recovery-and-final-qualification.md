@@ -441,3 +441,24 @@ source, checked static and renderer
 pin are unchanged from4bbf8c2; only CI configuration/test and this record change.
 A fresh exact-head unfiltered CI run is required, not a retry claimed from the
 cancelled run or automatic acceptance from the earlier local totals.
+
+The scoped correction is published as `ef162100c8d7e2191908ee7a142ac2f4f6652646`.
+[CI38000995714](https://github.com/Wenjun-Mao/plotloom/actions/runs/38000995714)
+was dispatched once at22:46:17UTC with `browser_grep=.*` and that exact head.
+It is in progress, not a remote PASS. Four focused CI cases, focused Ruff and
+diff hygiene pass; the earlier1463 local Python total is not a new1464-suite run.
+
+## Real OS blur pilot: criterion remains only partly exercised
+
+With public focus emulation disabled on the exact owned QA page, CUA's observed
+native `Hide Google Chrome` command changed the foreground from matched Chrome
+PID60986 to ChatGPT PID2512 and produced a trusted document blur/hasFocus=false.
+This resolves the earlier lack of an established OS blur method. It did not hold
+a pointer or activate a resize gesture, so held-resize cancellation is not PASS.
+Raise alone did not restore foreground. CmdTab produced a trusted document focus/
+hasFocus=true, while the foreground PID read remained2512; OS return is unproven.
+Listeners were removed, focus emulation restored and exact authored eight-line
+text retained. No project command, provider dispatch or OS permission changed.
+Root and independent read-only reviewer agree these evidence boundaries. The
+ignored native receipt is `output/playwright/board3-r12-2026-10-09/
+native-hide-focus-pilot-20261009.json` in the normal source checkout.
