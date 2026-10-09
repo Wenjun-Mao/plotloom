@@ -204,3 +204,25 @@ The review reused the retained worker; its inherited model/effort was not verifi
 No full unfiltered browser rerun is claimed for this newest delta;248 PASS remains
 the earlier `38f55b8` baseline. Existing chunk-size/color-environment warnings remain.
 No normal8841 update, native generation or owner-project mutation occurred.
+# Branch-suggestion audit follow-up — October9, unresolved
+
+After the nested settings repair, controlled GET-only responses on owned8865
+reproduced two separate branch-panel issues. A503 read renders
+`ApiError: 服务请求失败（HTTP 503）`; `BranchSuggestionPanel` uses `String(reason)`
+rather than the shared error's message. A synthetic ready suggestion combined
+with a reopened outline renders **放弃此建议任务** disabled. The containing
+SectionMap passes one combined freshness/editability flag to every child action,
+including cancellation, although `ProjectBranchPersistence.cancel` requires an
+active project and exact task identity, not a current accepted outline. This is
+an action-capability distinction, not permission to bypass read-only/busy guards.
+
+Evidence: `branch-read-failed-before.png` and `branch-stale-cancel-before.png` in
+`output/playwright/native-intent-2026-10-08/`, both root-inspected at1280×460.
+CLI returned `cancelDisabled:true`, `writes:[]`, and exact unchanged source and
+branch API bodies. All intercepts were removed and the genuine page reloaded in
+finally. No task was created/cancelled and no native review state was rewritten.
+An initial shell-quoted script failed to parse before execution; the subsequent
+bounded exercise succeeded. These are controlled-state UI reproductions, not
+native stale-job execution. Repair/regressions remain pending until the current
+frozen browser gate finishes. No new raw-English stale-reason defect is asserted:
+the inspected branch backend currently supplies Chinese stale explanations.
