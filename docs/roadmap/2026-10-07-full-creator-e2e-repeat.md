@@ -16,9 +16,11 @@ refused and no second video was dispatched. The assessment-semantics question is
 open. Remaining revised clips/routes, recovery and E22 closure remain in scope.
 Shot-title and request-status repairs are qualified and committed at66b1cbd;
 the isolated runtime matches. Revised West image is ingested/reviewed and its
-H3 request is submitted. East image encountered pre-tool model capacity twice
+H3 original and segment played successfully and were selected for technical QA
+at08:18UTC. East image encountered pre-tool model capacity twice
 (initial plus one same-job continuation); no further retry or model change.
-Neither branch is yet playback-qualified. Frozen East inputs remain preserved.
+West standalone playback is verified; complete revised routes remain open.
+Frozen East inputs remain preserved.
 The [native rebuild receipt](../verification/2026-10-09-native-rebuilt-production.md)
 owns exact evidence; earlier tables/checkpoints below are historical baselines,
 not current completion claims. Normal8841 is unchanged by this continuation.

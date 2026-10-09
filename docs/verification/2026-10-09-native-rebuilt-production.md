@@ -365,3 +365,25 @@ show cropped torsos, losing the face used to identify the reference. Owning CSS
 The repair belongs to the shared candidate thumbnail presentation, preserving
 the whole image without changing image bytes or selection. It remains pending
 the next stable source batch; no source/static changes were made during jobs.
+
+### West revised native playback — 08:18 UTC
+
+Named `获取结果` reconciled the same West request to ingested/current, errornull.
+Original SHA256 `6a95786cfa2c5f6aaa48002b4f575f774b8cc2a2d6459e495627751c7506bb3c`;
+960×544 H.264/AAC,24fps,124frames,5.167seconds. Native browser video controls
+(focus plus Space) produced trusted playing and ended events with no media error,
+unmuted. Explicit `准备播放片段` produced
+`28340eba-48b2-404f-9cfa-e382c82df02d`,[0,120),5seconds,160000 decoded audio
+samples at32000Hz. Derivative SHA256
+`4bab632bb742563ff1034e0e630e43611f3ddf61c8b56215078bcd991eb5bb31`.
+The segment also played to a trusted end,120 frames/0 drops/no error,unmuted.
+Root directly viewed `west-segment-ended.png`: right lamp illuminated and the
+character facing right. This endpoint observation does not certify all motion,
+sound, prop continuity or creative quality.
+
+Explicit technical-only selection at08:18:16 was read back as current/selected,
+selection revision2, review `2a195f39-d21d-4011-a9fb-b4ff8f6508f1`, reviewer
+`Codex technical QA`. Its saved note discloses no author listening/creative
+acceptance. Original and derivative remain preserved. Revised opening1 and West
+are now selected; opening2 and East still prevent both revised routes completing.
+Evidence also includes `west-video-ingested.yml` and `west-segment-ready.yml`.

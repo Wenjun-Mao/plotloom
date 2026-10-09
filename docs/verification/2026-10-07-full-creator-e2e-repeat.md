@@ -25,7 +25,9 @@ Current source66b1cbd adds ADR0142 shot identity and truthful video-state
 presentation, independently reviewed. Full1,413 Python,872 frontend and242
 browser tests, both types, build, lock, lint, wheel and installed smoke pass.
 An idle-only isolated restart loads matching Python/static; normal8841 unchanged.
-Revised West image is ingested/reviewed and its H3 job is submitted/current.
+Revised West image is ingested/reviewed; its H3 original and120-frame segment
+played to trusted browser ended events and were explicitly selected for technical
+QA at08:18UTC. Two revised shots remain; neither full revised route is complete.
 East image's pre-tool capacity failure received one safe same-frozen-job
 continuation, which also failed before tools. No further retry, model change or
 duplicate dispatch. Revised branch playback is still pending.
