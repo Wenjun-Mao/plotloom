@@ -309,3 +309,38 @@ At 21:27 Toronto the UI prepared and sent fresh Script
 route hash is `a1c1742c9d313c092a55c9df8e9b4d1741015b6c94c9cb0a2bbc48db7bfbc1b4`.
 The UI shows queued/waiting; generation, delivery and downstream acceptance are
 not established by that acknowledgement. Owner/protected hashes still match.
+
+## Native Script accepted and storyboard dispatched
+
+The fresh Script specialist turn `01a11e46-3533-7d61-b465-0ce6a1d8d607`
+completed in 171 seconds. Plotloom ingested the delivery into a pending review;
+root read the exact candidate and manifest, opened its JSON and static report,
+then explicitly confirmed Script r1 through the UI at 21:40 Toronto. The visible
+accepted hash begins `0d683c4b52d3`; original candidate SHA256 is
+`3cc624183194deb111ff5994645ace84fc75aa26e4c7ca739f500cb8152a0999`.
+The three footage sections retain targets and estimated durations 10/5/5 seconds,
+C01/S01/P01, the opening's two actions and distinct left/east and right/west
+endings. The route-only choice has no authored episode. This is provisional
+functional QA acceptance, not generated-media timing or artistic acceptance.
+
+Root inspected `script-report-top.png`, `script-report-content.png` and
+`script-report-tail.png` at 1700×900. They show the archive heading, portions of
+the chapter content and scene table after inner scrolling; they do not establish
+complete middle/bottom pixel coverage. The report remains sandboxed. Its English
+episodic labels and 20-second sum of mutually exclusive endings are retained
+upstream output, not the actual 15-second playback route. The generation brief
+says the UI explains these inapplicable metrics, but `StaticReportReader` only
+explains disabled controls and original/current content: this disclosure gap
+remains open. Do not rewrite the delivered report to hide it.
+
+At 21:41–21:42 Toronto the named UI controls prepared and sent storyboard
+`ch_84ff5f7d4ecc4ebbb8029b53672cec34` once, with the default 8-second cut ceiling.
+The same specialist is executing turn `01a11e53-5492-7f50-9c95-b02e90e5e47f`;
+it confirmed two opening cuts plus one per ending, each five seconds. Delivery,
+admission and acceptance remain pending at this checkpoint.
+
+The waiting panel also displayed `9:41:53 PM`. Root traced this to two remaining
+`toLocaleTimeString()` calls in `SpecialistTaskActions`, unlike the explicit
+Chinese 24-hour formatting elsewhere. This is an open E22 wording inconsistency,
+not a task-clock or generation failure. No active package or runtime code was
+changed during these observations.
