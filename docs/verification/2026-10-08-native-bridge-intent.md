@@ -139,6 +139,45 @@ The last normal-service check had no active specialist tasks. Wind's 17 managed
 files, Rain's 67 and three protected configuration files still match aggregate
 `df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`.
 
+## Second keyframe and opening preview
+
+At02:23 UTC on October9 the same image-specialist turn completed job
+`ij_5c53936182fd4f6bbcbad469b50d568e`; automatic ingestion exposed candidate
+`4b231ff7-2f73-4d15-b570-11cc66c40c8a`. Root inspected the full1672×941 image
+and frozen C01 reference, saved intent `f1f9127f-a0ab-469d-a0fe-defe84298abb` r1,
+selected keyframe `fbe3a07d-62fd-4e68-93fe-1f0e1869c816`, and recorded Codex-only
+review `de43812d-f4e1-4351-996e-fda2a61c5e35`. No owner creative approval is implied.
+
+The opening's two reviewed keyframes created preview
+`8c7aeccc-d8a1-496b-808e-1f4e448dd6e3`. Previous/next and play/pause worked;
+root inspected first/second images in the1700×900 browser. Both have5000ms
+timing and remain current. Captures `two-shot-still-preview.png` and
+`two-shot-still-preview-second.png` are in the evidence directory above.
+This verifies a same-node multishot static preview, not complete video playback.
+
+After reading all current sources and the complete compiled prompt, root prepared
+and submitted the second H3 job once at02:29:49 UTC:
+`vj_bb2e716216f84abeacb3505263f68a1d`, provider
+`h3_b97a971fa5e540f1afb8b6f6a0d8cb1d`, request hash
+`91f8cef4abdaba18b30a986734ff23741fc97c642b36141f99c20ee05458ed38`.
+It requests quality8,960×544,5seconds/124frames,contain-pad,seed2664258457478185,
+without an endframe. This checkpoint records submission only.
+
+## Image task status repair
+
+Both delivered image cards still enabled Send and retained stale waiting feedback.
+The server already requires `prepared` at native dispatch, so this was a frontend
+state mismatch, not missing dispatch safety. The UI now enables sending only for
+a current prepared job with known media state; terminal persisted states supersede
+transient action notices. Refresh and cancellation semantics remain unchanged.
+In particular, cancellation is not proof that a specialist stopped and must not
+clear its reservation. Candidate delivery does not imply selection.
+
+Focused9 and full829 frontend tests, typecheck, deterministic build and independent
+read-only review passed. Review found no issues. Normal8841 and protected data are
+unchanged; full E2E qualification, revised playback and remaining visual/copy checks
+are still outstanding.
+
 ## Native execution started
 
 After the complete software gate, clean checkpoint `1b07652` passed fresh Outline

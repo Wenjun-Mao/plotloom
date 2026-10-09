@@ -7,6 +7,7 @@ import {
 } from "../../../visual-intent-drafts";
 import type { MediaReadPhase } from "../useMediaWorkbenchData";
 import { shotImageJobs } from "./image-job-visibility";
+import { imageJobNotice } from "./image-job-state";
 
 type ImageJobDirection = ReturnType<typeof useImageJobDirectionDraft>;
 type DeliveryCandidate = ImageJob["deliveries"][number]["candidates"][number];
@@ -229,8 +230,9 @@ export function ImageJobPanel({
                   disabled={
                     readOnly ||
                     busy ||
+                    !mediaKnown ||
                     !job.current ||
-                    job.state === "cancelled"
+                    job.state !== "prepared"
                   }
                   onClick={() => void onCopy(job.id)}
                 >
@@ -252,9 +254,9 @@ export function ImageJobPanel({
                   取消
                 </Button>
               </div>
-              {imageJobRefreshNotice[job.id] && (
+              {imageJobNotice(job, imageJobRefreshNotice[job.id]) && (
                 <small className="notice" role="status">
-                  {imageJobRefreshNotice[job.id]}
+                  {imageJobNotice(job, imageJobRefreshNotice[job.id])}
                 </small>
               )}
               {job.deliveries.map((delivery) => (

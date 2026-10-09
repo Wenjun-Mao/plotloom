@@ -6,6 +6,7 @@ import { demoProject } from "../src/demo";
 import { ManagedMediaWorkbench } from "../src/features/media/ManagedMediaWorkbench";
 import { bridgeState } from "./production-bridge-fixture";
 import type { ImageJob, ManagedAsset, VisualWorkbench } from "../src/types";
+import { imageJobNotice } from "../src/features/media/image-jobs/image-job-state";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -35,6 +36,26 @@ beforeEach(() => {
   vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.useRealTimers(); });
+
+it.each(["prepared", "exported", "delivered", "cancelled"] as const)("offers image sending only before export: %s", async state => {
+  const job = { ...exportedJob, state };
+  vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValue(emptyWorkbench);
+  vi.mocked(plotloomApi.getImageJobs).mockResolvedValue({ configured: true, jobs: [job] });
+  await act(async () => root.render(createElement(ManagedMediaWorkbench, {
+    projectId: "project-1", storyboard: demoProject.storyboard, bible: demoProject.storyBible,
+    graph: demoProject.storyGraph, sceneBeats: demoProject.sceneBeats,
+    selectedShot: demoProject.storyboard.shots[0], storyboardRevision: 1,
+    storyBibleRevision: 1, mediaDraftsEnabled: false, review: null, readOnly: false,
+  })));
+  expect(host.querySelector<HTMLButtonElement>('[data-testid="copy-image-job-job-1"]')?.disabled).toBe(state !== "prepared");
+  expect(host.querySelector<HTMLButtonElement>('[data-testid="refresh-image-job-job-1"]')?.disabled).toBe(false);
+  if (state === "delivered" || state === "cancelled") {
+    expect(host.textContent).toContain(imageJobNotice(job));
+    expect(imageJobNotice(job, "已发送，等待交付")).toBe(imageJobNotice(job));
+  } else {
+    expect(imageJobNotice(job, "已发送，等待交付")).toBe("已发送，等待交付");
+  }
+});
 
 it("renders a mixed-origin gallery from the common provenance DTO and keeps candidate controls usable", async () => {
   const assets: ManagedAsset[] = ["art_reference_proposal", "plotloom_keyframe_center_crop", "character_reference_proposal", "manual"].map((origin, index) => ({
