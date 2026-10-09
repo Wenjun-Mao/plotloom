@@ -34,6 +34,11 @@ export function creatorLayout(draft: GraphAuthoringDraft, availableWidth: number
     return row.nodes.map((id, index) => ({ id, rank: row.rank, x: (width - 48 - rowWidth) / 2 + index * (CARD_WIDTH + COLUMN_GAP), y: row.y, detached: !reachable.has(id) }));
   });
   const byId = new Map(nodes.map(node => [node.id, node]));
+  // Structural edits append identities, but label lanes must follow visible
+  // targets (and sources at a join), not historical edge creation order.
+  for (const lane of labelsByRank.values()) lane.sort((left, right) =>
+    (byId.get(left.targetNodeId!)?.x ?? 0) - (byId.get(right.targetNodeId!)?.x ?? 0)
+    || (byId.get(left.sourceNodeId!)?.x ?? 0) - (byId.get(right.sourceNodeId!)?.x ?? 0));
   const edges = connected.flatMap((edge, index) => {
     const source = byId.get(edge.sourceNodeId!), target = byId.get(edge.targetNodeId!);
     if (!source || !target) return [];

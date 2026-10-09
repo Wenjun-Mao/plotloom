@@ -66,7 +66,10 @@ explicitly confirmed raising only nodeBudget4→8. The PATCH returned200 at
 An initial automation wait targeted PUT `/brief` rather than the actual
 confirmation and PATCH endpoint; it timed out before any Brief write. The
 visible confirmation was then read and submitted once with the correct ACK.
-Structural revision, character/reference changes and rebuilt playback remain open.
+The [same-project structural revision checkpoint](2026-10-09-native-structural-revision.md)
+now records insertion, bypass, undo, deletion, kind guards and confirmed/applied
+map and graph r3, plus the label-layout repair. Character/reference changes and
+rebuilt playback remain open.
 
 ## Dedicated whole-product visual and text audit added
 
