@@ -76,6 +76,11 @@ The settings follow-up reproduces lost feedback/input when closing a pending sav
 close/backdrop now respect the local operation guard. The disposable browser journey
 also verifies an explicit successful retry and reopen persistence, without native
 dispatch or writes to actual settings. Its qualification is in the recovery receipt.
+The follow-up full248 browser gate finished244PASS/4 obsolete-header assertions;
+all27 affected lifecycle tests pass after current-copy updates. Nested terminal-review
+operation ownership and proof-form overflow are now repaired, with891 frontend tests,
+focused browser proof and12 desktop captures; independent/final qualification is
+recorded in the same recovery receipt. No actual reservation was released.
 Other applicable
 recovery slices, revised routes and E22 completion remain incomplete.
 

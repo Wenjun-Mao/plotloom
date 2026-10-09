@@ -21,7 +21,7 @@ it("requires validated marker and explicit native-final review, then settles onc
   const settle = vi.spyOn(specialistsApi, "settleImageTerminal").mockResolvedValue({ state: "completed" });
   const send = vi.spyOn(specialistsApi, "sendImage"); const finished = vi.fn().mockResolvedValue(undefined);
   try {
-    await act(async () => root.render(createElement(ImageTerminalSettlement, { jobId: "ij_test", onSettled: finished })));
+    await act(async () => root.render(createElement(ImageTerminalSettlement, { jobId: "ij_test", disabled: false, onSettlingChange: vi.fn(), onSettled: finished })));
     expect(settle).not.toHaveBeenCalled();
     await fill(host.querySelector("input")!, "project");
     await act(async () => button(host, "读取并验证终止声明").click());
@@ -48,7 +48,7 @@ it("invalidates proof when project changes and preserves reservation on invalid 
   vi.spyOn(specialistsApi, "imageTerminalPreview").mockResolvedValueOnce(proof).mockRejectedValueOnce(new Error("缺少终止证明；保留预约。"));
   const settle = vi.spyOn(specialistsApi, "settleImageTerminal");
   try {
-    await act(async () => root.render(createElement(ImageTerminalSettlement, { jobId: "ij_test", onSettled: vi.fn() })));
+    await act(async () => root.render(createElement(ImageTerminalSettlement, { jobId: "ij_test", disabled: false, onSettlingChange: vi.fn(), onSettled: vi.fn() })));
     await fill(host.querySelector("input")!, "old");
     await act(async () => button(host, "读取并验证终止声明").click());
     expect(host.textContent).toContain(proof.markerHash);

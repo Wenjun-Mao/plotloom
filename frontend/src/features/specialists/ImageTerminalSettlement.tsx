@@ -2,7 +2,12 @@ import { useRef, useState } from "react";
 import { Button, ErrorNotice } from "../../components";
 import { specialistsApi, type ImageTerminalTarget, type ImageTerminalPreview } from "./api";
 
-export function ImageTerminalSettlement({ jobId, onSettled }: { jobId: string; onSettled: () => Promise<void> }) {
+export function ImageTerminalSettlement({ jobId, disabled, onSettlingChange, onSettled }: {
+  jobId: string;
+  disabled: boolean;
+  onSettlingChange: (pending: boolean) => void;
+  onSettled: () => Promise<void>;
+}) {
   const [project, setProject] = useState(() => new URLSearchParams(window.location.search).get("project") || "");
   const [target, setTarget] = useState<ImageTerminalTarget>("image_job");
   const [preview, setPreview] = useState<ImageTerminalPreview>();
@@ -15,7 +20,7 @@ export function ImageTerminalSettlement({ jobId, onSettled }: { jobId: string; o
   const [done, setDone] = useState(false);
   const operation = useRef(false);
   const inspect = async () => {
-    if (operation.current) return;
+    if (disabled || operation.current) return;
     operation.current = true;
     setBusy(true); setError(""); setPreview(undefined); setAttested(false);
     try { setPreview(await specialistsApi.imageTerminalPreview(project, target, jobId)); }
@@ -23,8 +28,10 @@ export function ImageTerminalSettlement({ jobId, onSettled }: { jobId: string; o
     finally { operation.current = false; setBusy(false); }
   };
   const settle = async () => {
-    if (operation.current || !preview || !attested || !turn || !reviewer.trim() || !Number.isInteger(Number(revision)) || Number(revision) < 1) return;
+    if (disabled || operation.current || !preview || !attested || !turn || !reviewer.trim() || !Number.isInteger(Number(revision)) || Number(revision) < 1) return;
     operation.current = true;
+    // The containing dialog owns dismissal until both mutation and readback finish.
+    onSettlingChange(true);
     setBusy(true); setError("");
     try {
       await specialistsApi.settleImageTerminal(project, target, jobId, {
@@ -34,11 +41,11 @@ export function ImageTerminalSettlement({ jobId, onSettled }: { jobId: string; o
       });
       setDone(true); await onSettled();
     } catch (reason) { setError(reason instanceof Error ? reason.message : "终止审核未完成；预约保留。"); }
-    finally { operation.current = false; setBusy(false); }
+    finally { operation.current = false; setBusy(false); onSettlingChange(false); }
   };
-  return <details><summary>核对生成前阻塞的终止声明</summary>
+  return <details className="image-terminal-settlement"><summary>核对生成前阻塞的终止声明</summary>
     <p>仅限已取消、成功 pin、未开始 ImageGen 的图像任务。取消或聊天 idle 不足以释放预约；必须先取得请求绑定的 terminal.json，再人工检查对应最终回合。</p>
-    <fieldset disabled={busy || done}>
+    <fieldset disabled={disabled || busy || done}>
       <label>终止任务所属项目 ID<input value={project} onChange={event => { setProject(event.target.value); setPreview(undefined); setAttested(false); }} /></label>
       <label>终止任务类型<select value={target} onChange={event => { setTarget(event.target.value as ImageTerminalTarget); setPreview(undefined); setAttested(false); }}>
         <option value="image_job">镜头图片</option><option value="character_reference_proposal">角色参考</option><option value="art_reference_proposal">美术参考</option>

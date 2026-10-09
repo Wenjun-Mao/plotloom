@@ -327,12 +327,59 @@ unverified. Review found an adjacent gap: `ImageTerminalSettlement` owns a separ
 reservation-release write and subsequent settings refresh; its child-local busy
 state does not reach the dialog close controls. That path remains open for a
 focused follow-up, not qualified by this save/check fix. No release was attempted.
-The new unfiltered browser run is active (handle46549) on frontend source/tests,
+The new unfiltered browser run (handle46549) used frontend source/tests,
 E2E/config/package files and generated static aggregate SHA256
 `44d74f4af0ea6204812d34dc54088f7c25b84238ed3866282a86c7620d528544`.
-It is not yet PASS; do not restart it merely for an observation timeout.
+It finished244PASS/4FAIL in7.9m with unchanged inputs. All four failures were stale
+`等待助手交付` locators in direct-delete/folder-close/force-close tests after the
+intentional unsent-task wording repair. Actual pages showed `任务尚未交付` and
+`任务已准备，尚未发送`; the tests stopped before their lifecycle assertions. The
+failed run remains under `frontend/test-results/retained-outline-settings-full/`.
+The four locators now use the current header; no lifecycle safeguards were removed.
 Native active task-check execution and provider-profile failed-save remain open.
 Normal8841 and both owner projects/protected settings are unchanged.
+
+### Nested terminal settlement ownership — October9 continuation
+
+The settings dialog's save/check guard did not include its child terminal-review
+panel. That child owns a reservation-release POST and settings readback, so closing
+the parent could lose its outcome while the server operation continued. Three new
+parent/child integration cases reproduced enabled Close before the fix. The child
+now explicitly reports settlement lifetime to the dialog, including readback;
+parent Close/backdrop and other mutations share that guard. Read-only inspection
+and server task occupancy do not become closing locks. Proof eligibility, explicit
+attestation, duplicate-submit protection and backend release semantics are unchanged.
+
+All9 focused specialist tests and full frontend891/110files pass; application types
+and deterministic static build pass. Regression cases distinguish settlement failure
+(retained input, no success) from successful settlement followed by failed readback
+(success retained plus read error), with no automatic repeat. Browser qualification
+uses explicitly synthetic/intercepted terminal responses only: it must not release
+an actual reservation or fabricate a native operator review. All27 lifecycle tests
+pass after the four locator updates. The first new terminal browser test held the
+second settings GET, accidentally blocking StrictMode's initial remount; retained
+failure snapshot shows initial loading. The harness now gates the held refresh on
+the synthetic successful settlement, not a GET count. The corrected journey passes.
+
+Root and independent review then found horizontal clipping in all12 functional-PASS
+captures: the nested terminal fieldset retained browser min-content sizing around
+64-character proof hashes. Top-level modal fieldsets already reset this minimum,
+but the nested form did not. A new modal-body overflow assertion fails before the
+fix. Scoped terminal-form CSS now permits shrinking and wraps long proof strings;
+no proof bytes are truncated or hidden. The original failing pixels and strengthened
+assertion failure remain in `terminal-dialog-final` and `terminal-dialog-overflow-before`.
+Final layout browser journey passes1/1 in3.6s with the stronger overflow guard,
+intercepted failed settlement, explicit retry, held readback, exact two POST attempts
+and unchanged actual server settings. Root inspected four final states across the
+desktop sizes; the existing independent reviewer inspected all12 final PNGs and
+the scoped CSS/component delta, finding no remaining clipping or control issue.
+Final images are also retained under canonical
+`output/playwright/native-intent-2026-10-08/terminal-dialog-layout-final/`.
+Inherited reviewer model/effort is unchanged and not independently verified.
+Application/E2E types, deterministic build and diff check pass. Full891 frontend
+PASS predates only the scoped CSS/class change; unfiltered browser qualification
+of this combined delta is still pending. No real reservation or protected settings
+were modified, and this branch is not published or activated on normal8841.
 
 Remaining: broader applicable recovery slices, Opening2 identity semantics/media and both rebuilt routes,
 outstanding report-generation context/copy and other E22 states. This receipt
