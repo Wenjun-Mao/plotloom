@@ -301,7 +301,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .appearance-thumbnail { display: grid; flex: 0 0 112px; gap: 6px; padding: 5px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); background: #0b0f14; text-align: left; }
 .appearance-thumbnail:hover, .appearance-thumbnail.viewing { border-color: rgba(126,212,247,.6); color: var(--text); }
 .appearance-thumbnail.selected { border-color: rgba(103,205,165,.6); }
-.appearance-thumbnail > img, .appearance-thumbnail .reference-missing-asset { width: 100px; height: 78px; min-height: 78px; object-fit: cover; }
+.appearance-thumbnail > img, .appearance-thumbnail .reference-missing-asset { width: 100px; height: 78px; min-height: 78px; object-fit: contain; }
 .appearance-thumbnail span { padding: 0 2px; font-size: 12px; }
 .appearance-thumbnail .reference-current-image { padding: 2px 4px; border-radius: 3px; color: #9ce7c5; background: rgba(35, 106, 76, .28); font-size: 12px; }
 .appearance-compare-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding-top: 3px; color: var(--muted); font-size: 12px; }

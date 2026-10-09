@@ -105,8 +105,10 @@ Current continuation: the fresh current-schema native project
 and both15-second routes, including its two-shot opening. The same project's
 revised graph is confirmed/applied; its old media is retained, not current.
 The [structural revision receipt](../verification/2026-10-09-native-structural-revision.md)
-owns the current Cast render-contract repair and its qualification. Finish that
-repair, then continue character/reference and Art revision, fresh Script and
+owns the current Cast render-contract repair and its qualification. The
+[native reference revision checkpoint](../verification/2026-10-09-native-reference-revision.md)
+now records delivered/explicitly selected reference r3, native accepted Art r2,
+and the compact portrait-preview repair. Continue Art reference review, fresh Script and
 Storyboard review, explicit rebuild and every revised route. This does not
 replace the remaining Recover or whole-product E22 obligations below.
 

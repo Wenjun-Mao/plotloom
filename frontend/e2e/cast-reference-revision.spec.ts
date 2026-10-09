@@ -47,6 +47,22 @@ test("revises a character using a retained image without reviving its old propos
   }
   const refinement = await prepareProposalFromBrowser(page, gallery, projectId, request, workbench.apiOrigin);
   expect(refinement.parentCandidateAssetId).toBe(parentId);
+  // Compact previews are identification evidence, not decorative crops. Check
+  // every surface, including the retained selection and the frozen parent.
+  for (const size of [{ width: 1700, height: 900 }, { width: 1280, height: 768 }, { width: 1280, height: 460 }]) {
+    await page.setViewportSize(size);
+    for (const selector of [".appearance-thumbnail > img", ".historical-selection > img", ".reference-parent > img"]) {
+      const images = gallery.locator(selector);
+      expect(await images.count()).toBeGreaterThan(0);
+      for (const image of await images.all()) {
+        await expect(image).toHaveCSS("object-fit", "contain");
+        await expect.poll(() => image.evaluate(element =>
+          (element as HTMLImageElement).complete && (element as HTMLImageElement).naturalWidth > 0)).toBe(true);
+      }
+    }
+    await gallery.locator(".reference-card-grid").scrollIntoViewIfNeeded();
+    await page.screenshot({ path: testInfo.outputPath(`retained-preview-${size.width}x${size.height}.png`) });
+  }
   const frozen = await sendProposalFromBrowser(page, projectId, refinement.id);
   const instructions = await readFile(path.join(frozen.packagePath, "COPY_ASSIGNMENT.txt"), "utf8");
   expect(instructions).toContain("frozen accepted Cast characterContext");
