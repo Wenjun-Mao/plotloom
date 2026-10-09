@@ -4,8 +4,8 @@ Retained checkout `/private/tmp/plotloom-one-story-rebuild.gfnqlc`, branch
 `codex/one-current-story-rebuild`, clean base
 `ff7bcb6a38a389fbf4bd2132c5fd509c3df20d29`. This is the scoped software
 checkpoint for owner-accepted [ADR0146](../adr/0146-explicit-unassessable-identity-review.md).
-Manager source/pixel review is closed below; isolated activation and native
-acceptance remain separate gates. Requested worker settings were Sol High; effective
+Manager source/pixel review and isolated activation are closed below; native
+acceptance remains a separate gate. Requested worker settings were Sol High; effective
 settings are unverified. Relay registration succeeded before source work.
 
 ## Cause and contract
@@ -125,7 +125,24 @@ Source→Brief→Source and the completed cancellation leaves an obsolete visibl
 task. It is a separate follow-up, not a failure of the identity candidate or a
 completed repair. Broader gates and native execution remain open below.
 
-## Limits and handoff
+## Manager isolated activation — October9
+
+Committed software checkpoint `dbd91b026d356575eb593a5300eff597584146e5`
+is loaded on isolated8865/8866. Python source and served JS
+`b407af7c2723ab39471506dc6eaa0a048bddb8c510ab431e58958744cdefaab8`
+match the reviewed build. Native OpenAPI exposes `pass`/`fail`/`unassessable`.
+Opening2's immutable old FAIL remains unchanged; activation does not authorize it.
+No provider dispatch followed this activation. All42 asset hashes, eight delivered
+image jobs and seven ingested video jobs remained exact; owners were idle.
+Normal8841 remained unchanged. This is isolated served-build qualification,
+not native authorization, playback, normal-service release or a combined full gate.
+
+The subsequent owned-renderer adoption makes old Art r2 and its dependent
+production stale under their existing hash contracts. That distinct source
+requalification is tracked in the [fork receipt](2026-10-09-owned-renderer-fork.md),
+not silently repaired by rebinding this identity decision or retained media.
+
+## Original worker limits and handoff
 
 This closes the bounded software implementation and scoped independent review.
 The baseline full1,418 Python/945 frontend/264 browser checkpoint is historical;

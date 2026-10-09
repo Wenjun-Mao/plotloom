@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-/** Plotloom's explicit art preset extension; upstream structure/gates stay intact. */
+/** Plotloom's explicit art preset extension; pinned fork structure/gates stay intact. */
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import {
-  SCENE_STYLE_PRESETS, SUPPORTED_STYLES, validateArt, castNamesOf,
+  SCENE_STYLE_PRESETS, SUPPORTED_STYLES, validateArt,
   renderHtml, renderMarkdown,
 } from '../third_party/shuohao-skills/skills/novel-art/scripts/novel-art.mjs';
 
@@ -29,7 +29,7 @@ export function styleContract(style, authorDirection) {
 }
 
 export function validateStyledArt(art, cast, contract) {
-  const problems = validateArt(art, castNamesOf(cast));
+  const problems = validateArt(art, { cast });
   const expected = styleContract(contract.style, contract.authorDirection);
   if (contract.version !== expected.version || contract.adapterHash !== expected.adapterHash
       || !isDeepStrictEqual(contract.preset, expected.preset)) problems.push('art style contract is stale; prepare a new task');
@@ -66,7 +66,7 @@ function main(args) {
   const problems = validateStyledArt(art, cast, contract);
   if (problems.length) throw new Error(problems.join('\n'));
   if (command === 'validate') process.stdout.write(`Valid art (${contract.preset.label})\n`);
-  else process.stdout.write(args.includes('--md') ? renderMarkdown(art, 'zh') : renderHtml(art, 'zh'));
+  else process.stdout.write(args.includes('--md') ? renderMarkdown(art, { cast, lang: 'zh' }) : renderHtml(art, { cast, lang: 'zh' }));
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

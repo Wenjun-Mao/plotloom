@@ -3,6 +3,7 @@ from copy import deepcopy
 from dataclasses import replace
 import json
 from pathlib import Path
+import re
 import subprocess
 
 from fastapi.testclient import TestClient
@@ -152,11 +153,13 @@ def test_live_action_props_keep_style_scale_and_white_background_gates():
             validate_art_style(changed, {"characters": []}, contract)
 
 
-def test_report_uses_original_live_action_document(tmp_path):
+@pytest.mark.parametrize("cast", [{"characters": []}, {"characters": [{"name": "Lin", "aliases": ["KeeperAlias"]}]}])
+def test_report_uses_original_live_action_document_and_cast_context(tmp_path, cast):
     contract = freeze_art_style("live-action", "写实电影感")
     art = candidate(contract)
-    for name, doc in (("art", art), ("cast", {"characters": []}), ("contract", contract)):
+    for name, doc in (("art", art), ("cast", cast), ("contract", contract)):
         (tmp_path / f"{name}.json").write_text(json.dumps(doc))
+    original = (tmp_path / "art.json").read_bytes()
     result = subprocess.run(["node", str(ADAPTER), "render", str(tmp_path / "art.json"),
                              "--cast", str(tmp_path / "cast.json"),
                              "--contract", str(tmp_path / "contract.json"), "--html"],
@@ -165,7 +168,35 @@ def test_report_uses_original_live_action_document(tmp_path):
     assert "真人写实" in result.stdout
     assert contract["preset"]["render"] in result.stdout
     assert "painterly rendering with visible brush texture" not in result.stdout
+    assert "未提供 cast.json" not in result.stdout
+    assert "gatepill pass" in result.stdout
+    embedded = re.search(r'id="art-data">([\s\S]*?)</script>', result.stdout)
+    assert embedded is not None
+    assert json.loads(embedded.group(1)) == art
     assert json.loads((tmp_path / "art.json").read_text()) == art
+    assert (tmp_path / "art.json").read_bytes() == original
+
+
+@pytest.mark.parametrize("field", ["prompt", "sheet", "lighting"])
+def test_report_refuses_cast_contamination_without_rewriting_candidate(tmp_path, field):
+    contract = freeze_art_style("live-action", None)
+    art = candidate(contract)
+    cast = {"characters": [{"name": "CastPerson", "aliases": ["CastAlias"]}]}
+    if field == "lighting":
+        art["scenes"][0]["lighting"][0]["prompt"] += ", CastAlias"
+    else:
+        art["scenes"][0]["image"][field] += ", CastPerson"
+    for name, doc in (("art", art), ("cast", cast), ("contract", contract)):
+        (tmp_path / f"{name}.json").write_text(json.dumps(doc))
+    original = (tmp_path / "art.json").read_bytes()
+    result = subprocess.run(["node", str(ADAPTER), "render", str(tmp_path / "art.json"),
+                             "--cast", str(tmp_path / "cast.json"),
+                             "--contract", str(tmp_path / "contract.json"), "--html"],
+                            capture_output=True, text=True)
+    assert result.returncode == 1
+    assert "提示词不含角色名" in result.stderr
+    assert not result.stdout
+    assert (tmp_path / "art.json").read_bytes() == original
 
 
 def test_live_action_api_delivery_accept_save_and_staleness(tmp_path: Path):

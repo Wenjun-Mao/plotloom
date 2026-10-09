@@ -5,14 +5,20 @@ product acceptance.
 
 ## Pin and operation
 
-`third_party/shuohao-skills` is a Git submodule pinned to
-`4322897e6d2bdaf66365534fd40194360c75a85f` (2026-08-26). It is the reviewed
-revision used by the handbook and contains all five public skills, their
+`third_party/shuohao-skills` is a Git submodule pinned to the owned fork
+`266af294da035324139202235430ffd68f5b877d` (2026-10-09), based on reviewed upstream
+`4322897e6d2bdaf66365534fd40194360c75a85f` (2026-08-26). The handbook's historical
+audit remains tied to that upstream base. The current fork contains all five public skills, their
 schemas, deterministic Node scripts, `LICENSE`, and `NOTICE`. A submodule is
 the smallest reproducible copy: a clean checkout uses
 `git clone --recurse-submodules`; Plotloom never reads the user-home research
 clone or installs the skills globally. The upstream is Apache-2.0 and its
 NOTICE is retained in the submodule and attributed in the repository NOTICE.
+The narrow renderer changes and current context APIs are governed by
+[ADR0147](../adr/0147-owned-pinned-report-renderers.md). Art validation/gates/
+rendering receive one explicit `{ cast, lang }` context. The selected-style
+entrypoint remains `scripts/art-style.mjs`; its changed byte hash requires new
+Art contracts, not rebinding retained requests, accepted content or media.
 The exchange compares the initialized submodule `HEAD` to Plotloom's recorded
 Git gitlink before it freezes a package; a merely available upstream checkout is
 not a pin. This deliberately operates from a source checkout: an installed

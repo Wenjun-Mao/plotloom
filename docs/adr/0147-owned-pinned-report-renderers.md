@@ -1,6 +1,7 @@
 # ADR 0147: Narrow owned pinned report renderers
 
-Status: accepted by the owner, 2026-10-09; fork adoption and qualification pending.
+Status: accepted by the owner, 2026-10-09; fork implemented, independently reviewed
+and published; parent integration and native dependency requalification in progress.
 
 ## Problem and ownership
 
@@ -14,8 +15,9 @@ widths. These defects belong to the report-generation source, not HTML overlays.
 
 Own a narrow Apache-2.0 fork of `eternityspring/shuohao-skills`, based on the
 currently qualified pin `4322897e6d2bdaf66365534fd40194360c75a85f`.
-The authenticated owned destination is `Wenjun-Mao/shuohao-skills`; it has not
-yet been created. Do not adopt upstream's later breaking release in this repair.
+The verified owned destination is `Wenjun-Mao/shuohao-skills`, a fork of the
+expected upstream. Published pin `266af294da035324139202235430ffd68f5b877d`
+is on `codex/plotloom-report-context`; no later breaking release was adopted.
 Keep an exact published commit as the parent submodule gitlink. Preserve legal
 notices and prominently identify modified files and fork provenance.
 

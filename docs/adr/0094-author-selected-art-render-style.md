@@ -44,6 +44,15 @@ delivery and author-edit validation, and required UI/API style selection.
 This change generates no images, accepts no art, and does not change existing
 identity references. Other stages' style semantics are not redesigned here.
 
+## Amendment — Owned report-renderer fork (2026-10-09)
+
+[ADR0147](0147-owned-pinned-report-renderers.md) supersedes the no-vendor-edit
+restriction only for its narrow owned Apache-2.0 renderer fork. Art validation,
+gates and rendering now share an explicit Cast-bearing context. The adapter's
+changed byte hash requires freshly prepared Art contracts and explicit review;
+old requests, accepted reports and media cannot be rebound automatically.
+Style selection and every structural/contamination gate remain unchanged.
+
 ## Amendment — Chinese reference-image preparation (2026-09-29)
 
 The F3B author-facing form uses Chinese labels, lifecycle states and default

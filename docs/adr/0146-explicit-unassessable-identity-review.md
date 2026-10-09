@@ -1,7 +1,8 @@
 # ADR 0146: Explicit unassessable identity review
 
 Status: accepted by the owner, 2026-10-09; implemented and independently source/
-pixel reviewed in the retained candidate; served-build and native qualification pending.
+pixel reviewed in the retained candidate; isolated served-build qualified;
+native authorization/playback qualification pending.
 
 ## Problem
 
