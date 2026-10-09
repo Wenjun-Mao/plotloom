@@ -8,7 +8,9 @@ selected-segment status/navigation mismatch. The hand-only identity gate remains
 an open semantics question. Its raw English refusal is repaired in source95074b1
 under ADR0143; matching native backend activation and actual retained-shot409
 guidance are verified in the rebuilt-production receipt's09:34UTC checkpoint.
-These changes do not complete the whole-product state matrix.
+The [revised recovery audit](2026-10-09-revised-project-recovery.md) additionally
+finds and repairs standalone Play mislabelling archived media as missing clips;
+these changes do not complete the whole-product state matrix.
 Nine revised Art report captures additionally verify full reading and modal
 close/reopen/focus at the three desktop sizes. The report's skipped-Cast claim
 is a confirmed generation-context defect: validation receives Cast, but the

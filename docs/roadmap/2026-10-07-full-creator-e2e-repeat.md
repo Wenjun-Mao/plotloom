@@ -47,6 +47,10 @@ Revised route playback and the hand-only review semantics remain incomplete.
 The [native rebuild receipt](../verification/2026-10-09-native-rebuilt-production.md)
 owns exact evidence; earlier tables/checkpoints below are historical baselines,
 not current completion claims. Normal8841 is unchanged by this continuation.
+The [revised recovery checkpoint](../verification/2026-10-09-revised-project-recovery.md)
+adds close/reopen and archive/restore with unchanged eight API responses/42 assets,
+actual retained/restored segment ended and an archived Play guidance repair.
+Snapshot/operator restore and other revised recovery slices remain incomplete.
 
 On October7 the owner agreed to ONE reusable Create → Revise → Recover playbook,
 with a tailored profile and dated evidence for each major update/iteration.

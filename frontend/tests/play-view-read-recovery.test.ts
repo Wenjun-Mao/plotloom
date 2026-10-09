@@ -9,6 +9,29 @@ import { demoProject } from "../src/demo";
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 afterEach(() => { vi.restoreAllMocks(); window.history.replaceState({}, "", "/"); });
 
+it.each(["ready", "stale"])("explains archived lifecycle before %s production or missing media", async (status) => {
+  window.history.replaceState({}, "", "/?view=play&project=project");
+  const host = document.createElement("div"); const root = createRoot(host);
+  vi.spyOn(plotloomApi, "getProject").mockResolvedValue({ brief: { title: "渡口" }, lifecycleStatus: "archived", archivedAt: "2026-10-09T09:43:54Z" } as Awaited<ReturnType<typeof plotloomApi.getProject>>);
+  vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [] });
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(bridgeState({ installation: installedProduction({ status: status === "stale" ? "outdated" : "current" }) }));
+  vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: [
+    { head: { stage: "story_graph", status }, payload: demoProject.storyGraph },
+    { head: { stage: "scene_beats", status }, payload: demoProject.sceneBeats },
+    { head: { stage: "storyboard", status }, payload: demoProject.storyboard },
+  ] } as Awaited<ReturnType<typeof plotloomApi.getStages>>);
+  try {
+    await act(async () => root.render(createElement(PlayView)));
+    expect(host.textContent).toContain("项目已归档，暂不能播放故事");
+    expect(host.textContent).toContain("在项目目录中恢复项目");
+    expect(host.textContent).not.toContain("缺少当前已确认的播放片段");
+    expect(host.textContent).not.toContain("需要重新建立制作内容");
+    expect(host.textContent).not.toContain("前往分镜评审与制作");
+    expect(host.querySelector('[data-testid="branching-video-preview"]')).toBeNull();
+    expect(host.querySelector('a[href="?project=project&stage=storyboard"]')?.textContent).toContain("Plotloom");
+  } finally { await act(async () => root.unmount()); }
+});
+
 it("retries failed playback reads without admitting missing stages or changing content", async () => {
   window.history.replaceState({}, "", "/?view=play&project=project");
   const host = document.createElement("div"); const root = createRoot(host);

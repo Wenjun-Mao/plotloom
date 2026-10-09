@@ -12,7 +12,7 @@ type PlayData = {
   storyboard: Storyboard;
   jobs: VideoJob[];
 };
-type PlaybackPrerequisites = { kind: "missing-production"; missing: string[] } | { kind: "outdated-production" };
+type PlaybackPrerequisites = { kind: "missing-production"; missing: string[] } | { kind: "outdated-production" } | { kind: "archived" };
 
 function stagePayload<T>(stages: Awaited<ReturnType<typeof plotloomApi.getStages>>["stages"], stage: string): T | undefined {
   const payload = stages.find((item) => item.head.stage === stage)?.payload;
@@ -47,6 +47,10 @@ export function PlayView() {
       plotloomApi.getProductionBridge(projectId, controller.signal),
     ]).then(([project, stageResponse, videos, bridge]) => {
       if (controller.signal.aborted) return;
+      if (project.lifecycleStatus === "archived") {
+        setPrerequisites({ kind: "archived" });
+        return;
+      }
       // Retained payloads and media are evidence, not current production. Check
       // their owning authority before a clip-level projection can misdiagnose
       // invalidated selections as missing clips to review.
@@ -78,14 +82,18 @@ export function PlayView() {
     </header>
     <section className="play-stage">
       {error ? <><ErrorNotice message={error} />{projectId && <Button variant="quiet" onClick={() => setReadRevision(value => value + 1)}>重新读取播放内容</Button>}</> : prerequisites ? <section aria-labelledby="play-prerequisites-title">
-        {prerequisites.kind === "outdated-production" ? <>
+        {prerequisites.kind === "archived" ? <>
+          <h1 id="play-prerequisites-title">项目已归档，暂不能播放故事</h1>
+          <p>原片、片段和审核记录仍保留，可返回工作台查看。</p>
+          <p>继续制作或播放前，请先在项目目录中恢复项目，再核对当前内容与播放片段。</p>
+        </> : prerequisites.kind === "outdated-production" ? <>
           <h1 id="play-prerequisites-title">故事已修改，需要重新建立制作内容</h1>
           <p>已有制作内容与当前故事或创作设置不一致，暂不能播放。旧视频仍保留；请先完成受影响内容的审阅，明确重建制作内容，再重新审核并选用当前播放片段。</p>
         </> : <>
           <h1 id="play-prerequisites-title">故事尚未准备好</h1>
           <p>尚未建立可播放的{prerequisites.missing.join("、")}。确认创作方案后，还需单独建立制作内容；确认方案不会自动完成这一步。</p>
         </>}
-        <a className="button quiet" href={sourceWorkflowHref(projectId, "storyboard-review")}>前往分镜评审与制作</a>
+        {prerequisites.kind !== "archived" && <a className="button quiet" href={sourceWorkflowHref(projectId, "storyboard-review")}>前往分镜评审与制作</a>}
       </section> : !data ? <div className="play-loading"><Spinner label="正在加载故事" /></div> : <>
         <span className="eyebrow">互动故事</span>
         <h1>{data.title}</h1>

@@ -135,7 +135,7 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
   return <section id={`video-segment-review-${job.id}`} className="video-segment-review" data-testid={`video-segment-review-${job.id}`}>
     <strong>{job.current ? "调整片段 · 预览 · 用于故事" : "保留片段 · 预览与记录"}</strong>
     <small>原稿镜头时长：{sourceUnits == null ? "来源不可用" : `${(sourceUnits / 1000).toFixed(3)} 秒`}；后端请求时长：{job.requestedSeconds} 秒；实测原片：{job.observed ? `${job.observed.durationSeconds.toFixed(3)} 秒 / ${availableFrames} 帧` : "尚无输出"}。</small>
-    <small>{job.current ? <>原片保留不变。选择连续的 {Number.isInteger(requiredFrames) ? requiredFrames : "—"} 帧及同期声音；片段准备后须听看最终片段，再明确选择。此操作不自动确认创作质量。</> : "原片和已准备片段仍保留。这里可查看核验通过的片段证据；预览不会恢复制作资格、改变选择或确认创作质量。"}</small>
+    <small>{job.current ? <>原片保留不变。选择连续的 {Number.isInteger(requiredFrames) ? requiredFrames : "—"} 帧及同期声音；片段准备后，请完整播放并检查画面和声音，再明确选择。此操作不自动确认创作质量。</> : "原片和已准备片段仍保留。这里可查看核验通过的片段证据；预览不会恢复制作资格、改变选择或确认创作质量。"}</small>
     {job.lifecycleStatus === "archived" && <small className="notice">项目已归档。核验通过的保留片段可预览；恢复项目并重新核对后，才能准备、审阅或选用。</small>}
     {rejected && <small className="notice warning">此原片已拒绝，片段选择已锁定；原片与片段证据仍保留。{job.lifecycleStatus === "active" && job.current ? "可在下方明确重新开放审阅，再核对并选用。" : "恢复项目及当前输入资格后，才能重新开放审阅。"}</small>}
     {previouslyRejected && explicitlyReopened && <small className="notice">此前拒绝记录仍保留；本次已重新开放审阅。重新开放本身不会准备片段或将视频用于故事。</small>}
@@ -145,7 +145,7 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
         onChange={(event) => setInFrame(Math.max(0, Math.min(maxStart, Math.trunc(Number(event.target.value) || 0))))} />
     </Field>}
     <Button disabled={busy || !canPrepare} onClick={() => void prepare()}>准备播放片段</Button>
-    <small>从原片截取可预览片段，不会重新生成视频，也不会加入故事。确认前请听看片段首尾。</small>
+    <small>从原片截取可预览片段，不会重新生成视频，也不会加入故事。确认前请检查片段开头和结尾的画面与声音。</small>
     {available.length > 0 && <label>{job.current ? "待审片段" : "保留片段预览"}
       <select value={chosen?.id ?? ""} disabled={busy} onChange={(event) => setProposalId(event.target.value)}>
         {available.map((item) => <option key={item.id} value={item.id}>{item.inFrame}–{item.outFrame} 帧{item.selected ? " · 已选择" : item.current ? " · 待审" : " · 保留证据"}</option>)}

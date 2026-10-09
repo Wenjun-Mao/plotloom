@@ -71,6 +71,11 @@ control, wrapping its label into the card's narrow number column.
   panel into view or restore a tall sticky overlay above authoring controls.
 - Successfully read but missing playback prerequisites have their own typed
   state and a link to the preparation owner, not a transport-error retry.
+  Project archival takes precedence over production and clip prerequisites:
+  the standalone playback page explains restoration through the project directory,
+  rather than describing retained but ineligible clips as missing or inviting
+  review in a read-only project. Playback navigation stays read-only; it does not
+  restore the project or alter selection. Failed reads still remain failures.
   Actual failed reads keep their named read-only retry. Optional new Art tasks
   are visibly distinct from the confirmed revision and never replace it implicitly.
 - The story reader distinguishes missing/stale story routes or Script from
