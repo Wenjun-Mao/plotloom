@@ -15,7 +15,9 @@ hand-only identity cannot pass the current review contract; video-source admissi
 refused and no second video was dispatched. The assessment-semantics question is
 open. Remaining revised clips/routes, recovery and E22 closure remain in scope.
 Shot-title and request-status repairs are qualified and committed at66b1cbd;
-the isolated backend still loads that revision. Revised West image is ingested/reviewed and its
+the isolated backend subsequently loaded95074b1 in an idle-only09:34UTC restart.
+Actual hand-only refusal guidance is verified, without generation or changed media.
+Revised West image is ingested/reviewed and its
 H3 original and segment played successfully and were selected for technical QA
 at08:18UTC. East image encountered pre-tool model capacity twice.
 After a forty-minute interval, exact package/hash, absent pin/delivery and terminal
@@ -27,8 +29,8 @@ The shared gallery thumbnail crop is repaired and independently reviewed, with
 five focused browser journeys and native pixels at all three desktop sizes;
 the [E22 receipt](../verification/2026-10-08-whole-product-ui-audit.md) owns evidence.
 Typed identity-refusal copy now has a shared API diagnostic and independently
-reviewed desktop/guard checks (ADR0143); native backend activation is deferred
-pending final qualification. An earlier full Python finished1,414 PASS/1 FAIL;
+reviewed desktop/guard checks (ADR0143); native backend activation is verified in
+the rebuilt-production receipt. An earlier full Python finished1,414 PASS/1 FAIL;
 the sole stale coverage-inventory record is reconciled and four focused checks
 pass. Final combined wheel/installed smoke pass; independent inventory-delta
 review is clear. East's reviewed keyframe is ingested and one current H3 request

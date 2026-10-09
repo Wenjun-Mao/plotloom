@@ -3,8 +3,8 @@
 Continuation of the [run profile](../roadmap/2026-10-07-full-creator-e2e-repeat.md)
 and [reference-revision checkpoint](2026-10-09-native-reference-revision.md).
 This is functional QA, not creative/media-quality acceptance or full E2E completion.
-Normal8841 is unchanged. Owned8865/8866 now runs qualified commit
-`66b1cbd295c23a5391c83004db509d2e5cc548bb` after an idle-only restart.
+Normal8841 is unchanged. Owned8865/8866 now runs95074b1 source
+(documentation checkpoint5f2cfd6) after the09:34UTC idle-only restart below.
 The native intent/rebuild below ran on `e26af30738744197a19e5799a130787df0318653`;
 its execution pin remains unchanged. Current native continuation is recorded below.
 
@@ -485,3 +485,15 @@ An incorrect class locator returned zero images; the actual data-testid locator
 verified seven. Waiting for gallery pixels before releasing required Cast data
 timed out; that interception was cleaned up, then the response-order method above
 completed. Neither harness error caused a product patch or generation retry.
+
+### Native identity-guidance activation — October9 09:34UTC
+
+Preflight: close/native blockers empty, specialist busy false,8 delivered images,
+7 ingested videos. Graceful restart PID22405→80987 retains the same data/config
+and process-only H3 catalogv7; health passes and served JS matches checked9da30fe5.
+Before/after video/image/reference response SHA256 prefixes943a6e53/1e132c9e/0fa29421
+match exactly. Actual Opening2 UI “读取当前来源” returns409 with typed
+`same_person_review_required`, exact shot and bindingf0b328dd, and Chinese owner
+guidance. Three `identity-native-refused-{size}.png` directly inspected by root
+show full readable guidance. Video response hash unchanged after refusal, busy false;
+no generation dispatched. Hand-only assessment semantics remain unresolved.

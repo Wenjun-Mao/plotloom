@@ -19,7 +19,7 @@ complete as functional QA; it does not establish the revised story's playback.
 | Create | Same-project native intent, four keyframes, four selected H3 segments, both routes including two-shot opening progression | Creative/media quality excluded, not implicitly accepted |
 | Revise | Middle graph insertion/deletion/reconnection, character/reference and source review revisions, explicit rebuild to current production, fresh approval; opening1, West and East revised H3 originals/segments played and selected for functional QA | Opening2 hand-only identity is unassessable under pass/fail-only gate; explicit semantics question pending. One revised clip and both rebuilt routes remain incomplete |
 | Recover | Earlier media-bearing close/reopen/archive/restore/snapshot/restored-copy replay and deletion have their dated receipts | Retest relevant revised-current-story recovery and unchanged media/authority; do not inherit first-install completion |
-| E22 | Dedicated whole-product sweep, title/status and typed identity-refusal/aspect-layout repairs; new retained-gallery read-failure/recovery desktop pixels | Remaining applicable state/control slices stay in the view/state register; typed server refusal is not yet activated on native8865 |
+| E22 | Dedicated whole-product sweep, title/status and typed identity-refusal/aspect-layout repairs; retained-gallery read-failure/recovery and lower-control desktop pixels; native8865 typed refusal verified after idle-only restart09:34UTC | Remaining applicable state/control slices stay in the view/state register; hand-only review semantics remain open |
 
 Earlier qualified source66b1cbd adds ADR0142 shot identity and truthful video-state
 presentation, independently reviewed. Full1,413 Python,872 frontend and242

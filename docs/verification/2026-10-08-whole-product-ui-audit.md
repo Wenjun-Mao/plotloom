@@ -6,7 +6,8 @@ have source repairs qualified in66b1cbd: overlong composition-as-title and raw
 video-state badges. A review found and closed the related selected-original versus
 selected-segment status/navigation mismatch. The hand-only identity gate remains
 an open semantics question. Its raw English refusal is repaired in source95074b1
-under ADR0143; matching native backend activation remains unverified.
+under ADR0143; matching native backend activation and actual retained-shot409
+guidance are verified in the rebuilt-production receipt's09:34UTC checkpoint.
 These changes do not complete the whole-product state matrix.
 Nine revised Art report captures additionally verify full reading and modal
 close/reopen/focus at the three desktop sizes. The report's skipped-Cast claim
