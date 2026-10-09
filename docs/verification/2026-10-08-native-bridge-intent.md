@@ -212,10 +212,31 @@ at02:52:49 UTC H3 job `vj_c7001760815844ca9887c134c7355e7f`, provider
 `h3_65448b6752d744a8b78b72d667be170c`, request hash
 `135ab62e504687e8b09d8385008e1591fad40cd5a5dcc52eaf2cf0f82a4e35ba`.
 Both ending requests use quality8,960×544,5seconds/124frames,contain-pad and no
-endframe. West is submitted at this checkpoint, not playback-qualified.
+endframe. A subsequent UI result check ingested West without a second submission.
+Segment `948f8c41-b014-4d8a-a0d2-575354a67d96` retains frames0–120,
+SHA256 `b8e0a9d5bc953ba7ed6a3c0cde3dd6d9e3986b42612c68500473476cdd9b9bf8`,
+120frames at24fps and160000 audio samples at32000Hz without padding.
+Actual browser playback reached ended at5seconds with120 rendered frames,
+zero drops and no media error. First/last pixels show right lamp on,left off
+and rightward confirmation. Root entered a technical-only review and explicitly
+selected the segment; UI ACK and independent job readback both confirm selection.
+Artistic quality, prop continuity and audio semantics remain unaccepted.
 
-Three of four current shots are technically selected. Complete-route playback,
-same-project Revise and remaining recovery/audit coverage are still outstanding.
+All four shots are now technically selected. Through the normal Play story link,
+the opening advanced from shot1/2 to2/2, then paused at the route-only choice.
+Choosing East played its selected segment to actual ended; Start over reset the
+story and a second complete opening traversal led to West, also ended. Both
+ending videos reported5seconds,120frames and zero drops. This proves both current
+15second media routes, including same-node multishot, not revised production.
+The initial new-tab viewport was2400×1906; opening screenshots are supplementary.
+Choice and both ending viewport screenshots were directly inspected at1700×900.
+Evidence: `west-video-early/late.png`, `route-opening-shot1/2.png`,
+`route-choice-1700.png`, `route-east-ended-1700.png`, `route-west-ended-1700.png`.
+The playback copy “单一路径完成后继续” is still awkward: it describes advancing
+after the current segment's shots, not completing an entire story route. The
+generic ending instruction “等待明确操作” also fails to name replay/restart.
+These remain E22 wording findings, not a functional playback failure.
+Same-project Revise and remaining recovery/audit coverage are still outstanding.
 
 ## Review evidence and request wording repairs
 

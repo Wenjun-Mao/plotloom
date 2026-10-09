@@ -19,8 +19,10 @@ Revise/multishot acceptance. Normal 8841 and its protected projects remain uncha
 
 Current isolated native continuation: [bridge-intent and four-shot creation](2026-10-08-native-bridge-intent.md)
 now has all four keyframes reviewed, the opening's two-shot static preview tested,
-and three of four native video segments technically selected. The West H3 request
-is submitted; full current-route playback and same-project Revise are still open.
+and all four native video segments technically selected. Both complete routes
+played in the actual browser, including the opening's two-shot progression,
+the route-only choice and both actual ending events. Same-project Revise remains
+open; first-install playback does not establish revised production acceptance.
 The same receipt records request-versus-media wording, blank reviewer-evidence
 defaults and shared timestamp repairs with834 frontend tests and independent review.
 This does not replace the full Create → Revise → Recover completion gates.
