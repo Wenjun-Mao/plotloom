@@ -24,7 +24,8 @@ from tests.source_graph_fixtures import letter_section_map
 from plotloom.exceptions import InvalidTransitionError, NotFoundError
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.project_storage.operational_state import close_blockers, specialist_publication_blockers
-from plotloom.persistence.schema.project_cast import CastCandidateRow
+from plotloom.persistence.schema.project_cast import CastCandidateRow, CastHeadRow
+from plotloom.review_context_diagnostics import ReviewContextError
 from plotloom.source_outline_contracts import (
     AcceptedOutlineRevision, AcceptedSectionMapRevision, SectionChoice, SectionMap,
     SourceMapGraphAdmission, SourceMaterial, SourceOutlineReviewState, SourceRevision,
@@ -120,6 +121,14 @@ def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_p
         store.cancel_cast_candidate(next_candidate.job_id)
         context = _context(2)
         assert store.cast_state().status == "stale"
+        with store.repository._read() as session:
+            head = session.get(CastHeadRow, store.manifest.project_id)
+            before_reopen = (head.status, head.updated_at, head.revision)
+        with pytest.raises(ReviewContextError):
+            store.reopen_cast(CastReopenRequest(expected_cast_revision=1))
+        with store.repository._read() as session:
+            head = session.get(CastHeadRow, store.manifest.project_id)
+            assert (head.status, head.updated_at, head.revision) == before_reopen
         assert store.cast_state().status == "stale"
     finally:
         store.close()

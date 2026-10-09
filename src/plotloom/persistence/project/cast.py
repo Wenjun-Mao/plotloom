@@ -317,6 +317,12 @@ class ProjectCastPersistence:
                 raise InvalidTransitionError("no accepted cast exists to reopen")
             if head.candidate_job_id and (row := session.get(CastCandidateRow, head.candidate_job_id)) and row.status in {"prepared", "ready"}:
                 raise InvalidTransitionError("cancel the current cast specialist publication before reopening accepted cast")
+            previous = session.scalar(select(CastRevisionRow).where(CastRevisionRow.project_id == project_id, CastRevisionRow.revision == head.revision))
+            if previous is None:
+                raise NotFoundError("accepted cast revision is missing")
+            stale = self._stale(session, project_id, CastBinding.model_validate(previous.binding))
+            if stale:
+                raise ReviewContextError(stale[0])
             head.status, head.updated_at = "reopened", utc_now()
         return self.get_state(project_id)
 

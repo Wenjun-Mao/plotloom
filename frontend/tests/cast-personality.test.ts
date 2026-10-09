@@ -70,6 +70,16 @@ it("shows the same personality and temperament in the accepted summary", async (
   expect(host.querySelector("dl")?.textContent).not.toContain("回应消息");
 });
 
+it("does not offer an unusable edit session for stale accepted cast", async () => {
+  const reopen = vi.spyOn(plotloomApi, "reopenCast");
+  await render("stale");
+  expect(button("编辑角色设定").disabled).toBe(true);
+  expect(button("准备角色设定任务").disabled).toBe(false);
+  expect(host.textContent).toContain("不能直接编辑旧版本");
+  await act(async () => button("编辑角色设定").click());
+  expect(reopen).not.toHaveBeenCalled();
+});
+
 it("associates separate selectable labels with unique controls across characters", async () => {
   await render("ready", { characters: [...cast.characters, { ...cast.characters[0], id: "C02" }] });
   const labels = Array.from(host.querySelectorAll<HTMLLabelElement>(".cast-forms label"));

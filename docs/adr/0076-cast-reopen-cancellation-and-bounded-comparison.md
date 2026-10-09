@@ -20,6 +20,13 @@ rejects and leaves authority unavailable; the UI refreshes that durable stale
 state rather than reviving it locally. Cancel, like reopen and save, invalidates
 the Characters session before its request.
 
+Reopen itself also requires that accepted binding to remain current. A stale
+binding is rejected before changing the head, with the existing typed review
+diagnostic. The UI cannot offer an editor whose save necessarily fails. An
+outdated review requires a new current-context task and explicit acceptance;
+missing upstream prerequisites still point to their owning stage. Changed-binding
+guidance must not send authors into a loop through already-current upstream content.
+
 The appearance gallery retains an unrestricted number of delivered candidates.
 Comparison is local presentation state: a creator explicitly adds any two to
 four candidates to a review set. It is capped at four, supports removal and

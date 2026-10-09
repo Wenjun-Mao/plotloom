@@ -89,7 +89,8 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
     {reviewDraft.notice}
     <header className="cast-panel-heading"><div><span className="eyebrow">角色设定</span><h2>{taskLabel}</h2></div><span className={`reference-state ${state.status === "stale" ? "historical" : state.status === "accepted" ? "selected" : "candidate"}`}>{loadError ? "无法刷新" : state.status === "stale" ? "需更新" : state.status === "accepted" ? "已确认" : state.status === "reopened" ? "编辑中" : candidate?.status === "ready" ? "待审核" : candidate?.status === "prepared" ? "任务未交付" : "待准备"}</span></header>
     <ReviewContextNotice projectId={projectId} diagnostics={state.staleReasons} />
-    {accepted && <AcceptedCastSummary accepted={accepted} current={!loadError && state.status === "accepted"} onEdit={() => act(() => plotloomApi.reopenCast(projectId, accepted.revision), undefined, true)} disabled={readOnly || busy || state.status === "reopened"} />}
+    {accepted && <AcceptedCastSummary accepted={accepted} current={!loadError && state.status === "accepted"} onEdit={() => act(() => plotloomApi.reopenCast(projectId, accepted.revision), undefined, true)} disabled={readOnly || busy || state.status !== "accepted"} />}
+    {accepted && state.status === "stale" && <p className="action-prerequisite">故事依据已变化，不能直接编辑旧版本。请准备新的角色设定任务，审核后确认；原设定与图片仍保留。</p>}
     {accepted?.reportAvailable && <AcceptedCastReport projectId={projectId} accepted={accepted} />}
     {!candidate && state.status !== "reopened" && <section className="cast-next-action"><div><strong>准备角色设定任务</strong><small>{ownerReadOnly ? "此项目为只读，不能准备或发送角色设定任务。" : "先准备任务，再发送给文字创作助手。结果需要你审核确认。"}</small></div><Button variant="quiet" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.prepareCastCandidate(projectId), (result) => setAssignment(result.assignment))}>准备角色设定任务</Button></section>}
     {candidate && <>

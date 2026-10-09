@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ApiError, plotloomApi } from "../src/api";
 import { ArtPanel } from "../src/pages/ArtPanel";
 import { CastPanel } from "../src/pages/CastPanel";
-import { ReviewContextNotice, reviewContextFailure, reviewContextMessage } from "../src/pages/ReviewContextNotice";
+import { ReviewContextNotice, reviewContextFailure, reviewContextMessage, reviewContextNextStep } from "../src/pages/ReviewContextNotice";
 import type { ReviewContextDiagnostic } from "../src/review-context-types";
 import type { ArtReviewState } from "../src/types";
 
@@ -42,6 +42,12 @@ it.each([
 it("names changed binding fields without treating their English evidence as UI copy", () => {
   expect(reviewContextMessage({ code: "binding_revision_changed", owner: "characters", field: "cast_revision", technicalMessage: "accepted cast revision changed" })).toBe("角色设定版本已变化，需要重新检查这份设定。");
   expect(reviewContextMessage({ code: "binding_content_changed", owner: "source", field: "graph_content_hash", technicalMessage: "installed graph content changed" })).toBe("已应用故事路线内容已变化，需要重新检查这份设定。");
+});
+
+it.each(["binding_revision_changed", "binding_content_changed", "section_context_changed", "art_render_contract_changed"] as const)("keeps %s recovery in the outdated review instead of a prerequisite loop", code => {
+  expect(reviewContextNextStep({ code, owner: "source", field: null, technicalMessage: "changed" }, "准备当前设定任务")).toBe("准备当前设定任务");
+  expect(reviewContextNextStep(source, "prepare")).toContain("来源与大纲");
+  expect(reviewContextNextStep(characters, "prepare")).toContain("角色");
 });
 
 it.each([source, characters])("Art's stale guide and disabled continuation follow %s", async diagnostic => {

@@ -255,7 +255,7 @@ E01–E22 用于完整流程演练。一次实际生成不能代替同项其余�
 | E04 | 分支建议形成真实可审阅图；多选项/选择/汇合与当前简报相符；保存、确认及应用独立。 | browser/visual/readback |
 | E05 | 同层加节点、精确插行、改输入/后续、删除两策略、Undo、节点类型与开场转换覆盖 C09–C26/C48–C50；Creator/Pro 同源。 | browser/visual/readback |
 | E06 | 不完整、容量/目标不符、stale、dirty 和拒绝有正确下一步；预览后实际连接/标签/身份一致。 | browser/visual/readback |
-| E07 | 角色准备/交付/报告/确认/重新打开/细化可用；候选不自动确认且旧内容保留。 | browser/visual/readback |
+| E07 | 角色准备/交付/报告/确认/重新打开/细化可用；候选不自动确认且旧内容保留。已过期角色不能进入必然无法保存的编辑会话；角色重开拒绝不改 head，指引区分上游未就绪与旧评审绑定已变化。 | browser/visual/readback |
 | E08 | 人物图片准备/发送/完成/比较/放大/明确参考选择；参考归属、冻结输入与重开保留正确。 | browser/visual/readback/live-provider |
 | E09 | 场景/道具设定与图片各自控件可用；参考修改/再次准备/取消/选择/报告恢复不混淆。 | browser/visual/readback/live-provider |
 | E10 | 剧本准备/发送/阅读/确认/重新打开可用；每个节点全部场次与重复地点出现坐标正确。 | browser/visual/readback |

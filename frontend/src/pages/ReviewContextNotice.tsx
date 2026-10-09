@@ -30,6 +30,9 @@ export function reviewContextMessage(diagnostic: ReviewContextDiagnostic): strin
 }
 
 export function reviewContextNextStep(diagnostic: ReviewContextDiagnostic | undefined, fallback: string): string {
+  // A changed binding means the upstream content exists but this review is old.
+  // Sending the author back upstream cannot make that old binding current.
+  if (diagnostic && ["binding_revision_changed", "binding_content_changed", "section_context_changed", "art_render_contract_changed"].includes(diagnostic.code)) return fallback;
   return diagnostic ? `请先到“${ownerLabels[diagnostic.owner]}”检查并确认当前内容，再回来继续。` : fallback;
 }
 

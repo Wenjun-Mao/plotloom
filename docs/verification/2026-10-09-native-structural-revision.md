@@ -72,3 +72,36 @@ Directly inspected evidence under the main checkout's
 C06 now permanently includes insertion-induced label ordering. This checkpoint
 does not close character/reference revision, production rebuild, fresh media,
 all revised routes or the remaining whole-product E22 audit.
+
+## Stale cast editing defect found during revision
+
+After graph r3, Cast correctly became stale and retained its old descriptions and
+two identity-reference images. However, “编辑角色设定” remained enabled. Clicking
+it wrote a reopened head, while the state projection continued to return stale
+and therefore never displayed an editor. Saving that binding could not succeed.
+The next-step guide also directed the author back to already-current source
+content rather than preparing the replacement review.
+
+The repair validates the accepted binding inside the reopen transaction before
+head mutation, returning the existing typed context diagnostic on staleness.
+The UI only enables accepted-cast editing for current accepted state; it explains
+the new-task path and keeps retained content readable. Changed-binding guidance
+uses the current review's recovery instruction, while genuinely missing upstream
+prerequisites still link to their owning stage. ADR0076 records this distinction;
+no stale content is rebound, accepted automatically or deleted.
+
+Independent review found no actionable defects. Focused16 Python and27 frontend
+checks pass, including unchanged head status/time/revision on refusal. All845
+frontend tests, application types and the isolated build pass. Root directly
+viewed `revise-stale-cast-guidance-{1700x900,1280x768,1280x460}.png`: the disabled
+edit action, retained text, recovery explanation and preparation control are
+readable; preparation remains available. Nine focused browser checks and browser
+types also pass, covering current edit/cancel/save, reference session ownership,
+stale reads and cancellation. Lock, production F401 and diff checks pass. A wider
+F401 invocation also found five pre-existing unused imports in the touched Cast
+test module; cleanup is deferred until the running full Python gate finishes so
+its inputs remain stable. Full Python verification and loading the backend repair
+are pending at this checkpoint. No replacement generation has yet been dispatched.
+Protection readback still matches aggregate
+`df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`:
+Wind17 files, Rain67 files and three protected settings/credential files unchanged.
