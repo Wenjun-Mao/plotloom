@@ -58,12 +58,13 @@ export function useProjectLifecycle({
     action: LifecycleAction,
     closeDraftDisposition?: "save" | "discard",
   ) => {
+    if ((action === "close" || action === "force_close" || action === "open") && !explicitProjectClose) return;
     const operation = session.capture();
+    directory.setError("");
     let closeAttempt: ReturnType<ProjectDraftQuiescence["beginClose"]> | undefined;
     let reads: ReturnType<typeof plotloomApi.suspendProjectReads> | undefined;
     try {
       if (action === "close" || action === "force_close" || action === "open") {
-        if (!explicitProjectClose) return;
         if (action === "close" || action === "force_close") {
           // This admission begins before either disposition or drain and stays
           // active until the Close response settles. It protects the requesting
@@ -155,6 +156,7 @@ export function useProjectLifecycle({
   };
   const performDelete = async (item: LifecycleTarget) => {
     const operation = session.capture();
+    directory.setError("");
     const attempt = mediaDraftQuiescence.beginClose(item.id);
     let reads: ReturnType<typeof plotloomApi.suspendProjectReads> | undefined;
     setClosingProjectId(item.id); setDeletingProjectId(item.id); setCloseNotice("");
