@@ -15,6 +15,17 @@ renderer fork based on the current qualified pin, without adopting upstream's
 breaking release ([ADR0147](../adr/0147-owned-pinned-report-renderers.md)). Both
 implementations are now complete in the isolated candidate; native lifecycle
 qualification is still partial. The current
+[recovery/final-candidate receipt](../verification/2026-10-09-board3-recovery-and-final-qualification.md)
+records both revised/restored native routes,58 assets/four clips, source lifecycle
+and idle restart, structural stress and85-second exploration. Actual current OS
+blur and explicitly unobserved E22/capability states remain open; software gates
+and publication are tracked there, not inferred from historical counts below. The
+final4bbf8c2 command-ownership/recovery delta passes1,463 Python,1,025 frontend,
+unfiltered274 browser tests and independent source/pixel review. Separate actual
+Creator stale-binding recovery after a Brief target
+change preserves authored content and restores editing without granting acceptance
+authority. Normal cutover awaits the explicit retained-demo choice; do not update
+the mounted normal checkout alone or add a schema adapter. The
 [Board3 continuation](../verification/2026-10-09-review-bound-bridge-and-board3-media.md)
 separates the mounted-bridge repair, fresh media and remaining acceptance. The graph/read
 repair's first full browser sweep exposed an empty-queue drain regression; its
@@ -22,7 +33,7 @@ owning correction and fresh full gate are recorded in the
 [read-recovery receipt](../verification/2026-10-09-graph-directory-read-recovery.md).
 Normal8841, protected projects/settings and the native media remain unchanged.
 
-Current graph/read checkpoint: the corrected full gate is264 browser/945 frontend
+Historical graph/read checkpoint: the corrected full gate is264 browser/945 frontend
 PASS, with1,418 Python PASS and unchanged913-input fingerprint. Serialized wheel
 build/installed smoke and7 static-member byte checks PASS. Independent source
 review cleared the drain correction; desktop native read/retry, retained-directory

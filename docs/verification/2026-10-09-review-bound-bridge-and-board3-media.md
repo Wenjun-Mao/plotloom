@@ -5,6 +5,12 @@ The reusable Create → Revise → Recover run and E22 visual/text audit remain
 Board2/r8 media run; their artifacts and limitations remain historical evidence.
 No owner creative/image/video/audio acceptance is inferred from functional QA.
 
+Current recovery and final-candidate continuation is recorded in the
+[Board3 recovery receipt](2026-10-09-board3-recovery-and-final-qualification.md):
+58-asset/four-selection parity, both restored native routes, source lifecycle and
+idle restart, structural stress,85-second exploration and directory-feedback repair.
+Earlier pending descriptions below are dated checkpoints, not the current scope.
+
 ## Demonstrated root causes and owning repair
 
 Actual native Storyboard r3 acceptance left the mounted production bridge reading
@@ -215,7 +221,8 @@ No synthetic `ended`, current-time jumping or controller advancement. Both route
 choices and histories match current r12/Board3. This separately qualifies same-node
 multishot advancement and full revised-route playback, not just standalone preview.
 Root directly inspected choice/terminal/bottom controls at1700×900 and1280×768;
-no document-width overflow. Short-desktop and final-candidate pixels remain next.
+no document-width overflow. Short-desktop/final-candidate and restored-route pixels
+are subsequently qualified in the linked recovery receipt.
 Evidence is in`output/playwright/board3-r12-2026-10-09/`, including
 `revised-shared-opening-choice-*.png`,`revised-east-route-ended-*.png` and
 `revised-west-route-ended-*.png` plus each original/segment terminal capture.
@@ -239,7 +246,8 @@ sizes; page-width overflow is absent. The short desktop requires normal page scr
 to bring the inspector into usable height; clipped initial-top capture is not a
 claim of usable lower controls. Static served/checked SHA256 matches
 `9a1a714f4579fdc65cc0267c18ff49f17f830058ab8fec7a83aeb6a0a8fabb1b`.
-The final unfiltered browser gate remains due for this later presentation delta.
+The later83bd4a7 unfiltered gate passed268 cases in8.8 minutes. The linked recovery
+receipt owns the newer8c79f48 directory-feedback delta and its final gate.
 
 The four fresh media chains and both revised routes are functionally exercised;
 do not regenerate for count or for E22. Continue applicable recovery and remaining
@@ -250,6 +258,6 @@ consumption gaps; software playback does not close them or creative acceptance.
 The pinned owned renderer fork is implemented at4f9b2128, but the accepted native
 Storyboard delivery remains frozen at266af294/report SHA8ac6996b. Its old skipped-
 gate count limitation is retained. New pure-render QA is not substituted delivery.
-Actual OS blur, broader sibling/edge/type stress cases and30–90 seconds of unscripted
-UI exploration remain explicitly unqualified until executed. The exploration is
-not a30–90-second video/story requirement. There is no phone/1024px work.
+Broader sibling/edge/type stress and85 seconds of unscripted exploration are now
+executed in the linked recovery receipt. Actual OS blur remains unqualified.
+Exploration is not a30–90-second video/story requirement. There is no phone/1024px work.

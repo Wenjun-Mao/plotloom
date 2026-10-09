@@ -62,6 +62,12 @@ No old request, receipt, report, accepted binding or media was rewritten.
 
 ## Remaining qualification
 
+Current software/media/recovery continuation is in the
+[Board3 receipt](2026-10-09-review-bound-bridge-and-board3-media.md) and
+[final-candidate recovery receipt](2026-10-09-board3-recovery-and-final-qualification.md).
+The then-pending checks below are historical; the old native report remains
+immutable and is not new-pin native execution evidence.
+
 The later a452e27 sweep passed1,463 Python tests and266 browser tests; one browser
 assertion incorrectly expected confirmed Script after upstream Art made it retained.
 That red historical result is preserved. The next frontend-only bridge/navigation

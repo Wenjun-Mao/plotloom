@@ -10,7 +10,11 @@ owner-approved one-current-story rebuild is implemented in an isolated candidate
 [qualification](../verification/2026-10-08-current-story-rebuild.md) separates its
 software/browser results from the still-open native revision run.
 Playbook adoption is documentation/planning approval, not dispatch or implementation
-authority; native media and the post-install revision journey remain PARTIAL.
+authority. The later [Board3 recovery/final-candidate receipt](../verification/2026-10-09-board3-recovery-and-final-qualification.md)
+qualifies both revised/restored native routes, source lifecycle/idle restart and
+58-asset/four-selection preservation. The overall run remains PARTIAL for actual
+current OS blur and explicitly unobserved E22/capability boundaries; this is not
+creative/media acceptance or blanket whole-product coverage.
 
 The owner requested a dedicated whole-product visual-and-text pass on October8,
 including “weird wording.” It is now mandatory E22 in the reusable playbook,

@@ -1,5 +1,12 @@
 # Owned renderer fork — scoped qualification
 
+Current evaluated-gate pin is4f9b2128, with exact scope and immutable native-report
+boundary in the [evaluated-gate receipt](2026-10-09-evaluated-report-gates.md).
+Later native Art3 and Board3 qualification are recorded in the
+[Board3 receipt](2026-10-09-review-bound-bridge-and-board3-media.md) and
+[recovery continuation](2026-10-09-board3-recovery-and-final-qualification.md).
+The initial fork/checkpoint below remains historical, not current pending work.
+
 Owner decision: [ADR0147](../adr/0147-owned-pinned-report-renderers.md). The fork
 is implemented, independently reviewed and published. Parent integration is a
 branch checkpoint; native dependency requalification and combined release gates
@@ -63,7 +70,7 @@ were also inspected; a separate additional parent integration reviewer did not
 run because native agent capacity was unavailable. The fork's independent
 review above is not represented as a separate parent review.
 
-An actual read-only isolated8865 projection after adopting the adapter reports
+An actual read-only isolated8865 projection after adopting the fork reports
 accepted Art r2 stale and accordingly changes Script/Storyboard/production/video
 currentness. This is expected hash-contract invalidation, not fresh acceptance.
 All42 asset paths/hashes remain exact, eight image jobs are delivered, seven

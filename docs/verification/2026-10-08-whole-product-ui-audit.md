@@ -1,6 +1,25 @@
 # Whole-product visual and text audit — 2026-10-08
 
-Latest provider-settings slice: the [Source/settings checkpoint](2026-10-08-source-help-ui-states.md)
+## Current continuation — October9
+
+The [Board3 recovery/final-candidate receipt](2026-10-09-board3-recovery-and-final-qualification.md)
+owns the latest58-asset/four-clip recovery, revised/restored routes, structural
+stress, exploration and directory-feedback qualification. Explicit unassessable
+review and the owned renderer fork are implemented; native/API capability
+guidance is repaired. Actual current OS blur, unobserved state permutations and
+listed capability/creative boundaries keep whole-product coverage PARTIAL.
+Final4bbf8c2 adds synchronous directory-command ownership, held-confirmation
+feedback and stale archive-decision protection, plus real manual Brief and typed
+graph-conflict recovery coverage. Independent final short-window pixel review
+closes Delete action reachability; graph recovery now says “最初的结构方案,” not
+“原始种子.” Fresh1,025 frontend tests pass; the final Python/browser gates and
+exact evidence are tracked in the linked receipt, not assumed complete here.
+The chronological checkpoints and state table below preserve historical evidence;
+their then-open semantics/fork questions are not current implementation blockers.
+
+## Earlier checkpoints
+
+Earlier provider-settings slice: the [Source/settings checkpoint](2026-10-08-source-help-ui-states.md)
 records two before-patch failures and the dialog-owned feedback/pending-operation
 repair. Six provider browser journeys and903 frontend checks pass; root inspected
 failed-save screenshots at all three desktop sizes. Native mode's visible launcher
@@ -333,8 +352,13 @@ file; do not inherit a PASS from a different state or source revision.
 | Assistant settings nested terminal review, pending/failed settlement and pending/completed readback | Synthetic intercepted settlement only;9 focused specialist tests,891 full frontend and1 browser journey;12 final desktop captures in `terminal-dialog-layout-final` | Parent operation ownership and clipped proof-form hashes repaired. Before-fix integration/overflow tests fail; after-fix guards pass. No real lease release or native operator review claimed; independent/final gate in recovery receipt. |
 | Branch suggestion failed read / stale task / cancellation with unsaved source / pending cancellation across basis change | October9 Source/help continuation: real-server disposable Brief edit and exact cancellation, retained source/graph/local text,12 desktop captures; backend ready-task cancellation after Outline reopen | Shared freshness/cancel permission and stale read basis repaired. Initial three and later concurrency regressions fail before their fixes. No specialist dispatch or lease release. Independent delta review and final counts tracked in Source/help receipt. Provider launcher on native8865 instead returns404 because API text admission is not composed; failed-save coverage remains unproven. |
 | Navigate / directory Archive / directory Close consent |143 disposable nine cases, three desktop sizes, exact intent/actions and actual cancelled entry points | Scoped pixels/operation checks; final source220 browser/683 frontend gate in linked checkpoint. |
-| Project-saved / tab-only / differing tab-and-project draft recovery |143 project-saved frames; October9 real-server failed-save fixtures add12 independently inspected final ready/held-verification desktop captures and exact draft/canonical readbacks in the [revised recovery receipt](2026-10-09-revised-project-recovery.md) | Copy discloses automatic project-draft replacement only when available; otherwise manual saving. Final876 frontend/19 focused recovery/2 browser cases pass; independent review closed. Manual-save variant has unit/App-harness coverage, not separate pixels. Other scope/graph reconciliation remains separate. |
+| Project-saved / tab-only / differing tab-and-project draft recovery |143 project-saved frames; October9 real-server failed-save fixtures add12 independently inspected final ready/held-verification desktop captures and exact draft/canonical readbacks in the [revised recovery receipt](2026-10-09-revised-project-recovery.md); final4bbf8c2 manual Brief journey adds capability-false session restoration and explicit canonical save | Automatic versus manual saving remains capability-owned. Final manual ready pixels directly inspected at short/wide desktop, with zero automatic writes and exact restored input. Other generic scopes remain separate; current qualification is in the [final receipt](2026-10-09-board3-recovery-and-final-qualification.md). |
 | Two-tab conflict reload / pending / unsafe failed read / retry / loaded / local discard | Native155 reproduction; final166 five states ×three sizes plus short-desktop discard sequence, all18 directly inspected independently, exact zero-write/local lineage/server-draft guards | Scoped pixel/operation PASS; broad final gate/publication tracked in linked checkpoint. Other scope/graph reconciliation pixels remain open. |
+| Typed graph two-tab409 / explicit current-version recovery | Final4bbf8c2 genuine two-tab fixture; exact revision/hash/payload readback, source/outline unchanged, no run creation; ready/recovered desktop captures | Short/wide pixels independently inspected; changed copy re-inspected at both sizes. Scoped operation and primary-wording PASS, not native stale generation or restored confirmation/install authority. |
+| Creator provider stale binding after Brief target change | Actual isolated structural QA Brief budget8→9, structure confirmation and explicit provider recovery POST200; draft2→3 retains all authored nodes/connections/text, exact source and empty run inventory; missing Outline/map and null admission remain so | Root and independent reviewer inspected six stale/recovered desktop viewports plus natural-scrolled1280×460 editor; initial short top does not fit the whole form. Exact JSON review closed in the [final receipt](2026-10-09-board3-recovery-and-final-qualification.md). Not the two-tab conflict path, populated accepted-map preservation, or restored confirmation/install authority. |
+| Directory held Archive/Restore, confirmed Delete/Duplicate, refused/ACK retry | Final4bbf8c2 real-server fixtures and held requests; same-tick unit guards, current target progress and exact disposable deletion | Independent held/refused/ACK pixels; short Delete actions reachable after actual scrolling. Archived-save decision across workspace change preserves the new draft. Broader command permutations are not inferred from these slices. |
+| Cast/Script replacement prepared/ready, retained dirty Script and stale Storyboard candidates | Final4bbf8c2 currentness fixtures, exact candidate authority and retained draft checks, all three desktop captures | Root inspected representative prepared/ready frames; no accepted-retained Storyboard claim where fixture lacks that review. Other failure/state permutations remain PARTIAL. |
+| Bible archived character/location/prop top/bottom | Final4bbf8c2 real-server archived forms, all three desktops, disabled fields/actions and zero UI writes | Representative location top/prop bottom directly inspected by root; captures and browser assertions qualify named forms, not every below-fold pixel. |
 | Snapshot completion / status disclosure |143 actual201 complete; three before failures and three repaired after frames directly inspected | Reading defect repaired; open-only summary reveal preserves normal scrolling. Final gate qualified; does not imply every snapshot/lifecycle failure state. |
 | Permanent deletion challenge |143 disposable blank/wrong/exact title ×three sizes, all nine frames independently inspected; Cancel preserves entire project and sends zero writes | Scoped challenge reading/eligibility PASS; actual deletion and lifecycle failure-state pixels remain PARTIAL. |
 | Frozen profile: missing key / missing profile / read failure / exact settings |152 eighteen directly inspected fixture PNGs;153 three changed refresh-guidance frames re-inspected; GET-only faults and zero-write/explicit same-job continuation guards | Scoped pixel/operation PASS; final220 browser/688 frontend qualification in linked checkpoint. |
