@@ -8,7 +8,7 @@ owner-data protection remain required before publication.
 
 ## Reusable playbook and current continuation profile
 
-Latest continuation (October9 08:12UTC): same-project native rebuild is installed;
+Latest continuation (October9 08:27UTC): same-project native rebuild is installed;
 its first revised H3 original/segment played and was explicitly selected for
 functional QA, with creative deviation recorded. Opening2 image delivered, but
 hand-only identity cannot pass the current review contract; video-source admission
@@ -21,6 +21,11 @@ at08:18UTC. East image encountered pre-tool model capacity twice
 (initial plus one same-job continuation); no further retry or model change.
 West standalone playback is verified; complete revised routes remain open.
 Frozen East inputs remain preserved.
+The shared gallery thumbnail crop is repaired and independently reviewed, with
+five focused browser journeys and native pixels at all three desktop sizes;
+the [E22 receipt](../verification/2026-10-08-whole-product-ui-audit.md) owns evidence.
+Typed identity-refusal copy, report context and remaining state-matrix work still
+need attention while revised media prerequisites remain blocked.
 The [native rebuild receipt](../verification/2026-10-09-native-rebuilt-production.md)
 owns exact evidence; earlier tables/checkpoints below are historical baselines,
 not current completion claims. Normal8841 is unchanged by this continuation.

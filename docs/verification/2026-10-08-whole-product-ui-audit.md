@@ -16,8 +16,42 @@ The revised East native waiting card is directly inspected at all three desktop
 sizes. Queueing is distinguished from completion, but the external specialist
 capacity failure is not surfaced in Plotloom. The1700 capture also demonstrates
 cropped faces in media candidate thumbnails, caused by the shared96px cover-fit
-rule. Full-image contain-fit is the owning presentation repair, still pending;
-the comparison panel's separate contain-fit does not qualify thumbnail cards.
+rule. The October9 08:27UTC continuation repairs that shared rule to contain-fit;
+the comparison panel's separate contain-fit did not qualify thumbnail cards.
+
+### Thumbnail framing repair — October9 08:27UTC
+
+Root cause: `.media-candidate img` combined a fixed96px height with `cover`,
+cropping portrait heads/feet and source edges. The shared presentation rule now
+uses `contain`; card height, selection semantics and asset bytes are unchanged.
+No backend, generation contract or historical delivery was rewritten.
+
+New `reference-gallery-layout.spec.ts` regression imports synthetic240×480 and
+640×240 edge-marker PNGs into a disposable project. It failed on the original
+`cover` rule, then passed at1700×900,1280×768,1280×460 with decoded dimensions,
+96px contain-fit, centered positioning, no horizontal page overflow, unchanged
+selection and readable expanded provenance. Five focused browser journeys PASS
+(21.6s): gallery directions, selected identity sources, new thumbnail check,
+image-job/refinement/stale delivery, and real backend restart with retained still
+selection. Application/E2E typechecks and deterministic build PASS. This CSS-only
+change does not require or claim a new full Python gate.
+
+Root directly inspected three fixture and three native gallery captures; an
+independent GPT-6 Luna/Max read-only review inspected all six and found no material
+issues. Native8865 readback has13 decoded gallery images, including three1024×1536
+portraits, all contain-fit; their faces and feet are now visible. The medium
+viewport naturally ends before some actions; actual short viewport shows the
+first-row controls. No project writes, dispatch, or service restart occurred.
+
+Evidence under ignored `output/playwright/native-intent-2026-10-08/`:
+`thumbnail-crop-regression-before/` retains the failing screenshot/trace;
+`thumbnail-contain-verified/` retains focused test pixels;
+`native-complete-thumbnails-{1700x900,1280x768,1280x460}.png` records real images.
+Checked and8865-served CSS SHA256:
+`c419fc5825c77b8e10ef4a280d88c6f800c629c666b415dbf072ac511e7dd9fe`.
+JS remains `7d3a70d77a31325e0cdd5eb0d83db20eef07dfdbf0f5df7889330a41959c9bf6`.
+Normal8841 is unchanged. The broader E22 state matrix and native revised routes
+remain incomplete; this is framing verification, not creative acceptance.
 
 Status: **EXECUTED / PARTIAL COVERAGE**. Included in the current full E2E run,
 with scoped repairs verified; unqualified states remain listed below. This is
