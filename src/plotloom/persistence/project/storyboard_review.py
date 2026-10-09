@@ -10,6 +10,7 @@ from typing import Any
 
 from sqlalchemy import select
 
+from ...authored_route_timing import validate_route_seconds
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
 from ...domain import contains_secret_setting, contains_secret_value, new_id, utc_now
@@ -109,7 +110,8 @@ class ProjectStoryboardReviewPersistence:
                 "scriptRevision": binding.script_revision,
                 "scriptContentHash": binding.script_content_hash,
                 "sectionBindings": [item.model_dump(mode="json", by_alias=True) for item in binding.section_bindings],
-                "sectionDurationCaps": [item.model_dump(mode="json", by_alias=True) for item in binding.section_duration_caps],
+                "routeBudgetHash": binding.route_budget_hash,
+                "targetPlaythroughSeconds": binding.target_playthrough_seconds,
                 "completeRouteSectionIds": binding.complete_route_section_ids,
                 "routeOnlySectionIds": binding.route_only_section_ids,
                 "reviewTiming": {
@@ -118,7 +120,7 @@ class ProjectStoryboardReviewPersistence:
                     "maxSegmentSeconds": binding.review_max_segment_seconds,
                 },
             }
-            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="pilot-storyboard", stage="storyboard", expected_stage_revision=head.revision, source={"acceptedScriptRevision": binding.script_revision, "acceptedScriptContentHash": binding.script_content_hash}, input_artifacts={"script.json": script, "outline.json": outline, "cast.json": cast, "art.json": art, "storyboard-admission.json": admission}, creative_brief=f"Create one raw upstream-shaped storyboard.json for the current accepted F4 script only. storyboard-admission.json freezes the exact accepted script revision/hash, ordered stable section-to-episode mapping, section/route duration caps, and review timing. Retain every mapped episode exactly once and in that order. Set storyboard.params exactly to minCutSeconds {binding.review_min_cut_seconds}, maxCutSeconds {binding.review_max_cut_seconds}, and maxSegmentSeconds {binding.review_max_segment_seconds}; every cut must be {binding.review_min_cut_seconds}–{binding.review_max_cut_seconds} seconds. The script owns dialogue and story facts. Preserve upstream storyboard segments, cuts, frames and H3 prompt text as review direction only. Run the pinned novel-storyboard validate and render commands, and derive report.html unchanged. This is review evidence, not canonical Plotloom shots, a SceneBeats/Bible projection, selected reference, media prompt, player content, dispatch request, or approval. Do not generate media or infer deployed H3 duration support.")
+            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="pilot-storyboard", stage="storyboard", expected_stage_revision=head.revision, source={"acceptedScriptRevision": binding.script_revision, "acceptedScriptContentHash": binding.script_content_hash}, input_artifacts={"script.json": script, "outline.json": outline, "cast.json": cast, "art.json": art, "storyboard-admission.json": admission}, creative_brief=f"Create one raw upstream-shaped storyboard.json for the current accepted F4 script only. storyboard-admission.json freezes the exact accepted script revision/hash, ordered stable section-to-episode mapping, the complete-route maximum and budget hash, and review timing. Preserve unequal authored section lengths; sum actual cuts along each complete route, not across mutually exclusive endings. Retain every mapped episode exactly once and in that order. Set storyboard.params exactly to minCutSeconds {binding.review_min_cut_seconds}, maxCutSeconds {binding.review_max_cut_seconds}, and maxSegmentSeconds {binding.review_max_segment_seconds}; every cut must be {binding.review_min_cut_seconds}–{binding.review_max_cut_seconds} seconds. The script owns dialogue and story facts. Preserve upstream storyboard segments, cuts, frames and H3 prompt text as review direction only. Run the pinned novel-storyboard validate and render commands, and derive report.html unchanged. This is review evidence, not canonical Plotloom shots, a SceneBeats/Bible projection, selected reference, media prompt, player content, dispatch request, or approval. Do not generate media or infer deployed H3 duration support.")
             request.assert_secret_free(); freeze_execution_pin(session, request, execution_pin); now = utc_now()
             row = StoryboardReviewCandidateRow(job_id=job_id, project_id=project_id, expected_review_revision=head.revision, binding=binding.model_dump(mode="json", by_alias=True), request=request.model_dump(mode="json", by_alias=True), status="prepared", delivery_id=None, manifest_hash=None, storyboard=None, report_html=None, created_at=now, delivered_at=None)
             session.add(row); head.candidate_job_id, head.status, head.updated_at = job_id, "prepared", now
@@ -213,7 +215,6 @@ class ProjectStoryboardReviewPersistence:
         }
         if not isinstance(params, dict) or any(params.get(key) != value for key, value in expected_params.items()):
             raise ValueError("storyboard params must exactly match the frozen review timing limits")
-        caps = {item.section_id: item.duration_cap_milliseconds / 1_000 for item in binding.section_duration_caps}
         actual: dict[str, float] = {}
         for section in binding.section_bindings:
             episode = next((item for item in episodes if isinstance(item, dict) and item.get("ep") == section.episode), None)
@@ -236,12 +237,10 @@ class ProjectStoryboardReviewPersistence:
                 if segment_seconds > binding.review_max_segment_seconds + 0.0001:
                     raise ValueError(f"episode {section.episode} segment duration violates frozen review timing")
                 episode_seconds += segment_seconds
-            if episode_seconds > caps[section.section_id] + 0.0001:
-                raise ValueError(f"episode {section.episode} exceeds its frozen F4 section duration cap")
             actual[section.section_id] = episode_seconds
-        for route in binding.complete_route_section_ids:
-            if sum(0 if section_id in binding.route_only_section_ids else actual[section_id] for section_id in route) > binding.target_playthrough_seconds + 0.0001:
-                raise ValueError("a complete storyboard route exceeds the frozen F4 playthrough maximum")
+        validate_route_seconds(durations=actual, routes=binding.complete_route_section_ids,
+                               route_only_ids=binding.route_only_section_ids,
+                               maximum=binding.target_playthrough_seconds, label="storyboard")
         root = Path(__file__).resolve().parents[4]
         validator = root / "third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs"
         if not validator.is_file():

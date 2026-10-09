@@ -1332,9 +1332,8 @@ export interface ScriptBinding extends ArtBinding {
   artRevision: number;
   artContentHash: string;
   targetPlaythroughSeconds: number;
-  timingAllocationHash: string;
+  routeBudgetHash: string;
   sectionBindings: Array<{ sectionId: string; episode: number }>;
-  sectionDurationCaps: Array<{ sectionId: string; durationCapMilliseconds: number }>;
   completeRouteSectionIds: string[][];
   routeOnlySectionIds: string[];
 }

@@ -218,3 +218,62 @@ specialist and admission ownership; do not defer contradiction to an image overl
 `cast-original-report-top.png` shows the original static report heading and summary
 below technical details, not its complete body. Sandbox script-block console
 messages come from this intentionally inert report; confirmation itself succeeded.
+
+## Native reference images and route timing repair
+
+Character job `ij_caafe18ccc244a729b997111e0b0e5cd` delivered and was explicitly
+selected through the UI. A second candidate, `ij_01462fa06c4447ebb6628eaefabde564`,
+was ingested and added to the comparison without replacing the first selection.
+`character-pair-1700x900.png` records the visible comparison, not the complete
+offscreen image height. Native Art `ch_7684f4aba6e24d04b65d63375b2730d3` was
+confirmed as r1 with one environment and one prop.
+
+Environment `ij_db7e9b0172b640b5a64949fcfc1a0e77` and prop
+`ij_9fadb361a12d4d4a97f18c3f33fca42d` both executed in the image specialist,
+were ingested with the named Check control, enlarged, closed and explicitly
+selected in their respective UI subjects. Root inspected
+`environment-reference-zoom.png` and `prop-reference-zoom.png`: image and Close
+control fit the 1700×900 viewport. Prop asset
+`1ab2b9e1-4a55-4164-bc16-7baab0ba2ae0` has hash
+`d1d3d78f84ad6d870e50df4ed3e61a61fc09f180205a75900703096632b8dbfc`.
+Its expanded provenance shows `art_reference_proposal` and rights `unknown`.
+These are functional reference-review checks, not artistic acceptance or proof
+that environment/prop references feed shot production; the UI explicitly says
+they do not. Refused cleanup of non-private ImageGen staging preserved files.
+
+Script `ch_5d705d357d554294bafcdd676874cb46` stopped without delivery: the frozen
+package imposed 7.5-second section caps while accepted author content required
+a 10-second opening and either five-second ending. The target route is 15
+seconds, so the author request is feasible. Root cause was reuse of Scene Beats'
+equal-depth generation allocation as a universal authored-scene admission cap;
+canonical installation repeated the same restriction.
+
+ADR0018/0064 now distinguish generation allocation from authored route budgets.
+F4/F5 bind a versioned route hash, ordered section mapping, route-only membership
+and complete routes, with no section-cap compatibility reader. F4 validates
+targets and estimates; F5 validates cuts; canonical installation uses longest
+DAG-route duration. A real fixture admission test carries unequal 10/5/5-second
+episodes through pinned upstream validation, F5, intent/presentation review and
+canonical installation, while overlong routes remain rejected atomically.
+
+Independent review found and closed one additional gap: identical SQL layouts
+could hide obsolete review JSON. Read-only folder and recovery admission now
+validate all retained F4/F5 candidate/revision bindings before mutation. Eight
+open/closed cases prove current contracts admit and obsolete bindings refuse
+open, inspect, reopen and recovery with unchanged database/manifest bytes.
+
+The repair passed 1,382 backend tests, 819 frontend tests and all 240 browser
+tests, plus types, deterministic build, lock, focused F401 lint and installed-wheel
+smoke. Logs are `route-budget-{backend,frontend,browser}-gate.log` under the same
+evidence directory. A removed unused import was the only lint correction.
+Independent review found no remaining concrete timing/admission blocker.
+
+The old Script request was cancelled through the UI; no Script revision exists.
+Its specialist turn is independently confirmed completed, but the application
+reservation remains held because no delivery was produced. Exact terminal
+settlement and the disposable obsolete-row reset remain cutover work; no frozen
+package has been rewritten. A pending poll returned 404 after cancellation;
+this is retained recovery evidence, not a claim of a clean cancellation console.
+Native Script on the repaired runtime and all downstream same-project production
+remain unverified. Normal 8841 is unchanged; the owner/protected aggregate still
+matches `df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`.

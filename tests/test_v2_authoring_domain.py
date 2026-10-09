@@ -804,7 +804,7 @@ def test_v2_join_entry_values_come_from_post_edge_effects() -> None:
     over_budget_plan = variant_plan.model_copy(
         update={
             "scenes": [
-                variant_plan.scenes[0].model_copy(update={"duration_budget_units": 60_001}),
+                variant_plan.scenes[0].model_copy(update={"duration_budget_units": brief.target_playthrough_seconds * 1000 + 1}),
                 *variant_plan.scenes[1:],
             ]
         }
@@ -819,7 +819,7 @@ def test_v2_join_entry_values_come_from_post_edge_effects() -> None:
             graph=variant_graph,
         )
     assert any(
-        issue["code"] == "scene_node_budget_exceeded"
+        issue["code"] == "scene_route_budget_exceeded"
         for issue in captured.value.issues
     )
 

@@ -87,6 +87,11 @@ not a backend job, a review decision, or permission to edit canon.
   addition to the pinned upstream validator, which does not enforce this
   extension. Keep the original candidate and report together; never repair a
   published delivery or retrofit an older frozen request.
+  For current requests carrying `routeBudgetHash`, the author maximum applies
+  separately to every complete route, both episode targets and estimated
+  durations. Preserve unequal section lengths; do not impose an equal split,
+  pad time, or sum mutually exclusive endings. Storyboard cuts must satisfy the
+  same route maximum as well as their frozen cut/segment limits.
 
 ## Local authoring
 

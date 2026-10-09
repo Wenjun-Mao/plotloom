@@ -38,7 +38,7 @@ def test_three_routes_inserted_step_and_join_install_exact_footage_subset(tmp_pa
         assert script.binding.section_ids == [section.section_id for section in mapping.sections]
         assert script.binding.route_only_section_ids == controls
         assert [item.section_id for item in script.binding.section_bindings] == expected
-        assert [item.section_id for item in script.binding.section_duration_caps] == expected
+        assert len(script.binding.route_budget_hash) == 64
         assert len(script.script["episodes"]) == len(expected)
         assert all(episode["scenes"] for episode in script.script["episodes"])
         assert [scene["sectionId"] for scene in proposal.scenes] == expected

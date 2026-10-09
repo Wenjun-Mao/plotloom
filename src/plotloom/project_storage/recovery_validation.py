@@ -26,7 +26,7 @@ from .snapshot_files import (
     _sha256_path,
     _source_file,
 )
-from .current_schema import assert_current_schema
+from .current_schema import assert_current_schema, assert_current_review_bindings
 
 _ASSET_PREFIX = PurePosixPath("assets")
 
@@ -71,6 +71,7 @@ def assert_database_contract(path: Path, manifest: ProjectManifest) -> None:
         connection = database_connection(path)
         try:
             assert_current_schema(connection)
+            assert_current_review_bindings(connection)
             integrity = [row[0] for row in connection.execute("PRAGMA integrity_check")]
             foreign_keys = list(connection.execute("PRAGMA foreign_key_check"))
             project_rows = list(connection.execute("SELECT id FROM v2_projects"))

@@ -4,7 +4,7 @@ from collections import defaultdict
 from .canonical_schema import DialogueCue, DialogueTimingProfile, SceneBeatPlanV2, StoryBibleV2, StoryGraphV2, default_dialogue_timing_profile
 from .domain import ProjectBrief
 from .json_value_contract import CanonicalJsonValueError, finite_canonical_json
-from .generation.scene_timing_allocation import plan_scene_timing_allocation
+from .authored_route_timing import longest_authored_route_units
 from .validation_state import _continuity_sequence_is_compatible, _continuity_state_issues
 from .validation_issues import DomainValidationError, ValidationIssue, _duplicates, _issue
 
@@ -140,20 +140,17 @@ def _validate_v2_scene_timing_allocation(
     graph: StoryGraphV2,
     brief: ProjectBrief,
 ) -> None:
-    """Keep manual canonical edits inside the generation-time path cap."""
+    """Authoring may redistribute time but cannot enlarge any complete route."""
 
-    allocation = plan_scene_timing_allocation(graph=graph, brief=brief)
     budget_by_node: dict[str, int] = defaultdict(int)
     for scene in plan.scenes:
         budget_by_node[scene.story_node_id] += scene.duration_budget_units
-    issues = [
-        _issue(
-            "scene_node_budget_exceeded",
-            f"scenes.{node_id}.durationBudgetUnits",
-            "dramatic-scene budgets exceed the versioned Story Graph node cap",
-        )
-        for node_id, actual in sorted(budget_by_node.items())
-        if actual > allocation.node_duration_budget(node_id)
-    ]
-    if issues:
-        raise DomainValidationError(issues)
+    try:
+        longest = longest_authored_route_units(graph, budget_by_node)
+    except ValueError as error:
+        raise DomainValidationError([_issue("scene_route_timing_invalid", "scenes", str(error))]) from error
+    if longest > brief.target_playthrough_seconds * 1000:
+        raise DomainValidationError([_issue(
+            "scene_route_budget_exceeded", "scenes",
+            "a complete route's dramatic-scene budgets exceed the author playthrough maximum",
+        )])

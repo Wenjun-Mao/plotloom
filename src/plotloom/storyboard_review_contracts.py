@@ -7,7 +7,7 @@ from typing import Any, Literal
 from pydantic import Field, model_validator
 
 from .domain import CamelModel
-from .script_contracts import ScriptBinding, ScriptSectionBinding, ScriptSectionDurationCap
+from .script_contracts import ScriptBinding, ScriptSectionBinding
 
 
 StoryboardReviewStatus = Literal["missing", "prepared", "candidate_ready", "accepted", "stale"]

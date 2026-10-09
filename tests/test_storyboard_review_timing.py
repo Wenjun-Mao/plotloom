@@ -51,10 +51,10 @@ def test_segment_sum_cannot_exceed_15_seconds(review_binding):
         ProjectStoryboardReviewPersistence._validate(candidate, review_binding, {}, {}, {})
 
 
-def test_section_sum_cannot_exceed_frozen_cap(review_binding):
+def test_large_section_cannot_exceed_complete_route_maximum(review_binding):
     candidate = board()
     candidate["episodes"][0]["segments"] *= 100
-    with pytest.raises(ValueError, match="section duration cap"):
+    with pytest.raises(ValueError, match="complete storyboard route"):
         ProjectStoryboardReviewPersistence._validate(candidate, review_binding, {}, {}, {})
 
 

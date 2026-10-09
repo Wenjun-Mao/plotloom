@@ -2,6 +2,33 @@
 
 Status: Accepted, 2026-09-18.
 
+## Amendment: route budgets replace synthetic section caps (2026-10-08)
+
+The equal-depth allocation rejected an authored 10-second opening plus either
+five-second ending under a 15-second route limit. F4/F5 now freeze a versioned
+route-budget hash covering the author maximum, ordered section bindings,
+route-only membership and complete routes. Synthetic section caps and their
+allocation hash are removed from the current receiving contract and frontend
+types; no compatibility reader reconstructs them.
+
+F4 validates both episode target totals and pinned duration-estimate totals for
+each complete route. F5 validates actual cut totals against those routes.
+Canonical installation and manual saves validate scene totals using DAG
+longest-path arithmetic under ADR0018. Unequal section lengths are permitted;
+mutually exclusive endings are never added together. Cut/segment policies,
+dialogue minima, exact mappings, input currentness and atomic writes remain.
+
+Retained frozen requests are not edited or replayed as the new contract. A
+stopped request is cancelled and a fresh request is prepared against qualified
+code. Disposable obsolete review rows may be explicitly reset; valued folders
+remain untouched on their qualified runtime until cutover is authorized.
+
+Folder admission and recovery validate all persisted F4/F5 binding JSON against
+the current typed contract, including retained candidates and revisions. SQL
+layout alone cannot detect this breaking change. Unsupported bindings fail
+before repository mutation with explicit reset-required guidance; opening,
+inspection, reopening and restore never migrate or reconstruct their authority.
+
 ## Clarification: specialist emission of trusted linkage (2026-10-02)
 
 A real frozen handoff passed the upstream validator but omitted the required

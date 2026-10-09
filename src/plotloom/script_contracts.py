@@ -4,9 +4,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, model_validator
 
 from .art_contracts import ArtBinding
+from .authored_route_timing import route_budget_hash
 from .domain import CamelModel
 
 ScriptStatus = Literal["missing", "prepared", "candidate_ready", "accepted", "reopened", "stale"]
@@ -16,9 +17,8 @@ class ScriptBinding(ArtBinding):
     art_revision: int = Field(ge=1)
     art_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     target_playthrough_seconds: int = Field(ge=3)
-    timing_allocation_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    route_budget_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     section_bindings: list["ScriptSectionBinding"] = Field(min_length=1, max_length=128)
-    section_duration_caps: list["ScriptSectionDurationCap"] = Field(min_length=1, max_length=128)
     complete_route_section_ids: list[list[str]] = Field(min_length=1)
     route_only_section_ids: list[str]
 
@@ -30,10 +30,17 @@ class ScriptBinding(ArtBinding):
             raise ValueError("section footage membership must be unique")
         if set(footage_ids) & set(route_ids) or set(footage_ids) | set(route_ids) != set(self.section_ids):
             raise ValueError("footage and route-only membership must exactly cover graph sections")
-        if [item.section_id for item in self.section_duration_caps] != footage_ids:
-            raise ValueError("positive timing caps must exactly match footage sections")
         if any(section not in self.section_ids for route in self.complete_route_section_ids for section in route):
             raise ValueError("complete routes must retain only actual graph sections")
+        if {node for route in self.complete_route_section_ids for node in route} != set(self.section_ids):
+            raise ValueError("complete routes must cover every section")
+        expected = route_budget_hash(
+            target_seconds=self.target_playthrough_seconds,
+            section_bindings=[item.model_dump(mode="json", by_alias=True) for item in self.section_bindings],
+            routes=self.complete_route_section_ids, route_only_ids=route_ids,
+        )
+        if self.route_budget_hash != expected:
+            raise ValueError("routeBudgetHash must match the frozen authored timing contract")
         return self
 
 
@@ -42,13 +49,6 @@ class ScriptSectionBinding(CamelModel):
 
     section_id: str = Field(min_length=1)
     episode: int = Field(ge=1)
-
-
-class ScriptSectionDurationCap(CamelModel):
-    """Trusted, graph-derived maximum for one F1B stable section."""
-
-    section_id: str = Field(min_length=1)
-    duration_cap_milliseconds: int = Field(ge=1)
 
 
 class ScriptCandidate(CamelModel):

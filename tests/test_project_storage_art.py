@@ -376,8 +376,8 @@ def test_f4_script_accepts_whole_pilot_preserves_scoped_edits_and_rejects_late_d
         final_store.close()
 
 
-def test_f4_script_admission_freezes_exact_mapping_caps_and_target_currentness(tmp_path: Path) -> None:
-    """F4 timing is a graph-derived ceiling, never a three-episode total."""
+def test_f4_script_admission_freezes_exact_mapping_route_budget_and_target_currentness(tmp_path: Path) -> None:
+    """F4 timing constrains routes, not an equal split or three-episode total."""
 
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"target_playthrough_seconds": 180}))
@@ -387,11 +387,13 @@ def test_f4_script_admission_freezes_exact_mapping_caps_and_target_currentness(t
         art_ready = store.admit_art_delivery(_deliver(store, art_request))
         store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))
         candidate, request = store.prepare_script_candidate("ch_" + "x" * 32)
-        assert [item.duration_cap_milliseconds for item in candidate.binding.section_duration_caps] == [90_000, 90_000, 90_000]
+        assert len(candidate.binding.route_budget_hash) == 64
+        assert "sectionDurationCaps" not in request.input_artifacts["script-admission.json"]
+        assert request.input_artifacts["script-admission.json"]["routeBudgetHash"] == candidate.binding.route_budget_hash
         assert candidate.binding.complete_route_section_ids == [["opening", "choose", "ending-a"], ["opening", "choose", "ending-b"]]
         assert request.input_artifacts["script-admission.json"]["targetPlaythroughSeconds"] == 180
         assert "aggregate duration across mutually exclusive endings as product-inapplicable" in request.creative_brief
-        assert "frozen per-section and complete-route caps remain applicable" in request.creative_brief
+        assert "frozen complete-route maximum remains applicable" in request.creative_brief
 
         swapped = _pilot_script()
         swapped["sectionBindings"] = [
