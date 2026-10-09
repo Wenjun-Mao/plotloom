@@ -21,7 +21,7 @@ const state = (label: string, revision = 1, contentHash = "a".repeat(64), text =
   },
 });
 
-const render = async (projectId: string, onOpenShot?: (shotId: string) => void, onInstalled: (projectId: string) => Promise<void> = async () => undefined) => { await act(async () => root.render(createElement(ProductionBridgePanel, { projectId, readOnly: false, onOpenShot, onInstalled }))); };
+const render = async (projectId: string, onOpenShot?: (shotId: string) => void, onInstalled: (projectId: string) => Promise<void> = async () => undefined, readOnly = false) => { await act(async () => root.render(createElement(ProductionBridgePanel, { projectId, readOnly, onOpenShot, onInstalled }))); };
 const settle = async () => { await act(async () => { await Promise.resolve(); }); };
 const button = (text: string) => Array.from(host.querySelectorAll("button")).find((item) => item.textContent === text) as HTMLButtonElement;
 const deferred = <T,>() => {
@@ -33,6 +33,18 @@ const deferred = <T,>() => {
 
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { vi.restoreAllMocks(); await act(async () => root.unmount()); host.remove(); });
+
+it("describes a restricted bridge action without claiming the whole project is read-only", async () => {
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(state("restricted", 3, "c".repeat(64), "reviewed", "author_saved"));
+  const accept = vi.spyOn(plotloomApi, "acceptProductionBridge");
+  await render("restricted", undefined, undefined, true); await settle();
+  expect(host.textContent).toContain("当前暂不能修改或确认此投产提案");
+  expect(host.textContent).not.toContain("项目当前只读");
+  expect(button("确认投产提案").disabled).toBe(true);
+  expect((host.querySelector(".bridge-intent-field textarea") as HTMLTextAreaElement).disabled).toBe(true);
+  await act(async () => button("确认投产提案").click());
+  expect(accept).not.toHaveBeenCalled();
+});
 
 it("shows an advisory shot-count notice without a blocking conflict", async () => {
   const current = state("advisory", 2, "b".repeat(64), "reviewed intent", "author_saved");

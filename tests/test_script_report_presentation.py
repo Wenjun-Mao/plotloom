@@ -1,6 +1,7 @@
 """Static reading is a distinct projection, retaining archive bytes and CSP."""
 
 from contextlib import contextmanager
+from hashlib import sha256
 from types import SimpleNamespace
 
 import pytest
@@ -84,7 +85,10 @@ def test_prompt_static_reading_preserves_non_lf_text_separators(separator: str, 
 
 
 def test_storyboard_static_report_preserves_archive_and_security() -> None:
-    retained = '<div class="shots clip">all segments</div><img class="frame" src="segment/f1.png"><script>window.bad=true</script>'
+    # Historical renderer claims remain evidence, not a mutable current projection.
+    retained = '<div class="gatepill">17 / 17 通过</div><li class="pass">配方库未提供（跳过）</li><div class="shots clip">all segments</div><img class="frame" src="segment/f1.png"><script>window.bad=true</script>'
+    retained_bytes = retained.encode("utf-8")
+    retained_hash = sha256(retained_bytes).hexdigest()
 
     @contextmanager
     def opened_project(project_id):
@@ -96,11 +100,17 @@ def test_storyboard_static_report_preserves_archive_and_security() -> None:
     url = "/api/v2/projects/qa/storyboard-source-review/candidates/job/report"
     archive = client.get(url)
     projected = client.get(url + "?presentation=static")
+    assert archive.status_code == projected.status_code == 200
     assert archive.text == retained
+    assert archive.content == retained_bytes
+    assert sha256(archive.content).hexdigest() == retained_hash
     assert projected.text == retained + STATIC_STORYBOARD_REPORT_STYLE
+    assert projected.content == retained_bytes + STATIC_STORYBOARD_REPORT_STYLE.encode("utf-8")
     assert projected.headers["content-security-policy"] == archive.headers["content-security-policy"] == (
         "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:;")
-    assert client.get(url).text == retained
+    reread = client.get(url)
+    assert reread.content == retained_bytes
+    assert sha256(reread.content).hexdigest() == retained_hash
     assert client.get(url + "?presentation=interactive").status_code == 422
 
 

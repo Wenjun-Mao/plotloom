@@ -120,7 +120,11 @@ for (const stage of ["cast", "script"] as const) {
     await expect(panel.getByRole("button", { name: "发送给文字创作助手" })).toBeEnabled();
     const edit = panel.getByRole("button", { name: stage === "cast" ? "编辑角色设定" : "重新打开剧本", exact: true });
     await expect(edit).toBeDisabled();
-    await expect(panel.getByRole("status", { name: "创作依据需要更新" })).toContainText(stage === "cast" ? "故事章节映射已变化" : "美术设定版本已变化");
+    await expect(panel.getByRole("status", { name: "创作依据需要更新" })).toContainText(stage === "cast" ? "章节分支版本已变化" : "美术设定版本已变化");
+    if (stage === "script") {
+      await expect(page.getByText("审阅完整剧本，按需修改所选章节。", { exact: true })).toBeVisible();
+      await expect(page.getByText("审阅完整剧本，按需修改开场或结局章节。", { exact: true })).toHaveCount(0);
+    }
     await writeDelivery(prepared, stage === "cast" ? "characters" : stage, await fixture(`${stage}.json`));
     await json(request.post(`${url}/candidates/${prepared.jobId}/refresh`));
     await page.reload();

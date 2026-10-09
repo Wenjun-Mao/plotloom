@@ -208,7 +208,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
       <ArtPanel projectId={projectId} readOnly={ownerReadOnly} active={focusedTarget === "art"} refreshToken={refreshToken} onContinue={onContinueToScript && (() => { if (draftDirty.current) { setError("故事内容有未保存修改，请先确认或放弃修改。"); return; } onContinueToScript(); })} />
     </section>
     <section className="source-workflow-focus" hidden={focusedTarget !== "script"} aria-labelledby="script-workflow-heading">
-      <header className="page-header"><div><h1 id="script-workflow-heading">剧本</h1><p>审阅完整剧本，按需修改开场或结局章节。</p></div></header>
+      <header className="page-header"><div><h1 id="script-workflow-heading">剧本</h1><p>审阅完整剧本，按需修改所选章节。</p></div></header>
       <ScriptPanel projectId={projectId} readOnly={ownerReadOnly} active={focusedTarget === "script"} refreshToken={refreshToken} onContinue={onContinueToStoryboard && (() => { if (draftDirty.current) { setError("故事内容有未保存修改，请先确认或放弃修改。"); return; } onContinueToStoryboard(); })} />
     </section>
     <section className="source-workflow-focus" hidden={focusedTarget !== "storyboard-review"} aria-labelledby="storyboard-review-workflow-heading">
