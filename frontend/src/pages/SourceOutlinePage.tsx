@@ -110,6 +110,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
 
   const candidate = state?.candidate;
   const accepted = state?.acceptedOutline;
+  const retainedOutlineStale = Boolean(accepted && accepted.sourceRevision !== state?.source?.revision);
   const needsAdaptationGoal = draft.kind !== "synopsis";
   const missingSource = !draft.title.trim() || !draft.text.trim();
   const missingGoal = needsAdaptationGoal && !draft.adaptationIntent.trim();
@@ -120,7 +121,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
     {error && focusedTarget !== "source" && <ErrorNotice message={error} />}
     <section className="source-workflow-source" hidden={focusedTarget !== "source"} aria-labelledby="source-workflow-heading">
       <header className="page-header"><div><h1 id="source-workflow-heading">来源与大纲</h1><p>确认故事来源，阅读大纲，再审阅剧情分支与结局。</p></div><Button variant="quiet" disabled={busy || checking} onClick={() => void recheck()}>刷新</Button></header>
-      <StageGuide>{failed ? "无法读取当前进度，请先刷新重试；保留内容不代表版本已核实。" : checking || !state ? "正在读取故事来源和当前进度。" : ownerReadOnly ? "项目当前只读，可查看已有内容；不能修改来源或准备、发送新任务。" : state.outlineStatus === "reopened" ? "已开始新的修订轮次。可以准备并单独发送新候选，也可以返回保留的有效大纲。" : candidate?.status === "ready" ? "先阅读候选大纲，再确认使用；随后准备完整的剧情分支建议，审阅后确认。" : candidate?.status === "prepared" ? "大纲任务尚未交付；发送、等待和检查状态见下方任务区。" : state.graphAdmission?.status === "current" ? "故事分支已应用。可在下方继续角色设定；此操作只切换页面，不会生成内容。" : accepted ? "大纲已确认。请在下方准备剧情分支建议，审阅确认后应用到故事路线。" : state.source ? "故事来源已确认。下一步准备大纲任务，再发送给文字创作助手。" : "先确认故事来源，再准备大纲任务。* 为必填项，确认内容不会自动启动生成。"}</StageGuide>
+      <StageGuide>{failed ? "无法读取当前进度，请先刷新重试；保留内容不代表版本已核实。" : checking || !state ? "正在读取故事来源和当前进度。" : ownerReadOnly ? "项目当前只读，可查看已有内容；不能修改来源或准备、发送新任务。" : candidate?.status === "ready" ? "先阅读候选大纲，再确认使用；随后准备完整的剧情分支建议，审阅后确认。" : candidate?.status === "prepared" ? "大纲任务尚未交付；发送、等待和检查状态见下方任务区。" : state.outlineStatus === "reopened" ? retainedOutlineStale ? "来源已变化，旧大纲只保留供阅读。请准备并单独发送新的大纲任务，审阅确认后再更新故事分支。" : "已开始新的修订轮次。可以准备并单独发送新候选，也可以返回保留的有效大纲。" : state.graphAdmission?.status === "current" ? "故事分支已应用。可在下方继续角色设定；此操作只切换页面，不会生成内容。" : accepted ? "大纲已确认。请在下方准备剧情分支建议，审阅确认后应用到故事路线。" : state.source ? "故事来源已确认。下一步准备大纲任务，再发送给文字创作助手。" : "先确认故事来源，再准备大纲任务。* 为必填项，确认内容不会自动启动生成。"}</StageGuide>
       {error && <ErrorNotice message={error} />}
       {!state ? checking && <Spinner label="正在读取故事来源" /> : <div className="source-outline-grid">
       <article className="panel source-outline-source" data-testid="source-outline-source">
@@ -161,14 +162,14 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
 
       <article className="panel source-outline-accepted" data-testid="source-outline-accepted">
         <header><span>已确认的大纲</span><strong>{accepted ? `已确认 r${accepted.revision}` : "尚未确认"}</strong></header>
-        <p>当前状态：{state.outlineStatus === "accepted" ? "已确认" : state.outlineStatus === "reopened" ? "修订轮次已打开，旧版本保留" : state.outlineStatus === "candidate_ready" ? "待审阅" : "缺失"}</p>
+        <p>当前状态：{retainedOutlineStale ? "来源已变化，旧版本保留供阅读" : state.outlineStatus === "accepted" ? "已确认" : state.outlineStatus === "reopened" ? "修订轮次已打开，旧版本保留" : state.outlineStatus === "candidate_ready" ? "待审阅" : "缺失"}</p>
         {accepted ? <>
           <small>基于故事内容 r{accepted.sourceRevision} · 已确认 r{accepted.revision}</small>
           <OutlineReport key={`${projectId}:accepted:${accepted.revision}:${accepted.candidateJobId}`} outline={accepted.outline} acceptedRevision={accepted.revision} url={plotloomApi.outlineCandidateReportUrl(projectId, accepted.candidateJobId)} />
           <details><summary>技术详情：已确认的原始数据与身份</summary><p>{accepted.candidateJobId} · {accepted.contentHash}</p><pre>{JSON.stringify(accepted.outline, null, 2)}</pre></details>
           {state.outlineStatus !== "reopened" ? <><Button variant="quiet" disabled={readOnly || busy} onClick={() => void mutate(() => plotloomApi.reopenOutline(projectId, accepted.revision))}>开始新一轮大纲修订</Button><p className="action-prerequisite">保留当前大纲；下一步需要单独准备、发送并确认新候选。</p></> : <>
-            <Button variant="quiet" disabled={readOnly || busy || accepted.sourceRevision !== state.source?.revision} onClick={() => void mutate(() => plotloomApi.returnToAcceptedOutline(projectId, { expectedOutlineRevision: accepted.revision, expectedSourceRevision: state.source!.revision, expectedOutlineContentHash: accepted.contentHash, expectedCandidateJobId: candidate?.jobId || null }))}>返回保留的已确认大纲</Button>
-            <p className="action-prerequisite">{accepted.sourceRevision !== state.source?.revision ? "来源已变化，旧大纲只能阅读；请确认新的候选。" : "放弃本轮候选，继续使用保留的大纲。已发送任务仍可能执行，其结果不会替换内容。"}</p>
+            <Button variant="quiet" disabled={readOnly || busy || retainedOutlineStale} onClick={() => void mutate(() => plotloomApi.returnToAcceptedOutline(projectId, { expectedOutlineRevision: accepted.revision, expectedSourceRevision: state.source!.revision, expectedOutlineContentHash: accepted.contentHash, expectedCandidateJobId: candidate?.jobId || null }))}>返回保留的已确认大纲</Button>
+            <p className="action-prerequisite">{retainedOutlineStale ? "来源已变化，旧大纲只能阅读；请确认新的候选。" : "放弃本轮候选，继续使用保留的大纲。已发送任务仍可能执行，其结果不会替换内容。"}</p>
           </>}
         </> : <p className="muted">确认后会保存独立的大纲版本，供后续阅读和创作。</p>}
       </article>

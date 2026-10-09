@@ -160,5 +160,47 @@ in the new test setup; corrected without changing product behavior or assertions
 The retained independent reviewer inspected the source/test delta and all19 final
 captures and found no material issue. Review is scoped to this delta, with no
 additional tests run by the reviewer. Normal8841 is unchanged.
-Stale accepted Outline, broader Creator/Pro permutations, revised media/routes and
-the remaining whole-product audit are still open; this is a scoped continuation.
+At that checkpoint stale accepted Outline, broader Creator/Pro permutations,
+revised media/routes and the remaining whole-product audit were still open.
+
+### October9 — retained Outline after source revision
+
+On candidate `551fbd4`, a fresh real-server browser fixture accepted an Outline,
+saved/applied its branch map and restarted the backend. Opening a revision without
+changing source correctly allowed returning to the retained Outline. Saving source
+r2 then disabled that return, retained the exact accepted Outline/map and marked
+graph admission stale, but the stage guide still offered a valid old-version return.
+The SectionMap save hint repeated that unavailable option; its warning exposed
+raw English stale reasons as the main guidance.
+
+Both operations share `outlineStatus=reopened`; their source revision binding
+distinguishes return eligibility. The presentation now uses that binding, matching
+the existing backend/button guard. Ready/prepared candidates take guidance priority
+over the revision-open message. Branch warnings give actionable Chinese guidance
+and retain original reasons under technical details. No backend contract, safety
+gate, report bytes or accepted content was changed; this is not a compatibility layer.
+
+Regression evidence: an initial run failed on a test locator that incorrectly used
+an exact label despite the required marker; its corrected run reproduced the actual
+wrong guide after all retention assertions passed. Both failure artifacts remain in
+`frontend/test-results/stale-outline-before` and `stale-outline-reproduction`.
+The final expanded journey passes in7.6s, including real source revision, valid
+return, stale refusal, report reopen, new task frozen at r2 and cancellation without
+dispatch. The report/delivery are explicit synthetic fixtures, **not native generation
+or rich report-content qualification**.
+
+The final27 screenshots (nine states × three supported desktop sizes) are retained
+under canonical `output/playwright/native-intent-2026-10-08/stale-outline-final/`.
+Root directly inspected the nine guide, report and bottom-action screenshots;
+the retained independent reviewer directly inspected the remaining18, reviewed the
+source/test/generated-bundle delta and found no material issue. The bottom controls are readable
+at1280×460, report close remains visible, and stale guidance matches disabled actions.
+The full frontend suite passes888 tests/109files;15 focused tests, application/E2E
+types, deterministic build and diff check pass. Rebuilding produces identical
+`workbench.js` Git blob `a4008c383ec30fb6cf4693229fe5fac0bccc6dc8`.
+The wider Source/currentness browser suite passes23 tests in1.3m, including stale
+Script/Storyboard candidates, failed refresh authority and retained dirty content.
+The review reused the retained worker; its inherited model/effort was not verified.
+No full unfiltered browser rerun is claimed for this newest delta;248 PASS remains
+the earlier `38f55b8` baseline. Existing chunk-size/color-environment warnings remain.
+No normal8841 update, native generation or owner-project mutation occurred.

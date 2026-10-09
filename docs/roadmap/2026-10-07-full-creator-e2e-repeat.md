@@ -67,7 +67,11 @@ The unfiltered browser gate at38f55b8 subsequently finished248PASS in7.8m.
 The [Source/help continuation](../verification/2026-10-08-source-help-ui-states.md)
 adds an unsent-task header/error-copy repair, controlled dispatch/read states and
 actual prepared-task cancellation with unchanged source;14 focused/9 browser checks
-pass; independent source/test and19-pixel review closed. This later delta has not been published.
+pass; independent source/test and19-pixel review closed. A subsequent source-r2
+walkthrough repairs misleading retained-outline return guidance and primary English
+branch warnings;888 frontend/15 focused tests and the expanded browser journey pass,
+with27 root/independently inspected pixels. Accepted Outline/map and read-only report
+remain unchanged. These later deltas have not been published.
 Other applicable
 recovery slices, revised routes and E22 completion remain incomplete.
 

@@ -5,7 +5,7 @@ import path from "node:path";
 
 type PreparedOutline = { jobId: string; deliveryPath: string; packagePath: string };
 
-test("installs the accepted Tide Light map into canonical routes, then survives reopen", async ({ page, workbench }) => {
+test("installs Tide Light routes, survives restart, and retains a readable outline after source revision", async ({ page, request, workbench }, info) => {
   await page.goto(`${workbench.frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "创建空白项目" }).click();
   await page.getByLabel("片名").fill("潮汐灯");
@@ -88,6 +88,63 @@ test("installs the accepted Tide Light map into canonical routes, then survives 
   await page.reload();
   await expect(page.getByTestId("section-map").locator(".section-map-outcome").nth(1).getByLabel("选择后的剧情")).toHaveValue("灯塔照亮航道，码头停电。 ");
   await expect(page.getByTestId("section-map-route-cards")).toContainText("供电灯塔 → 结局 B");
+
+  const base = `${workbench.apiOrigin}/api/v2/projects/${projectId}`;
+  const current = await (await request.get(`${base}/source-outline`)).json();
+  const retained = page.getByTestId("source-outline-accepted");
+  const guide = page.locator(".source-workflow-source .stage-guide");
+  const capture = async (name: string, target: typeof retained) => {
+    for (const [width, height] of [[1700, 900], [1280, 768], [1280, 460]]) {
+      await page.setViewportSize({ width, height });
+      await target.evaluate(el => { el.scrollIntoView({ block: "start" }); window.scrollBy(0, -80); });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+      await page.screenshot({ path: info.outputPath(`${name}-${width}x${height}.png`) });
+    }
+  };
+  await retained.getByRole("button", { name: "开始新一轮大纲修订", exact: true }).click();
+  const returnButton = retained.getByRole("button", { name: "返回保留的已确认大纲", exact: true });
+  await expect(returnButton).toBeEnabled();
+  await expect(guide).toContainText("返回保留的有效大纲");
+  await capture("reopened-current-guide", guide);
+  await capture("reopened-current-outline", retained);
+  await returnButton.click();
+  await expect(retained).toContainText("当前状态：已确认");
+  await page.getByLabel("故事内容").fill("气象站员林澈改变了供电安排：先疏散码头，再照亮新的航道。");
+  await page.getByRole("button", { name: "确认改编内容", exact: true }).click();
+  await expect(page.getByText("改编内容 r2", { exact: true })).toBeVisible();
+  await expect(returnButton).toBeDisabled();
+  await expect(retained).toContainText("来源已变化，旧大纲只能阅读");
+  await expect(map.getByRole("button", { name: "应用到故事路线", exact: true })).toBeDisabled();
+  const revised = await (await request.get(`${base}/source-outline`)).json();
+  expect(revised.acceptedOutline).toEqual(current.acceptedOutline);
+  expect(revised.acceptedSectionMap).toEqual(current.acceptedSectionMap);
+  expect(revised.graphAdmission.status).toBe("stale");
+  await capture("stale-source-guide", guide);
+  await capture("stale-retained-outline", retained);
+  await capture("stale-section-map", map);
+  await expect(map.locator(".section-map-actions")).toContainText("请先在上方确认当前大纲，再继续。");
+  await capture("stale-section-map-actions", map.locator(".section-map-actions"));
+  await expect(map.getByText("已保存的故事分支需要按当前来源、大纲与创作设置重新审阅。请先确认当前大纲，再检查并保存分支；旧内容仍保留。", { exact: true })).toBeVisible();
+  const reason = map.getByText("accepted source revision changed to r2", { exact: true });
+  await expect(reason).toBeHidden();
+  await map.getByText("技术详情：分支过期原因", { exact: true }).click();
+  await expect(reason).toBeVisible();
+  await capture("stale-section-map-diagnostics", map);
+  await retained.getByRole("button", { name: "阅读已确认大纲", exact: true }).click();
+  await expect(page.getByRole("dialog").locator("iframe")).toHaveAttribute("sandbox", "allow-scripts");
+  await expect(page.getByRole("dialog")).toContainText("阅读保留的已确认版本");
+  await capture("stale-retained-report", page.getByRole("dialog"));
+  await page.getByRole("button", { name: "关闭阅读", exact: true }).click();
+  expect((await (await request.get(`${base}/source-outline`)).json()).acceptedOutline).toEqual(current.acceptedOutline);
+  await expect(guide).toContainText("来源已变化");
+  await expect(guide).not.toContainText("返回保留的有效大纲");
+  await page.getByRole("button", { name: "准备大纲任务", exact: true }).click();
+  await expect(guide).toContainText("大纲任务尚未交付");
+  await expect(guide).not.toContainText("请准备并单独发送");
+  await expect(page.getByTestId("source-outline-candidate")).toContainText("冻结来源 r2");
+  await capture("revised-task-guide", guide);
+  await page.getByRole("button", { name: "取消此任务", exact: true }).click();
+  await expect(page.getByRole("button", { name: "重新准备大纲任务", exact: true })).toBeEnabled();
 });
 
 async function writeFixtureOutline(prepared: PreparedOutline): Promise<void> {

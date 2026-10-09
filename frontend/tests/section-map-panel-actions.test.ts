@@ -43,10 +43,10 @@ function SharedOwner({ children, stale = false }: { children: import("react").Re
   const draft = { bindingHash: "a".repeat(64), mapping: currentMapping, rowHints: {}, selectedNodeId: "opening", detachedEndpoints: {}, fieldBuffers: {} };
   return createElement(GraphWorkbenchContext.Provider, { value: graphControllerFixture({ draft, stale, changeMapping: next => changeMapping(next as SectionMap) }), children });
 }
-function render({ status = "current", graphReady = false, sourceDirty = false, admissionMismatch, busy = false, readOnly = false }: { status?: "current" | "stale"; graphReady?: boolean; sourceDirty?: boolean; admissionMismatch?: "hash" | "revision"; busy?: boolean; readOnly?: boolean } = {}) {
+function render({ status = "current", graphReady = false, sourceDirty = false, admissionMismatch, busy = false, readOnly = false, outlineCurrent = true, staleReasons = [] }: { status?: "current" | "stale"; graphReady?: boolean; sourceDirty?: boolean; admissionMismatch?: "hash" | "revision"; busy?: boolean; readOnly?: boolean; outlineCurrent?: boolean; staleReasons?: string[] } = {}) {
   const effectiveAdmission = admissionMismatch === "hash" ? { ...admission, sectionMapContentHash: "other-map" } : admissionMismatch === "revision" ? { ...admission, sectionMapRevision: 4 } : admission;
   return act(async () => root.render(createElement(SharedOwner, { children: createElement(SectionMapPanel, {
-    outline, accepted, status, staleReasons: [], graphAdmission: effectiveAdmission, graphReady, sourceDirty, routes: [], readOnly, busy,
+    outline, outlineCurrent, accepted, status, staleReasons, graphAdmission: effectiveAdmission, graphReady, sourceDirty, routes: [], readOnly, busy,
     onSave: () => undefined, onInstall: () => undefined, onContinue: () => undefined,
   }) })));
 }
@@ -91,6 +91,18 @@ it("allows stale maps to be explicitly reconfirmed and only continues after the 
   expect(button("应用到故事路线").disabled).toBe(true);
   expect(button("继续：角色设定").disabled).toBe(false);
   expect(host.textContent).toContain("故事路线已就绪");
+});
+
+it("explains stale branches without promising an unavailable outline return and retains technical evidence", async () => {
+  await render({ status: "stale", outlineCurrent: false, staleReasons: ["accepted source revision changed to r2"] });
+  expect(host.textContent).toContain("请先确认当前大纲，再检查并保存分支；旧内容仍保留");
+  expect(host.textContent).toContain("请先在上方确认当前大纲，再继续");
+  expect(host.textContent).not.toContain("返回保留的有效版本");
+  const details = [...host.querySelectorAll("details")].find(item => item.querySelector("summary")?.textContent === "技术详情：分支过期原因")!;
+  expect(details.open).toBe(false);
+  expect(details.textContent).toContain("accepted source revision changed to r2");
+  expect(button("保存修改").disabled).toBe(true);
+  expect(button("应用到故事路线").disabled).toBe(true);
 });
 
 it("keeps continuation unavailable for a mismatched admission, source edits, busy, or read-only state", async () => {
