@@ -1,5 +1,12 @@
 # Whole-product visual and text audit — 2026-10-08
 
+Latest provider-settings slice: the [Source/settings checkpoint](2026-10-08-source-help-ui-states.md)
+records two before-patch failures and the dialog-owned feedback/pending-operation
+repair. Six provider browser journeys and903 frontend checks pass; root inspected
+failed-save screenshots at all three desktop sizes. Native mode's visible launcher
+for an absent API remains a separate unresolved capability mismatch. This is not
+whole-product completion or normal-service activation.
+
 October9 continuation: [native rebuilt-production evidence](2026-10-09-native-rebuilt-production.md)
 adds real original/segment playback and preserved quality caveats. Two E22 defects
 have source repairs qualified in66b1cbd: overlong composition-as-title and raw

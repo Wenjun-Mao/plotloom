@@ -1,7 +1,7 @@
 import { expect, test } from "./fixture";
 import type { Route } from "@playwright/test";
 
-test("tests a profile only after saving public settings and keeps its key session-only", async ({ page, workbench }) => {
+test("tests a profile only after saving public settings and keeps its key session-only", async ({ page, workbench }, info) => {
   const configuration = {
     profileSchemaVersion: 2, profileId: "default", profileVersion: 1, profileHash: "hash",
     textProvider: "openai-compatible", textBaseUrl: "https://provider.example/v1", textModel: "example-model",
@@ -35,7 +35,15 @@ test("tests a profile only after saving public settings and keeps its key sessio
   await expect(page.getByLabel("受信任适配器")).toHaveValue("openai_compatible@1");
   await page.getByLabel("当前配置的临时密钥").fill("test-session-secret");
   await page.getByRole("button", { name: "测试连接" }).click();
-  await expect(page.getByText("后端已就绪：readiness.models_verified")).toBeVisible();
+  const dialog = page.getByRole("dialog", { name: "供应商与会话密钥" });
+  await expect(dialog.getByRole("status")).toHaveText("后端已就绪：readiness.models_verified");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  for (const [width, height] of [[1700, 900], [1280, 768], [1280, 460]]) {
+    await page.setViewportSize({ width, height });
+    await expect(dialog.getByRole("status")).toBeInViewport();
+    await expect(dialog.getByRole("button", { name: "保存设置", exact: true })).toBeInViewport();
+    await page.screenshot({ path: info.outputPath(`probe-success-${width}x${height}.png`) });
+  }
 
   // Profile hydration is intentionally eager and React development mode can
   // replay that read; only the action boundary is order-sensitive here.

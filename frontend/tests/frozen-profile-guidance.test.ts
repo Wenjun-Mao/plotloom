@@ -90,7 +90,7 @@ it("preserves exact server readiness and adapter choices through installation an
   await act(async () => profiles.install(next, "frozen"));
   expect(profiles.catalog.current).toBe(next); expect(profiles.profileDraft.readiness).toBe(readiness);
   await act(async () => root.render(createElement(SettingsDialog, {
-    profiles: next, selectedProfileId: "frozen", draft: next.profiles[1], sessionKey: "", busy: false,
+    profiles: next, selectedProfileId: "frozen", draft: next.profiles[1], sessionKey: "", busy: false, editingDisabled: false, feedback: null,
     onDraft: vi.fn(), onSessionKey: vi.fn(), onSelect: vi.fn(), onCreate: vi.fn(), onCopy: vi.fn(),
     onDelete: vi.fn(), onActivate: vi.fn(), onAvailability: vi.fn(), onProbe: vi.fn(), onClose: vi.fn(), onSave: vi.fn(),
   })));

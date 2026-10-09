@@ -291,3 +291,65 @@ creator composition intentionally omits those (ADR0140). This is not a model-fie
 locator problem. The earlier attempted failed-save exercise never reached a form or
 a write. A failed-save presentation finding remains unproven; qualify that supported
 composition separately and reconcile the visible launcher with runtime capability.
+
+### Provider-settings failure and pending-operation continuation
+
+The API-enabled, disposable FastAPI fixture now reproduces the separate dialog
+defects. A held/503 PUT leaves the error only in the workspace behind the modal;
+Cancel, header Close, backdrop and model input remain enabled while the operation
+can still replace the draft. Before-patch browser checks fail both cases; root
+inspected the failed-save viewport, which contains no visible failure explanation.
+Evidence is in `frontend/test-results/provider-settings-before/`.
+
+The owning profile hook now owns dialog operation admission, pending lifetime and
+local typed feedback. Save/select/copy/activate/delete/probe remain locked through
+their follow-up reads; synchronous duplicate/close attempts are guarded. The
+dialog disables fields whose draft can be replaced. Availability retains its
+separately tested merge-only contract: it disables actions/dismissal but permits
+typing, then merges only availability fields. Probe success is local status, not
+a global failure. Initial/frozen catalog failures remain workspace guidance when
+no dialog can open; frozen missing-key guidance is also readable in the open
+dialog. Public profile APIs, credential namespace/persistence, generation admission
+and dispatch behavior are unchanged. The settings view is extracted into its own
+module rather than adding another responsibility to WorkspaceViews.
+
+Six targeted real-browser journeys pass, including exact unchanged server profile
+after intercepted failed save, explicit retry, retained form, pending close/input
+guards, existing availability conflict/draft preservation and browser-only keys.
+Three new hook tests cover synchronous double-submit/close, failure/retry, saved
+revision retention and probe's follow-up refresh; all903 frontend tests/112files
+pass. Both typechecks and deterministic build pass; checked static is refreshed.
+Root inspected the three failed-save desktop images in
+`frontend/test-results/provider-settings-after/provider-settings-recovery-ea6fa-and-retries-only-explicitly/`:
+error and footer remain visible while body scrolls, including1280×460.
+Independent review identified a keyboard bypass, described below. These fixture checks do not generate
+media or mutate protected/native settings. Normal8841 remains untouched.
+
+The actual native8865 launcher/API capability mismatch is still outstanding;
+this dialog repair does not make its absent profile API available. Broader provider
+copy/readiness presentation and other whole-product state coverage remain open.
+
+Independent review's keyboard concern reproduced: eight Tabs during a held save
+reached background navigation and assistant settings. Native `dialog.showModal()`
+now makes the background inert; Escape cannot dismiss a pending operation, and
+idle close restores the invoking control and prior body scroll. The first
+post-change test falsely classified native-dialog Advanced settings as outside
+because it checked only an explicit ARIA role; its predicate now recognizes the
+actual native dialog element as well. This does not admit background focus.
+Six provider browser cases pass15.5s with keyboard/Escape/restoration checks;
+nine adjacent proposal/snapshot journeys pass23.3s. Initial native-dialog unit
+failures came from jsdom lacking showModal/close, then the shared DOM shim being
+applied to a node-only suite. The guarded test-environment shim models only open
+state, not focus/inertness; browser tests own those claims. Final903/112 unit checks
+pass after the shim correction. No runtime fallback or test-only product branch.
+
+Root inspected final pending/failed/success pixels; independent review inspected
+all nine desktop state captures and closed the source/pixel review without a
+blocking finding. They are preserved at
+`output/playwright/native-intent-2026-10-08/provider-settings-qualified/`.
+The reviewer noted initial focus could land on the backdrop; a final small
+refinement focuses the visible header Close control with a browser assertion.
+Final focus refinement passes both recovery browser cases6.2s, both typechecks,
+all903 frontend checks and deterministic build. Reviewer model/effort were inherited
+unchanged and not independently inspectable. The latest full Python1415/browser249
+receipts still qualify the earlier checkpoint, not a new full combined gate.

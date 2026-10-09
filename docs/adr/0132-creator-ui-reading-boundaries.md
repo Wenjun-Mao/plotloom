@@ -51,6 +51,18 @@ control, wrapping its label into the card's narrow number column.
   Activation is an explicit “设为当前使用” action. Missing/read-failed configuration
   guidance describes withholding a new execution request, not stopping an existing
   run. Primary settings labels use “密钥”, with protocol names left in diagnostics.
+- Profile-dialog operations own their pending lifetime and feedback through all
+  required follow-up reads. Failure appears inside the open dialog, with inputs
+  retained and no automatic retry; successful probes use status rather than error
+  presentation. A settings mutation cannot be dismissed while unresolved, and
+  draft-replacing operations lock editing. Availability is intentionally different:
+  it only merges enabled/revision fields, so concurrent draft typing remains safe.
+  Native modal semantics make the workspace inert, including keyboard navigation;
+  an ARIA modal label and pointer backdrop alone do not establish that boundary.
+  Escape obeys pending ownership and idle close restores the invoking control.
+  Reject global-error-only reporting behind an overlay and response-time draft
+  replacement after allowing edits. Header/feedback/footer stay readable while
+  the form scrolls; no API, credential, admission or dispatch authority changes.
 - Story-media recovery labels include the owning node and ordered scene/shot
   position, with the node position always included rather than conditionally
   prefixed after a title collision. Display prose is not identity; exact shot IDs still own links and API

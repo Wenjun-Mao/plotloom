@@ -200,12 +200,6 @@ export default function WorkspaceController() {
     return () => window.removeEventListener("beforeunload", warnBeforeUnload);
   }, [authoring.currentDraft]);
 
-  const saveSettings = async () => {
-    setBusy(true);
-    try { await profiles.saveCurrent(); profiles.setSettingsOpen(false); }
-    catch (settingsError) { setError(messageFrom(settingsError)); }
-    finally { setBusy(false); }
-  };
   const startBlank = () => {
     if (session.project.id && mediaDraftQuiescence.isClosing(session.project.id)) return;
     initialization.startBlankProject(); directory.closeDirectory();
@@ -340,7 +334,7 @@ export default function WorkspaceController() {
         </main>
       </div>
     </div>
-    {profiles.settingsOpen && <SettingsDialog profiles={profiles.profiles} selectedProfileId={profiles.selectedProfileId} draft={profiles.profileDraft} sessionKey={profiles.sessionKey} busy={busy} onDraft={(draft) => { profiles.setProfileDraft(draft); profiles.setProfileDirty(true); }} onSessionKey={profiles.setSessionKey} onSelect={profiles.select} onCreate={() => profiles.create(false)} onCopy={() => profiles.create(true)} onDelete={profiles.remove} onActivate={profiles.activate} onAvailability={profiles.setAvailability} onProbe={profiles.probe} onClose={() => profiles.setSettingsOpen(false)} onSave={saveSettings} />}
+    {profiles.settingsOpen && <SettingsDialog profiles={profiles.profiles} selectedProfileId={profiles.selectedProfileId} draft={profiles.profileDraft} sessionKey={profiles.sessionKey} busy={busy} editingDisabled={busy && profiles.settingsOperation !== "availability"} feedback={profiles.settingsFeedback || (error ? { kind: "error", message: error } : null)} onDraft={(draft) => { profiles.setProfileDraft(draft); profiles.setProfileDirty(true); }} onSessionKey={profiles.setSessionKey} onSelect={profiles.select} onCreate={() => profiles.create(false)} onCopy={() => profiles.create(true)} onDelete={profiles.remove} onActivate={profiles.activate} onAvailability={profiles.setAvailability} onProbe={profiles.probe} onClose={profiles.closeSettings} onSave={profiles.submitSettings} />}
     {specialistsOpen && <SpecialistSettingsDialog onClose={() => setSpecialistsOpen(false)} />}
     {rebuildOpen && <RebuildDialog staleStages={project.staleStages} busy={busy} onClose={() => setRebuildOpen(false)} onRebuild={commands.rebuild} />}
     {directory.open && <ProjectDirectoryDialog projects={directory.projects} currentProjectId={project.id} notice={lifecycle.closeNotice} busy={Boolean(lifecycle.closingProjectId || lifecycle.snapshottingProjectId)} showArchived={directory.showArchived} error={directory.error} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "creator" }); }} onAction={lifecycle.mutate} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}

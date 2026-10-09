@@ -88,6 +88,12 @@ also found and root reproduced/repaired a pending-cancel basis race; ownership t
 two final real-server browser journeys and source/pixel review pass. Cross-mount
 navigation timing and native provider-launcher availability remain separate audit
 leads in the Source/help receipt.
+The provider-settings continuation reproduces and repairs hidden failed-save
+feedback and dismissible/editable pending saves in the API-enabled fixture.
+Six browser journeys,903 frontend checks, types/build and nine independently inspected
+desktop captures pass. Review's keyboard bypass was reproduced and repaired with
+native modal ownership; nine adjacent proposal/snapshot journeys pass. Native runtime capability
+exposure remains unresolved, with no API fallback or protected settings changes.
 Other applicable
 recovery slices, revised routes and E22 completion remain incomplete.
 
