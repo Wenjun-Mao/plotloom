@@ -277,3 +277,35 @@ this is retained recovery evidence, not a claim of a clean cancellation console.
 Native Script on the repaired runtime and all downstream same-project production
 remain unverified. Normal 8841 is unchanged; the owner/protected aggregate still
 matches `df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`.
+
+## Qualified isolated cutover and fresh Script
+
+Timing repair is committed at `c032320`. Preflight also found that ordinary
+creative dispatch named only a relative specialist skill, although the reused
+chat belongs to an older checkout. `e7bb564` names the runtime's absolute checkout
+and skill for every creative stage, matching native intent's existing behavior.
+All 42 focused specialist/isolated-launcher tests and independent review passed;
+the broader results above belong to the preceding timing candidate.
+
+Both native tasks were rechecked as idle with their exact completed turns.
+The isolated service was stopped before an explicit disposable reset. Existing
+registry completion settled only the cancelled Script job, matching retained
+task/project/stage identity and independently observed terminal turn
+`01a11e09-2c35-7b41-81bd-fd0bda495990`. The transaction removed only that cancelled
+candidate row after checking missing head/revision0 and no accepted Script.
+All other database rows and all 79 retained project files were unchanged;
+frozen package and execution pin remain. This operator reset is not a pass for
+product-side recovery from a text task that returns no delivery.
+
+The supported isolated launcher now serves executable `e7bb564` on 8865/8866
+with its checked static assets and existing specialist bindings. Initial startup
+refused the older configured H3 catalog v5; selecting current catalog v7 in this
+process's environment enabled the existing trusted backend, without changing
+the saved settings, gateway endpoint or credential. Health and empty specialist
+reservations passed before dispatch. Normal 8841 remains unchanged.
+
+At 21:27 Toronto the UI prepared and sent fresh Script
+`ch_2675e62e41354f3590e38db251207f72` once. Its target is 15 seconds and frozen
+route hash is `a1c1742c9d313c092a55c9df8e9b4d1741015b6c94c9cb0a2bbc48db7bfbc1b4`.
+The UI shows queued/waiting; generation, delivery and downstream acceptance are
+not established by that acknowledgement. Owner/protected hashes still match.
