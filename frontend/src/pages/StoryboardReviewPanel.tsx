@@ -1,7 +1,8 @@
 import { StaticReportReader } from "../components/StaticReportReader";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { plotloomApi } from "../api";
-import { Button, ErrorNotice, Spinner } from "../components";
+import { Button, Spinner } from "../components";
+import { ReviewContextErrorNotice, ReviewContextNotice, reviewContextFailure, reviewContextNextStep, type ReviewContextFailure } from "./ReviewContextNotice";
 import type { StoryboardReviewCandidate, StoryboardReviewState } from "../types";
 import { StoryboardReviewInspection } from "./StoryboardReviewInspection";
 import { ProductionBridgePanel } from "./ProductionBridgePanel";
@@ -14,7 +15,7 @@ import { StageGuide } from "../components/StageGuide";
 export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOpenShot, onInstalled, active: visible = true, refreshToken }: { projectId: string; readOnly: boolean; onOpenShot?: (shotId: string) => boolean | void; onInstalled: (projectId: string) => Promise<void>; active?: boolean; refreshToken?: unknown }) {
   const [state, setState] = useState<StoryboardReviewState>();
   const [assignment, setAssignment] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ReviewContextFailure>("");
   const [busy, setBusy] = useState(false);
   const [maxCutSeconds, setMaxCutSeconds] = useState(8);
   const active = useRef({ projectId, epoch: 0 });
@@ -46,21 +47,21 @@ export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOp
       accepted?.(result);
       await recheck();
     }).catch(reason => {
-      if (owns(session)) setError(reason instanceof Error ? reason.message : "Storyboard review operation failed.");
+      if (owns(session)) setError(reviewContextFailure(reason, "分镜评审操作失败。"));
     }).finally(() => { if (owns(session)) setBusy(false); });
   };
   if (!state) return <article id="storyboard-review" className="panel cast-panel" data-testid="storyboard-review">
     <header><span>分镜评审</span><strong>{error ? "无法加载" : "正在加载"}</strong></header>
-    {error ? <><ErrorNotice message={error} /><Button variant="quiet" onClick={() => void recheck()}>重试加载分镜评审</Button></> : <Spinner />}
+    {error ? <><ReviewContextErrorNotice error={error} projectId={projectId} /><Button variant="quiet" onClick={() => void recheck()}>重试加载分镜评审</Button></> : <Spinner />}
   </article>;
   const { candidate, acceptedReview } = state;
   const reportJobId = candidate?.status === "ready" ? candidate.jobId : acceptedReview?.candidateJobId;
   return <article id="storyboard-review" className="panel cast-panel" data-testid="storyboard-review">
     <header><span>分镜评审</span><strong>{checking ? "正在刷新" : failed ? "无法刷新" : reviewLabel(state)}</strong></header>
     {failed && <Button variant="quiet" onClick={() => void recheck()}>重试加载分镜评审</Button>}
-    <StageGuide>{checking ? "正在核对当前分镜评审，请稍候。" : failed ? "读取失败，请先重试；暂时不能修改或投产。" : busy ? "正在处理分镜任务，请稍候。" : state.status === "stale" ? "剧本或其他上游内容已变化，请更新分镜评审后再投产；旧方案仍保留供参考。" : state.status === "accepted" && acceptedReview ? "分镜评审已确认。请在下方审阅投产提案；确认投产后才能进入正式镜头的媒体制作。" : candidate?.status === "ready" ? "审阅候选中每个镜头的动作、对白和预计时长，再确认使用。" : candidate?.status === "prepared" ? "分镜任务尚未交付；发送、等待和检查状态见任务区。" : "先确认剧本，再准备并发送分镜任务。这里不会自动生成图片或视频。"}</StageGuide>
+    <StageGuide>{checking ? "正在核对当前分镜评审，请稍候。" : failed ? "读取失败，请先重试；暂时不能修改或投产。" : busy ? "正在处理分镜任务，请稍候。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "剧本或其他上游内容已变化，请更新分镜评审后再投产；旧方案仍保留供参考。") : state.status === "accepted" && acceptedReview ? "分镜评审已确认。请在下方审阅投产提案；确认投产后才能进入正式镜头的媒体制作。" : candidate?.status === "ready" ? "审阅候选中每个镜头的动作、对白和预计时长，再确认使用。" : candidate?.status === "prepared" ? "分镜任务尚未交付；发送、等待和检查状态见任务区。" : "先确认剧本，再准备并发送分镜任务。这里不会自动生成图片或视频。"}</StageGuide>
     <p className="action-prerequisite">本页保留与已确认剧本对应的原始分镜方案。确认分镜方案与建立正式镜头内容是两个独立步骤；确认方案不会自动建立镜头或生成媒体。</p>
-    {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
+    <ReviewContextNotice projectId={projectId} diagnostics={state.staleReasons} />
     {!candidate && <div className="button-row"><label>评审镜头上限（秒）<select value={maxCutSeconds} disabled={readOnly || busy} onChange={event => setMaxCutSeconds(Number(event.target.value))}>{[8, 10, 12, 15].map(seconds => <option key={seconds} value={seconds}>{seconds}</option>)}</select></label><Button variant="primary" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.prepareStoryboardSourceReviewCandidate(projectId, maxCutSeconds), result => setAssignment(result.assignment))}>准备分镜任务</Button></div>}
     {candidate && <small>冻结评审时长：单镜头 {candidate.binding.reviewMinCutSeconds}–{candidate.binding.reviewMaxCutSeconds} 秒；分段上限 {candidate.binding.reviewMaxSegmentSeconds} 秒。</small>}
     {candidate?.status === "prepared" && <SpecialistTaskActions projectId={projectId} stage="storyboard" jobId={candidate.jobId} disabled={readOnly || busy} sendDisabled={state.status === "stale"} onDelivered={recheck} />}
@@ -69,7 +70,7 @@ export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOp
     {acceptedReview && <section><small>已确认评审 r{acceptedReview.revision} · 已确认剧本 r{acceptedReview.binding.scriptRevision} · hash {acceptedReview.contentHash.slice(0, 12)}</small><StoryboardReviewInspection title="查看当前已确认分镜" value={acceptedReview.storyboard} /></section>}
     {reportJobId && <StaticReportReader kind="storyboard" url={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, reportJobId)} />}
     {candidate?.status === "prepared" && <details><summary>查看任务说明（手动方式）</summary><Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.recoverStoryboardSourceReviewHandoff(projectId, candidate.jobId), result => setAssignment(result.assignment))}>恢复分镜任务</Button>{assignment && <ManualTaskAssignment key={`${projectId}:${candidate.jobId}:${assignment}`} assignment={assignment} taskName="分镜" />}</details>}
-    {error && <ErrorNotice message={error} />}
+    {error && <ReviewContextErrorNotice error={error} projectId={projectId} />}
     {acceptedReview && <ProductionBridgePanel projectId={projectId} readOnly={readOnly || state.status === "stale"} onOpenShot={onOpenShot} onInstalled={onInstalled} />}
   </article>;
 }

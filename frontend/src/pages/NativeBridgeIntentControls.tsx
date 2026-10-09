@@ -10,6 +10,8 @@ export function NativeBridgeIntentControls({ projectId, state, disabled, localEd
   const job = state.intentJob?.transport === "codex_native" ? state.intentJob : undefined;
   const available = state.nativeIntentGeneration.status === "available";
   const proposal = state.proposal;
+  const historicalDelivery = job?.status === "ready"
+    && proposal?.intentPackage.provenance?.jobId !== job.id;
   const unresolved = state.intentJob && (["queued", "dispatched", "outcome_unknown"].includes(state.intentJob.status)
     || job?.status === "cancelled" && !job.responseHash && state.nativeIntentTask?.state !== "prepared");
   const action = (kind: "send" | "check" | "cancel") => {
@@ -24,7 +26,7 @@ export function NativeBridgeIntentControls({ projectId, state, disabled, localEd
       {!available && <p className="action-prerequisite">尚未配置 Codex 文字助手，请在“生成助手设置”填写聊天 ID。你也可以填写作者意图并保存整包。</p>}
     </>}
     {job && <>
-      <p role="status">{job.status === "queued" ? "任务已冻结，尚未发送" : job.status === "dispatched" ? "已尝试发送，等待检查助手交付" : job.status === "outcome_unknown" ? "发送结果不确定；请检查同一任务，请勿重复发送" : job.status === "ready" ? "助手建议已交付；当前意图的确认状态请查看整包审阅区" : job.status === "cancelled" ? "任务已取消，后续交付不会进入提案" : job.status === "stale" ? "冻结来源或投产目标已变化，结果未采用" : "任务失败，请检查记录"}</p>
+      <p role="status">{historicalDelivery ? "这是先前提案的已交付任务，仅保留供查阅；当前提案未使用这份建议。" : job.status === "queued" ? "任务已冻结，尚未发送" : job.status === "dispatched" ? "已尝试发送，等待检查助手交付" : job.status === "outcome_unknown" ? "发送结果不确定；请检查同一任务，请勿重复发送" : job.status === "ready" ? "助手建议已交付；当前意图的确认状态请查看整包审阅区" : job.status === "cancelled" ? "任务已取消，后续交付不会进入提案" : job.status === "stale" ? "冻结来源或投产目标已变化，结果未采用" : "任务失败，请检查记录"}</p>
       <small>冻结提案 r{job.proposalRevision} · 任务 {job.id}。重新打开项目可继续检查原任务、阅读原报告。取消不会中止助手执行或解除占用。</small>
       {job.status === "queued" && state.nativeIntentTask?.state === "prepared" && <Button disabled={disabled || localEdits || !available || state.status === "stale"} onClick={() => action("send")}>发送给 Codex 文字助手</Button>}
       {["dispatched", "outcome_unknown", "cancelled", "stale"].includes(job.status) && !job.responseHash && <Button disabled={disabled} onClick={() => action("check")}>检查原任务交付</Button>}

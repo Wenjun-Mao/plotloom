@@ -82,6 +82,14 @@ for (const stage of ["cast", "script"] as const) {
     expect(state.status).toBe("stale");
     await page.reload();
     await expect(panel).toContainText(stage === "cast" ? "角色设定需重新确认" : "上下文已过期");
+    if (stage === "script") {
+      const notice = panel.getByRole("status", { name: "创作依据需要更新" });
+      await expect(notice).toContainText("美术设定版本已变化");
+      await expect(notice.getByRole("link", { name: "在新页打开美术参考" })).toHaveAttribute("target", "_blank");
+      await expect(notice.locator("details")).not.toHaveAttribute("open");
+      await notice.getByText("查看创作依据的技术详情", { exact: true }).click();
+      await expect(notice).toContainText("art revision changed");
+    }
     if (ready) {
       await expect(panel.getByRole("button", { name: stage === "cast" ? "确认使用此角色设定" : "确认使用此剧本" })).toBeDisabled();
     } else {

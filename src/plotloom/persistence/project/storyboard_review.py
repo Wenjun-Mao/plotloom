@@ -16,6 +16,8 @@ from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_js
 from ...domain import contains_secret_setting, contains_secret_value, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...script_contracts import AcceptedScriptRevision, ScriptBinding
+from ...review_context_diagnostics import ReviewContextDiagnostic, ReviewContextError
+from ...review_binding_diagnostics import review_binding_diagnostics
 from ...storyboard_review_contracts import (
     AcceptedStoryboardReviewRevision, StoryboardReviewAcceptRequest,
     StoryboardReviewBinding, StoryboardReviewCandidate, StoryboardReviewState,
@@ -61,14 +63,14 @@ class ProjectStoryboardReviewPersistence:
             ScriptRevisionRow.revision == script_head.revision,
         )) if script_head.revision else None
         if script_head.status != "accepted" or accepted_row is None:
-            raise InvalidTransitionError("a current accepted F4 script revision is required before preparing storyboard review")
+            raise ReviewContextError(ReviewContextDiagnostic(code="accepted_script_not_current", owner="script", technical_message="a current accepted F4 script revision is required before preparing storyboard review"))
         script = AcceptedScriptRevision(revision=accepted_row.revision, candidate_job_id=accepted_row.candidate_job_id, content_hash=accepted_row.content_hash, binding=accepted_row.binding, script=accepted_row.script, accepted_at=accepted_row.accepted_at)
         inherited = ScriptBinding.model_validate(script.binding)
         if self._script._stale(session, project_id, inherited):
-            raise InvalidTransitionError("the accepted F4 script context is stale")
+            raise ReviewContextError(ReviewContextDiagnostic(code="accepted_script_not_current", owner="script", technical_message="the accepted F4 script context is stale"))
         current, _source, outline, mapping, cast, art = self._script._context(session, project_id)
         if current != inherited:
-            raise InvalidTransitionError("the accepted F4 script binding is stale")
+            raise ReviewContextError(ReviewContextDiagnostic(code="accepted_script_not_current", owner="script", technical_message="the accepted F4 script binding is stale"))
         return StoryboardReviewBinding(
             **inherited.model_dump(mode="python"),
             script_revision=script.revision,
@@ -78,13 +80,13 @@ class ProjectStoryboardReviewPersistence:
             review_max_segment_seconds=15,
         ), script.script, _upstream_script_outline(outline, mapping, cast, inherited), cast, art
 
-    def _stale(self, session: Any, project_id: str, binding: StoryboardReviewBinding) -> list[str]:
+    def _stale(self, session: Any, project_id: str, binding: StoryboardReviewBinding) -> list[ReviewContextDiagnostic]:
         try:
             current, *_ = self._context(session, project_id, max_cut_seconds=binding.review_max_cut_seconds)
-        except InvalidTransitionError as error:
-            return [str(error)]
+        except ReviewContextError as error:
+            return [error.diagnostic]
         fields = tuple(StoryboardReviewBinding.model_fields)
-        return [f"{field.replace('_content_hash', ' content').replace('_revision', ' revision').replace('_', ' ')} changed" for field in fields if getattr(current, field) != getattr(binding, field)]
+        return review_binding_diagnostics(current, binding, fields)
 
     def get_state(self, project_id: str) -> StoryboardReviewState:
         with self._access.leases.read() as session:

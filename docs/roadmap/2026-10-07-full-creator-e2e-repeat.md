@@ -107,9 +107,11 @@ revised graph is confirmed/applied; its old media is retained, not current.
 The [structural revision receipt](../verification/2026-10-09-native-structural-revision.md)
 owns the current Cast render-contract repair and its qualification. The
 [native reference revision checkpoint](../verification/2026-10-09-native-reference-revision.md)
-now records delivered/explicitly selected reference r3, native accepted Art r2,
-and the compact portrait-preview repair. Continue Art reference review, fresh Script and
-Storyboard review, explicit rebuild and every revised route. This does not
+now records delivered/explicitly selected Character reference r3 and Prop reference r2,
+native accepted Art/Script/Storyboard r2, and the compact portrait-preview repair.
+Typed Script/Storyboard diagnostics and historical-task wording are qualified
+(1,413 Python/859 frontend/242 browser PASS, independent review clear). Continue fresh native
+intent review, explicit rebuild and every revised route. This does not
 replace the remaining Recover or whole-product E22 obligations below.
 
 1. **Create:** finish distinct native Character/Scene/Prop images and one same-subject

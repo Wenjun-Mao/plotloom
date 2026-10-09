@@ -7,6 +7,7 @@ from typing import Any, Literal
 from pydantic import Field, model_validator
 
 from .domain import CamelModel
+from .review_context_diagnostics import ReviewContextDiagnostic
 from .script_contracts import ScriptBinding, ScriptSectionBinding
 
 
@@ -65,7 +66,7 @@ class StoryboardReviewState(CamelModel):
     candidate: StoryboardReviewCandidate | None = None
     accepted_review: AcceptedStoryboardReviewRevision | None = None
     status: StoryboardReviewStatus
-    stale_reasons: list[str] = Field(default_factory=list)
+    stale_reasons: list[ReviewContextDiagnostic] = Field(default_factory=list)
 
 
 class StoryboardReviewAcceptRequest(CamelModel):

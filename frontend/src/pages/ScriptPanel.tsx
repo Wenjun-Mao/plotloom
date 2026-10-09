@@ -1,7 +1,8 @@
 import { StaticReportReader } from "../components/StaticReportReader";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { plotloomApi } from "../api";
-import { Button, ErrorNotice, Spinner } from "../components";
+import { Button, Spinner } from "../components";
+import { ReviewContextErrorNotice, ReviewContextNotice, reviewContextFailure, reviewContextNextStep, type ReviewContextFailure } from "./ReviewContextNotice";
 import type { AcceptedScriptRevision, ScriptCandidate, ScriptReviewState } from "../types";
 import { ManualTaskAssignment } from "./ManualTaskAssignment";
 import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskActions";
@@ -17,7 +18,7 @@ type ProjectSession = { projectId: string; epoch: number };
 export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true, refreshToken, onContinue, contextSectionId }: { projectId: string; readOnly: boolean; active?: boolean; refreshToken?: unknown; onContinue?: () => void; contextSectionId?: string }) {
   const [state, setState] = useState<ScriptReviewState>();
   const [assignment, setAssignment] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ReviewContextFailure>("");
   const [busy, setBusy] = useState(false);
   const [sectionId, setSectionId] = useState("");
   const [draft, setDraft] = useState("");
@@ -76,7 +77,7 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
       onSuccess?.(result);
       await recheck();
     }).catch(reason => {
-      if (owns(session)) setError(reason instanceof Error ? reason.message : "剧本操作失败。");
+      if (owns(session)) setError(reviewContextFailure(reason, "剧本操作失败。"));
     }).finally(() => {
       // Ownership remains held through response settlement; invalidation on
       // unmount/project switch makes this a deliberate no-op afterwards.
@@ -86,7 +87,7 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
   const prepare = () => run(() => plotloomApi.prepareScriptCandidate(projectId), result => setAssignment(result.assignment));
   if (!state) return <article id="script" className="panel cast-panel" data-testid="script-review">
     <header><span>剧本</span><strong>{error ? "无法加载" : "正在加载"}</strong></header>
-    {error ? <><ErrorNotice message={error} /><Button variant="quiet" onClick={() => void recheck()}>重试加载剧本</Button></> : <Spinner />}
+    {error ? <><ReviewContextErrorNotice error={error} projectId={projectId} /><Button variant="quiet" onClick={() => void recheck()}>重试加载剧本</Button></> : <Spinner />}
   </article>;
 
   const { candidate, acceptedScript: accepted } = state;
@@ -124,9 +125,9 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
     {contextSectionId && <><p>当前节点：{contextSectionId}。准备、发送、结果检查与确认使用影响整份剧本；章节保存仅替换所选稳定章节。</p>{accepted && <ScriptEpisodeView accepted={accepted} sectionId={contextSectionId} />}</>}
     {contextSectionId && draftDirty.current && sectionId !== contextSectionId && <p role="status">正在保留 {sectionId} 的未保存章节；切换节点不会将其保存到 {contextSectionId}。请先保存或舍弃当前章节修改。</p>}
     <StageGuide next={onContinue && <Button variant="quiet" disabled={checking || failed || busy || draftDirty.current || state.status !== "accepted" || !accepted} onClick={onContinue}>继续：分镜评审</Button>}>
-      {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : busy ? "正在处理剧本任务，请稍候。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃章节修改，再继续分镜。" : state.status === "stale" ? "故事或美术设定已变化，请更新并确认剧本。" : state.status === "accepted" && accepted ? "完整剧本已确认。下一步准备分镜评审；切换页面不会自动生成镜头或媒体。" : candidate?.status === "ready" ? "阅读候选剧本，确认开场、选择和结局表达，再确认使用。" : "准备剧本任务并发送给文字创作助手。返回的剧本须先审阅，再确认使用。"}
+      {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : busy ? "正在处理剧本任务，请稍候。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃章节修改，再继续分镜。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "故事或美术设定已变化，请更新并确认剧本。") : state.status === "accepted" && accepted ? "完整剧本已确认。下一步准备分镜评审；切换页面不会自动生成镜头或媒体。" : candidate?.status === "ready" ? "阅读候选剧本，确认开场、选择和结局表达，再确认使用。" : "准备剧本任务并发送给文字创作助手。返回的剧本须先审阅，再确认使用。"}
     </StageGuide>
-    {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
+    <ReviewContextNotice projectId={projectId} diagnostics={state.staleReasons} />
     {!candidate && state.status !== "reopened" && <Button variant="primary" disabled={readOnly || busy} onClick={prepare}>准备剧本任务</Button>}
     {candidate?.status === "prepared" && <SpecialistTaskActions projectId={projectId} stage="script" jobId={candidate.jobId} disabled={readOnly || busy} sendDisabled={state.status === "stale"} onDelivered={recheck} />}
     {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} stale={state.status === "stale"} busy={busy} run={run} />}
@@ -142,7 +143,7 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
     {draftDirty.current && !retained && <Button disabled={readOnly || busy} onClick={discardDraft}>舍弃当前章节修改</Button>}
     {reportJobId && <StaticReportReader key={`${reportJobId}:${accepted?.revision}:${accepted?.contentHash}`} kind="script" url={plotloomApi.scriptCandidateReportUrl(projectId, reportJobId)} />}
     {candidate?.status === "prepared" && <details><summary>查看任务说明（手动方式）</summary><Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.recoverScriptHandoff(projectId, candidate.jobId), result => setAssignment(result.assignment))}>恢复剧本任务</Button>{assignment && <ManualTaskAssignment key={`${projectId}:${candidate.jobId}:${assignment}`} assignment={assignment} taskName="剧本" />}</details>}
-    {error && <ErrorNotice message={error} />}
+    {error && <ReviewContextErrorNotice error={error} projectId={projectId} />}
   </article>;
 }
 

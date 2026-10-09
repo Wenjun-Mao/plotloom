@@ -100,10 +100,30 @@ it("lets the author save unchanged complete suggestions while installation stays
 it.each(["ready", "accepted"] as const)("does not mislabel saved intents when production is %s", async status => {
   const saved = withJob("ready");
   saved.status = status;
+  saved.proposal!.revision = 4;
+  saved.proposal!.intentPackage.provenance = { jobId: saved.intentJob!.id };
   saved.proposal!.intentPackage.reviewState = "author_saved";
   vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(saved);
   vi.spyOn(plotloomApi, "admitReportRead").mockResolvedValue({ cancel: vi.fn(), complete: vi.fn() } as never);
   await render();
   expect(host.textContent).toContain("助手建议已交付；当前意图的确认状态请查看整包审阅区");
   expect(host.textContent).not.toContain("尚未由作者确认");
+  expect(host.textContent).not.toContain("先前提案的已交付任务");
+});
+
+it.each([undefined, { jobId: "another-job" }])("labels a retained delivery separately when current provenance is %s", async provenance => {
+  const prepared = withJob("ready");
+  prepared.proposal!.revision = 5;
+  prepared.proposal!.intentPackage.provenance = provenance;
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(prepared);
+  vi.spyOn(plotloomApi, "admitReportRead").mockResolvedValue({ cancel: vi.fn(), complete: vi.fn() } as never);
+  const action = vi.spyOn(plotloomApi, "nativeBridgeIntentAction");
+  await render();
+  expect(host.textContent).toContain("这是先前提案的已交付任务，仅保留供查阅；当前提案未使用这份建议。");
+  expect(host.textContent).not.toContain("助手建议已交付；当前意图的确认状态请查看整包审阅区");
+  expect(button("准备 Codex 戏剧意图任务")?.disabled).toBe(false);
+  expect(button("发送给 Codex 文字助手")).toBeUndefined();
+  expect(button("确认投产提案")?.disabled).toBe(true);
+  expect(host.querySelector("iframe")?.getAttribute("sandbox")).toBe("");
+  expect(action).not.toHaveBeenCalled();
 });

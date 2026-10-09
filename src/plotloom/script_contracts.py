@@ -9,6 +9,7 @@ from pydantic import Field, model_validator
 from .art_contracts import ArtBinding
 from .authored_route_timing import route_budget_hash
 from .domain import CamelModel
+from .review_context_diagnostics import ReviewContextDiagnostic
 
 ScriptStatus = Literal["missing", "prepared", "candidate_ready", "accepted", "reopened", "stale"]
 
@@ -83,7 +84,7 @@ class ScriptReviewState(CamelModel):
     candidate: ScriptCandidate | None = None
     accepted_script: AcceptedScriptRevision | None = None
     status: ScriptStatus
-    stale_reasons: list[str] = Field(default_factory=list)
+    stale_reasons: list[ReviewContextDiagnostic] = Field(default_factory=list)
 
 
 class ScriptAcceptRequest(CamelModel):

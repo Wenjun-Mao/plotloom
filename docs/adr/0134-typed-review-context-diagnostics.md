@@ -1,6 +1,6 @@
-# ADR 0134: Typed Cast/Art currentness diagnostics
+# ADR 0134: Typed creative-review currentness diagnostics
 
-Status: Accepted, 2026-10-08.
+Status: Accepted, 2026-10-08; extended to Script/Storyboard 2026-10-09.
 
 ## Problem
 
@@ -21,7 +21,17 @@ exception carries the same diagnostic through a structured409 refusal.
 Cast/Art present Chinese guidance from codes, link to the indicated owner in a
 new page so existing dirty drafts remain protected, and keep raw evidence under
 technical details. Busy/failed/dirty guidance retains its existing precedence.
-Generic HTTP transport and other review-state contracts remain unchanged.
+Generic HTTP transport remains unchanged.
+
+The revised-story E2E run reproduced the same raw-string defect in Script and
+Storyboard. These owners now use the same typed diagnostic list and structured
+preparation refusal. An explicit field-owner registry covers timing, section
+membership, render contract and Script/Art bindings; unknown future binding fields
+must receive an ownership decision rather than falling back to English text.
+Missing/unconfirmed upstream reviews point to their owning stage; changed
+bindings keep the next action in the outdated review. No string-list compatibility
+union is retained. Frozen generation packages, stored review JSON and archived
+reports do not change; the diagnostic is a current read projection only.
 
 Currentness comparisons, action eligibility, CAS, pins, frozen requests,
 report bytes and persistence remain unchanged. A combined prerequisite failure

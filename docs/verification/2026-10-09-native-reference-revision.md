@@ -204,3 +204,152 @@ Recover and E22 states/wording. Scene/Prop downstream reference consumption rema
 an explicit capability gap; the UI currently says those choices are review-only.
 Do not infer that gap is closed from Character reference success or green tests.
 The full run remains PARTIAL; normal publication is not authorized by this receipt.
+
+### Storyboard r2 and diagnostic repair checkpoint, 06:25 UTC
+
+The same frozen Storyboard job `ch_236d280e7ec243f0bc1ee30fae0f190a`
+completed in specialist turn `01a11f44-444f-7cd2-8c8e-5ca48779c5bd`
+(521878ms), without resend. The app ingested delivery
+`eb4755ce-b35a-4e94-946d-4e6be1b671ba`; manifest hash
+`745dfb61c5592845c61a779b8dcff06e677a6b4fe577b42ba7c06ecd869edc01`.
+Root read the whole candidate and static report, then clicked the named
+confirmation control at06:21:11. Accepted review r2 hash is
+`9302218cdea504c9e6b4d92305c69e314e5ef75ba90663f5b6a65000f2225c56`;
+API status is accepted with no stale reasons. This is disposable technical QA
+acceptance, not owner creative/media approval.
+
+The frozen mapping is opening ep1, West ep2, new East ep3. Opening has two5s
+cuts; each mutually exclusive ending has one5s cut. Both complete routes remain
+15s; aggregate footage20s is not a route duration. C01's compact low bun replaces
+the old ponytail throughout the new prompts. East retains left lamp ON/right OFF,
+leftward confirmation and hand beside the switch; West does not invent a left-lamp
+state. Choice stays route-only. No new media or production rebuild yet.
+
+Native report top/end captures `storyboard-r2-report-{top,end}-1700.png` were
+directly inspected. The bottom is reachable (scrollTop4500 + viewport318 =
+scrollHeight4818). The report's skipped recipe check is explicitly disclosed,
+despite its green17/17 summary. Further E22 copy defects remain: hardcoded footer
+“2–5秒” contradicts the actual2–8s review cap; “段=一次生成” and automatic
+environment-reference language describe upstream intent, not proven Plotloom
+runtime behavior. Preserve the frozen report; repair future renderer/guidance at
+its owning contract, not by editing this delivery. These are not closed here.
+
+The Script/Storyboard English-stale defect above is implemented via ADR0134's
+extended typed contract. Read projections and409 preparation refusals preserve
+code/field/owner/raw evidence; currentness comparisons and admission are unchanged.
+No old-string compatibility path or stored-data conversion was added.
+Independent read-only review found no findings and separately passed five new
+Python and five new frontend tests. Root passed857 frontend tests, both typechecks,
+18 focused browser tests, five new Python tests, build, lock/API import lint,
+compile and installed-wheel smoke. Full Python/browser qualification is still
+running; this is not yet a final qualified/published checkpoint.
+
+Two initial new-test fixture mistakes (reused job identity and invalid underscore
+job ID) failed before the diagnostic assertion. The corrected fixture accepts a
+unique valid storyboard before reopening Script, so it exercises prerequisite
+refusal rather than the separate duplicate-pending-candidate guard. No production
+guard was relaxed to make the test pass.
+
+Root directly inspected seven read-only simulated-response captures:
+`typed-script-warning-{1700x900,1280x768,1280x460}.png`,
+`typed-script-technical-1280x460.png`, and
+`typed-storyboard-warning-{1700x900,1280x768,1280x460}.png`.
+Chinese reasons, owning-stage links and collapsed technical evidence are readable;
+short-desktop content remains scrollable without overlap. These are current bundle
+visual fixtures, not native stale-state evidence or a mutation of accepted content.
+
+Only idle isolated8865 was restarted: specialists busy=false, no active text/media
+tasks, and all four video jobs ingested. Prior PID56858 exited gracefully; PID96949
+now serves the diagnostic candidate on8865/8866. Served JS matches source SHA256
+`33bcbbe0e2f149e9c7417c12e6bfb9d6621045ff8bea3f2dc79ef03f7843e5d1`;
+CSS remains `6e2b32ffa2d5188c476600e3f6a15bd0684e1ea433a72329149e718d4ab5dd60`.
+Protection recapture matches the above aggregate. Normal8841 is untouched.
+
+Independent visual review of all seven diagnostic captures returned no findings:
+warnings, owning-stage links and technical-detail controls remain readable at all
+three desktop sizes. The reviewer explicitly classified these as simulated stale
+GET presentation evidence, not native stale-state behavior. The permanent E22
+playbook now requires both evidence classes separately for these diagnostics.
+
+### Rebuild proposal prepared, 06:30 UTC
+
+Root used the named `准备重建提案` control once. Readback is proposal r5,
+hash `bf25ce6874f34496f7c1234ead3572b15f868bc2d7a7e27c5687810870108291`,
+status ready, with only presentation-required and dramatic-intent-required
+conflicts. It freezes review2/Script2/Graph3/Cast3/Art2/map3/Brief2 and the exact
+installed admission `8c159d3c-efa9-4bf9-8761-488de1ce6b75` plus canonical
+replacement heads. The old installation stays outdated and retained. No native
+dispatch, canonical replacement or media selection occurred.
+
+Root read all four cuts, seven empty intent targets and all eight presentation
+sources with frozen evidence. They preserve two opening5s cuts, West5s, new
+East5s, low-bun identity and the revised East-only consequence. Presentation
+runtimeChoice points East to `graph-3d5df4ce8b4141e19bdc13e7`, not the retired
+East node retained only in the seed evidence. Review remains explicit/pending.
+
+Native screenshot `rebuild-r5-before-intent-1700.png` was directly inspected:
+outdated-production guidance and the two review prerequisites are readable.
+Additional E22 wording finding: the old native intent job remains displayed as
+“助手建议已交付；当前意图的确认状态请查看整包审阅区” below the new r5
+proposal, although its smaller source label correctly says frozen proposal r1.
+This is retained evidence, not current suggestions. The UI should explicitly
+distinguish an earlier proposal's delivered task from the current proposal;
+do not rewrite the retained job or relax binding checks. Finding remains open.
+
+Full unfiltered browser gate completed:242 PASS in7.9m, no reported retries.
+The full Python gate remains running on the same source/test candidate. Only
+documentation changed while these gates ran.
+
+The revised native Storyboard report was also mouse-scrolled through top/middle/end
+at1280×768 and1280×460. Root directly inspected all six
+`storyboard-r2-report-{top,middle,end}-{1280x768,1280x460}.png` captures.
+At the1280-wide report bottom, scrollTop4202 + viewport318 = scrollHeight4520;
+the footer is inside the visible iframe, below the fixed app toolbar. Long prompt
+text wraps inside its report column. Closing/reopening the named disclosure works.
+The console entries are the intentional sandbox refusal of report JavaScript,
+not a new application execution error. The upstream timing/generation claims above
+remain wording defects despite successful reading and scrolling.
+
+### Historical intent-task wording repair, 06:38 UTC
+
+The old-task finding is repaired in `NativeBridgeIntentControls`: a completed
+delivery is current only when its job ID matches the current intent package's
+stored provenance. Comparing proposal revision numbers would be wrong because
+generation and explicit author saves advance revisions while retaining provenance.
+Missing or foreign provenance now says “这是先前提案的已交付任务，仅保留供查阅；
+当前提案未使用这份建议。” Task eligibility, report sandbox and admission are unchanged.
+
+Ten focused tests and independent source review pass, including provenance retained
+across author saves and missing/foreign provenance. All859 frontend tests, both
+typechecks and build pass. Root and independent reviewer directly inspected
+`retained-intent-r1-current-r5-{1700x900,1280x768,1280x460}.png`; notice and frozen
+r1 source are readable below the fixed header. Native r5/hash and pending package
+remain unchanged; prepare is enabled and acceptance disabled. No dispatch occurred.
+
+Served/source JS now matches
+`477ead6d148f47f9d3ac75830de2b9ef5006fe57ffd089bbf0d97a8c602a3259`.
+The full242 browser suite is rerunning for this frontend delta. Python source/tests
+have not changed during their still-running full gate; generated JS was rebuilt.
+The earlier242 PASS qualifies the diagnostic-only frontend, not this later label.
+
+### Qualified rebuild checkpoint, 06:46 UTC
+
+Final gates completed:1,413 Python PASS in24m32s,859 frontend PASS,242 unfiltered
+browser PASS in7.9m with no reported retries. Both typechecks, build, wheel and
+installed-wheel smoke, lock, changed-source lint, compile and diff checks pass.
+The Python gate retained unchanged Python source/tests; frontend static was
+rebuilt during that gate and is covered by the later full browser/build checks.
+Independent source and desktop-pixel reviews of both repairs have no findings.
+Root approves this bounded checkpoint for local commit and native continuation;
+normal publication remains deferred until the full run qualifies.
+
+Native playback after r5 preparation still says “故事已修改，需要重新建立制作内容”
+and renders zero video/audio elements. Root inspected
+`rebuild-r5-playback-blocked-{1700x900,1280x768,1280x460}.png`: the explanation
+and rebuild link are visible without clipping at all three desktop sizes. Clicking
+“前往分镜评审与制作” returns to the current accepted review and pending r5 proposal.
+This is retained-production refusal evidence, not revised playable-media acceptance.
+Protection recapture remains aggregate
+`df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`:
+Wind17/Rain67 managed files and three protected files unchanged. Normal8841 is
+untouched. Next is one freshly frozen native intent task for r5, not a replay of r1.

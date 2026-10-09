@@ -16,6 +16,8 @@ from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_js
 from ...domain import contains_secret_setting, contains_secret_value, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...authored_route_timing import route_budget_hash, validate_route_seconds
+from ...review_context_diagnostics import ReviewContextDiagnostic, ReviewContextError
+from ...review_binding_diagnostics import review_binding_diagnostics
 from ...script_contracts import (
     AcceptedScriptRevision, ScriptAcceptRequest, ScriptBinding, ScriptCandidate,
     ScriptReopenRequest, ScriptReviewState, ScriptSectionBinding,
@@ -58,11 +60,11 @@ class ProjectScriptPersistence:
         art_head = self._art._head(session, project_id)
         accepted = session.scalar(select(ArtRevisionRow).where(ArtRevisionRow.project_id == project_id, ArtRevisionRow.revision == art_head.revision)) if art_head.revision else None
         if art_head.status != "accepted" or accepted is None or self._art._stale(session, project_id, ArtBinding.model_validate(accepted.binding)):
-            raise InvalidTransitionError("a current accepted art revision is required before preparing script")
+            raise ReviewContextError(ReviewContextDiagnostic(code="accepted_art_not_current", owner="art", technical_message="a current accepted art revision is required before preparing script"))
         project = self._access.rows.project(session, project_id)
         target_seconds = int(project.brief.get("target_playthrough_seconds", 0))
         if target_seconds < 3:
-            raise InvalidTransitionError("project playthrough target is required for script preparation")
+            raise ReviewContextError(ReviewContextDiagnostic(code="playthrough_target_missing", owner="brief", technical_message="project playthrough target is required for script preparation"))
         art_binding, source, outline, mapping, cast = self._art._context(session, project_id)
         section_map = SectionMap.model_validate(mapping)
         graph = compile_section_map_graph(section_map)
@@ -89,13 +91,12 @@ class ProjectScriptPersistence:
         assert art_binding.source_revision == binding.source_revision
         return binding, source, outline, mapping, cast, accepted.art
 
-    def _stale(self, session: Any, project_id: str, binding: ScriptBinding) -> list[str]:
+    def _stale(self, session: Any, project_id: str, binding: ScriptBinding) -> list[ReviewContextDiagnostic]:
         try: current, *_ = self._context(session, project_id)
-        except InvalidTransitionError as error: return [str(error)]
+        except ReviewContextError as error: return [error.diagnostic]
         fields = ("source_revision", "source_content_hash", "outline_revision", "outline_content_hash", "section_map_revision", "section_map_content_hash", "graph_revision", "graph_content_hash", "cast_revision", "cast_content_hash", "art_revision", "art_content_hash", "target_playthrough_seconds", "route_budget_hash", "section_bindings", "complete_route_section_ids", "route_only_section_ids")
-        labels = {key: key.replace("_content_hash", " content").replace("_revision", " revision").replace("_", " ") for key in fields}
-        reasons = [f"{labels[field]} changed" for field in fields if getattr(current, field) != getattr(binding, field)]
-        return reasons + (["section context changed"] if current.section_ids != binding.section_ids else [])
+        reasons = review_binding_diagnostics(current, binding, fields)
+        return reasons + ([ReviewContextDiagnostic(code="section_context_changed", owner="source", technical_message="section context changed")] if current.section_ids != binding.section_ids else [])
 
     def get_state(self, project_id: str) -> ScriptReviewState:
         with self._access.leases.read() as session:
