@@ -1,8 +1,8 @@
 /**
  * Project-scoped draft drain coordination.
  *
- * Editors register only their own durable write queue.  Close asks this
- * contract to drain one project before the server changes admission state;
+ * Editors register their durable queues and already-admitted mutations. Close
+ * drains one project before the server changes admission state;
  * neither timers nor write callbacks escape through window globals.
  */
 export type ProjectDraftFlush = () => Promise<boolean>;

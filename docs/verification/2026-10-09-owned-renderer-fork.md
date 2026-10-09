@@ -56,7 +56,12 @@ These are renderer fixtures, not native generation or creative acceptance.
 The parent gitlink, current Art caller, legal notice and workflow docs adopt the
 exact published pin. Parent style/context/storage/exchange checks must run after
 the parent checkpoint commit because the exchange authenticates `HEAD`'s gitlink,
-not an uncommitted index. Their outcome is not yet claimed here.
+not an uncommitted index. On committed18a5216, the manager ran current
+style/context, Art storage, exchange-pin and review-context diagnostics:
+51 Python tests PASS in21.82s (one existing warning). Parent caller/pin paths
+were also inspected; a separate additional parent integration reviewer did not
+run because native agent capacity was unavailable. The fork's independent
+review above is not represented as a separate parent review.
 
 An actual read-only isolated8865 projection after adopting the adapter reports
 accepted Art r2 stale and accordingly changes Script/Storyboard/production/video

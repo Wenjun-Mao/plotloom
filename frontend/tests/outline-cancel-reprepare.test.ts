@@ -7,6 +7,7 @@ import { GraphWorkbenchContext } from "../src/features/graph/GraphWorkbenchConte
 import { graphControllerFixture } from "./graph-workbench-fixture";
 import { SourceOutlinePage } from "../src/pages/SourceOutlinePage";
 import { specialistsApi } from "../src/features/specialists/api";
+import { branchOperationFixture, branchOperationView } from "./branch-operation-fixture";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 afterEach(() => vi.restoreAllMocks());
@@ -28,7 +29,7 @@ it.each([
   vi.spyOn(specialistsApi, "status").mockResolvedValue({ state: "prepared", configured: true });
   const restore = vi.spyOn(plotloomApi, "returnToAcceptedOutline");
   try {
-    await act(async () => root.render(createElement(GraphWorkbenchContext.Provider, { value: graphControllerFixture(), children: createElement(SourceOutlinePage, { projectId: "project", briefSeed: demoProject.brief, readOnly: false, onProductionInstalled: async () => undefined }) })));
+    await act(async () => root.render(branchOperationView(branchOperationFixture(), createElement(GraphWorkbenchContext.Provider, { value: graphControllerFixture(), children: createElement(SourceOutlinePage, { projectId: "project", briefSeed: demoProject.brief, readOnly: false, onProductionInstalled: async () => undefined }) }))));
     const guide = host.querySelector(".source-workflow-source .stage-guide")!;
     expect(guide.textContent).toContain(guidance);
     if (sourceRevision === 2) expect(guide.textContent).not.toContain("返回保留的有效大纲");
@@ -46,7 +47,7 @@ it.each(["prepared", "queued", "outcome_unknown"] as const)("does not infer disp
   vi.spyOn(specialistsApi, "status").mockResolvedValue({ state: taskState, configured: true });
   const send = vi.spyOn(specialistsApi, "send");
   try {
-    await act(async () => root.render(createElement(GraphWorkbenchContext.Provider, { value: graphControllerFixture(), children: createElement(SourceOutlinePage, { projectId: "project", briefSeed: demoProject.brief, readOnly: false, onProductionInstalled: async () => undefined }) })));
+    await act(async () => root.render(branchOperationView(branchOperationFixture(), createElement(GraphWorkbenchContext.Provider, { value: graphControllerFixture(), children: createElement(SourceOutlinePage, { projectId: "project", briefSeed: demoProject.brief, readOnly: false, onProductionInstalled: async () => undefined }) }))));
     const card = host.querySelector('[data-testid="source-outline-candidate"]')!;
     expect(card.querySelector("header")?.textContent).toContain("任务尚未交付");
     expect(card.querySelector("header")?.textContent).not.toContain("等待助手交付");
@@ -64,7 +65,8 @@ it.each([false, true])("exposes explicit first-candidate cancel recovery with re
   vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: [] });
   const prepare = vi.spyOn(plotloomApi, "prepareOutlineCandidate").mockRejectedValue(new Error("ordinary admission refused"));
   const saveSource = vi.spyOn(plotloomApi, "saveSourceMaterial");
-  const show = () => act(async () => root.render(createElement(GraphWorkbenchContext.Provider, { value: graphControllerFixture(), children: createElement(SourceOutlinePage, { projectId: "project", briefSeed: demoProject.brief, readOnly, onProductionInstalled: async () => undefined }) })));
+  const operations = branchOperationFixture();
+  const show = () => act(async () => root.render(branchOperationView(operations, createElement(GraphWorkbenchContext.Provider, { value: graphControllerFixture(), children: createElement(SourceOutlinePage, { projectId: "project", briefSeed: demoProject.brief, readOnly, onProductionInstalled: async () => undefined }) }))));
   try {
     await show();
     const button = [...host.querySelectorAll("button")].find(item => item.textContent === "重新准备大纲任务")!;

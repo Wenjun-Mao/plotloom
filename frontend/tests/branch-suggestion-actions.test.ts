@@ -6,6 +6,7 @@ import { SectionMapPanel } from "../src/pages/SectionMapPanel";
 import { GraphWorkbenchContext } from "../src/features/graph/GraphWorkbenchContext";
 import { graphControllerFixture, graphDraftFixture } from "./graph-workbench-fixture";
 import type { AcceptedOutlineRevision, BranchTaskState } from "../src/types";
+import { branchOperationFixture, branchOperationView } from "./branch-operation-fixture";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let root: Root;
@@ -17,20 +18,22 @@ const task: BranchTaskState = { candidate, plannedTopology: null, infeasibleReas
 const outline = { revision: 1, sourceRevision: 1, contentHash: "outline" } as AcceptedOutlineRevision;
 const draft = graphDraftFixture();
 let owner: ReturnType<typeof graphControllerFixture>;
+let operations: ReturnType<typeof branchOperationFixture>;
 
 beforeEach(() => {
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
   owner = graphControllerFixture({ draft });
+  operations = branchOperationFixture();
   vi.spyOn(plotloomApi, "getBranchSuggestions").mockResolvedValue(task);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); });
 function button(label: string) { return [...host.querySelectorAll("button")].find(item => item.textContent === label)!; }
 async function render(changes: Partial<Parameters<typeof SectionMapPanel>[0]> = {}) {
-  await act(async () => root.render(createElement(GraphWorkbenchContext.Provider, { value: owner }, createElement(SectionMapPanel, {
+  await act(async () => root.render(branchOperationView(operations, createElement(GraphWorkbenchContext.Provider, { value: owner }, createElement(SectionMapPanel, {
     projectId: "project", outline, outlineCurrent: true, accepted: null, status: "missing", staleReasons: [],
     graphAdmission: null, graphReady: false, sourceDirty: false, routes: [], readOnly: false, busy: false,
     onSave: vi.fn(), onInstall: vi.fn(), onContinue: vi.fn(), ...changes,
-  }))));
+  })))));
 }
 
 it("cancels an obsolete task without adopting or changing the dirty graph/source", async () => {
@@ -39,6 +42,7 @@ it("cancels an obsolete task without adopting or changing the dirty graph/source
   await render({ outlineCurrent: false, sourceDirty: true });
   expect(button("带入可编辑草稿").disabled).toBe(true);
   expect(button("放弃此建议任务").disabled).toBe(false);
+  vi.mocked(plotloomApi.getBranchSuggestions).mockResolvedValue({ ...task, candidate: { ...candidate, status: "cancelled" } });
   await act(async () => button("放弃此建议任务").click());
   expect(cancel).toHaveBeenCalledExactlyOnceWith("project", "branch-task");
   expect(button("准备剧情分支建议").disabled).toBe(true);
@@ -121,4 +125,82 @@ it("does not apply a departed project's cancellation response to the new project
   expect(button("放弃此建议任务").disabled).toBe(false);
   expect(button("准备剧情分支建议")).toBeUndefined();
   expect(plotloomApi.getBranchSuggestions).toHaveBeenCalledTimes(2);
+});
+
+it("retains cancellation admission across actual unmount/remount and ignores a late precommit read", async () => {
+  let finish!: (state: BranchTaskState) => void;
+  let staleRead!: (state: BranchTaskState) => void;
+  const cancelled = { ...task, candidate: { ...candidate, status: "cancelled" } };
+  const cancel = vi.spyOn(plotloomApi, "cancelBranchSuggestions").mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  await render();
+  await act(async () => button("放弃此建议任务").click());
+  await act(async () => root.render(null));
+  vi.mocked(plotloomApi.getBranchSuggestions).mockReturnValueOnce(new Promise(resolve => { staleRead = resolve; }));
+  await render();
+  expect(button("放弃此建议任务")).toBeUndefined();
+  vi.mocked(plotloomApi.getBranchSuggestions).mockResolvedValue(cancelled);
+  await act(async () => finish(cancelled));
+  expect(button("放弃此建议任务")).toBeUndefined();
+  expect(button("准备剧情分支建议").disabled).toBe(false);
+  await act(async () => staleRead(task));
+  expect(button("放弃此建议任务")).toBeUndefined();
+  expect(cancel).toHaveBeenCalledTimes(1);
+  expect(plotloomApi.getBranchSuggestions).toHaveBeenCalledTimes(3);
+  expect(owner.adoptMapping).not.toHaveBeenCalled();
+});
+
+it("shows the retained busy flight on A-B-A and never invokes another cancellation", async () => {
+  let finish!: (state: BranchTaskState) => void;
+  const cancel = vi.spyOn(plotloomApi, "cancelBranchSuggestions").mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  await render(); await act(async () => button("放弃此建议任务").click());
+  await act(async () => root.render(null));
+  await render({ projectId: "B" }); expect(button("放弃此建议任务").disabled).toBe(false);
+  await render(); expect(button("放弃此建议任务").disabled).toBe(true);
+  await act(async () => button("放弃此建议任务").click());
+  vi.mocked(plotloomApi.getBranchSuggestions).mockResolvedValue({ ...task, candidate: { ...candidate, status: "cancelled" } });
+  await act(async () => finish(task));
+  expect(cancel).toHaveBeenCalledTimes(1);
+  expect(button("放弃此建议任务")).toBeUndefined();
+});
+
+it("retains failed cancellation feedback across remount without replaying the POST", async () => {
+  let reject!: (error: Error) => void;
+  const cancel = vi.spyOn(plotloomApi, "cancelBranchSuggestions").mockReturnValue(new Promise((_, fail) => { reject = fail; }));
+  await render(); await act(async () => button("放弃此建议任务").click());
+  await act(async () => root.render(null));
+  await act(async () => reject(new Error("本次取消结果未确认")));
+  await render();
+  expect(host.textContent).toContain("本次取消结果未确认");
+  expect(button("放弃此建议任务").disabled).toBe(false);
+  expect(cancel).toHaveBeenCalledTimes(1);
+});
+
+it("requires explicit read recovery after committed cancellation's refresh fails", async () => {
+  const cancelled = { ...task, candidate: { ...candidate, status: "cancelled" } };
+  const cancel = vi.spyOn(plotloomApi, "cancelBranchSuggestions").mockResolvedValue(cancelled);
+  await render();
+  vi.mocked(plotloomApi.getBranchSuggestions).mockRejectedValueOnce(new Error("提交已完成，但读取失败"));
+  await act(async () => button("放弃此建议任务").click());
+  expect(button("放弃此建议任务")).toBeUndefined();
+  expect(button("准备剧情分支建议")).toBeUndefined();
+  expect(button("重试读取建议").disabled).toBe(false);
+  vi.mocked(plotloomApi.getBranchSuggestions).mockResolvedValue(cancelled);
+  await act(async () => button("重试读取建议").click());
+  expect(button("准备剧情分支建议").disabled).toBe(false);
+  expect(cancel).toHaveBeenCalledTimes(1);
+});
+
+it("uses the same retained operation admission for preparation", async () => {
+  let finish!: (state: BranchTaskState) => void;
+  vi.mocked(plotloomApi.getBranchSuggestions).mockResolvedValue({ ...task, candidate: null });
+  const prepare = vi.spyOn(plotloomApi, "prepareBranchSuggestions").mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  await render(); await act(async () => button("准备剧情分支建议").click());
+  await act(async () => root.render(null)); await render();
+  expect(button("准备剧情分支建议").disabled).toBe(true);
+  expect(host.textContent).toContain("切换页面不会再次发送");
+  await act(async () => button("准备剧情分支建议").click());
+  vi.mocked(plotloomApi.getBranchSuggestions).mockResolvedValue(task);
+  await act(async () => finish(task));
+  expect(button("放弃此建议任务").disabled).toBe(false);
+  expect(prepare).toHaveBeenCalledTimes(1);
 });
