@@ -29,7 +29,7 @@ const withJob = (status: "queued" | "dispatched" | "outcome_unknown" | "ready" |
     errorCode: null, errorMessage: null, resultProposalRevision: status === "ready" ? 2 : null, providerRequestId: null, responseHash: status === "ready" ? "d".repeat(64) : null,
   }, nativeIntentTask: { state: status === "queued" ? "prepared" : status === "ready" ? "completed" : status === "outcome_unknown" ? "outcome_unknown" : "queued", candidateStatus: status, reportAvailable: status === "ready", limitations: [] },
 });
-const render = async () => { await act(async () => root.render(createElement(ProductionBridgePanel, { projectId: "project", readOnly: false, onInstalled: async () => undefined }))); };
+const render = async () => { await act(async () => root.render(createElement(ProductionBridgePanel, { projectId: "project", reviewBasis: { revision: 1, contentHash: "a".repeat(64), status: "current" }, readOnly: false, onInstalled: async () => undefined }))); };
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { vi.restoreAllMocks(); await act(async () => root.unmount()); host.remove(); });
 

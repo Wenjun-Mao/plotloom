@@ -13,7 +13,10 @@ authorize production with a separate recorded human decision, never a fabricated
 PASS ([ADR0146](../adr/0146-explicit-unassessable-identity-review.md)). Own a narrow
 renderer fork based on the current qualified pin, without adopting upstream's
 breaking release ([ADR0147](../adr/0147-owned-pinned-report-renderers.md)). Both
-implementations and their native qualifications remain pending. The graph/read
+implementations are now complete in the isolated candidate; native lifecycle
+qualification is still partial. The current
+[Board3 continuation](../verification/2026-10-09-review-bound-bridge-and-board3-media.md)
+separates the mounted-bridge repair, fresh media and remaining acceptance. The graph/read
 repair's first full browser sweep exposed an empty-queue drain regression; its
 owning correction and fresh full gate are recorded in the
 [read-recovery receipt](../verification/2026-10-09-graph-directory-read-recovery.md).
@@ -26,7 +29,7 @@ review cleared the drain correction; desktop native read/retry, retained-directo
 scroll and Source footer evidence are recorded in the receipt. This does not
 complete the identity/fork implementations or the remaining lifecycle acceptance.
 
-Latest continuation (October9 09:20UTC): same-project native rebuild is installed;
+Historical continuation (October9 09:20UTC; superseded by the Board3 checkpoint): same-project native rebuild is installed;
 its first revised H3 original/segment played and was explicitly selected for
 functional QA, with creative deviation recorded. Opening2 image delivered, but
 hand-only identity cannot pass the current review contract; video-source admission

@@ -62,9 +62,14 @@ No old request, receipt, report, accepted binding or media was rewritten.
 
 ## Remaining qualification
 
-Fresh parent integration checks and broader current-browser gates are next.
-Accepted Art3/Script3 are not assumed stale merely because a report fork changed;
-owning currentness must be read before any dependent action. Storyboard acceptance,
-explicit production rebuild, native uncertainty review/H3, revised-route playback
-and remaining Recover/E22 cases still require execution. Normal8841 and protected
-owner projects remain outside this isolated correction.
+The later a452e27 sweep passed1,463 Python tests and266 browser tests; one browser
+assertion incorrectly expected confirmed Script after upstream Art made it retained.
+That red historical result is preserved. The next frontend-only bridge/navigation
+repair and corrected currentness assertion are tracked in the
+[Board3 receipt](2026-10-09-review-bound-bridge-and-board3-media.md), with a fresh
+unfiltered browser sweep still pending. Accepted Art3/Script3 are not assumed stale
+merely because a report fork changed; owning currentness is read before actions.
+Native Source Storyboard3 acceptance, r12 installation and Board3 functional
+approval are now recorded there. Fresh native uncertainty review/H3, revised-route
+playback and remaining Recover/E22 cases still require execution. Normal8841 and
+protected owner projects remain outside this isolated correction.

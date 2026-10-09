@@ -215,6 +215,7 @@ export default function WorkspaceController() {
     workspaceNavigation.requestNavigation({
       project: session.project.id,
       stage: session.activePage,
+      hash: session.route.hash,
       entity: session.routeEntity,
       run: session.activePage === "trace" ? session.run?.id || "" : "",
       history: "pop",

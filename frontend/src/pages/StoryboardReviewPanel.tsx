@@ -73,7 +73,7 @@ export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOp
     {reportJobId && <StaticReportReader kind="storyboard" url={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, reportJobId)} />}
     {candidate?.status === "prepared" && <details><summary>查看任务说明（手动方式）</summary><Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.recoverStoryboardSourceReviewHandoff(projectId, candidate.jobId), result => setAssignment(result.assignment))}>恢复分镜任务</Button>{assignment && <ManualTaskAssignment key={`${projectId}:${candidate.jobId}:${assignment}`} assignment={assignment} taskName="分镜" />}</details>}
     {error && <ReviewContextErrorNotice error={error} projectId={projectId} />}
-    {acceptedReview && <ProductionBridgePanel projectId={projectId} readOnly={readOnly || state.acceptedReviewState.status !== "current"} onOpenShot={onOpenShot} onInstalled={onInstalled} />}
+    {acceptedReview && <ProductionBridgePanel projectId={projectId} reviewBasis={{ revision: acceptedReview.revision, contentHash: acceptedReview.contentHash, status: state.acceptedReviewState.status }} readOnly={readOnly || state.acceptedReviewState.status !== "current"} onOpenShot={onOpenShot} onInstalled={onInstalled} />}
   </article>;
 }
 

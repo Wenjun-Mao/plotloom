@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { plotloomApi } from "../api";
 import { Button, ErrorNotice } from "../components";
-import type { PresentationSpan, ProductionBridgeProposal, ProductionBridgeState, PresentationSource } from "../types";
+import type { PresentationSpan, ProductionBridgeProposal, PresentationSource } from "../types";
 
 const initial = (source: PresentationSource): PresentationSpan[] => source.spans.length ? source.spans : [{ start: 0, end: [...source.sourceText].length, role: "unassigned", rendering: "", reason: "" }];
 const roles = { unassigned: "请选择归属", physical: "实体动作 / 构图", visible_text: "画面内准确文字（不发声）", runtime_choice: "播放器选择界面", review_only: "仅评审说明（注明理由）", dialogue: "台词（由对白条目负责）" } as const;
@@ -17,9 +16,10 @@ export function splitPresentationSpans(spans: PresentationSpan[], start: number,
 }
 
 /** Every source fragment stays visible; semantic ownership is an explicit review. */
-export function ProductionPresentationReview({ projectId, proposal, disabled, accepted, onSaved, onDirty, onEdited, onBusy }: {
+export function ProductionPresentationReview({ projectId, proposal, disabled, accepted, onSave, onDirty, onEdited }: {
   projectId: string; proposal: ProductionBridgeProposal; disabled: boolean; accepted: boolean;
-  onSaved: (state: ProductionBridgeState) => void; onDirty: (dirty: boolean) => void; onBusy: (busy: boolean) => void;
+  onSave: (entries: Array<{ id: string; spans: PresentationSpan[] }>) => Promise<boolean>;
+  onDirty: (dirty: boolean) => void;
   onEdited?: () => void;
 }) {
   const pkg = proposal.presentation;
@@ -33,10 +33,10 @@ export function ProductionPresentationReview({ projectId, proposal, disabled, ac
   const baseline = JSON.stringify(pkg.sources.map(source => ({ id: source.id, spans: source.spans })));
   useEffect(() => {
     setEntries(Object.fromEntries(pkg.sources.map(source => [source.id, initial(source)])));
-    setConfirmed(false); setError(""); setBusy(false); onBusy(false); setSelection(undefined); onDirty(false);
+    setConfirmed(false); setError(""); setBusy(false); setSelection(undefined); onDirty(false);
   }, [projectId, pkg.sourceHash]);
   const dirty = JSON.stringify(pkg.sources.map(source => ({ id: source.id, spans: entries[source.id] ?? [] }))) !== baseline;
-  useEffect(() => { onDirty(dirty && !accepted); }, [dirty, accepted]);
+  useEffect(() => { onDirty(dirty); }, [dirty]);
   const change = (id: string, index: number, update: Partial<PresentationSpan>) => {
     onEdited?.();
     setEntries(current => ({ ...current, [id]: current[id].map((span, position) => position === index ? { ...span, ...update } : span) }));
@@ -72,11 +72,11 @@ export function ProductionPresentationReview({ projectId, proposal, disabled, ac
     {!accepted && <><label><input type="checkbox" checked={confirmed} disabled={disabled || busy || !complete} onChange={event => setConfirmed(event.target.checked)} />我已逐项核对全部来源：动作与限制完整，画面文字准确且不发声，选择问题与选项由播放器负责。</label>
       <Button disabled={disabled || busy || !complete || !confirmed} onClick={() => {
         const epoch = ownership.current;
-        setBusy(true); onBusy(true); setError("");
-        void plotloomApi.updateProductionBridgePresentation(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash, sourceHash: pkg.sourceHash, reviewedComplete: true, entries: pkg.sources.map(source => ({ id: source.id, spans: entries[source.id] })) })
-          .then(next => { if (ownership.current === epoch) { onSaved(next); onDirty(false); setConfirmed(false); } })
+        setBusy(true); setError("");
+        void onSave(pkg.sources.map(source => ({ id: source.id, spans: entries[source.id] })))
+          .then(saved => { if (saved && ownership.current === epoch) { onDirty(false); setConfirmed(false); } })
           .catch(reason => { if (ownership.current === epoch) setError(reason instanceof Error ? reason.message : "无法保存呈现审阅"); })
-          .finally(() => { if (ownership.current === epoch) { setBusy(false); onBusy(false); } });
+          .finally(() => { if (ownership.current === epoch) setBusy(false); });
       }}>保存呈现方式审阅</Button></>}
     {pkg.reviewed && <p>{accepted ? "呈现方式审阅已保存；实际媒体仍需单独审核并选用。" : "呈现方式审阅已保存；修改后请重新保存。实际媒体仍需单独审核并选用。"}</p>}
     {error && <ErrorNotice message={error} />}

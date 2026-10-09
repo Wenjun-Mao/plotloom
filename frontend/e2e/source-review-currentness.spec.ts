@@ -147,6 +147,7 @@ test("navigation revalidation preserves a same-project unsaved scoped Script dra
 
 for (const authority of ["head", "status"] as const) test(`dirty Script retains original text after an accepted ${authority} change`, async ({ page, request, workbench }) => {
   const id = await createScriptProject(request, workbench.apiOrigin, `dirty-script-${authority}`);
+  const initial = await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/script`));
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#script`);
   const panel = page.getByTestId("script-review");
   await panel.getByRole("button", { name: "重新打开剧本" }).click();
@@ -163,8 +164,20 @@ for (const authority of ["head", "status"] as const) test(`dirty Script retains 
   await expect(retained.getByRole("button", { name: "保存此章节，不覆盖其他章节" })).toBeDisabled();
   await retained.getByRole("button", { name: "用当前章节替换草稿" }).click();
   await expect(retained).toHaveCount(0);
-  await expect(panel).toContainText(`已确认 r${authority === "head" ? 2 : 1}`);
-  expect((await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/script`))).acceptedScript.revision).toBe(authority === "head" ? 2 : 1);
+  const current = await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/script`));
+  if (authority === "head") {
+    await expect(panel).toContainText("已确认 r2");
+    expect(current.acceptedReviewState.status).toBe("current");
+    expect(current.acceptedScript.revision).toBe(2);
+  } else {
+    await expect(panel).toContainText("上下文已过期");
+    await expect(panel).toContainText("保留的已确认剧本 r1");
+    await expect(panel.getByRole("button", { name: "重新打开剧本", exact: true })).toBeDisabled();
+    await expect(panel.getByRole("button", { name: "继续：分镜评审", exact: true })).toBeDisabled();
+    expect(current.status).toBe("stale");
+    expect(current.acceptedReviewState.status).toBe("retained");
+    expect(current.acceptedScript).toEqual(initial.acceptedScript);
+  }
 });
 
 test("dirty Art survives reopened-to-stale status with the same accepted revision", async ({ page, request, workbench }) => {

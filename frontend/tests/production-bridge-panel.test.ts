@@ -21,7 +21,7 @@ const state = (label: string, revision = 1, contentHash = "a".repeat(64), text =
   },
 });
 
-const render = async (projectId: string, onOpenShot?: (shotId: string) => void, onInstalled: (projectId: string) => Promise<void> = async () => undefined, readOnly = false) => { await act(async () => root.render(createElement(ProductionBridgePanel, { projectId, readOnly, onOpenShot, onInstalled }))); };
+const render = async (projectId: string, onOpenShot?: (shotId: string) => void, onInstalled: (projectId: string) => Promise<void> = async () => undefined, readOnly = false) => { await act(async () => root.render(createElement(ProductionBridgePanel, { projectId, reviewBasis: { revision: 1, contentHash: "a".repeat(64), status: "current" }, readOnly, onOpenShot, onInstalled }))); };
 const settle = async () => { await act(async () => { await Promise.resolve(); }); };
 const button = (text: string) => Array.from(host.querySelectorAll("button")).find((item) => item.textContent === text) as HTMLButtonElement;
 const deferred = <T,>() => {

@@ -75,3 +75,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0145 Current read authority for graph and directory actions](0145-current-read-authority-for-graph-and-directory.md)
 - [0146 Explicit unassessable identity review](0146-explicit-unassessable-identity-review.md)
 - [0147 Narrow owned pinned report renderers](0147-owned-pinned-report-renderers.md)
+- [0150 Review-bound production bridge acknowledgement](0150-review-bound-production-bridge-acknowledgement.md)
