@@ -27,6 +27,47 @@ The same receipt records request-versus-media wording, blank reviewer-evidence
 defaults and shared timestamp repairs with834 frontend tests and independent review.
 This does not replace the full Create → Revise → Recover completion gates.
 
+### Same project revision and playback guidance
+
+On October9 at03:04–03:05 UTC, the completed native project
+`90c0f895-48de-4b57-8725-4b6f72797633` received a middle choice-summary edit
+through Creator, explicit map confirmation and graph application. Both writes
+returned200 before proceeding. Map r2 hash is
+`5163f4c8313820afe73b9fa2bb34cfd3885f6db49cccd27d95b7be90a314f93b`;
+graph r2 hash is `fe2d9c68acf08fb953f5d6fe484ba2e507dca389d47339185606055144cfad2f`.
+Production became outdated and SceneBeats/Storyboard stale. All four ingested
+jobs and historical segments remained, but currentness and story selection were
+withdrawn. This is successful invalidation, not a completed rebuild.
+
+Playback correctly refused old media but incorrectly directed the author to
+review four missing clips. Root cause: PlayView projected retained payloads
+without checking installed-production authority and canonical staleness.
+The repair checks both before media projection and points to explicit rebuild
+and fresh review. Unknown authority remains closed with read-only retry; ready
+direct canonical content does not require an installation record. No backend
+contract or historical job is rewritten. Independent source review found no
+defects; its two suggested regression gaps were added. Six focused and839 full
+frontend tests, types, isolated build and diff checks pass. A first test fixture
+used the nonexistent `demoProject.graph`; typechecking caught it and the fixture
+was corrected to `storyGraph`, without changing production behavior.
+
+Root directly inspected the repaired stale-playback page at1700×900,1280×768
+and1280×460. Heading, explanation and rebuild link were visible; no video was
+admitted. Evidence: `revise-outdated-playback-misdirection.png` and
+`revise-outdated-playback-{1700x900,1280x768,1280x460}.png` under the main
+checkout's `output/playwright/native-intent-2026-10-08/`. Full browser gates and
+normal-service publication of this repair remain pending.
+
+Next, the UI refused inserting a fifth node against the Brief's four-node
+budget, with an actionable explanation and no graph write. The directly viewed
+`revise-insert-budget-refusal.png` records it. Root cancelled, opened Brief and
+explicitly confirmed raising only nodeBudget4→8. The PATCH returned200 at
+03:15:10UTC with project r2; the graph and other Brief fields were retained.
+An initial automation wait targeted PUT `/brief` rather than the actual
+confirmation and PATCH endpoint; it timed out before any Brief write. The
+visible confirmation was then read and submitted once with the correct ACK.
+Structural revision, character/reference changes and rebuilt playback remain open.
+
 ## Dedicated whole-product visual and text audit added
 
 Owner-requested scope: execute E22.1–E22.7 as part of this full E2E run, including
