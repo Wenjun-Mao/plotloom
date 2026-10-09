@@ -2,7 +2,9 @@
 
 Status: accepted by the owner, 2026-10-09; implemented and independently source/
 pixel reviewed in the retained candidate; isolated served-build qualified;
-native authorization/playback qualification pending.
+native HOLD → explicit AUTHORIZE → exact frozen H3 → original/segment and revised
+route playback qualified in the disposable Board3 run. Creative/audio acceptance
+remains separate.
 
 ## Problem
 
@@ -67,3 +69,5 @@ GET preserves authored fields; temporary read withdrawal cannot reset them or
 authorize operations. Exact changed targets reset the comparisons. Source
 qualification and remaining native boundaries are recorded in the
 [scoped receipt](../verification/2026-10-09-explicit-unassessable-identity-review.md).
+The actual hand-only transition and native chain are recorded in the
+[Board3 continuation](../verification/2026-10-09-review-bound-bridge-and-board3-media.md).

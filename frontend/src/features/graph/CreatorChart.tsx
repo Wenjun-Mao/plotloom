@@ -3,8 +3,8 @@ import type { PointerEvent } from "react";
 import { useGraphWorkbench } from "./GraphWorkbenchContext";
 import { CARD_WIDTH, CARD_HEIGHT, type CreatorLayout } from "./creatorLayout";
 import type { CreatorEdit } from "./CreatorEditDialog";
+import { storyNodeKindLabels } from "./presentation";
 
-const names = { start: "开场", scene: "故事发展", decision: "选择点", join: "汇合", ending: "结局" };
 export function CreatorChart({ layout, disabled, onEdit }: { layout: CreatorLayout; disabled: boolean; onEdit: (action: CreatorEdit) => void }) {
   const owner = useGraphWorkbench(), draft = owner.draft!, root = useRef<HTMLDivElement>(null);
   const dragging = useRef<{ source: string; startX: number; startY: number } | null>(null);
@@ -33,7 +33,7 @@ export function CreatorChart({ layout, disabled, onEdit }: { layout: CreatorLayo
       const node = draft.mapping.topology.nodes.find(node => node.id === placed.id)!, section = draft.mapping.sections.find(section => section.sectionId === placed.id)!;
       const inputs = draft.mapping.topology.edges.filter(edge => edge.targetNodeId === node.id);
       return <article key={node.id} data-creator-node={node.id} data-rank={placed.rank} className={`creator-node ${node.kind}${owner.selectedNodeId === node.id ? " selected" : ""}${placed.detached ? " detached" : ""}`} style={{ left: placed.x, top: placed.y, width: CARD_WIDTH, height: CARD_HEIGHT }}>
-        <button type="button" className="creator-node-select" aria-label={`选择节点 ${section.title || node.id}`} aria-pressed={owner.selectedNodeId === node.id} onClick={() => owner.selectNode(node.id)}><span>{names[node.kind]}{placed.detached ? " · 未接入" : ""}</span><strong title={section.title}>{section.title || "待填写标题"}</strong><small>{section.footageMode === "route_only" ? "路线控制 · 无需拍摄" : section.summary || "待填写剧情"}</small></button>
+        <button type="button" className="creator-node-select" aria-label={`选择节点 ${section.title || node.id}`} aria-pressed={owner.selectedNodeId === node.id} onClick={() => owner.selectNode(node.id)}><span>{storyNodeKindLabels[node.kind]}{placed.detached ? " · 未接入" : ""}</span><strong title={section.title}>{section.title || "待填写标题"}</strong><small>{section.footageMode === "route_only" ? "路线控制 · 无需拍摄" : section.summary || "待填写剧情"}</small></button>
         <button type="button" className="creator-port input" aria-label={`修改 ${section.title || node.id} 的输入`} title="逐条选择新的精确输入" disabled={disabled || node.id === draft.mapping.topology.startNodeId} onClick={() => onEdit({ type: "connection", nodeId: node.id, endpoint: "source", edgeId: inputs.length === 1 ? inputs[0].id : null })}>↑</button>
         <button type="button" className="creator-port output" aria-label={`连接 ${section.title || node.id} 的后续`} title="点击编辑后续，或拖到目标节点" disabled={disabled || node.kind === "ending"}
           onPointerDown={event => { if (event.button !== 0) return; event.preventDefault(); dragging.current = { source: node.id, startX: event.clientX, startY: event.clientY }; event.currentTarget.setPointerCapture(event.pointerId); }}

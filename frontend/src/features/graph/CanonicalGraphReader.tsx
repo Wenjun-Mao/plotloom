@@ -3,6 +3,7 @@ import { ReactFlow, MarkerType } from "@xyflow/react";
 import { Field } from "../../components";
 import { graphEntityKey, graphFocusKey, graphIssueTarget } from "../../graph-editor";
 import type { StoryGraph, ValidationIssue } from "../../types";
+import { footageModeLabels, storyNodeKindLabels } from "./presentation";
 
 export function CanonicalGraphReader({ value, issues = [], onEntitySelect }: { value: StoryGraph; issues?: ValidationIssue[]; onEntitySelect?: (identity: string) => void }) {
   const root = useRef<HTMLDivElement>(null), signature = JSON.stringify(issues);
@@ -20,7 +21,7 @@ export function CanonicalGraphReader({ value, issues = [], onEntitySelect }: { v
       edges={value.edges.map(edge => ({ id: edge.id, source: edge.sourceNodeId, target: edge.targetNodeId, label: edge.choiceText, markerEnd: { type: MarkerType.ArrowClosed } }))} />
     </div>
     <details open><summary>节点、关系与汇合合同</summary>
-      {value.nodes.map(node => <section key={node.id}><strong>{node.id} · {node.kind} · {node.footageMode}</strong>
+      {value.nodes.map(node => <section key={node.id}><strong>{node.id} · {storyNodeKindLabels[node.kind]} · {footageModeLabels[node.footageMode]}</strong>
         <Field label="章节标题"><input readOnly value={node.title} data-focus-key={graphFocusKey({ kind: "node", id: node.id }, "title")} /></Field>
         <Field label="剧情摘要"><textarea readOnly value={node.summary} /></Field>
       </section>)}

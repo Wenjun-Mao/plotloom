@@ -3,8 +3,8 @@ import { Button } from "../../components";
 import { useGraphWorkbench } from "./GraphWorkbenchContext";
 import { GraphSafetyNotice } from "./GraphSafetyNotice";
 import { GraphPreviewRecovery } from "./GraphPreviewRecovery";
+import { footageModeLabels, storyNodeKindLabels } from "./presentation";
 
-const kinds = { start: "开场", scene: "故事发展", decision: "选择点", join: "汇合点", ending: "结局" };
 export function GraphCommandDialog() {
   const owner = useGraphWorkbench(), dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => { if (owner.preview && dialog.current && !dialog.current.open) dialog.current.showModal(); }, [owner.preview]);
@@ -15,7 +15,7 @@ export function GraphCommandDialog() {
     if (id === null) return "待连接";
     const mapping = result ? proposed : beforeMapping, node = mapping.topology.nodes.find(node => node.id === id);
     const title = mapping.sections.find(section => section.sectionId === id)?.title.trim();
-    return title || `${impact.addedNodeIds.includes(id) ? "新建" : "待命名"}${node ? kinds[node.kind] : "节点"}（待填写标题）`;
+    return title || `${impact.addedNodeIds.includes(id) ? "新建" : "待命名"}${node ? storyNodeKindLabels[node.kind] : "节点"}（待填写标题）`;
   };
   const beforeNodes = new Map(beforeMapping.topology.nodes.map(node => [node.id, node]));
   const afterNodes = new Map(proposed.topology.nodes.map(node => [node.id, node]));
@@ -27,12 +27,12 @@ export function GraphCommandDialog() {
       || beforeSections.get(id)?.footageMode !== afterSections.get(id)?.footageMode);
   });
   const footageMode = (mode: "footage" | "route_only" | undefined) =>
-    mode === "footage" ? "包含画面" : mode === "route_only" ? "仅路线控制点" : "未设置";
+    mode ? footageModeLabels[mode] : "未设置";
   const nodeChanges = changedNodeIds.map(id => {
     const before = beforeNodes.get(id)!, after = afterNodes.get(id)!;
     const beforeSection = beforeSections.get(id), afterSection = afterSections.get(id);
     const changes = [];
-    if (before.kind !== after.kind) changes.push(`类型 ${kinds[before.kind]} → ${kinds[after.kind]}`);
+    if (before.kind !== after.kind) changes.push(`类型 ${storyNodeKindLabels[before.kind]} → ${storyNodeKindLabels[after.kind]}`);
     if (beforeSection?.footageMode !== afterSection?.footageMode) {
       changes.push(`画面 ${footageMode(beforeSection?.footageMode)} → ${footageMode(afterSection?.footageMode)}`);
     }

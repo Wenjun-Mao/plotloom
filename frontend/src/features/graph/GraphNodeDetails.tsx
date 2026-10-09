@@ -6,6 +6,7 @@ import { GraphJoinFields } from "./GraphJoinFields";
 import { newGraphId } from "./contracts";
 import { bypassUnavailableReason } from "./deletionEligibility";
 import type { StoryNode } from "../../types";
+import { storyNodeKinds, storyNodeKindLabels } from "./presentation";
 
 export function GraphNodeDetails({ disabled }: { disabled: boolean }) {
   const owner = useGraphWorkbench(), mapping = owner.draft?.mapping;
@@ -37,7 +38,7 @@ export function GraphNodeDetails({ disabled }: { disabled: boolean }) {
       <Field label="节点类型"><select disabled={disabled || node.kind === "start"} value={node.kind} onChange={event => {
         const kind = event.target.value as Exclude<StoryNode["kind"], "start">;
         void owner.prepareCommand({ operation: "set_kind", nodeId: node.id, kind, footageMode: kind === "scene" || kind === "ending" ? "footage" : section.footageMode });
-      }}>{["start", "scene", "decision", "join", "ending"].map(kind => <option key={kind} disabled={kind === "start" && node.kind !== "start"} value={kind}>{kind}</option>)}</select></Field>
+      }}>{storyNodeKinds.map(kind => <option key={kind} disabled={kind === "start" && node.kind !== "start"} value={kind}>{storyNodeKindLabels[kind]}</option>)}</select></Field>
       <Button disabled={disabled || node.kind !== "scene"} onClick={() => void owner.prepareCommand({ operation: "set_start", nodeId: node.id })}>明确设为开场</Button>
       <Button disabled={disabled || joins.length > 0} onClick={() => void owner.prepareCommand({ operation: "add_join", joinId: newGraphId(), nodeId: node.id })}>添加汇合合同</Button>
       {joins.map(join => <section key={join.id}><strong>汇合 {join.id}</strong><p>实际输入：{join.incomingNodeIds.join("、") || "待连接"}</p>

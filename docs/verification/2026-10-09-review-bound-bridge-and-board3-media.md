@@ -105,7 +105,7 @@ Root inspected the actual1536×1024 hand-only image and matched output SHA256
 `13e0f6b1f838ac0f48f52c1fd09d59acb31775d0b8a777d8cc7e632f085d344a`
 to its manifest. Job/request and executor pins agree. No face is visible; lamp
 geometry/material and preceding-shot continuity remain provisional. Explicit
-unassessable review is next, not inferred from the worker description. The worker
+unassessable reviews are recorded below, not inferred from the worker description. The worker
 completed in112.935 seconds; staging cleanup refusal preserves the output and
 does not trigger regeneration.
 
@@ -125,9 +125,9 @@ guard check now starts from blank identity/state notes and tests both state-only
 and identity-only refusal before filling both. That prior blank-note change's focused image journey
 and E2E typecheck PASS (one test,22.4 seconds), separately from the8-pass sweep.
 
-## Next execution and remaining coverage
+## Explicit hand-only review and explanatory-field qualification
 
-Actual Opening2 HOLD review`5e0fe916-ea12-4fb5-9ade-a501dfb56622` is current
+Actual Opening2 HOLD review`5e0fe916-ea12-4fb5-9ade-a501dfb56622` initially was current
 and production-ineligible. Initial decision was blank/submit disabled; review
 recorded201 with nonblank identity/state observations and uncertainty rationale.
 Still creation was disabled; actual H3 source-preview request returned409 with
@@ -149,21 +149,107 @@ the actual saved HOLD history. Served JS SHA256
 `02c065724f2b71117224b571dfb7772c7c544576e2c49777131beb211e41a48c`
 matches the checked build. This qualifies presentation, not production authorization.
 
-Freeze this qualified wording/checklist candidate and reload only the isolated
-UI. Complete four Board3 ImageGen→H3 chains in total: Opening1 is already
-ingested, played and selected; use
-the already-delivered Opening2 image for its first H3 request, followed by West
-and East. Do not regenerate or duplicate Opening1. Opening2's intentional hand-only
-image uses the explicit unassessable decision: nonblank identity-comparison notes
-explain why identity cannot be compared; shot-state notes are present; separate
-`productionDecision` and `uncertaintyReason` are recorded. Never identity PASS;
-initial blank fields are not evidence. Review frozen prompt, exact timing,
-contain-pad geometry, no-endframe decision and each actual original/segment before
-explicit functional selection. Verify both complete revised routes and same-node
-multishot playback, then applicable recovery and remaining E22 states.
+Root then recorded explicit unassessable AUTHORIZE review
+`d0f779b4-ceb3-4bfc-9ec8-d436fb2bf419`, review revision11, against exact binding
+`594bf8ee-c2b8-437b-bed3-ef6956dbe2c0`. Nonblank comparison and shot-state notes
+and uncertainty rationale identify Codex functional QA, not human creative
+acceptance. This supersedes the retained HOLD, never converts it to PASS. Actual
+source preview returned200. H3 freezes this exact eligible review ID.
+
+## Four fresh native chains and both revised routes
+
+At executable`19bcc41`, all four Board3 originals were prepared/submitted once,
+ingested, naturally played to trusted native `ended`, and explicitly selected
+as exact120-frame/five-second playback segments. No uncertain dispatch was retried.
+Originals are124 frames/5.167 seconds/960×544/H264/AAC. Segments are120 frames,
+5.000 seconds and160,000 decoded32kHz audio samples; audio was enabled, but
+perceptual/semantic audio acceptance is not inferred. No browser media error
+occurred. Native chain identities follow; Opening1 is recorded above.
+
+| Cut | Native ImageGen / candidate | Exact H3 / selected segment |
+|---|---|---|
+| Opening2 | `ij_607cc298b7d14b2c9b8c09c4e881c179` / `3f86a2e2-8b7a-42a8-bf87-bf98e2783402` | `vj_fa3c8611cc4a432fa9218d3ffad45a5c` / `3563e23a-c8f1-4d35-8e13-452a3824c7a1` |
+| West | `ij_98ee63d279e94cf286bfc54bf8cc0c00` / `022f1133-4235-4e41-81df-57e34027d2e1` | `vj_af83f442cca746edb8c3719b2f647755` / `9a088899-ac09-4c91-9d1c-fbb9b3dd7f15` |
+| East | `ij_ae7e74645553425f9b0dfff07519a11b` / `83fd5865-ea1f-457c-ad37-1fe4b283f6ca` | `vj_33b3a744283846a583c09e2a42e9cb70` / `6c57d07b-e8c0-467c-9b57-a2c25317f14c` |
+
+Opening2 H3 request SHA256
+`98b40e133dbdd2bf517b6676c7220c4c1c1fdaf2284e304e82157d5eb4d67637`,
+prompt`e8267384324f94c289c5e77a7b4247a0a1c5b47da679c5646aefbf8a62d7a8fc`,
+original`2a913aaef32844eb9fc1fda90d3f06e417bad8e1a617f92146b79cb10a76c0ce`,
+segment`12274a93987a77dded0bf6bc98a85e79b4a6eb2f7568d6ccd1082d6102fc1531`.
+Seed3245068927388767; explicit selected revision2/current=true. The model turns
+the left lamp red before the choice, violating the authored pending/no-activation
+state. This is retained H3 action-fidelity failure, not repaired or accepted quality.
+
+West's actual image and frozen C01 reference were inspected and output hash
+`7f9116da4c8a32d74707dbfa38196d989e9227a35c14717082c5d9e0300d967f`
+matched its manifest. Visible anchors pass only the fictional-reference comparison.
+Binding`bfd3b7fd-64ce-400b-a8dc-ce93d65431d0` freezes review
+`16a8cc7b-f162-4e88-8d0b-2586e8038200`, revision12.
+H3 request`5cf906beb585a09b2d24859ac284d44fa99620fa92c33f7577fabc69ab024a09`,
+prompt`7daa60d24f9090a97c0b07cdddd6e419bfac21074639a00adf8d081df068d990`,
+original`66486b34ab3548f2887d8fe18b1ed780849c4c27ebf3281034603c6187ca8db9`,
+segment`e2ae4f9e44fdfceccf452a17f32210db18cc9edf933ab63671a148f84372e043`.
+Seed3245068927388768; explicit selected revision3/current=true. Right-light/right-
+turn is visible, but red colour, reframing and added background pillar/prop geometry
+remain unapproved quality findings. No exact inter-shot prop continuity claim.
+
+East's actual image/frozen reference and manifest/executor pins were inspected;
+output hash`6f51b985d47a50dbb634548164a1c9571777d1eaf5b7408d25bfe8b001d04374`
+agrees. Binding`013dc9b6-7750-4dc0-affc-5c34d5141779` freezes review
+`f116e689-048b-413b-9a64-1352cc2b1e6a`, revision13.
+H3 request`61773a017766bc5653a904698c7e848a562c8ee0f14727c4df522a95c35c3dce`,
+prompt`b830bce6a5fba8bb495550cf138ec662cadb4c5d2e613f68dba3c291757c27a6`,
+original`84d268acec9d5291f09bc89399bff2cea9ef57fceea17456447ec7d340bc93c5`,
+segment`bcc48d411aab6001f327f30647526bc15c74762c5e86ad11b97ae62d3b2bb65d`.
+Seed3245068927388769; prepared segment201 at20:10:10Z and selected once201,
+revision2/current=true. Left amber lamp/right-off/leftward turn are visible; hand
+movement and provisional bracket/tiers are not exact authored action/prop proof.
+All requests use quality8, contain-pad and no end frame; original bytes retained.
+
+Actual Play UI ran Opening1 → Opening2 → pause at the current source question,
+then East to its ending; restart reset history and ran the same shared two-shot
+node → pause → West to its ending. Each route yielded exactly three trusted native
+`ended` events at5.000 seconds each, unmuted, zero dropped frames and no error.
+No synthetic `ended`, current-time jumping or controller advancement. Both route
+choices and histories match current r12/Board3. This separately qualifies same-node
+multishot advancement and full revised-route playback, not just standalone preview.
+Root directly inspected choice/terminal/bottom controls at1700×900 and1280×768;
+no document-width overflow. Short-desktop and final-candidate pixels remain next.
+Evidence is in`output/playwright/board3-r12-2026-10-09/`, including
+`revised-shared-opening-choice-*.png`,`revised-east-route-ended-*.png` and
+`revised-west-route-ended-*.png` plus each original/segment terminal capture.
+
+## Next execution and remaining coverage
+
+The native empty structural QA graph reproduced raw`start`/`scene`/`decision`
+labels in endpoint and node-type controls. The presentation owner lacked a shared
+kind map: some graph views translated locally, others printed domain enum values.
+One graph-local exhaustive typed display map now owns Chinese node-kind and footage-
+mode labels across Creator, detail/edit/preview dialogs and the accepted reader.
+Enum option values, command bodies, node IDs, CSS identities and persistence are
+unchanged; no compatibility/defaulting behavior. Four new regressions cover all
+five kinds, both footage modes, creation/reuse/continuation endpoints and exact
+`set_kind` command identity. Eleven focused and1,019 full frontend tests PASS;
+application/E2E types, deterministic build, Python16 and diff hygiene PASS.
+Independent read-only source review closed with no actionable findings; the reviewer
+used inherited model/effort and did not rerun gates. Root reloaded only the isolated
+structural QA page and inspected endpoint-control captures at all three desktop
+sizes; page-width overflow is absent. The short desktop requires normal page scroll
+to bring the inspector into usable height; clipped initial-top capture is not a
+claim of usable lower controls. Static served/checked SHA256 matches
+`9a1a714f4579fdc65cc0267c18ff49f17f830058ab8fec7a83aeb6a0a8fabb1b`.
+The final unfiltered browser gate remains due for this later presentation delta.
+
+The four fresh media chains and both revised routes are functionally exercised;
+do not regenerate for count or for E22. Continue applicable recovery and remaining
+E22 states, including final-candidate short-desktop inspection. Preserve separately
+documented unavailable E12 model inference and downstream Scene/Prop reference
+consumption gaps; software playback does not close them or creative acceptance.
 
 The pinned owned renderer fork is implemented at4f9b2128, but the accepted native
 Storyboard delivery remains frozen at266af294/report SHA8ac6996b. Its old skipped-
 gate count limitation is retained. New pure-render QA is not substituted delivery.
-Actual OS blur, broader sibling/edge/type stress cases and a30–90-second unscripted
-route remain explicitly unqualified until executed. There is no phone/1024px work.
+Actual OS blur, broader sibling/edge/type stress cases and30–90 seconds of unscripted
+UI exploration remain explicitly unqualified until executed. The exploration is
+not a30–90-second video/story requirement. There is no phone/1024px work.

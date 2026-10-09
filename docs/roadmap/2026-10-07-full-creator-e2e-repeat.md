@@ -9,7 +9,7 @@ owner-data protection remain required before publication.
 ## Reusable playbook and current continuation profile
 
 Current owner decisions (October9): explicit unassessable identity review may
-authorize production with a separate recorded human decision, never a fabricated
+authorize production with a separate recorded reviewer decision, never a fabricated
 PASS ([ADR0146](../adr/0146-explicit-unassessable-identity-review.md)). Own a narrow
 renderer fork based on the current qualified pin, without adopting upstream's
 breaking release ([ADR0147](../adr/0147-owned-pinned-report-renderers.md)). Both

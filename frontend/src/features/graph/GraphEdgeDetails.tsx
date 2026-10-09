@@ -1,6 +1,7 @@
 import { Button, Field } from "../../components";
 import { useGraphWorkbench } from "./GraphWorkbenchContext";
 import type { DraftEdge } from "./contracts";
+import { storyNodeKindLabels } from "./presentation";
 
 export function GraphEdgeDetails({ edge, disabled }: { edge: DraftEdge; disabled: boolean }) {
   const owner = useGraphWorkbench(), draft = owner.draft!;
@@ -32,7 +33,7 @@ export function GraphEdgeDetails({ edge, disabled }: { edge: DraftEdge; disabled
     {(["source", "target"] as const).map(endpoint => <Field key={endpoint} label={endpoint === "source" ? "输入来自" : "输出通往"}>
       <select aria-label={`${edge.id} ${endpoint === "source" ? "起点" : "终点"}`} disabled={disabled} value={(endpoint === "source" ? edge.sourceNodeId : edge.targetNodeId) ?? ""}
         onChange={event => void owner.prepareCommand({ operation: "retarget", edgeId: edge.id, endpoint, nodeId: event.target.value || null })}>
-        <option value="">待连接</option>{nodes.map(node => <option key={node.id} value={node.id}>{title(node.id)} · {node.kind}</option>)}
+        <option value="">待连接</option>{nodes.map(node => <option key={node.id} value={node.id}>{title(node.id)} · {storyNodeKindLabels[node.kind]}</option>)}
       </select>
       {owner.draft?.detachedEndpoints[edge.id]?.[endpoint] && <small>保留原{endpoint === "source" ? "起点" : "目标"}：{owner.draft.detachedEndpoints[edge.id][endpoint]!.title || owner.draft.detachedEndpoints[edge.id][endpoint]!.nodeId}</small>}
     </Field>)}
