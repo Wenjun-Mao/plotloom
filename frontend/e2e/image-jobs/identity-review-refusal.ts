@@ -19,7 +19,7 @@ export async function inspectIdentityReviewRefusal(
   const production = page.locator("#video-production");
   if (await production.getAttribute("open") === null) await production.locator("summary").first().click();
   await page.getByLabel("H3 时长（已审核）").selectOption("8");
-  await page.getByRole("radio", { name: "允许黑边画布（保留当前横幅构图）", exact: true }).check();
+  await page.getByRole("radio", { name: "允许黑边画布（完整保留已审核图）", exact: true }).check();
   const directions = page.getByTestId("h3-directions-review");
   if (await directions.getAttribute("open") === null) await directions.locator("summary").click();
   const panel = page.getByTestId("same-person-review-panel");

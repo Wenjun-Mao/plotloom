@@ -49,7 +49,7 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
 
   const panel = page.getByTestId("video-pilot-panel");
   await panel.locator("#video-production > summary").click();
-  await panel.getByLabel("允许黑边画布（保留当前横幅构图）").check();
+  await panel.getByLabel("允许黑边画布（完整保留已审核图）").check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
   const prepared = await prepareOfflineCandidate(page, panel, projectId);
   await selectPlaybackSegment(panel, prepared.id);

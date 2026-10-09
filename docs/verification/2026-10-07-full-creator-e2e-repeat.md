@@ -8,7 +8,11 @@ and [C50 recovery](2026-10-07-c50-draft-recovery.md) / [C52 project ownership](2
 Dated checkpoints below and the [historical receipt](2026-10-07-full-creator-e2e-repeat-history.md)
 retain earlier failures; historical present-tense claims are not current status.
 
-### Current continuation — October9,16:04UTC
+Latest current authority: the [Board3/r12 receipt](2026-10-09-review-bound-bridge-and-board3-media.md)
+records the new four-cut production and fresh media. The following16:04 table
+remains dated evidence; its older selected clips do not qualify Board3.
+
+### Historical continuation — October9,16:04UTC
 
 The [rebuilt-production receipt](2026-10-09-native-rebuilt-production.md) owns the
 latest native evidence. The first-install four-shot/two-route journey below is

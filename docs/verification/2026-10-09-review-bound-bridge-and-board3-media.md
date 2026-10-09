@@ -53,8 +53,9 @@ The current regression preserves exact accepted bytes, verifies retained status
 and disabled dependent actions after explicit local disposal. It does not weaken
 the upstream currentness contract or relabel the old red run green.
 
-Final unfiltered browser sweep: **pending** at this source freeze. No source edits
-or pin changes are permitted during that sweep or active frozen native generation.
+Final unfiltered browser sweep at executable`e8dd872`: **268 PASS in8.7 minutes**.
+Its retained output is`/private/tmp/plotloom-e8dd872-full-browser/`.
+No source edits or pin changes occurred during that sweep or active generation.
 
 ## Current disposable native authority
 
@@ -78,15 +79,63 @@ and ingested asset`5e7a0a31-9333-4194-bcfc-2e4e89a6d3e8`, SHA256
 Root inspected the actual image and frozen character reference, saved visual
 intent, selected the reviewed keyframe and recorded visible-anchor identity review.
 Medium-wide versus intended medium framing and provisional prop/lighting details
-remain disclosed, not creative-quality approval. No fresh current H3 dispatch is
-claimed at this checkpoint.
+remain disclosed, not creative-quality approval.
+
+Opening1 fresh H3`vj_b36c12da63c34f4b9a8fdda1da0aef3f` was prepared once and
+submitted once. Request hash`88ceea8a2f47ef558387bdbb90725ede31616ab1fe4f7f0c53c33fb25ad59975`,
+prompt hash`c9e25d450aa2653f0ec790b7ae518bb7bbbf2cd9bd045911ca910047f643cb5c`.
+Exact frozen quality8/960×544/five seconds/contain-pad/no end frame and seed
+3245068927388766 preserve the selected portrait image, not an implicit crop.
+One explicit result retrieval ingested the native original:124 frames at24fps,
+5.167 seconds,H264/AAC, output hash
+`25dde7c72d773571a1d8f3133161e20799a70a063153d0d3feb0eac9e58fcc89`.
+Original and exact segment both played to trusted native `ended`,5.167/5.000
+seconds,960×544, without browser media error. Segment
+`198ac92b-1fa4-4700-9723-bc15fae92c5b`, hash
+`9827c86d56fa2f9c29920f5a6ceb427b4ae6b40169a5fa67f26be74d78250509`,
+contains120 frames and160,000 decoded32kHz audio samples. Explicit functional
+selection returned201/current=true/selected=true at selection revision3. The
+review note distinguishes technical playback from owner creative and perceptual
+audio acceptance. Root inspected actual original/segment ended-state pixels.
+
+Opening2 native ImageGen`ij_607cc298b7d14b2c9b8c09c4e881c179`, request hash
+`e90a5e5a1e4b36cf55cf29c231050775b51f7d93274f3b7d023c7f8dc74666b0`,
+delivered and ingested candidate`3f86a2e2-8b7a-42a8-bf87-bf98e2783402`.
+Root inspected the actual1536×1024 hand-only image and matched output SHA256
+`13e0f6b1f838ac0f48f52c1fd09d59acb31775d0b8a777d8cc7e632f085d344a`
+to its manifest. Job/request and executor pins agree. No face is visible; lamp
+geometry/material and preceding-shot continuity remain provisional. Explicit
+unassessable review is next, not inferred from the worker description. The worker
+completed in112.935 seconds; staging cleanup refusal preserves the output and
+does not trigger regeneration.
+
+Root inspected current H3 waiting captures at all three supported desktop sizes,
+with zero document overflow and readable exact submission/history distinction.
+Evidence:`output/playwright/board3-r12-2026-10-09/opening1-h3-wait-*.png` in the
+normal checkout. The live portrait input exposed misleading “保留当前横幅构图”
+padding copy. At an idle checkpoint (native specialist busy=false, no active tasks,
+H3 ingested, full browser finished), the label changes to “完整保留已审核图”.
+Only description changes; padding policy, original bytes and admission do not.
+The portrait-target aspect journey asserts neutral wording and tests all three
+choices. This later copy delta passed frontend1,014, application/E2E types,
+deterministic build, Python16 and all8 affected browser journeys in1.9 minutes.
+Root inspected the three aspect-option captures; no clipping or overflow observed.
+Independent review exposed inherited notes in the offline unassessable case; its
+guard check now starts from blank identity/state notes and tests both state-only
+and identity-only refusal before filling both. Its final focused image journey
+and E2E typecheck PASS (one test,22.4 seconds), separately from the8-pass sweep.
 
 ## Next execution and remaining coverage
 
-Freeze this candidate, run the full browser suite, reload only the isolated UI,
-then execute four fresh ImageGen→H3 chains. Opening2's intentional hand-only
-image uses the implemented explicit unassessable identity decision with separate
-authorization/rationale; never identity PASS. Review frozen prompt, exact timing,
+Freeze this qualified wording/checklist candidate and reload only the isolated
+UI. Complete four Board3 ImageGen→H3 chains in total: Opening1 is already
+ingested, played and selected; use
+the already-delivered Opening2 image for its first H3 request, followed by West
+and East. Do not regenerate or duplicate Opening1. Opening2's intentional hand-only
+image uses the explicit unassessable decision: nonblank identity-comparison notes
+explain why identity cannot be compared; shot-state notes are present; separate
+`productionDecision` and `uncertaintyReason` are recorded. Never identity PASS;
+initial blank fields are not evidence. Review frozen prompt, exact timing,
 contain-pad geometry, no-endframe decision and each actual original/segment before
 explicit functional selection. Verify both complete revised routes and same-node
 multishot playback, then applicable recovery and remaining E22 states.

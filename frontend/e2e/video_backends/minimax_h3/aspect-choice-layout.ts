@@ -8,6 +8,8 @@ export async function inspectAspectChoiceLayout(page: Page, info: TestInfo) {
   const labels = notice.locator("label");
   const radios = notice.getByRole("radio");
   await expect(radios).toHaveCount(3);
+  await expect(notice.getByRole("radio", { name: "允许黑边画布（完整保留已审核图）", exact: true })).toHaveCount(1);
+  await expect(notice).not.toContainText("横幅构图");
   const sourceRead = page.getByTestId("h3-directions-review").getByRole("button", { name: "读取当前来源", exact: true });
   for (const size of [{ width: 1700, height: 900 }, { width: 1280, height: 768 }, { width: 1280, height: 460 }]) {
     await page.setViewportSize(size);

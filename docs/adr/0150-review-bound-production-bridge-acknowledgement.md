@@ -1,7 +1,7 @@
 # ADR 0150: Review-bound production bridge acknowledgement
 
 Status: implemented and independently reviewed, 2026-10-09. Focused qualification
-passes; the final unfiltered browser sweep and native continuation remain open.
+and the final unfiltered 268-test browser sweep pass; native continuation remains open.
 
 ## Problem
 

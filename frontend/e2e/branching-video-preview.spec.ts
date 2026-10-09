@@ -116,7 +116,7 @@ function branchingFixture() {
 }
 
 async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, projectId: string, inFrame: number): Promise<string> {
-  const allowLetterbox = panel.getByLabel("允许黑边画布（保留当前横幅构图）");
+  const allowLetterbox = panel.getByLabel("允许黑边画布（完整保留已审核图）");
   if (!await allowLetterbox.isChecked()) await allowLetterbox.check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
   await freezeReviewedFixtureDirections(panel);

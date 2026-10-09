@@ -273,7 +273,12 @@ this sweep. Loaded content is awaited; initial Source loading and Pro timing
 captures are excluded from qualification. Original creative prose and immutable
 report evidence are not rewritten for cosmetic consistency.
 
-## Current view/state coverage
+## Accumulated view/state coverage
+
+These dated native and fixture slices do not qualify every state of the current
+production. The [Board3/r12 receipt](2026-10-09-review-bound-bridge-and-board3-media.md)
+owns current media authority and its inspected desktop states; no Board2 clip
+or route is carried forward as a current-media PASS.
 
 The [runtime-provider capability checkpoint](2026-10-09-runtime-provider-capabilities.md)
 adds explicit native/unknown/API-enabled availability and six desktop pixels;

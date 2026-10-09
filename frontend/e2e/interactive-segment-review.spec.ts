@@ -127,7 +127,7 @@ async function openShotForReview(page: Page, workbench: Workbench, projectId: st
 async function ingestEightSecondOriginal(page: Page, request: APIRequestContext, workbench: Workbench, projectId: string): Promise<string> {
   const panel = page.getByTestId("video-pilot-panel");
   await panel.locator("details.video-production > summary").click();
-  const letterbox = panel.getByLabel("允许黑边画布（保留当前横幅构图）");
+  const letterbox = panel.getByLabel("允许黑边画布（完整保留已审核图）");
   if (!await letterbox.isChecked()) await letterbox.check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
   await freezeReviewedFixtureDirections(panel);

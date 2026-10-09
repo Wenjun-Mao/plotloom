@@ -9,6 +9,10 @@ export async function inspectUnassessableReview(page: Page, request: APIRequestC
   const binding = media.reviewedKeyframes[0];
   const judgment = panel.getByTestId("same-person-judgment-char_ruanxing");
   const record = panel.getByTestId("record-same-person-review");
+  const identityNotes = panel.getByLabel("身份对比说明");
+  const stateNotes = panel.getByLabel("镜头状态说明");
+  await identityNotes.fill("");
+  await stateNotes.fill("");
   await judgment.selectOption("unassessable");
   const production = panel.getByTestId("same-person-production-char_ruanxing");
   await expect(production).toHaveValue("");
@@ -18,6 +22,14 @@ export async function inspectUnassessableReview(page: Page, request: APIRequestC
   await expect(record).toBeDisabled();
   await panel.getByLabel("构图与身份不确定性说明").fill("此镜头有意只显示双手；无法观察面貌，审阅者接受身份无法辨认的不确定性。测试沿用保留图片，不作原生媒体验收。");
   await production.selectOption("hold");
+  await expect(record).toBeDisabled();
+  await stateNotes.fill("此例仅记录手部首帧，身份仍无法观察。");
+  await expect(record).toBeDisabled();
+  await stateNotes.fill("");
+  await identityNotes.fill("仅双手取景不显示面貌，不能比较角色身份；未判断通过。此为离线功能夹具。");
+  await expect(record).toBeDisabled();
+  await stateNotes.fill("此例单独记录手部与袖口的首帧状态，不推断面貌；不是原生媒体或创作质量验收。");
+  await expect(record).toBeEnabled();
   const save = async () => {
     const pending = page.waitForResponse(response => response.request().method() === "POST" && response.url().endsWith("/same-person-reviews"));
     await record.click();
