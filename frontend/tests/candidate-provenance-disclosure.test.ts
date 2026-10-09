@@ -50,7 +50,7 @@ it.each(declarations)("shot candidate displays %s declaration without selection 
 
 function installGallery(provenance: ManagedAsset["provenance"]) {
   vi.spyOn(plotloomApi, "getProject").mockImplementation(async id => ({ id, brief: { title: id } }) as never);
-  vi.spyOn(plotloomApi, "getCast").mockImplementation(async id => ({ candidate: null, status: "accepted", staleReasons: [], acceptedCast: { revision: 1, candidateJobId: "cast", contentHash: "cast", binding: {}, cast: { characters: [{ id: "keeper", name: "Lin", persona: { personality: ["Careful"], appearance: "Plain coat" } }] }, consumerMappings: [{ castCharacterId: "keeper", consumerCharacterId: "keeper" }] } }) as never);
+  vi.spyOn(plotloomApi, "getCast").mockImplementation(async id => ({ acceptedReviewState: { status: "current", staleReasons: [] }, candidate: null, status: "accepted", staleReasons: [], acceptedCast: { revision: 1, candidateJobId: "cast", contentHash: "cast", binding: {}, cast: { characters: [{ id: "keeper", name: "Lin", persona: { personality: ["Careful"], appearance: "Plain coat" } }] }, consumerMappings: [{ castCharacterId: "keeper", consumerCharacterId: "keeper" }] } }) as never);
   vi.spyOn(plotloomApi, "getCharacterReferences").mockResolvedValue({ states: [], decisions: [] });
   vi.spyOn(plotloomApi, "getCharacterReferenceProposals").mockImplementation(async id => {
     const current = asset(id, id === "A" ? provenance : null);

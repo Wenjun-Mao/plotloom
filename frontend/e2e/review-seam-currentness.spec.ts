@@ -113,17 +113,25 @@ for (const stage of ["cast", "script"] as const) {
     expect(current.status).toBe("prepared");
     expect(current.staleReasons).toEqual([]);
     expect(current[acceptedKey]).toEqual(retained);
+    expect(current.acceptedReviewState).toMatchObject({ status: "retained" });
+    expect(current.acceptedReviewState.staleReasons.length).toBeGreaterThan(0);
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=${stage === "cast" ? "characters" : "source#script"}`);
     const panel = page.getByTestId(`${stage}-review`);
     await expect(panel.getByRole("button", { name: "发送给文字创作助手" })).toBeEnabled();
+    const edit = panel.getByRole("button", { name: stage === "cast" ? "编辑角色设定" : "重新打开剧本", exact: true });
+    await expect(edit).toBeDisabled();
+    await expect(panel.getByRole("status", { name: "创作依据需要更新" })).toContainText(stage === "cast" ? "故事章节映射已变化" : "美术设定版本已变化");
     await writeDelivery(prepared, stage === "cast" ? "characters" : stage, await fixture(`${stage}.json`));
     await json(request.post(`${url}/candidates/${prepared.jobId}/refresh`));
     await page.reload();
     const accept = panel.getByRole("button", { name: stage === "cast" ? "确认使用此角色设定" : "确认使用此剧本" });
     await expect(accept).toBeEnabled();
+    await expect(edit).toBeDisabled();
+    expect((await json(request.get(url))).acceptedReviewState).toMatchObject({ status: "retained" });
     expect((await json(request.get(url)))[acceptedKey]).toEqual(retained);
     await accept.click();
     await expect(panel).toContainText(stage === "cast" ? "已确认角色设定 r2" : "已确认 r2");
+    expect((await json(request.get(url))).acceptedReviewState).toEqual({ status: "current", staleReasons: [] });
     expect(sends()).toBe(0);
   });
 }

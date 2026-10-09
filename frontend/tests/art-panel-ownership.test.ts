@@ -36,7 +36,7 @@ const deliveredStudy: ArtReferenceProposal = {
 };
 
 function artState(projectId: string): ArtReviewState {
-  return {
+  return { acceptedReviewState: { status: "current", staleReasons: [] },
     candidate: null,
     acceptedArt: {
       revision: 1, candidateJobId: "art-1", contentHash: "accepted", acceptedAt: "2026-09-18T00:00:00Z",
@@ -66,6 +66,19 @@ it("uses creator-confirmation wording and selection labels for accepted Art", as
   expect(host.textContent).toContain("新候选需要单独审核并确认，不会自动替换已有设定");
   expect(host.textContent).toContain("按已确认的美术设定生成图片");
   expect([...host.querySelectorAll("button")].some(button => button.textContent === "选用这张环境参考图")).toBe(true);
+});
+
+it("requires fresh Art review for implementation-only staleness without blaming changed author input", async () => {
+  const diagnostic = { code: "art_render_contract_changed", owner: "art", field: null, technicalMessage: "art render contract is not current" } as const;
+  vi.spyOn(plotloomApi, "getArt").mockResolvedValue({ ...artState("old"), status: "stale", staleReasons: [diagnostic], acceptedReviewState: { status: "retained", staleReasons: [diagnostic] } });
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
+  await act(async () => root.render(createElement(ArtPanel, { projectId: "old", readOnly: false, onContinue: vi.fn() })));
+  expect(host.textContent).toContain("重新准备并确认美术设定");
+  expect(host.textContent).not.toContain("候选（可选）");
+  expect(host.querySelector(".stage-guide")?.textContent).toContain("按当前审核要求");
+  expect(host.textContent).not.toContain("上游内容已变化");
+  expect([...host.querySelectorAll("button")].find(b => b.textContent === "重新打开美术提案")?.disabled).toBe(true);
 });
 
 it("settles a deferred F3B send after unmount without refresh, assignment, or error publication", async () => {
@@ -121,7 +134,7 @@ it("settles a deferred explicit F3B reference choice after unmount without a sta
 });
 
 it("guides recovery of a retained dirty Art draft before a newer accepted result", async () => {
-  let current = { ...artState("old"), status: "reopened" as ArtReviewState["status"] };
+  let current: ArtReviewState = { ...artState("old"), status: "reopened", acceptedReviewState: { status: "reopened", staleReasons: [] } };
   vi.spyOn(plotloomApi, "getArt").mockImplementation(async () => current);
   vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [] });
   vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
@@ -134,7 +147,7 @@ it("guides recovery of a retained dirty Art draft before a newer accepted result
     editor.dispatchEvent(new Event("input", { bubbles: true }));
   });
   expect(host.querySelector(".stage-guide")?.textContent).toContain("先保存或明确舍弃美术修改");
-  current = { ...current, status: "accepted", acceptedArt: { ...current.acceptedArt!, revision: 2, contentHash: "new-head" } };
+  current = { ...current, acceptedReviewState: { status: "current", staleReasons: [] }, status: "accepted", acceptedArt: { ...current.acceptedArt!, revision: 2, contentHash: "new-head" } };
   await act(async () => root.render(createElement(ArtPanel, { projectId: "old", readOnly: false, refreshToken: 2, onContinue })));
   const guide = host.querySelector(".stage-guide")!;
   expect(guide.textContent).toContain("保留了基于旧版本的美术草稿");
@@ -150,7 +163,7 @@ it("guides recovery of a retained dirty Art draft before a newer accepted result
 });
 
 it.each(["stale", "reopened", "prepared", "candidate_ready"] as const)("does not authorize reference selection from retained Art while %s", async (status) => {
-  vi.spyOn(plotloomApi, "getArt").mockResolvedValue({ ...artState("old"), status });
+  vi.spyOn(plotloomApi, "getArt").mockResolvedValue({ ...artState("old"), status, acceptedReviewState: { status: status === "reopened" ? "reopened" : "retained", staleReasons: [] } });
   // A retained proposal's flag alone must not confer current Art authority.
   vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [deliveredStudy] });
   vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
@@ -178,7 +191,7 @@ it("keeps reference selection blocked while a retained accepted head is being re
   getArt.mockReturnValueOnce(pending.promise);
   await act(async () => render(2));
   expect(select().disabled).toBe(true);
-  await act(async () => { pending.resolve({ ...artState("old"), status: "stale" }); await pending.promise; });
+  await act(async () => { pending.resolve({ ...artState("old"), status: "stale", acceptedReviewState: { status: "retained", staleReasons: [] } }); await pending.promise; });
   expect(select().disabled).toBe(true);
 });
 

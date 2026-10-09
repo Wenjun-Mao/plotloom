@@ -1,5 +1,6 @@
 import { StaticReportReader } from "../components/StaticReportReader";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AcceptedEvidenceNotice } from "./AcceptedEvidenceNotice";
 import { plotloomApi } from "../api";
 import { Button, Spinner } from "../components";
 import { ReviewContextErrorNotice, ReviewContextNotice, reviewContextFailure, reviewContextNextStep, type ReviewContextFailure } from "./ReviewContextNotice";
@@ -122,17 +123,18 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
     <header><span>剧本</span><strong>{checking ? "正在刷新" : failed ? "无法刷新" : heading(state)}</strong></header>
     {failed && <Button variant="quiet" onClick={() => void recheck()}>重试加载剧本</Button>}
     <p>根据已确认的故事结构编写所有章节；每次完整播放依次经过选择、后续剧情与一个结局。</p>
-    {contextSectionId && <><p>当前节点：{contextSectionId}。准备、发送、结果检查与确认使用影响整份剧本；章节保存仅替换所选稳定章节。</p>{accepted && <ScriptEpisodeView accepted={accepted} sectionId={contextSectionId} />}</>}
+    {contextSectionId && <><p>当前节点：{contextSectionId}。准备、发送、结果检查与确认使用影响整份剧本；章节保存仅替换所选稳定章节。</p>{accepted && <ScriptEpisodeView accepted={accepted} acceptedState={state.acceptedReviewState.status} sectionId={contextSectionId} />}</>}
     {contextSectionId && draftDirty.current && sectionId !== contextSectionId && <p role="status">正在保留 {sectionId} 的未保存章节；切换节点不会将其保存到 {contextSectionId}。请先保存或舍弃当前章节修改。</p>}
-    <StageGuide next={onContinue && <Button variant="quiet" disabled={checking || failed || busy || draftDirty.current || state.status !== "accepted" || !accepted} onClick={onContinue}>继续：分镜评审</Button>}>
-      {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : busy ? "正在处理剧本任务，请稍候。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃章节修改，再继续分镜。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "故事或美术设定已变化，请更新并确认剧本。") : state.status === "accepted" && accepted ? "完整剧本已确认。下一步准备分镜评审；切换页面不会自动生成镜头或媒体。" : candidate?.status === "ready" ? "阅读候选剧本，确认开场、选择和结局表达，再确认使用。" : "准备剧本任务并发送给文字创作助手。返回的剧本须先审阅，再确认使用。"}
+    <StageGuide next={onContinue && <Button variant="quiet" disabled={checking || failed || busy || draftDirty.current || state.acceptedReviewState.status !== "current" || !accepted} onClick={onContinue}>继续：分镜评审</Button>}>
+      {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : busy ? "正在处理剧本任务，请稍候。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃章节修改，再继续分镜。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "请按当前审核要求重新准备并确认剧本。") : state.status === "accepted" && accepted ? "完整剧本已确认。下一步准备分镜评审；切换页面不会自动生成镜头或媒体。" : candidate?.status === "ready" ? "阅读候选剧本，确认开场、选择和结局表达，再确认使用。" : "准备剧本任务并发送给文字创作助手。返回的剧本须先审阅，再确认使用。"}
     </StageGuide>
     <ReviewContextNotice projectId={projectId} diagnostics={state.staleReasons} />
+    {state.candidate && <AcceptedEvidenceNotice projectId={projectId} state={state.acceptedReviewState} />}
     {!candidate && state.status !== "reopened" && <Button variant="primary" disabled={readOnly || busy} onClick={prepare}>准备剧本任务</Button>}
     {candidate?.status === "prepared" && <SpecialistTaskActions projectId={projectId} stage="script" jobId={candidate.jobId} disabled={readOnly || busy} sendDisabled={state.status === "stale"} onDelivered={recheck} />}
     {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} stale={state.status === "stale"} busy={busy} run={run} />}
     {candidate?.status === "ready" && <><ScriptJson title="查看待审阅剧本" script={candidate.script} /><p>确认使用此剧本会确认整份故事结构中的所有章节。</p></>}
-    {accepted && <AcceptedReview accepted={accepted} projectId={projectId} readOnly={readOnly || state.status === "stale"} busy={busy} status={state.status} retained={retained} sectionId={sectionId} draft={draft} onSelect={selectSection} onDraft={editDraft} onReopen={() => run(() => plotloomApi.reopenScript(projectId, accepted.revision))} onSave={save} />}
+    {accepted && <AcceptedReview accepted={accepted} projectId={projectId} readOnly={readOnly || state.acceptedReviewState.status === "retained"} busy={busy} status={state.acceptedReviewState.status} retained={retained} sectionId={sectionId} draft={draft} onSelect={selectSection} onDraft={editDraft} onReopen={() => run(() => plotloomApi.reopenScript(projectId, accepted.revision))} onSave={save} />}
     {retained && draftBase && <section aria-label="保留的未保存章节">
       <p>保留的未保存章节基于剧本 r{draftBase.revision} · {sectionId}。当前上下文已变化，保存已停用；原草稿不会自动替换为新版本。</p>
       <textarea aria-label="保留的章节草稿" className="source-outline-json" rows={12} readOnly value={draft} />
@@ -158,11 +160,11 @@ function CandidateActions({ candidate, projectId, readOnly, stale, busy, run }: 
   return null;
 }
 
-function AcceptedReview({ accepted, projectId, readOnly, busy, status, retained, sectionId, draft, onSelect, onDraft, onReopen, onSave }: { accepted: AcceptedScriptRevision; projectId: string; readOnly: boolean; busy: boolean; status: ScriptReviewState["status"]; retained: boolean; sectionId: string; draft: string; onSelect: (sectionId: string) => void; onDraft: (draft: string) => void; onReopen: () => void; onSave: () => void }) {
+function AcceptedReview({ accepted, projectId, readOnly, busy, status, retained, sectionId, draft, onSelect, onDraft, onReopen, onSave }: { accepted: AcceptedScriptRevision; projectId: string; readOnly: boolean; busy: boolean; status: ScriptReviewState["acceptedReviewState"]["status"]; retained: boolean; sectionId: string; draft: string; onSelect: (sectionId: string) => void; onDraft: (draft: string) => void; onReopen: () => void; onSave: () => void }) {
   const editing = status === "reopened";
   return <section>
-    <small>已确认 r{accepted.revision} · hash {accepted.contentHash.slice(0, 12)}。可在下方查看当前剧本；原始报告保留最初交付的版本，可能与后续修改不同。</small>
-    <ScriptJson title="查看当前已确认剧本" script={accepted.script} />
+    <small>{status === "retained" ? "保留的已确认剧本" : "已确认剧本"} r{accepted.revision} · hash {accepted.contentHash.slice(0, 12)}。原始报告保留最初交付的版本，可能与后续修改不同。</small>
+    <ScriptJson title={status === "retained" ? "查看保留的已确认剧本" : "查看当前已确认剧本"} script={accepted.script} />
     {!editing && <Button variant="quiet" disabled={readOnly || busy} onClick={onReopen}>重新打开剧本</Button>}
     {editing && !retained && <SectionEditor accepted={accepted} disabled={readOnly || busy} sectionId={sectionId} draft={draft} onSelect={onSelect} onDraft={onDraft} onSave={onSave} />}
   </section>;

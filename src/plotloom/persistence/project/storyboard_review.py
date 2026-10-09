@@ -13,6 +13,7 @@ from sqlalchemy import select
 from ...authored_route_timing import validate_route_seconds
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
+from ...accepted_review_state import accepted_review_state
 from ...domain import contains_secret_setting, contains_secret_value, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...script_contracts import AcceptedScriptRevision, ScriptBinding
@@ -95,9 +96,10 @@ class ProjectStoryboardReviewPersistence:
             accepted = session.scalar(select(StoryboardReviewRevisionRow).where(StoryboardReviewRevisionRow.project_id == project_id, StoryboardReviewRevisionRow.revision == head.revision)) if head.revision else None
             # A current replacement candidate is the active review seam even
             # when the retained accepted revision is stale historical evidence.
-            raw_binding = candidate.binding if candidate else accepted.binding if accepted else None
-            stale = self._stale(session, project_id, StoryboardReviewBinding.model_validate(raw_binding)) if raw_binding else []
-            return StoryboardReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_review=self._accepted(accepted) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
+            accepted_stale = self._stale(session, project_id, StoryboardReviewBinding.model_validate(accepted.binding)) if accepted else []
+            stale = self._stale(session, project_id, StoryboardReviewBinding.model_validate(candidate.binding)) if candidate else accepted_stale
+            accepted_state = accepted_review_state(exists=accepted is not None, candidate_active=candidate is not None, head_status=head.status, stale_reasons=accepted_stale)
+            return StoryboardReviewState(accepted_review_state=accepted_state, candidate=self._candidate(candidate) if candidate else None, accepted_review=self._accepted(accepted) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
 
     def prepare_candidate(self, project_id: str, job_id: str, *, max_cut_seconds: int = 8, execution_pin: dict[str, str]) -> tuple[StoryboardReviewCandidate, CreativeHandoffRequest]:
         with self._access.leases.lifecycle_write() as session:

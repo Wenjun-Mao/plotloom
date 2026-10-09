@@ -1,6 +1,7 @@
 import { ProjectReportFrame } from "../components/ProjectReportFrame";
 import { useEffect, useRef, useState } from "react";
 
+import { AcceptedEvidenceNotice } from "./AcceptedEvidenceNotice";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
 import type { AcceptedCastRevision, ArtRenderStyle, CastReviewState } from "../types";
@@ -90,8 +91,9 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
     {reviewDraft.notice}
     <header className="cast-panel-heading"><div><span className="eyebrow">角色设定</span><h2>{taskLabel}</h2></div><span className={`reference-state ${state.status === "stale" ? "historical" : state.status === "accepted" ? "selected" : "candidate"}`}>{loadError ? "无法刷新" : state.status === "stale" ? "需更新" : state.status === "accepted" ? "已确认" : state.status === "reopened" ? "编辑中" : candidate?.status === "ready" ? "待审核" : candidate?.status === "prepared" ? "任务未交付" : "待准备"}</span></header>
     <ReviewContextNotice projectId={projectId} diagnostics={state.staleReasons} />
-    {accepted && <AcceptedCastSummary accepted={accepted} current={!loadError && state.status === "accepted"} onEdit={() => act(() => plotloomApi.reopenCast(projectId, accepted.revision), undefined, true)} disabled={readOnly || busy || state.status !== "accepted"} />}
-    {accepted && state.status === "stale" && <p className="action-prerequisite">故事依据已变化，不能直接编辑旧版本。请准备新的角色设定任务，审核后确认；原设定与图片仍保留。</p>}
+    {state.candidate && <AcceptedEvidenceNotice projectId={projectId} state={state.acceptedReviewState} />}
+    {accepted && <AcceptedCastSummary accepted={accepted} current={!loadError && state.acceptedReviewState.status === "current"} onEdit={() => act(() => plotloomApi.reopenCast(projectId, accepted.revision), undefined, true)} disabled={readOnly || busy || state.acceptedReviewState.status !== "current"} />}
+    {accepted && state.status === "stale" && <p className="action-prerequisite">当前审核依据需要更新，不能直接编辑旧版本。请准备新的角色设定任务，审核后确认；原设定与图片仍保留。</p>}
     {accepted?.reportAvailable && <AcceptedCastReport projectId={projectId} accepted={accepted} />}
     {!candidate && state.status !== "reopened" && <section className="cast-next-action"><div><strong>准备角色设定任务</strong><small>{ownerReadOnly ? "此项目为只读，不能准备或发送角色设定任务。" : "选择角色图像的表现形式，再准备并发送任务。项目简报中的视觉要求会一并带入，结果需要你审核确认。"}</small><label>角色图像风格<select aria-label="角色图像风格" value={renderStyle} disabled={readOnly || busy} onChange={event => setRenderStyle(event.target.value as ArtRenderStyle | "")}><option value="">请选择</option><option value="live-action">真人写实</option><option value="realistic">半写实厚涂</option><option value="ghibli">吉卜力式动画</option></select></label></div><Button variant="quiet" disabled={readOnly || busy || !renderStyle} onClick={() => renderStyle && act(() => plotloomApi.prepareCastCandidate(projectId, renderStyle), (result) => setAssignment(result.assignment))}>准备角色设定任务</Button></section>}
     {candidate && <>

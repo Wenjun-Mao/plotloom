@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 from pydantic import Field, model_validator
 
+from .accepted_review_state import AcceptedReviewState
 from .domain import CamelModel
 from .review_context_diagnostics import ReviewContextDiagnostic
 from .script_contracts import ScriptBinding, ScriptSectionBinding
@@ -63,6 +64,7 @@ class AcceptedStoryboardReviewRevision(CamelModel):
 
 
 class StoryboardReviewState(CamelModel):
+    accepted_review_state: AcceptedReviewState
     candidate: StoryboardReviewCandidate | None = None
     accepted_review: AcceptedStoryboardReviewRevision | None = None
     status: StoryboardReviewStatus

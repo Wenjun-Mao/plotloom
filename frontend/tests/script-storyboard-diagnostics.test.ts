@@ -20,10 +20,10 @@ const target: ReviewContextDiagnostic = { code: "binding_value_changed", owner: 
 function setup(stage: "script" | "storyboard", status: "missing" | "stale", diagnostic: ReviewContextDiagnostic) {
   const staleReasons = status === "stale" ? [diagnostic] : [];
   if (stage === "script") {
-    vi.spyOn(plotloomApi, "getScript").mockResolvedValue({ status, candidate: null, acceptedScript: null, staleReasons });
+    vi.spyOn(plotloomApi, "getScript").mockResolvedValue({ status, candidate: null, acceptedScript: null, staleReasons, acceptedReviewState: { status: "missing", staleReasons: [] } });
     return createElement(ScriptPanel, { projectId: "project", readOnly: false, onContinue: vi.fn() });
   }
-  vi.spyOn(plotloomApi, "getStoryboardSourceReview").mockResolvedValue({ status, candidate: null, acceptedReview: null, staleReasons });
+  vi.spyOn(plotloomApi, "getStoryboardSourceReview").mockResolvedValue({ status, candidate: null, acceptedReview: null, staleReasons, acceptedReviewState: { status: "missing", staleReasons: [] } });
   return createElement(StoryboardReviewPanel, { projectId: "project", readOnly: false, onInstalled: vi.fn() });
 }
 
@@ -43,7 +43,7 @@ it.each([
   expect(notice.querySelector("details")?.textContent).toContain(diagnostic.technicalMessage);
   const guide = host.querySelector(".stage-guide")!;
   expect(guide.textContent).not.toContain(diagnostic.technicalMessage);
-  if (diagnostic === target) expect(guide.textContent).toContain("请更新并确认剧本");
+  if (diagnostic === target) expect(guide.textContent).toContain("请按当前审核要求重新准备并确认剧本");
   else expect(guide.textContent).toContain(`请先到“${owner}”`);
   if (stage === "script") expect([...host.querySelectorAll("button")].find(button => button.textContent === "继续：分镜评审")?.disabled).toBe(true);
 });

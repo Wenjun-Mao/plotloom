@@ -37,7 +37,7 @@ def test_every_storyboard_binding_field_has_an_explicit_diagnostic_owner() -> No
 @pytest.mark.parametrize("model", [ScriptReviewState, StoryboardReviewState])
 def test_string_diagnostics_are_not_a_supported_contract(model: type) -> None:
     with pytest.raises(ValidationError):
-        model.model_validate({"status": "stale", "staleReasons": ["raw text"]})
+        model.model_validate({"status": "stale", "staleReasons": ["raw text"], "acceptedReviewState": {"status": "missing", "staleReasons": []}})
 
 
 @pytest.mark.parametrize("stage,owner,code", [

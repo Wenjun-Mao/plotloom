@@ -99,7 +99,7 @@ describe("Plotloom workspace model", () => {
   it("admits only the current accepted storyboard review and preserves screenplay route order", () => {
     const binding = { graphRevision: 4, graphContentHash: "graph-hash", sectionBindings: [{ sectionId: "opening", episode: 1 }, { sectionId: "beacon", episode: 2 }] } as any;
     const script = { revision: 3, contentHash: "script-hash", binding };
-    const review = { status: "accepted", acceptedReview: { binding: { ...binding, scriptRevision: 3, scriptContentHash: "script-hash" }, storyboard: { episodes: [{ ep: 2, segments: [] }, { ep: 1, segments: [] }] } } } as any;
+    const review = { acceptedReviewState: { status: "current", staleReasons: [] }, status: "accepted", acceptedReview: { binding: { ...binding, scriptRevision: 3, scriptContentHash: "script-hash" }, storyboard: { episodes: [{ ep: 2, segments: [] }, { ep: 1, segments: [] }] } } } as any;
     const graph = { startNodeId: "opening", nodes: [{ id: "opening", title: "Opening", summary: "", kind: "start", footageMode: "footage" as const }, { id: "beacon", title: "Beacon", summary: "", kind: "ending", footageMode: "footage" as const }], edges: [{ id: "edge", sourceNodeId: "opening", targetNodeId: "beacon", kind: "choice", choiceText: "Beacon", stateEffects: {}, entityStateEffects: [] }], joinContracts: [] } as any;
     const routes = derivePrototypeRoutes(graph, binding.sectionBindings);
 

@@ -52,7 +52,7 @@ function galleryResponse(projectId: string, title: string, options: { characters
   const decisions = options.decisions ?? characters.map((character) => ({ id: character.id, projectId, characterId: character.id, referenceRevision: 1, characterContext: {}, characterContextHash: character.id, primaryAssetId: asset.id, complementaryAssetIds: [], assetHashes: [], reviewer: "reviewer", notes: "test", current: true, revokedAt: null, revokedBy: null, revocationReason: null, createdAt: "2026-09-20T00:00:00Z" }));
   return {
     project: { id: projectId, brief: { title } },
-    cast: { candidate: null, acceptedCast: { revision: 1, candidateJobId: "cast", contentHash: "cast", binding: {}, acceptedAt: "2026-09-20T00:00:00Z", cast: { characters }, consumerMappings: characters.map((character) => ({ castCharacterId: character.id, consumerCharacterId: character.id })) }, status: "accepted", staleReasons: [] },
+    cast: { acceptedReviewState: { status: "current", staleReasons: [] }, candidate: null, acceptedCast: { revision: 1, candidateJobId: "cast", contentHash: "cast", binding: {}, acceptedAt: "2026-09-20T00:00:00Z", cast: { characters }, consumerMappings: characters.map((character) => ({ castCharacterId: character.id, consumerCharacterId: character.id })) }, status: "accepted", staleReasons: [] },
     references: { states: options.referenceStates ?? [], decisions },
     proposals: { configured: true, proposals: options.proposals ?? [] },
     workbench: { assets: options.assets ?? [asset], selectionRevision: 0, visualIntents: [], reviewedKeyframes: [], characterReferences: { states: [], decisions: [] }, samePersonReviews: { revision: 0, reviews: [] }, previews: [] },

@@ -14,6 +14,7 @@ from ...art_style import ArtRenderStyle, art_style_current, freeze_art_style, va
 from ...cast_contracts import CastBinding
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
+from ...accepted_review_state import accepted_review_state
 from ...domain import ProjectBrief, contains_secret_setting, contains_secret_value, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...review_context_diagnostics import ReviewContextDiagnostic, ReviewContextError, binding_diagnostics
@@ -74,7 +75,7 @@ class ProjectArtPersistence:
         reasons = binding_diagnostics(current, binding, fields)
         direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
         if not art_style_current(binding.render_contract, direction):
-            reasons.append(ReviewContextDiagnostic(code="art_render_contract_changed", owner="art", technical_message="美术风格或项目视觉方向已变更；请重新准备美术任务"))
+            reasons.append(ReviewContextDiagnostic(code="art_render_contract_changed", owner="art", technical_message="art render contract is not current; prepare a new art task"))
         return reasons + ([ReviewContextDiagnostic(code="section_context_changed", owner="source", technical_message="section context changed")] if current.section_ids != binding.section_ids else [])
 
     def accepted_current_subject(
@@ -111,9 +112,10 @@ class ProjectArtPersistence:
             head = self._head(session, project_id)
             candidate = session.get(ArtCandidateRow, head.candidate_job_id) if head.candidate_job_id else None
             accepted = session.scalar(select(ArtRevisionRow).where(ArtRevisionRow.project_id == project_id, ArtRevisionRow.revision == head.revision)) if head.revision else None
-            binding = candidate.binding if candidate else accepted.binding if accepted else None
-            stale = self._stale(session, project_id, ArtBinding.model_validate(binding)) if binding else []
-            return ArtReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_art=self._accepted(accepted) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
+            accepted_stale = self._stale(session, project_id, ArtBinding.model_validate(accepted.binding)) if accepted else []
+            stale = self._stale(session, project_id, ArtBinding.model_validate(candidate.binding)) if candidate else accepted_stale
+            accepted_state = accepted_review_state(exists=accepted is not None, candidate_active=candidate is not None, head_status=head.status, stale_reasons=accepted_stale)
+            return ArtReviewState(accepted_review_state=accepted_state, candidate=self._candidate(candidate) if candidate else None, accepted_art=self._accepted(accepted) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
 
     def prepare_candidate(self, project_id: str, job_id: str, *, render_style: ArtRenderStyle, execution_pin: dict[str, str]) -> tuple[ArtCandidate, CreativeHandoffRequest]:
         with self._access.leases.lifecycle_write() as session:
@@ -193,6 +195,12 @@ class ProjectArtPersistence:
                 raise InvalidTransitionError("no accepted art exists to reopen")
             if head.candidate_job_id:
                 raise InvalidTransitionError("cancel the current art specialist publication before reopening accepted art")
+            previous = session.scalar(select(ArtRevisionRow).where(ArtRevisionRow.project_id == project_id, ArtRevisionRow.revision == head.revision))
+            if previous is None:
+                raise NotFoundError("accepted art revision is missing")
+            stale = self._stale(session, project_id, ArtBinding.model_validate(previous.binding))
+            if stale:
+                raise ReviewContextError(stale[0])
             head.status, head.updated_at = "reopened", utc_now()
         return self.get_state(project_id)
 

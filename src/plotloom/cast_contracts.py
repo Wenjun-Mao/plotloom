@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 from pydantic import Field, field_validator
 
+from .accepted_review_state import AcceptedReviewState
 from .domain import CamelModel
 from .review_context_diagnostics import ReviewContextDiagnostic
 
@@ -75,6 +76,7 @@ class AcceptedCastRevision(CamelModel):
 
 
 class CastReviewState(CamelModel):
+    accepted_review_state: AcceptedReviewState
     candidate: CastCandidate | None = None
     accepted_cast: AcceptedCastRevision | None = None
     status: CastStatus

@@ -148,7 +148,7 @@ def test_art_routes_are_user_reachable(tmp_path: Path) -> None:
     client = TestClient(create_project_folder_authoring_app(storage))
     response = client.get(f"/api/v2/projects/{project_id}/art")
     assert response.status_code == 200
-    assert response.json() == {"candidate": None, "acceptedArt": None, "status": "missing", "staleReasons": []}
+    assert response.json() == {"candidate": None, "acceptedArt": None, "status": "missing", "staleReasons": [], "acceptedReviewState": {"status": "missing", "staleReasons": []}}
 
 
 def _reference_png() -> bytes:

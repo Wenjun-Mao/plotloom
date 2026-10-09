@@ -9,7 +9,7 @@ import type { CastReviewState } from "../src/types";
 let root: Root;
 let host: HTMLDivElement;
 const owner = { current: "session" };
-const castState: CastReviewState = {
+const castState: CastReviewState = { acceptedReviewState: { status: "current", staleReasons: [] },
   status: "accepted", staleReasons: [], candidate: null,
   acceptedCast: {
     revision: 1, candidateJobId: "cast", contentHash: "cast", acceptedAt: "2026-10-08T00:00:00Z", reportAvailable: false, differsFromDelivery: null,

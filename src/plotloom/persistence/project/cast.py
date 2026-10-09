@@ -26,6 +26,7 @@ from ...cast_writing_contract import (
 )
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
+from ...accepted_review_state import accepted_review_state
 from ...domain import (
     ProjectBrief,
     StageName,
@@ -129,7 +130,7 @@ class ProjectCastPersistence:
         reasons = binding_diagnostics(current, binding, fields)
         direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
         if not cast_style_current(binding.render_contract, direction):
-            reasons.append(ReviewContextDiagnostic(code="cast_render_contract_changed", owner="characters", technical_message="角色风格或项目视觉方向已变更；请重新准备角色任务"))
+            reasons.append(ReviewContextDiagnostic(code="cast_render_contract_changed", owner="characters", technical_message="cast render contract is not current; prepare a new cast task"))
         return reasons + ([ReviewContextDiagnostic(code="section_context_changed", owner="source", technical_message="section context changed")] if current.section_ids != binding.section_ids else [])
 
     def identity_context_in_session(
@@ -243,9 +244,10 @@ class ProjectCastPersistence:
             candidate = session.get(CastCandidateRow, head.candidate_job_id) if head.candidate_job_id else None
             accepted = session.scalar(select(CastRevisionRow).where(CastRevisionRow.project_id == project_id, CastRevisionRow.revision == head.revision)) if head.revision else None
             delivery = session.get(CastCandidateRow, accepted.candidate_job_id) if accepted else None
-            binding = candidate.binding if candidate else accepted.binding if accepted else None
-            stale = self._stale(session, project_id, CastBinding.model_validate(binding)) if binding else []
-            return CastReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_cast=self._accepted(accepted, delivery) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
+            accepted_stale = self._stale(session, project_id, CastBinding.model_validate(accepted.binding)) if accepted else []
+            stale = self._stale(session, project_id, CastBinding.model_validate(candidate.binding)) if candidate else accepted_stale
+            accepted_state = accepted_review_state(exists=accepted is not None, candidate_active=candidate is not None, head_status=head.status, stale_reasons=accepted_stale)
+            return CastReviewState(accepted_review_state=accepted_state, candidate=self._candidate(candidate) if candidate else None, accepted_cast=self._accepted(accepted, delivery) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
 
     def prepare_candidate(self, project_id: str, job_id: str, *, render_style: CastRenderStyle, execution_pin: dict[str, str]) -> tuple[CastCandidate, CreativeHandoffRequest]:
         with self._access.leases.lifecycle_write() as session:

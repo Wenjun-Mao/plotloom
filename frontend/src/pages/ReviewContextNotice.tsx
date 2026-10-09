@@ -11,8 +11,8 @@ const messages: Record<ReviewContextCode, string> = {
   binding_revision_changed: "创作依据的版本已变化，需要重新检查这份设定。",
   binding_content_changed: "创作依据的内容已变化，需要重新检查这份设定。",
   section_context_changed: "故事章节或分支关系已变化，需要重新检查这份设定。",
-  art_render_contract_changed: "美术风格或项目视觉方向已变化。请重新准备并确认美术设定；已有内容与图片仍保留。",
-  cast_render_contract_changed: "角色风格或项目视觉方向需更新。请重新准备并确认角色设定；原设定与图片仍保留。",
+  art_render_contract_changed: "这份美术设定需要按当前要求重新审核确认。请准备新的美术任务；已有设定和图片仍保留。",
+  cast_render_contract_changed: "这份角色设定需要按当前要求重新审核确认。请准备新的角色任务；原设定和图片仍保留。",
   accepted_art_not_current: "美术设定尚未确认、正在修改或已过期。请先更新并确认美术设定，再回来准备剧本。",
   accepted_script_not_current: "剧本尚未确认、正在修改或已过期。请先更新并确认剧本，再回来准备分镜。",
   playthrough_target_missing: "项目尚未设置有效的目标游玩时长。请先到项目简报中设置，再回来继续。",
@@ -29,7 +29,7 @@ const fieldLabels: Record<ReviewContextField, string> = {
   target_playthrough_seconds: "目标游玩时长", route_budget_hash: "路线时长与章节安排",
   section_bindings: "章节与剧本对应关系", complete_route_section_ids: "完整播放路线",
   route_only_section_ids: "无需画面的路线控制节点", section_ids: "故事章节",
-  render_contract: "美术风格与视觉方向", review_min_cut_seconds: "评审镜头最短时长",
+  render_contract: "风格、视觉方向与渲染要求", review_min_cut_seconds: "评审镜头最短时长",
   review_max_cut_seconds: "评审镜头最长时长", review_max_segment_seconds: "评审分段时长上限",
 };
 const ownerLabels = { source: "来源与大纲", characters: "角色", art: "美术参考", script: "剧本", brief: "项目简报", "storyboard-review": "分镜评审" } as const;

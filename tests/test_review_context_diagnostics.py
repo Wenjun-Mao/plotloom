@@ -9,12 +9,14 @@ from pydantic import ValidationError
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.art_contracts import ArtAcceptRequest, ArtReviewState
 from plotloom.art_style import freeze_art_style
+from plotloom.cast_style import freeze_cast_style
 from plotloom.cast_contracts import CastReopenRequest, CastReviewState
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.graph_safety_diagnostics import transition_error_content
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.persistence.project.art import ProjectArtPersistence
+from plotloom.persistence.project.cast import ProjectCastPersistence
 from plotloom.review_context_diagnostics import binding_diagnostics
 from plotloom.source_outline_contracts import OutlineReopenRequest, SourceMaterial
 from tests.test_project_storage_art import _binding, _deliver, _prepare_art_context
@@ -91,7 +93,23 @@ def test_art_render_contract_diagnostic_when_shared_context_is_current(monkeypat
     monkeypatch.setattr(owner, "_context", lambda *_: (binding, {}, {}, {}, {}))
     reasons = owner._stale(None, "fixture", binding)
     assert [(item.code, item.owner, item.field) for item in reasons] == [("art_render_contract_changed", "art", None)]
-    assert reasons[0].technical_message == "美术风格或项目视觉方向已变更；请重新准备美术任务"
+    assert reasons[0].technical_message == "art render contract is not current; prepare a new art task"
+
+
+@pytest.mark.parametrize("stage,hash_field", [("art", "adapterHash"), ("cast", "implementationHash")])
+def test_implementation_only_contract_change_does_not_claim_author_changed_direction(monkeypatch, stage, hash_field):
+    direction = FIXED_CHINESE_BRIEF.visual_direction
+    freeze = freeze_art_style if stage == "art" else freeze_cast_style
+    contract = freeze("realistic", direction)
+    contract[hash_field] = "f" * 64
+    binding = _binding().model_copy(update={"render_contract": contract})
+    access = SimpleNamespace(rows=SimpleNamespace(project=lambda *_: SimpleNamespace(brief=FIXED_CHINESE_BRIEF.model_dump())))
+    owner = ProjectArtPersistence(access, None) if stage == "art" else ProjectCastPersistence(access)
+    monkeypatch.setattr(owner, "_context", lambda *_: (binding, {}, {}, {}, {}))
+    reasons = owner._stale(None, "fixture", binding)
+    assert [item.code for item in reasons] == [f"{stage}_render_contract_changed"]
+    assert reasons[0].technical_message == f"{stage} render contract is not current; prepare a new {stage} task"
+    assert contract["authorDirection"] == direction
 
 
 def test_binding_diagnostics_keep_field_order_and_raw_text() -> None:
@@ -108,7 +126,7 @@ def test_binding_diagnostics_keep_field_order_and_raw_text() -> None:
 @pytest.mark.parametrize("model", [CastReviewState, ArtReviewState])
 def test_old_string_stale_contract_is_not_accepted(model: type) -> None:
     with pytest.raises(ValidationError):
-        model.model_validate({"status": "stale", "staleReasons": ["raw text"]})
+        model.model_validate({"status": "stale", "staleReasons": ["raw text"], "acceptedReviewState": {"status": "missing", "staleReasons": []}})
 
 
 def test_ordinary_invalid_transition_format_remains_unchanged() -> None:

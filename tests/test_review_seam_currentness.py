@@ -91,6 +91,7 @@ def test_first_candidate_reports_stale_without_any_accepted_revision(seam, ready
     seam["invalidate"]()
     state = seam["state"]()
     assert seam["accepted"](state) is None
+    assert state.accepted_review_state.status == "missing"
     assert state.status == "stale" and state.stale_reasons
     assert state.candidate.job_id == candidate.job_id
     with pytest.raises(CreativeHandoffError, match="stale|changed"):
@@ -105,6 +106,7 @@ def test_current_replacement_owns_status_over_stale_retained_acceptance(seam, re
     candidate, package = seam["prepare"]("ch_" + "w" * 32)
     accepted = seam["accept"](seam["admit"](seam["deliver"](package)))
     retained = seam["accepted"](accepted)
+    assert accepted.accepted_review_state.status == "current"
     seam["invalidate"]()
     assert seam["state"]().status == "stale"
     candidate, package = seam["prepare"]("ch_" + "x" * 32)
@@ -114,9 +116,14 @@ def test_current_replacement_owns_status_over_stale_retained_acceptance(seam, re
     assert current.status == ("candidate_ready" if ready else "prepared")
     assert not current.stale_reasons
     assert seam["accepted"](current) == retained
+    assert current.accepted_review_state.status == "retained"
+    assert current.accepted_review_state.stale_reasons
     if ready:
-        assert seam["accepted"](seam["accept"](candidate)).revision == 2
+        replacement = seam["accept"](candidate)
+        assert seam["accepted"](replacement).revision == 2
+        assert replacement.accepted_review_state.status == "current"
     else:
         cancelled = seam["cancel"](candidate.job_id)
         assert cancelled.status == "stale"
         assert seam["accepted"](cancelled) == retained
+        assert cancelled.accepted_review_state.status == "retained"

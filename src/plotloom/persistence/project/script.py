@@ -13,6 +13,7 @@ from sqlalchemy import select
 from ...art_contracts import ArtBinding
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
+from ...accepted_review_state import accepted_review_state
 from ...domain import contains_secret_setting, contains_secret_value, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...authored_route_timing import route_budget_hash, validate_route_seconds
@@ -103,9 +104,10 @@ class ProjectScriptPersistence:
             self._access.rows.project(session, project_id); head = self._head(session, project_id)
             candidate = session.get(ScriptCandidateRow, head.candidate_job_id) if head.candidate_job_id else None
             accepted = session.scalar(select(ScriptRevisionRow).where(ScriptRevisionRow.project_id == project_id, ScriptRevisionRow.revision == head.revision)) if head.revision else None
-            binding = candidate.binding if candidate else accepted.binding if accepted else None
-            stale = self._stale(session, project_id, ScriptBinding.model_validate(binding)) if binding else []
-            return ScriptReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_script=self._accepted(accepted) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
+            accepted_stale = self._stale(session, project_id, ScriptBinding.model_validate(accepted.binding)) if accepted else []
+            stale = self._stale(session, project_id, ScriptBinding.model_validate(candidate.binding)) if candidate else accepted_stale
+            accepted_state = accepted_review_state(exists=accepted is not None, candidate_active=candidate is not None, head_status=head.status, stale_reasons=accepted_stale)
+            return ScriptReviewState(accepted_review_state=accepted_state, candidate=self._candidate(candidate) if candidate else None, accepted_script=self._accepted(accepted) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
 
     def prepare_candidate(self, project_id: str, job_id: str, *, execution_pin: dict[str, str]) -> tuple[ScriptCandidate, CreativeHandoffRequest]:
         with self._access.leases.lifecycle_write() as session:
@@ -158,6 +160,10 @@ class ProjectScriptPersistence:
             if head.revision != request.expected_script_revision: raise RevisionConflictError("script", request.expected_script_revision, head.revision)
             if not head.revision: raise InvalidTransitionError("no accepted script exists to reopen")
             if head.candidate_job_id: raise InvalidTransitionError("cancel the current script specialist publication before reopening accepted script")
+            previous = session.scalar(select(ScriptRevisionRow).where(ScriptRevisionRow.project_id == project_id, ScriptRevisionRow.revision == head.revision))
+            if previous is None: raise NotFoundError("accepted script revision is missing")
+            stale = self._stale(session, project_id, ScriptBinding.model_validate(previous.binding))
+            if stale: raise ReviewContextError(stale[0])
             head.status, head.updated_at = "reopened", utc_now()
         return self.get_state(project_id)
 

@@ -44,6 +44,13 @@ it("names changed binding fields without treating their English evidence as UI c
   expect(reviewContextMessage({ code: "binding_content_changed", owner: "source", field: "graph_content_hash", technicalMessage: "installed graph content changed" })).toBe("已应用故事路线内容已变化，需要重新检查这份设定。");
 });
 
+it.each(["art_render_contract_changed", "cast_render_contract_changed"] as const)("does not blame author direction for %s implementation-only invalidation", code => {
+  const message = reviewContextMessage({ code, owner: code.startsWith("art") ? "art" : "characters", field: null, technicalMessage: "implementation changed" });
+  expect(message).toContain("按当前要求重新审核确认");
+  expect(message).not.toMatch(/风格.*已变化|视觉方向.*变化|故事.*变化/);
+  expect(reviewContextMessage({ code: "binding_value_changed", owner: "art", field: "render_contract", technicalMessage: "changed" })).toContain("风格、视觉方向与渲染要求");
+});
+
 it.each(["binding_revision_changed", "binding_content_changed", "section_context_changed", "art_render_contract_changed"] as const)("keeps %s recovery in the outdated review instead of a prerequisite loop", code => {
   expect(reviewContextNextStep({ code, owner: "source", field: null, technicalMessage: "changed" }, "准备当前设定任务")).toBe("准备当前设定任务");
   expect(reviewContextNextStep(source, "prepare")).toContain("来源与大纲");
@@ -51,7 +58,7 @@ it.each(["binding_revision_changed", "binding_content_changed", "section_context
 });
 
 it.each([source, characters])("Art's stale guide and disabled continuation follow %s", async diagnostic => {
-  vi.spyOn(plotloomApi, "getArt").mockResolvedValue({ status: "stale", acceptedArt: null, candidate: null, staleReasons: [diagnostic] });
+  vi.spyOn(plotloomApi, "getArt").mockResolvedValue({ acceptedReviewState: { status: "missing", staleReasons: [] }, status: "stale", acceptedArt: null, candidate: null, staleReasons: [diagnostic] });
   const onContinue = vi.fn();
   await act(async () => root.render(createElement(ArtPanel, { projectId: "project", readOnly: false, onContinue })));
   const guide = host.querySelector(".stage-guide")!;
@@ -72,14 +79,14 @@ it("keeps generic transport failures distinct from typed prerequisite refusals",
 it.each(["art", "cast"] as const)("presents a typed %s preparation refusal rather than raw primary English", async stage => {
   const refusal = new ApiError(source.technicalMessage, 409, { code: "review_context_not_current", diagnostic: source });
   if (stage === "art") {
-    vi.spyOn(plotloomApi, "getArt").mockResolvedValue({ status: "missing", candidate: null, acceptedArt: null, staleReasons: [] });
+    vi.spyOn(plotloomApi, "getArt").mockResolvedValue({ acceptedReviewState: { status: "missing", staleReasons: [] }, status: "missing", candidate: null, acceptedArt: null, staleReasons: [] });
     vi.spyOn(plotloomApi, "prepareArtCandidate").mockRejectedValue(refusal);
     await act(async () => root.render(createElement(ArtPanel, { projectId: "project", readOnly: false })));
     const select = host.querySelector<HTMLSelectElement>('select[aria-label="美术风格"]')!;
     await act(async () => { select.value = "realistic"; select.dispatchEvent(new Event("change", { bubbles: true })); });
   } else {
     vi.spyOn(plotloomApi, "prepareCastCandidate").mockRejectedValue(refusal);
-    await act(async () => root.render(createElement(CastPanel, { projectId: "project", readOnly: false, state: { status: "missing", candidate: null, acceptedCast: null, staleReasons: [] }, loadError: "", onState: vi.fn(), onRefresh: vi.fn(async () => true), onInvalidate: vi.fn(), onTransitionComplete: vi.fn() })));
+    await act(async () => root.render(createElement(CastPanel, { projectId: "project", readOnly: false, state: { acceptedReviewState: { status: "missing", staleReasons: [] }, status: "missing", candidate: null, acceptedCast: null, staleReasons: [] }, loadError: "", onState: vi.fn(), onRefresh: vi.fn(async () => true), onInvalidate: vi.fn(), onTransitionComplete: vi.fn() })));
     const select = host.querySelector<HTMLSelectElement>('select[aria-label="角色图像风格"]')!;
     await act(async () => { select.value = "live-action"; select.dispatchEvent(new Event("change", { bubbles: true })); });
   }
@@ -93,7 +100,7 @@ it.each(["art", "cast"] as const)("presents a typed %s preparation refusal rathe
 });
 
 it("dirty Art recovery guidance keeps precedence over an upstream diagnostic", async () => {
-  let state: ArtReviewState = { status: "reopened", candidate: null, staleReasons: [], acceptedArt: { revision: 1, candidateJobId: "", contentHash: "hash", binding: {} as NonNullable<ArtReviewState["acceptedArt"]>["binding"], art: { scenes: [], props: [] }, acceptedAt: "2026-10-08T00:00:00Z" } };
+  let state: ArtReviewState = { acceptedReviewState: { status: "reopened", staleReasons: [] }, status: "reopened", candidate: null, staleReasons: [], acceptedArt: { revision: 1, candidateJobId: "", contentHash: "hash", binding: {} as NonNullable<ArtReviewState["acceptedArt"]>["binding"], art: { scenes: [], props: [] }, acceptedAt: "2026-10-08T00:00:00Z" } };
   vi.spyOn(plotloomApi, "getArt").mockImplementation(async () => state);
   await act(async () => root.render(createElement(ArtPanel, { projectId: "project", readOnly: false, refreshToken: 1 })));
   const editor = host.querySelector<HTMLTextAreaElement>(".art-json-editor textarea:not(:disabled)")!;
@@ -102,7 +109,7 @@ it("dirty Art recovery guidance keeps precedence over an upstream diagnostic", a
     Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set?.call(editor, dirty);
     editor.dispatchEvent(new Event("input", { bubbles: true }));
   });
-  state = { ...state, status: "stale", staleReasons: [source] };
+  state = { ...state, status: "stale", staleReasons: [source], acceptedReviewState: { status: "retained", staleReasons: [source] } };
   await act(async () => root.render(createElement(ArtPanel, { projectId: "project", readOnly: false, refreshToken: 2 })));
   expect(host.querySelector(".stage-guide")?.textContent).toContain("保留了基于旧版本的美术草稿");
   expect(host.querySelector<HTMLTextAreaElement>('[aria-label="保留的美术草稿"]')?.value).toBe(dirty);

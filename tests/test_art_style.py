@@ -14,7 +14,9 @@ from plotloom.art_contracts import ArtAcceptRequest, ArtReopenRequest, ArtSaveRe
 from plotloom.art_style import ADAPTER, art_style_current, freeze_art_style, validate_art_style
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError
+from plotloom.exceptions import InvalidTransitionError
 from plotloom.project_storage.composition import ProjectFolderStorage
+from plotloom.review_context_diagnostics import ReviewContextError
 from tests.test_project_storage_art import _deliver_stage, _prepare_art_context
 
 
@@ -234,8 +236,11 @@ def test_live_action_api_delivery_accept_save_and_staleness(tmp_path: Path):
         current = store.project()
         store.update_brief(current.brief.model_copy(update={"visual_style": "吉卜力动画"}), expected_revision=current.revision)
         assert store.art_state().status == "stale"
-        store.reopen_art(ArtReopenRequest(expected_art_revision=2))
-        with pytest.raises(CreativeHandoffError, match="context changed"):
+        with pytest.raises(ReviewContextError):
+            store.reopen_art(ArtReopenRequest(expected_art_revision=2))
+        assert store.art_state().accepted_review_state.status == "retained"
+        assert store.art_state().accepted_art.revision == 2
+        with pytest.raises(InvalidTransitionError, match="reopen accepted art"):
             store.save_reopened_art(ArtSaveRequest(expected_art_revision=2, binding=ready.binding, art=art))
     finally:
         store.close()

@@ -17,11 +17,11 @@ function deferred<T>() {
 }
 
 function preparedState(): ScriptReviewState {
-  return { candidate: null, acceptedScript: null, status: "missing", staleReasons: [] };
+  return { acceptedReviewState: { status: "missing", staleReasons: [] }, candidate: null, acceptedScript: null, status: "missing", staleReasons: [] };
 }
 
 function awaitingDeliveryState(): ScriptReviewState {
-  return {
+  return { acceptedReviewState: { status: "missing", staleReasons: [] },
     candidate: {
       jobId: "script-job", expectedScriptRevision: 0, binding: {}, status: "prepared", deliveryId: null, manifestHash: null,
       script: null, reportAvailable: false, createdAt: "2026-09-26T00:00:00Z", deliveredAt: null,

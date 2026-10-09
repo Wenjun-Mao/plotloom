@@ -38,6 +38,13 @@ report bytes and persistence remain unchanged. A combined prerequisite failure
 does not invent which individual prerequisite is missing. Binding differences
 retain their exact fields, order and raw text.
 
+Render-contract inequality can mean an implementation pin changed, not that the
+author changed style or direction. Presentation and technical diagnostics must
+state the review requirement neutrally unless an exact field difference proves
+the cause. Generic stale guidance likewise describes current review requirements,
+not presumed story changes. Replacement is optional only for a current accepted
+review; stale evidence requires new preparation and explicit confirmation.
+
 ## Rejected alternatives and guardrails
 
 Reject per-panel exception-text translation and a second readiness model.

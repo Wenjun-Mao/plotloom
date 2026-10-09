@@ -218,7 +218,7 @@ it("distinguishes a loading cast read from an initial failure and exposes a read
 });
 
 it("retains accepted cast on failed refresh but suspends mutations until a successful read", async () => {
-  const state: CastReviewState = { status: "accepted", acceptedCast: accepted, candidate: null, staleReasons: [] };
+  const state: CastReviewState = { acceptedReviewState: { status: "current", staleReasons: [] }, status: "accepted", acceptedCast: accepted, candidate: null, staleReasons: [] };
   await renderCast(state, "network failed");
   expect(host.querySelector("h2")?.textContent).toBe("无法刷新角色设定");
   expect(host.textContent).toContain("保留的已确认角色");
@@ -233,7 +233,7 @@ it("retains accepted cast on failed refresh but suspends mutations until a succe
 it("describes archived Cast preparation as unavailable rather than inviting dispatch", async () => {
   const prepare = vi.spyOn(plotloomApi, "prepareCastCandidate");
   await act(async () => root.render(createElement(CastPanel, {
-    ...props, readOnly: true, state: { status: "accepted", acceptedCast: accepted, candidate: null, staleReasons: [] },
+    ...props, readOnly: true, state: { acceptedReviewState: { status: "current", staleReasons: [] }, status: "accepted", acceptedCast: accepted, candidate: null, staleReasons: [] },
   })));
   const action = host.querySelector(".cast-next-action")!;
   expect(action.textContent).toContain("此项目为只读，不能准备或发送角色设定任务");
@@ -251,7 +251,7 @@ it("prepares a character assignment without sending it or confirming a new desig
   });
   const send = vi.spyOn(specialistsApi, "send");
   const confirm = vi.spyOn(plotloomApi, "acceptCastCandidate");
-  await renderCast({ status: "accepted", acceptedCast: accepted, candidate: null, staleReasons: [] });
+  await renderCast({ acceptedReviewState: { status: "current", staleReasons: [] }, status: "accepted", acceptedCast: accepted, candidate: null, staleReasons: [] });
   const button = [...host.querySelectorAll("button")].find(item => item.textContent === "准备角色设定任务")!;
   expect(button.disabled).toBe(true);
   const style = host.querySelector<HTMLSelectElement>('select[aria-label="角色图像风格"]')!;
@@ -266,12 +266,12 @@ it("prepares a character assignment without sending it or confirming a new desig
 });
 
 it("makes a reopened or prepared task prominent rather than claiming its retained result is complete", async () => {
-  await renderCast({ status: "reopened", acceptedCast: accepted, candidate: null, staleReasons: [] });
+  await renderCast({ acceptedReviewState: { status: "reopened", staleReasons: [] }, status: "reopened", acceptedCast: accepted, candidate: null, staleReasons: [] });
   expect(host.querySelector("h2")?.textContent).toBe("正在编辑角色设定");
   expect(host.textContent).toContain("只有所依据的故事内容与路线未变");
   expect(host.textContent).not.toContain("既有授权");
   expect(host.textContent).toContain("保留的已确认角色");
-  await renderCast({ status: "prepared", acceptedCast: accepted, staleReasons: [], candidate: {
+  await renderCast({ acceptedReviewState: { status: "retained", staleReasons: [] }, status: "prepared", acceptedCast: accepted, staleReasons: [], candidate: {
     jobId: "new-job", expectedCastRevision: 1, binding: accepted.binding, status: "prepared", cast: null,
     deliveryId: null, manifestHash: null, reportAvailable: false, createdAt: "2026-10-04T00:00:00Z", deliveredAt: null,
   } });
@@ -280,7 +280,7 @@ it("makes a reopened or prepared task prominent rather than claiming its retaine
 });
 
 it.each(["ready", "prepared"] as const)("labels a stale %s cast candidate as needing an update", async (status) => {
-  await renderCast({ status: "stale", acceptedCast: accepted, staleReasons: [{ code: "binding_revision_changed", owner: "source", field: "source_revision", technicalMessage: "source revision changed" }], candidate: {
+  await renderCast({ acceptedReviewState: { status: "retained", staleReasons: [{ code: "binding_revision_changed", owner: "source", field: "source_revision", technicalMessage: "source revision changed" }] }, status: "stale", acceptedCast: accepted, staleReasons: [{ code: "binding_revision_changed", owner: "source", field: "source_revision", technicalMessage: "source revision changed" }], candidate: {
     jobId: "stale-job", expectedCastRevision: 1, binding: accepted.binding, status,
     cast: status === "ready" ? accepted.cast : null,
     deliveryId: null, manifestHash: null, reportAvailable: false, createdAt: "2026-10-04T00:00:00Z", deliveredAt: null,

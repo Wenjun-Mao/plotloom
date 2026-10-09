@@ -8,6 +8,7 @@ from pydantic import Field, model_validator
 
 from .art_contracts import ArtBinding
 from .authored_route_timing import route_budget_hash
+from .accepted_review_state import AcceptedReviewState
 from .domain import CamelModel
 from .review_context_diagnostics import ReviewContextDiagnostic
 
@@ -81,6 +82,7 @@ class AcceptedScriptRevision(CamelModel):
 
 
 class ScriptReviewState(CamelModel):
+    accepted_review_state: AcceptedReviewState
     candidate: ScriptCandidate | None = None
     accepted_script: AcceptedScriptRevision | None = None
     status: ScriptStatus

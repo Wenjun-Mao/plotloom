@@ -1,3 +1,4 @@
+import type { AcceptedReviewState } from "./accepted-review-state";
 import type { ReviewContextDiagnostic } from "./review-context-types";
 import type { SamePersonReviewsResponse } from "./same-person-review-types";
 
@@ -1298,13 +1299,13 @@ export interface CastBinding { sourceRevision: number; sourceContentHash: string
 export interface CastCandidate { jobId: string; expectedCastRevision: number; binding: CastBinding; status: "prepared" | "ready" | "accepted" | "cancelled"; deliveryId: string | null; manifestHash: string | null; cast: Record<string, unknown> | null; reportAvailable: boolean; createdAt: string; deliveredAt: string | null; }
 export interface CastCandidatePreparation extends CastCandidate { packagePath: string; deliveryPath: string; assignment: string; }
 export interface AcceptedCastRevision { revision: number; candidateJobId: string; contentHash: string; binding: CastBinding; cast: Record<string, unknown>; consumerMappings: Array<{ castCharacterId: string; consumerCharacterId: string }>; reportAvailable: boolean; differsFromDelivery: boolean | null; acceptedAt: string; }
-export interface CastReviewState { candidate: CastCandidate | null; acceptedCast: AcceptedCastRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: ReviewContextDiagnostic[]; }
+export interface CastReviewState { acceptedReviewState: AcceptedReviewState; candidate: CastCandidate | null; acceptedCast: AcceptedCastRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: ReviewContextDiagnostic[]; }
 export type ArtRenderStyle = "live-action" | "realistic" | "ghibli";
 export interface ArtBinding extends CastBinding { castRevision: number; castContentHash: string; renderContract?: { style: ArtRenderStyle; authorDirection: string | null; preset: { label: string } } | null; }
 export interface ArtCandidate { jobId: string; expectedArtRevision: number; binding: ArtBinding; status: "prepared" | "ready" | "accepted" | "cancelled"; deliveryId: string | null; manifestHash: string | null; art: Record<string, unknown> | null; reportAvailable: boolean; createdAt: string; deliveredAt: string | null; }
 export interface ArtCandidatePreparation extends ArtCandidate { packagePath: string; deliveryPath: string; assignment: string; }
 export interface AcceptedArtRevision { revision: number; candidateJobId: string; contentHash: string; binding: ArtBinding; art: Record<string, unknown>; acceptedAt: string; }
-export interface ArtReviewState { candidate: ArtCandidate | null; acceptedArt: AcceptedArtRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: ReviewContextDiagnostic[]; }
+export interface ArtReviewState { acceptedReviewState: AcceptedReviewState; candidate: ArtCandidate | null; acceptedArt: AcceptedArtRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: ReviewContextDiagnostic[]; }
 
 export interface ScriptBinding extends ArtBinding {
   artRevision: number;
@@ -1318,12 +1319,12 @@ export interface ScriptBinding extends ArtBinding {
 export interface ScriptCandidate { jobId: string; expectedScriptRevision: number; binding: ScriptBinding; status: "prepared" | "ready" | "accepted" | "cancelled"; deliveryId: string | null; manifestHash: string | null; script: Record<string, unknown> | null; reportAvailable: boolean; createdAt: string; deliveredAt: string | null; }
 export interface ScriptCandidatePreparation extends ScriptCandidate { packagePath: string; deliveryPath: string; assignment: string; }
 export interface AcceptedScriptRevision { revision: number; candidateJobId: string; contentHash: string; binding: ScriptBinding; script: Record<string, unknown>; acceptedAt: string; }
-export interface ScriptReviewState { candidate: ScriptCandidate | null; acceptedScript: AcceptedScriptRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: ReviewContextDiagnostic[]; }
+export interface ScriptReviewState { acceptedReviewState: AcceptedReviewState; candidate: ScriptCandidate | null; acceptedScript: AcceptedScriptRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: ReviewContextDiagnostic[]; }
 export interface StoryboardReviewBinding extends ScriptBinding { scriptRevision: number; scriptContentHash: string; reviewMinCutSeconds: number; reviewMaxCutSeconds: number; reviewMaxSegmentSeconds: number; }
 export interface StoryboardReviewCandidate { jobId: string; expectedReviewRevision: number; binding: StoryboardReviewBinding; status: "prepared" | "ready" | "accepted" | "cancelled"; deliveryId: string | null; manifestHash: string | null; storyboard: Record<string, unknown> | null; reportAvailable: boolean; createdAt: string; deliveredAt: string | null; }
 export interface StoryboardReviewCandidatePreparation extends StoryboardReviewCandidate { packagePath: string; deliveryPath: string; assignment: string; }
 export interface AcceptedStoryboardReviewRevision { revision: number; candidateJobId: string; contentHash: string; binding: StoryboardReviewBinding; storyboard: Record<string, unknown>; acceptedAt: string; }
-export interface StoryboardReviewState { candidate: StoryboardReviewCandidate | null; acceptedReview: AcceptedStoryboardReviewRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "stale"; staleReasons: ReviewContextDiagnostic[]; }
+export interface StoryboardReviewState { acceptedReviewState: AcceptedReviewState; candidate: StoryboardReviewCandidate | null; acceptedReview: AcceptedStoryboardReviewRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "stale"; staleReasons: ReviewContextDiagnostic[]; }
 export type {
   CanonicalReplacementHead, ProductionBridgeReplacementTarget, ProductionBridgePrepareRequest,
   ProductionBridgeConflict, ProductionBridgeIntentEntry, ProductionBridgeIntentPackage,

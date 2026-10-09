@@ -12,7 +12,7 @@ const binding = { sourceRevision: 1, outlineRevision: 1, sectionIds: ["opening"]
 async function render(mode = "ready", value: Record<string, unknown> = cast, readOnly = false) {
   const accepted = { revision: 1, cast: value, binding, consumerMappings: [] };
   await act(async () => root.render(createElement(CastPanel, {
-    projectId: "project", readOnly, loadError: "", state: { status: mode, staleReasons: [], candidate: mode === "ready" ? { status: "ready", jobId: "job", expectedCastRevision: 0, binding, cast: value } : undefined, acceptedCast: mode !== "ready" ? accepted : undefined } as any,
+    projectId: "project", readOnly, loadError: "", state: { acceptedReviewState: { status: mode === "ready" ? "missing" : mode === "reopened" ? "reopened" : mode === "accepted" ? "current" : "retained", staleReasons: [] }, status: mode, staleReasons: [], candidate: mode === "ready" ? { status: "ready", jobId: "job", expectedCastRevision: 0, binding, cast: value } : undefined, acceptedCast: mode !== "ready" ? accepted : undefined } as any,
     onState: vi.fn(), onRefresh: async () => true, onInvalidate: vi.fn(), onTransitionComplete: vi.fn(),
   })));
 }
