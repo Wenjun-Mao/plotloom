@@ -297,6 +297,46 @@ processing: they do **not** qualify a settled production-ready state. Short
 viewports qualify only their visible slice, not all below-fold controls. No
 blocking presentation defect was found in these observed states.
 
+Later root inspection used six existing viewport PNGs from the frozen4bbf8c2
+full-browser output, not a new browser run:
+
+| Exact test-output directory | Root-inspected filenames |
+| --- | --- |
+| `source-review-currentness--01170-r-an-accepted-status-change` | `script-retained-dirty-status-1280x768.png`, `script-retained-dirty-actions-status-1280x460.png` |
+| `source-review-currentness--43884-ch-but-permits-cancellation` | `storyboard-stale-ready-1700x900.png` |
+| `source-review-currentness--b921e-ch-but-permits-cancellation` | `storyboard-stale-prepared-1280x460.png` |
+| `source-review-currentness--f6e06-hority-until-explicit-retry` | `storyboard-post-mutation-read-failed-1280x460.png`, `storyboard-post-mutation-read-failed-1700x900.png` |
+
+Dirty Script retains authored text and visibly disables saving until explicit
+replacement. Stale-ready Storyboard distinguishes changed Script dependencies,
+disabled confirmation and available rejection. Failed refresh exposes an explicit
+retry and refusal to modify/produce. Root also read the complete owning test and
+desktop capture helper: these are mocked deterministic review states, not native
+specialist execution. Short captures qualify their visible slice only; lower
+controls in stale-prepared/read-failed cases do not all fit. No new blocking
+wording, alignment or overflow defect was observed in these six frames.
+
+Independent review directly inspected12 existing4bbf8c2 viewport PNGs, with no
+new tests or browser actions. Root additionally inspected the replacement-ready,
+stale-ready Script and both updated accepted-Storyboard frames:
+
+| Exact test-output directory | Independently inspected filenames |
+| --- | --- |
+| `source-review-currentness--6d06b-ch-but-permits-cancellation` | `script-{stale,retained-stale}-prepared-1280x460.png` |
+| `source-review-currentness--d5388-ch-but-permits-cancellation` | `script-{stale,retained-stale}-ready-1280x460.png` |
+| `source-review-currentness--b921e-ch-but-permits-cancellation` | `storyboard-stale-prepared-1280x460.png` |
+| `source-review-currentness--43884-ch-but-permits-cancellation` | `storyboard-stale-ready-1280x460.png` |
+| `source-review-currentness--f6e06-hority-until-explicit-retry` | `storyboard-post-mutation-read-failed-1280x460.png` |
+| `source-review-currentness--c602e-ter-an-accepted-head-change` | `script-retained-dirty-{head,actions-head}-1280x460.png` |
+| `review-seam-currentness-cu-7d33b-ver-stale-retained-evidence` | `script-replacement-ready-1280x460.png` |
+| `sketch-visual-system-deskt-{d4456,23de5}-d-review-states-at-{1280x768,1700x900}` | `storyboard-production-{1280x768,1700x900}-viewport.png` respectively |
+
+The replacement candidate is current while the old accepted Script is retained
+and stale; enabled replacement confirmation does not grant old evidence authority.
+The two updated Storyboard frames settle the accepted-review read only: their
+production proposal still says loading/processing. No settled production-ready
+or all-state qualification follows from those frames or their filenames.
+
 ## Explicit gaps and next action
 
 Actual current-candidate OS blur remains **NOT EXERCISED**. Two held-resize attempts
@@ -325,6 +365,19 @@ This establishes a launched headed browser, not the matching OS window/target or
 the cause of persistent focus. The root cause remains unknown. No sixth OS attempt,
 browser invocation, settings change or synthetic acceptance followed this source
 inspection; the trusted current OS-blur criterion remains unqualified.
+
+A later read-only public `Browser.getVersion` diagnostic, guarded to the exact
+owned structural QA page, identifies the active browser as Chrome154.0.8037.97,
+revision `b510e9d7cd3a2fbd78d0ddc42234103206c5f78d`. Root and independent review
+then inspected that exact Chromium source. The [renderer setter](https://chromium.googlesource.com/chromium/src/+/b510e9d7cd3a2fbd78d0ddc42234103206c5f78d/third_party/blink/renderer/core/inspector/inspector_emulation_agent.cc#603)
+unconditionally forwards false to the shared FocusController; the browser-side
+handler's equality guard returns FallThrough and does not block renderer dispatch.
+This rules out the proposed fresh-secondary-session false no-op mechanism for
+this revision. The owning agent can restore retained true, but no such intervening
+restore is established. No sixth OS attempt, private-client access, emulation
+change or product patch followed. Browser revision is proven; actual OS-window
+identity and the cause of persistent focus remain unproven. A true/false toggle
+would not improve this exact setter path and is not another acceptance method.
 
 E22's register still explicitly retains unobserved view/state permutations. Native
 API model-inference E12 is unavailable by configuration, distinct from the built
