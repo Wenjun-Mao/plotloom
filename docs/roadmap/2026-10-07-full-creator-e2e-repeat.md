@@ -96,8 +96,10 @@ native modal ownership; nine adjacent proposal/snapshot journeys pass. The subse
 [runtime-capability checkpoint](../verification/2026-10-09-runtime-provider-capabilities.md)
 repairs native provider availability and unknown-read/status ownership:908 frontend,
 11 focused Python and17 combined browser journeys pass, with independent review.
-Actual native activation and broader generic API-run affordances remain separate;
-there is no API fallback or protected settings change.
+Native8865 now loads committed814264e with H3v7 retained and unchanged8 domain
+readbacks/42 assets; actual native reload makes zero unsupported profile requests
+or mutations. Broader generic API-run affordances remain a separate diagnosed
+gap; there is no API fallback or protected settings change.
 Other applicable
 recovery slices, revised routes and E22 completion remain incomplete.
 

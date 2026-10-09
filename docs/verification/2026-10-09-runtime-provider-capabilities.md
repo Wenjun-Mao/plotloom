@@ -69,7 +69,7 @@ its function-source hash.
 ## Remaining and deployment boundary
 
 The candidate is isolated and not activated on normal8841. Actual native8865
-activation/readback is a subsequent checkpoint, not inferred from the fixture.
+activation/readback is recorded below, not inferred from the fixture.
 The broader native UI may still offer generic API-run actions whose routes are
 not composed; this is a separate owning-layer audit, not covered by hiding the
 provider launcher. The sample's “Plotloom 服务：未连接” label also reflects project
@@ -77,3 +77,39 @@ loading rather than a verified server connection and remains a wording/authority
 Revised routes, hand-only identity semantics, report-generation context and other
 applicable Creator/Pro/directory state permutations remain incomplete. No generation,
 protected settings write, lease release or owner-data mutation occurred in this slice.
+
+## Actual native checkpoint
+
+Root approved the stable isolated source checkpoint `814264e`. Before stopping
+owned8865/PID52578, the registry reported busy:false/activeTasks:[], runs were empty,
+all8 image jobs delivered and all7 videos ingested. The initial restart omitted the
+prior process-only H3 catalog override and failed before application startup. The
+same launcher/data/configuration then started PID89080 with explicit
+`VIDEO_PROVIDER=minimax_h3_gateway VIDEO_MODEL=minimax_h3_gateway_catalog_v7`;
+no protected environment file was edited. Health is200 and H3 remains enabled/v7.
+
+All8 domain response hashes and all42 managed asset path/hash entries match the
+pre-restart state; project content2/lifecycle5/active and job counts stay exact.
+The retired endpoint returns404, the new endpoint explicitly reports native API
+profiles false, and served JS equals checked SHA256
+`429b3c4f7134d0d00dcbd5df583fe01bd4b0eb6c22bbfbcab27c2e0e2c529444`.
+
+The actual loaded native Source page makes17 API GETs during the qualified
+reload/read/desktop-scroll exercise, zero unsupported profile requests and zero
+API mutations. Provider launcher is absent and assistant settings remains visible.
+Root directly inspected `inspected-native-{size}.png` at all three desktop sizes;
+the complete footer explanation and button are visible after real sidebar scroll.
+`native-runtime-checkpoint.json` records exact preservation/readback evidence.
+
+Two preliminary actual-native capture sets are not acceptance evidence:
+`actual-native-1700x900.png` captured before project loading finished, and
+`qualified-native-1280x768.png` scrolled only the button, clipping the explanation.
+After these two failures, capture ownership was reassessed: require exact loaded
+source title and the entire footer bounding box within the viewport, then inspect
+pixels. No layout patch or relaxed geometry was used to make a harness pass.
+Independent review directly inspected all three final native PNGs and preservation
+JSON, finding no footer clipping/overlap or misleading capability claim. It identified
+the JSON's preliminary screenshot-prefix reference; root reconciled it to the
+`inspected-native` files and explicitly excluded both preliminary capture failures.
+This is separate from its already closed fixture/source review. Normal8841 remains
+unchanged; broader API-run controls and the full lifecycle goal remain open.
