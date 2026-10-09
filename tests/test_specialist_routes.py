@@ -2,6 +2,7 @@
 import json
 import subprocess
 from contextlib import contextmanager
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -72,6 +73,8 @@ def test_stage_dispatch_delivery_and_cancelled_observation(tmp_path, monkeypatch
         assert client.get(url).json()["state"] == "queued"
         assert len(calls) == 1 and calls[0][3] == settings.text.task_id
         assert "/frozen/package/request.json" in calls[0][-1]
+        assert f"{Path(__file__).resolve().parents[1]}/.agents/skills/plotloom-shuohao-specialist/SKILL.md" in calls[0][-1]
+        assert "do not infer it from this chat's working directory" in calls[0][-1]
         assert client.post(url + "/send").status_code >= 400
         assert len(calls) == 1
         assert client.post(url + "/check").json()["state"] == "queued"

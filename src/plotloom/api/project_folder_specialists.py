@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path as FilePath
 from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Path
@@ -56,12 +57,14 @@ def register_specialist_routes(app: FastAPI, opened_project: Callable[[str], Any
                 raise HTTPException(409, "只有尚未交付的当前提案可以发送。")
             request = getattr(store, METHODS[stage][1])(job_id)
             paths = store.creative_handoff_exchange().verified_package_paths(request, store.creative_handoff_execution_pin(request))
+            execution_root = FilePath(__file__).resolve().parents[3]
             registry.dispatch(
                 "text", job_id=job_id, package_path=paths["packagePath"], delivery_path=paths["deliveryPath"],
                 context={"projectId": project_id, "stage": stage},
                 assignment=(
                     f"Execute one frozen Plotloom {stage} assignment ({job_id}). "
-                    "Read the project-local plotloom-shuohao-specialist skill, then "
+                    f"Use execution checkout {execution_root}; do not infer it from this chat's working directory. "
+                    f"Read {execution_root}/.agents/skills/plotloom-shuohao-specialist/SKILL.md, then "
                     f"{paths['packagePath']}/request.json and COPY_ASSIGNMENT.txt. "
                     "The package alone is authoritative; do not use previous chat assignments as project context. "
                     f"Write only the requested delivery files under {paths['deliveryPath']}. "

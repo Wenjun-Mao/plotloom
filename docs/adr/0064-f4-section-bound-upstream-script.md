@@ -29,6 +29,12 @@ layout alone cannot detect this breaking change. Unsupported bindings fail
 before repository mutation with explicit reset-required guidance; opening,
 inspection, reopening and restore never migrate or reconstruct their authority.
 
+Native creative dispatch names the runtime's absolute execution checkout and
+specialist skill, as native intent already does. A specialist chat's working
+directory can belong to an older checkout with different skill bytes; it is not
+execution authority. This applies to every creative stage, without changing the
+chat's repository or rewriting its frozen package or pin.
+
 ## Clarification: specialist emission of trusted linkage (2026-10-02)
 
 A real frozen handoff passed the upstream validator but omitted the required
