@@ -2,11 +2,22 @@
 
 October9 continuation: [native rebuilt-production evidence](2026-10-09-native-rebuilt-production.md)
 adds real original/segment playback and preserved quality caveats. Two E22 defects
-have source repairs under qualification: overlong composition-as-title and raw
+have source repairs qualified in66b1cbd: overlong composition-as-title and raw
 video-state badges. A review found and closed the related selected-original versus
 selected-segment status/navigation mismatch. The hand-only identity gate remains
 an open semantics question, and its raw English refusal is a recorded copy gap.
 These changes do not complete the whole-product state matrix.
+Nine revised Art report captures additionally verify full reading and modal
+close/reopen/focus at the three desktop sizes. The report's skipped-Cast claim
+is a confirmed generation-context defect: validation receives Cast, but the
+upstream renderer recomputes gates without it. Retained HTML remains unchanged;
+an owning-layer repair is still outstanding.
+The revised East native waiting card is directly inspected at all three desktop
+sizes. Queueing is distinguished from completion, but the external specialist
+capacity failure is not surfaced in Plotloom. The1700 capture also demonstrates
+cropped faces in media candidate thumbnails, caused by the shared96px cover-fit
+rule. Full-image contain-fit is the owning presentation repair, still pending;
+the comparison panel's separate contain-fit does not qualify thumbnail cards.
 
 Status: **EXECUTED / PARTIAL COVERAGE**. Included in the current full E2E run,
 with scoped repairs verified; unqualified states remain listed below. This is

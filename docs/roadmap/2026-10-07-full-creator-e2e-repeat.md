@@ -8,13 +8,17 @@ owner-data protection remain required before publication.
 
 ## Reusable playbook and current continuation profile
 
-Latest continuation (October9 07:32UTC): same-project native rebuild is installed;
+Latest continuation (October9 08:12UTC): same-project native rebuild is installed;
 its first revised H3 original/segment played and was explicitly selected for
 functional QA, with creative deviation recorded. Opening2 image delivered, but
 hand-only identity cannot pass the current review contract; video-source admission
 refused and no second video was dispatched. The assessment-semantics question is
 open. Remaining revised clips/routes, recovery and E22 closure remain in scope.
-Shot-title and request-status repairs are uncommitted and under qualification.
+Shot-title and request-status repairs are qualified and committed at66b1cbd;
+the isolated runtime matches. Revised West image is ingested/reviewed and its
+H3 request is submitted. East image encountered pre-tool model capacity twice
+(initial plus one same-job continuation); no further retry or model change.
+Neither branch is yet playback-qualified. Frozen East inputs remain preserved.
 The [native rebuild receipt](../verification/2026-10-09-native-rebuilt-production.md)
 owns exact evidence; earlier tables/checkpoints below are historical baselines,
 not current completion claims. Normal8841 is unchanged by this continuation.

@@ -3,8 +3,10 @@
 Continuation of the [run profile](../roadmap/2026-10-07-full-creator-e2e-repeat.md)
 and [reference-revision checkpoint](2026-10-09-native-reference-revision.md).
 This is functional QA, not creative/media-quality acceptance or full E2E completion.
-Normal8841 is unchanged. Owned8865/8866 runs the qualified implementation at
-`e26af30738744197a19e5799a130787df0318653`; health remains OK.
+Normal8841 is unchanged. Owned8865/8866 now runs qualified commit
+`66b1cbd295c23a5391c83004db509d2e5cc548bb` after an idle-only restart.
+The native intent/rebuild below ran on `e26af30738744197a19e5799a130787df0318653`;
+its execution pin remains unchanged. Current native continuation is recorded below.
 
 ## Native intent and explicit review
 
@@ -12,7 +14,7 @@ Same disposable project: `90c0f895-48de-4b57-8725-4b6f72797633`.
 Native intent job `ch_372e495e70674983befa29167ac75306` was prepared once
 06:45:42 UTC and sent once06:46:04, freezing proposal r5. Request hash:
 `a35eed2dbb9d226cc677bb5708fb2c3f897aaf28f78aecf4626e688032bc07b3`.
-Execution source pin is the qualified revision above; specialist hash
+Execution source pin is the qualified e26 revision above; specialist hash
 `c7974362b9b6b7a0c301ce236fa4880dcf6a5eb66d88a239cc17eb214d6afdd4`.
 Existing text task `01a0dfa6-40ae-7cf2-82eb-edcde7a8fcc0`, turn
 `01a11f69-7f8f-7050-a9c8-90c4f243ebbd`, completed77446ms.
@@ -291,3 +293,75 @@ must feed the same validation context into report generation; changing original
 HTML or hiding the note would falsify retained evidence. The current renderer
 does not expose that context parameter. This remains an owning-layer follow-up,
 alongside the already recorded upstream Outline duration/Storyboard footer issues.
+
+### Qualified runtime and revised branch continuation — October9 08:12 UTC
+
+The title/status repair was committed as `66b1cbd` after the full gates above.
+The isolated service was verified idle (six delivered images, five ingested
+videos, no registry reservation), stopped gracefully, then restarted with the
+same isolated data/configuration and process-only H3 catalog v7. Health and
+served JavaScript hash match the qualified source. Normal8841 was not restarted
+or changed. New runtime PID22405; no code changes during the new frozen jobs.
+
+West image `ij_e67d6d0d5f26478d9ed23417e641da93` was prepared08:01:32 and
+sent once08:02:16, request SHA256
+`797b1a4b9696cb71bdeb55478f808aa4c16b4717bdffc04712882645112be749`.
+The frozen input includes C01 Cast3/reference4, asset8c501ef1 and its exact
+`d2ee9bf46033e909e982bbdcb3e8fb0867979101ecf040459b189b22e677eeef` hash.
+Existing image task completed; Plotloom ingested delivery
+`4ed155ca-2377-4a93-b426-08fa692fd810`, asset
+`9de02160-969e-4b68-b759-4315af03d1a1`,1536×1024 PNG, original SHA256
+`8833bcc0129e90bed548e0ed4e05ee9d8af52bc7a8cf87a42627b6f882381c47`.
+Root directly inspected the delivered image and frozen portrait, saved its
+source-bound visual intent and explicitly selected it as the technical QA
+keyframe. A Codex-labelled identity review records visible face/hair/clothing
+consistency separately from unverified scene/prop continuity and subsequent
+right-light/turn action. This is not author creative acceptance.
+
+West H3 `vj_2507e0e39dfa40a99ad044c889434bbe` was prepared from the reviewed
+complete prompt and submitted once08:10:20. Provider prediction
+`h3_07913b2671ce46f09109c930c2e92d2f`; state submitted/current, unselected.
+Request SHA256 `b8f8d3459428067a120f82bc1445b23ecc86c68b5111cd2eed5bbe7bb068813d`;
+prompt SHA256 `01ad310727577ff22d8eb57ce09ce2a7fe6759ad84dabfb364261a8f8d0ca0c4`.
+Controls: quality8,960×544,24fps,5seconds/124frames,seed8983797369082410,
+contain_pad, native audio, no end frame. Directions preserve the revised
+right-side action without prescribing the left lamp state or light colour.
+The jacket-rustle sound is an explicitly reviewed supplement. Generation and
+playback are pending; the old video remains retained and unselected.
+
+East image `ij_f8526d13a51d487a99e82bbcc4c97c62` was prepared08:11:16 and
+sent once through the UI, using the exact777-character approved composition.
+Request SHA256 `81687adb24a302feb2be370cbcdaf09a13b266653a594cb25ed5af6821f9674f`.
+The specialist turn failed before tools with model-capacity error. Readback
+confirmed exported/current, no delivery and no executor pin; a single routine
+continuation was sent to the SAME existing task/job under run-level authority,
+without new preparation/dispatch, model/settings changes or fallback. Its result
+remains pending. Opening2's unassessable-identity policy remains separately open.
+
+Browser evidence in `output/playwright/native-intent-2026-10-08/` includes
+`west-delivery-pending.yml`, `west-video-prepared.yml`, and
+`east-before-generation.yml`. An initial dimension selection used a nonexistent
+option value and timed out without mutation; selecting the observed exact label
+then succeeded. The frozen request readback proves960×544, not the initial
+portrait default. No failed action is counted as verification.
+
+The single East continuation also terminated before tools with model-capacity
+error (turn `01a11fb8-6b37-7123-903c-3001e556a77c`). After two failures, no further
+retry or model change was made. This is a known external capacity stop, not an
+executing image job. The frozen request and reservation remain preserved.
+
+Root inspected the native waiting card at1700×900,1280×768 and1280×460:
+`east-capacity-state-{size}.png`. It says `待交付` and explicitly distinguishes
+queueing from completion; it does not expose the specialist's external capacity
+failure. At both1280 widths the document has no horizontal overflow. Short
+desktop shows the full card/actions/notice together; the768-height capture has
+its lower notice below the viewport and remains document-scrollable. These
+captures qualify the visible waiting state, not external failure diagnostics.
+
+The1700 capture exposes another concrete gallery defect: portrait candidates
+show cropped torsos, losing the face used to identify the reference. Owning CSS
+`frontend/src/media-tools.css` applies96px height with `object-fit: cover` to
+`.media-candidate img`; the dedicated comparison override already uses contain.
+The repair belongs to the shared candidate thumbnail presentation, preserving
+the whole image without changing image bytes or selection. It remains pending
+the next stable source batch; no source/static changes were made during jobs.

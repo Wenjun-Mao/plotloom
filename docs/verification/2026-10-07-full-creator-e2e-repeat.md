@@ -8,7 +8,7 @@ and [C50 recovery](2026-10-07-c50-draft-recovery.md) / [C52 project ownership](2
 Dated checkpoints below and the [historical receipt](2026-10-07-full-creator-e2e-repeat-history.md)
 retain earlier failures; historical present-tense claims are not current status.
 
-### Current continuation — October9, 07:38 UTC
+### Current continuation — October9, 08:12 UTC
 
 The [rebuilt-production receipt](2026-10-09-native-rebuilt-production.md) owns the
 latest native evidence. The first-install four-shot/two-route journey below is
@@ -21,12 +21,14 @@ complete as functional QA; it does not establish the revised story's playback.
 | Recover | Earlier media-bearing close/reopen/archive/restore/snapshot/restored-copy replay and deletion have their dated receipts | Retest relevant revised-current-story recovery and unchanged media/authority; do not inherit first-install completion |
 | E22 | Dedicated whole-product sweep plus typed state/copy repairs and six new directly inspected title/status desktop frames | Remaining applicable state/control slices stay in the view/state register; hand-only refusal still has raw English copy |
 
-Current source candidate adds ADR0142 shot identity and truthful video-state
-presentation, independently reviewed.872 frontend,44 focused Python,10 focused
-browser, both types, build, scoped lint/diff checks pass. Full Python/browser
-gates are running, not passed. Source remains uncommitted; normal8841 unchanged.
-Six current live read-only captures use new static JS with unchanged loaded e26
-Python and qualify display only. No new native dispatch uses that mixed runtime.
+Current source66b1cbd adds ADR0142 shot identity and truthful video-state
+presentation, independently reviewed. Full1,413 Python,872 frontend and242
+browser tests, both types, build, lock, lint, wheel and installed smoke pass.
+An idle-only isolated restart loads matching Python/static; normal8841 unchanged.
+Revised West image is ingested/reviewed and its H3 job is submitted/current.
+East image's pre-tool capacity failure received one safe same-frozen-job
+continuation, which also failed before tools. No further retry, model change or
+duplicate dispatch. Revised branch playback is still pending.
 
 Latest published checkpoint: [203 project-load/retained-media repair](2026-10-08-load-retained-media-qualification.md),
 published/healthy executable6284118;1,309 Python,806 frontend,239 browser qualified
