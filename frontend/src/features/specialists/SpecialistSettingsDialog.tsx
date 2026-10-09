@@ -5,28 +5,39 @@ import { ImageTerminalSettlement } from "./ImageTerminalSettlement";
 
 export function SpecialistSettingsDialog({ onClose }: { onClose: () => void }) {
   const [settings, setSettings] = useState<SpecialistSettings>();
-  const [busy, setBusy] = useState(false);
+  const [operation, setOperation] = useState<"save" | "check" | null>(null);
+  const busy = operation !== null;
+  const [loading, setLoading] = useState(true);
+  const [readVersion, setReadVersion] = useState(0);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
-  useEffect(() => { let active = true; void specialistsApi.settings().then(value => { if (active) setSettings(value); }).catch(reason => { if (active) setError(String(reason)); }); return () => { active = false; }; }, []);
+  useEffect(() => {
+    let active = true;
+    setLoading(true); setError("");
+    void specialistsApi.settings().then(value => { if (active) setSettings(value); })
+      .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : "无法读取助手设置，请重试。"); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [readVersion]);
   const save = async () => {
     if (!settings) return;
-    setBusy(true); setError(""); setSaved(false);
+    setOperation("save"); setError(""); setSaved(false);
     try { setSettings(await specialistsApi.save(settings)); setSaved(true); window.dispatchEvent(new Event("plotloom-specialists-changed")); }
     catch (reason) { setError(reason instanceof Error ? reason.message : "保存失败。"); }
-    finally { setBusy(false); }
+    finally { setOperation(null); }
   };
   const check = async (project: string, stage: import("./api").SpecialistStage, job: string) => {
-    setBusy(true); setError("");
+    setOperation("check"); setError("");
     try { await specialistsApi.check(project, stage, job); setSettings(await specialistsApi.settings()); window.dispatchEvent(new Event("plotloom-specialists-changed")); }
     catch (reason) { setError(reason instanceof Error ? reason.message : "检查失败。"); }
-    finally { setBusy(false); }
+    finally { setOperation(null); }
   };
   return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="specialist-settings-title">
     <button className="modal-backdrop" aria-label="关闭生成助手设置" onClick={onClose} />
     <section className="modal-card compact"><header><h2 id="specialist-settings-title">生成助手设置</h2></header>
       <div className="modal-body"><p>设置保存在当前服务器所在的电脑上，不写入项目。保存设置不会发送任务。</p>
         <p>填写已有 Codex 聊天的 ID，不是聊天标题。两个助手使用不同的聊天，每个助手一次处理一项任务。</p>
+        {loading && <p role="status">正在读取助手设置…</p>}
         {settings && (["text", "image"] as const).map(role => <fieldset key={role} disabled={busy || settings.busy}><legend>{role === "text" ? "文字创作助手" : "图像生成助手"}</legend>
           <p>{role === "text" ? "处理大纲、角色设定、美术设定、剧本与分镜。" : "处理角色、场景、道具和镜头图片。"}</p>
           <label><span>显示名称</span><input value={settings[role].name} onChange={event => { setSaved(false); setSettings({ ...settings, [role]: { ...settings[role], name: event.target.value } }); }} /></label>
@@ -36,7 +47,9 @@ export function SpecialistSettingsDialog({ onClose }: { onClose: () => void }) {
         {settings?.activeTasks?.map(task => <div key={task.jobId}><small>{task.stage || "图像"} · {task.jobId}</small>{task.projectId && task.stage ? <Button disabled={busy} onClick={() => void check(task.projectId!, task.stage!, task.jobId)}>检查此任务的结果</Button> : <><p>请在图像提案中检查交付。</p><ImageTerminalSettlement jobId={task.jobId} onSettled={async () => { setSettings(await specialistsApi.settings()); window.dispatchEvent(new Event("plotloom-specialists-changed")); }} /></>}</div>)}
         {saved && <p role="status">设置已保存，即刻生效。聊天是否可接收任务将在发送时确认。</p>}
         {error && <ErrorNotice message={error} />}
-      </div><footer><Button onClick={onClose}>关闭</Button><Button variant="primary" disabled={!settings || busy || settings.busy} onClick={() => void save()}>保存助手设置</Button></footer>
+        {error && !settings && !loading && <Button onClick={() => setReadVersion(value => value + 1)}>重试读取助手设置</Button>}
+        {operation === "check" && <p role="status">正在检查任务结果…</p>}
+      </div><footer><Button onClick={onClose}>关闭</Button><Button variant="primary" disabled={!settings || busy || settings.busy} onClick={() => void save()}>{operation === "save" ? "正在保存…" : "保存助手设置"}</Button></footer>
     </section>
   </div>;
 }

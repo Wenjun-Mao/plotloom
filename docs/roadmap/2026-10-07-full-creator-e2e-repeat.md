@@ -56,6 +56,13 @@ only that restored copy with typed confirmation. Source and snapshot remain inta
 The stable archived-play candidate6679d08 passes244 browser tests. A newly found
 hidden snapshot-completion message is repaired:874 frontend/four focused browser
 checks, both typechecks/build and independent fixture/native pixel review pass.
+The later full Python gate passes1,415 tests and ddcb06d browser gate244.
+Recovery-copy checkpointd069ab4 adds same-app snapshot A-B-A ownership and
+explicit draft-replacement wording, capability-gated automatic/manual saving,
+with876 frontend tests and independent review. The next assistant-settings
+slice covers held/failed reads and saves, explicit GET retry and retained input;
+880 frontend/13 focused tests/one desktop browser journey and independent review
+pass. Exact before/after pixels and limits remain in the revised recovery receipt.
 Other applicable
 recovery slices, revised routes and E22 completion remain incomplete.
 

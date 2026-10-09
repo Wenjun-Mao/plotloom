@@ -257,6 +257,40 @@ ready dialogs. Manual-save copy is covered by dialog and actual App-harness test
 not separate pixels. The native completed-image capture was independently inspected
 in the preceding review. These are scoped results, not a new unfiltered browser gate.
 
+## Assistant settings held/failure states — October9
+
+Actual8865 UI with controlled GET503 and PUT503 interception exposed an unlabelled
+initial wait, an `Error:` prefix from `String(reason)`, no in-dialog read retry,
+and a disabled save button still labelled as an idle action. The exact server
+settings JSON stayed unchanged through each journey; the single attempted PUT
+was answered by the fault handler, not sent to the server. No specialist task
+was checked, sent or resumed. Root inspected all12 before-state captures in the
+native evidence root, named `settings-{read|save}-{pending|failed}-{size}.png`.
+
+The owning `SpecialistSettingsDialog` now renders initial/retry loading, offers
+GET-only retry after failed initial reading, uses the error message rather than
+the JavaScript error object's prefix, and names the active save/check operation.
+The read effect retains its unmounted-instance guard. Existing input/Save locks
+and save persistence semantics are unchanged; failed saving retains edited values.
+This is local request-state presentation, not a new dispatch or compatibility path.
+
+Two of the initial three new unit cases fail before the repair. A fourth case
+directly checks held task-check status, exact job identity, restored idle state
+and absence of save/send calls. Final13 focused specialist tests and full
+frontend880PASS; types, E2E types and deterministic build pass.
+The final real-server browser journey passes in3.6s including setup and directly
+checks read-only retry, one intercepted PUT, unchanged server settings, retained
+input and disabled pending controls. Root inspected all12 final captures under
+`frontend/test-results/settings-presentation-recheck/`. The first browser attempt
+timed out because its setup stayed on Home, where the settings entry does not
+exist; the retained trace identifies this fixture mistake. The corrected setup
+uses the actual Open sample action before entering settings; assertions unchanged.
+Independent source/pixel review closed with no concrete bug in this delta.
+The reviewer noted unchanged behavior: closing during save/check does not cancel
+the request, so a save can still commit and a later error is no longer displayed.
+This slice does not qualify close-while-pending, successful settings persistence,
+active native task checks, or every provider-profile state.
+
 Remaining: broader applicable recovery slices, Opening2 identity semantics/media and both rebuilt routes,
 outstanding report-generation context/copy and other E22 states. This receipt
 does not close the full Create → Revise → Recover run or creative acceptance.
