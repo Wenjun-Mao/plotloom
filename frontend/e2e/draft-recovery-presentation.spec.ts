@@ -1,5 +1,39 @@
 import { expect, test } from "./fixture";
 import type { Locator, Page, TestInfo } from "@playwright/test";
+import { demoProject } from "../src/demo";
+
+test("manual-save Brief recovery restores tab input without automatic draft or canonical writes", async ({ page, request, workbench }, info) => {
+  await page.route("**/api/v2/runtime-capabilities", async route => {
+    const response = await route.fetch();
+    await route.fulfill({ response, json: { ...await response.json(), durableProjectDrafts: false } });
+  });
+  const endpoint = `${workbench.apiOrigin}/api/v2/projects`;
+  const created = await (await request.post(endpoint, { data: { brief: demoProject.brief, initialStages: [] } })).json();
+  const root = `${endpoint}/${created.id}`;
+  const projectPath = `/api/v2/projects/${created.id}`;
+  const canonical = await (await request.get(root)).json();
+  const writes: string[] = [];
+  page.on("request", req => { if (["PUT", "PATCH"].includes(req.method()) && new URL(req.url()).pathname.startsWith(projectPath)) writes.push(`${req.method()} ${new URL(req.url()).pathname}`); });
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${created.id}&stage=brief`);
+  await expect(page.getByLabel("片名", { exact: true })).toHaveValue(canonical.brief.title);
+  const title = "仅标签页保留的手动保存草稿";
+  await page.getByLabel("片名", { exact: true }).fill(title);
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem("plotloom:workbench-drafts:v1"))).toContain(title);
+  await page.reload();
+  const dialog = page.getByRole("dialog", { name: "发现可恢复草稿", exact: true });
+  await expect(dialog).toContainText("请手动保存");
+  await captureDialog(page, dialog, info, "manual-session-ready");
+  await dialog.getByRole("button", { name: "恢复草稿", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByLabel("片名", { exact: true })).toHaveValue(title);
+  expect(writes).toEqual([]);
+  expect(await (await request.get(root)).json()).toEqual(canonical);
+  const saved = page.waitForResponse(r => r.request().method() === "PATCH" && new URL(r.url()).pathname === projectPath);
+  await page.getByRole("button", { name: "保存修改", exact: true }).click();
+  expect((await saved).ok()).toBe(true);
+  expect((await (await request.get(root)).json()).brief.title).toBe(title);
+  expect(writes).toEqual([`PATCH ${projectPath}`]);
+});
 
 for (const source of ["session", "reconcile"] as const) {
   test(`draft recovery explains ${source} ownership and keeps held restore readable`, async ({ page, request, workbench }, testInfo) => {

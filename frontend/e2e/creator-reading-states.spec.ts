@@ -83,12 +83,15 @@ test("Bible entity forms and archived deep link remain readable without writing 
   const root = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   const beforeArchive = await json(request.get(root));
   await json(request.post(`${root}/archive`, { data: { expectedLifecycleRevision: beforeArchive.lifecycleRevision } }));
-  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=bible&entity=${encodeURIComponent("bible:character:char_ruanxing")}`);
-  const inspector = page.getByTestId("character-inspector");
-  await expect(inspector.getByTestId("character-name")).toHaveValue("阮星");
-  await expect(inspector.getByTestId("character-name")).toBeDisabled();
-  await expect(page.getByRole("button", { name: "保存故事圣经", exact: true })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "正在保存…", exact: true })).toHaveCount(0);
-  await captureControl(page, testInfo, "bible-archived-entity", inspector.locator(".field").first());
+  for (const [type, entity, name] of [["character", "char_ruanxing", "阮星"], ["location", "loc_control", "记忆控制室"], ["prop", "prop_lever", "应急杆"]] as const) {
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=bible&entity=${encodeURIComponent(`bible:${type}:${entity}`)}`);
+    const inspector = page.getByTestId(`${type}-inspector`);
+    await expect(inspector.getByTestId(`${type}-name`)).toHaveValue(name);
+    await expect(inspector.getByTestId(`${type}-name`)).toBeDisabled();
+    await expect(page.getByRole("button", { name: "保存故事圣经", exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "正在保存…", exact: true })).toHaveCount(0);
+    await captureControl(page, testInfo, `bible-archived-${type}-top`, inspector.locator(".field").first());
+    await captureControl(page, testInfo, `bible-archived-${type}-bottom`, inspector.locator(".field").last());
+  }
   expect(writes).toEqual([]);
 });

@@ -210,9 +210,14 @@ test.describe("M1-B0 real project journeys", () => {
     const sourceId = await createProject(page, workbench.frontendOrigin, title);
     const idempotencyKeys: string[] = [];
     let hidSuccessfulResponse = false;
+    let release!: () => void;
+    let started!: () => void;
+    const held = new Promise<void>(resolve => { release = resolve; });
+    const retryStarted = new Promise<void>(resolve => { started = resolve; });
     const duplicateRoute = async (route: Route) => {
       const key = route.request().headers()["idempotency-key"];
       if (key) idempotencyKeys.push(key);
+      if (hidSuccessfulResponse) { started(); await held; }
       const response = await route.fetch();
       if (!hidSuccessfulResponse) {
         hidSuccessfulResponse = true;
@@ -233,6 +238,13 @@ test.describe("M1-B0 real project journeys", () => {
       await projectItem(page, title).getByRole("button", { name: "复制简报与规范内容" }).click();
       await expect(page.getByRole("alertdialog")).toContainText("不复制来源与大纲");
       await page.getByRole("button", { name: "确认复制简报与规范内容", exact: true }).click();
+      await retryStarted;
+      const consent = page.getByRole("alertdialog");
+      await expect(consent).toBeVisible();
+      await expect(consent.getByRole("status")).toHaveText("正在处理，请勿重复确认。");
+      await expect(consent.getByRole("button", { name: "取消", exact: true })).toBeDisabled();
+      await expect(consent.getByRole("button", { name: "确认复制简报与规范内容", exact: true })).toBeDisabled();
+      release();
       await expect.poll(() => projectIdFromPage(page)).not.toBe(sourceId);
       await expectCreatorProject(page, title);
       await expect(page.getByRole("status").filter({ hasText: "已创建" })).toContainText("仅项目简报");
@@ -255,6 +267,7 @@ test.describe("M1-B0 real project journeys", () => {
       expect(idempotencyKeys).toHaveLength(2);
       expect(idempotencyKeys[1]).toBe(idempotencyKeys[0]);
     } finally {
+      release();
       await page.unroute("**/api/v2/projects/*/duplicate", duplicateRoute);
     }
   });

@@ -1,6 +1,7 @@
 import { expect, test } from "./fixture";
 import { availableSpecialistWithoutSend, changeScript, createScriptProject, endpoint, fixture, json, writeDelivery } from "./f5a-fixture";
 import type { APIRequestContext, Page } from "@playwright/test";
+import { captureDesktopState } from "./fixtures/desktop-state";
 
 async function acceptedReview(request: APIRequestContext, origin: string, id: string) {
   const root = endpoint(origin, id);
@@ -162,6 +163,8 @@ for (const authority of ["head", "status"] as const) test(`dirty Script retains 
   await expect(retained).toContainText("剧本 r1");
   await expect(retained.getByRole("textbox")).toHaveValue(draft);
   await expect(retained.getByRole("button", { name: "保存此章节，不覆盖其他章节" })).toBeDisabled();
+  await captureDesktopState(page, test.info(), `script-retained-dirty-${authority}`, retained.getByRole("textbox"));
+  await captureDesktopState(page, test.info(), `script-retained-dirty-actions-${authority}`, retained.getByRole("button", { name: "用当前章节替换草稿" }));
   await retained.getByRole("button", { name: "用当前章节替换草稿" }).click();
   await expect(retained).toHaveCount(0);
   const current = await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/script`));
@@ -232,6 +235,9 @@ for (const stage of ["script", "storyboard"] as const) for (const ready of [fals
     else await changeScript(request, workbench.apiOrigin, id);
     await page.reload();
     await expect(panel).toContainText("上下文已过期");
+    await captureDesktopState(page, test.info(), `${stage}-stale-${ready ? "ready" : "prepared"}`, panel.locator(":scope > .review-context-notice"));
+    // This fixture has an accepted Script, but no accepted Storyboard review.
+    if (stage === "script") await captureDesktopState(page, test.info(), `${stage}-retained-stale-${ready ? "ready" : "prepared"}`, panel.getByRole("region", { name: "保留的已确认内容" }));
     if (ready) {
       await expect(panel.getByRole("button", { name: stage === "script" ? "确认使用此剧本" : "确认此分镜评审方案" })).toBeDisabled();
       await expect(panel.getByRole("button", { name: stage === "script" ? "拒绝并取消此剧本" : "拒绝并取消此评审" })).toBeEnabled();
@@ -253,6 +259,7 @@ test("failed post-mutation refresh disables old successful authority until expli
   await page.route(`**/api/v2/projects/${id}/storyboard-source-review`, route => route.fulfill({ status: 503, body: JSON.stringify({ detail: "post-mutation read failed" }) }));
   await panel.getByRole("button", { name: "准备分镜任务" }).click();
   await expect(panel).toContainText("无法刷新");
+  await captureDesktopState(page, test.info(), "storyboard-post-mutation-read-failed", panel.getByRole("button", { name: "重试加载分镜评审" }));
   await expect(panel.getByRole("button", { name: "准备分镜任务" })).toBeDisabled();
   expect((await json(request.get(url))).candidate.status).toBe("prepared");
   await page.unroute(`**/api/v2/projects/${id}/storyboard-source-review`);

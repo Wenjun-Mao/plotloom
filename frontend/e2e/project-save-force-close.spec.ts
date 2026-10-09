@@ -56,6 +56,14 @@ test("workspace close waits for its directory read before requesting exclusive c
 
 test("leaving during directory inspection abandons the pending close without clearing the newer workspace", async ({ page, request, workbench }) => {
   const id = await newSourceProject(page, workbench.frontendOrigin);
+  const other = await json(request.post(`${workbench.apiOrigin}/api/v2/projects`, {
+    data: { brief: { ...demoProject.brief, title: "新的工作区" }, initialStages: [] },
+  }));
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${other.id}&stage=brief`);
+  await expect(page.getByLabel("片名")).toHaveValue("新的工作区");
+  await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+  await row(page, id).locator(".directory-open").click();
+  await expect(page).toHaveURL(new RegExp(`project=${id}`));
   let release!: () => void; let readStarted!: () => void; let closes = 0;
   const held = new Promise<void>(resolve => { release = resolve; });
   const started = new Promise<void>(resolve => { readStarted = resolve; });
@@ -66,8 +74,11 @@ test("leaving during directory inspection abandons the pending close without cle
   await page.route("**/api/v2/projects/*/close", async route => { closes += 1; await route.continue(); });
   try {
     await page.getByRole("button", { name: "保存并关闭项目", exact: true }).click(); await started;
-    await page.getByRole("button", { name: "新建空白项目", exact: true }).click();
-    await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
+    await expect(page.getByRole("button", { name: "新建空白项目", exact: true })).toBeDisabled();
+    // Competing directory controls are excluded, but browser-history navigation
+    // may still supersede the admitted command's originating workspace.
+    await page.goBack();
+    await expect(page).toHaveURL(new RegExp(`project=${other.id}.*stage=brief`));
     await page.getByLabel("片名").fill("新的工作区不会被旧关闭清空");
     release();
     // Let the held inspection settle without another API read competing with

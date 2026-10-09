@@ -19,19 +19,19 @@ const intentCopy: Record<DraftNavigationIntent, {
   },
 };
 
-export function DraftNavigationDialog({ intent, onSave, onDiscard, onCancel }: {
-  intent: DraftNavigationIntent; onSave: () => void; onDiscard: () => void; onCancel: () => void;
+export function DraftNavigationDialog({ intent, busyMessage, onSave, onDiscard, onCancel }: {
+  intent: DraftNavigationIntent; busyMessage?: string; onSave: () => void; onDiscard: () => void; onCancel: () => void;
 }) {
   const copy = intentCopy[intent];
   return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="draft-navigation-title">
-    <button className="modal-backdrop" aria-label="继续编辑" onClick={onCancel} />
+    <button className="modal-backdrop" aria-label="继续编辑" disabled={Boolean(busyMessage)} onClick={onCancel} />
     <section className="modal-card compact">
       <header><div><span>未保存的草稿</span><h2 id="draft-navigation-title">{copy.title}</h2></div></header>
-      <div className="modal-body"><div className="notice warning"><strong>{copy.action}</strong><span>{copy.help}</span></div></div>
+      <div className="modal-body"><div className="notice warning"><strong>{copy.action}</strong><span>{copy.help}</span></div>{busyMessage && <p role="status">{busyMessage}</p>}</div>
       <footer>
-        <Button variant="quiet" onClick={onCancel}>取消</Button>
-        <Button variant="danger" onClick={onDiscard}>{copy.discard}</Button>
-        <Button variant="primary" onClick={onSave}>{copy.save}</Button>
+        <Button variant="quiet" disabled={Boolean(busyMessage)} onClick={onCancel}>取消</Button>
+        <Button variant="danger" disabled={Boolean(busyMessage)} onClick={onDiscard}>{copy.discard}</Button>
+        <Button variant="primary" disabled={Boolean(busyMessage)} onClick={onSave}>{copy.save}</Button>
       </footer>
     </section>
   </div>;

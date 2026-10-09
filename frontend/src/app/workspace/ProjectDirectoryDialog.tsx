@@ -3,9 +3,9 @@ import { formatUiTimestamp } from "../../ui-time";
 import type { ProjectListItem } from "../../types";
 import type { LifecycleAction } from "./useProjectLifecycle";
 
-export function ProjectDirectoryDialog({ projects, currentProjectId, showArchived, error, readError = "", onRetry, notice, loading, busy = false, hasMore, onLoadMore, onArchived, onBlank, onSample, onOpen, onAction, explicitProjectClose, onClose }: {
+export function ProjectDirectoryDialog({ projects, currentProjectId, showArchived, error, readError = "", onRetry, notice, commandMessage, loading, busy = false, hasMore, onLoadMore, onArchived, onBlank, onSample, onOpen, onAction, explicitProjectClose, onClose }: {
   projects: ProjectListItem[]; currentProjectId?: string; showArchived: boolean; error: string; notice?: string; loading: boolean; busy?: boolean; hasMore: boolean;
-  readError?: string; onRetry?: () => void;
+  readError?: string; onRetry?: () => void; commandMessage?: string;
   onLoadMore: () => void; onArchived: (show: boolean) => void; onBlank: () => void; onSample: () => void;
   onOpen: (project: ProjectListItem) => void; onAction: (project: ProjectListItem, action: LifecycleAction) => Promise<void>;
   explicitProjectClose: boolean; onClose: () => void;
@@ -19,6 +19,7 @@ export function ProjectDirectoryDialog({ projects, currentProjectId, showArchive
         <div className="directory-onboarding"><Button variant="primary" disabled={busy} onClick={onBlank}>新建空白项目</Button><Button disabled={busy} onClick={onSample}>打开示例项目</Button><label><input type="checkbox" disabled={busy} checked={showArchived} onChange={event => onArchived(event.target.checked)} /> 显示归档项目</label></div>
         <p className="action-prerequisite">关闭项目不会删除内容；下次可重新打开。归档用于收起项目。永久删除会移除该项目及其媒体，无法撤销。</p>
         {loading && <p className="action-prerequisite" role="status">正在读取项目目录，请稍候。</p>}
+        {commandMessage && <p className="action-prerequisite" role="status">{commandMessage}</p>}
         {notice && <div className="notice" role="status">{notice}</div>}
         {error && <ErrorNotice message={error} />}
         {readError && <div className="notice warning" role="alert"><p>{readError}</p><p>{projects.length ? "当前显示上次读取的项目；重新读取成功前，列表中的项目操作暂不可用。仍可新建空白项目或打开示例项目。" : "项目目录尚未读入，请重新读取。"}</p><Button disabled={loading || busy} onClick={onRetry}>重新读取项目目录</Button></div>}

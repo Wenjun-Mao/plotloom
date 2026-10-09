@@ -2,6 +2,7 @@ import { acknowledgeGraphMapping, graphDraftRevision } from "./fixtures/graph-au
 import { expect, test } from "./fixture";
 import { availableSpecialistWithoutSend, createScriptProject, fixture, json, writeDelivery } from "./f5a-fixture";
 import type { APIRequestContext } from "@playwright/test";
+import { captureDesktopState } from "./fixtures/desktop-state";
 
 async function invalidate(request: APIRequestContext, origin: string, id: string, stage: "cast" | "script", expectPublicationRefusal = false) {
   const project = `${origin}/api/v2/projects/${id}`;
@@ -98,6 +99,7 @@ for (const stage of ["cast", "script"] as const) {
       await expect(panel.getByRole("button", { name: "取消此任务", exact: true })).toBeEnabled();
     }
     expect(sends()).toBe(0);
+    await captureDesktopState(page, test.info(), `${stage}-first-stale-${ready ? "ready" : "prepared"}`, panel.getByRole("status", { name: "创作依据需要更新" }));
   });
 
   test(`current ${stage} replacement remains dispatchable and acceptable over stale retained evidence`, async ({ page, request, workbench }) => {
@@ -121,6 +123,7 @@ for (const stage of ["cast", "script"] as const) {
     const edit = panel.getByRole("button", { name: stage === "cast" ? "编辑角色设定" : "重新打开剧本", exact: true });
     await expect(edit).toBeDisabled();
     await expect(panel.getByRole("status", { name: "创作依据需要更新" })).toContainText(stage === "cast" ? "章节分支版本已变化" : "美术设定版本已变化");
+    await captureDesktopState(page, test.info(), `${stage}-replacement-prepared`, panel.getByRole("status", { name: "创作依据需要更新" }));
     if (stage === "script") {
       await expect(page.getByText("审阅完整剧本，按需修改所选章节。", { exact: true })).toBeVisible();
       await expect(page.getByText("审阅完整剧本，按需修改开场或结局章节。", { exact: true })).toHaveCount(0);
@@ -130,6 +133,7 @@ for (const stage of ["cast", "script"] as const) {
     await page.reload();
     const accept = panel.getByRole("button", { name: stage === "cast" ? "确认使用此角色设定" : "确认使用此剧本" });
     await expect(accept).toBeEnabled();
+    await captureDesktopState(page, test.info(), `${stage}-replacement-ready`, accept);
     await expect(edit).toBeDisabled();
     expect((await json(request.get(url))).acceptedReviewState).toMatchObject({ status: "retained" });
     expect((await json(request.get(url)))[acceptedKey]).toEqual(retained);

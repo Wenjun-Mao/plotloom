@@ -76,3 +76,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0146 Explicit unassessable identity review](0146-explicit-unassessable-identity-review.md)
 - [0147 Narrow owned pinned report renderers](0147-owned-pinned-report-renderers.md)
 - [0150 Review-bound production bridge acknowledgement](0150-review-bound-production-bridge-acknowledgement.md)
+- [0151 Local project-command admission and progress](0151-local-project-command-admission.md)
