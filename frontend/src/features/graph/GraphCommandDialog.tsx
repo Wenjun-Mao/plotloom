@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Button } from "../../components";
 import { useGraphWorkbench } from "./GraphWorkbenchContext";
 import { GraphSafetyNotice } from "./GraphSafetyNotice";
+import { GraphPreviewRecovery } from "./GraphPreviewRecovery";
 
 const kinds = { start: "开场", scene: "故事发展", decision: "选择点", join: "汇合点", ending: "结局" };
 export function GraphCommandDialog() {
@@ -96,6 +97,7 @@ export function GraphCommandDialog() {
     {impact.messages.map((message, index) => <p key={index}>{message}</p>)}
     <details><summary>结构技术详情 · 精确身份</summary>{groups.filter(([, ids]) => ids.length).map(([label, ids]) => <p key={label}><strong>{label}：</strong>{ids.join("、")}</p>)}</details>
     <GraphSafetyNotice />
-    <footer><Button disabled={owner.busy} onClick={owner.cancelPreview}>取消</Button><Button variant="primary" busy={owner.busy} onClick={() => void owner.applyPreview()}>确认修改</Button></footer>
+    <GraphPreviewRecovery />
+    <footer><Button disabled={owner.busy} onClick={owner.cancelPreview}>取消</Button><Button variant="primary" disabled={owner.readStatus !== "ready" || owner.stale || owner.previewConflict || Boolean(owner.state?.readOnlyReason)} busy={owner.busy} onClick={() => void owner.applyPreview()}>确认修改</Button></footer>
   </dialog>;
 }

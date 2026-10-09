@@ -53,7 +53,7 @@ beforeEach(() => {
   });
   container = document.createElement("div"); root = createRoot(container);
   const draft = draftWithJoin();
-  owner = { state: null, draft, selectedNodeId: "opening", busy: false, error: "", stale: false, preview: null,
+  owner = { state: null, readStatus: "ready", readError: "", draft, selectedNodeId: "opening", busy: false, error: "", stale: false, preview: null,
     previewConflict: false, canUndo: false, refresh: vi.fn().mockResolvedValue(undefined), selectNode: vi.fn(),
     changeMapping: vi.fn(), changeDraft: vi.fn(), adoptMapping: vi.fn(), saveDraft: vi.fn().mockResolvedValue(true),
     confirmMapping: vi.fn().mockResolvedValue(true), installMapping: vi.fn().mockResolvedValue(true),

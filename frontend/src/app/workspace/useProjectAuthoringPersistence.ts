@@ -34,6 +34,7 @@ interface ProjectAuthoringPersistenceInput {
     setError: Dispatch<SetStateAction<string>>;
   };
   draftQuiescence: ProjectDraftQuiescence;
+  scopeWritesAllowed?: (scope: DraftScope, projectId: string) => boolean;
 }
 
 /** Owns canonical authoring writes, their save flight, and draft-CAS consumption. */
@@ -53,6 +54,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
   const { flushAuthoringDraft, scheduleAuthoringDraftAutosave, discardUnsentProjectDrafts, suspendProjectDraftWrites } = useAuthoringDraftAutosave({
     project: input.session.project,
     writesAllowed: input.session.connection === "connected" && !draftConflict,
+    scopeWritesAllowed: input.scopeWritesAllowed,
     durableDraftsEnabledRef: input.durableDraftsEnabled,
     serverAuthoringDrafts: input.session.serverDrafts,
     captureWorkspaceOperation: input.session.capture,

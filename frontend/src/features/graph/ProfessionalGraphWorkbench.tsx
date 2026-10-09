@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ReactFlow, Controls, Background, MarkerType, type Node, type Edge } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Button, PageHeader } from "../../components";
-import { plotloomApi } from "../../api";
-import type { SourceOutlineReviewState, StoryGraph } from "../../types";
+import type { StoryGraph } from "../../types";
+import { useGraphSourceRead } from "./useGraphSourceRead";
 import { CanonicalGraphReader } from "./CanonicalGraphReader";
 import { GraphDraftDiscard } from "./GraphDraftDiscard";
 import { useGraphWorkbench } from "./GraphWorkbenchContext";
@@ -16,15 +16,9 @@ import { GraphSafetyNotice } from "./GraphSafetyNotice";
 
 export function ProfessionalGraphWorkbench({ projectId, canonical, readOnly, onOpenSource }: { projectId: string; canonical: StoryGraph; readOnly: boolean; onOpenSource: () => void }) {
   const owner = useGraphWorkbench(), mapping = owner.draft?.mapping;
-  const [source, setSource] = useState<SourceOutlineReviewState | null>(null);
+  const sourceRead = useGraphSourceRead(projectId, owner.state?.bindingHash), source = sourceRead.value;
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
   const [insertionEdge, setInsertionEdge] = useState("");
-  useEffect(() => {
-    let active = true;
-    setSource(null);
-    if (projectId) void plotloomApi.getSourceOutline(projectId).then(value => { if (active) setSource(value); });
-    return () => { active = false; };
-  }, [projectId, owner.state?.bindingHash]);
   const nodes = useMemo<Node[]>(() => mapping?.topology.nodes.map((node, index) => ({ id: node.id,
     position: positions[node.id] ?? { x: (owner.draft?.rowHints[node.id] ?? index) * 240, y: index % 3 * 140 },
     data: { label: mapping.sections.find(section => section.sectionId === node.id)?.title || "待填写节点" },
@@ -34,14 +28,15 @@ export function ProfessionalGraphWorkbench({ projectId, canonical, readOnly, onO
     label: mapping.choices.flatMap(choice => choice.outcomes).find(option => option.outcomeId === edge.id)?.label,
     markerEnd: { type: MarkerType.ArrowClosed },
   }] : []) ?? [], [mapping]);
-  const disabled = readOnly || owner.busy || owner.stale || Boolean(owner.state?.readOnlyReason);
+  const disabled = readOnly || owner.readStatus !== "ready" || owner.busy || owner.stale || Boolean(owner.state?.readOnlyReason);
   if (!projectId) return <section className="page"><p>先保存项目，再从来源与大纲建立当前图草稿。</p></section>;
-  if (owner.state?.readOnlyReason) return <section className="page"><p className="notice warning">{owner.state.readOnlyReason}</p><CanonicalGraphReader value={canonical} /></section>;
+  if (owner.state?.readOnlyReason) return <section className="page"><GraphPreviewRecovery /><p className="notice warning">{owner.state.readOnlyReason}</p><CanonicalGraphReader value={canonical} /></section>;
   return <section className="page professional-graph-workbench">
     <PageHeader eyebrow="专业工作台" title="剧情图与结构规则" description="与创作工作台共用当前图草稿。保存图草稿、确认图内容、应用到故事路线是三项独立操作。" />
     <GraphSafetyNotice className="notice warning" />
     <GraphPreviewRecovery />
-    {owner.stale && <p className="notice warning">规范上下文已变化，图草稿仍保留。<Button disabled={owner.busy} onClick={() => void owner.recover()}>在当前版本恢复为新草稿</Button></p>}
+    {sourceRead.status === "failed" && <p className="notice warning" role="alert">无法读取来源与大纲：{sourceRead.error}<Button onClick={() => void sourceRead.refresh()}>重新读取来源与大纲</Button></p>}
+    {owner.stale && <p className="notice warning">规范上下文已变化，图草稿仍保留。<Button disabled={owner.busy || owner.readStatus !== "ready"} onClick={() => void owner.recover()}>在当前版本恢复为新草稿</Button></p>}
     <div className="button-row">
       <Button disabled={disabled || !mapping} onClick={() => void owner.saveDraft()}>保存图草稿</Button>
       <Button disabled={disabled || !source} onClick={() => source && void owner.confirmMapping(source)}>确认图内容</Button>

@@ -29,7 +29,7 @@ test("turns a synopsis into a reviewable Bible/Graph proposal without entering d
   await pollRun(request, workbench.apiOrigin, run.id, "succeeded");
 
   await expect(page.getByTestId("story-proposal-review")).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText("故事设定与分支图", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("story-proposal-review").locator(".section-title > span").filter({ hasText: /^故事设定与分支图$/ })).toBeVisible();
   const stageResponse = await readJson<{ stages: Array<{ head: { stage: string; revision: number; status: string } }> }>(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}/stages`);
   const stages = stageResponse.stages;
   expect(stages.map((item) => item.head.stage)).toEqual(["story_bible", "story_graph", "scene_beats", "storyboard"]);

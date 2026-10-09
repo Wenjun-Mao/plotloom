@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, PageHeader } from "../../components";
-import { plotloomApi } from "../../api";
+import { useGraphSourceRead } from "./useGraphSourceRead";
 import type { SourceOutlineReviewState, WorkspaceProject } from "../../types";
 import type { PageId } from "../../app/workspace/contracts";
 import { useGraphWorkbench } from "./GraphWorkbenchContext";
@@ -22,19 +22,14 @@ import { creatorAdmission } from "./creatorAdmission";
 export type CreatorNavigate = (stage: PageId, hash?: string) => void;
 type CreatorProps = { project: WorkspaceProject; readOnly: boolean; onNavigate: CreatorNavigate; onOpenShot: (shotId: string) => void };
 export function CreatorWorkbench({ project, readOnly, onNavigate, onOpenShot }: CreatorProps) {
-  const owner = useGraphWorkbench(), [source, setSource] = useState<SourceOutlineReviewState | null>(null), [sourceError, setSourceError] = useState("");
-  useEffect(() => {
-    let active = true; setSource(null); setSourceError("");
-    if (project.id) void plotloomApi.getSourceOutline(project.id).then(value => { if (active) setSource(value); }).catch(reason => { if (active) setSourceError(String(reason)); });
-    return () => { active = false; };
-  }, [project.id, owner.state?.bindingHash]);
+  const owner = useGraphWorkbench(), sourceRead = useGraphSourceRead(project.id, owner.state?.bindingHash);
   if (!project.id) return <section className="page"><PageHeader title="创作工作台" description="先保存项目简报，再建立来源与故事路线。" /><Button onClick={() => onNavigate("brief")}>返回项目简报</Button></section>;
-  if (owner.state?.readOnlyReason) return <section className="page"><h1>创作工作台</h1><p className="notice warning">{owner.state.readOnlyReason}</p><CanonicalGraphReader value={project.storyGraph} /></section>;
-  if (!owner.draft) return <section className="page" role="status">{owner.error || "正在读取共享图草稿…"}</section>;
-  return <CreatorCanvas project={project} readOnly={readOnly} source={source} sourceError={sourceError} onNavigate={onNavigate} onOpenShot={onOpenShot} />;
+  if (owner.state?.readOnlyReason) return <section className="page"><h1>创作工作台</h1><GraphPreviewRecovery /><p className="notice warning">{owner.state.readOnlyReason}</p><CanonicalGraphReader value={project.storyGraph} /></section>;
+  if (!owner.draft || !owner.state) return <section className="page"><GraphPreviewRecovery /></section>;
+  return <CreatorCanvas project={project} readOnly={readOnly} source={sourceRead.value} sourceError={sourceRead.error} onSourceRetry={sourceRead.refresh} onNavigate={onNavigate} onOpenShot={onOpenShot} />;
 }
 
-function CreatorCanvas({ project, readOnly, source, sourceError, onNavigate, onOpenShot }: CreatorProps & { source: SourceOutlineReviewState | null; sourceError: string }) {
+function CreatorCanvas({ project, readOnly, source, sourceError, onSourceRetry, onNavigate, onOpenShot }: CreatorProps & { source: SourceOutlineReviewState | null; sourceError: string; onSourceRetry: () => Promise<void> }) {
   const owner = useGraphWorkbench(), draft = owner.draft!;
   const [action, setAction] = useState<CreatorEdit | null>(null), [tab, setTab] = useState<"story" | "production">("story");
   const [selectedY, setSelectedY] = useState<number>();
@@ -45,7 +40,7 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onNavigate, onO
   const layout = useMemo(() => creatorLayout(draft, geometry.chartWidth), [draft, geometry.chartWidth]);
   const structure = useMemo(() => creatorStructure(draft, project.brief), [draft, project.brief]);
   const section = draft.mapping.sections.find(section => section.sectionId === owner.selectedNodeId);
-  const disabled = readOnly || owner.busy || owner.stale || !geometry.desktop;
+  const disabled = readOnly || owner.readStatus !== "ready" || owner.busy || owner.stale || !geometry.desktop;
   useEffect(() => {
     const element = geometry.layout.current?.querySelector<HTMLElement>(`[data-creator-node="${owner.selectedNodeId}"]`);
     if (!element) { setSelectedY(undefined); return; }
@@ -69,9 +64,9 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onNavigate, onO
       <Button disabled={disabled || !owner.canUndo} onClick={() => void owner.undo()}>撤销结构修改</Button><GraphDraftDiscard disabled={disabled} />
     </div>
     <p className="creator-desktop-boundary">桌面创作：浏览器窗口宽度至少 1280px；不支持手机或窄屏。{!geometry.desktop && "请扩大窗口后继续编辑。"}</p>
-    {sourceError && <p className="notice warning" role="alert">来源读取失败：{sourceError}<Button onClick={() => onNavigate("source")}>返回来源检查</Button></p>}
+    {sourceError && <p className="notice warning" role="alert">无法读取来源与大纲：{sourceError}<Button onClick={() => void onSourceRetry()}>重新读取来源与大纲</Button></p>}
     <GraphPreviewRecovery />
-    {owner.stale && <p className="notice warning">简报、来源或已确认规范已变化。当前图草稿仍保留。<Button disabled={owner.busy} onClick={() => void owner.recover()}>在当前版本恢复为新草稿</Button></p>}
+    {owner.stale && <p className="notice warning">简报、来源或已确认规范已变化。当前图草稿仍保留。<Button disabled={owner.busy || owner.readStatus !== "ready"} onClick={() => void owner.recover()}>在当前版本恢复为新草稿</Button></p>}
     <details className="creator-structure-check"><summary>结构检查 · {structure.incomplete ? "未完成" : structure.mismatches.length ? "与简报目标不同" : "可进入内容确认"}</summary>
       <p>实际：{structure.actual.nodes} 节点 · {structure.actual.endings} 结局 · {structure.actual.joins} 汇合 · {structure.actual.routes}{structure.truncated ? "+" : ""} 条完整路线 · 每条路线 {structure.actual.choices.join(" / ") || "尚未完成"} 次选择。</p>
       <p>简报目标：节点上限 {project.brief.nodeBudget} · {project.brief.endingCount} 结局 · {project.brief.desiredJoinCount} 汇合 · 每次完整播放 {project.brief.decisionPointsPerPath} 次选择 · 最多 {Math.min(6, project.brief.maxOutDegree)} 个选项。</p>

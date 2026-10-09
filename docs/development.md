@@ -317,6 +317,10 @@ that all twelve prompt templates, the production UI, the current migration
 head, LICENSE, and NOTICE are packaged, and that an installed release ignores
 an unrelated working-directory `.env`.
 
+Serialize frontend builds before wheel creation. The build rewrites the static
+directory; packaging concurrently can capture a missing entry HTML or mixed
+bundle. Finish the build, freeze its output, then build and smoke-test the wheel.
+
 ### Checked static bundle browser smoke
 
 The `checked-static` E2E fixture serves `src/plotloom/static/` through the

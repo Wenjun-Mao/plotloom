@@ -81,6 +81,37 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); sessionStorage.clear(); vi.restoreAllMocks(); });
 
+it("retained failed reads freeze all new edits and prepared preview writes without discarding input", async () => {
+  await show(); await act(async () => owner.prepareCommand({ operation: "set_start", nodeId: "opening" }));
+  const retainedPreview = owner.preview, retained = structuredClone(owner.draft);
+  vi.mocked(plotloomApi.getGraphWorkbench).mockRejectedValueOnce(new Error("offline"));
+  await act(async () => owner.refresh());
+  vi.mocked(plotloomApi.saveAuthoringDraft).mockClear(); vi.mocked(plotloomApi.previewGraphCommand).mockClear();
+  await act(async () => {
+    owner.changeDraft({ ...graphDraftFixture(), fieldBuffers: { kept: "new forbidden edit" } });
+    await owner.applyPreview(); await owner.undo(); await owner.discard(); await owner.recover();
+    await owner.saveDraft(); await owner.prepareCommand({ operation: "set_start", nodeId: "ending" });
+  });
+  expect(owner.draft).toEqual(retained); expect(owner.preview).toEqual(retainedPreview);
+  expect(plotloomApi.saveAuthoringDraft).not.toHaveBeenCalled(); expect(plotloomApi.applyGraphCommand).not.toHaveBeenCalled();
+  expect(plotloomApi.previewGraphCommand).not.toHaveBeenCalled();
+});
+
+it("a read begun during command acknowledgement prevents the late command dispatch", async () => {
+  await show(); let release!: () => void;
+  flushGate = new Promise(done => { release = done; });
+  let command!: Promise<boolean>;
+  await act(async () => { command = owner.prepareCommand({ operation: "set_start", nodeId: "opening" }); });
+  let resolve!: (value: GraphWorkbenchState) => void;
+  vi.mocked(plotloomApi.getGraphWorkbench).mockImplementationOnce(() => new Promise(done => { resolve = done; }));
+  let reading!: Promise<void>;
+  await act(async () => { reading = owner.refresh(); });
+  await act(async () => { release(); expect(await command).toBe(false); });
+  expect(plotloomApi.previewGraphCommand).not.toHaveBeenCalled();
+  await act(async () => { resolve(state()); await reading; });
+  expect(owner.readStatus).toBe("ready");
+});
+
 it("preserves one draft through mode changes and saves without approval or dispatch", async () => {
   await show();
   const edited = structuredClone(owner.draft!); edited.mapping.sections[0].summary = "Unsent author prose";
@@ -110,7 +141,7 @@ it("re-reads trusted context after conflict recovery without a canonical revisio
   expect(server!.draftRevision).toBe(4);
 });
 
-it("retains newer typing and selection during a recovery authority read", async () => {
+it("pauses edits but preserves selection during a recovery authority read", async () => {
   await show();
   const restored = graphDraftFixture(); restored.mapping.sections[0].summary = "Recovered";
   server = receipt(restored, 2); serverDrafts.current.set(graphDraftKey("project"), server);
@@ -120,9 +151,9 @@ it("retains newer typing and selection during a recovery authority read", async 
   const edited = structuredClone(owner.draft!); edited.mapping.sections[0].summary = "Typed after recovery";
   await act(async () => { owner.changeMapping(edited.mapping); owner.selectNode("ending"); });
   await act(async () => release(state()));
-  expect(owner.draft!.mapping.sections[0].summary).toBe("Typed after recovery");
+  expect(owner.draft!.mapping.sections[0].summary).toBe("Recovered");
   expect(owner.selectedNodeId).toBe("ending");
-  expect(getDraft(project, "story_graph")!.payload).toEqual(edited);
+  expect(getDraft(project, "story_graph")).toBeUndefined();
 });
 
 it("rejects a delayed recovery authority read after switching projects", async () => {
@@ -254,14 +285,18 @@ it("surfaces a previous-base session buffer after canonical reload", async () =>
 it("rejects a delayed refresh that predates a newer autosave acknowledgement", async () => {
   server = receipt(graphDraftFixture(), 1); await show();
   const old = state(); let resolve!: (value: GraphWorkbenchState) => void;
+  const edited = structuredClone(owner.draft!); edited.mapping.sections[0].summary = "Newer acknowledged prose";
+  await act(async () => owner.changeMapping(edited.mapping));
   vi.mocked(plotloomApi.getGraphWorkbench).mockImplementationOnce(() => new Promise(done => { resolve = done; }));
   let reading!: Promise<void>;
   await act(async () => { reading = owner.refresh(); });
-  const edited = structuredClone(owner.draft!); edited.mapping.sections[0].summary = "Newer acknowledged prose";
-  await act(async () => owner.changeMapping(edited.mapping));
-  await act(async () => { await owner.saveDraft(); });
+  // A save already dispatched before the read may still acknowledge afterward.
+  server = receipt(edited, 2); serverDrafts.current.set(graphDraftKey("project"), server);
+  const local = getDraft(project, "story_graph")!;
+  acknowledgeDraft(project, "story_graph", local.localRevision, 2);
   expect(serverDrafts.current.get(graphDraftKey("project"))!.draftRevision).toBe(2);
   await act(async () => { resolve(old); await reading; });
+  expect(owner.readStatus).toBe("failed");
   expect(owner.draft!.mapping.sections[0].summary).toBe("Newer acknowledged prose");
   expect(serverDrafts.current.get(graphDraftKey("project"))!.draftRevision).toBe(2);
 });
@@ -328,7 +363,7 @@ it("retains the invalidated preview boundary and local content when explicit rer
   vi.mocked(plotloomApi.getGraphWorkbench).mockRejectedValueOnce(new Error("offline"));
   await act(async () => owner.refresh());
   expect(owner.previewConflict).toBe(true); expect(owner.preview).toBeNull(); expect(owner.draft).toEqual(retained);
-  expect(owner.error).toContain("当前内容仍保留");
+  expect(owner.readError).toContain("offline"); expect(owner.readStatus).toBe("failed");
   await act(async () => owner.applyPreview());
   expect(plotloomApi.applyGraphCommand).toHaveBeenCalledTimes(1);
 });
@@ -412,7 +447,10 @@ it("preserves draft Undo through own content confirmation on the same canonical 
   });
   vi.mocked(plotloomApi.getGraphWorkbench).mockImplementation(async () => ({ ...state(), bindingHash: "d".repeat(64) }));
   const source = { source: { revision: 1 }, acceptedOutline: { revision: 1, contentHash: "e".repeat(64) }, acceptedSectionMap: null } as SourceOutlineReviewState;
+  vi.mocked(plotloomApi.getGraphWorkbench).mockRejectedValueOnce(new Error("post-confirm read failure"));
   await act(async () => { expect(await owner.confirmMapping(source)).toBe(true); });
+  expect(owner.readStatus).toBe("failed"); expect(owner.error).toBe("");
+  await act(async () => owner.refresh());
   expect(owner.canUndo).toBe(true);
   await act(async () => owner.undo());
   expect(owner.draft!.bindingHash).toBe("d".repeat(64));

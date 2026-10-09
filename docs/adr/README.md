@@ -72,3 +72,6 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0140 Native Codex dramatic-intent candidates](0140-native-bridge-intent-candidates.md)
 - [0141 Explicit character render direction](0141-character-render-direction.md)
 - [0142 Shot display identity](0142-shot-display-identity.md)
+- [0145 Current read authority for graph and directory actions](0145-current-read-authority-for-graph-and-directory.md)
+- [0146 Explicit unassessable identity review](0146-explicit-unassessable-identity-review.md)
+- [0147 Narrow owned pinned report renderers](0147-owned-pinned-report-renderers.md)

@@ -4,6 +4,8 @@ import type { GraphAuthoringDraft, GraphCommand, GraphCommandPreview, GraphMapDr
 
 export interface GraphWorkbenchController {
   state: GraphWorkbenchState | null;
+  readStatus: "loading" | "ready" | "failed";
+  readError: string;
   draft: GraphAuthoringDraft | null;
   selectedNodeId: string | null;
   busy: boolean;

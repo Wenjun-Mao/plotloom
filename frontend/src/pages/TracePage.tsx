@@ -75,7 +75,7 @@ export function TracePage({ run, progress, trace, executionTrace, running, onRun
         </> : <EmptyState title={observing ? "正在等待事件详情" : "暂无事件详情"}>{observing
           ? "收到运行记录后，可以在这里查看详情；无需再次启动任务。"
           : run ? "当前任务尚无可查看的事件；请查看上方的任务状态和失败信息。"
-          : "任务启动后，运行详情会显示在这里。"}</EmptyState>}
+          : apiTextPipeline ? "任务启动后，运行详情会显示在这里。" : "当前没有可查看的事件详情。"}</EmptyState>}
       </Panel>
     </div>
   </div>;

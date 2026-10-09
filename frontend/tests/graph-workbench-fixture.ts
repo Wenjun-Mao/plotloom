@@ -3,7 +3,7 @@ import type { GraphWorkbenchController } from "../src/features/graph/GraphWorkbe
 import type { GraphAuthoringDraft } from "../src/features/graph/contracts";
 
 export function graphControllerFixture(changes: Partial<GraphWorkbenchController> = {}): GraphWorkbenchController {
-  return { state: null, draft: null, selectedNodeId: null, busy: false, error: "", stale: false,
+  return { state: null, readStatus: "ready", readError: "", draft: null, selectedNodeId: null, busy: false, error: "", stale: false,
     preview: null, previewConflict: false, canUndo: false, refresh: vi.fn().mockResolvedValue(undefined), selectNode: vi.fn(),
     changeMapping: vi.fn(), changeDraft: vi.fn(), adoptMapping: vi.fn(), saveDraft: vi.fn().mockResolvedValue(true),
     confirmMapping: vi.fn().mockResolvedValue(true), installMapping: vi.fn().mockResolvedValue(true),

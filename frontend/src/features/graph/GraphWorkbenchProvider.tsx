@@ -22,6 +22,7 @@ interface Input {
   clearDraftWorkflow: () => void;
   canonicalChanged: () => Promise<void>;
   revisionConflict: (record: DraftRecord) => void;
+  readAdmission?: (projectId: string | undefined, allowed: boolean) => void;
 }
 const sameAuthoredContent = (left: GraphAuthoringDraft, right: GraphAuthoringDraft) => JSON.stringify({ mapping: left.mapping, fieldBuffers: left.fieldBuffers, detachedEndpoints: left.detachedEndpoints })
   === JSON.stringify({ mapping: right.mapping, fieldBuffers: right.fieldBuffers, detachedEndpoints: right.detachedEndpoints });
@@ -29,6 +30,15 @@ const sameAuthoredContent = (left: GraphAuthoringDraft, right: GraphAuthoringDra
 export function GraphWorkbenchProvider(input: Input) {
   const current = useRef(input); current.current = input;
   const [state, setState] = useState<GraphWorkbenchState | null>(null);
+  const [readStatus, setReadStatus] = useState<"loading" | "ready" | "failed">("loading");
+  const [readError, setReadError] = useState("");
+  const readAuthority = useRef({ projectId: input.project.id, ready: false, epoch: 0 });
+  const publishRead = (status: "loading" | "ready" | "failed", editable = false) => {
+    readAuthority.current = { projectId: current.current.project.id, ready: status === "ready" && editable, epoch: readAuthority.current.epoch + 1 };
+    setReadStatus(status);
+    current.current.readAdmission?.(current.current.project.id, readAuthority.current.ready);
+  };
+  const hasReadAuthority = () => current.current.enabled && readAuthority.current.projectId === current.current.project.id && readAuthority.current.ready;
   const [draft, setDraft] = useState<GraphAuthoringDraft | null>(null);
   const liveDraft = useRef(draft); liveDraft.current = draft;
   const [selectedNodeId, setSelection] = useState<string | null>(null);
@@ -56,11 +66,11 @@ export function GraphWorkbenchProvider(input: Input) {
   const [historyCount, setHistoryCount] = useState(0);
   const readGeneration = useRef(0);
   const owner = useRef({ projectId: input.project.id, epoch: 0 });
+  const confirmedReadBasis = useRef<{ owner: typeof owner.current; receipt: AuthoringDraft; payload: GraphAuthoringDraft } | null>(null);
   if (owner.current.projectId !== input.project.id) owner.current = { projectId: input.project.id, epoch: owner.current.epoch + 1 };
-  const resetHistory = () => { history.current = []; setHistoryCount(0); displayPreview(null); previewBasis.current = null; };
+  const resetHistory = () => { history.current = []; setHistoryCount(0); displayPreview(null); previewBasis.current = null; confirmedReadBasis.current = null; };
 
   const acceptReceipt = (receipt: AuthoringDraft, authored = false, selectionBasis = selectionVersion.current, keepSelection = false) => {
-    readGeneration.current++;
     const source = current.current;
     const payload = readGraphDraft(receipt.payload);
     source.serverDrafts.current.set(graphDraftKey(receipt.projectId), receipt);
@@ -79,13 +89,16 @@ export function GraphWorkbenchProvider(input: Input) {
     const source = current.current, operation = owner.current;
     if (!source.project.id || !source.enabled) return;
     const generation = ++readGeneration.current;
+    publishRead("loading"); setReadError("");
     const knownReceipt = source.serverDrafts.current.get(graphDraftKey(source.project.id));
     try {
       const next = await plotloomApi.getGraphWorkbench(source.project.id);
       if (operation !== owner.current || generation !== readGeneration.current) return;
       const acknowledged = source.serverDrafts.current.get(graphDraftKey(source.project.id));
       if (acknowledged !== knownReceipt && (!next.draft || next.draft.baseCanonicalRevision === acknowledged?.baseCanonicalRevision
-        && next.draft.draftRevision < acknowledged.draftRevision)) return;
+        && next.draft.draftRevision < acknowledged.draftRevision)) {
+        publishRead("failed"); setReadError("读取结果早于刚保存的图草稿，请重新读取确认当前版本。"); return;
+      }
       const previousBase = findRevisionConflict(source.project, "story_graph");
       if (previousBase) source.revisionConflict(previousBase);
       const unsent = getDraft(source.project, "story_graph");
@@ -96,10 +109,27 @@ export function GraphWorkbenchProvider(input: Input) {
       else if (next.draft) source.serverDrafts.current.set(graphDraftKey(source.project.id), next.draft);
       else source.serverDrafts.current.delete(graphDraftKey(source.project.id));
       const payload = unsent ? readGraphDraft(unsent.payload) : next.draft ? readGraphDraft(next.draft.payload) : next.initialPayload;
+      const confirmation = confirmedReadBasis.current;
+      const ownConfirmation = confirmation?.owner === operation && !unsent && next.draft
+        && next.draft.draftRevision === confirmation.receipt.draftRevision + 1
+        && next.draft.baseCanonicalRevision === confirmation.receipt.baseCanonicalRevision
+        && payload?.bindingHash === next.bindingHash && sameAuthoredContent(payload, confirmation.payload);
+      if (confirmation?.owner === operation) {
+        if (ownConfirmation) {
+          // Confirmation changes context, not authored content or canonical base.
+          // Only a current, receipt-matched read may rebase draft-only Undo.
+          history.current = history.current.map(entry => ({
+            before: { ...entry.before, bindingHash: next.bindingHash },
+            after: { ...entry.after, bindingHash: next.bindingHash },
+          }));
+          confirmedReadBasis.current = null;
+        } else resetHistory();
+      }
       setState(next);
+      publishRead("ready", !next.readOnlyReason);
       // A background read cannot erase newer typing. The server receipt still
       // updates currentness so explicit recovery/conflict handling remains visible.
-      if (!unsent && liveDraft.current?.bindingHash !== payload?.bindingHash) resetHistory();
+      if (!ownConfirmation && !unsent && liveDraft.current?.bindingHash !== payload?.bindingHash) resetHistory();
       if (!unsent || !liveDraft.current) {
         const preferred = liveDraft.current ? liveSelection.current : readGraphSelection(source.project.id);
         const retainedSelection = payload?.mapping.topology.nodes.some(node => node.id === preferred);
@@ -111,11 +141,15 @@ export function GraphWorkbenchProvider(input: Input) {
         setError("");
       }
       displayConflict(unsentConflict);
-    } catch (reason) { if (operation === owner.current && generation === readGeneration.current) setError(`无法读取共享图草稿；当前内容仍保留，请重试读取。${reason instanceof Error ? reason.message : ""}`); }
+    } catch (reason) { if (operation === owner.current && generation === readGeneration.current) {
+      publishRead("failed");
+      setReadError(`无法读取共享图草稿。${reason instanceof Error ? reason.message : ""}`);
+    } }
   }, []);
 
   useEffect(() => {
     setState(null); setDraft(null); liveDraft.current = null; liveSelection.current = null; setSelection(null); setError(""); resetHistory();
+    publishRead("loading"); setReadError("");
     busyRef.current = null; setBusy(false);
     displayConflict(false);
     void refresh();
@@ -138,7 +172,7 @@ export function GraphWorkbenchProvider(input: Input) {
   }, [input.restoredNonce]);
 
   const stale = Boolean(draft && state && draft.bindingHash !== state.bindingHash);
-  const writable = () => !current.current.readOnly && !busyRef.current && !state?.readOnlyReason && !stale;
+  const writable = () => hasReadAuthority() && !current.current.readOnly && !busyRef.current && !stale;
   const changeMapping = (mapping: GraphMapDraft) => {
     if (!writable() || !liveDraft.current) return;
     const next = { ...liveDraft.current, mapping, selectedNodeId };
@@ -159,7 +193,8 @@ export function GraphWorkbenchProvider(input: Input) {
   };
   const acknowledge = async () => {
     const source = current.current, payload = liveDraft.current, operation = owner.current;
-    if (!source.project.id || !payload || source.readOnly || stale) throw new Error("请先保存项目并处理当前图草稿的版本状态。");
+    const readBasis = readAuthority.current;
+    if (!hasReadAuthority() || !source.project.id || !payload || source.readOnly || stale) throw new Error("请先读取当前图草稿并处理其版本状态。");
     // The existing autosave owner drains every newer local revision before a
     // command can bind its preview to one acknowledged server buffer.
     if (!source.serverDrafts.current.has(graphDraftKey(source.project.id)) && !getDraft(source.project, "story_graph")) source.remember(payload);
@@ -167,12 +202,13 @@ export function GraphWorkbenchProvider(input: Input) {
     // Every command uses the same acknowledgement boundary. A completed save
     // still belongs to its original project, never to a subsequently opened one.
     if (operation !== owner.current) throw new Error("项目已切换，原图操作已停止。");
+    if (readBasis !== readAuthority.current || !hasReadAuthority()) throw new Error("图草稿读取状态已变化，请重新读取后重试操作。");
     const receipt = source.serverDrafts.current.get(graphDraftKey(source.project.id));
     if (!receipt) throw new Error("没有当前图草稿的服务器回执。");
     return receipt;
   };
   const perform = async <T,>(operation: () => Promise<T>): Promise<T | undefined> => {
-    if (busyRef.current) return;
+    if (busyRef.current || !hasReadAuthority() || current.current.readOnly) return;
     const basis = owner.current, lock = Symbol("graph operation"); busyRef.current = lock; setBusy(true); setError("");
     try { return await operation(); }
     catch (reason) { if (basis === owner.current) setError(reason instanceof Error ? reason.message : String(reason), reason instanceof ApiError ? reason.details : undefined); }
@@ -257,7 +293,7 @@ export function GraphWorkbenchProvider(input: Input) {
   };
   const confirmMapping = async (source: SourceOutlineReviewState) => (await perform(async () => {
     if (!source.source || !source.acceptedOutline) throw new Error("请先确认当前来源与大纲。");
-    const basis = owner.current, selectionBasis = selectionVersion.current, receipt = await acknowledge();
+    const basis = owner.current, receipt = await acknowledge();
     const payload = readGraphDraft(receipt.payload);
     if (!completeMap(payload.mapping) || Object.keys(payload.fieldBuffers).length) throw new Error("图草稿有待填写、待连接或未提交的字段，请先完成再确认。");
     await plotloomApi.saveSectionMap(current.current.project.id!, {
@@ -266,21 +302,10 @@ export function GraphWorkbenchProvider(input: Input) {
       expectedOutlineContentHash: source.acceptedOutline.contentHash, mapping: payload.mapping as SectionMap,
     });
     if (basis !== owner.current) return false;
-    const next = await plotloomApi.getGraphWorkbench(current.current.project.id!);
-    if (basis !== owner.current) return false;
-    if (next.draft && next.draft.draftRevision === receipt.draftRevision + 1
-      && next.draft.baseCanonicalRevision === receipt.baseCanonicalRevision
-      && sameAuthoredContent(readGraphDraft(next.draft.payload), payload)) {
-      // Our own content confirmation advances context without changing the
-      // canonical base. Undo remains draft-only and receives the new context.
-      history.current = history.current.map(entry => ({
-        before: { ...entry.before, bindingHash: next.bindingHash },
-        after: { ...entry.after, bindingHash: next.bindingHash },
-      }));
-      setState(next); acceptReceipt(next.draft, true, selectionBasis);
-    } else {
-      resetHistory(); await refresh();
-    }
+    confirmedReadBasis.current = { owner: basis, receipt, payload };
+    await refresh();
+    // Confirmation has succeeded even if its follow-up read failed or was
+    // superseded. Read failure owns recovery and must not relabel that write.
     return true;
   })) === true;
   const installMapping = async (source: SourceOutlineReviewState) => (await perform(async () => {
@@ -298,7 +323,7 @@ export function GraphWorkbenchProvider(input: Input) {
     current.current.clearDraftWorkflow(); resetHistory(); await current.current.canonicalChanged(); await refresh(); return true;
   })) === true;
 
-  return <GraphWorkbenchContext.Provider value={{ state, draft, selectedNodeId, busy, error, errorDetails, stale,
+  return <GraphWorkbenchContext.Provider value={{ state, readStatus, readError, draft, selectedNodeId, busy, error, errorDetails, stale,
     preview, previewConflict, canUndo: historyCount > 0, refresh, selectNode, changeMapping, changeDraft, adoptMapping, saveDraft,
     confirmMapping, installMapping, prepareCommand, cancelPreview: () => { displayPreview(null); previewBasis.current = null; },
     applyPreview, undo, recover, discard }}>{input.children}</GraphWorkbenchContext.Provider>;

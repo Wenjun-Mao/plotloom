@@ -139,6 +139,20 @@ against the loader's synchronous capability ref and cleared. These summaries are
 controlled browser responses against the real native composition, not new native
 run-lifecycle evidence. The full backend gate is still running at this checkpoint.
 
-The checked static build is regenerated before commit. Actual native activation
-and preservation readback remain a separate gate; normal8841 is unchanged.
-Graph/directory read-recovery defects and full lifecycle acceptance remain open.
+The generic API extension was committed at772c78b and activated through an idle-only
+restart of owned8865/8866 with the same H3v7 process override. Its actual Trace,
+Brief and repair reading exercise made13 GETs, zero unsupported profile/detail reads
+and zero mutations. Root inspected ten native viewport captures across all three
+desktop sizes; served JS SHA256 was
+`a59d6a5b85586933a8525db08d8a04bb7450aa7d24a5f856d8d358e25cea7c59`.
+All eight domain responses and42 managed asset path/hash entries remained exact;
+the specialist registry was idle and runs empty. The earlier814 checkpoint JSON
+remains historical evidence, not rewritten to imply this newer activation.
+
+The772 full Python run finished1417 PASS/1 stale coverage-catalog FAIL. An exact
+one-function-hash/one-assertion update preserved all37 assertions and the checker;
+four focused tests and independent review passed. The fresh full rerun now passes
+**1,418 tests**, with one existing Starlette warning. Later Trace/Brief wording and
+graph/directory read recovery are a separate reviewed candidate whose native
+after-activation checks remain pending. Normal8841 is unchanged; wider lifecycle
+acceptance remains incomplete.

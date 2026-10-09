@@ -92,11 +92,13 @@ export default function WorkspaceController() {
     observeRun,
     reportMessage: setError,
   });
+  const graphReadAdmission = useRef({ projectId: undefined as string | undefined, allowed: false });
   const authoring = useProjectAuthoringPersistence({
     session,
     durableDraftsEnabled: durableDraftsEnabledRef,
     feedback: { setBusy, setError },
     draftQuiescence: mediaDraftQuiescence,
+    scopeWritesAllowed: (scope, projectId) => scope !== "story_graph" || graphReadAdmission.current.projectId === projectId && graphReadAdmission.current.allowed,
   });
   const recovery = useAuthoringDraftRecovery({
     session,
@@ -290,11 +292,12 @@ export default function WorkspaceController() {
   if (session.onboarding) return <>
     <WelcomeOnboarding onBlank={startBlank} onSample={openSample} onDirectory={directory.openDirectory} />
     {lifecycle.duplicateNotice && <div className="notice" role="status"><span>{lifecycle.duplicateNotice}</span><Button onClick={lifecycle.dismissDuplicateNotice}>知道了</Button></div>}
-    {directory.open && <ProjectDirectoryDialog projects={directory.projects} currentProjectId={project.id} notice={lifecycle.closeNotice} busy={Boolean(lifecycle.closingProjectId || lifecycle.snapshottingProjectId)} showArchived={directory.showArchived} error={directory.error} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "creator" }); }} onAction={lifecycle.mutate} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
+    {directory.open && <ProjectDirectoryDialog projects={directory.projects} currentProjectId={project.id} notice={lifecycle.closeNotice} busy={Boolean(lifecycle.closingProjectId || lifecycle.snapshottingProjectId)} showArchived={directory.showArchived} error={directory.error} readError={directory.readError} onRetry={() => void directory.retry()} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "creator" }); }} onAction={lifecycle.mutate} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
     {lifecycle.confirmation}
   </>;
 
   return <GraphWorkbenchProvider project={project} enabled={durableDraftsEnabled && connection === "connected"} readOnly={projectReadOnly}
+    readAdmission={(projectId, allowed) => { graphReadAdmission.current = { projectId, allowed }; }}
     restoredPayload={authoring.restoredDraft?.scope === "story_graph" ? authoring.restoredDraft.payload : undefined}
     restoredNonce={recovery.editorNonce}
     serverDrafts={session.serverDrafts} remember={payload => authoring.rememberDraft("story_graph", payload)} flush={() => authoring.flushAuthoringDraft("story_graph")}
@@ -333,7 +336,7 @@ export default function WorkspaceController() {
     {profiles.settingsOpen && <SettingsDialog profiles={profiles.profiles} selectedProfileId={profiles.selectedProfileId} draft={profiles.profileDraft} sessionKey={profiles.sessionKey} busy={busy} editingDisabled={busy && profiles.settingsOperation !== "availability"} feedback={profiles.settingsFeedback || (error ? { kind: "error", message: error } : null)} onDraft={(draft) => { profiles.setProfileDraft(draft); profiles.setProfileDirty(true); }} onSessionKey={profiles.setSessionKey} onSelect={profiles.select} onCreate={() => profiles.create(false)} onCopy={() => profiles.create(true)} onDelete={profiles.remove} onActivate={profiles.activate} onAvailability={profiles.setAvailability} onProbe={profiles.probe} onClose={profiles.closeSettings} onSave={profiles.submitSettings} />}
     {specialistsOpen && <SpecialistSettingsDialog onClose={() => setSpecialistsOpen(false)} />}
     {apiTextPipelineEnabled && rebuildOpen && <RebuildDialog staleStages={project.staleStages} busy={busy} onClose={() => setRebuildOpen(false)} onRebuild={commands.rebuild} />}
-    {directory.open && <ProjectDirectoryDialog projects={directory.projects} currentProjectId={project.id} notice={lifecycle.closeNotice} busy={Boolean(lifecycle.closingProjectId || lifecycle.snapshottingProjectId)} showArchived={directory.showArchived} error={directory.error} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "creator" }); }} onAction={lifecycle.mutate} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
+    {directory.open && <ProjectDirectoryDialog projects={directory.projects} currentProjectId={project.id} notice={lifecycle.closeNotice} busy={Boolean(lifecycle.closingProjectId || lifecycle.snapshottingProjectId)} showArchived={directory.showArchived} error={directory.error} readError={directory.readError} onRetry={() => void directory.retry()} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "creator" }); }} onAction={lifecycle.mutate} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
     {workspaceNavigation.pendingNavigation && !session.unsafeDraft && <DraftNavigationDialog intent="navigate" onSave={() => void workspaceNavigation.resolvePendingNavigation("save")} onDiscard={() => void workspaceNavigation.resolvePendingNavigation("discard")} onCancel={() => void workspaceNavigation.resolvePendingNavigation("cancel")} />}
     {lifecycle.pendingArchive && <DraftNavigationDialog intent={lifecycle.pendingArchive.action} onSave={() => void lifecycle.resolvePendingArchive("save")} onDiscard={() => void lifecycle.resolvePendingArchive("discard")} onCancel={() => void lifecycle.resolvePendingArchive("cancel")} />}
     {recovery.recovery && !session.unsafeDraft && <DraftRecoveryDialog source={recovery.recovery.source} autoSaveAvailable={durableDraftsEnabled && Boolean(project.id)} busy={recovery.restoring} onRestore={() => void recovery.restore()} onDiscard={recovery.discard} />}

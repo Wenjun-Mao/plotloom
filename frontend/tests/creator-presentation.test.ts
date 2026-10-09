@@ -144,6 +144,24 @@ it("states that Brief edits retain production and leave the separate source unch
   expect(host.textContent).not.toContain("已安装投产");
 });
 
+it.each([false, undefined])("native or unknown Trace capability gives neutral empty-detail guidance (%s)", async apiTextPipeline => {
+  await act(async () => root.render(createElement(TracePage, { apiTextPipeline, trace: [], running: false,
+    onRun: vi.fn(async () => {}), onResume: vi.fn(async () => {}), onCancel: vi.fn(async () => {}) })));
+  expect(host.textContent).toContain("当前没有可查看的事件详情。");
+  expect(host.textContent).not.toContain("任务启动后，运行详情会显示在这里。");
+});
+
+it("Brief distinguishes one decision from its two options without inventing editorial status", async () => {
+  const graph = structuredClone(demoProject.storyGraph);
+  graph.nodes = graph.nodes.filter(node => node.kind !== "decision").concat(demoProject.storyGraph.nodes.filter(node => node.kind === "decision").slice(0, 1));
+  graph.edges = graph.edges.filter(edge => edge.kind === "choice").slice(0, 2);
+  await act(async () => root.render(createElement(BriefPage, { apiTextPipeline: false, value: demoProject.brief, hasSavedProject: true, saving: false,
+    bible: demoProject.storyBible, graph, proposalReady: true, onSave: vi.fn(async () => {}), onSaveAndContinue: vi.fn(async () => {}) })));
+  expect(host.textContent).toContain("故事设定与分支图"); expect(host.textContent).toContain("1 个选择点");
+  expect(host.textContent).toContain("2 个选项"); expect(host.textContent).toContain("每次完整播放约");
+  expect(host.textContent).not.toContain("待审阅的故事提案"); expect(host.textContent).not.toContain("2 个选择、");
+});
+
 it("keeps both legacy generation controls disabled when a ready Brief is read-only", async () => {
   const onGenerateProposal = vi.fn(async () => {});
   const onGenerateStoryboard = vi.fn(async () => {});

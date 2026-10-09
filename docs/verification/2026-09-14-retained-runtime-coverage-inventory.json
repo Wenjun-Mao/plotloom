@@ -665,9 +665,9 @@
       ]
     },
     "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement": {
-      "source_sha256": "239628c124826dcabb3aa72f9cbf5b223c4270ab7cefeadb9840e2070c4ba77e",
+      "source_sha256": "150361850c5724f856450612c69c498bce3263d9700b53648777385a163d76fa",
       "assertions": [
-        "client.get('/api/v2/runtime-capabilities').json() == {'durableProjectDrafts': True, 'durableMediaDrafts': True, 'explicitProjectClose': True, 'portableSnapshots': True, 'textProviderProfiles': False}",
+        "client.get('/api/v2/runtime-capabilities').json() == {'durableProjectDrafts': True, 'durableMediaDrafts': True, 'explicitProjectClose': True, 'portableSnapshots': True, 'apiTextPipeline': False}",
         "imported.status_code == 201",
         "client.get(f'/api/v2/projects/{second_id}/managed-assets').json()['assets'] == []",
         "visual_draft.status_code == 200",
