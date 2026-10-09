@@ -23,6 +23,7 @@ it.each([
     expect(host.textContent).toContain(contents);
     expect(host.textContent).toContain(disabled);
     expect(host.textContent).not.toContain("上游脚本");
+    expect(host.textContent).toContain("所有分支的时长相加，不等于一次从开场到结局的播放时长");
     const frame = host.querySelector("iframe")!;
     expect(frame.title).toBe(`原始${subject}交付报告（只读）`);
     expect(frame.getAttribute("src")).toBe(url);

@@ -17,6 +17,7 @@ export function StaticReportReader({ kind, url }: { kind: keyof typeof reportCop
   return <details>
     <summary>阅读原始{subject}报告（只读）</summary>
     <p className="action-prerequisite">原始报告的只读展示：{explanation}原始报告独立保留，不会随当前{subject}修改。</p>
+    <p className="action-prerequisite">互动故事中，报告按内容段落列出各分支；“集”不一定是一条完整播放路线。所有分支的时长相加，不等于一次从开场到结局的播放时长。</p>
     <ProjectReportFrame sandbox="" referrerPolicy="no-referrer" title={`原始${subject}交付报告（只读）`} className="source-outline-report" url={url} />
   </details>;
 }

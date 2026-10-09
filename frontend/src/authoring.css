@@ -226,6 +226,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .bridge-intent-controls { display: grid; justify-items: start; gap: 12px; }
 .bridge-intent-status { display: block; line-height: 1.5; }
 .bridge-intent-controls .notice { width: 100%; }
+.bridge-intent-report { width: 100%; min-width: 0; }
 .bridge-intent-review { min-width: 0; }
 .bridge-intent-field { display: grid; gap: 6px; margin: 16px 0; }
 .bridge-intent-field textarea { width: 100%; min-height: 78px; resize: vertical; }

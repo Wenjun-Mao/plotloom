@@ -92,6 +92,18 @@ it("lets the author save unchanged complete suggestions while installation stays
   expect(button("确认投产提案")?.disabled).toBe(true);
   expect(accept).not.toHaveBeenCalled();
   expect(host.querySelector("iframe")?.getAttribute("sandbox")).toBe("");
+  expect(host.querySelector("iframe")?.closest("details")?.classList.contains("bridge-intent-report")).toBe(true);
   await act(async () => button("保存戏剧意图整包")!.click());
   expect(save).toHaveBeenCalledWith("project", { expectedProposalRevision: 2, expectedContentHash: "a".repeat(64), entries: [{ id: "target", text: "角色争取信任" }] });
+});
+
+it.each(["ready", "accepted"] as const)("does not mislabel saved intents when production is %s", async status => {
+  const saved = withJob("ready");
+  saved.status = status;
+  saved.proposal!.intentPackage.reviewState = "author_saved";
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(saved);
+  vi.spyOn(plotloomApi, "admitReportRead").mockResolvedValue({ cancel: vi.fn(), complete: vi.fn() } as never);
+  await render();
+  expect(host.textContent).toContain("助手建议已交付；当前意图的确认状态请查看整包审阅区");
+  expect(host.textContent).not.toContain("尚未由作者确认");
 });

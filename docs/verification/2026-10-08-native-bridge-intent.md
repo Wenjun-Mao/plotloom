@@ -398,3 +398,44 @@ selected for production; preparation was disabled. Root inspected
 same asset `20bd88c5-8ed3-4205-805d-ce41637fac11` created reference r2 and changed
 the summary to ready. Native preparation and delivery remain the next check.
 Normal8841 is unchanged; this is not full E2E or narrow-screen acceptance.
+
+## First keyframe and H3 submission
+
+Image job `ij_00c0e50a39f34e4186f1118df492f9e7` completed and was automatically
+ingested as candidate `6285d0b7-869b-46f4-8c60-826ed0c82b2c`. Root inspected the
+complete 1672×941 image and its frozen character reference, then saved visual
+intent r1, explicitly selected the keyframe and recorded Codex-only consistency
+review `fbf80a9f-b54f-427b-ab7f-dee63ad34d77`. These are disposable functional
+decisions, not owner artistic approval. The candidate was not automatically selected.
+
+The H3 form correctly refused an aspect mismatch. Root explicitly chose quality8,
+960×544 landscape, five seconds and contain-pad to preserve the full composition.
+After reading each source, root entered English directions and reviewed the full
+compiled prompt. Job `vj_35ea30f75dd344e5a055646de4b379bc` was prepared and submitted
+once at 02:12:21 UTC on October9, with provider handle
+`h3_d75954f59e3149bc9eca29be2fdd4f9f`. Its request hash is
+`b6f0fa83c087e892b888e01be76c49c4a7ed075569e6a4a9b9339421e0187234`;
+no endframe is used. At this checkpoint it is submitted, not delivered or selected.
+The other three shots and both complete routes still require media.
+
+## Report state and width repairs
+
+The intent task's `ready` transport state incorrectly claimed the author had not
+confirmed it, even after package saving and installation. It now states delivery
+only and points to the current package review state; it does not infer approval
+from transport completion. The report's grid used start alignment, shrinking the
+details element. A scoped full-width rule repairs that container without changing
+the retained report, URL or sandbox. App-owned Script and Storyboard guidance now
+distinguishes sums across all branches from one complete playback route.
+
+Focused10 and full825 frontend tests, types, deterministic build and diff checks
+passed. Independent read-only review found no issues. Root viewed the live report
+at1700×900 and1280×460: iframe widths1304 and884 respectively, matching their
+containers; the short desktop document remained1280px wide. A1280×768 capture
+and visible Script guidance were also collected. Evidence is under
+`output/playwright/native-intent-2026-10-08/` in the main checkout. The changes are
+isolated; no service restart or normal8841 deployment occurred.
+
+Still open: technical report headings and English limitation text, mixed12-hour
+task clocks, delivered image cards retaining a send control, and native media,
+same-project Revise and remaining full-product coverage. No full E2E PASS is claimed.
