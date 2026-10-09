@@ -288,8 +288,51 @@ uses the actual Open sample action before entering settings; assertions unchange
 Independent source/pixel review closed with no concrete bug in this delta.
 The reviewer noted unchanged behavior: closing during save/check does not cancel
 the request, so a save can still commit and a later error is no longer displayed.
-This slice does not qualify close-while-pending, successful settings persistence,
+That slice did not qualify close-while-pending, successful settings persistence,
 active native task checks, or every provider-profile state.
+
+### Pending-operation close and explicit retry — October9 continuation
+
+Actual8865 read-only settings plus an intercepted held PUT503 reproduced the
+close defect: `closeEnabled=true`, `closedBeforeResponse=true`, failure feedback
+and edited input both absent after reopen, persisted settings byte-for-byte equal.
+One attempted PUT per exercise was intercepted; no settings write or generation
+reached the server. The first CLI script failed to parse before execution; a
+subsequent exercise completed, and a repeat returned the explicit boolean evidence.
+`output/playwright/native-intent-2026-10-08/settings-close-pending-reproduction.png`
+records the reopened UI. The actual settings were never printed or modified.
+
+The save/check result and input are dialog-local, but close/backdrop could unmount
+their owner during the request. Both now honor the existing operation busy guard,
+just like editing/Save. This keeps feedback in place until settlement; it does not
+cancel a submitted operation or claim browser/tab closure can be prevented.
+Initial GET loading and a server-side active task do not lock Close. No API,
+provider, dispatch or persistence contract changed.
+
+Two focused assertions fail before the repair; all4 settings tests then pass,
+covering failed save and successful task-check settlement, close/backdrop guards,
+retained input and closing afterwards. Full frontend888 tests/109files, application
+types, E2E types, deterministic build and diff check pass. Final real-server browser
+journey passes4.2s: GET retry, intercepted failed save, exact unchanged readback,
+explicit real retry in the **disposable fixture only**, successful name persistence
+and close/reopen retention. Its two PUT attempts are exactly failed+retry, all
+other settings fields remain identical and no generation/check/send is performed.
+
+Final15 captures are retained under canonical
+`output/playwright/native-intent-2026-10-08/settings-pending-final/`.
+Root inspected all9 save-pending/failed/succeeded images at all supported sizes;
+independent review inspected all15/source/test/bundle and found the scoped
+save/check guard correct. The retained reviewer's effective model/effort remains
+unverified. Review found an adjacent gap: `ImageTerminalSettlement` owns a separate
+reservation-release write and subsequent settings refresh; its child-local busy
+state does not reach the dialog close controls. That path remains open for a
+focused follow-up, not qualified by this save/check fix. No release was attempted.
+The new unfiltered browser run is active (handle46549) on frontend source/tests,
+E2E/config/package files and generated static aggregate SHA256
+`44d74f4af0ea6204812d34dc54088f7c25b84238ed3866282a86c7620d528544`.
+It is not yet PASS; do not restart it merely for an observation timeout.
+Native active task-check execution and provider-profile failed-save remain open.
+Normal8841 and both owner projects/protected settings are unchanged.
 
 Remaining: broader applicable recovery slices, Opening2 identity semantics/media and both rebuilt routes,
 outstanding report-generation context/copy and other E22 states. This receipt

@@ -10,7 +10,7 @@ let host: HTMLDivElement, root: Root;
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); });
 const button = (label: string) => [...host.querySelectorAll("button")].find(item => item.textContent === label)!;
-const render = () => act(async () => root.render(createElement(SpecialistSettingsDialog, { onClose: vi.fn() })));
+const render = (onClose = vi.fn()) => act(async () => root.render(createElement(SpecialistSettingsDialog, { onClose })));
 
 it("distinguishes loading, failed read and explicit read-only retry", async () => {
   let reject!: (reason: Error) => void;
@@ -20,6 +20,7 @@ it("distinguishes loading, failed read and explicit read-only retry", async () =
   await render();
   expect(host.textContent).toContain("正在读取助手设置…");
   expect(button("保存助手设置").disabled).toBe(true);
+  expect(button("关闭").disabled).toBe(false);
   await act(async () => reject(new Error("设置暂时不可用。")));
   expect(host.textContent).not.toContain("正在读取助手设置…");
   expect(host.textContent).toContain("设置暂时不可用。");
@@ -36,7 +37,8 @@ it("names a held save and preserves editable input after failure", async () => {
   vi.spyOn(specialistsApi, "settings").mockResolvedValue(settings);
   let reject!: (reason: Error) => void;
   const save = vi.spyOn(specialistsApi, "save").mockReturnValue(new Promise((_, fail) => { reject = fail; }));
-  await render();
+  const close = vi.fn();
+  await render(close);
   const input = host.querySelector("input")!;
   await act(async () => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "保留名称");
@@ -45,12 +47,21 @@ it("names a held save and preserves editable input after failure", async () => {
   await act(async () => button("保存助手设置").click());
   expect(button("正在保存…").disabled).toBe(true);
   expect(host.querySelector("fieldset")!.disabled).toBe(true);
+  expect(button("关闭").disabled).toBe(true);
+  const backdrop = host.querySelector<HTMLButtonElement>(".modal-backdrop")!;
+  expect(backdrop.disabled).toBe(true);
+  await act(async () => { button("关闭").click(); backdrop.click(); });
+  expect(close).not.toHaveBeenCalled();
   await act(async () => reject(new Error("保存暂时不可用。")));
   expect(input.value).toBe("保留名称");
   expect(host.querySelector("fieldset")!.disabled).toBe(false);
   expect(button("保存助手设置").disabled).toBe(false);
+  expect(button("关闭").disabled).toBe(false);
+  expect(backdrop.disabled).toBe(false);
   expect(host.textContent).not.toContain("设置已保存");
   expect(save).toHaveBeenCalledTimes(1);
+  await act(async () => button("关闭").click());
+  expect(close).toHaveBeenCalledOnce();
 });
 
 it("keeps server-busy bindings locked after a successful read", async () => {
@@ -60,6 +71,7 @@ it("keeps server-busy bindings locked after a successful read", async () => {
   expect(host.textContent).not.toContain("正在读取助手设置");
   expect(button("保存助手设置").disabled).toBe(true);
   expect(host.querySelector("fieldset")!.disabled).toBe(true);
+  expect(button("关闭").disabled).toBe(false);
 });
 
 it("labels an explicit held task check without saving or sending", async () => {
@@ -74,10 +86,13 @@ it("labels an explicit held task check without saving or sending", async () => {
   expect(host.textContent).toContain("正在检查任务结果…");
   expect(button("检查此任务的结果").disabled).toBe(true);
   expect(button("保存助手设置").disabled).toBe(true);
+  expect(button("关闭").disabled).toBe(true);
+  expect(host.querySelector<HTMLButtonElement>(".modal-backdrop")!.disabled).toBe(true);
   await act(async () => finish({ state: "completed" }));
   expect(check).toHaveBeenCalledExactlyOnceWith("p", "outline", "j");
   expect(read).toHaveBeenCalledTimes(2);
   expect(host.textContent).not.toContain("正在检查任务结果…");
   expect(button("保存助手设置").disabled).toBe(false);
+  expect(button("关闭").disabled).toBe(false);
   expect(save).not.toHaveBeenCalled(); expect(send).not.toHaveBeenCalled();
 });

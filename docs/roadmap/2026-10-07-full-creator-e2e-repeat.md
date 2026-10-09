@@ -72,6 +72,10 @@ walkthrough repairs misleading retained-outline return guidance and primary Engl
 branch warnings;888 frontend/15 focused tests and the expanded browser journey pass,
 with27 root/independently inspected pixels. Accepted Outline/map and read-only report
 remain unchanged. These later deltas have not been published.
+The settings follow-up reproduces lost feedback/input when closing a pending save;
+close/backdrop now respect the local operation guard. The disposable browser journey
+also verifies an explicit successful retry and reopen persistence, without native
+dispatch or writes to actual settings. Its qualification is in the recovery receipt.
 Other applicable
 recovery slices, revised routes and E22 completion remain incomplete.
 

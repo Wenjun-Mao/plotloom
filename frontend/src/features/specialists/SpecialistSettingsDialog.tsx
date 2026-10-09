@@ -33,7 +33,7 @@ export function SpecialistSettingsDialog({ onClose }: { onClose: () => void }) {
     finally { setOperation(null); }
   };
   return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="specialist-settings-title">
-    <button className="modal-backdrop" aria-label="关闭生成助手设置" onClick={onClose} />
+    <button className="modal-backdrop" aria-label="关闭生成助手设置" disabled={busy} onClick={onClose} />
     <section className="modal-card compact"><header><h2 id="specialist-settings-title">生成助手设置</h2></header>
       <div className="modal-body"><p>设置保存在当前服务器所在的电脑上，不写入项目。保存设置不会发送任务。</p>
         <p>填写已有 Codex 聊天的 ID，不是聊天标题。两个助手使用不同的聊天，每个助手一次处理一项任务。</p>
@@ -49,7 +49,7 @@ export function SpecialistSettingsDialog({ onClose }: { onClose: () => void }) {
         {error && <ErrorNotice message={error} />}
         {error && !settings && !loading && <Button onClick={() => setReadVersion(value => value + 1)}>重试读取助手设置</Button>}
         {operation === "check" && <p role="status">正在检查任务结果…</p>}
-      </div><footer><Button onClick={onClose}>关闭</Button><Button variant="primary" disabled={!settings || busy || settings.busy} onClick={() => void save()}>{operation === "save" ? "正在保存…" : "保存助手设置"}</Button></footer>
+      </div><footer><Button disabled={busy} onClick={onClose}>关闭</Button><Button variant="primary" disabled={!settings || busy || settings.busy} onClick={() => void save()}>{operation === "save" ? "正在保存…" : "保存助手设置"}</Button></footer>
     </section>
   </div>;
 }

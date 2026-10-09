@@ -1,7 +1,7 @@
 import { expect, test } from "./fixture";
 import type { Locator, Page, TestInfo } from "@playwright/test";
 
-test("assistant settings distinguishes held reads and saves, offers read retry and retains failed-save input", async ({ page, request, workbench }, testInfo) => {
+test("assistant settings retains pending operations and failed input, then persists an explicit retry", async ({ page, request, workbench }, testInfo) => {
   const endpoint = `${workbench.apiOrigin}/api/v2/specialists`;
   const pattern = "**/api/v2/specialists";
   const original = await (await request.get(endpoint)).json();
@@ -45,18 +45,31 @@ test("assistant settings distinguishes held reads and saves, offers read retry a
     await dialog.getByRole("button", { name: "保存助手设置", exact: true }).click();
     await expect(dialog.getByRole("button", { name: "正在保存…", exact: true })).toBeDisabled();
     await expect(name).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "关闭", exact: true })).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "关闭生成助手设置", exact: true })).toBeDisabled();
     await capture(page, dialog, testInfo, "save-pending");
   } finally { releaseSave(); }
   await expect(dialog).toContainText("测试保存暂时不可用。");
   await expect(name).toHaveValue("QA 保留未保存的助手名称");
   await expect(name).toBeEnabled();
   await expect(dialog.getByRole("button", { name: "保存助手设置", exact: true })).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "关闭", exact: true })).toBeEnabled();
   await expect(dialog).not.toContainText("设置已保存");
   await capture(page, dialog, testInfo, "save-failed");
   expect(writes).toEqual(["PUT /api/v2/specialists"]);
   expect(await (await request.get(endpoint)).json()).toEqual(original);
-  await dialog.getByRole("button", { name: "关闭", exact: true }).click();
   await page.unroute(pattern);
+  await dialog.getByRole("button", { name: "保存助手设置", exact: true }).click();
+  await expect(dialog).toContainText("设置已保存，即刻生效。");
+  await expect(dialog.getByRole("button", { name: "关闭", exact: true })).toBeEnabled();
+  const saved = await (await request.get(endpoint)).json();
+  expect(saved).toEqual({ ...original, text: { ...original.text, name: "QA 保留未保存的助手名称" } });
+  expect(writes).toEqual(["PUT /api/v2/specialists", "PUT /api/v2/specialists"]);
+  await capture(page, dialog, testInfo, "save-succeeded");
+  await dialog.getByRole("button", { name: "关闭", exact: true }).click();
+  await page.getByRole("button", { name: "生成助手设置", exact: true }).click();
+  await expect(dialog.getByLabel("显示名称", { exact: true }).first()).toHaveValue("QA 保留未保存的助手名称");
+  await dialog.getByRole("button", { name: "关闭", exact: true }).click();
 });
 
 async function capture(page: Page, dialog: Locator, testInfo: TestInfo, state: string) {
