@@ -204,7 +204,7 @@ The review reused the retained worker; its inherited model/effort was not verifi
 No full unfiltered browser rerun is claimed for this newest delta;248 PASS remains
 the earlier `38f55b8` baseline. Existing chunk-size/color-environment warnings remain.
 No normal8841 update, native generation or owner-project mutation occurred.
-# Branch-suggestion audit follow-up — October9, unresolved
+# Branch-suggestion audit follow-up — October9, initial reproduction
 
 After the nested settings repair, controlled GET-only responses on owned8865
 reproduced two separate branch-panel issues. A503 read renders
@@ -226,3 +226,68 @@ bounded exercise succeeded. These are controlled-state UI reproductions, not
 native stale-job execution. Repair/regressions remain pending until the current
 frozen browser gate finishes. No new raw-English stale-reason defect is asserted:
 the inspected branch backend currently supplies Chinese stale explanations.
+
+### Repair and qualification continuation
+
+After249/249 browser qualification of724fdd1 completed, the UI repair separated
+task cancellation from content freshness. `SectionMapPanel` now supplies an explicit
+cancel guard for parent read-only/busy and graph-owner busy; stale graph/source/outline
+and graph-specific binding restrictions still prohibit content adoption but do not
+prohibit cancellation. This aligns the UI with the existing active-project/backend
+cancel contract; no schema, dispatch, reservation-release or canonical mutation
+semantics changed. A small local error formatter shows the Error message rather
+than the JavaScript class prefix. The outline-current flag now participates in the
+branch read basis, fixing a third demonstrated defect: reopening the retained
+outline previously did not refresh its task's stale explanation.
+
+Three new real-parent unit regressions failed before the patch (disabled cancellation,
+missing reread, raw ApiError prefix); all16 initial focused checks pass afterward.
+An additional held/failed cancellation test verifies disabled duplicate clicks,
+retained candidate, clean error and no automatic retry. Full frontend898/111files
+passes including that test. Branch backend17/17 passes, including a ready candidate
+cancelled after actual Outline reopen with unchanged source/accepted story. Both
+typechecks and deterministic build pass; static JS is fresh.
+
+The real-server browser journey uses a disposable fixture project, not native
+generation: read503/retry, actual task preparation, actual Brief edit through UI,
+stale task display, unsaved source text, one exact cancelPOST, same cancelled jobID,
+unchanged source/graph responses and retained local text. The initial harness expected
+a custom `detail`503 body to render; the transport's documented message field instead
+produced its generic HTTP503 message. The assertion was corrected, not production
+transport. Corrected journey passed1/1; expanded final capture passed1/1 in3.7s.
+Twelve viewport captures cover failed-read, stale-task, separately scrolled cancellation
+controls and cancelled-with-draft states across all three supported desktop sizes:
+`frontend/test-results/branch-recovery-final/branch-suggestion-recovery-defc9-t-replacing-source-or-graph/`.
+The12 PNGs are also preserved under canonical
+`output/playwright/native-intent-2026-10-08/branch-recovery-final/`.
+Root inspected failure, stale and cancelled states plus the short-height cancel control.
+Independent initial source/pixel review closed with the timing finding below. No actual settings or specialist lease
+was changed, no generation was dispatched, and normal8841 remains untouched.
+
+The independent reviewer inspected all12 PNGs with no authority/layout finding,
+but identified a same-project basis-change race during pending cancellation. Root
+reproduced it with a failing regression: the read effect reset busy before the POST
+settled. The operation now retains a project-owned ticket across read-basis epochs;
+after committing under a changed basis it rereads current task state, while a
+project switch/unmount invalidates the old ticket. The new race and departed-project
+tests pass. This does not extend cancellation authority or release a specialist.
+Adjacent Source browser23/23 passed before this race delta; after it, both branch
+recovery and the real reopen/source-revision journey pass2/2 in7.4s, with regenerated
+pixels under `frontend/test-results/branch-recovery-owned/`. Both typechecks and
+deterministic build pass. Independent review of this ownership delta closed without
+a defect; the reviewer retained a separate, un-reproduced navigate-away-and-back
+before POST completion concern for the wider lifecycle audit. The local component
+does not claim cross-mount operation tracking. Hard project isolation is preserved;
+no cross-project callback is accepted to address that possible stale-read window.
+Final frontend **900/111files PASS** includes both ownership regressions. Full Python
+1415 and browser249 qualify the prior checkpoint; this bounded frontend delta has
+the focused/adjacent checks above, not a new whole-run completion claim.
+
+Next provider-settings audit: the actual8865 settings launcher never opened a
+dialog. Its GET`/api/v2/text-provider-profiles` returns404 and the UI subsequently
+shows “无法读取模型配置，请重试。服务请求失败（HTTP404）”. Read-only source tracing
+finds the routes registered only with API text admission/dispatcher; the native
+creator composition intentionally omits those (ADR0140). This is not a model-field
+locator problem. The earlier attempted failed-save exercise never reached a form or
+a write. A failed-save presentation finding remains unproven; qualify that supported
+composition separately and reconcile the visible launcher with runtime capability.

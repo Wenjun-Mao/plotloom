@@ -18,7 +18,7 @@ export function SectionMapPanel({ projectId = "", structureKey = "", outline, ou
   const owner = useGraphWorkbench();
   const mapping = owner.draft?.mapping ?? null;
   const [planned, setPlanned] = useState<SourceTopology>();
-  const basis = outline ? `map:${outline.revision}:${outline.contentHash}:${accepted?.revision ?? 0}${structureKey}` : "";
+  const basis = outline ? `map:${outline.revision}:${outline.contentHash}:${accepted?.revision ?? 0}:${outlineCurrent}:${structureKey}` : "";
   const dirty = accepted ? !mapsEqual(mapping, accepted.mapping) : Boolean(owner.state?.draft || mapping?.topologyOrigin === "author" || mapping?.sections.some(section => section.title || section.summary));
   const setMapping = owner.changeMapping;
   const saveMapping = async () => {
@@ -41,7 +41,7 @@ export function SectionMapPanel({ projectId = "", structureKey = "", outline, ou
       {staleReasons.length > 0 && <details><summary>技术详情：分支过期原因</summary><ul>{staleReasons.map((reason, index) => <li key={index}>{reason}</li>)}</ul></details>}
     </div></div>}
     {!outline ? <p className="muted">先确认大纲，再准备完整分支建议。</p> : <>
-      {projectId && <BranchSuggestionPanel projectId={projectId} basis={basis} disabled={disabled || sourceDirty} dirty={dirty || owner.stale} onPlan={setPlanned} onAdopt={owner.adoptMapping} />}
+      {projectId && <BranchSuggestionPanel projectId={projectId} basis={basis} disabled={disabled || sourceDirty} cancelDisabled={readOnly || busy || owner.busy} dirty={dirty || owner.stale} onPlan={setPlanned} onAdopt={owner.adoptMapping} />}
       {dirty && <GraphDraftDiscard disabled={disabled} />}
       {planned && <Button variant="quiet" disabled={disabled || dirty} onClick={() => owner.adoptMapping(blankStructure(planned))}>自行填写当前结构草稿</Button>}
       {mapping && <>

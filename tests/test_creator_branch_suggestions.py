@@ -138,6 +138,21 @@ def test_changed_basis_rejects_delivery_and_adoption(store, change):
         store.branch_draft(request.job_id)
 
 
+def test_ready_branch_can_be_cancelled_after_outline_reopen_without_changing_story(store):
+    request = prepare(store)
+    store.admit_branch_delivery(_deliver_stage(
+        store, request, "branches.json", proposal(request.source["topology"]), "cancel-reopened",
+    ))
+    store.reopen_outline(OutlineReopenRequest(expected_outline_revision=1))
+    before = store.source_outline_state()
+    assert store.branch_state().stale_reasons
+    with pytest.raises(InvalidTransitionError):
+        store.branch_draft(request.job_id)
+    store.cancel_branch_candidate(request.job_id)
+    assert store.branch_state().candidate.status == "cancelled"
+    assert store.source_outline_state() == before
+
+
 @pytest.mark.parametrize("damage", ["question", "option", "node", "join"])
 def test_malformed_suggestion_does_not_admit_or_discard_the_reservation(store, damage):
     request = prepare(store)

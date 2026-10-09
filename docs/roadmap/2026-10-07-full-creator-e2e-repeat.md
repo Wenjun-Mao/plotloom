@@ -81,6 +81,13 @@ all27 affected lifecycle tests pass after current-copy updates. Nested terminal-
 operation ownership and proof-form overflow are now repaired, with891 frontend tests,
 focused browser proof and12 desktop captures; independent/final qualification is
 recorded in the same recovery receipt. No actual reservation was released.
+The combined249 browser gate subsequently passed in7.7m. The next Source/branch
+audit repairs stale-task cancellation permission, Outline reopen read invalidation
+and raw error prefixes;900 frontend/17 branch-backend checks pass. Independent review
+also found and root reproduced/repaired a pending-cancel basis race; ownership tests,
+two final real-server browser journeys and source/pixel review pass. Cross-mount
+navigation timing and native provider-launcher availability remain separate audit
+leads in the Source/help receipt.
 Other applicable
 recovery slices, revised routes and E22 completion remain incomplete.
 

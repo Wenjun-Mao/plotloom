@@ -385,7 +385,9 @@ The independently reviewed delta is committed as `724fdd1`. A fresh unfiltered24
 browser gate is running as handle85563 under `test-results/terminal-dialog-full`,
 with aggregate frontend source/tests/E2E/config/package/static SHA256
 `d273740e45036781fcfedf202820bbc09d5b3f45751202a46c32bcc9df850df9`.
-The checked files remain unchanged during the run; no PASS is claimed yet.
+The checked files remained unchanged during the run. Handle85563 subsequently
+finished successfully: **249 passed in7.7m**, with zero configured local retries.
+This qualifies724fdd1, not the later branch-panel edits. Normal8841 remains untouched.
 
 Remaining: broader applicable recovery slices, Opening2 identity semantics/media and both rebuilt routes,
 outstanding report-generation context/copy and other E22 states. This receipt
