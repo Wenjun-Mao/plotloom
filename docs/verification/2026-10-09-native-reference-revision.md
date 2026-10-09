@@ -127,6 +127,55 @@ only preview styles, tests and documentation. No backend restart is needed.
 
 ## Preservation and remaining work
 
+### Revised prop and Script continuation, 06:05 UTC
+
+On clean `e96c584`, the UI prepared and sent one P01 image job
+`ij_ec23f78754124763b31f6b3d31b8c5a7` (05:56:55/05:57:13 UTC), request hash
+`56f2ee52f86dd048d9c17b9cab30878c116cc69d2fe47c8a2c8e6e4fd87ca29d`.
+The existing image task completed turn `01a11f3c-ca3b-7f82-ae0a-0804067efbab`.
+Root directly viewed the delivered isolated dual-cover lamp: left illuminated,
+right unlit, single switch, white background, no person/text. Exact shape,
+material and warm light tint remain candidate choices, not owner quality approval.
+The UI's named `检查图像交付` control ingested it after returning from Script;
+no duplicate preparation/dispatch was used. Explicit QA selection06:04:03 produces
+P01 reference r2/current, decision `8e249647-e980-4718-9ee2-806ce3d85d79`, asset
+`6882e081-4c4a-4ce8-8a70-a4426bad8513`, original hash
+`95e93973aeb9484b2efd94b4e7fb883fcf4f50b198b418e04bb7b5ca534f1cc9`.
+Reload and reselecting P01 retain `已选用这张道具参考图`; the read-only API agrees.
+Old P01 r1 and S01 r1 are retained/noncurrent. Art reference use remains review-only.
+
+Script job `ch_a5881c99c4494ad48dc9dac1e2a9262b`, request hash
+`910c1d4201dd773e5e0de39c1a62e6b9e2246bb0eff1410c11774d18e8043d3a`,
+was prepared05:57:36 and sent05:57:56. Text specialist turn
+`01a11f3d-667b-7d31-a872-c38345a85fba` completed; Plotloom ingested its candidate.
+Root read the full script and expanded original report. Exact three footage-section
+bindings preserve opening10s, west5s and revised east5s; choice is route-only.
+Both complete routes remain15s; total alternate footage20s is not route duration.
+UI confirmation06:03:19 produces Script r2/hash
+`ed6ffa1e7c1e68e222dae06abc5c9fbb562b367574d2edbb76d0d3e034220c69`,
+accepted with no stale reasons in subsequent API readback.
+
+The next UI-prepared/sent storyboard job is
+`ch_236d280e7ec243f0bc1ee30fae0f190a` (06:05:09/06:05:28), freezing Graph/Map3,
+Cast3, Art2 and Script2. Existing text task turn
+`01a11f44-444f-7cd2-8c8e-5ca48779c5bd` is confirmed running; not yet delivered
+or accepted at this checkpoint. No production rebuild or revised video claim.
+
+### Open E22 diagnostic-presentation finding
+
+Before preparation, Script and Storyboard stale banners expose raw English
+comparison strings, e.g. `section map revision changed` and
+`complete route section ids changed`. Root inspected the actual1700×900 capture
+`revised-storyboard-stale-wording.png` in the native evidence directory.
+The warning wraps without overlap but is not understandable primary Chinese guidance.
+Source evidence: `ScriptPanel.tsx` and `StoryboardReviewPanel.tsx` directly join
+`staleReasons`; their persistence owners emit only untyped comparison strings.
+Cast/Art already use typed owner/code/field diagnostics. Durable follow-up is to
+extend that current diagnostic contract at the Script/Storyboard owners and render
+human-facing explanations, retaining raw evidence in technical details. Do not add
+string-matching translation adapters or weaken currentness/admission. This finding
+is recorded, not fixed, and remains part of E22 before full-run completion.
+
 Protection recapture05:53 UTC matches aggregate
 `df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`:
 Wind17 managed files, Rain67 managed files and three protected files unchanged.
