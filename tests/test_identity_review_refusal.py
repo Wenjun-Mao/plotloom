@@ -28,6 +28,6 @@ def test_identity_review_refusal_has_identical_public_contract(tmp_path, composi
         "code": "same_person_review_required",
         "shotId": "shot-1",
         "bindingId": "binding-1",
-        "technicalMessage": "identity-aware keyframe requires a current passing same-person review",
+        "technicalMessage": "identity-aware keyframe requires a current production-eligible same-person review",
         "message": str(SamePersonReviewRequiredError(shot_id="shot-1", binding_id="binding-1")),
     }

@@ -176,7 +176,7 @@ class VideoJobPreparation:
                         "assets": list(decision.asset_hashes),
                     })
             same_person_review = self._same_person.current_same_person_review_for_binding(session, project_id, binding)
-            if generated_identity and same_person_review is None:
+            if generated_identity and (same_person_review is None or not self._same_person.same_person_review_is_production_eligible_in_session(session, project_id, same_person_review)):
                 raise SamePersonReviewRequiredError(shot_id=shot_id, binding_id=binding.id)
             snapshot = {
                 "snapshotVersion": (

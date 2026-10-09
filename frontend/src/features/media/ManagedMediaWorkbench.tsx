@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import type {
   ApprovalDecision,
-  SamePersonComparison,
   SceneBeatPlan,
   Shot,
   StoryBible,
@@ -31,6 +30,7 @@ import { ShotPreparationSummary } from "./ShotPreparationSummary";
 import { revealMediaOwner } from "./media-owner-navigation";
 import { useMediaWorkbenchData } from "./useMediaWorkbenchData";
 import type { ProjectDraftQuiescence } from "../authoring/projectDraftQuiescence";
+import type { SamePersonComparisonDraft } from "../../same-person-review-types";
 
 export function ManagedMediaWorkbench({
   projectId,
@@ -107,7 +107,7 @@ export function ManagedMediaWorkbench({
   const [samePersonReviewer, setSamePersonReviewer] = useState("creator");
   const [samePersonNotes, setSamePersonNotes] = useState("");
   const [samePersonComparisons, setSamePersonComparisons] = useState<
-    SamePersonComparison[]
+    SamePersonComparisonDraft[]
   >([]);
   const [previewLength, setPreviewLength] = useState(3);
   const [error, setError] = useState("");

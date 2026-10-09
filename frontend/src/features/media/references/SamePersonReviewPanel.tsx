@@ -3,11 +3,12 @@ import type {
   ImageJob,
   ManagedAsset,
   ReviewedKeyframe,
-  SamePersonComparison,
   VisualWorkbench,
 } from "../../../types";
 import { plotloomApi } from "../../../api";
 import { Button, Field } from "../../../components";
+import type { SamePersonComparisonDraft } from "../../../same-person-review-types";
+import { completeSamePersonComparisons, samePersonReviewSummary } from "./same-person-draft";
 
 type IdentityMapping = NonNullable<
   NonNullable<ImageJob["request"]["frozenSnapshot"]>["characterIdentity"]
@@ -41,10 +42,10 @@ export function SamePersonReviewPanel({
   workbench: VisualWorkbench;
   reviewer: string;
   notes: string;
-  comparisons: SamePersonComparison[];
+  comparisons: SamePersonComparisonDraft[];
   setReviewer: Dispatch<SetStateAction<string>>;
   setNotes: Dispatch<SetStateAction<string>>;
-  setComparisons: Dispatch<SetStateAction<SamePersonComparison[]>>;
+  setComparisons: Dispatch<SetStateAction<SamePersonComparisonDraft[]>>;
   readOnly: boolean;
   busy: boolean;
   onRecord: () => void;
@@ -164,17 +165,40 @@ export function SamePersonReviewPanel({
                         itemIndex === index
                           ? {
                               ...item,
-                              judgment: event.target.value as "pass" | "fail",
+                              judgment: event.target.value as SamePersonComparisonDraft["judgment"],
+                              productionDecision: undefined,
+                              uncertaintyReason: undefined,
                             }
                           : item,
                       ),
                     )
                   }
                 >
+                  <option value="">请选择身份判断</option>
                   <option value="pass">通过</option>
                   <option value="fail">不通过</option>
+                  <option value="unassessable">无法判断</option>
                 </select>
               </Field>
+              {comparison.judgment === "unassessable" && <>
+                <Field label={`${comparison.characterId} 无法判断时的投产决定`} required>
+                  <select data-testid={`same-person-production-${comparison.characterId}`}
+                    aria-required="true" value={comparison.productionDecision ?? ""} disabled={readOnly || busy}
+                    onChange={event => setSamePersonComparisons(current => current.map((item, itemIndex) => itemIndex === index
+                      ? { ...item, productionDecision: event.target.value as "" | "hold" | "authorize" } : item))}>
+                    <option value="">请选择投产决定</option>
+                    <option value="hold">暂缓投产</option>
+                    <option value="authorize">接受身份不确定性，明确授权投产</option>
+                  </select>
+                </Field>
+                <Field label="构图与身份不确定性说明" required>
+                  <textarea aria-required="true" rows={2} value={comparison.uncertaintyReason ?? ""}
+                    placeholder="说明为何有意采用此构图、无法辨认的身份信息，以及接受的不确定性。"
+                    disabled={readOnly || busy}
+                    onChange={event => setSamePersonComparisons(current => current.map((item, itemIndex) => itemIndex === index
+                      ? { ...item, uncertaintyReason: event.target.value } : item))} />
+                </Field>
+              </>}
               <Field label="身份对比说明" required>
                 <input
                   aria-required="true"
@@ -225,21 +249,23 @@ export function SamePersonReviewPanel({
             <small className="notice">
               当前复核{" "}
               {currentReviewByBinding.get(selectedBinding.id)?.id.slice(0, 8)}{" "}
-              已覆盖此关键帧；身份参考或已审核关键帧变化时会自动过期。
+              ：{samePersonReviewSummary(currentReviewByBinding.get(selectedBinding.id)!)}。
+              {currentReviewByBinding.get(selectedBinding.id)?.productionEligible ? "此决定允许生成视频或创建连续静帧预览。" : "此决定阻止生成视频或创建连续静帧预览。"}
+              身份参考或已审核关键帧变化时会自动过期。
             </small>
           ) : (
             <div className="notice warning">
-              此关键帧没有适用于当前内容且已通过的人物身份复核。复核通过后才能生成视频或创建连续静帧预览；无法确认身份时不要标记通过。
+              此关键帧没有适用于当前内容的人物身份复核。每位角色通过，或无法判断且明确授权投产后，才能生成视频或创建连续静帧预览。无法确认身份时不要标记通过；不通过或暂缓投产都会阻止这两项操作。
             </div>
           )}
           {workbench.samePersonReviews.reviews
             .filter(
-              (item) => item.bindingId === selectedBinding.id && !item.current,
+              (item) => item.bindingId === selectedBinding.id && !item.latest,
             )
             .map((item) => (
               <small className="notice" key={item.id}>
-                未通过或已过期的复核 {item.id.slice(0, 8)} · 审阅者 {item.reviewer}{" "}
-                · 仍可在上方查看任务冻结的参考图。
+                {item.current ? "已被较新决定取代的复核" : "已过期的复核"} {item.id.slice(0, 8)} · 审阅者 {item.reviewer}{" "}
+                · {samePersonReviewSummary(item)} · 仍可在上方查看任务冻结的参考图。
               </small>
             ))}
           <div className="button-row">
@@ -251,10 +277,7 @@ export function SamePersonReviewPanel({
                 busy ||
                 !samePersonReviewer.trim() ||
                 !samePersonNotes.trim() ||
-                samePersonComparisons.some(
-                  (item) =>
-                    !item.identityNotes.trim() || !item.stateNotes.trim(),
-                )
+                !completeSamePersonComparisons(samePersonComparisons)
               }
               onClick={() => void onRecord()}
             >

@@ -1,6 +1,7 @@
 # ADR 0146: Explicit unassessable identity review
 
-Status: accepted by the owner, 2026-10-09; implementation and native qualification pending.
+Status: accepted by the owner, 2026-10-09; implemented and independently source/
+pixel reviewed in the retained candidate; served-build and native qualification pending.
 
 ## Problem
 
@@ -40,3 +41,26 @@ FAIL/HOLD. Test latest-decision supersession, stale Cast/reference/image/binding
 dependencies and frozen review IDs. Native acceptance must demonstrate the
 actual refused-to-explicitly-authorized transition, one exact frozen H3 request
 and playback; automated tests alone do not close that journey.
+
+## Implementation
+
+Each unassessable comparison records `productionDecision` (`hold`/`authorize`)
+and nonblank `uncertaintyReason`; PASS/FAIL retain their existing comparison
+shape. The API and repository validate the same domain contract. No database
+schema migration or historical rewriting is needed: comparisons remain immutable
+JSON facts, and existing FAIL remains FAIL.
+
+Review `current` means exact source dependencies match, including candidate
+original hash, binding/intent/approval, Cast and references. `latest` identifies
+the latest applicable exact-binding decision; `productionEligible` additionally
+requires every character to pass or explicitly authorize uncertainty. Frozen
+previews/videos retain their exact review ID and require that ID to remain the
+latest eligible review. A newer refusal disables older media without changing
+its receipt; video `inputStatus` can remain current while production eligibility
+is false. A fresh approval creates fresh media rather than rebinding history.
+
+UI judgments and uncertainty decisions start unselected. A successful unchanged
+GET preserves authored fields; temporary read withdrawal cannot reset them or
+authorize operations. Exact changed targets reset the comparisons. Source
+qualification and remaining native boundaries are recorded in the
+[scoped receipt](../verification/2026-10-09-explicit-unassessable-identity-review.md).

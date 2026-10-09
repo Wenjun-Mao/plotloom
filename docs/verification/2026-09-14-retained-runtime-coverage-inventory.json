@@ -1206,7 +1206,7 @@
       ]
     },
     "tests/test_project_storage_image_identity_contracts.py::test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacement": {
-      "source_sha256": "a938b76d1961e183d44485acf44b379063acf267e76e06980e4f89ee56362509",
+      "source_sha256": "cb6360be5b10479dd853fb144814c7eb52cf4d9733243ab5f0488e177f6ada65",
       "assertions": [
         "approval.status_code == 201",
         "missing.status_code == 422",

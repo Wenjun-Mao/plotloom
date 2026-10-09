@@ -8,7 +8,7 @@ and [C50 recovery](2026-10-07-c50-draft-recovery.md) / [C52 project ownership](2
 Dated checkpoints below and the [historical receipt](2026-10-07-full-creator-e2e-repeat-history.md)
 retain earlier failures; historical present-tense claims are not current status.
 
-### Current continuation — October9, 09:20 UTC
+### Current continuation — October9,15:06UTC
 
 The [rebuilt-production receipt](2026-10-09-native-rebuilt-production.md) owns the
 latest native evidence. The first-install four-shot/two-route journey below is
@@ -17,9 +17,17 @@ complete as functional QA; it does not establish the revised story's playback.
 | Round | Current evidence | Remaining acceptance |
 |---|---|---|
 | Create | Same-project native intent, four keyframes, four selected H3 segments, both routes including two-shot opening progression | Creative/media quality excluded, not implicitly accepted |
-| Revise | Middle graph insertion/deletion/reconnection, character/reference and source review revisions, explicit rebuild to current production, fresh approval; opening1, West and East revised H3 originals/segments played and selected for functional QA | Opening2 hand-only identity is unassessable under pass/fail-only gate; explicit semantics question pending. One revised clip and both rebuilt routes remain incomplete |
+| Revise | Middle graph insertion/deletion/reconnection, character/reference and source review revisions, explicit rebuild to current production, fresh approval; opening1, West and East revised H3 originals/segments played and selected for functional QA. Owner accepted explicit unassessable authorization; its software candidate is independently reviewed and focused checks pass | Opening2 fresh native authorization, one exact frozen H3 request and both rebuilt routes remain incomplete; no old FAIL conversion |
 | Recover | [Revised project](2026-10-09-revised-project-recovery.md): close/reopen, archive/restore, snapshot/separate restore,3 restored segments ended, typed copy deletion and idle restart; eight API responses/42 assets unchanged. Completed native image reopen/check is idempotent with no redispatch. Snapshot A-B-A and draft recovery states now have focused real-server coverage | ddcb06d full244 browser and unchanged Python1,415 PASS; later capability-aware recovery copy passes876 frontend/19 focused tests/2 browser journeys, independent review closed. Earlier7 snapshot/recovery and6 adjacent browser cases also pass. Other recovery slices and revised routes remain open |
-| E22 | Dedicated whole-product sweep, title/status and typed identity-refusal/aspect-layout repairs; retained-gallery read-failure/recovery and lower-control desktop pixels; native8865 typed refusal verified after idle-only restart09:34UTC | Remaining applicable state/control slices stay in the view/state register; hand-only review semantics remain open |
+| E22 | Dedicated whole-product sweep, title/status and typed identity-refusal/aspect-layout repairs; retained-gallery read-failure/recovery and lower-control desktop pixels; native8865 typed refusal verified after idle-only restart09:34UTC. Six uncertainty-review fixture desktop captures independently inspected | Remaining applicable state/control slices stay in the view/state register; accepted narrow pinned renderer fork and demonstrated branch-cancellation remount repair remain pending |
+
+The [read-recovery checkpoint](2026-10-09-graph-directory-read-recovery.md) passed
+the corrected unfiltered264 browser gate and serialized wheel smoke. The
+[explicit-uncertainty receipt](2026-10-09-explicit-unassessable-identity-review.md)
+owns the later unactivated candidate:96 focused Python,951 frontend, types and
+one complete image browser journey pass; separate manager reruns and source/
+pixel review are closed. These are separate candidates, not a new combined full
+release gate. ADR0146 and ADR0147 record the owner's accepted policy/fork choices.
 
 Earlier qualified source66b1cbd adds ADR0142 shot identity and truthful video-state
 presentation, independently reviewed. Full1,413 Python,872 frontend and242

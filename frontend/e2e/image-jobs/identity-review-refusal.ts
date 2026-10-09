@@ -1,6 +1,7 @@
 import type { APIRequestContext, Page, TestInfo } from "@playwright/test";
 import { expect } from "../fixture";
 import type { VisualWorkbench } from "../../src/types";
+import { inspectUnassessableReview } from "./unassessable-review";
 
 /** Real admission endpoints; offline generated-candidate fixture, not native media QA. */
 export async function inspectIdentityReviewRefusal(
@@ -13,7 +14,7 @@ export async function inspectIdentityReviewRefusal(
     expect(body).toMatchObject({ code: "same_person_review_required", shotId: binding.shotId, bindingId: binding.id });
     expect(body.message).toContain("无法确认身份时不要标记通过");
     expect(body.message).toContain("准备与参考 · 图片、角色、导入");
-    expect(body.technicalMessage).toBe("identity-aware keyframe requires a current passing same-person review");
+    expect(body.technicalMessage).toBe("identity-aware keyframe requires a current production-eligible same-person review");
   };
   const production = page.locator("#video-production");
   if (await production.getAttribute("open") === null) await production.locator("summary").first().click();
@@ -22,6 +23,9 @@ export async function inspectIdentityReviewRefusal(
   const directions = page.getByTestId("h3-directions-review");
   if (await directions.getAttribute("open") === null) await directions.locator("summary").click();
   const panel = page.getByTestId("same-person-review-panel");
+  await expect(panel.getByTestId("same-person-judgment-char_ruanxing")).toHaveValue("");
+  await expect(panel.getByTestId("record-same-person-review")).toBeDisabled();
+  let sourceBody: Record<string, unknown> = {};
   const preparationDisclosure = page.locator("details.workbench-support").filter({ has: panel });
   await expect(preparationDisclosure.locator("summary").first()).toHaveText("准备与参考 · 图片、角色、导入");
   for (const state of ["missing", "failed"] as const) {
@@ -33,7 +37,7 @@ export async function inspectIdentityReviewRefusal(
       const saved = page.waitForResponse(response => response.request().method() === "POST" && response.url().endsWith("/same-person-reviews"));
       await panel.getByTestId("record-same-person-review").click();
       expect((await saved).status()).toBe(201);
-      await expect(panel).toContainText("未通过或已过期的复核");
+      await expect(panel).toContainText("此决定阻止生成视频或创建连续静帧预览");
     }
     const response = page.waitForResponse(item => item.request().method() === "POST" && item.url().endsWith("/video-jobs/prompt-preview"));
     await directions.getByRole("button", { name: "读取当前来源", exact: true }).click();
@@ -41,6 +45,7 @@ export async function inspectIdentityReviewRefusal(
     expect(refused.status()).toBe(409);
     verify(await refused.json());
     const videoRequest = refused.request().postDataJSON();
+    sourceBody = videoRequest;
     const preparation = await request.post(`${url}/video-jobs`, { data: videoRequest });
     expect(preparation.status()).toBe(409);
     verify(await preparation.json());
@@ -67,5 +72,6 @@ export async function inspectIdentityReviewRefusal(
     expect((await request.get(`${url}/video-jobs`).then(item => item.json())).jobs).toEqual([]);
     expect((await request.get(`${url}/still-previews`).then(item => item.json())).previews).toEqual([]);
   }
+  await inspectUnassessableReview(page, request, url, sourceBody, media, info);
   await page.setViewportSize({ width: 1440, height: 900 });
 }

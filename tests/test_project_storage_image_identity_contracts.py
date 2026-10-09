@@ -13,7 +13,7 @@ from PIL import Image
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.canonical_schema import CharacterV2
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import RunStatus
+from plotloom.domain import RunStatus, StageName
 from plotloom.persistence.project.cast import ProjectCastPersistence
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import ProjectFolderStorage, ProjectStore
@@ -167,8 +167,17 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
     project_id = store.manifest.project_id
     ProjectPipelineExecutor(FixtureResolver()).execute(store, profile=fixture_profile())
     _install_visible_fixture_character(store)
+    board = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
+    board.shots[0].duration_units = 5_000
+    store.update_stage(StageName.STORYBOARD, board,
+                       expected_revision=store.authoring.get_stage_head(project_id, StageName.STORYBOARD).revision)
+    database_path = store.database_path
     store.close()
-    client = TestClient(create_project_folder_authoring_app(storage))
+    from tests.test_project_storage_video import FakeH3
+    from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
+    provider = FakeH3()
+    client = TestClient(create_project_folder_authoring_app(storage, video_provider=provider,
+                                                         video_adapter=MiniMaxH3GatewayAdapter()))
     try:
         storyboard = client.get(f"/api/v2/projects/{project_id}/stages").json()["stages"][-1]
         shot = storyboard["payload"]["shots"][0]
@@ -372,6 +381,9 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
         )
         assert preview.status_code == 201
         assert preview.json()["manifest"]["frames"][0]["identityReviewId"] == review.json()["id"]
+        from tests.identity_review_assertions import assert_explicit_identity_decisions
+        assert_explicit_identity_decisions(client, project_id, preview_payload, binding.json(),
+                                          review.json(), preview.json(), provider, database_path, accepted_cast)
 
         replacement_asset = client.post(
             f"/api/v2/projects/{project_id}/managed-assets",

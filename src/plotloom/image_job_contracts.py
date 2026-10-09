@@ -162,28 +162,6 @@ class ArtReferenceDecisionRequest(CamelModel):
     expected_reference_revision: int = Field(ge=0)
 
 
-class SamePersonReviewItem(CamelModel):
-    character_id: str = Field(min_length=1, max_length=128)
-    judgment: Literal["pass", "fail"]
-    identity_notes: str = Field(min_length=1, max_length=2_000)
-    state_notes: str = Field(min_length=1, max_length=2_000)
-
-
-class SamePersonReviewRequest(CamelModel):
-    binding_id: str = Field(min_length=1, max_length=36)
-    expected_review_revision: int = Field(ge=0)
-    reviewer: str = Field(min_length=1, max_length=160)
-    comparisons: list[SamePersonReviewItem] = Field(min_length=1, max_length=8)
-    notes: str = Field(min_length=1, max_length=2_000)
-
-    @model_validator(mode="after")
-    def character_reviews_are_distinct(self) -> "SamePersonReviewRequest":
-        character_ids = [item.character_id for item in self.comparisons]
-        if len(character_ids) != len(set(character_ids)):
-            raise ValueError("same-person comparisons must name each character once")
-        return self
-
-
 class ImageJobOutput(CamelModel):
     filename: str = Field(min_length=1, max_length=180)
     sha256: str = Field(pattern=SHA256_PATTERN)

@@ -58,7 +58,8 @@ class VideoJobCurrentness:
         project = self._access.rows.project(session, row.project_id)
         lifecycle = ProjectLifecycleStatus(project.lifecycle_status)
         input_status = self.video_job_input_status_in_session(session, row)
-        admitted = lifecycle == ProjectLifecycleStatus.ACTIVE and input_status == "current"
+        production_eligible = input_status == "current" and self._identity_review_authorizes_in_session(session, row)
+        admitted = lifecycle == ProjectLifecycleStatus.ACTIVE and production_eligible
         return {
             "id": row.id, "projectId": row.project_id, "state": row.state,
             "requestHash": row.request_hash, "snapshot": row.snapshot,
@@ -66,6 +67,7 @@ class VideoJobCurrentness:
             "providerPredictionId": row.provider_prediction_id,
             "outputHash": row.output_hash, "observed": row.observed, "error": row.error,
             "lifecycleStatus": lifecycle.value, "inputStatus": input_status,
+            "productionEligible": production_eligible,
             "current": admitted if current is None else current and admitted,
             "selected": selected and admitted,
             "createdAt": _stored_utc(row.created_at).isoformat(),
@@ -83,7 +85,18 @@ class VideoJobCurrentness:
         project = session.get(ProjectRow, row.project_id)
         if project is None or ProjectLifecycleStatus(project.lifecycle_status) != ProjectLifecycleStatus.ACTIVE:
             return False
-        return self.video_job_input_status_in_session(session, row) == "current"
+        return (self.video_job_input_status_in_session(session, row) == "current"
+                and self._identity_review_authorizes_in_session(session, row))
+
+    def _identity_review_authorizes_in_session(self, session: Session, row: VideoJobRow) -> bool:
+        review_id = row.snapshot.get("samePersonReviewId")
+        if review_id is None:
+            binding = session.get(ReviewedShotBindingRow, row.snapshot.get("keyframe", {}).get("bindingId"))
+            return binding is not None and not self._same_person.identity_mapping_for_binding_in_session(session, binding)
+        review = session.get(SamePersonReviewRow, review_id)
+        return (review is not None
+                and review.binding_id == row.snapshot.get("keyframe", {}).get("bindingId")
+                and self._same_person.same_person_review_is_production_eligible_in_session(session, row.project_id, review))
 
     def video_job_input_status_in_session(self, session: Session, row: VideoJobRow) -> Literal["current", "stale", "invalid"]:
         if not frozen_video_request_is_valid(row):
@@ -157,6 +170,8 @@ class VideoJobCurrentness:
             # keyframe follows the separate provenance path: its attributed
             # keyframe-selection comparison and current character-reference
             # decision are frozen together below.
+            if binding is not None and self._same_person.identity_mapping_for_binding_in_session(session, binding) and review_id is None:
+                return False
             if review_id is not None:
                 review = session.get(SamePersonReviewRow, review_id)
                 if review is None or not self._same_person.same_person_review_is_current_in_session(session, row.project_id, review):

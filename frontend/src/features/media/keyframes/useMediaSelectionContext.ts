@@ -3,7 +3,6 @@ import type { Dispatch, SetStateAction } from "react";
 import type {
   ApprovalDecision,
   ImageJob,
-  SamePersonComparison,
   Shot,
   StoryBible,
   Storyboard,
@@ -19,7 +18,8 @@ import {
 import type { ProjectDraftQuiescence } from "../../authoring/projectDraftQuiescence";
 import type { MediaReadPhase } from "../useMediaWorkbenchData";
 import { currentProductionReferences } from "../references/production-reference";
-import { newSamePersonComparisons } from "../references/same-person-draft";
+import { newSamePersonComparisons, latestCurrentReviewsByBinding } from "../references/same-person-draft";
+import type { SamePersonComparisonDraft } from "../../../same-person-review-types";
 
 function draftFor(
   intent: VisualIntent | undefined,
@@ -94,7 +94,7 @@ export function useMediaSelectionContext({
   referenceCharacterId: string;
   setPreviewLength: Dispatch<SetStateAction<number>>;
   setReferenceCharacterId: Dispatch<SetStateAction<string>>;
-  setSamePersonComparisons: Dispatch<SetStateAction<SamePersonComparison[]>>;
+  setSamePersonComparisons: Dispatch<SetStateAction<SamePersonComparisonDraft[]>>;
   setKeptAssetId: Dispatch<SetStateAction<string>>;
   setFrameIndex: Dispatch<SetStateAction<number>>;
 }) {
@@ -171,11 +171,7 @@ export function useMediaSelectionContext({
   );
   const currentReviewByBinding = useMemo(
     () =>
-      new Map(
-        workbench.samePersonReviews.reviews
-          .filter((item) => item.current)
-          .map((item) => [item.bindingId, item]),
-      ),
+      latestCurrentReviewsByBinding(workbench.samePersonReviews.reviews),
     [workbench.samePersonReviews.reviews],
   );
   const identityReviewMissingShotIds = previewShotIds.filter((shotId) => {
@@ -184,7 +180,7 @@ export function useMediaSelectionContext({
     );
     return (
       identityMappingForAsset(binding?.assetId, imageJobs).length > 0 &&
-      !currentReviewByBinding.has(binding?.id ?? "")
+      !currentReviewByBinding.get(binding?.id ?? "")?.productionEligible
     );
   });
   const activeIntent = workbench.visualIntents.find(
@@ -264,9 +260,15 @@ export function useMediaSelectionContext({
     if (!referenceCharacterId && bible.characters[0])
       setReferenceCharacterId(bible.characters[0].id);
   }, [bible.characters, referenceCharacterId]);
+  const samePersonIdentityBasis = JSON.stringify([projectId, selectedShot?.id, selectedBinding?.id, selectedIdentityMapping]);
+  const samePersonDraftBasis = useRef<string | null>(null);
   useEffect(() => {
-    setSamePersonComparisons(newSamePersonComparisons(selectedIdentityMapping));
-  }, [selectedBinding?.id, selectedIdentityMapping]);
+    // Read withdrawal is unknown, not a new target. Only a ready exact binding
+    // or frozen identity change resets the reviewer's authored observations.
+    if (mediaReadPhase !== "ready" || samePersonDraftBasis.current === samePersonIdentityBasis) return;
+    samePersonDraftBasis.current = samePersonIdentityBasis;
+    setSamePersonComparisons(newSamePersonComparisons(JSON.parse(samePersonIdentityBasis)[3]));
+  }, [mediaReadPhase, samePersonIdentityBasis]);
   // Read withdrawal means unknown, not a binding change. Keep explicit creator
   // retention through refresh, and restore only on navigation or an actual
   // authoritative binding transition (ADR 0103).

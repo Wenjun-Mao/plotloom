@@ -7,13 +7,16 @@ from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from pydantic import ValidationError
 
 from ...domain import StageName, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError, SchemaResetRequiredError
+from ...same_person_review_contracts import SamePersonReviewRequest
 from ..codec import _stored_utc
 from ..schema import (
     ImageJobCandidateRow,
     ImageJobRow,
+    ManagedAssetRow,
     ReviewedShotBindingRow,
     SamePersonReviewRow,
     SamePersonReviewStateRow,
@@ -50,13 +53,14 @@ class SamePersonReviewPersistence:
             session.flush()
         return state
 
-    @staticmethod
-    def _same_person_review_dict(row: SamePersonReviewRow, *, current: bool) -> dict[str, Any]:
+    def _same_person_review_dict(self, row: SamePersonReviewRow, *, current: bool, latest: bool) -> dict[str, Any]:
         return {
             "id": row.id, "projectId": row.project_id, "bindingId": row.binding_id,
             "reviewRevision": row.review_revision, "referenceBindings": list(row.reference_bindings),
             "comparisons": list(row.comparisons), "reviewer": row.reviewer, "notes": row.notes,
-            "current": current, "createdAt": _stored_utc(row.created_at).isoformat(),
+            "current": current, "latest": latest,
+            "productionEligible": current and latest and self.comparisons_authorize_production(row.comparisons),
+            "createdAt": _stored_utc(row.created_at).isoformat(),
         }
 
     def identity_mapping_for_binding_in_session(
@@ -90,12 +94,17 @@ class SamePersonReviewPersistence:
             return False
         if not self._admission.reviewed_binding_admission_eligible_in_session(session, project_id, binding, approval=approval):
             return False
+        candidate = session.scalar(select(ImageJobCandidateRow).where(ImageJobCandidateRow.asset_id == binding.asset_id)
+                                   .order_by(ImageJobCandidateRow.created_at.desc()).limit(1))
+        asset = session.get(ManagedAssetRow, binding.asset_id)
+        if candidate is None or asset is None or asset.project_id != project_id or asset.original_hash != candidate.output_hash:
+            return False
         mapping = self.identity_mapping_for_binding_in_session(session, binding)
         if mapping is None:
             return False
-        if any(item.get("judgment") != "pass" for item in review.comparisons):
-            return False
         expected = {item.get("characterId"): item for item in mapping}
+        if [item.get("characterId") for item in review.comparisons] != list(expected):
+            return False
         review_refs = {item.get("characterId"): item for item in review.reference_bindings}
         if set(expected) != set(review_refs):
             return False
@@ -119,6 +128,26 @@ class SamePersonReviewPersistence:
                 return False
         return True
 
+    @staticmethod
+    def comparisons_authorize_production(comparisons: list[dict[str, Any]]) -> bool:
+        return bool(comparisons) and all(
+            item.get("judgment") == "pass" or (
+                item.get("judgment") == "unassessable"
+                and item.get("productionDecision") == "authorize"
+                and isinstance(item.get("uncertaintyReason"), str)
+                and bool(item["uncertaintyReason"].strip())
+            ) for item in comparisons
+        )
+
+    def same_person_review_is_production_eligible_in_session(
+        self, session: Session, project_id: str, review: SamePersonReviewRow
+    ) -> bool:
+        if not self.same_person_review_is_current_in_session(session, project_id, review):
+            return False
+        binding = session.get(ReviewedShotBindingRow, review.binding_id)
+        latest = self.current_same_person_review_for_binding(session, project_id, binding)
+        return latest is not None and latest.id == review.id and self.comparisons_authorize_production(review.comparisons)
+
     def record_same_person_review(
         self,
         project_id: str,
@@ -130,7 +159,14 @@ class SamePersonReviewPersistence:
         notes: str,
     ) -> dict[str, Any]:
         """Persist an explicit human judgment about a v3 generated keyframe."""
-
+        try:
+            request = SamePersonReviewRequest(
+                binding_id=binding_id, expected_review_revision=expected_review_revision,
+                reviewer=reviewer, comparisons=comparisons, notes=notes,
+            )
+        except ValidationError as error:
+            raise InvalidTransitionError("same-person review requires complete explicit judgments and uncertainty decisions") from error
+        comparisons = [item.model_dump(mode="json", by_alias=True, exclude_none=True) for item in request.comparisons]
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             binding = session.get(ReviewedShotBindingRow, binding_id)
@@ -161,7 +197,7 @@ class SamePersonReviewPersistence:
             )
             session.add(review)
             session.flush()
-            return self._same_person_review_dict(review, current=self.same_person_review_is_current_in_session(session, project_id, review)) | {"stateRevision": state.revision}
+            return self._same_person_review_dict(review, current=self.same_person_review_is_current_in_session(session, project_id, review), latest=True) | {"stateRevision": state.revision}
 
     def list_same_person_reviews(self, project_id: str) -> dict[str, Any]:
         with self._access.leases.read() as session:
@@ -169,12 +205,17 @@ class SamePersonReviewPersistence:
             state = session.get(SamePersonReviewStateRow, project_id)
             rows = session.scalars(
                 select(SamePersonReviewRow).where(SamePersonReviewRow.project_id == project_id)
-                .order_by(SamePersonReviewRow.created_at.desc(), SamePersonReviewRow.id.desc())
+                .order_by(SamePersonReviewRow.review_revision.desc())
             ).all()
-            return {"revision": state.revision if state else 0, "reviews": [
-                self._same_person_review_dict(row, current=self.same_person_review_is_current_in_session(session, project_id, row))
-                for row in rows
-            ]}
+            seen_bindings: set[str] = set()
+            reviews = []
+            for row in rows:
+                current = self.same_person_review_is_current_in_session(session, project_id, row)
+                latest = current and row.binding_id not in seen_bindings
+                if current:
+                    seen_bindings.add(row.binding_id)
+                reviews.append(self._same_person_review_dict(row, current=current, latest=latest))
+            return {"revision": state.revision if state else 0, "reviews": reviews}
 
     def current_same_person_review_for_binding(
         self, session: Session, project_id: str, binding: ReviewedShotBindingRow

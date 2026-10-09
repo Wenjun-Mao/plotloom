@@ -16,8 +16,8 @@ from ..image_job_contracts import (
     CharacterReferenceProposalRequest,
     CharacterReferenceRevocationRequest,
     ImageJobError,
-    SamePersonReviewRequest,
 )
+from ..same_person_review_contracts import SamePersonReviewRequest
 from ..image_job_exchange import PackageReference
 from ..codex_image_dispatch import NativeCodexImageDispatcher
 from .project_folder_image_send import register_image_send_route
@@ -298,7 +298,7 @@ def register_project_folder_image_job_routes(
                 expected_review_revision=body.expected_review_revision,
                 reviewer=body.reviewer,
                 comparisons=[
-                    item.model_dump(mode="json", by_alias=True)
+                    item.model_dump(mode="json", by_alias=True, exclude_none=True)
                     for item in body.comparisons
                 ],
                 notes=body.notes,

@@ -24,7 +24,7 @@ const snapshot = (selected = binding, selectionRevision = 7, reviewId = "a1-revi
   characterReferences: { states: [], decisions: [] }, previews: [],
   samePersonReviews: { revision: 1, reviews: [{
     id: reviewId, projectId: "project", bindingId: selected.id, reviewRevision: 1,
-    referenceBindings: [], comparisons: [], reviewer: "creator", notes: "matches", current: true,
+    referenceBindings: [], comparisons: [], reviewer: "creator", notes: "matches", current: true, latest: true, productionEligible: true,
     createdAt: "2026-10-02T00:00:00Z",
   }] },
 });

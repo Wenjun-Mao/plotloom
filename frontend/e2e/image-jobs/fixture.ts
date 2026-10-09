@@ -101,8 +101,13 @@ export async function recordSamePersonReview(
   await panel
     .getByTestId(`same-person-judgment-${characterId}`)
     .selectOption("pass");
+  const saved = page.waitForResponse(response => response.request().method() === "POST" && response.url().endsWith("/same-person-reviews"));
   await panel.getByTestId("record-same-person-review").click();
-  await expect(panel.getByText("当前复核", { exact: false })).toBeVisible();
+  const response = await saved;
+  expect(response.status(), await response.text()).toBe(201);
+  const review = await response.json();
+  await expect(panel.getByText("当前复核", { exact: false })).toContainText(review.id.slice(0, 8));
+  await expect(panel.getByText("当前复核", { exact: false })).toContainText(`${characterId}：通过`);
 }
 
 export async function latestImageJob(

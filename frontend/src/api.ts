@@ -350,7 +350,7 @@ export class PlotloomApiClient {
 
   recordSamePersonReview(projectId: string, body: {
     bindingId: string; expectedReviewRevision: number; reviewer: string;
-    comparisons: Array<{ characterId: string; judgment: "pass" | "fail"; identityNotes: string; stateNotes: string }>;
+    comparisons: import("./same-person-review-types").SamePersonComparison[];
     notes: string;
   }): Promise<SamePersonReview> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/same-person-reviews`, { method: "POST", body: JSON.stringify(body) });

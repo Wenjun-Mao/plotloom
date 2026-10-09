@@ -1,4 +1,5 @@
 import type { ReviewContextDiagnostic } from "./review-context-types";
+import type { SamePersonReviewsResponse } from "./same-person-review-types";
 
 export type StageName = "project_brief" | "story_bible" | "story_graph" | "scene_beats" | "storyboard";
 export type ServerStageName = Exclude<StageName, "project_brief">;
@@ -437,30 +438,7 @@ export interface CharacterReferencesResponse {
   decisions: CharacterReferenceDecision[];
 }
 
-export interface SamePersonComparison {
-  characterId: string;
-  judgment: "pass" | "fail";
-  identityNotes: string;
-  stateNotes: string;
-}
-
-export interface SamePersonReview {
-  id: string;
-  projectId: string;
-  bindingId: string;
-  reviewRevision: number;
-  referenceBindings: Array<{ characterId: string; referenceDecisionId: string; referenceRevision: number; assetHashes: string[] }>;
-  comparisons: SamePersonComparison[];
-  reviewer: string;
-  notes: string;
-  current: boolean;
-  createdAt: string;
-}
-
-export interface SamePersonReviewsResponse {
-  revision: number;
-  reviews: SamePersonReview[];
-}
+export type { SamePersonComparison, SamePersonReview, SamePersonReviewsResponse } from "./same-person-review-types";
 
 export interface CharacterReferenceProposalCandidate {
   id: string;

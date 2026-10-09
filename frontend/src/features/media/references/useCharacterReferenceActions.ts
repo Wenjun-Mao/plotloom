@@ -2,10 +2,11 @@ import type { Dispatch, SetStateAction } from "react";
 import type {
   CharacterReferenceState,
   ReviewedKeyframe,
-  SamePersonComparison,
   VisualWorkbench,
 } from "../../../types";
 import { plotloomApi } from "../../../api";
+import type { SamePersonComparisonDraft } from "../../../same-person-review-types";
+import { completeSamePersonComparisons } from "./same-person-draft";
 
 export function useCharacterReferenceActions({
   projectId,
@@ -44,7 +45,7 @@ export function useCharacterReferenceActions({
   selectedIdentityMapping: unknown[];
   samePersonReviewer: string;
   samePersonNotes: string;
-  samePersonComparisons: SamePersonComparison[];
+  samePersonComparisons: SamePersonComparisonDraft[];
   workbench: VisualWorkbench;
   setSamePersonNotes: Dispatch<SetStateAction<string>>;
 }) {
@@ -101,12 +102,13 @@ export function useCharacterReferenceActions({
     }
   };
   const recordSamePersonReview = async () => {
+    const comparisons = completeSamePersonComparisons(samePersonComparisons);
     if (
       !projectId ||
       !selectedBinding ||
       !selectedIdentityMapping.length ||
       !samePersonReviewer.trim() ||
-      !samePersonNotes.trim()
+      !samePersonNotes.trim() || !comparisons
     )
       return;
     setBusy(true);
@@ -116,7 +118,7 @@ export function useCharacterReferenceActions({
         bindingId: selectedBinding.id,
         expectedReviewRevision: workbench.samePersonReviews.revision,
         reviewer: samePersonReviewer.trim(),
-        comparisons: samePersonComparisons,
+        comparisons,
         notes: samePersonNotes.trim(),
       });
       setSamePersonNotes("");

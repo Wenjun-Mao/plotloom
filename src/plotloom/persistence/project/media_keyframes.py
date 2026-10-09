@@ -205,7 +205,7 @@ class ReviewedKeyframePersistence:
                 identity_mapping = self._same_person.identity_mapping_for_binding_in_session(session, binding)
                 if identity_mapping:
                     review = self._same_person.current_same_person_review_for_binding(session, project_id, binding)
-                    if review is None:
+                    if review is None or not self._same_person.same_person_review_is_production_eligible_in_session(session, project_id, review):
                         raise SamePersonReviewRequiredError(shot_id=shot_id, binding_id=binding.id)
                     frame["identityReviewId"] = review.id
                     frame["identityReferenceDecisionIds"] = [item["referenceDecisionId"] for item in identity_mapping]
@@ -271,4 +271,5 @@ class ReviewedKeyframePersistence:
                 # review attached during preview admission.
                 return not self._same_person.identity_mapping_for_binding_in_session(session, binding)
             review = session.get(SamePersonReviewRow, review_id)
-            return review is not None and self._same_person.same_person_review_is_current_in_session(session, project_id, review)
+            return (review is not None and review.binding_id == binding.id
+                    and self._same_person.same_person_review_is_production_eligible_in_session(session, project_id, review))
