@@ -8,6 +8,7 @@ import { h3RequestFrameCount, h3SourceFrameCount, h3Timing } from "../../video-b
 import type { ProductionBridgeState, Shot, StoryboardReview, VideoBackend, VisualWorkbench } from "../../types";
 import type { MediaReadPhase } from "./useMediaWorkbenchData";
 import { revealMediaOwner } from "./media-owner-navigation";
+import { currentProductionReferences } from "./references/production-reference";
 
 interface ReadonlySources {
   projectId: string;
@@ -70,10 +71,13 @@ export function ShotPreparationSummary({
   const selectedKeyframe = mediaReadPhase === "ready" && approvalCurrent
     ? workbench.reviewedKeyframes.find((item) => item.shotId === shot.id && workbench.assets.some((asset) => asset.id === item.assetId))
     : undefined;
+  const productionReferences = currentProductionReferences(workbench.characterReferences);
   const referenceStatus = shot.characterIds.map((characterId) => {
     const state = workbench.characterReferences.states.find((item) => item.characterId === characterId);
     const decision = workbench.characterReferences.decisions.find((item) => item.id === state?.activeDecisionId);
-    return { characterId, status: state?.current && decision?.current ? "已选择当前参考" : state || decision ? "参考已过期或撤销" : "缺少身份参考" };
+    return { characterId, status: productionReferences.has(characterId) ? "已选择当前参考"
+      : state?.current && decision?.current && decision.characterContext.authority === "cast"
+        ? "已选角色外观，尚未选为当前制作参考" : state || decision ? "参考已过期或撤销" : "缺少身份参考" };
   });
   const qualified = current?.backend?.qualifiedDurationSeconds;
   const exactSeconds = cut?.seconds ?? shot.durationUnits / 1000;

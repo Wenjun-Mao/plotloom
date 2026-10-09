@@ -344,3 +344,57 @@ The waiting panel also displayed `9:41:53 PM`. Root traced this to two remaining
 Chinese 24-hour formatting elsewhere. This is an open E22 wording inconsistency,
 not a task-clock or generation failure. No active package or runtime code was
 changed during these observations.
+
+## Native intent and production installation
+
+Storyboard job `ch_84ff5f7d4ecc4ebbb8029b53672cec34` completed in 157 seconds,
+was ingested and explicitly accepted through the UI at 21:45 Toronto. Its four
+five-second cuts preserve the two opening actions and one cut for each ending.
+Root inspected the JSON, report content and top viewport; artistic approval is
+excluded. The accepted hash begins `88997139b329`.
+
+Proposal r1 froze hash
+`5cbcffbdb4c534f1b16c0c93cf336255924f327312f63815f198985d75e69510`.
+Native Codex intent job `ch_21cda76dbf06423694413a85f3dc8ac4`, pinned to
+`3493828`, completed turn `01a11e57-4c31-7bc0-ad2b-952481cef12b` in 69 seconds.
+All seven source-bound suggestions were ingested into proposal r2 and read by
+root. Explicit UI saving without text changes created r3; delivery alone did not
+approve installation. Waiting-panel pixels were checked at 1700×900, 1280×768
+and 1280×460. The original intent report has an overly narrow frame and technical
+UUID headings; that visual/copy gap remains open.
+
+At 21:53 root reviewed all eight presentation sources. The final “本路线结束。”
+in each ending was split into a review-only fragment; the remaining action and
+composition text stayed physical with its full limitations retained. Keyboard
+selection did not move the caret in this session; exact DOM text selection plus
+the normal split button exercised the product operation, not keyboard usability.
+Explicit confirmation and save created proposal r4, followed by installation
+through “确认投产提案”: three scenes, four shots, no generated or selected media.
+Four primary beat mappings and the required quality checks were present before
+the separate functional-only storyboard approval. The native intent task's
+“尚未由作者确认” status persists after acceptance and needs correction.
+
+## Production reference readiness repair
+
+The first image preparation failed twice with HTTP422 `identity_reference_missing`;
+the second attempt captured the response after the first exposed no visible
+error at the scrolled form. No image job was created. The UI claimed C01's
+reference was current, but that selection belonged to accepted Cast rather than
+the installed Story Bible. ADR0061 deliberately separates these authorities;
+server refusal was correct. The frontend incorrectly treated any current decision
+as production-ready.
+
+The shared production-reference selector now requires `story_bible` authority,
+current decision/state and exact active-decision identity. Both the preparation
+summary and image prerequisite consume it. Copy explains that an existing image
+can be explicitly selected for production without generating another. No server
+guard, context hash or reference decision is automatically changed.
+
+Independent read-only review found no issues. Focused tests, typecheck, all 823
+frontend tests and paired deterministic build passed. On isolated8865, reload
+retained the image-direction draft and showed the Cast-only reference as not yet
+selected for production; preparation was disabled. Root inspected
+`production-reference-required.png` at 1700×900. Explicit UI selection of the
+same asset `20bd88c5-8ed3-4205-805d-ce41637fac11` created reference r2 and changed
+the summary to ready. Native preparation and delivery remain the next check.
+Normal8841 is unchanged; this is not full E2E or narrow-screen acceptance.

@@ -18,6 +18,7 @@ import {
 } from "../../../visual-intent-drafts";
 import type { ProjectDraftQuiescence } from "../../authoring/projectDraftQuiescence";
 import type { MediaReadPhase } from "../useMediaWorkbenchData";
+import { currentProductionReferences } from "../references/production-reference";
 
 function draftFor(
   intent: VisualIntent | undefined,
@@ -160,13 +161,8 @@ export function useMediaSelectionContext({
     [workbench.characterReferences.states],
   );
   const currentReferenceByCharacter = useMemo(
-    () =>
-      new Map(
-        workbench.characterReferences.decisions
-          .filter((decision) => decision.current)
-          .map((decision) => [decision.characterId, decision]),
-      ),
-    [workbench.characterReferences.decisions],
+    () => currentProductionReferences(workbench.characterReferences),
+    [workbench.characterReferences],
   );
   const selectedIdentityMapping = useMemo(
     () => identityMappingForAsset(selectedBinding?.assetId, imageJobs),
@@ -255,7 +251,7 @@ export function useMediaSelectionContext({
           : selectedShot.characterIds.some(
                 (characterId) => !currentReferenceByCharacter.has(characterId),
               )
-            ? `当前 Shot 的可见角色缺少已选择的身份参考：${selectedShot.characterIds.filter((characterId) => !currentReferenceByCharacter.has(characterId)).join("、")}。`
+            ? `请在“角色身份参考”区域为当前制作角色明确选用参考图：${selectedShot.characterIds.filter((characterId) => !currentReferenceByCharacter.has(characterId)).join("、")}。角色页的外观选择不会自动作为制作参考。`
             : imageJobTarget.kind === "refinement" && !targetCandidate
               ? "参考细化只能使用当前镜头已审核选择的当前 P1 候选。"
               : imageJobTarget.kind === "keyframe_adaptation" && !selectedBinding

@@ -112,6 +112,7 @@ export function CharacterReferencesPanel({
         <p className="muted">
           身份参考用于保持同一人物的外观，可更新或撤销。它不改写已确认的角色设定，
           也不替代每个镜头的状态、服装、构图和剧情；图片任务只采用当前镜头中人物的参考图。
+          角色页已选的外观图仍须在这里明确选为当前制作参考；可以选用同一张图，无需重新生成。
         </p>
         <div className="field-grid two compact">
           <Field label="角色" required>

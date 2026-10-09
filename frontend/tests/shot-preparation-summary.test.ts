@@ -165,3 +165,25 @@ it("does not claim retained media evidence is current after a read error", async
   await act(async () => Array.from(host.querySelectorAll("button")).find((button) => button.textContent?.includes("重试媒体读取"))!.click());
   expect(retry).toHaveBeenCalledOnce();
 });
+
+it("distinguishes a current Cast appearance from an explicitly selected production reference", async () => {
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(bridge(5));
+  vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({ enabled: false });
+  const workbench: VisualWorkbench = structuredClone(emptyWorkbench);
+  workbench.characterReferences = {
+    states: [{ characterId: "C01", revision: 1, activeDecisionId: "selected", current: true }],
+    decisions: [{ id: "selected", projectId: "one", characterId: "C01", referenceRevision: 1,
+      characterContext: { authority: "cast" }, characterContextHash: "hash", primaryAssetId: "asset",
+      complementaryAssetIds: [], assetHashes: [], reviewer: null, notes: null, current: true,
+      revokedAt: null, revokedBy: null, revocationReason: null, createdAt: "2026-10-09T00:00:00Z" }],
+  };
+  const props = { projectId: "one", shot: { ...demoProject.storyboard.shots[0], characterIds: ["C01"] },
+    storyboardRevision: 1, draftChanged: false, review: null, workbench, mediaReadPhase: "ready" as const };
+  await act(async () => root.render(createElement(ShotPreparationSummary, props)));
+  expect(host.textContent).toContain("C01 已选角色外观，尚未选为当前制作参考");
+  expect(host.textContent).not.toContain("C01 已选择当前参考");
+  workbench.characterReferences.decisions[0].characterContext.authority = "story_bible";
+  await act(async () => root.render(createElement(ShotPreparationSummary, { ...props })));
+  expect(host.textContent).toContain("C01 已选择当前参考");
+  expect(host.textContent).not.toContain("尚未选为当前制作参考");
+});
