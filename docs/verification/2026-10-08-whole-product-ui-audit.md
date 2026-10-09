@@ -303,7 +303,7 @@ The [runtime-provider capability checkpoint](2026-10-09-runtime-provider-capabil
 adds explicit native/unknown/API-enabled availability and six desktop pixels;
 broader native run controls and the remaining state matrix are not closed by it.
 
-| Surface | Actual evidence / inspection | Remaining scope |
+| Surface | Dated evidence / inspection | Remaining scope at that checkpoint |
 |---|---|---|
 | Brief, Creator, source, Pro |82–85 native/QA;109 loaded review captures, long graph and all18 Pro viewports; root/independent direct pixels | All applicable state permutations not yet pixel-qualified |
 | Cast/reference gallery |80b/86/115 native confirmed content;129–131 disposable initial failed-read, confirmed-no-images and archived-guidance viewport captures; October9 retained-refresh failure/retry plus nine lower-control frames at all desktop sizes, root and independent pixel review | Warning/retry/recovered heading and disabled lower controls qualified; exact Cast/reference response preservation and zero-write check in rebuilt-production receipt. Other proposal/report states remain open |
@@ -320,7 +320,7 @@ prove every view or state. Captured larger frames not explicitly inspected remai
 unqualified. Sandbox-blocked scripts in immutable static reports are an intentional
 reading boundary, not permission failures to solve by enabling report scripts.
 
-### Explicit state register for the next pass
+### Dated state register and current deltas
 
 This register is not a claim that every state passed. `NOT EXERCISED` below means
 the named pixel/state slice has no qualifying receipt, even where handler tests
@@ -328,6 +328,16 @@ pass. Existing capture numbers identify intermediate audit checkpoints, not an
 assertion that all pixels were recaptured against the latest source. Every new
 entry must bind its exact candidate, native/fixture class, viewport and inspected
 file; do not inherit a PASS from a different state or source revision.
+
+Read an older next-check statement with the later named row and
+[final qualification receipt](2026-10-09-board3-recovery-and-final-qualification.md),
+not as a duplicate task. Current Board3/r12 already qualifies both revised and
+restored native routes, within-node multishot, source media-bearing lifecycle,
+58 asset hashes/four selections and the paired idle restart. Final4bbf8c2 also
+qualifies the named directory command, manual Brief and graph recovery deltas.
+These later slices supersede older “revised routes/multishot incomplete” and
+“graph reconciliation open” notes only for their exact recorded scope; creative
+quality, trusted current OS blur and other unobserved states are not upgraded.
 
 | Surface / state slice | Class and retained evidence | Visual result / next check |
 |---|---|---|

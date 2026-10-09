@@ -1,7 +1,10 @@
 # ADR 0147: Narrow owned pinned report renderers
 
 Status: accepted by the owner, 2026-10-09; fork implemented, independently reviewed
-and published; parent integration and native dependency requalification in progress.
+and published; current parent integration and software qualification complete.
+Board3 dependency rebuild and native playback are qualified, but its immutable
+Storyboard report remains frozen at the earlier266af294 pin, not native execution
+evidence for4f9b2128. See the scoped and final qualification receipts below.
 
 ## Problem and ownership
 

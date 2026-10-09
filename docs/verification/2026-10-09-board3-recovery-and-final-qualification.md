@@ -314,6 +314,18 @@ that this page was headless. Returned width/text/caret and synthetic handler
 checks are useful but cannot close this criterion. Historical genuine OS evidence
 on5aff37e remains historical. No OS permission/settings change is authorized here.
 
+Subsequent read-only transport diagnosis inspected cached CLI0.1.22/Playwright
+1.64.0-alpha-1790635538000 implementation. Chromium page initialization enables
+focus emulation; ordinary `ensureTab`, run-code completion and accessibility
+snapshot paths do not re-enable it or call `bringToFront`. Explicit tab selection
+and recording start do bring a page forward, but the retained diagnostic evidence
+does not establish those intervening commands. Exact owned session metadata for
+`native-routes-195` reports `attached:false`, Chromium/Chrome and `headless:false`.
+This establishes a launched headed browser, not the matching OS window/target or
+the cause of persistent focus. The root cause remains unknown. No sixth OS attempt,
+browser invocation, settings change or synthetic acceptance followed this source
+inspection; the trusted current OS-blur criterion remains unqualified.
+
 E22's register still explicitly retains unobserved view/state permutations. Native
 API model-inference E12 is unavailable by configuration, distinct from the built
 and exercised Codex-native intent path. Scene/Prop downstream reference consumption
@@ -342,3 +354,10 @@ reset. Current OS blur needs human/access or an explicit scope decision; another
 blind transport attempt is not a demonstrated repair. CI/publication outcomes are
 reported separately from these local gates. These boundaries prevent test totals
 or a rough progress estimate becoming a100% acceptance claim.
+
+Candidate checkpoint `e04e428` was pushed to `origin/codex/one-current-story-rebuild`
+with clean worktree and0/0 divergence. Its delta from executable4bbf8c2 is seven
+documentation files only. Exact-head [CI37997439888](https://github.com/Wenjun-Mao/plotloom/actions/runs/37997439888)
+was dispatched once with unfiltered `browser_grep=.*`; observed in progress at
+22:07UTC, not a remote PASS. Normal main stays7d79d18 and its mounted static bytes
+remain unchanged. This later record-only reconciliation is not a source/pin change.
