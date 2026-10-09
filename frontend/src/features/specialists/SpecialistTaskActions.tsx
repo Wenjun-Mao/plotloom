@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, ErrorNotice, Spinner } from "../../components";
 import { SpecialistApiError, specialistsApi, type SpecialistStage, type SpecialistTask } from "./api";
+import { formatUiTimestamp } from "../../ui-time";
 
 const labels = { prepared: "任务已准备，尚未发送", queued: "已发送，等待助手返回结果", outcome_unknown: "发送结果不确定，正在核对交付；请勿重复发送", completed: "结果已交付，请审核" };
 const transient = (error: unknown) => error instanceof TypeError || error instanceof SpecialistApiError && [408, 429, 500, 502, 503, 504].includes(error.status);
@@ -32,7 +33,7 @@ export function SpecialistTaskActions({ projectId, stage, jobId, disabled, sendD
       try {
         const value = await specialistsApi.status(projectId, stage, jobId);
         if (generation.current === owner) {
-          setTask(value); setError(""); setRecovering(false); setFailures(0); setLastCheck(new Date().toLocaleTimeString());
+          setTask(value); setError(""); setRecovering(false); setFailures(0); setLastCheck(formatUiTimestamp(new Date().toISOString()));
           if (value.state === "completed") await callback.current();
         }
       } catch (reason) { if (generation.current === owner) { setError(String(reason)); setRecovering(transient(reason)); setFailures(value => value + 1); } }
@@ -49,7 +50,7 @@ export function SpecialistTaskActions({ projectId, stage, jobId, disabled, sendD
       const result = await (send ? specialistsApi.send : specialistsApi.check)(projectId, stage, jobId);
       if (owner !== generation.current) return;
       setTask(current => ({ ...current, ...result })); setFailures(0);
-      if (!send) setLastCheck(new Date().toLocaleTimeString());
+      if (!send) setLastCheck(formatUiTimestamp(new Date().toISOString()));
       if (result.state === "completed") await callback.current();
     } catch (reason) {
       if (owner !== generation.current) return;

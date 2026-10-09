@@ -178,6 +178,67 @@ read-only review passed. Review found no issues. Normal8841 and protected data a
 unchanged; full E2E qualification, revised playback and remaining visual/copy checks
 are still outstanding.
 
+## Opening completion and ending media
+
+The second opening H3 result was ingested and explicitly trimmed to frames0–120
+as segment `9f476f00-9c07-4cc8-922f-0c52ad46e42c`. Browser playback ended at5seconds,
+120 rendered frames,zero drops and no media error, with audio enabled. Technical
+QA selection retains the content defect: both red lights activate although the
+source says neither route is activated. This is not creative approval.
+
+East image `ij_f4340a885f4b4f74a0b3cb84fe29f6be` delivered asset
+`e52f3c17-ec59-43a5-8da8-7593d8db1d84`, original SHA256
+`eff6e69c86d476bc9e7c15ed5b81bd5d4d2bee559beb3fc11cb721ae52ce8a94`.
+Root viewed the complete image and frozen C01 portrait, then explicitly saved
+intent, keyframe selection and Codex identity review. Warm lamp tint and uncertain
+prop continuity remain declared limitations. H3 job
+`vj_0e0bbcfbe8c543a6bbb1fc4c37f861c9` was submitted once at02:43:15 UTC October9,
+provider `h3_dba5533df48247d6a18320126e9328c0`, request hash
+`279e98277f175b7bed83b32197fe6ef46ca4439dcacbd2d96c7468ba689322b7`.
+Its H.264/AAC960×544 original has124frames at24fps and5.167seconds. Segment
+`18b4f21b-9575-4f0d-b860-618c9d6cbc06` played to actual ended at5seconds,
+120frames,zero drops,no media error and audio enabled before explicit technical
+selection. Early/late pixels show left lamp on,right off and leftward confirmation.
+A metrics serializer initially called unsupported `VideoPlaybackQuality.toJSON`;
+direct field readback then verified the already-completed playback, without replay.
+
+West image `ij_1dfc7f700d7748e29eb486bd5c6cc3d0` completed and ingested asset
+`f82f92b1-dd6b-43e0-baf1-50f4c888f591`, original SHA256
+`179a42ce914ae4f33d2cb873f586b6b8282a3aca0f930e727faf42d1f1f9d8b9`.
+Full image inspection,explicit intent/keyframe and Codex reference review passed
+for functional testing, retaining warm tint and prop-continuity limitations.
+After reading each source and the complete compiled prompt, root submitted once
+at02:52:49 UTC H3 job `vj_c7001760815844ca9887c134c7355e7f`, provider
+`h3_65448b6752d744a8b78b72d667be170c`, request hash
+`135ab62e504687e8b09d8385008e1591fad40cd5a5dcc52eaf2cf0f82a4e35ba`.
+Both ending requests use quality8,960×544,5seconds/124frames,contain-pad and no
+endframe. West is submitted at this checkpoint, not playback-qualified.
+
+Three of four current shots are technically selected. Complete-route playback,
+same-project Revise and remaining recovery/audit coverage are still outstanding.
+
+## Review evidence and request wording repairs
+
+Native UI inspection found two owning defaults that misrepresented evidence:
+`visibleJobs.length` was labelled generated original candidates even when jobs
+were only prepared/submitted, and new identity comparisons prefilled positive
+English observations. The header now counts video request records; new comparisons
+require actual reviewer-entered identity/state notes, with Chinese placeholders.
+Existing review validation and stored evidence are unchanged. Specialist check
+timestamps now use the shared Chinese24-hour local-time formatter.
+
+Focused24/full834 frontend tests,typecheck and deterministic build passed;
+independent read-only review returned no findings. Live8865 pixels confirm the
+request wording and the new empty observations/disabled review submission before
+West review. The waiting-image card was directly inspected at1700×900,1280×768
+and1280×460, with resend disabled and no document horizontal overflow at1280.
+Evidence names include `west-image-waiting-*`, `video-request-wording-1700.png`,
+`review-blank-observations-1700.png` and `east-video-early/late.png` in the native
+evidence directory. These scoped checks are not a fresh full browser suite.
+Protected data again matches aggregate
+`df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`.
+Normal8841 remains unchanged; no active specialist checkpoint was edited.
+
 ## Native execution started
 
 After the complete software gate, clean checkpoint `1b07652` passed fresh Outline

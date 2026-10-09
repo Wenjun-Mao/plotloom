@@ -61,6 +61,14 @@ it("does not infer missing requests or expose production while jobs are unknown"
   expect(host.textContent).not.toContain("尚无冻结");
 });
 
+it.each(["prepared", "submitted", "failed", "ingested"] as const)("describes %s jobs as request records, not proof of generated originals", async state => {
+  vi.mocked(plotloomApi.getVideoJobs).mockResolvedValue({ jobs: [{ ...preparedJob("a"), state }] });
+  await render("a");
+  expect(host.textContent).toContain("1 条视频请求记录；请求不代表原片已生成");
+  expect(host.textContent).not.toContain("1 个原片候选");
+  expect(host.querySelector('a[href="#shot-original"]')?.textContent).toBe("请求与原片");
+});
+
 it("waits for all owned reads before confirming an empty job list", async () => {
   const backend = deferred<Awaited<ReturnType<typeof plotloomApi.getVideoBackend>>>();
   vi.mocked(plotloomApi.getVideoBackend).mockReturnValue(backend.promise);

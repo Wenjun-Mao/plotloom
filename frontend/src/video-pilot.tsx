@@ -356,10 +356,10 @@ export function VideoPilotPanel({ projectId, lifecycleRevision, lifecycleStatus,
   </Panel>;
   return <Panel className="video-pilot-workflow" data-testid="video-pilot-panel">
     <header className="video-workflow-header"><strong>原片 → 调整片段 → 预览 → 用于故事</strong>
-      <small>{!videoReadCurrent ? "正在重新核实镜头视频；先前的选择和播放资格暂不使用。" : visibleJobs.length ? `当前镜头有 ${visibleJobs.length} 个原片候选；仅明确选择的片段会进入故事。` : unassignedInvalidJobs.length ? "未找到可确认归属于当前镜头的原片候选；另有冻结证据损坏的请求记录。" : "当前镜头还没有原片候选。"}</small>
+      <small>{!videoReadCurrent ? "正在重新核实镜头视频；先前的选择和播放资格暂不使用。" : visibleJobs.length ? `当前镜头有 ${visibleJobs.length} 条视频请求记录；请求不代表原片已生成。只有明确选择的播放片段会进入故事。` : unassignedInvalidJobs.length ? "未找到可确认归属于当前镜头的原片候选；另有冻结证据损坏的请求记录。" : "当前镜头还没有原片候选。"}</small>
       <small className="video-next-action">{videoReadCurrent ? nextAction : error ? "视频读取未完成，请重新读取。" : <Spinner label="正在读取镜头视频状态" />}</small>
       {videoReadCurrent && <nav className="video-workflow-nav" aria-label="镜头视频工作流">
-        {visibleJobs.length ? <a href="#shot-original">原片</a> : <a href="#video-production">准备原片</a>}
+        {visibleJobs.length ? <a href="#shot-original">请求与原片</a> : <a href="#video-production">准备原片</a>}
         {navigationJob ? <a href={`#video-segment-review-${navigationJob.id}`}>调整片段</a> : <span aria-disabled="true">调整片段 · 待原片</span>}
         {hasPreviewSegment && navigationJob ? <a href={`#video-segment-preview-${navigationJob.id}`}>预览片段</a> : <span aria-disabled="true">预览片段 · 待准备</span>}
         {lifecycleStatus === "archived" ? <span aria-disabled="true">用于故事 · 已停用</span>

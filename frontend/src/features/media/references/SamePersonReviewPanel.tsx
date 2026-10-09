@@ -179,6 +179,7 @@ export function SamePersonReviewPanel({
                 <input
                   aria-required="true"
                   value={comparison.identityNotes}
+                  placeholder="比较面貌、体态和稳定外观，说明一致或不同之处。"
                   disabled={readOnly || busy}
                   onChange={(event) =>
                     setSamePersonComparisons((current) =>
@@ -195,6 +196,7 @@ export function SamePersonReviewPanel({
                 <input
                   aria-required="true"
                   value={comparison.stateNotes}
+                  placeholder="说明本镜头的服装、动作和道具状态；不要把它们当作身份特征。"
                   disabled={readOnly || busy}
                   onChange={(event) =>
                     setSamePersonComparisons((current) =>

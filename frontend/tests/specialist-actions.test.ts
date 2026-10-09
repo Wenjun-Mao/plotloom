@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
 import { SpecialistTaskActions } from "../src/features/specialists/SpecialistTaskActions";
 import { SpecialistApiError, specialistsApi } from "../src/features/specialists/api";
+import { formatUiTimestamp } from "../src/ui-time";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
@@ -52,6 +53,7 @@ it("recovers a failed initial status read without sending or checking a delivery
 
 it("queues once, automatically checks delivery, and never creatively accepts", async () => {
   vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-10-09T02:45:00Z"));
   const host = document.createElement("div"); const root = createRoot(host);
   vi.spyOn(specialistsApi, "status").mockResolvedValue({ state: "prepared", configured: true });
   const send = vi.spyOn(specialistsApi, "send").mockResolvedValue({ state: "queued" });
@@ -59,6 +61,7 @@ it("queues once, automatically checks delivery, and never creatively accepts", a
   const delivered = vi.fn();
   try {
     await act(async () => root.render(createElement(SpecialistTaskActions, { projectId: "p", stage: "characters", jobId: "j", disabled: false, onDelivered: delivered })));
+    expect(host.querySelector("time")?.textContent).toBe(formatUiTimestamp(new Date().toISOString()));
     const button = [...host.querySelectorAll("button")].find(b => b.textContent === "发送给文字创作助手")!;
     await act(async () => { button.click(); button.click(); });
     expect(send).toHaveBeenCalledTimes(1);
@@ -68,6 +71,7 @@ it("queues once, automatically checks delivery, and never creatively accepts", a
     expect(check).toHaveBeenCalledTimes(1);
     expect(delivered).toHaveBeenCalledTimes(1);
     expect(host.textContent).toContain("结果已交付，请审核");
+    expect(host.querySelector("time")?.textContent).toBe(formatUiTimestamp(new Date().toISOString()));
   } finally { await act(async () => root.unmount()); }
 });
 

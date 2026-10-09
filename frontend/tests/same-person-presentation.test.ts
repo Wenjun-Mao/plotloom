@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { SamePersonReviewPanel } from "../src/features/media/references/SamePersonReviewPanel";
 import type { ReviewedKeyframe, VisualWorkbench } from "../src/types";
+import { newSamePersonComparisons } from "../src/features/media/references/same-person-draft";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let root: Root;
@@ -36,5 +37,16 @@ it("does not let localized required markers bypass incomplete review notes", asy
   await act(async () => root.render(createElement(SamePersonReviewPanel, { ...props, comparisons: [{ ...props.comparisons[0], identityNotes: "" }] })));
   expect(host.querySelector("button")?.disabled).toBe(true);
   await act(async () => host.querySelector("button")!.click());
+  expect(props.onRecord).not.toHaveBeenCalled();
+});
+
+it("starts new identity reviews without fabricated findings and requires both observations", async () => {
+  const comparisons = newSamePersonComparisons([{ characterId: "lin" }]);
+  expect(comparisons).toEqual([{ characterId: "lin", judgment: "pass", identityNotes: "", stateNotes: "" }]);
+  await act(async () => root.render(createElement(SamePersonReviewPanel, { ...props, comparisons })));
+  expect(host.querySelector("button")?.disabled).toBe(true);
+  expect(host.querySelector('input[placeholder^="比较面貌"]')?.getAttribute("value")).toBe("");
+  await act(async () => root.render(createElement(SamePersonReviewPanel, { ...props, comparisons: [{ ...comparisons[0], identityNotes: "面貌一致" }] })));
+  expect(host.querySelector("button")?.disabled).toBe(true);
   expect(props.onRecord).not.toHaveBeenCalled();
 });

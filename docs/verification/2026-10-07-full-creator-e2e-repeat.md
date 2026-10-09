@@ -17,6 +17,14 @@ implemented in an isolated candidate. Its [qualification](2026-10-08-current-sto
 records software and browser evidence separately from still-outstanding native
 Revise/multishot acceptance. Normal 8841 and its protected projects remain unchanged.
 
+Current isolated native continuation: [bridge-intent and four-shot creation](2026-10-08-native-bridge-intent.md)
+now has all four keyframes reviewed, the opening's two-shot static preview tested,
+and three of four native video segments technically selected. The West H3 request
+is submitted; full current-route playback and same-project Revise are still open.
+The same receipt records request-versus-media wording, blank reviewer-evidence
+defaults and shared timestamp repairs with834 frontend tests and independent review.
+This does not replace the full Create → Revise → Recover completion gates.
+
 ## Dedicated whole-product visual and text audit added
 
 Owner-requested scope: execute E22.1–E22.7 as part of this full E2E run, including

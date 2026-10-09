@@ -19,6 +19,7 @@ import {
 import type { ProjectDraftQuiescence } from "../../authoring/projectDraftQuiescence";
 import type { MediaReadPhase } from "../useMediaWorkbenchData";
 import { currentProductionReferences } from "../references/production-reference";
+import { newSamePersonComparisons } from "../references/same-person-draft";
 
 function draftFor(
   intent: VisualIntent | undefined,
@@ -270,16 +271,7 @@ export function useMediaSelectionContext({
       setProposalCharacterId(bible.characters[0].id);
   }, [bible.characters, proposalCharacterId, referenceCharacterId]);
   useEffect(() => {
-    setSamePersonComparisons(
-      selectedIdentityMapping.map((item) => ({
-        characterId: item.characterId,
-        judgment: "pass",
-        identityNotes:
-          "Face, build, and stable visual anchors match the selected reference.",
-        stateNotes:
-          "Current shot state is judged separately from durable identity.",
-      })),
-    );
+    setSamePersonComparisons(newSamePersonComparisons(selectedIdentityMapping));
   }, [selectedBinding?.id, selectedIdentityMapping]);
   // Read withdrawal means unknown, not a binding change. Keep explicit creator
   // retention through refresh, and restore only on navigation or an actual
