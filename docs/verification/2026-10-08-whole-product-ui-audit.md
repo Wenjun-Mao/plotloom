@@ -21,7 +21,12 @@ Nine revised Art report captures additionally verify full reading and modal
 close/reopen/focus at the three desktop sizes. The report's skipped-Cast claim
 is a confirmed generation-context defect: validation receives Cast, but the
 upstream renderer recomputes gates without it. Retained HTML remains unchanged;
-an owning-layer repair is still outstanding.
+an owning-layer repair is still outstanding. October9 inspection of upstream
+HEAD`c27ea0e49c009a2b3c43dec40b702597ab56e1d9` confirms its `renderHtml` still calls
+`gateReport(doc)` without Cast context; a simple dependency update does not solve
+this. ADR0094 forbids vendor edits, and retained-report rewrites cannot repair
+generation provenance. An explicit small pinned-fork ownership decision has been
+requested; no dependency, vendor file or retained report changed in this check.
 The revised East native waiting card is directly inspected at all three desktop
 sizes. Queueing is distinguished from completion, but the external specialist
 capacity failure is not surfaced in Plotloom. The1700 capture also demonstrates
@@ -309,7 +314,7 @@ file; do not inherit a PASS from a different state or source revision.
 | Exact repair, eligible / refusal / unknown result | Enabled109 eligible viewport;140 eighteen directly inspected refusal/unknown-state PNGs, exact codes, explicit duplicate-generation warning and zero writes | Scoped refusal/unknown reading PASS; not a new repair/rebuild execution claim. |
 | Directory/settings, populated / initial top / scrolled lower controls | Native91/93 and repaired112; all three sizes | Scoped PASS; not operation-in-progress or failed-save state. |
 | Navigate / directory Archive / directory Close consent |143 disposable nine cases, three desktop sizes, exact intent/actions and actual cancelled entry points | Scoped pixels/operation checks; final source220 browser/683 frontend gate in linked checkpoint. |
-| Project-saved recovery |143 three final recovery frames directly re-reviewed; exact payload Restore preserves canonical r2 | Scoped checks; session-only/reconciliation/busy have functional tests, not separate pixel qualification. |
+| Project-saved / tab-only / differing tab-and-project draft recovery |143 project-saved frames; October9 real-server failed-save fixtures add12 independently inspected final ready/held-verification desktop captures and exact draft/canonical readbacks in the [revised recovery receipt](2026-10-09-revised-project-recovery.md) | Copy discloses automatic project-draft replacement only when available; otherwise manual saving. Final876 frontend/19 focused recovery/2 browser cases pass; independent review closed. Manual-save variant has unit/App-harness coverage, not separate pixels. Other scope/graph reconciliation remains separate. |
 | Two-tab conflict reload / pending / unsafe failed read / retry / loaded / local discard | Native155 reproduction; final166 five states ×three sizes plus short-desktop discard sequence, all18 directly inspected independently, exact zero-write/local lineage/server-draft guards | Scoped pixel/operation PASS; broad final gate/publication tracked in linked checkpoint. Other scope/graph reconciliation pixels remain open. |
 | Snapshot completion / status disclosure |143 actual201 complete; three before failures and three repaired after frames directly inspected | Reading defect repaired; open-only summary reveal preserves normal scrolling. Final gate qualified; does not imply every snapshot/lifecycle failure state. |
 | Permanent deletion challenge |143 disposable blank/wrong/exact title ×three sizes, all nine frames independently inspected; Cancel preserves entire project and sends zero writes | Scoped challenge reading/eligibility PASS; actual deletion and lifecycle failure-state pixels remain PARTIAL. |

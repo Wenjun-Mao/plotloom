@@ -11,6 +11,50 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const retainedStill = path.join(repositoryRoot, "docs/verification/supporting/p0-generated/01-arrival.png");
 const runFile = promisify(execFile);
 
+test("snapshot receipt remains owned by its project through directory A-B-A navigation", async ({ page, request, workbench }) => {
+  const firstId = await createStoryboardProject(request, workbench.apiOrigin, "Snapshot receipt A");
+  const secondId = await createStoryboardProject(request, workbench.apiOrigin, "Snapshot receipt B");
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${firstId}&stage=brief`);
+  await expect(page.getByRole("heading", { name: "项目简报", exact: true })).toBeVisible();
+  const snapshotResponse = page.waitForResponse(response => response.request().method() === "POST"
+    && new URL(response.url()).pathname === `/api/v2/projects/${firstId}/snapshots`);
+  await page.getByRole("button", { name: "创建恢复快照", exact: true }).click();
+  const response = await snapshotResponse;
+  expect(response.ok(), await response.text()).toBeTruthy();
+  const snapshot = await response.json() as { location: string };
+  const receipt = page.locator("details.topbar-snapshot-receipt");
+  await expect(receipt.getByRole("status")).toHaveText("恢复快照已完成");
+  await receipt.locator("summary").click();
+  await expect(receipt.locator("code")).toHaveText(snapshot.location);
+  await receipt.locator("summary").click();
+
+  const snapshotWrites: string[] = [];
+  page.on("request", request => {
+    if (request.method() === "POST" && new URL(request.url()).pathname.endsWith("/snapshots")) {
+      snapshotWrites.push(request.url());
+    }
+  });
+  // Stay in the same mounted app: a full-page navigation would discard the
+  // receipt and could hide a cross-project ownership regression.
+  for (const id of [secondId, firstId]) {
+    await page.getByRole("button", { name: /当前项目 · 切换/ }).click();
+    const directory = page.getByRole("dialog", { name: "项目目录", exact: true });
+    await directory.locator(`.directory-item[data-project-id="${id}"] .directory-open`).click();
+    await expect(directory).toBeHidden();
+    await expect(page).toHaveURL(new RegExp(`project=${id}`));
+    if (id === secondId) {
+      await expect(receipt).toHaveCount(0);
+      await expect(page.getByText(snapshot.location, { exact: true })).toHaveCount(0);
+    } else {
+      await expect(receipt.getByRole("status")).toHaveText("恢复快照已完成");
+      await receipt.locator("summary").click();
+      await expect(receipt.locator("code")).toHaveText(snapshot.location);
+      await expect(receipt.locator("code")).toBeVisible();
+    }
+  }
+  expect(snapshotWrites).toEqual([]);
+});
+
 for (const viewport of [{ width: 1280, height: 768 }, { width: 1280, height: 460 }, { width: 1700, height: 900 }]) {
   test(`status disclosure reveals its reading entrance from a scrolled page ${viewport.width}x${viewport.height}`, async ({ page, request, workbench }) => {
     await page.setViewportSize(viewport);
@@ -196,11 +240,12 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
 async function createStoryboardProject(
   request: import("@playwright/test").APIRequestContext,
   apiOrigin: string,
+  title = "Portable snapshot browser fixture",
 ): Promise<string> {
   const response = await request.post(`${apiOrigin}/api/v2/projects`, {
     headers: { "Idempotency-Key": `project-folder-snapshot-${Date.now()}` },
     data: {
-      brief: { ...demoProject.brief, title: "Portable snapshot browser fixture" },
+      brief: { ...demoProject.brief, title },
       initialStages: [
         { stage: "story_bible", payload: demoProject.storyBible },
         { stage: "story_graph", payload: demoProject.storyGraph },

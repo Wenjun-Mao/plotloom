@@ -171,6 +171,92 @@ files include the same42 assets and database SHA
 Both snapshots remain; this was a separate UI verification, not a retry of an
 unknown outcome. No provider generation or normal8841 activation occurred.
 
+## Current revised-project idle restart — October9 10:18–10:20UTC
+
+Snapshot-feedback source is committed as`ddcb06d`. Before restarting owned8865,
+the specialist registry reported`busy:false, activeTasks:[]`; runs were empty,
+all8 image jobs delivered and all7 video jobs ingested. No unknown/live task was
+stopped and no accounting lease was cleared. PID80987 shut down cleanly; the same
+isolated launcher/data/configuration started PID52578 and health returned200.
+Normal8841 was not stopped or changed. Served JS matches the checked bundle:
+`9975b691027d9de23cd0d783bbeb97857ad96825713a674f4b3e5803cc2a9021`.
+
+All8 domain API response hashes match before/after, as do all42 asset path/hash
+entries. Content revision2, lifecycle revision5/active, selected segments and job
+states remain exact. After actual browser reload, root selected each of the3
+available revised shots through Current shot and played its current segment to
+a trusted ended event at5s, error null, unmuted/volume1. Request observation
+recorded zero API mutations. This is retained-segment restart recovery, not
+complete revised-route playback or creative/audible-quality acceptance.
+`revised-idle-restart-evidence.json` in the evidence root records exact readbacks
+and segment identities. The now-empty owned8875 restore-copy runtime was stopped
+cleanly; both original QA snapshots remain recoverable.
+
+## Completed native image reopen/check — October9 10:27UTC
+
+On the same revised East shot, the actual browser navigated to Characters, used
+Back to return to the shot, and reopened preparation. The same delivered image
+job `ij_f8526d13a51d487a99e82bbcc4c97c62` remained visible, frozen hash prefix
+`81687adb24a3`, with one delivery and Send disabled. Navigation caused zero API
+mutations. Clicking its named “立即检查交付” control made exactly one POST to that
+job's refresh endpoint:200, accepted, `idempotent:true`. Delivery
+`3882a842-98a4-4b59-9bd6-53b4e49cb689` and candidate asset
+`c4a37658-ed3a-42c1-919c-0b86da313cff` stayed identical. The complete image-jobs
+response was byte-equivalent after JSON serialization; all8 jobs remained.
+There was no send, preparation, selection, duplicate candidate or provider call.
+
+Root directly inspected `completed-image-reopen-check-1280x460.png`: completed
+status, frozen identity, disabled Send, enabled Check and the delivery/candidate
+record fit without clipping. This covers a **completed** native job, not an
+active queue, actual OS-hidden-tab delivery, or specialist-capacity reporting.
+Entering Characters also logged the expected script refusal in its sandboxed
+static report; that is not a generation or delivery failure.
+
+## Snapshot project ownership and draft-recovery reading
+
+The new real-server fixture A→B→A journey stays in the same mounted app and uses
+the actual project directory. A's snapshot receipt is absent in B, then returns
+with A's exact location; switching sends no snapshot POST. The focused case
+passes2s (4.5s including setup), strengthening the existing project-ID guard.
+
+Two further real-server fixture journeys induce a503 draft-save response after
+actual typing, without seeding UI state: tab-only recovery and a tab draft
+different from the saved project draft. Each captures ready and held-verification
+states at all3 supported desktop sizes. Canonical content and server drafts stay
+unchanged while verification is held; both actions are disabled. On successful
+restore, the local input is autosaved, and confirmed content remains unchanged.
+Initial2 cases pass11.7s including setup; root inspected all12 screenshots.
+
+Those checks exposed a wording defect, independently confirmed: the reconcile
+dialog promised “供你比较并重新保存”, but the existing restore handler schedules
+autosave immediately. There is no two-draft comparison step before the project
+draft is replaced. The owning dialog now explicitly discloses automatic saving
+and replacement of the corresponding project draft, while confirmed content
+remains unchanged. The session-only message also explains automatic saving.
+Independent review found that the promise must respect the existing runtime
+capability: the required `autoSaveAvailable` prop now follows durable-draft
+availability and a persisted project ID. When unavailable, both local-draft
+variants instruct manual saving instead. This changes presentation only.
+No recovery behavior, draft version contract or compatibility path changes.
+Two revised copy regressions failed before the repair. The reusable E22 checklist now checks this exact
+action/copy agreement rather than treating fitting text as sufficient.
+
+The unchanged `ddcb06d` full browser gate finished244PASS in7.9m before these new
+tests/copy changes. It is not evidence for the later recovery wording delta.
+The full Python job completed1,415PASS with one existing Starlette/httpx
+deprecation warning against unchanged Python source/tests. Final frontend
+qualification passes876 tests in108 files,19 focused recovery tests, types and
+deterministic build. The final capability-copy browser run passes both recovery
+journeys; the preceding wording candidate also passed7 focused snapshot/recovery
+and6 adjacent current-contract recovery browser cases.
+
+The retained independent reviewer closed the capability finding with no concrete
+remaining bug, inspecting all12 final durable-path captures under
+`frontend/test-results/recovery-capability-final/`. Root rechecked both short-height
+ready dialogs. Manual-save copy is covered by dialog and actual App-harness tests,
+not separate pixels. The native completed-image capture was independently inspected
+in the preceding review. These are scoped results, not a new unfiltered browser gate.
+
 Remaining: broader applicable recovery slices, Opening2 identity semantics/media and both rebuilt routes,
 outstanding report-generation context/copy and other E22 states. This receipt
 does not close the full Create → Revise → Recover run or creative acceptance.

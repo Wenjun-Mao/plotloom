@@ -80,12 +80,16 @@ export { ProjectDirectoryDialog } from "./ProjectDirectoryDialog";
 
 export { DraftNavigationDialog } from "./DraftNavigationDialog";
 
-export function DraftRecoveryDialog({ source, busy = false, onRestore, onDiscard }: { busy?: boolean; source: DraftRecoverySource; onRestore: () => void; onDiscard: () => void }) {
+export function DraftRecoveryDialog({ source, autoSaveAvailable, busy = false, onRestore, onDiscard }: { busy?: boolean; source: DraftRecoverySource; autoSaveAvailable: boolean; onRestore: () => void; onDiscard: () => void }) {
   const detail = source === "server"
     ? "此草稿已保存在项目中；恢复后可继续修改。"
     : source === "reconcile"
-      ? "当前标签页与项目中各有一份草稿。恢复会保留本标签页的输入，供你比较并重新保存。"
-      : "此草稿只保留在当前标签页，尚未保存到项目中。";
+      ? autoSaveAvailable
+        ? "当前标签页与项目中各有一份草稿。恢复后会自动保存本标签页的输入，替换项目中这份草稿；已确认内容保持不变。"
+        : "当前标签页与项目中各有一份草稿。恢复只会将本标签页的输入带回编辑器；请手动保存。"
+      : autoSaveAvailable
+        ? "此草稿只保留在当前标签页。恢复后会自动保存到项目中，不会修改已确认内容。"
+        : "此草稿只保留在当前标签页。恢复后可继续编辑；请手动保存到项目。";
   return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="draft-recovery-title"><button className="modal-backdrop" aria-label="保留提示" /><section className="modal-card compact"><header><div><span>{source === "server" ? "项目中的草稿" : "恢复当前标签页草稿"}</span><h2 id="draft-recovery-title">发现可恢复草稿</h2></div></header><div className="modal-body"><div className="notice"><strong>正式内容保持不变</strong><span>{detail}</span></div></div><footer><Button variant="quiet" disabled={busy} onClick={onDiscard}>丢弃草稿</Button><Button variant="primary" disabled={busy} onClick={onRestore}>{busy ? "正在核实…" : "恢复草稿"}</Button></footer></section></div>;
 }
 

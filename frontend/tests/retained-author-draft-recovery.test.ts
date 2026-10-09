@@ -34,6 +34,8 @@ it("retains authored content through temporary failure and explicitly retries an
   expect(inspection.readOnly).toBe(true); expect(inspection.value).toContain("Retained author title");
   await act(async () => button("重试核实项目").click()); await flush();
   expect(button("恢复草稿")).toBeDefined();
+  expect(document.body.textContent).toContain("请手动保存到项目");
+  expect(document.body.textContent).not.toContain("恢复后会自动保存到项目中");
   expect(retained()["retained:brief:4"]).toBeDefined(); expect(write).not.toHaveBeenCalled();
   await act(async () => button("恢复草稿").click()); await flush();
   expect(read).toHaveBeenCalledTimes(3); // Aggregate failure, retry, exact restore revalidation.
