@@ -138,3 +138,83 @@ verify clean execution authority before preparing and sending native jobs.
 The last normal-service check had no active specialist tasks. Wind's 17 managed
 files, Rain's 67 and three protected configuration files still match aggregate
 `df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`.
+
+## Native execution started
+
+After the complete software gate, clean checkpoint `1b07652` passed fresh Outline
+and native-intent pin preflight. The owned runtime's executable files remain
+identical to its loaded `0ce6806` implementation. Both registries were idle before
+dispatch; the text task's previous turn was completed. Its model and effort were
+left unchanged and are not independently identified by this run.
+
+The UI prepared and sent Outline `ch_442ef84357df48248fb96ac23da5b289` once.
+The native task actually executed and completed in 107 seconds. Automatic
+checking loaded its candidate, and the visible report opened successfully.
+Source, topology, one-character/location/prop scope and the 10-second opening
+plus alternative 5-second endings were reviewed before explicit QA confirmation
+of Outline r1. This is functional test admission, not artistic acceptance.
+Manifest SHA256 is
+`c7874031ffa7d22a6e371a5a01c0a7e74945a2f76657f9ca80681559478644c2`.
+
+The original Outline report still displays the long fractional-minute scalar.
+Its unequal-section limitation is disclosed in the candidate and report; the
+existing formatter defect remains open. `outline-report-native-top.png` records
+the inspected original, without rewriting its bytes or treating it as a visual
+pass. All images here are under `output/playwright/native-intent-2026-10-08/`.
+
+Three `outline-waiting-{1700x900,1280x768,1280x460}.png` frames were inspected by
+root and independently reviewed. Waiting status, timestamp, named Check and
+queue/cancellation explanations are readable without page-width overflow. The
+short viewport is intentionally scrolled to the task region; it does not qualify
+the offscreen heading. The 768-high view requires scrolling to cancellation and
+manual instructions, which the short scrolled capture shows. No cancellation or
+duplicate send was used for these reading checks.
+
+The UI then prepared and sent branch job
+`ch_ba8c9bfc32244a5392535236752d2d44` once, using the same text specialist and
+confirmed Outline. The task completed in 68 seconds. After reading its candidate,
+the UI brought it into the editable draft, confirmed map r1 and applied graph r1.
+Map hash is `3962785214e80c682eb0871be41547fd9d21d3f0a7265e9b95fa167142f151c1`;
+graph hash is `71b25820f0ee119c47525c82d519915a1330864bb1441dd8be774c0096156239`.
+The four-node graph preserves the opening, choice and two alternative endings.
+`creator-admitted-baseline.png` qualifies the visible top, not offscreen endings.
+
+The accepted Outline report reopened during branch execution at all three desktop
+sizes. The `outline-accepted-reopen-*` frames show accessible report and Close
+controls, but retain the fractional-minute defect. `outline-accepted-risks.png`
+captured the report top rather than the intended risk region; it does not prove
+risk-region pixels. Candidate risk text was separately read in full.
+
+Branch summaries and consequences contain `continuation`, `route_only`,
+`authored footage` and frozen node IDs. Independent read-only review traced this
+to missing prose-purpose guidance in the schema, brief and specialist contract,
+not the renderer: routing already has dedicated exact-ID fields. This is an open
+wording defect. Its bounded repair belongs in those generation contracts, with
+exact-identity leakage regression coverage and a fresh delivery; never sanitize
+or rewrite retained candidate evidence. Structural admission is not wording PASS.
+
+## Character delivery and explicit style correction
+
+Native Cast `ch_4bbc112b931a437db9351b1f78cc6579` completed in 111 seconds.
+Its one-character candidate preserves C01, source evidence and all four section
+contexts. Candidate SHA256 is
+`8fb14bf4633771e7ca92e54b91ee2ad04b7c98029e6062b1f5adf97c6310ed11`.
+The specialist correctly disclosed that its pinned `realistic` preset mandates
+painterly directions despite this project's live-action setting. This repeats
+the explicitly retained Cast limitation in ADR0061, not an image-rendering error.
+
+For this disposable functional test, the visible Cast editor changed image style,
+positive/local/sheet prompts, negative prompt and tags to live-action photography,
+then appended the exact correction and QA boundary to source notes. Identity,
+appearance, evidence and performance constraints were untouched. Explicit UI
+confirmation saved Cast r1, hash
+`2d5f9b303fddccfc95e4f8562d491dd39916679f3df20904a7f23994e10a51ca`,
+with C01 mapped to C01. Original candidate/report/manifest remain unchanged.
+This exercises the supported author-edit path; it does not close the generation
+preset mismatch or establish artistic acceptance. Before any generation-contract
+repair, revise ADR0061's retained preset decision and align request, schema,
+specialist and admission ownership; do not defer contradiction to an image overlay.
+
+`cast-original-report-top.png` shows the original static report heading and summary
+below technical details, not its complete body. Sandbox script-block console
+messages come from this intentionally inert report; confirmation itself succeeded.
