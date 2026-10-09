@@ -130,6 +130,41 @@ it("withdraws a lower-revision read instead of making an obsolete selection toke
   expect(phase()).toBe("ready"); expect(revision()).toBe("2");
 });
 
+it("refreshes the current approval after an import ACK and supersedes its pre-ACK read", async () => {
+  const beforeAck = deferred<VisualWorkbench>(), afterAck = deferred<VisualWorkbench>();
+  const get = vi.spyOn(plotloomApi, "getVisualWorkbench")
+    .mockResolvedValueOnce(visual(1))
+    .mockReturnValueOnce(beforeAck.promise)
+    .mockReturnValueOnce(afterAck.promise);
+  await render("one"); await settle();
+  const importAcknowledged = latestRead.refreshAfterProjectWrite;
+  await render("one", "approval-2");
+  let acknowledged!: Promise<void>;
+  await act(async () => { acknowledged = importAcknowledged(); });
+  expect(get).toHaveBeenCalledTimes(3);
+  await act(async () => beforeAck.resolve(visual(1))); await settle();
+  expect(phase()).toBe("loading");
+  await act(async () => { afterAck.resolve(visual(2)); await acknowledged; });
+  expect(phase()).toBe("ready"); expect(revision()).toBe("2");
+});
+
+it("ignores an import ACK after project changes, A-B-A or unmount", async () => {
+  const get = vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValue(visual(1));
+  await render("one"); await settle();
+  const oldImportAcknowledged = latestRead.refreshAfterProjectWrite;
+  await render("two"); await settle();
+  await act(async () => oldImportAcknowledged());
+  expect(get).toHaveBeenCalledTimes(2);
+  await render("one"); await settle();
+  await act(async () => oldImportAcknowledged());
+  expect(get).toHaveBeenCalledTimes(3);
+  const unmountedImportAcknowledged = latestRead.refreshAfterProjectWrite;
+  await act(async () => root.unmount());
+  root = createRoot(host);
+  await act(async () => unmountedImportAcknowledged());
+  expect(get).toHaveBeenCalledTimes(3);
+});
+
 it("does not apply an old selection ACK to another project or a later A-B-A visit", async () => {
   const get = vi.spyOn(plotloomApi, "getVisualWorkbench")
     .mockResolvedValueOnce(visual(3))

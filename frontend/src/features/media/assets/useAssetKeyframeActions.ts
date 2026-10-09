@@ -21,6 +21,7 @@ export function useAssetKeyframeActions({
   setBusy,
   setError,
   refresh,
+  refreshAfterProjectWrite,
   setCandidates,
   setKeptAssetId,
   setPreviewId,
@@ -47,6 +48,7 @@ export function useAssetKeyframeActions({
   setBusy: Dispatch<SetStateAction<boolean>>;
   setError: Dispatch<SetStateAction<string>>;
   refresh: (signal?: AbortSignal) => Promise<void>;
+  refreshAfterProjectWrite: () => Promise<void>;
   setCandidates: Dispatch<SetStateAction<string[]>>;
   setKeptAssetId: Dispatch<SetStateAction<string>>;
   setPreviewId: Dispatch<SetStateAction<string>>;
@@ -98,7 +100,7 @@ export function useAssetKeyframeActions({
           .map((item) => item.trim())
           .filter(Boolean),
       });
-      await refresh();
+      await refreshAfterProjectWrite();
     } catch (importError) {
       setError(importError instanceof Error ? importError.message : "导入失败");
     } finally {

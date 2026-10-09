@@ -43,7 +43,6 @@ export function ManagedMediaWorkbench({
   routeId,
   selectedShot,
   storyboardRevision,
-  storyBibleRevision,
   mediaDraftsEnabled,
   draftQuiescence,
   review,
@@ -64,7 +63,6 @@ export function ManagedMediaWorkbench({
   routeId?: string;
   selectedShot: Shot | undefined;
   storyboardRevision?: number;
-  storyBibleRevision?: number;
   mediaDraftsEnabled: boolean;
   draftQuiescence?: ProjectDraftQuiescence;
   review: StoryboardReview | null | undefined;
@@ -77,7 +75,7 @@ export function ManagedMediaWorkbench({
 }) {
   const currentApproval: ApprovalDecision | undefined = review?.activeApproval ?? undefined;
   const {
-    workbench, acknowledgeSelectionRevision, imageJobs, characterProposals, imageExchangeConfigured,
+    workbench, acknowledgeSelectionRevision, refreshAfterProjectWrite, imageJobs, imageExchangeConfigured,
     previewId, setPreviewId, refresh, mediaReadPhase,
   } = useMediaWorkbenchData({
     projectId, lifecycleRevision, approvalId: currentApproval?.id,
@@ -106,10 +104,6 @@ export function ManagedMediaWorkbench({
     useState<string[]>([]);
   const [referenceReviewer, setReferenceReviewer] = useState("creator");
   const [referenceNotes, setReferenceNotes] = useState("");
-  const [proposalCharacterId, setProposalCharacterId] = useState("");
-  const [proposalDirection, setProposalDirection] = useState("");
-  const [proposalParentCandidateAssetId, setProposalParentCandidateAssetId] =
-    useState("");
   const [samePersonReviewer, setSamePersonReviewer] = useState("creator");
   const [samePersonNotes, setSamePersonNotes] = useState("");
   const [samePersonComparisons, setSamePersonComparisons] = useState<
@@ -171,10 +165,8 @@ export function ManagedMediaWorkbench({
     playing,
     frameIndex,
     referenceCharacterId,
-    proposalCharacterId,
     setPreviewLength,
     setReferenceCharacterId,
-    setProposalCharacterId,
     setSamePersonComparisons,
     setKeptAssetId,
     setFrameIndex,
@@ -194,6 +186,7 @@ export function ManagedMediaWorkbench({
     setBusy,
     setError,
     refresh,
+    refreshAfterProjectWrite,
     setCandidates,
     setKeptAssetId,
     setPreviewId,
@@ -260,9 +253,6 @@ export function ManagedMediaWorkbench({
   const {
     selectCharacterReference,
     revokeCharacterReference,
-    prepareCharacterReferenceProposal,
-    sendCharacterReferenceProposal,
-    refreshCharacterReferenceProposal,
     recordSamePersonReview,
   } = useCharacterReferenceActions({
     projectId,
@@ -277,12 +267,6 @@ export function ManagedMediaWorkbench({
     setReferenceNotes,
     setReferenceComplementaryAssetIds,
     refresh,
-    proposalCharacterId,
-    castRevision: undefined,
-    proposalDirection,
-    proposalParentCandidateAssetId,
-    setProposalDirection,
-    setProposalParentCandidateAssetId,
     selectedBinding,
     selectedIdentityMapping,
     samePersonReviewer,
@@ -350,9 +334,7 @@ export function ManagedMediaWorkbench({
       <div id="shot-character-references"><CharacterReferencesPanel
         projectId={projectId}
         bible={bible}
-        storyBibleRevision={storyBibleRevision}
         workbench={workbench}
-        proposals={characterProposals}
         assetById={assetById}
         referenceStateByCharacter={referenceStateByCharacter}
         currentReferenceByCharacter={currentReferenceByCharacter}
@@ -362,28 +344,17 @@ export function ManagedMediaWorkbench({
           complementaryAssetIds: referenceComplementaryAssetIds,
           reviewer: referenceReviewer,
           notes: referenceNotes,
-          proposalCharacterId,
-          proposalDirection,
-          proposalParentCandidateAssetId,
           setCharacterId: setReferenceCharacterId,
           setPrimaryAssetId: setReferencePrimaryAssetId,
           setComplementaryAssetIds: setReferenceComplementaryAssetIds,
           setReviewer: setReferenceReviewer,
           setNotes: setReferenceNotes,
-          setProposalCharacterId,
-          setProposalDirection,
-          setProposalParentCandidateAssetId,
         }}
         readOnly={mediaOwnerReadOnly}
         mediaReadPhase={mediaReadPhase}
         busy={busy}
         onSelectReference={() => void selectCharacterReference()}
         onRevokeReference={(characterId) => void revokeCharacterReference(characterId)}
-        onPrepareProposal={() => void prepareCharacterReferenceProposal()}
-        onSendProposal={(proposalId) => void sendCharacterReferenceProposal(proposalId)}
-        onRefreshProposal={(proposalId) =>
-          void refreshCharacterReferenceProposal(proposalId)
-        }
       /></div>
       <ImageJobPanel
         imageExchangeConfigured={imageExchangeConfigured}

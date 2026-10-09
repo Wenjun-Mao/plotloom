@@ -64,3 +64,35 @@ and invalidation contracts. Code does not translate prompts, infer a replacement
 style from Brief or Art, rewrite reports, or select/regenerate references.
 Upstream Cast generation presets are unchanged. Browser regression covers
 cancel, explicit save, reload, unchanged identity/evidence and new-package binding.
+
+## Revision refinement clarification (2026-10-09)
+
+The native Revise walkthrough confirmed a contract gap: after an accepted Cast
+design change, the gallery offered a retained candidate as an editing input but
+preparation required its old proposal to still be current. That prevented an
+author from revising an existing appearance against the new design.
+
+A new proposal must still bind the current accepted Cast revision and mapped
+subject. Its explicit `parent_output` may come from an older, accepted delivery
+for that same project and character, with a matching immutable asset/output hash.
+The parent proposal must be delivered, not cancelled; rejected/inapplicable
+deliveries and imported memberships are not specialist-candidate parents. Parent
+currentness is not new-request authority: the new snapshot freezes current Cast
+facts and the exact retained image separately. Package instructions identify
+the accepted Cast as design authority and the parent as an editing input that
+may show an older design. No Story Bible is consulted.
+
+Preparation neither changes the parent nor selects, revalidates or regenerates
+anything automatically. Subsequent Cast changes invalidate the new proposal
+through the existing snapshot checks. The gallery labels old-design inputs and
+explains that the new proposal follows current confirmed settings. Disabling all
+historical refinement was rejected: it would remove the approved revision path,
+not fix the ownership confusion. Rebinding old proposals was rejected because it
+would falsify frozen evidence. Tests cover revision/refinement/reload, unchanged
+old records and selection, cross-subject/project and invalid-delivery refusal,
+and reopened/stale current-Cast guards.
+
+The permanently hidden Story-Bible proposal form and its unused state, actions
+and proposal reads in the production workbench are removed. Characters remains
+the single Cast-owned proposal UI; production identity selection and same-person
+review remain in their existing production owners. No compatibility UI is kept.

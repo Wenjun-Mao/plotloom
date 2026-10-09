@@ -42,3 +42,19 @@ Deferred hook tests hold a new-shot read across the previous-shot write ACK,
 reject a lower-revision snapshot and recover explicitly, and contain old ACKs
 across project changes, A-B-A and unmount. The real imported-still browser
 journey continues to select successive shots without a new test-only ACK wait.
+
+## Project asset imports (2026-10-09)
+
+A full browser run exposed the same ownership problem for project-level imports:
+approval changed while an upload was pending; its POST returned201 after the new
+context's empty reads, but the old context-bound refresh silently returned.
+The imported asset was durable yet absent from the gallery. A deterministic
+deferred-import/shot-switch regression reproduced the missing post-ACK read.
+
+The media-read owner now exposes `refreshAfterProjectWrite`, bound to the same
+project visit and mount but resolving the latest shot/approval context. Import
+ACKs use it, and selection ACKs share it after advancing their revision floor.
+No optimistic asset injection, retry, approval wait or test-only serialization
+is added. Context-bound refresh remains for ordinary reads; old project visits
+and unmounted owners remain ignored. Import, approval and selection semantics
+and backend persistence are unchanged.

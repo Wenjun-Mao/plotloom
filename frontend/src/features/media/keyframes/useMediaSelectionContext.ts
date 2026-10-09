@@ -67,10 +67,8 @@ export function useMediaSelectionContext({
   playing,
   frameIndex,
   referenceCharacterId,
-  proposalCharacterId,
   setPreviewLength,
   setReferenceCharacterId,
-  setProposalCharacterId,
   setSamePersonComparisons,
   setKeptAssetId,
   setFrameIndex,
@@ -94,10 +92,8 @@ export function useMediaSelectionContext({
   playing: boolean;
   frameIndex: number;
   referenceCharacterId: string;
-  proposalCharacterId: string;
   setPreviewLength: Dispatch<SetStateAction<number>>;
   setReferenceCharacterId: Dispatch<SetStateAction<string>>;
-  setProposalCharacterId: Dispatch<SetStateAction<string>>;
   setSamePersonComparisons: Dispatch<SetStateAction<SamePersonComparison[]>>;
   setKeptAssetId: Dispatch<SetStateAction<string>>;
   setFrameIndex: Dispatch<SetStateAction<number>>;
@@ -267,9 +263,7 @@ export function useMediaSelectionContext({
   useEffect(() => {
     if (!referenceCharacterId && bible.characters[0])
       setReferenceCharacterId(bible.characters[0].id);
-    if (!proposalCharacterId && bible.characters[0])
-      setProposalCharacterId(bible.characters[0].id);
-  }, [bible.characters, proposalCharacterId, referenceCharacterId]);
+  }, [bible.characters, referenceCharacterId]);
   useEffect(() => {
     setSamePersonComparisons(newSamePersonComparisons(selectedIdentityMapping));
   }, [selectedBinding?.id, selectedIdentityMapping]);

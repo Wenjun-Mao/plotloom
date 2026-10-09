@@ -106,12 +106,17 @@ class CharacterReferenceProposalPersistence:
                     .order_by(CharacterReferenceProposalCandidateRow.created_at.desc()).limit(1)
                 )
                 parent = session.get(CharacterReferenceProposalRow, candidate.proposal_id) if candidate else None
+                delivery = session.get(CharacterReferenceProposalDeliveryRow, candidate.delivery_id) if candidate else None
                 asset = session.get(ManagedAssetRow, parent_candidate_asset_id)
+                # Current Cast owns the new design. A retained accepted image is
+                # only an explicit edit input, not authority to revive its proposal.
                 if (
                     candidate is None or parent is None or asset is None or asset.project_id != project_id
-                    or parent.character_id != character_id or not self._proposal_is_current_in_session(session, parent)
+                    or parent.project_id != project_id or parent.character_id != character_id
+                    or parent.state != "delivered" or delivery is None or delivery.state != "accepted"
+                    or delivery.proposal_id != parent.id or candidate.output_hash != asset.original_hash
                 ):
-                    raise InvalidTransitionError("proposal refinement must name a current candidate for the same character")
+                    raise InvalidTransitionError("请选择本项目中同一角色已通过交付检查的候选图片作为修改依据。")
                 references.append({
                     "assetId": asset.id, "role": "parent_output", "required": True,
                     "originalHash": asset.original_hash, "mimeType": asset.mime_type,

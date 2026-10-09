@@ -278,3 +278,120 @@ prompt-reader verification and independent source review, this qualifies the
 Cast-style/shared-read repair checkpoint for isolated native execution. The
 known node-kind/playback copy follow-ups and full native Revise/Recover/E22 scope
 remain open; normal8841 is not activated by this local checkpoint.
+
+## Native Cast revision and retained-image refinement repair
+
+The committed `0923311` checkpoint was activated only on owned8865/8866.
+Native Cast job `ch_83c99e97726b475e83a07d14926091ae` was prepared/sent once
+with explicit live-action direction, current graph/map r3 and unchanged source.
+Its original Cast/report hashes are respectively
+`909c15de60a78999d0a1658a63a5f2308420c42dbe3b1abd134e541f4eefce48` and
+`f1e75a667b90f5c3600762a5fdf288fd261026fa62b1a3ef5674aea91c990394`.
+UI confirmation established Cast r2; reopening and saving the QA low-bun design
+established r3 after the successful save ACK. Subsequent GET readback confirms
+accepted r3, no stale reasons and content hash
+`5b1a8d604aaa024e39bb7078a067b8ee8a4826525d51bb8e9e84349770e653a4`.
+The old delivery remains original, with the edited head explicitly different.
+Native evidence is under normal-repo `output/playwright/native-intent-2026-10-08/`
+(`revise-cast-*`). The capture named `revise-cast-original-bottom.png` shows the
+voice/prompt sidebar, not proof of reaching the complete report's bottom.
+
+The next real UI action selected an older same-character image as an explicit
+editing input. Preparation failed409: `proposal refinement must name a current
+candidate for the same character`. The failure is retained in
+`revise-historical-refinement-refused.png`; no new proposal or dispatch resulted.
+Backend admission incorrectly equated the parent proposal's currentness with
+its eligibility as an image input. New-proposal authority must instead come
+from the current accepted Cast, with the accepted retained image bound by hash.
+
+The scoped repair in ADR0061 preserves current-Cast admission, requires a
+same-project/same-character delivered parent with accepted matching delivery and
+exact asset hash, and freezes the old image only as `parent_output`. Package
+instructions now name the accepted Cast, require viewing the parent and state
+that current design supersedes the older design. Gallery eligibility/copy agree.
+Old proposals and selections remain stale; nothing is automatically selected.
+The permanently hidden duplicate proposal form and its unused requests/actions
+were removed from the production-media panel; reference selection/review remain.
+
+Verification so far: ten new persistence regressions PASS; seventeen focused
+related Python checks PASS;849 frontend checks, application types, deterministic
+build, lock, F401, diff, prompt-reader verification and installed-wheel smoke PASS.
+The new browser revision journey PASS includes acknowledged Cast edit/reload,
+retained-image prepare/send through fake transport, current-input verification,
+delivery/reload and unchanged old proposal/decision/manifest bytes. Its initial
+diagnostic failures were harness assumptions (retired copy endpoint, required
+field accessible name and request envelope); corrected tests retain all guards.
+Their first/second/third/focused evidence directories remain, not counted as PASS.
+
+Root directly inspected all three fresh full-gate refinement viewports at
+1700×900,1280×768,1280×460. The old-design explanation, selected refinement mode,
+author text and create control are readable below the toolbar. Files are under
+worktree `output/playwright/reference-revision-2026-10-09/full-browser/`
+`cast-reference-revision-re-fa38a-s-old-proposal-or-selection/`.
+English authored text and existing images are fixtures, not native delivery or
+quality approval. Independent GPT-6.1 Sol/Medium review reported no findings,
+with ten focused Python checks and diff check independently passing; effective
+host model settings were not independently verified. Full Python/browser gates
+are still running. No revised native image has been prepared or dispatched yet.
+
+Protection readback still matches
+`df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`,
+Wind17/Rain67 files and three protected settings. Specialist registry is idle,
+with exactly two delivered/noncurrent old Character proposals and no new one.
+
+Separate E22 report diagnosis: retained Cast report line307 still explains
+inline inference markers, but the current writing contract moves inference
+disclosures into `reviewNotes.sourceNotes` and acting constraints into
+`performanceGuidance`. This report embeds those notes only in the JSON-copy
+payload and script data, not a readable review section; the static reader hides
+the copy control and disables scripts. This is a generation/reader contract gap,
+not missing notes in accepted Cast data. Preserve original bytes; qualify a
+current-contract report fix alongside the pending Outline duration-rendering
+repair. Neither issue is repaired by the refinement change.
+
+## Project import ACK race found by the full gate
+
+The first unfiltered browser run finished **241 PASS / 1 FAIL**. At1280×460,
+the end-frame journey imported an asset successfully but could not find its
+candidate control. Trace timing shows the approval201 at05:22:09.959UTC,
+import POST at10.089, new-context reads at10.094, and import201 only at10.855.
+Those reads were empty; no post-import read followed. The import handler held
+the preceding approval context's refresh callback, which correctly refused
+that obsolete context but consequently never refreshed the current gallery.
+This was a product ownership race, not a viewport or provider failure.
+
+A deferred-import/shot-change integration test first reproduced the missing
+third read. ADR0130's project-write ACK helper now refreshes the latest context
+within the same project visit/mount. Old A→B→A visits and unmounted owners are
+ignored; the existing read sequence supersedes pre-ACK reads. No optimistic
+injection, generation retry or test-only approval serialization was introduced.
+
+Fresh qualification: **852 frontend PASS**, application/browser types and
+deterministic build PASS; the affected browser journey passed **nine checks**
+(three repetitions at each supported desktop size). Independent read-only
+GPT-6.1 Sol/Medium review found no issues and independently passed21 affected
+frontend checks. Effective host model settings remain unverified. A new full
+browser gate is running in `full-browser-ack-fixed`; full Python is still live.
+The first red trace/screenshot/video remain under `full-browser`, and the nine
+passing regression checks under `import-ack-regression`, in the same dated
+worktree evidence directory. Native runtime activation is still pending.
+
+Fresh direct pixel inspection of the repaired refinement form passed all three
+desktop sizes from `full-browser-ack-fixed`. Native original-Cast reading was
+also checked without reloading the old runtime: `revise-cast-report-document-end-`
+captures show the final Chinese prompt text and true document boundary at all
+three sizes (remaining scroll0). The earlier `actual-bottom` capture, despite
+its name, only shows the shorter voice column and is not bottom evidence.
+The current-head/original-delivery distinction is visible; the separate missing
+source/performance disclosure and obsolete inference-marker wording remain open.
+Wheel/installed smoke, lock/F401/diff and archived prompt-reader checks PASS after
+the final frontend build. Owner/protected-file fingerprint remains unchanged.
+
+Final checkpoint qualification: **1,408 Python PASS in1,522.62seconds** (one
+dependency deprecation warning), **852 frontend PASS**, **242 unfiltered browser
+PASS in8.1minutes**, types/build/compile/lock/F401/diff/prompt-reader/wheel/smoke
+PASS. Independent source reviews and direct three-viewport refinement pixel
+review closed without findings. Checked JS SHA256 is
+`65af915186ccdb1e516560c62c9fded9961e25c25f82b9fe1c53a3053f8f17bb`.
+Root approves this stable checkpoint for isolated activation/native refinement,
+not normal8841 publication or completion of the remaining Revise/Recover/E22 run.

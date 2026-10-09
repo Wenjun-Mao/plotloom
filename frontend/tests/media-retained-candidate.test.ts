@@ -52,8 +52,7 @@ function deferred<T>() {
 async function render(selectedShot: Shot = shot, projectId = "project", mediaDraftsEnabled = false) {
   await act(async () => root.render(createElement(ManagedMediaWorkbench, {
     projectId, storyboard, bible: demoProject.storyBible, graph: demoProject.storyGraph,
-    sceneBeats: demoProject.sceneBeats, selectedShot, storyboardRevision: 1,
-    storyBibleRevision: 1, mediaDraftsEnabled, review, readOnly: false,
+    sceneBeats: demoProject.sceneBeats, selectedShot, storyboardRevision: 1, mediaDraftsEnabled, review, readOnly: false,
   })));
   await settle();
 }

@@ -76,7 +76,7 @@ async function render(lifecycleRevision?: number, readOnly = false) {
   await act(async () => root.render(createElement(ManagedMediaWorkbench, {
     projectId: "project", lifecycleRevision, storyboard: { ...demoProject.storyboard, shots: [shot] },
     bible: demoProject.storyBible, graph: demoProject.storyGraph, sceneBeats: demoProject.sceneBeats,
-    selectedShot: shot, storyboardRevision: 1, storyBibleRevision: 1, mediaDraftsEnabled: false,
+    selectedShot: shot, storyboardRevision: 1, mediaDraftsEnabled: false,
     review, readOnly,
   })));
   await settle();

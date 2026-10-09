@@ -44,8 +44,7 @@ it.each(["prepared", "exported", "delivered", "cancelled"] as const)("offers ima
   await act(async () => root.render(createElement(ManagedMediaWorkbench, {
     projectId: "project-1", storyboard: demoProject.storyboard, bible: demoProject.storyBible,
     graph: demoProject.storyGraph, sceneBeats: demoProject.sceneBeats,
-    selectedShot: demoProject.storyboard.shots[0], storyboardRevision: 1,
-    storyBibleRevision: 1, mediaDraftsEnabled: false, review: null, readOnly: false,
+    selectedShot: demoProject.storyboard.shots[0], storyboardRevision: 1, mediaDraftsEnabled: false, review: null, readOnly: false,
   })));
   expect(host.querySelector<HTMLButtonElement>('[data-testid="copy-image-job-job-1"]')?.disabled).toBe(state !== "prepared");
   expect(host.querySelector<HTMLButtonElement>('[data-testid="refresh-image-job-job-1"]')?.disabled).toBe(false);
@@ -68,7 +67,7 @@ it("renders a mixed-origin gallery from the common provenance DTO and keeps cand
     projectId: "project-1", storyboard: demoProject.storyboard,
     bible: demoProject.storyBible, graph: demoProject.storyGraph,
     sceneBeats: demoProject.sceneBeats, selectedShot: demoProject.storyboard.shots[0],
-    storyboardRevision: 1, storyBibleRevision: 1, mediaDraftsEnabled: false, review: null, readOnly: false,
+    storyboardRevision: 1, mediaDraftsEnabled: false, review: null, readOnly: false,
   })));
   await act(async () => { await Promise.resolve(); await Promise.resolve(); });
   const cards = host.querySelectorAll('.media-candidate-grid[aria-label="候选图像比较"] .media-candidate');
@@ -77,6 +76,37 @@ it("renders a mixed-origin gallery from the common provenance DTO and keeps cand
   expect(host.textContent).toContain("已知新增：lamp");
   await act(async () => (cards[0].querySelector("button") as HTMLButtonElement).click());
   expect(cards[0].querySelector("button")?.getAttribute("aria-pressed")).toBe("true");
+});
+
+it("refreshes project assets after an import ACK even if the shot changed during upload", async () => {
+  const asset: ManagedAsset = {
+    id: "late-import", projectId: "project-1", originalHash: "a".repeat(64), displayHash: "b".repeat(64),
+    mimeType: "image/png", byteSize: 1024, width: 832, height: 480, createdAt: "2026-10-09T00:00:00Z", provenance: null,
+  };
+  let finish!: (value: ManagedAsset) => void;
+  const pending = new Promise<ManagedAsset>(resolve => { finish = resolve; });
+  const upload = vi.spyOn(plotloomApi, "importManagedAsset").mockReturnValue(pending);
+  const read = vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValue(emptyWorkbench);
+  const renderShot = async (index: number) => {
+    await act(async () => root.render(createElement(ManagedMediaWorkbench, {
+      projectId: "project-1", storyboard: demoProject.storyboard, bible: demoProject.storyBible,
+      graph: demoProject.storyGraph, sceneBeats: demoProject.sceneBeats,
+      selectedShot: demoProject.storyboard.shots[index], storyboardRevision: 1,
+      mediaDraftsEnabled: false, review: null, readOnly: false,
+    })));
+  };
+  await renderShot(0);
+  const input = host.querySelector<HTMLInputElement>('[data-testid="managed-image-upload"]')!;
+  Object.defineProperty(input, "files", { value: [new File(["fixture"], "fixture.png", { type: "image/png" })] });
+  await act(async () => input.dispatchEvent(new Event("change", { bubbles: true })));
+  expect(upload).toHaveBeenCalledOnce();
+  await renderShot(1);
+  expect(read).toHaveBeenCalledTimes(2);
+  read.mockResolvedValue({ ...emptyWorkbench, assets: [asset] });
+  await act(async () => finish(asset));
+  expect(read).toHaveBeenCalledTimes(3);
+  expect(host.querySelector('[data-testid="keep-candidate-late-import"]')).not.toBeNull();
+  expect(upload).toHaveBeenCalledOnce();
 });
 
 it("withdraws media owner controls and exported-job polling after a same-context read failure", async () => {
@@ -90,7 +120,7 @@ it("withdraws media owner controls and exported-job polling after a same-context
     projectId: "project-1", storyboard: demoProject.storyboard,
     bible: demoProject.storyBible, graph: demoProject.storyGraph,
     sceneBeats: demoProject.sceneBeats, selectedShot: demoProject.storyboard.shots[0],
-    storyboardRevision: 1, storyBibleRevision: 1, mediaDraftsEnabled: true,
+    storyboardRevision: 1, mediaDraftsEnabled: true,
     review: null, readOnly: false,
   })));
   await act(async () => { await Promise.resolve(); await Promise.resolve(); });
@@ -128,8 +158,7 @@ it("keeps project image history accessible and attributes jobs to their frozen s
   await act(async () => root.render(createElement(ManagedMediaWorkbench, {
     projectId: "project-1", storyboard: demoProject.storyboard, bible: demoProject.storyBible,
     graph: demoProject.storyGraph, sceneBeats: demoProject.sceneBeats,
-    selectedShot: demoProject.storyboard.shots[0], storyboardRevision: 1,
-    storyBibleRevision: 1, mediaDraftsEnabled: false, review: null, readOnly: false,
+    selectedShot: demoProject.storyboard.shots[0], storyboardRevision: 1, mediaDraftsEnabled: false, review: null, readOnly: false,
   })));
   expect(host.querySelector('[data-testid="image-job-job-1"]')).not.toBeNull();
   expect(host.querySelector('[data-testid="image-job-foreign-job"]')).toBeNull();
@@ -162,7 +191,7 @@ it.each(["visual_intent", "image_direction"])("preserves an unsaved %s buffer wi
     await act(async () => root.render(createElement(ManagedMediaWorkbench, {
       projectId: "project-1", lifecycleRevision, lifecycleStatus, storyboard: demoProject.storyboard,
       bible: demoProject.storyBible, graph: demoProject.storyGraph, sceneBeats: demoProject.sceneBeats,
-      selectedShot: shot, storyboardRevision: 1, storyBibleRevision: 1, mediaDraftsEnabled: true,
+      selectedShot: shot, storyboardRevision: 1, mediaDraftsEnabled: true,
       review: null, readOnly: lifecycleStatus === "archived",
     })));
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });

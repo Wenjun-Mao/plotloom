@@ -180,7 +180,10 @@ def project_image_package(
                     "Use Codex built-in image generation for the frozen accepted-art subject. This result is an "
                     "exploratory candidate only: do not claim currentness, art acceptance, or a selected production asset. "
                     if art_reference else
-                    "Use Codex built-in image generation for the frozen Story Bible character context. This result is an "
+                    "Use Codex built-in image generation for the frozen accepted Cast characterContext and visualDirection. "
+                    "View every supplied parent_output before generation. It is an explicit editing input that may show an "
+                    "older design; the frozen accepted Cast appearance/image direction owns the current design. "
+                    "Do not load a Story Bible or revive the parent's old proposal. This result is an "
                     "exploratory candidate only: do not claim an approved Shot, storyboard Approval, or selected reference. "
                 )
             )

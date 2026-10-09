@@ -107,7 +107,6 @@ export function StoryboardPage({
   lifecycleRevision,
   lifecycleStatus,
   revision,
-  storyBibleRevision,
   contentHash,
   mediaDraftsEnabled = false,
   mediaDraftQuiescence,
@@ -135,7 +134,6 @@ export function StoryboardPage({
   lifecycleRevision?: number;
   lifecycleStatus?: "active" | "archived";
   revision?: number;
-  storyBibleRevision?: number;
   contentHash?: string | null;
   mediaDraftsEnabled?: boolean;
   mediaDraftQuiescence?: ProjectDraftQuiescence;
@@ -396,7 +394,7 @@ export function StoryboardPage({
     {stale && <div className="notice warning"><strong>分镜已过期</strong><span>前面的设定发生变化。现有手工镜头仍保留；请审阅差异后从合适阶段重建。</span></div>}
     <div className="notice"><strong>媒体工作流</strong><span>选择镜头后，在下方查看原片、调整并预览片段，再明确决定是否用于故事。关键帧、参考素材与准备步骤可展开；未配置视频后端时仍可查看已有候选。</span></div>
     {unresolvedEntity && <div className="notice warning" role="alert" data-testid="unknown-storyboard-entity">请求的镜头不属于当前分镜；未打开其他镜头。请从镜头列表重新选择。</div>}
-    <ManagedMediaWorkbench projectId={projectId} lifecycleRevision={lifecycleRevision} lifecycleStatus={lifecycleStatus} storyboard={storyboard} bible={bible} graph={graph} sceneBeats={sceneBeats} routeId={route?.id} storyboardRevision={revision} storyBibleRevision={storyBibleRevision} mediaDraftsEnabled={mediaDraftsEnabled} draftQuiescence={mediaDraftQuiescence} selectedShot={selectedShot} review={review} draftChanged={JSON.stringify(storyboard) !== JSON.stringify(value)} readOnly={actionsLocked} onSelectShot={selectShot} onEditShot={revealStoryboardEditor} onReturnToBridge={onReturnToBridge} onReview={() => {
+    <ManagedMediaWorkbench projectId={projectId} lifecycleRevision={lifecycleRevision} lifecycleStatus={lifecycleStatus} storyboard={storyboard} bible={bible} graph={graph} sceneBeats={sceneBeats} routeId={route?.id} storyboardRevision={revision} mediaDraftsEnabled={mediaDraftsEnabled} draftQuiescence={mediaDraftQuiescence} selectedShot={selectedShot} review={review} draftChanged={JSON.stringify(storyboard) !== JSON.stringify(value)} readOnly={actionsLocked} onSelectShot={selectShot} onEditShot={revealStoryboardEditor} onReturnToBridge={onReturnToBridge} onReview={() => {
       if (storyboardDetails.current) storyboardDetails.current.open = true;
       if (approvalActions.current) approvalActions.current.open = true;
       requestAnimationFrame(() => {
