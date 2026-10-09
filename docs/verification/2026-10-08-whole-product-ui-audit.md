@@ -10,7 +10,13 @@ under ADR0143; matching native backend activation and actual retained-shot409
 guidance are verified in the rebuilt-production receipt's09:34UTC checkpoint.
 The [revised recovery audit](2026-10-09-revised-project-recovery.md) additionally
 finds and repairs standalone Play mislabelling archived media as missing clips;
-these changes do not complete the whole-product state matrix.
+these changes do not complete the whole-product state matrix. The subsequent
+native snapshot/restore/copy-delete slice exposes a completion message hidden
+inside collapsed Service status. A compact dedicated receipt disclosure and
+viewport-specific regression are qualified in that same recovery receipt:
+four focused checks and independent review of six fixture plus six native
+captures pass, including complete expanded paths inside every desktop viewport;
+no snapshot contract or retained evidence is rewritten.
 Nine revised Art report captures additionally verify full reading and modal
 close/reopen/focus at the three desktop sizes. The report's skipped-Cast claim
 is a confirmed generation-context defect: validation receives Cast, but the

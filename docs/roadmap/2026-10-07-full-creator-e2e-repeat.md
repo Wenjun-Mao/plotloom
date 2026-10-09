@@ -50,7 +50,14 @@ not current completion claims. Normal8841 is unchanged by this continuation.
 The [revised recovery checkpoint](../verification/2026-10-09-revised-project-recovery.md)
 adds close/reopen and archive/restore with unchanged eight API responses/42 assets,
 actual retained/restored segment ended and an archived Play guidance repair.
-Snapshot/operator restore and other revised recovery slices remain incomplete.
+The subsequent10:03UTC slice creates a verified revised snapshot, restores it to
+separate8875, proves all42 asset hashes and all3 selected segments, then deletes
+only that restored copy with typed confirmation. Source and snapshot remain intact.
+The stable archived-play candidate6679d08 passes244 browser tests. A newly found
+hidden snapshot-completion message is repaired:874 frontend/four focused browser
+checks, both typechecks/build and independent fixture/native pixel review pass.
+Other applicable
+recovery slices, revised routes and E22 completion remain incomplete.
 
 On October7 the owner agreed to ONE reusable Create → Revise → Recover playbook,
 with a tailored profile and dated evidence for each major update/iteration.

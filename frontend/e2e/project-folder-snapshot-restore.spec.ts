@@ -33,14 +33,31 @@ for (const viewport of [{ width: 1280, height: 768 }, { width: 1280, height: 460
     await expect(settings).toBeVisible();
     await settings.getByRole("button", { name: "取消", exact: true }).click();
     await expect(page.locator(".topbar-technical-status")).toContainText(longReason);
+    await page.evaluate(() => window.scrollTo(0, 500));
     const snapshotResponse = page.waitForResponse(response => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/snapshots`);
     await page.getByRole("button", { name: "创建恢复快照", exact: true }).click();
     const response = await snapshotResponse;
     expect(response.ok(), await response.text()).toBeTruthy();
     const snapshot = await response.json() as { location: string };
-    const receipt = page.getByText("恢复快照已完成：", { exact: false });
-    await expect(receipt).toContainText(snapshot.location);
+    const receipt = page.locator("details.topbar-snapshot-receipt");
+    await expect(receipt.getByRole("status")).toHaveText("恢复快照已完成");
+    await expect(receipt.getByRole("status")).toBeVisible();
+    expect(await receipt.locator("summary").evaluate(element => {
+      const bounds = element.getBoundingClientRect();
+      return bounds.top >= 0 && bounds.bottom <= innerHeight;
+    })).toBe(true);
+    await page.screenshot({ path: test.info().outputPath(`snapshot-complete-${viewport.width}x${viewport.height}.png`) });
+    await expect(page.locator("details.topbar-technical-status")).not.toHaveAttribute("open");
+    await receipt.locator("summary").click();
+    await expect(receipt.locator("code")).toHaveText(snapshot.location);
+    await expect(receipt.locator("code")).toBeVisible();
+    await expect.poll(() => receipt.locator("code").evaluate(element => {
+      const bounds = element.getBoundingClientRect();
+      return bounds.top >= 0 && bounds.bottom <= innerHeight;
+    })).toBe(true);
+    await page.screenshot({ path: test.info().outputPath(`snapshot-location-${viewport.width}x${viewport.height}.png`) });
+    await receipt.locator("summary").click();
     const writes: string[] = [];
     page.on("request", request => {
       if (new URL(request.url()).pathname.startsWith("/api/v2/") && !["GET", "HEAD"].includes(request.method())) writes.push(`${request.method()} ${request.url()}`);
@@ -57,8 +74,9 @@ for (const viewport of [{ width: 1280, height: 768 }, { width: 1280, height: 460
     })).toBe(true);
     expect(await page.locator(".topbar").evaluate(element => getComputedStyle(element).position)).toBe("relative");
     expect(await status.evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThan(viewport.height);
-    await receipt.scrollIntoViewIfNeeded();
-    expect(await receipt.evaluate(element => {
+    const diagnostic = status.getByText(longReason, { exact: false });
+    await diagnostic.scrollIntoViewIfNeeded();
+    expect(await diagnostic.evaluate(element => {
       const bounds = element.getBoundingClientRect();
       return bounds.bottom > 0 && bounds.top < innerHeight;
     })).toBe(true);
@@ -126,7 +144,12 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
   const snapshotResult = await snapshotResponse;
   expect(snapshotResult.ok(), await snapshotResult.text()).toBeTruthy();
   const snapshot = await snapshotResult.json() as { location: string; snapshotId: string };
-  await expect(page.getByText("恢复快照已完成：", { exact: false })).toContainText(snapshot.location);
+  const receipt = page.locator("details.topbar-snapshot-receipt");
+  await expect(receipt.getByRole("status")).toBeVisible();
+  await receipt.locator("summary").click();
+  await expect(receipt.locator("code")).toHaveText(snapshot.location);
+  await expect(receipt.locator("code")).toBeVisible();
+  await receipt.locator("summary").click();
 
   // The snapshot was captured while this project remained open. Close only
   // afterward, then remove the old live folder before any fresh installation

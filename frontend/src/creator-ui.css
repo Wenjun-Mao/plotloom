@@ -76,9 +76,14 @@
 .creator-workflow-heading, .workspace-tools-navigation > summary { font: 600 var(--type-label)/1.5 var(--sans); letter-spacing: normal; }
 .sidebar nav button strong, .creator-workflow-links strong { font-size: var(--type-label); }
 .topbar-technical-status > summary, .workspace-technical-details > summary { font: 500 var(--type-support)/1.5 var(--sans); }
-/* An expanded diagnostic disclosure must not float above authoring actions.
+/* Expanded toolbar disclosures must not float above authoring actions.
    Let it occupy the toolbar, and scroll with the page while it is open. */
-.topbar:has(.topbar-technical-status[open]) { position: relative; }
+.topbar:has(.topbar-technical-status[open], .topbar-snapshot-receipt[open]) { position: relative; }
+.topbar-snapshot-receipt { min-width: 0; max-width: 100%; font-size: var(--type-support); }
+.topbar-snapshot-receipt > summary { cursor: pointer; color: var(--accent); padding: 6px 8px; }
+.topbar-snapshot-receipt[open] { flex-basis: 100%; }
+.topbar-snapshot-receipt > p { margin: 8px 0; color: var(--muted); }
+.topbar-snapshot-receipt code { display: block; margin-top: 4px; overflow-wrap: anywhere; white-space: normal; }
 .topbar-technical-status[open] { flex-basis: 100%; min-width: 0; }
 .topbar-technical-status .badge { white-space: normal; overflow-wrap: anywhere; }
 .toolbar-prerequisite { color: var(--muted); font-size: var(--type-support); }
