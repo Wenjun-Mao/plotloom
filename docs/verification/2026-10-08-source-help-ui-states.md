@@ -115,3 +115,50 @@ Commit-ref dispatch requests were explicitly refused
 with HTTP 422 and created no runs. A fresh remote-main read established the same
 SHA; one branch-ref dispatch then returned the matching run. No duplicate run was
 created. This remote result qualifies only that published Source/help candidate.
+
+## October9 continuation — Outline task presentation (isolated, not published)
+
+On the one-current-story candidate based on `38f55b8`, the full unfiltered browser
+suite finished **248 PASS in7.8m** before this copy delta. That result qualifies
+the settings/recovery candidate, not the subsequently changed Source wording.
+
+The actual8865 browser created disposable project
+`fadc29a3-6a9b-4da3-b50e-cc51dd5c03a1` (QA E22 来源任务状态 · 可删除), saved its Brief,
+confirmed source r1 and prepared Outline `ch_b6dcce69b1a04c9c868870c228d90321`.
+No generation was sent. Its header said “等待助手交付” while the durable task
+read “任务已准备，尚未发送”. The candidate's prepared lifecycle was incorrectly
+presented as evidence of dispatch. The header now says “任务尚未交付”; the shared
+task component remains the owner of prepared/queued/uncertain dispatch wording.
+The same component's initial read catch used `String(error)`, exposing `Error:`
+to the creator. It now presents the error message, with a Chinese fallback for
+non-Error failures. No API, dispatch, retry, acceptance or cancellation rules changed.
+
+The before/after browser pass overrode only the exact task status GET to show
+prepared, queued, outcome_unknown and409 read failure. All API writes were guarded;
+none were attempted during either pass. A queued automatic check would have been
+intercepted too. The real task JSON was identical before/after, still prepared.
+The named failed-read retry recovered through GET only. These are controlled
+presentation states, **not native queued execution or delivery proof**.
+
+Root inspected all16 final viewport images in
+`output/playwright/native-intent-2026-10-08/source-status-final-{prepared,queued,outcome_unknown,failed}-{1700x900,1280x768,1280x460,1280x460-end}.png`
+under the canonical repository. Short-height top and scrolled-end captures jointly
+show the full candidate, error, controls and guidance. Earlier `source-task-prepared-*`
+captures put the header under the sticky toolbar; they are superseded by these
+properly positioned captures, not used as complete-header evidence.
+
+After removing the overrides, real UI cancellation made exactly one POST to that
+candidate's `/cancel`; source JSON was unchanged and status became cancelled.
+All3 `source-status-final-cancelled-{size}.png` were directly inspected. The visible
+reprepare action does not imply another task was prepared. Project and task records
+are retained for evidence; no data or media was deleted.
+
+Four regression assertions failed before repair. After repair,14 focused tests,
+types, E2E types, deterministic build, diff check and9 focused real-server Source
+browser tests passed (23.2s). The first typecheck caught a missing `readOnly` prop
+in the new test setup; corrected without changing product behavior or assertions.
+The retained independent reviewer inspected the source/test delta and all19 final
+captures and found no material issue. Review is scoped to this delta, with no
+additional tests run by the reviewer. Normal8841 is unchanged.
+Stale accepted Outline, broader Creator/Pro permutations, revised media/routes and
+the remaining whole-product audit are still open; this is a scoped continuation.

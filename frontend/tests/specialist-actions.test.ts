@@ -42,6 +42,8 @@ it("recovers a failed initial status read without sending or checking a delivery
   try {
     await act(async () => root.render(createElement(SpecialistTaskActions, { projectId: "p", stage: "outline", jobId: "j", disabled: false, onDelivered: vi.fn() })));
     expect(host.textContent).toContain("无法读取任务状态");
+    expect(host.textContent).toContain("offline");
+    expect(host.textContent).not.toContain("Error: offline");
     expect(host.textContent).not.toContain("正在读取任务状态");
     await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent === "重试读取任务状态")!.click());
     expect(status).toHaveBeenCalledTimes(2);

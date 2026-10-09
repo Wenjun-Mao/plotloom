@@ -139,7 +139,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
       </article>
 
       <article className="panel source-outline-candidate" data-testid="source-outline-candidate">
-        <header><span>大纲候选</span><strong>{candidate ? `${candidate.status === "ready" ? "待审阅" : candidate.status === "accepted" ? "已确认" : candidate.status === "cancelled" ? "已取消" : "等待助手交付 · 发送状态见下方"} · ${candidate.jobId.slice(0, 11)}` : "尚无候选"}</strong></header>
+        <header><span>大纲候选</span><strong>{candidate ? `${candidate.status === "ready" ? "待审阅" : candidate.status === "accepted" ? "已确认" : candidate.status === "cancelled" ? "已取消" : "任务尚未交付 · 发送状态见下方"} · ${candidate.jobId.slice(0, 11)}` : "尚无候选"}</strong></header>
         <p>候选只能来自当前已确认的改编内容和大纲版本；它不会自动替换已确认内容。</p>
         {(!candidate || candidate.status === "cancelled") && <Button variant="primary" disabled={readOnly || busy || !state.source} onClick={() => {
           setBusy(true); setError("");

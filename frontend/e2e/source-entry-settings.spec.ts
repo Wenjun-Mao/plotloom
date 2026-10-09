@@ -64,6 +64,10 @@ test("unchanged original synopsis confirms without direction and freezes existin
   const response = await prepare;
   expect(response.ok()).toBeTruthy();
   const prepared = await response.json();
+  const taskCard = page.getByTestId("source-outline-candidate");
+  await expect(taskCard.locator("header")).toContainText("任务尚未交付");
+  await expect(taskCard.locator("header")).not.toContainText("等待助手交付");
+  await expect(taskCard.getByRole("region", { name: "助手任务" })).toContainText("任务已准备，尚未发送");
   const frozen = JSON.parse(await readFile(path.join(prepared.packagePath, "request.json"), "utf8"));
   const { title, synopsis: briefSynopsis, ...settings } = (await (await request.get(base)).json()).brief;
   expect(title).toBe("风里的纸飞机");

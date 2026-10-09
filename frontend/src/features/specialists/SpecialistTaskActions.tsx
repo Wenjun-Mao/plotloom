@@ -36,7 +36,7 @@ export function SpecialistTaskActions({ projectId, stage, jobId, disabled, sendD
           setTask(value); setError(""); setRecovering(false); setFailures(0); setLastCheck(formatUiTimestamp(new Date().toISOString()));
           if (value.state === "completed") await callback.current();
         }
-      } catch (reason) { if (generation.current === owner) { setError(String(reason)); setRecovering(transient(reason)); setFailures(value => value + 1); } }
+      } catch (reason) { if (generation.current === owner) { setError(reason instanceof Error ? reason.message : "任务状态读取失败，请重试。"); setRecovering(transient(reason)); setFailures(value => value + 1); } }
       finally { if (generation.current === owner) operation.current = false; }
     };
     reload.current = load;
