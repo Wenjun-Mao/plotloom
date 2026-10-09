@@ -34,8 +34,9 @@ def test_general_structure_reaches_script_storyboard_and_installed_production(st
     store.install_section_map_graph(SectionMapGraphInstallRequest(expected_source_revision=source.revision, expected_source_content_hash=source.content_hash,
         expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash, expected_section_map_revision=mapping.revision,
         expected_section_map_content_hash=mapping.content_hash, expected_graph_revision=0, expected_graph_draft_revision=graph_draft_revision(store)))
-    candidate, request = store.prepare_cast_candidate("ch_" + "c" * 32)
-    cast = json.loads((FIXTURES / "cast.json").read_text())
+    candidate, request = store.prepare_cast_candidate("ch_" + "c" * 32, render_style="realistic")
+    from tests.cast_style_fixtures import style_fixture
+    cast = style_fixture(json.loads((FIXTURES / "cast.json").read_text()), request.input_artifacts["cast-style-contract.json"])
     ready = store.admit_cast_delivery(_deliver_stage(store, request, "cast.json", cast, "general-cast"))
     store.accept_cast_candidate(CastAcceptRequest(job_id=candidate.job_id, expected_cast_revision=0, binding=ready.binding,
         consumer_mappings=[CastConsumerMapping(cast_character_id=item["id"], consumer_character_id=item["id"]) for item in cast["characters"]]))

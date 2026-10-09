@@ -50,7 +50,7 @@ export function CastEditor({ characters, disabled, onChange, editing = false }: 
         <CastDesignField id={`${fieldId}-voice`} label="声音方向" value={record(character.voice).timbre} disabled={disabled} onChange={(value) => onChange(index, "voice", "timbre", value)} wide />
         <details className="cast-wide-field">
           <summary>角色图像方向</summary>
-          <p>这些方向会与角色外观一起用于后续参考图任务。请明确修改所有冲突的风格描述；保存不会自动翻译、生成图片或改写美术设定。</p>
+          <p>这些方向会与角色外观一起用于后续参考图任务。请保留本次风格及提示词中的风格说明句；要换表现形式，请退出编辑并准备新任务。保存不会自动翻译、生成图片或改写美术设定。</p>
           {([
             ["style", "角色图像风格"], ["prompt", "角色图像提示词"],
             ["promptLocal", "角色图像中文提示词"], ["negativePrompt", "角色图像反向提示词"],

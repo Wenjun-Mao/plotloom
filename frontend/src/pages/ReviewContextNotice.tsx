@@ -12,6 +12,7 @@ const messages: Record<ReviewContextCode, string> = {
   binding_content_changed: "创作依据的内容已变化，需要重新检查这份设定。",
   section_context_changed: "故事章节或分支关系已变化，需要重新检查这份设定。",
   art_render_contract_changed: "美术风格或项目视觉方向已变化。请重新准备并确认美术设定；已有内容与图片仍保留。",
+  cast_render_contract_changed: "角色风格或项目视觉方向需更新。请重新准备并确认角色设定；原设定与图片仍保留。",
 };
 const fieldLabels: Record<ReviewContextField, string> = {
   source_revision: "故事来源", source_content_hash: "故事来源",
@@ -32,7 +33,7 @@ export function reviewContextMessage(diagnostic: ReviewContextDiagnostic): strin
 export function reviewContextNextStep(diagnostic: ReviewContextDiagnostic | undefined, fallback: string): string {
   // A changed binding means the upstream content exists but this review is old.
   // Sending the author back upstream cannot make that old binding current.
-  if (diagnostic && ["binding_revision_changed", "binding_content_changed", "section_context_changed", "art_render_contract_changed"].includes(diagnostic.code)) return fallback;
+  if (diagnostic && ["binding_revision_changed", "binding_content_changed", "section_context_changed", "art_render_contract_changed", "cast_render_contract_changed"].includes(diagnostic.code)) return fallback;
   return diagnostic ? `请先到“${ownerLabels[diagnostic.owner]}”检查并确认当前内容，再回来继续。` : fallback;
 }
 

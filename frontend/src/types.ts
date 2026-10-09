@@ -1316,7 +1316,7 @@ export interface SourceMapGraphAdmission {
   sectionMapRevision: number; sectionMapContentHash: string; graphRevision: number; graphContentHash: string;
   status: "current" | "stale"; staleReasons: string[]; installedAt: string;
 }
-export interface CastBinding { sourceRevision: number; sourceContentHash: string; outlineRevision: number; outlineContentHash: string; sectionMapRevision: number; sectionMapContentHash: string; graphRevision: number; graphContentHash: string; sectionIds: string[]; }
+export interface CastBinding { sourceRevision: number; sourceContentHash: string; outlineRevision: number; outlineContentHash: string; sectionMapRevision: number; sectionMapContentHash: string; graphRevision: number; graphContentHash: string; sectionIds: string[]; renderContract?: { style: ArtRenderStyle; authorDirection: string | null; preset: { label: string } } | null; }
 export interface CastCandidate { jobId: string; expectedCastRevision: number; binding: CastBinding; status: "prepared" | "ready" | "accepted" | "cancelled"; deliveryId: string | null; manifestHash: string | null; cast: Record<string, unknown> | null; reportAvailable: boolean; createdAt: string; deliveredAt: string | null; }
 export interface CastCandidatePreparation extends CastCandidate { packagePath: string; deliveryPath: string; assignment: string; }
 export interface AcceptedCastRevision { revision: number; candidateJobId: string; contentHash: string; binding: CastBinding; cast: Record<string, unknown>; consumerMappings: Array<{ castCharacterId: string; consumerCharacterId: string }>; reportAvailable: boolean; differsFromDelivery: boolean | null; acceptedAt: string; }

@@ -79,7 +79,12 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     await expect(panel.getByRole("button", { name: "准备分镜任务" })).toBeEnabled();
     await writeDelivery(next);
     expect((await request.post(`${root}/candidates/${next.jobId}/refresh`)).ok()).toBeFalsy();
-    const snapshot = await request.post(`${lifecycle}/snapshots`);
+    // Exercise the requesting client's read-settlement boundary (ADR 0124).
+    // A direct API write here races the mounted specialist status readers.
+    const snapshotResponse = page.waitForResponse(response => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${id}/snapshots`);
+    await page.getByRole("button", { name: "创建恢复快照", exact: true }).click();
+    const snapshot = await snapshotResponse;
     expect(snapshot.ok(), await snapshot.text()).toBeTruthy();
     expect((await json(request.get(root))).candidate).toBeNull();
   });

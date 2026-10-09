@@ -74,6 +74,9 @@ it("does not offer an unusable edit session for stale accepted cast", async () =
   const reopen = vi.spyOn(plotloomApi, "reopenCast");
   await render("stale");
   expect(button("编辑角色设定").disabled).toBe(true);
+  expect(button("准备角色设定任务").disabled).toBe(true);
+  const style = host.querySelector<HTMLSelectElement>('select[aria-label="角色图像风格"]')!;
+  await act(async () => { style.value = "live-action"; style.dispatchEvent(new Event("change", { bubbles: true })); });
   expect(button("准备角色设定任务").disabled).toBe(false);
   expect(host.textContent).toContain("不能直接编辑旧版本");
   await act(async () => button("编辑角色设定").click());

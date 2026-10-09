@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { deflateSync } from "node:zlib";
 import { demoProject } from "../src/demo";
+import { styledCastFixture } from "./fixtures/cast-style";
 import { expect } from "@playwright/test";
 
 export type Api = import("@playwright/test").APIRequestContext;
@@ -46,7 +47,7 @@ export async function createAcceptedCastProject(request: Api, apiOrigin: string,
   await getJson(request.post(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/section-map/install-graph`, {
     data: { expectedSourceRevision: map.source.revision, expectedSourceContentHash: map.source.contentHash, expectedOutlineRevision: map.acceptedOutline.revision, expectedOutlineContentHash: map.acceptedOutline.contentHash, expectedSectionMapRevision: map.acceptedSectionMap.revision, expectedSectionMapContentHash: map.acceptedSectionMap.contentHash, expectedGraphRevision: 0, expectedGraphDraftRevision: await graphDraftRevision(request, projectUrl) },
   }));
-  const cast = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/candidates`));
+  const cast = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/candidates`, { data: { renderStyle: "realistic" } }));
   await writeStageDelivery(cast, "cast.json", castFixture(), "f3a-cast", "characters");
   const readyCast = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/candidates/${cast.jobId}/refresh`));
   await getJson(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/accept`, {
@@ -118,7 +119,7 @@ export async function writeArtDelivery(prepared: ArtPreparation, deliveryId: str
 
 export async function writeStageDelivery(prepared: any, filename: string, candidate: Record<string, unknown>, deliveryId: string, stage: string): Promise<void> {
   const request = JSON.parse(await readFile(path.join(prepared.packagePath, "request.json"), "utf8"));
-  const content = Buffer.from(JSON.stringify(candidate));
+  const content = Buffer.from(JSON.stringify(stage === "characters" ? styledCastFixture(candidate, request.inputArtifacts["cast-style-contract.json"]) : candidate));
   const report = Buffer.from("<!doctype html><html><body>fixture report</body></html>");
   await mkdir(prepared.deliveryPath, { recursive: true });
   await writeFile(path.join(prepared.deliveryPath, filename), content);

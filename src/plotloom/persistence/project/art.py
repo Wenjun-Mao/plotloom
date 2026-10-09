@@ -11,6 +11,7 @@ from ...art_contracts import (
     ArtReopenRequest, ArtReviewState, ArtSaveRequest,
 )
 from ...art_style import ArtRenderStyle, art_style_current, freeze_art_style, validate_art_style
+from ...cast_contracts import CastBinding
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
 from ...domain import ProjectBrief, contains_secret_setting, contains_secret_value, new_id, utc_now
@@ -53,7 +54,7 @@ class ProjectArtPersistence:
         base, source, outline, mapping = self._cast._context(session, project_id)
         cast_head = self._cast._head(session, project_id)
         accepted = session.scalar(select(CastRevisionRow).where(CastRevisionRow.project_id == project_id, CastRevisionRow.revision == cast_head.revision)) if cast_head.revision else None
-        if cast_head.status != "accepted" or accepted is None or self._cast._stale(session, project_id, base):
+        if cast_head.status != "accepted" or accepted is None or self._cast._stale(session, project_id, CastBinding.model_validate(accepted.binding)):
             raise ReviewContextError(ReviewContextDiagnostic(code="accepted_cast_not_current", owner="characters", technical_message="a current accepted cast is required before preparing art"))
         binding = ArtBinding(**base.model_dump(), cast_revision=accepted.revision, cast_content_hash=accepted.content_hash)
         return binding, source, outline, mapping, accepted.cast

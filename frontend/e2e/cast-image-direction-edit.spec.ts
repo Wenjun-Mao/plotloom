@@ -4,18 +4,25 @@ import { createAcceptedCastOnlyProject } from "./fixtures/cast-reference";
 test("explicitly edits all cast image directions, cancels safely, and freezes the new reference context", async ({ page, request, workbench }) => {
   const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "image-direction");
   const endpoint = `${workbench.apiOrigin}/api/v2/projects/${projectId}`;
-  // Seed this test's existing conflicting directions through the supported
-  // edit API; shared cast fixtures keep their existing contract.
+  // Cross-style edits must be refused, without damaging the accepted evidence.
   const initial = await getJson<any>(request.get(`${endpoint}/cast`));
   await getJson(request.post(`${endpoint}/cast/reopen`, {
     data: { expectedCastRevision: initial.acceptedCast.revision },
   }));
+  const preset = initial.acceptedCast.binding.renderContract.preset;
   const painterly = {
-    style: "Painterly illustration", prompt: "Painted beacon keeper portrait.",
-    promptLocal: "绘画风格的灯塔守护者。", negativePrompt: "photograph, watermark",
-    sheet: "Painted identity sheet.", tags: ["painterly", "illustration"],
+    style: preset.label, prompt: `${preset.render}. Beacon keeper portrait.`,
+    promptLocal: "绘画风格的灯塔守护者。", negativePrompt: "watermark",
+    sheet: `${preset.render}. Identity sheet.`, tags: ["painterly", "illustration"],
   };
   const seededCast = structuredClone(initial.acceptedCast.cast);
+  seededCast.characters[0].image.style = "Live-action photographic direction";
+  const rejected = await request.post(`${endpoint}/cast/save`, { data: {
+    expectedCastRevision: initial.acceptedCast.revision, binding: initial.acceptedCast.binding,
+    cast: seededCast, consumerMappings: initial.acceptedCast.consumerMappings,
+  } });
+  expect(rejected.ok()).toBe(false);
+  expect((await getJson<any>(request.get(`${endpoint}/cast`))).acceptedCast).toEqual(initial.acceptedCast);
   seededCast.characters[0].image = painterly;
   await getJson(request.post(`${endpoint}/cast/save`, {
     data: {
@@ -43,9 +50,9 @@ test("explicitly edits all cast image directions, cancels safely, and freezes th
     negativePrompt: "角色图像反向提示词", sheet: "角色设定图提示词",
   };
   const directions = {
-    style: "Live-action photographic direction", prompt: "Photographic portrait; preserve the cast identity.",
-    promptLocal: "真人写实；保留角色身份。", negativePrompt: "painting, cartoon, watermark",
-    sheet: "Photographic sheet with consistent orthographic identity views.", tags: ["live-action", "photographic"],
+    style: preset.label, prompt: `${preset.render}. Preserve identity, a blue rain coat and restrained expression.`,
+    promptLocal: "半写实厚涂；蓝色雨衣，保留角色身份。", negativePrompt: "watermark, malformed hands",
+    sheet: `${preset.render}. Consistent orthographic identity views, blue rain coat.`, tags: ["semi-realistic", "painterly", "blue coat"],
   };
   for (const [key, label] of Object.entries(labels)) await panel.getByLabel(label, { exact: true }).fill(directions[key as keyof typeof labels]);
   await panel.getByLabel("角色图像标签（每行一个）", { exact: true }).fill(directions.tags.join("\n"));
@@ -63,7 +70,7 @@ test("explicitly edits all cast image directions, cancels safely, and freezes th
   expect(saved.acceptedCast.cast).toEqual(expected);
 
   const gallery = page.getByTestId("character-reference-gallery");
-  await gallery.getByLabel("想法").fill("Explicit new photographic reference");
+  await gallery.getByLabel("想法").fill("Explicit updated blue-coat reference");
   await gallery.getByRole("button", { name: "创建提案" }).click();
   await expect(gallery.getByRole("button", { name: "发送给图像生成助手" })).toBeEnabled();
   const proposals = await getJson<any>(request.get(`${endpoint}/character-reference-proposals`));

@@ -7,9 +7,8 @@ export class ApiError extends Error {
 }
 
 export class ApiTransport {
-  readonly reads = new ProjectReadAdmission();
   private readonly fetcher: typeof fetch;
-  constructor(fetcher: typeof fetch, readonly base: string) {
+  constructor(fetcher: typeof fetch, readonly base: string, readonly reads = new ProjectReadAdmission()) {
     // Browser fetch requires its platform receiver; injected transports retain
     // exactly the same invocation contract.
     this.fetcher = (input, init) => fetcher.call(globalThis, input, init);
@@ -20,18 +19,19 @@ export class ApiTransport {
       ? this.reads.run(scope, operation, init.signal ?? undefined) : operation();
   }
   async json<T>(path: string, init: RequestInit = {}, includeSessionKey = false, profileId = "default"): Promise<{ body: T; response: Response }> {
-    return this.read(path, init, async () => {
+    const result = await this.read(path, init, async () => {
       const headers = new Headers(init.headers); headers.set("Accept", "application/json");
       if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
       if (includeSessionKey) { const key = providerSessionKeys.read(profileId); if (key) headers.set("X-Plotloom-Session-API-Key", key); }
       const response = await this.fetcher(`${this.base}${path}`, { ...init, headers });
-      const body = await response.json().catch(reason => {
-        if (init.signal?.aborted || (reason instanceof Error && reason.name === "AbortError")) throw reason;
-        return undefined;
-      });
-      if (!response.ok) throw new ApiError(body && typeof body === "object" && "message" in body ? String(body.message) : `服务请求失败（HTTP ${response.status}）`, response.status, body);
+      const text = await response.text();
+      let body;
+      try { body = JSON.parse(text); } catch { body = undefined; }
       return { body: body as T, response };
     });
+    const { body, response } = result;
+    if (!response.ok) throw new ApiError(body && typeof body === "object" && "message" in body ? String(body.message) : `服务请求失败（HTTP ${response.status}）`, response.status, body);
+    return result;
   }
   admitDocument(url: string, signal: AbortSignal): Promise<ProjectReadTicket> {
     const path = url.startsWith(this.base) ? url.slice(this.base.length) : url;

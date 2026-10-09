@@ -69,3 +69,5 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0137 Retained video evidence and production admission](0137-retained-video-evidence-admission.md)
 - [0138 One current story with explicit production rebuild](0138-one-current-story-explicit-rebuild.md)
 - [0139 Profile owned text credentials](0139-profile-owned-text-credentials.md)
+- [0140 Native Codex dramatic-intent candidates](0140-native-bridge-intent-candidates.md)
+- [0141 Explicit character render direction](0141-character-render-direction.md)

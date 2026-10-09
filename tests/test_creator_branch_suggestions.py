@@ -79,7 +79,7 @@ def test_existing_outline_gets_complete_general_draft_without_mutating_canon(sto
         expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
         expected_section_map_revision=mapping.revision, expected_section_map_content_hash=mapping.content_hash, expected_graph_revision=0, expected_graph_draft_revision=graph_draft_revision(store)))
     assert installed.graph_admission.status == "current"
-    candidate, cast = store.prepare_cast_candidate("ch_" + "c" * 32)
+    candidate, cast = store.prepare_cast_candidate("ch_" + "c" * 32, render_style="realistic")
     assert len(candidate.binding.section_ids) == 9
     assert cast.input_artifacts["section-map.json"]["seedTopology"] == topology
 

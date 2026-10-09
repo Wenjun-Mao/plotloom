@@ -61,3 +61,7 @@ export function projectReadScope(path: string): ReadScope | undefined {
   const match = /^\/projects\/([^/?]+)/.exec(path);
   return match ? decodeURIComponent(match[1]) : undefined;
 }
+
+// Browser API owners share one lifecycle barrier. Isolated clients may still
+// own independent admission scopes.
+export const browserProjectReads = new ProjectReadAdmission();

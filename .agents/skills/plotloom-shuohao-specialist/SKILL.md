@@ -50,6 +50,19 @@ not a backend job, a review decision, or permission to edit canon.
   Each ID must be nonblank and unique. This is Plotloom's narrow receiving
   extension to the upstream shape: do not invent a replacement identity store
   or alter upstream fields to satisfy it.
+- Character requests require `inputs/cast-style-contract.json`. Its author-selected
+  `style` and complete preset override upstream render defaults and inherited
+  outline style. Set top-level `style` to its exact ID and every `image.style` to
+  its preset label. Include the preset render sentence in both `image.prompt`
+  and `image.sheet`, and use its surface, lighting, negative and tags coherently.
+  Apply `authorDirection` as additional visual guidance. Never resolve a
+  live-action request with the upstream painterly `realistic` preset or defer
+  a disclosed conflict to later image generation. The current entrypoint is
+  `node scripts/cast-style.mjs validate <cast.json> --request <package>/request.json --contract <package>/inputs/cast-style-contract.json`
+  from the repository root; run `render` with the same arguments to derive HTML.
+  It retains the pinned upstream structural, language and verbatim-source gates
+  on the original candidate. Do not modify the vendor, frozen package or a
+  published delivery. A missing/stale contract requires a replacement task.
 - If a characters request includes `inputs/cast-writing-contract.json`, follow
   its separate `reviewNotes` fields. This overrides the upstream profile pass's
   instruction to put inference labels inside descriptions, not the obligation
@@ -97,7 +110,8 @@ not a backend job, a review decision, or permission to edit canon.
 
 - For Python helpers, run `uv run --locked python` from the repository root;
   do not assume a bare `python` command exists or use the system interpreter.
-  Keep pinned upstream commands unchanged except for the art adapter above.
+  Use the current Cast/Art entrypoints above and pinned upstream commands for
+  the other stages.
 - Author candidate JSON with `apply_patch`, rather than embedding the document
   in an inline Python script. Helpers should read the saved file as UTF-8 data,
   not reinterpret candidate prose as program source. Still write only the

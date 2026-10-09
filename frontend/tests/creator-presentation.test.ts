@@ -235,9 +235,12 @@ it("prepares a character assignment without sending it or confirming a new desig
   const confirm = vi.spyOn(plotloomApi, "acceptCastCandidate");
   await renderCast({ status: "accepted", acceptedCast: accepted, candidate: null, staleReasons: [] });
   const button = [...host.querySelectorAll("button")].find(item => item.textContent === "准备角色设定任务")!;
+  expect(button.disabled).toBe(true);
+  const style = host.querySelector<HTMLSelectElement>('select[aria-label="角色图像风格"]')!;
+  await act(async () => { style.value = "live-action"; style.dispatchEvent(new Event("change", { bubbles: true })); });
   expect(button.disabled).toBe(false);
   await act(async () => button.click());
-  expect(prepare).toHaveBeenCalledExactlyOnceWith("project");
+  expect(prepare).toHaveBeenCalledExactlyOnceWith("project", "live-action");
   expect(send).not.toHaveBeenCalled();
   expect(confirm).not.toHaveBeenCalled();
   expect(host.querySelector(".cast-assignment textarea")?.textContent).toBe("Frozen QA assignment");

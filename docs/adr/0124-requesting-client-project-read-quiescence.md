@@ -42,6 +42,18 @@ No automatic retry, lease bypass, editor-tree unmount, credential persistence or
 queued-request logging is introduced. Direct media/asset loads retain server
 admission; these tickets do not claim to track every browser resource.
 
+October9 follow-up: Storyboard cancellation followed by Snapshot reproduced a
+busy refusal through the real UI. Specialist status GETs used a separate fetch
+owner outside the lifecycle barrier. All browser JSON API owners now share the
+same read admission, including specialist status and image-terminal previews;
+isolated API-client instances retain independent scopes. Preserve specialist
+error parsing and dispatch semantics. Full body lifetime, queued admission,
+failure/resume and real cancel-to-snapshot regressions guard this boundary.
+Read completion is independent of domain success: a fully received409 after
+cancellation has settled, while aborted or interrupted transport has not. Parse
+domain errors outside the admitted response-body lifetime; never infer completion
+from headers alone or retry the lifecycle mutation automatically.
+
 ## Alternatives and guardrails
 
 Reject sleeps, fixture readiness delays, blanket retries and weaker exclusive

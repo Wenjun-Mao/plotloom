@@ -25,6 +25,8 @@ class CastBinding(CamelModel):
     graph_revision: int = Field(ge=1)
     graph_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     section_ids: list[str] = Field(min_length=1, max_length=128)
+    # Missing evidence remains readable, but is never current generation authority.
+    render_contract: dict[str, Any] | None = None
 
     @field_validator("section_ids")
     @classmethod

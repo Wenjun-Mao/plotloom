@@ -100,6 +100,16 @@ an already completed project works; the same-project Revise round remains requir
 
 ### Three rounds for the next execution
 
+Current continuation: the fresh current-schema native project
+`90c0f895-48de-4b57-8725-4b6f72797633` has completed four selected native clips
+and both15-second routes, including its two-shot opening. The same project's
+revised graph is confirmed/applied; its old media is retained, not current.
+The [structural revision receipt](../verification/2026-10-09-native-structural-revision.md)
+owns the current Cast render-contract repair and its qualification. Finish that
+repair, then continue character/reference and Art revision, fresh Script and
+Storyboard review, explicit rebuild and every revised route. This does not
+replace the remaining Recover or whole-product E22 obligations below.
+
 1. **Create:** finish distinct native Character/Scene/Prop images and one same-subject
    comparison, references, keyframes/endframes/dirty guards/multi-shot, bounded H3
    and all-route playback. Read all reports and exercise authored/model intent paths

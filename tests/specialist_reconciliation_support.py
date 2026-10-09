@@ -41,7 +41,7 @@ def prepare(store, stage, job=None):
     else:
         method = {"characters": store.prepare_cast_candidate, "art": store.prepare_art_candidate,
                   "script": store.prepare_script_candidate, "storyboard": store.prepare_storyboard_review_candidate}[stage]
-        candidate, request = method(job, **({"render_style": "realistic"} if stage == "art" else {}))
+        candidate, request = method(job, **({"render_style": "realistic"} if stage in {"art", "characters"} else {}))
     # Match the route's preparation/export boundary before testing native send.
     store.creative_handoff_exchange().write_package(request, store.creative_handoff_execution_pin(request))
     return candidate, request

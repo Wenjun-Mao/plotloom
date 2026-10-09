@@ -11,7 +11,7 @@ ReviewContextCode = Literal[
     "source_context_not_ready", "installed_graph_not_current",
     "installed_graph_context_mismatch", "accepted_cast_not_current",
     "binding_revision_changed", "binding_content_changed",
-    "section_context_changed", "art_render_contract_changed",
+    "section_context_changed", "art_render_contract_changed", "cast_render_contract_changed",
 ]
 ReviewContextField = Literal[
     "source_revision", "outline_revision", "section_map_revision", "graph_revision",

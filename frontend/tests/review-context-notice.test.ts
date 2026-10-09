@@ -80,6 +80,8 @@ it.each(["art", "cast"] as const)("presents a typed %s preparation refusal rathe
   } else {
     vi.spyOn(plotloomApi, "prepareCastCandidate").mockRejectedValue(refusal);
     await act(async () => root.render(createElement(CastPanel, { projectId: "project", readOnly: false, state: { status: "missing", candidate: null, acceptedCast: null, staleReasons: [] }, loadError: "", onState: vi.fn(), onRefresh: vi.fn(async () => true), onInvalidate: vi.fn(), onTransitionComplete: vi.fn() })));
+    const select = host.querySelector<HTMLSelectElement>('select[aria-label="角色图像风格"]')!;
+    await act(async () => { select.value = "live-action"; select.dispatchEvent(new Event("change", { bubbles: true })); });
   }
   const prepare = [...host.querySelectorAll("button")].find(button => button.textContent === (stage === "art" ? "准备美术设定任务" : "准备角色设定任务"))!;
   await act(async () => prepare.click());

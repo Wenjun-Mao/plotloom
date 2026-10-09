@@ -41,7 +41,7 @@ async function invalidate(request: APIRequestContext, origin: string, id: string
 test("pending Cast publication blocks source-map changes until explicitly cancelled", async ({ page, request, workbench }) => {
   const id = await createScriptProject(request, workbench.apiOrigin, "pending-cast-revision", {}, []);
   const project = `${workbench.apiOrigin}/api/v2/projects/${id}`;
-  const prepared = await json(request.post(`${project}/cast/candidates`));
+  const prepared = await json(request.post(`${project}/cast/candidates`, { data: { renderStyle: "realistic" } }));
   const sends = await availableSpecialistWithoutSend(page, id, "characters", prepared.jobId);
   const before = await json(request.get(`${project}/source-outline`));
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=characters`);
@@ -66,7 +66,7 @@ for (const stage of ["cast", "script"] as const) {
   for (const ready of stage === "cast" ? [true] : [false, true]) test(`first stale ${stage} ${ready ? "ready" : "prepared"} candidate has no acceptance authority`, async ({ page, request, workbench }) => {
     const id = await createScriptProject(request, workbench.apiOrigin, `first-${stage}-${ready}`, {}, stage === "cast" ? [] : ["cast", "art"]);
     const url = `${workbench.apiOrigin}/api/v2/projects/${id}/${stage}`;
-    const prepared = await json(request.post(`${url}/candidates`));
+    const prepared = await json(request.post(`${url}/candidates`, stage === "cast" ? { data: { renderStyle: "realistic" } } : undefined));
     const sends = await availableSpecialistWithoutSend(page, id, stage === "cast" ? "characters" : stage, prepared.jobId);
     if (ready) {
       await writeDelivery(prepared, stage === "cast" ? "characters" : stage, await fixture(`${stage}.json`));
@@ -99,7 +99,7 @@ for (const stage of ["cast", "script"] as const) {
     const retained = (await json(request.get(url)))[acceptedKey];
     await invalidate(request, workbench.apiOrigin, id, stage);
     expect((await json(request.get(url))).status).toBe("stale");
-    const prepared = await json(request.post(`${url}/candidates`));
+    const prepared = await json(request.post(`${url}/candidates`, stage === "cast" ? { data: { renderStyle: "realistic" } } : undefined));
     const sends = await availableSpecialistWithoutSend(page, id, stage === "cast" ? "characters" : stage, prepared.jobId);
     const current = await json(request.get(url));
     expect(current.status).toBe("prepared");

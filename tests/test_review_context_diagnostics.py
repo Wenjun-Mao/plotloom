@@ -28,7 +28,7 @@ def test_missing_context_preparation_refusal_is_typed(tmp_path: Path, stage: str
     store.close()
     client = TestClient(create_project_folder_authoring_app(storage))
     before = client.get(f"/api/v2/projects/{project_id}/{stage}").json()
-    response = client.post(f"/api/v2/projects/{project_id}/{stage}/candidates", json={"renderStyle": "realistic"} if stage == "art" else None)
+    response = client.post(f"/api/v2/projects/{project_id}/{stage}/candidates", json={"renderStyle": "realistic"})
     assert response.status_code == 409
     assert response.json() == {
         "code": "review_context_not_current",

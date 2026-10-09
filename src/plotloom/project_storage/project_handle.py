@@ -16,6 +16,7 @@ from ..art_contracts import (
     ArtSaveRequest,
 )
 from ..art_style import ArtRenderStyle
+from ..cast_style import CastRenderStyle
 from ..cast_contracts import (
     CastAcceptRequest,
     CastCancelReopenRequest,
@@ -443,9 +444,9 @@ class ProjectStore(ProjectCreativeHandoffs):
     def cast_state(self) -> CastReviewState:
         return self.repository.cast.get_state(self.manifest.project_id)
 
-    def prepare_cast_candidate(self, job_id: str) -> tuple[CastCandidate, CreativeHandoffRequest]:
+    def prepare_cast_candidate(self, job_id: str, *, render_style: CastRenderStyle) -> tuple[CastCandidate, CreativeHandoffRequest]:
         pin = self.creative_handoff_exchange().current_execution_pin("characters")
-        return self.repository.cast.prepare_candidate(self.manifest.project_id, job_id, execution_pin=pin)
+        return self.repository.cast.prepare_candidate(self.manifest.project_id, job_id, render_style=render_style, execution_pin=pin)
 
     def admit_cast_delivery(self, delivery: ValidatedCreativeDelivery) -> CastCandidate:
         return self.repository.cast.admit_delivery(self.manifest.project_id, delivery)

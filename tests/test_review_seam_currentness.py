@@ -1,6 +1,7 @@
 """Review status follows the active candidate, otherwise retained acceptance."""
 
 from pathlib import Path
+from functools import partial
 
 import pytest
 
@@ -71,7 +72,7 @@ def seam(request, tmp_path: Path):
     try:
         yield {
             "state": getattr(store, f"{stage}_state"),
-            "prepare": getattr(store, f"prepare_{stage}_candidate"),
+            "prepare": partial(store.prepare_cast_candidate, render_style="realistic") if stage == "cast" else store.prepare_script_candidate,
             "admit": getattr(store, f"admit_{stage}_delivery"),
             "cancel": getattr(store, f"cancel_{stage}_candidate"),
             "accepted": lambda state: getattr(state, f"accepted_{stage}"),

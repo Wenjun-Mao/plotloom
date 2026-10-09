@@ -18,6 +18,7 @@ from ...cast_contracts import (
     CastSaveRequest,
 )
 from ...cast_design_validation import validate_cast_design
+from ...cast_style import CastRenderStyle, cast_style_current, freeze_cast_style, validate_cast_style
 from ...cast_writing_contract import (
     CONTRACT_FILENAME,
     cast_writing_contract,
@@ -26,6 +27,7 @@ from ...cast_writing_contract import (
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
 from ...domain import (
+    ProjectBrief,
     StageName,
     StageStatus,
     contains_secret_setting,
@@ -124,7 +126,11 @@ class ProjectCastPersistence:
         except ReviewContextError as error:
             return [error.diagnostic]
         fields = (("source_revision", "source"), ("outline_revision", "accepted outline"), ("section_map_revision", "section map"), ("graph_revision", "installed graph"), ("source_content_hash", "source"), ("outline_content_hash", "accepted outline"), ("section_map_content_hash", "section map"), ("graph_content_hash", "installed graph"))
-        return binding_diagnostics(current, binding, fields) + ([ReviewContextDiagnostic(code="section_context_changed", owner="source", technical_message="section context changed")] if current.section_ids != binding.section_ids else [])
+        reasons = binding_diagnostics(current, binding, fields)
+        direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
+        if not cast_style_current(binding.render_contract, direction):
+            reasons.append(ReviewContextDiagnostic(code="cast_render_contract_changed", owner="characters", technical_message="角色风格或项目视觉方向已变更；请重新准备角色任务"))
+        return reasons + ([ReviewContextDiagnostic(code="section_context_changed", owner="source", technical_message="section context changed")] if current.section_ids != binding.section_ids else [])
 
     def identity_context_in_session(
         self, session: Any, project_id: str, consumer_character_id: str
@@ -241,16 +247,21 @@ class ProjectCastPersistence:
             stale = self._stale(session, project_id, CastBinding.model_validate(binding)) if binding else []
             return CastReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_cast=self._accepted(accepted, delivery) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
 
-    def prepare_candidate(self, project_id: str, job_id: str, *, execution_pin: dict[str, str]) -> tuple[CastCandidate, CreativeHandoffRequest]:
+    def prepare_candidate(self, project_id: str, job_id: str, *, render_style: CastRenderStyle, execution_pin: dict[str, str]) -> tuple[CastCandidate, CreativeHandoffRequest]:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             head = self._head(session, project_id)
             binding, source, outline, section_map = self._context(session, project_id)
+            direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
+            contract = freeze_cast_style(render_style, direction)
+            binding = binding.model_copy(update={"render_contract": contract})
             if session.scalar(select(CastCandidateRow.job_id).where(CastCandidateRow.project_id == project_id, CastCandidateRow.status == "prepared").limit(1)):
                 raise InvalidTransitionError("cancel the prepared cast specialist publication before changing review state")
             request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="shared-cast", stage="characters", expected_stage_revision=head.revision, source=source, input_artifacts={"outline.json": outline, "section-map.json": section_map}, creative_brief="Create one upstream-shaped cast.json candidate for the accepted source, outline, and installed stable section context. Shared characters are authored once; preserve established characters[].id values, and require every characters[].id to be unique and nonblank. Make section presence/context explicit. This is a candidate only, not voice evidence, media generation, or project canon.")
             request.input_artifacts[CONTRACT_FILENAME] = cast_writing_contract()
+            request.input_artifacts["cast-style-contract.json"] = contract
             request.creative_brief += " Follow cast-writing-contract.json: separate descriptions, source notes and performance guidance."
+            request.creative_brief += " The author-selected cast-style-contract.json owns render style and overrides upstream presets/defaults and inherited outline style. Use its exact style, label and complete preset; apply authorDirection without changing source facts. Validate and render with scripts/cast-style.mjs using --request request.json --contract inputs/cast-style-contract.json. Never defer a style conflict to image generation."
             request.assert_secret_free()
             freeze_execution_pin(session, request, execution_pin)
             now = utc_now()
@@ -278,6 +289,7 @@ class ProjectCastPersistence:
                 raise CreativeHandoffError("delivery_stale", "cast candidate context is stale")
             _validate_cast(delivery.candidate)
             validate_cast_notes(delivery.candidate, required=CONTRACT_FILENAME in request.input_artifacts)
+            validate_cast_style(delivery.candidate, CastBinding.model_validate(row.binding).render_contract)
             row.status, row.delivery_id, row.manifest_hash, row.cast, row.report_html, row.delivered_at = "ready", delivery.manifest.delivery_id, delivery.manifest_hash, delivery.candidate, delivery.report.decode("utf-8"), utc_now()
             head.status, head.updated_at = "candidate_ready", row.delivered_at
             return self._candidate(row)
@@ -296,6 +308,7 @@ class ProjectCastPersistence:
             cast = request.cast or row.cast
             _validate_cast(cast)
             validate_cast_design(cast)
+            validate_cast_style(cast, binding.render_contract)
             validate_cast_notes(cast, required=CONTRACT_FILENAME in row.request.get("inputArtifacts", {}), previous=row.cast)
             ids = _cast_ids(row.cast)
             if _cast_ids(cast) != ids:
@@ -342,6 +355,7 @@ class ProjectCastPersistence:
                 raise CreativeHandoffError("delivery_stale", "accepted cast context changed before saving edits")
             _validate_cast(request.cast)
             validate_cast_design(request.cast)
+            validate_cast_style(request.cast, binding.render_contract)
             validate_cast_notes(request.cast, previous=previous.cast)
             ids = _cast_ids(previous.cast)
             if _cast_ids(request.cast) != ids:

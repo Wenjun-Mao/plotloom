@@ -5,6 +5,7 @@ from uuid import uuid4
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import HTMLResponse
 from ..upstream_report_presentation import static_cast_report
+from ..cast_style import CastPrepareRequest
 from ..cast_contracts import CastAcceptRequest, CastCancelReopenRequest, CastCandidate, CastCandidatePreparation, CastReopenRequest, CastReviewState, CastSaveRequest
 
 def register_project_folder_cast_routes(app: FastAPI, opened_project: Callable[[str], Any]) -> None:
@@ -13,9 +14,9 @@ def register_project_folder_cast_routes(app: FastAPI, opened_project: Callable[[
         with opened_project(project_id) as store: return store.cast_state()
 
     @app.post("/api/v2/projects/{project_id}/cast/candidates", response_model=CastCandidatePreparation, status_code=status.HTTP_201_CREATED)
-    def prepare_cast(project_id: str) -> CastCandidatePreparation:
+    def prepare_cast(project_id: str, body: CastPrepareRequest) -> CastCandidatePreparation:
         with opened_project(project_id) as store:
-            candidate, request = store.prepare_cast_candidate(f"ch_{uuid4().hex}")
+            candidate, request = store.prepare_cast_candidate(f"ch_{uuid4().hex}", render_style=body.render_style)
             paths = store.creative_handoff_exchange().write_package(request, store.creative_handoff_execution_pin(request))
             payload=candidate.model_dump(mode="python",by_alias=False)|{"package_path":paths["packagePath"],"delivery_path":paths["deliveryPath"],"assignment":f"Plotloom characters assignment for {request.job_id}: read {paths['packagePath']}/request.json and follow its COPY_ASSIGNMENT.txt. Write only cast.json, report.html, and completion.json under {paths['deliveryPath']}. This cannot accept or alter project canon."}
             return CastCandidatePreparation.model_validate(payload)

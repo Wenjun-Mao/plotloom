@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { APIRequestContext, APIResponse, Page, Locator } from "@playwright/test";
 import { demoProject } from "../src/demo";
+import { styledCastFixture } from "./fixtures/cast-style";
 import { expect } from "./fixture";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
@@ -60,7 +61,7 @@ export async function createScriptProject(request: APIRequestContext, origin: st
   } }));
   for (const stage of stages) {
     const candidate = candidates[stage] ?? await fixture(`${stage}.json`);
-    const preparation = stage === "art" ? { data: { renderStyle: (candidate as { style: string }).style } } : undefined;
+    const preparation = stage === "art" ? { data: { renderStyle: (candidate as { style: string }).style } } : stage === "cast" ? { data: { renderStyle: "realistic" } } : undefined;
     const prepared = await json(request.post(`${url}/${stage}/candidates`, preparation));
     await writeDelivery(prepared, stage === "cast" ? "characters" : stage, candidate);
     const ready = await json(request.post(`${url}/${stage}/candidates/${prepared.jobId}/refresh`));
@@ -73,7 +74,9 @@ export async function createScriptProject(request: APIRequestContext, origin: st
 export async function writeDelivery(prepared: Preparation, stage = "storyboard", candidate?: any, reportOverride?: Buffer): Promise<void> {
   const request = JSON.parse(await readFile(path.join(prepared.packagePath, "request.json"), "utf8"));
   const filename = `${stage === "characters" ? "cast" : stage}.json`;
-  const content = candidate ? Buffer.from(JSON.stringify(candidate)) : await readFile(path.join(fixtureDirectory, filename));
+  const content = stage === "characters"
+    ? Buffer.from(JSON.stringify(styledCastFixture(candidate ?? await fixture(filename), request.inputArtifacts["cast-style-contract.json"])))
+    : candidate ? Buffer.from(JSON.stringify(candidate)) : await readFile(path.join(fixtureDirectory, filename));
   await mkdir(prepared.deliveryPath, { recursive: true });
   const candidatePath = path.join(prepared.deliveryPath, filename);
   await writeFile(candidatePath, content);

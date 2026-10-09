@@ -9,7 +9,7 @@ for (const [width, height] of reportDesktopViewports) {
 test(`pinned multi-character static reader retains all roles, relations, long synopsis, prompts and images ${width}x${height}`, async ({ page, request, workbench }) => {
   const id = await createScriptProject(request, workbench.apiOrigin, "static-cast-report", {}, []);
   const root = `${workbench.apiOrigin}/api/v2/projects/${id}/cast`;
-  const prepared = await json(request.post(`${root}/candidates`));
+  const prepared = await json(request.post(`${root}/candidates`, { data: { renderStyle: "realistic" } }));
   // Actual pinned example + renderer, report-only fixture; not a live multi-role
   // delivery or source-binding claim for the admitted one-character candidate.
   const example = JSON.parse(await readFile(path.resolve("../third_party/shuohao-skills/skills/novel-characters/examples/渡口-cast.json"), "utf8"));
@@ -102,7 +102,7 @@ test(`pinned multi-character static reader retains all roles, relations, long sy
 checkedStaticTest(`accepted Cast keeps its original report through reopen and edit, with a divergence notice ${width}x${height}`, async ({ page, request, workbench }) => {
   const id = await createScriptProject(request, workbench.apiOrigin, "accepted-static-cast-report", {}, []);
   const root = `${workbench.apiOrigin}/api/v2/projects/${id}/cast`;
-  const prepared = await json(request.post(`${root}/candidates`));
+  const prepared = await json(request.post(`${root}/candidates`, { data: { renderStyle: "realistic" } }));
   const deliveredCast = await fixture("cast.json");
   const report = Buffer.from("<!doctype html><html><body><p>Original delivered Cast report marker.</p></body></html>");
   await writeDelivery(prepared, "characters", deliveredCast, report);

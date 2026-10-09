@@ -13,7 +13,9 @@ function heldBody() {
 
 it("settles project and collection bodies, queues new same-project reads, and allows other projects and draft writes", async () => {
   const project = heldBody(), collection = heldBody();
-  const fetcher = vi.fn(async (url: unknown) => String(url).endsWith("/script") ? project.response : String(url).includes("/projects?") ? collection.response : new Response("{}"));
+  const projectResponses = [project.response], collectionResponses = [collection.response];
+  const fetcher = vi.fn(async (url: unknown) =>
+    (String(url).endsWith("/script") ? projectResponses.shift() : String(url).includes("/projects?") ? collectionResponses.shift() : undefined) ?? new Response("{}"));
   const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
   const script = client.getScript("p"), directory = client.listProjects();
   await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
@@ -88,4 +90,30 @@ it("classifies only explicit revision conflicts and preserves busy/other409 mean
   expect(messageFrom(new ApiError("busy", 409, { code: "project_busy" }))).not.toContain("版本冲突");
   expect(messageFrom(new ApiError("CAS", 409, { code: "revision_conflict" }))).toContain("版本冲突");
   expect(messageFrom(new ApiError("currentness", 409, { code: "stale_binding" }))).toBe("currentness");
+});
+
+it("settles a complete HTTP refusal but not a truncated response body", async () => {
+  let finish!: (response: Response) => void;
+  const client = new PlotloomApiClient(vi.fn(() => new Promise<Response>(resolve => { finish = resolve; })) as typeof fetch);
+  const request = client.getProject("p");
+  const rejection = expect(request).rejects.toMatchObject({ status: 409 });
+  await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
+  const pause = client.suspendProjectReads("p");
+  try {
+    const settling = pause.settle();
+    finish(new Response('{"code":"project_busy"}', { status: 409 }));
+    await rejection; await expect(settling).resolves.toBe(true);
+  } finally { pause.resume(); }
+
+  let body!: ReadableStreamDefaultController<Uint8Array>;
+  const response = new Response(new ReadableStream({ start(controller) { body = controller; } }));
+  const interrupted = new PlotloomApiClient(vi.fn(async () => response) as typeof fetch);
+  const read = interrupted.getProject("p");
+  const failure = expect(read).rejects.toThrow("stream interrupted");
+  const held = interrupted.suspendProjectReads("p");
+  try {
+    const settling = held.settle();
+    body.error(new TypeError("stream interrupted"));
+    await failure; await expect(settling).resolves.toBe(false);
+  } finally { held.resume(); }
 });

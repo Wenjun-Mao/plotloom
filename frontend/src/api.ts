@@ -1,4 +1,5 @@
 import type {
+  ArtRenderStyle,
   MediaKind,
   MediaTask,
   ProjectCreationRequest,
@@ -72,6 +73,7 @@ import type {
 } from "./types";
 import { ApiTransport, ApiError } from "./api-transport";
 import type { ProjectReadTicket } from "./project-read-admission";
+import { browserProjectReads, ProjectReadAdmission } from "./project-read-admission";
 export { ApiError };
 import { projectCreationBody } from "./project-creation";
 
@@ -110,7 +112,7 @@ export type VideoEndFrameDecision = {
 export class PlotloomApiClient {
   private readonly transport: ApiTransport;
   private readonly base: string;
-  constructor(fetcher: FetchLike = globalThis.fetch, base = "/api/v2") { this.base = base; this.transport = new ApiTransport(fetcher, base); }
+  constructor(fetcher: FetchLike = globalThis.fetch, base = "/api/v2", reads = new ProjectReadAdmission()) { this.base = base; this.transport = new ApiTransport(fetcher, base, reads); }
   private async request<T>(path: string, init: RequestInit = {}, includeSessionKey = false, profileId = "default"): Promise<T> {
     return (await this.transport.json<T>(path, init, includeSessionKey, profileId)).body;
   }
@@ -640,7 +642,7 @@ export class PlotloomApiClient {
   }
 
   getCast(projectId: string, signal?: AbortSignal): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast`, { signal }); }
-  prepareCastCandidate(projectId: string): Promise<CastCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/candidates`, { method: "POST" }); }
+  prepareCastCandidate(projectId: string, renderStyle: ArtRenderStyle): Promise<CastCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/candidates`, { method: "POST", body: JSON.stringify({ renderStyle }) }); }
   refreshCastCandidate(projectId: string, jobId: string): Promise<CastCandidate> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/candidates/${encodeURIComponent(jobId)}/refresh`, { method: "POST" }); }
   cancelCastCandidate(projectId: string, jobId: string): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/candidates/${encodeURIComponent(jobId)}/cancel`, { method: "POST" }); }
   acceptCastCandidate(projectId: string, body: { jobId: string; expectedCastRevision: number; binding: unknown; consumerMappings: Array<{ castCharacterId: string; consumerCharacterId: string }>; cast: Record<string, unknown> }): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/accept`, { method: "POST", body: JSON.stringify(body) }); }
@@ -770,4 +772,4 @@ export class PlotloomApiClient {
   }
 }
 
-export const plotloomApi = new PlotloomApiClient();
+export const plotloomApi = new PlotloomApiClient(globalThis.fetch, "/api/v2", browserProjectReads);

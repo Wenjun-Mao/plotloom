@@ -1,3 +1,5 @@
+import { browserProjectReads, projectReadScope } from "../../project-read-admission";
+
 export type SpecialistStage = "outline" | "branches" | "characters" | "art" | "script" | "storyboard";
 export type SpecialistBinding = { name: string; taskId: string | null };
 export type SpecialistSettings = { text: SpecialistBinding; image: SpecialistBinding; busy: boolean; activeTasks?: Array<{ jobId: string; projectId?: string; stage?: SpecialistStage }> };
@@ -11,8 +13,16 @@ export class SpecialistApiError extends Error {
 }
 
 async function request<T>(path: string, method = "GET", body?: unknown): Promise<T> {
-  const response = await fetch(`/api/v2${path}`, { method, headers: { "Content-Type": "application/json", Accept: "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
-  const data = await response.json().catch(() => undefined);
+  const scope = projectReadScope(path);
+  const execute = async () => {
+    const response = await fetch(`/api/v2${path}`, { method, headers: { "Content-Type": "application/json", Accept: "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
+    // A complete error response settles a read; a transport interruption does not.
+    const text = await response.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = undefined; }
+    return { response, data };
+  };
+  const { response, data } = await (method === "GET" && scope !== undefined ? browserProjectReads.run(scope, execute) : execute());
   if (!response.ok) {
     const detail = data?.detail;
     throw new SpecialistApiError(typeof detail === "string" ? detail : detail?.message || data?.message || "请求暂时不可用，请检查连接或助手设置。", response.status, detail?.code || data?.code);

@@ -8,6 +8,7 @@ import { demoProject } from "../src/demo";
 import { expect, test } from "./fixture";
 import { expectInlineRequiredMark } from "./inline-required-mark";
 import { inspectLongProvenanceLayout } from "./provenance-layout";
+import { writeCastDelivery } from "./fixtures/cast-reference";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const retainedStill = path.join(repositoryRoot, "docs/verification/supporting/p0-generated/01-arrival.png");
@@ -597,7 +598,7 @@ async function createCastReadyProject(request: Api, apiOrigin: string, label: st
       expectedGraphRevision: 0, expectedGraphDraftRevision: await graphDraftRevision(request, projectUrl),
     },
   }));
-  const castPrepared = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/candidates`));
+  const castPrepared = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/candidates`, { data: { renderStyle: "realistic" } }));
   await writeCastDelivery(castPrepared);
   const readyCast = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/candidates/${castPrepared.jobId}/refresh`));
   return { projectId, castPrepared, readyCast };
@@ -625,21 +626,6 @@ async function writeOutlineDelivery(prepared: any): Promise<void> {
   await writeFile(path.join(prepared.deliveryPath, "completion.json"), JSON.stringify({
     schemaVersion: 1, jobId: prepared.jobId, requestHash: request.requestHash, deliveryId: "f2b-outline-fixture", stage: "outline",
     candidate: { filename: "outline.json", sha256: hash(outline) }, report: { filename: "report.html", sha256: hash(report) },
-    executorProvenance: { codeRevision: "abcdef0", skillVersion: "fixture", skillHash: request.executionPin.specialistSkillHash, upstreamRevision: request.executionPin.upstreamRevision, upstreamSkillHash: request.executionPin.upstreamSkillHash, model: "fixture", reasoningEffort: "high" },
-    limitations: ["F2B fixture; no creative approval."],
-  }));
-}
-
-async function writeCastDelivery(prepared: any): Promise<void> {
-  const request = JSON.parse(await readFile(path.join(prepared.packagePath, "request.json"), "utf8"));
-  const cast = Buffer.from(JSON.stringify({ source: "F2B browser fixture", summary: "One beacon keeper requires an identity reference.", characters: [{ id: "keeper", name: "Mira", reviewNotes: { sourceNotes: "Appearance is proposed", performanceGuidance: "" }, persona: { personality: ["Careful"],  motivation: "Guide sailors home", appearance: "Rain-dark hair and a weathered beacon coat", arc: "Chooses who to protect" }, voice: { timbre: "Steady under pressure" } }] }));
-  const report = Buffer.from("<!doctype html><title>F2B cast fixture</title><p>Candidate only.</p>");
-  await mkdir(prepared.deliveryPath, { recursive: true });
-  await writeFile(path.join(prepared.deliveryPath, "cast.json"), cast);
-  await writeFile(path.join(prepared.deliveryPath, "report.html"), report);
-  await writeFile(path.join(prepared.deliveryPath, "completion.json"), JSON.stringify({
-    schemaVersion: 1, jobId: prepared.jobId, requestHash: request.requestHash, deliveryId: "f2b-cast-fixture", stage: "characters",
-    candidate: { filename: "cast.json", sha256: hash(cast) }, report: { filename: "report.html", sha256: hash(report) },
     executorProvenance: { codeRevision: "abcdef0", skillVersion: "fixture", skillHash: request.executionPin.specialistSkillHash, upstreamRevision: request.executionPin.upstreamRevision, upstreamSkillHash: request.executionPin.upstreamSkillHash, model: "fixture", reasoningEffort: "high" },
     limitations: ["F2B fixture; no creative approval."],
   }));

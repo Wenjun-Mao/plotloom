@@ -18,6 +18,7 @@ from plotloom.art_contracts import ArtAcceptRequest, ArtBinding, ArtReopenReques
 from plotloom.script_contracts import ScriptAcceptRequest, ScriptReopenRequest, ScriptSectionSaveRequest
 from plotloom.cast_contracts import CastAcceptRequest, CastConsumerMapping
 from plotloom.conformance import FIXED_CHINESE_BRIEF
+from tests.cast_style_fixtures import style_fixture
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import canonical_json
 from plotloom.source_structures import planned_structure
@@ -97,8 +98,9 @@ def _prepare_art_context(store: object, structure_factory=None) -> ArtBinding:
     state = store.save_section_map(graph_map_save_request(store, expected_section_map_revision=0, expected_source_revision=1, expected_outline_revision=1, expected_outline_content_hash=state.accepted_outline.content_hash, mapping=mapping))  # type: ignore[attr-defined]
     assert state.accepted_section_map
     store.install_section_map_graph(SectionMapGraphInstallRequest(expected_source_revision=1, expected_source_content_hash=state.source.content_hash, expected_outline_revision=1, expected_outline_content_hash=state.accepted_outline.content_hash, expected_section_map_revision=1, expected_section_map_content_hash=state.accepted_section_map.content_hash, expected_graph_revision=0, expected_graph_draft_revision=graph_draft_revision(store)))  # type: ignore[attr-defined]
-    _candidate, cast_request = store.prepare_cast_candidate("ch_" + "c" * 32)  # type: ignore[attr-defined]
-    ready_cast = store.admit_cast_delivery(_deliver_stage(store, cast_request, "cast.json", {"source": "Tide Light", "summary": "Lin chooses.", "characters": [{"id": "lin", "name": "Lin", "reviewNotes": {"sourceNotes": "Rain coat is proposed", "performanceGuidance": ""}, "persona": {"personality": ["Careful"], "motivation": "Choose", "appearance": "Rain coat", "arc": "Acts"}, "voice": {"timbre": "Calm"}}]}, "cast-fixture"))  # type: ignore[attr-defined]
+    _candidate, cast_request = store.prepare_cast_candidate("ch_" + "c" * 32, render_style="realistic")  # type: ignore[attr-defined]
+    cast = style_fixture({"source": "Tide Light", "summary": "Lin chooses.", "characters": [{"id": "lin", "name": "Lin", "reviewNotes": {"sourceNotes": "Rain coat is proposed", "performanceGuidance": ""}, "persona": {"personality": ["Careful"], "motivation": "Choose", "appearance": "Rain coat", "arc": "Acts"}, "voice": {"timbre": "Calm"}}]}, cast_request.input_artifacts["cast-style-contract.json"])
+    ready_cast = store.admit_cast_delivery(_deliver_stage(store, cast_request, "cast.json", cast, "cast-fixture"))  # type: ignore[attr-defined]
     store.accept_cast_candidate(CastAcceptRequest(job_id=cast_request.job_id, expected_cast_revision=0, binding=ready_cast.binding, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))  # type: ignore[attr-defined]
     candidate, _request = store.prepare_art_candidate("ch_" + "z" * 32, render_style="realistic")  # type: ignore[attr-defined]
     store.cancel_art_candidate(candidate.job_id)  # type: ignore[attr-defined]
