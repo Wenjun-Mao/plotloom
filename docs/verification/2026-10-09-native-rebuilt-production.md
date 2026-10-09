@@ -415,3 +415,73 @@ Snapshots `east-delivery-controls.yml`, `east-reviewed.yml`, `east-h3-source.yml
 `east-h3-preview.yml`, `east-h3-frozen-settled.yml`, `east-h3-submitted.yml` live in
 the same native-intent evidence directory. An attempted dimension value failed
 before selection; the observed label succeeded and frozen readback confirms960×544.
+
+### East original and segment playback — 09:13 UTC
+
+The named “获取结果” action ingested the existing request without resubmission.
+Original SHA256 `5c4b00627fa3a3bab4ac4155e904d81cbc4d5e3df0ac165f00009e7d74c2bb1c`;
+probe:960×544,H.264/AAC,24fps,124frames,5.167seconds. Actual video-control click
+produced trusted playing/ended events at0/5.167s, no media error, volume1/unmuted,
+zero reported dropped frames. Root directly inspected `east-original-ended.png`.
+
+UI “准备播放片段” created segment `3b54b242-ab81-46f7-8a28-7fac46a22451`,
+frames[0,120), derivative SHA256
+`ad7f9b968c2e74ac32336b4df0a04987ad829326e5e00baa589a9bca143e6f2b`.
+Probe confirms120frames,5seconds and160000 audio samples at32000Hz. Its real
+browser click reached trusted ended at5s, no error, volume1/unmuted and zero
+reported dropped frames. Browser counters128/124 include presentation bookkeeping;
+they are not substituted for the encoded original/segment frame counts124/120.
+Root directly inspected `east-segment-ended.png`: left lamp lit/right dark and
+the character faces image-left. This is a terminal-frame observation, not full
+motion, sound quality, or cross-shot continuity acceptance.
+
+Explicit technical-QA selection at09:13:12UTC records reviewer Codex and those
+limitations in review `70674991-f25c-47e8-b6ff-08e2500d8e9f`. Independent API
+readback confirms job and segment current/selected at revision1. Settled UI
+`east-selected.yml` shows “已选择片段 · 正用于故事” and missing clips2→1.
+The unresolved hand-only Opening2 remains unselected; complete revised routes
+are still blocked, not declared passed. Native8865 backend remains66b1cbd;
+checked frontend includes95074b1. Normal8841 is unchanged.
+
+Three `east-request-pending-{1700x900,1280x768,1280x460}.png` viewport captures
+were directly inspected before ingestion: submitted/waiting state, exact request
+summary and check/cancel controls were visible and readable. Earlier
+`east-h3-submitted-1700x900.png` clipped the card and is not qualified evidence.
+
+### Exact-commit Python gate and artifact-location correction
+
+Full run63961 on95074b1 finished1,414 PASS/1 FAIL in1242.25s. The only failure
+was `test_clean_repository_has_only_declared_product_roots`: the preceding wheel
+smoke left `dist-identity-aspect` at the worktree root. This was a verification
+artifact-location error, not an identity-admission failure. The directory contained
+only the generated wheel and its `.gitignore`; no checker or product rule was weakened.
+Moved it intact to `/private/tmp/plotloom-identity-aspect-wheel.TmgLmB/dist-identity-aspect`.
+Wheel SHA256 remains `d2b6d7c845292ff8182b6a29c2c0122c2b3508471621f485e8084c02579d3382`.
+All12 extraction-contract checks then passed in1.20s (session90063). Product/test
+inputs are unchanged; the full run remains recorded as1414/1, with the sole failure
+resolved by this focused rerun, not relabelled an unfiltered1415-pass run.
+Future manual wheel checks use the established `dist/` or an external temporary
+directory, never a new repository-root directory. Normal8841 remains untouched.
+
+### Retained Cast gallery read recovery — October9 continuation
+
+On the same8865 project, browser-only GET ordering/failure interception let the
+first reference read succeed, then failed the Cast-session-triggered refresh.
+No stored object or response payload was fabricated. Seven reference/history
+images remained present, and seven remained after the named retry. Image-label,
+source-declaration and idea fields plus both generation radios were disabled;
+idea editing returned after recovery. Separate before/after `/cast` and
+`/character-references` response bodies matched exactly, with zero non-read
+browser requests during that control check.
+
+Under `output/playwright/native-intent-2026-10-08/`, six
+`cast-retained-read-{failed,recovered}-{size}.png` qualify warning/retry/recovered
+heading reading. Nine `cast-retained-controls-{radios,idea,actions}-{size}.png`
+qualify lower controls at1700×900,1280×768,1280×460. Root and independent retained
+E22 reviewer directly inspected all nine: labels/help/control visibility and
+disabled-action explanation pass, not entire gallery or image-quality acceptance.
+Earlier `cast-retained-disabled-1280x460.png` clips the idea control and is excluded.
+An incorrect class locator returned zero images; the actual data-testid locator
+verified seven. Waiting for gallery pixels before releasing required Cast data
+timed out; that interception was cleaned up, then the response-order method above
+completed. Neither harness error caused a product patch or generation retry.

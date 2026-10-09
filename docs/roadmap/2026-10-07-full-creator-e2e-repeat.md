@@ -8,31 +8,36 @@ owner-data protection remain required before publication.
 
 ## Reusable playbook and current continuation profile
 
-Latest continuation (October9 08:27UTC): same-project native rebuild is installed;
+Latest continuation (October9 09:20UTC): same-project native rebuild is installed;
 its first revised H3 original/segment played and was explicitly selected for
 functional QA, with creative deviation recorded. Opening2 image delivered, but
 hand-only identity cannot pass the current review contract; video-source admission
 refused and no second video was dispatched. The assessment-semantics question is
 open. Remaining revised clips/routes, recovery and E22 closure remain in scope.
 Shot-title and request-status repairs are qualified and committed at66b1cbd;
-the isolated runtime matches. Revised West image is ingested/reviewed and its
+the isolated backend still loads that revision. Revised West image is ingested/reviewed and its
 H3 original and segment played successfully and were selected for technical QA
 at08:18UTC. East image encountered pre-tool model capacity twice.
 After a forty-minute interval, exact package/hash, absent pin/delivery and terminal
 task checks justified one bounded same-job continuation at08:51UTC. The specialist
-completed it; its output SHA matches the receipt. UI ingestion remains next.
-West standalone playback is verified; complete revised routes remain open.
+completed it; its output SHA matches the receipt. UI ingestion is verified.
+West and East standalone playback are verified; complete revised routes remain open.
 Frozen East inputs remain preserved.
 The shared gallery thumbnail crop is repaired and independently reviewed, with
 five focused browser journeys and native pixels at all three desktop sizes;
 the [E22 receipt](../verification/2026-10-08-whole-product-ui-audit.md) owns evidence.
 Typed identity-refusal copy now has a shared API diagnostic and independently
 reviewed desktop/guard checks (ADR0143); native backend activation is deferred
-while native generation remains active. Full Python finished1,414 PASS/1 FAIL;
+pending final qualification. An earlier full Python finished1,414 PASS/1 FAIL;
 the sole stale coverage-inventory record is reconciled and four focused checks
 pass. Final combined wheel/installed smoke pass; independent inventory-delta
 review is clear. East's reviewed keyframe is ingested and one current H3 request
-was submitted09:02UTC; no revised East playback is claimed yet.
+was submitted09:02UTC. By09:13UTC its original and five-second segment both
+played to trusted ended and were explicitly selected for functional QA; one
+Opening2 clip remains missing. Source95074b1 is committed; its exact-commit
+Python run finished1414/1. The sole failure was a manual wheel artifact at an
+undeclared repository root; relocation outside the worktree resolved it, with
+all12 extraction checks passing. No source/test changes or weakened guard.
 Report context and remaining state-matrix work still need attention. Cramped H3
 aspect-choice columns are now repaired and independently reviewed at all three
 desktop sizes. The combined unchanged-input browser gate passes243 tests (7.9m).

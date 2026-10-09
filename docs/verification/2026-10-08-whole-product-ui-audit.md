@@ -5,7 +5,8 @@ adds real original/segment playback and preserved quality caveats. Two E22 defec
 have source repairs qualified in66b1cbd: overlong composition-as-title and raw
 video-state badges. A review found and closed the related selected-original versus
 selected-segment status/navigation mismatch. The hand-only identity gate remains
-an open semantics question, and its raw English refusal is a recorded copy gap.
+an open semantics question. Its raw English refusal is repaired in source95074b1
+under ADR0143; matching native backend activation remains unverified.
 These changes do not complete the whole-product state matrix.
 Nine revised Art report captures additionally verify full reading and modal
 close/reopen/focus at the three desktop sizes. The report's skipped-Cast claim
@@ -255,11 +256,11 @@ report evidence are not rewritten for cosmetic consistency.
 | Surface | Actual evidence / inspection | Remaining scope |
 |---|---|---|
 | Brief, Creator, source, Pro |82–85 native/QA;109 loaded review captures, long graph and all18 Pro viewports; root/independent direct pixels | All applicable state permutations not yet pixel-qualified |
-| Cast/reference gallery |80b/86/115 native confirmed content;129–131 disposable initial failed-read, confirmed-no-images and archived-guidance viewport captures; named recovery and overlapping-read regression | Retained-refresh recovery has unit evidence, not viewport qualification; other proposal/report states remain open |
-| Bible |88 native populated premise;129–131 disposable selected character/location/prop top/bottom and archived-character deep link, all desktop sizes directly inspected | Initial transport failure and other archived entity permutations remain open |
+| Cast/reference gallery |80b/86/115 native confirmed content;129–131 disposable initial failed-read, confirmed-no-images and archived-guidance viewport captures; October9 retained-refresh failure/retry plus nine lower-control frames at all desktop sizes, root and independent pixel review | Warning/retry/recovered heading and disabled lower controls qualified; exact Cast/reference response preservation and zero-write check in rebuilt-production receipt. Other proposal/report states remain open |
+| Bible |88 native populated premise;129–131 disposable selected character/location/prop top/bottom and archived-character deep link; native-intent receipt initial503/retry at all desktop sizes, refreshed October9 | Initial transport failure/retry is covered; other archived entity permutations remain open |
 | Art, Script, Storyboard/production review |87–89 native top/middle/bottom;94 saved/selected;109 loaded heads;112 repaired Art/production viewport pixels at all three sizes;113 actual native optional-Art-task scrolling at all three sizes, zero writes | Deeper selected/failed/stale state permutations not yet pixel-qualified |
 | Script/Storyboard readers |90 native East/West;129/130 seven explicit reader states ×three sizes;145 actual native West selection, expanded instructions and original report, all directly inspected; optional failure retry preserves Script/route and performs no writes | Other reader/report permutations remain open; West slice now qualified separately |
-| Play |90/95/109/112 prerequisite observations retained;194 actual two-missing-route state;195 and203 actual minimal both-route terminal playback with trusted events,120 frames/0 drops/no error,zero writes/jobs unchanged;203 route-only choice pixels inspected at all three sizes | Minimal all-route progression established; native within-node multishot,revised media chain and creative/audio quality remain open |
+| Play |90/95/109/112 prerequisite observations retained;194 actual two-missing-route state;195 and203 actual minimal both-route terminal playback; native-intent receipt establishes fresh four-clip/two-route baseline including two-shot opening | Baseline within-node multishot established; revised media chain and every revised route remain open; creative/audio quality is separate |
 | Specialist/provider settings, Home/directory |91 native top/bottom;93 repaired overlay hit/scroll/Close;109 desktop views;112 initial top, text-ID scroll and image-ID scroll pixels directly inspected at all three sizes; readable directory times rechecked | Other operational states not yet pixel-qualified |
 | Trace, repair, Beats |97 native idle/populated;109 all18 Pro and three enabled exact-repair viewports;112 one-line Add Scene;137/140 Trace/repair and Inspector pixels directly inspected;141 changed running-event recapture | Additional native event/operational permutations; running fixture is frozen-key blocked, not native execution |
 | Shot/media details |83/110 reading observations;194 original/segment playback and technical-only selection;195 reject/reopen/reselect/end-frame fault reading;203 actual archived retained preview,held currentness reads,restore without reload and independently inspected final guidance/bottom actions at all desktop sizes | Minimal other routes and media-bearing recovery established; multishot/revision,remaining subcontrol permutations and creative/audible quality remain incomplete |
@@ -313,10 +314,10 @@ file; do not inherit a PASS from a different state or source revision.
 | Cast/Art typed prerequisite and preparation-refusal guidance |190 disposable real-server six cases ×three desktop sizes ×closed/open details, all36 PNGs independently directly inspected; actual preparation409 and exact no-job/retained-state guards; three additional root-inspected native notice captures | Scoped pixels/operation PASS under ADR0134; fresh local gates, publication and activation are tracked in the [typed guidance receipt](2026-10-08-review-context-diagnostics.md). Broader state/native-media matrix remains PARTIAL. |
 | Stale Art reference-task affordance |190 retained failure evidence; later five real-server fixture states ×three sizes,30 initial/30 final pixels, actual zero-write zoom/details and exact stale cancel/refresh/cancel; six directly inspected activated normal Rain Gallery/controls frames | Repaired current-head authority and locked-field copy; independent review closed, fresh local qualification and normal activation PASS. Exact-head remote CI in the [gallery receipt](2026-10-08-art-reference-eligibility.md); not every native/gallery state. |
 | Outline original interactive report |144 native12 direct top/table/middle/bottom pixels, all sizes; exact archive/project/no-write, bounds/hit and reopen guards | Reading controls/scroll scoped PASS. Raw fractional-minute tile wraps badly at1280; upstream renderer defect UNRESOLVED, original bytes preserved. |
-| Revised Script/Storyboard typed stale guidance | October9 current isolated diagnostic bundle: seven simulated-GET captures at all three desktop sizes, root and independent direct inspection; five new backend and five new frontend regressions,18 focused browser checks and242 full browser PASS | Scoped warning/owner-link/technical-detail presentation PASS; full Python gate pending. No claim that fixture pixels are native stale behavior. See the native reference revision receipt. |
+| Revised Script/Storyboard typed stale guidance | October9 current isolated diagnostic bundle: seven simulated-GET captures at all three desktop sizes, root and independent direct inspection; five new backend and five new frontend regressions,18 focused browser checks and242 full browser PASS | Scoped warning/owner-link/technical-detail presentation PASS; that candidate's full1,413 Python gate passed in the native reference revision receipt. The later95074b1 Python run is separate. Fixture pixels are not native stale behavior. |
 | Revised native Storyboard r2 report | October9 accepted r2 on same revised native project; root-inspected1700 top/end plus1280×768 and1280×460 top/middle/end, actual wheel scrolling and exact bottom geometry, disclosure close/reopen | Reading scoped PASS. Upstream footer hardcodes2–5s despite frozen2–8s; generation-call and environment-reference claims require owning-layer clarification. Retained report unchanged. |
 | Revised native Art r2 enlarged report | October9 current Art report, nine root-inspected top/middle/end viewport captures at all three sizes; real wheel scrolling, exact bottom geometry, zero writes, Escape/focus restoration and explicit Close/reopen | Scoped reading PASS in rebuilt-production receipt. Green skipped-Cast gate remains a report-validation provenance question; original bytes retained, no creative acceptance. |
-| Rebuild r5 with retained native intent job | October9 same-project actual preparation; completed task frozen to proposal1 versus current proposal5; three final native desktop captures root/independently inspected | Repaired: provenance distinguishes historical delivery from current suggestions across author-save revisions. Ten focused tests and859 frontend PASS; new full browser gate pending. Current intent remains pending; no false admission observed. |
+| Rebuild r5 with retained native intent job | October9 same-project actual preparation; completed task frozen to proposal1 versus current proposal5; three final native desktop captures root/independently inspected | Repaired historical/current provenance. Subsequent explicit native intent review and installation r8 are recorded in the rebuilt-production receipt; intent is no longer pending. Revised media/routes remain incomplete. |
 
 The Outline duration source diagnosis is confirmed in the clean pinned
 `shuohao-skills` submodule at `4322897e6d2bdaf66365534fd40194360c75a85f`.
@@ -338,20 +339,21 @@ archive an owner project just to fill this table.
 
 ## Findings, root causes and bounded repairs
 
-October9 native rebuilt H3 preparation also exposes raw `prepared` in the primary
-job badge (`rebuilt-h3-frozen.yml` in native-intent browser evidence). This is
-interface status copy, unlike retained English source composition. It remains
-OPEN for the owning shared video-status presentation repair after native execution.
+October9 native rebuilt H3 preparation exposed raw `prepared` in the primary
+job badge (`rebuilt-h3-frozen.yml` in native-intent browser evidence). The shared
+video-status presentation repair is qualified at66b1cbd in the rebuilt-production
+receipt; retain the original failing evidence rather than reporting this as open.
 The current image waiting-state UI was directly inspected at all three desktop
 sizes; readable current/history distinctions and check/cancel controls pass only
 that state, not the rest of the whole-product matrix.
 
-October9 native rebuild inspection adds an open defect: full English composition
+October9 native rebuild inspection found full English composition
 is projected into `shot.title` and repeated as large card/detail headings. Exact
 source diagnosis and direct pixels are in the
 [rebuilt-production receipt](2026-10-09-native-rebuilt-production.md).
-Retain source composition and immutable reports; fix concise display identity at
-its owner rather than translating or discarding creative evidence. Not yet repaired.
+The concise display-identity repair is qualified at66b1cbd in that receipt.
+Source composition and immutable reports remain intact; this is not translation
+or creative-content acceptance.
 
 | Finding | Root cause / repair boundary | Verification so far |
 |---|---|---|

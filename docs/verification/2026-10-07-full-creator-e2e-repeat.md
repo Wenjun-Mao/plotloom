@@ -8,7 +8,7 @@ and [C50 recovery](2026-10-07-c50-draft-recovery.md) / [C52 project ownership](2
 Dated checkpoints below and the [historical receipt](2026-10-07-full-creator-e2e-repeat-history.md)
 retain earlier failures; historical present-tense claims are not current status.
 
-### Current continuation — October9, 08:27 UTC
+### Current continuation — October9, 09:20 UTC
 
 The [rebuilt-production receipt](2026-10-09-native-rebuilt-production.md) owns the
 latest native evidence. The first-install four-shot/two-route journey below is
@@ -17,24 +17,24 @@ complete as functional QA; it does not establish the revised story's playback.
 | Round | Current evidence | Remaining acceptance |
 |---|---|---|
 | Create | Same-project native intent, four keyframes, four selected H3 segments, both routes including two-shot opening progression | Creative/media quality excluded, not implicitly accepted |
-| Revise | Middle graph insertion/deletion/reconnection, character/reference and source review revisions, explicit rebuild to current production, fresh approval, opening1 and West revised H3 playback/selection | Opening2 hand-only identity is unassessable under pass/fail-only gate; explicit semantics question pending. East image stopped on model capacity. Two revised clips and both rebuilt routes are not complete |
+| Revise | Middle graph insertion/deletion/reconnection, character/reference and source review revisions, explicit rebuild to current production, fresh approval; opening1, West and East revised H3 originals/segments played and selected for functional QA | Opening2 hand-only identity is unassessable under pass/fail-only gate; explicit semantics question pending. One revised clip and both rebuilt routes remain incomplete |
 | Recover | Earlier media-bearing close/reopen/archive/restore/snapshot/restored-copy replay and deletion have their dated receipts | Retest relevant revised-current-story recovery and unchanged media/authority; do not inherit first-install completion |
-| E22 | Dedicated whole-product sweep plus typed state/copy repairs and six new directly inspected title/status desktop frames | Remaining applicable state/control slices stay in the view/state register; hand-only refusal still has raw English copy |
+| E22 | Dedicated whole-product sweep, title/status and typed identity-refusal/aspect-layout repairs; new retained-gallery read-failure/recovery desktop pixels | Remaining applicable state/control slices stay in the view/state register; typed server refusal is not yet activated on native8865 |
 
-Current source66b1cbd adds ADR0142 shot identity and truthful video-state
+Earlier qualified source66b1cbd adds ADR0142 shot identity and truthful video-state
 presentation, independently reviewed. Full1,413 Python,872 frontend and242
 browser tests, both types, build, lock, lint, wheel and installed smoke pass.
 An idle-only isolated restart loads matching Python/static; normal8841 unchanged.
 Revised West image is ingested/reviewed; its H3 original and120-frame segment
 played to trusted browser ended events and were explicitly selected for technical
-QA at08:18UTC. Two revised shots remain; neither full revised route is complete.
+QA at08:18UTC. At that checkpoint two revised shots remained.
 East image's pre-tool capacity failure received one safe same-frozen-job
 continuation, which also failed before tools. After forty minutes, authoritative
 terminal-task/package/hash/absent-pin checks allowed one bounded continuation
 at08:51UTC without model or settings changes. The specialist then delivered;
 output SHA256 `27d49fd60d8eb78b1edaa4a3ec2a6300123d1a9560d62d211c317cf202c1dfee`
-matches the exact frozen-job receipt. UI ingestion and revised branch playback
-remain pending at this checkpoint. No duplicate job was dispatched.
+matches the exact frozen-job receipt. The subsequent09:13 checkpoint below
+records ingestion/playback. No duplicate job was dispatched.
 
 The [E22 thumbnail repair](2026-10-08-whole-product-ui-audit.md#thumbnail-framing-repair--october9-0827utc)
 closes demonstrated portrait cropping: shared contain-fit, fail-before/pass-after
@@ -56,6 +56,19 @@ browser gate passes243 tests in7.9m. Final combined wheel/installed smoke pass;
 the independent reviewer cleared the inventory delta without further findings.
 No native restart or duplicate specialist dispatch; backend66b1cbd remains loaded.
 Full-run acceptance remains PARTIAL.
+
+At09:13UTC East's existing H3 request ingested, original and UI-prepared120-frame
+segment played to trusted ended without media errors or reported drops, then
+explicit technical-QA review selected it. Exact hashes/identities and quality
+limitations are in the rebuilt-production receipt. Missing current clips2→1;
+there is no longer a pending East job. Source95074b1 has only subsequent
+evidence-documentation changes. Exact-commit full Python run63961 finished1414/1:
+its sole failure correctly rejected the manual wheel output at an undeclared
+repository root. Moving that exact artifact outside the worktree resolved it;
+all12 extraction checks passed. No product/test changes or checker relaxation.
+This is a full run plus focused correction, not a claimed fresh1415-pass run.
+Browser243/frontend872 remain valid for their
+unchanged inputs. Normal8841 remains unchanged.
 
 Latest published checkpoint: [203 project-load/retained-media repair](2026-10-08-load-retained-media-qualification.md),
 published/healthy executable6284118;1,309 Python,806 frontend,239 browser qualified
