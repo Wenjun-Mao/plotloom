@@ -93,9 +93,16 @@ additional CI regression test relative to the1,463 local base gate. It does
 [38009336409](https://github.com/Wenjun-Mao/plotloom/actions/runs/38009336409)
 was dispatched once at `2026-10-10T00:30:21Z` for exact
 `2a9364947240d5da9e8d94ae674ae37aab2e8780`, with unfiltered `browser_grep=.*`.
-It is in progress, not PASS. This is candidate-branch publication, not a normal
-checkout merge or service cutover; later receipt-only commits do not alter its
-executable/test inputs.
+Its verify job `114085443411` completed SUCCESS at `2026-10-10T01:08:31Z`.
+The actual completed-job log records **1,464 Python PASS /one existing Starlette
+warning in2,147.28 seconds** and **1,037 frontend PASS /125 files**; types,
+build, checked-bundle parity, wheel and installed smoke steps also pass.
+Browser shards `114093851297` and `114093851328` started at01:08:33UTC and
+remain live; the whole workflow is **not yet PASS**. The first job-log read
+was refused by the CLI's terminal-escape output guard; its documented
+`--allow-escape-sequences` option allowed the filtered read without rerunning
+any check. This is candidate-branch publication, not a normal checkout merge
+or service cutover; later receipt-only commits do not alter executable/test inputs.
 The previous cancellation and reported repo-wide420 existing lint findings are
 not converted into PASS; only the established scoped lint gate passed.
 
@@ -158,7 +165,7 @@ provider copy or archived Bible reading. Current dispositions remain:
 | Populated native Cast relationships | Missing native evidence, not demonstrated absent capability; the four-role fixture remains fixture evidence; no extra generation solely for counts |
 | Normal activation | Pending retained-demo/cutover choice; no mounted-checkout-only update, owner reset or schema adapter |
 | Creative/audible/perceptual quality | Explicitly excluded from this technical run |
-| Exact-executable CI | Existing2a93649 run remains live; no duplicate dispatch or inferred PASS |
+| Exact-executable CI | Existing2a93649 verify job PASS; both browser shards live, whole workflow not yet PASS; no duplicate dispatch |
 
 ## Loaded bytes, data and service preservation
 
