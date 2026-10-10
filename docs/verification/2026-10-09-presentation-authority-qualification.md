@@ -121,6 +121,45 @@ archive/restore refusal frames plus archived Bible entity reading remain in the
 scoped evidence directories. These are named states, not blanket all-state PASS.
 Long forms require ordinary scrolling; no claim that all their contents fit at once.
 
+### Final existing-evidence E22 reconciliation
+
+After the full276 gate closed, root read the owning currentness tests and directly
+inspected all15 existing fixture frames; an independent read-only pixel review
+also inspected every frame and found no blocking visual/copy issue. No browser,
+data or generation action was needed. All are at1280×768,1280×460,1700×900 in
+`/private/tmp/plotloom-ui-presentation-qualified-full-browser-20261009`:
+
+- `review-seam-currentness-cu-df77e-ver-stale-retained-evidence/`
+  `cast-replacement-{prepared,ready}-{size}.png` (six).
+- `review-seam-currentness-cu-7d33b-ver-stale-retained-evidence/`
+  `script-replacement-{prepared,ready}-{size}.png` (six).
+- `source-review-currentness--f6e06-hority-until-explicit-retry/`
+  `storyboard-post-mutation-read-failed-{size}.png` (three).
+
+Retained evidence is distinguished from replacement-candidate authority;
+prepared/ready Script names sending versus confirming, Cast confirmation stays
+distinct from reference eligibility, and failed Storyboard reads offer retry
+without claiming modification/production authority. No overlapping columns,
+clipped visible action text or misleading success color was found. Short frames
+are ordinary scrolled slices: Cast-ready upper retained notices and the short
+Storyboard error body are outside those captures. This is controlled fixture
+evidence, not native delivery or whole-form/all-state acceptance.
+
+The completion-gap review reconciled the historical register against the later
+named receipts rather than reopening already qualified routes, multishot, OS blur,
+provider copy or archived Bible reading. Current dispositions remain:
+
+| Requirement/boundary | Current disposition |
+|---|---|
+| Named Create → Revise → Recover native journey | Revised/restored routes, multishot, source lifecycle and58-asset/four-selection preservation are qualified in the Board3 receipts; no creative-quality claim |
+| Whole-product E22 | Named view/state slices are qualified, including the15 frames above; other unobserved permutations remain PARTIAL, not inherited from functional tests |
+| Scene/Prop downstream production consumption | Absent consumer/capability boundary; gallery/reference evidence does not prove production consumption; product expansion needs authority |
+| Configured API intent | Unconfigured; native intent is separately qualified, not an API fallback or configuration PASS |
+| Populated native Cast relationships | Missing native evidence, not demonstrated absent capability; the four-role fixture remains fixture evidence; no extra generation solely for counts |
+| Normal activation | Pending retained-demo/cutover choice; no mounted-checkout-only update, owner reset or schema adapter |
+| Creative/audible/perceptual quality | Explicitly excluded from this technical run |
+| Exact-executable CI | Existing2a93649 run remains live; no duplicate dispatch or inferred PASS |
+
 ## Loaded bytes, data and service preservation
 
 Final served/file JS SHA256:
