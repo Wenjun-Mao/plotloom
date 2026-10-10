@@ -36,7 +36,12 @@ test("tests a profile only after saving public settings and keeps its key sessio
   await page.getByLabel("当前配置的临时密钥").fill("test-session-secret");
   await page.getByRole("button", { name: "测试连接" }).click();
   const dialog = page.getByRole("dialog", { name: "供应商与会话密钥" });
-  await expect(dialog.getByRole("status")).toHaveText("后端已就绪：readiness.models_verified");
+  await expect(dialog.getByRole("status")).toHaveText("连接检测结果：连接正常");
+  const probeDetails = dialog.locator("details").filter({ hasText: "连接检测详情" });
+  await expect(probeDetails.locator("code").filter({ hasText: "readiness.models_verified" })).not.toBeVisible();
+  await probeDetails.locator("summary").click();
+  await expect(probeDetails.locator("code").filter({ hasText: "readiness.models_verified" })).toBeVisible();
+  await probeDetails.locator("summary").click();
   await expect(page.getByRole("alert")).toHaveCount(0);
   for (const [width, height] of [[1700, 900], [1280, 768], [1280, 460]]) {
     await page.setViewportSize({ width, height });
@@ -96,7 +101,7 @@ test("keeps a disabled selected profile visible while rejecting new run admissio
   expect(restored.ok()).toBeTruthy();
 });
 
-test("merges availability without losing an unsaved profile draft, session key, or conflict state", async ({ page, request, workbench }) => {
+test("merges availability without losing an unsaved profile draft, session key, or conflict state", async ({ page, request, workbench }, info) => {
   type StoredProfile = {
     revision: number;
     availabilityRevision: number;
@@ -153,6 +158,15 @@ test("merges availability without losing an unsaved profile draft, session key, 
   await page.unroute("**/api/v2/text-provider-profiles/default/availability", holdAvailability);
 
   await expect(page.getByText("此后端当前不可用")).toBeVisible();
+  const dialog = page.getByRole("dialog", { name: "供应商与会话密钥" });
+  await expect(dialog.getByText("就绪状态：已停用", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("文本服务已就绪，可用于新的 API 文本任务。", { exact: true })).toHaveCount(0);
+  for (const [width, height] of [[1700, 900], [1280, 768], [1280, 460]]) {
+    await page.setViewportSize({ width, height });
+    await dialog.getByText("就绪状态：已停用", { exact: true }).scrollIntoViewIfNeeded();
+    await expect(dialog.getByText("就绪状态：已停用", { exact: true })).toBeInViewport();
+    await page.screenshot({ path: info.outputPath(`availability-disabled-${width}x${height}.png`) });
+  }
   await expect(page.getByLabel("文本模型")).toHaveValue("draft-model-during-toggle");
   await expect(page.getByLabel("当前配置的临时密钥")).toHaveValue("draft-key-during-toggle");
   const afterDisable = await readProfile();
@@ -164,6 +178,14 @@ test("merges availability without losing an unsaved profile draft, session key, 
     && new URL(response.url()).pathname.endsWith("/text-provider-profiles/default/availability"));
   await page.getByRole("button", { name: "启用后端" }).click();
   expect((await reenabled).ok()).toBeTruthy();
+  await expect(dialog.getByText("就绪状态：尚未检测", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("就绪状态：已停用", { exact: true })).toHaveCount(0);
+  for (const [width, height] of [[1700, 900], [1280, 768], [1280, 460]]) {
+    await page.setViewportSize({ width, height });
+    await dialog.getByText("就绪状态：尚未检测", { exact: true }).scrollIntoViewIfNeeded();
+    await expect(dialog.getByText("就绪状态：尚未检测", { exact: true })).toBeInViewport();
+    await page.screenshot({ path: info.outputPath(`availability-enabled-${width}x${height}.png`) });
+  }
   await expect(page.getByLabel("文本模型")).toHaveValue("draft-model-during-toggle");
   await expect(page.getByLabel("当前配置的临时密钥")).toHaveValue("draft-key-during-toggle");
   const afterReenable = await readProfile();

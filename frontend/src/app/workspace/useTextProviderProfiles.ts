@@ -4,8 +4,9 @@ import { defaultProviderSettings } from "../../demo";
 import { providerSessionKeys } from "../../session-key";
 import type { TextBackendReadiness, TextProviderProfileConfiguration, TextProviderProfilesResponse, TextProviderProfileView } from "../../types";
 import { frozenRunCredentialMessage } from "./frozenRunGuidance";
+import { readinessPresentation } from "./TextBackendReadiness";
 
-export type SettingsFeedback = { kind: "error" | "status"; message: string };
+export type SettingsFeedback = { kind: "error" | "status"; message: string; readiness?: TextBackendReadiness };
 
 function defaultProfile(): TextProviderProfileView {
   const configuration: TextProviderProfileConfiguration = { profileSchemaVersion: 2, profileId: "default", profileVersion: 0, profileHash: "", textProvider: defaultProviderSettings.textProvider || "openai-compatible", textBaseUrl: defaultProviderSettings.textBaseUrl || "", textModel: defaultProviderSettings.textModel || "", textAuthMode: defaultProviderSettings.textAuthMode, textCapabilities: { ...defaultProviderSettings.textCapabilities, chatTemplateKwargs: false }, textContextWindowTokens: defaultProviderSettings.textContextWindowTokens, textMaxOutputTokens: defaultProviderSettings.textMaxOutputTokens, textTemperature: defaultProviderSettings.textTemperature, textMaxConcurrency: defaultProviderSettings.textMaxConcurrency, textConnectTimeoutSeconds: defaultProviderSettings.textConnectTimeoutSeconds, textAttemptTimeoutSeconds: defaultProviderSettings.textAttemptTimeoutSeconds, redirectPolicy: "no_follow", requestExtension: "none", reasoningMode: "provider_default", extractionPolicy: { allowJsonFence: false, allowLeadingThinkBlock: false }, stageMaxOutputTokens: { story_bible: 8192, story_graph: 8192, scene_beats: 4096, storyboard: 4096 }, maxSemanticCorrections: 2, presetId: "custom", presetVersion: "1" };
@@ -102,12 +103,13 @@ export function useTextProviderProfiles(setBusy: (busy: boolean) => void, setErr
     const updated = await plotloomApi.setTextProviderProfileAvailability(profileDraft.profileId, profileDraft.availabilityRevision, profileDraft.enabled === false);
     setProfiles(current => {
       const next = { ...current, profiles: current.profiles.map(profile => profile.profileId === updated.profileId
-        ? { ...profile, enabled: updated.enabled, availabilityRevision: updated.availabilityRevision } : profile) };
+        ? { ...profile, enabled: updated.enabled, availabilityRevision: updated.availabilityRevision, readiness: updated.readiness } : profile) };
       catalog.current = next; return next;
     });
-    // Availability owns only these two fields; edits typed while it runs survive.
+    // Readiness is the server's projection of availability, not an authored
+    // setting. Merge it too while preserving configuration/key edits in flight.
     setProfileDraft(current => current.profileId === updated.profileId
-      ? { ...current, enabled: updated.enabled, availabilityRevision: updated.availabilityRevision } : current);
+      ? { ...current, enabled: updated.enabled, availabilityRevision: updated.availabilityRevision, readiness: updated.readiness } : current);
   }, "availability"), [profileDraft, runSettings]);
   const remove = useCallback(() => runSettings(async () => {
     if (profileDraft.profileId === profiles.activeProfileId) throw new Error("请先使用另一份配置，再删除当前使用的配置。");
@@ -119,8 +121,7 @@ export function useTextProviderProfiles(setBusy: (busy: boolean) => void, setErr
     const saved = await saveCurrent();
     const result = await plotloomApi.probeTextProviderProfile(saved.profileId, saved.configuration.textAuthMode === "bearer");
     await refresh();
-    setSettingsFeedback({ kind: "status", message: result.state === "available"
-      ? `后端已就绪：${result.reasonCode}` : `后端状态：${result.state} · ${result.reasonCode}` });
+    setSettingsFeedback({ kind: "status", message: `连接检测结果：${readinessPresentation(result.state).label}`, readiness: result });
   }), [refresh, runSettings, saveCurrent]);
   const openFrozen = useCallback(async (profileId: string): Promise<boolean> => {
     if (settingsPending.current) return false;

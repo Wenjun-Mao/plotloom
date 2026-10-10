@@ -12,8 +12,14 @@ software/browser results from the still-open native revision run.
 Playbook adoption is documentation/planning approval, not dispatch or implementation
 authority. The later [Board3 recovery/final-candidate receipt](../verification/2026-10-09-board3-recovery-and-final-qualification.md)
 qualifies both revised/restored native routes, source lifecycle/idle restart and
-58-asset/four-selection preservation. The overall run remains PARTIAL for actual
-current OS blur and explicitly unobserved E22/capability boundaries; this is not
+58-asset/four-selection preservation and settled actual held OS blur. The
+[current-pin native report check](../verification/2026-10-09-current-pin-native-report.md)
+qualifies real delivery, static reading and exact baseline restoration after a
+cancelled replacement; it also records an old-loaded-browser provenance correction.
+The [presentation-authority follow-up](../verification/2026-10-09-presentation-authority-qualification.md)
+closes provider/readiness, retained-production and read-only Bible wording findings;
+fresh software qualification/publication are tracked there separately from the base CI.
+The overall run remains PARTIAL for explicitly unobserved E22/capability boundaries; this is not
 creative/media acceptance or blanket whole-product coverage.
 
 The owner requested a dedicated whole-product visual-and-text pass on October8,

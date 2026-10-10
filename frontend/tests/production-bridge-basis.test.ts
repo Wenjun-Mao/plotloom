@@ -8,7 +8,7 @@ import { ReviewDraftContext } from "../src/features/authoring/ReviewDraftContext
 import { createProjectDraftQuiescence } from "../src/features/authoring/projectDraftQuiescence";
 import { createReviewDraftStore } from "../src/features/authoring/reviewDraftStore";
 import type { ProductionBridgeState } from "../src/types";
-import { bridgeState, prepareRequest, replacementTarget } from "./production-bridge-fixture";
+import { bridgeState, installedProduction, prepareRequest, replacementTarget } from "./production-bridge-fixture";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let root: Root;
@@ -65,6 +65,37 @@ it("rechecks status as well as revision/hash and cannot enable retained evidence
   expect(button("确认投产提案").disabled).toBe(true);
   await act(async () => button("确认投产提案").click()); expect(accept).not.toHaveBeenCalled();
   expect(plotloomApi.getProductionBridge).toHaveBeenCalledTimes(2);
+});
+
+it.each(["success", "error"])("does not present cached production as current during a retained-basis %s", async outcome => {
+  const current = { ...state(), installation: installedProduction() };
+  const next = deferred<ProductionBridgeState>();
+  const get = vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValueOnce(current).mockReturnValueOnce(next.promise).mockResolvedValue(current);
+  const accept = vi.spyOn(plotloomApi, "acceptProductionBridge");
+  const prepare = vi.spyOn(plotloomApi, "prepareProductionBridge");
+  await render();
+  expect(host.querySelector('[data-testid="installed-production"]')!.textContent).toContain("当前有效");
+  await fill(field('[aria-label="画面描述 source-1 1"]'), "retained local rendering");
+  await render(basis(1, "retained"));
+  const installed = host.querySelector('[data-testid="installed-production"]')!;
+  expect(installed.textContent).toContain("制作依据尚未核实");
+  expect(installed.textContent).not.toContain("当前有效");
+  expect(installed.textContent).not.toContain("需要重建");
+  await act(async () => {
+    if (outcome === "error") next.reject(new Error("refresh failed"));
+    else next.resolve({ ...current, status: "stale", installation: installedProduction({ status: "outdated" }) });
+  });
+  expect(installed.textContent).toContain(outcome === "error" ? "制作依据尚未核实" : "分镜评审待确认");
+  expect(host.querySelector('[data-testid="production-bridge"] > header strong')!.textContent).toBe("分镜评审待确认");
+  expect(host.textContent).not.toContain("故事来源或制作版本已变化");
+  expect(installed.textContent).not.toContain("需要重建");
+  expect(field('[aria-label="画面描述 source-1 1"]').value).toBe("retained local rendering");
+  expect(button("确认投产提案").disabled).toBe(true);
+  await render(basis());
+  expect(installed.textContent).toContain("当前有效");
+  expect(field('[aria-label="画面描述 source-1 1"]').value).toBe("retained local rendering");
+  expect(get).toHaveBeenCalledTimes(3);
+  expect(accept).not.toHaveBeenCalled(); expect(prepare).not.toHaveBeenCalled();
 });
 
 it.each(["success", "error"])("contains an old %s across A-B-A and an older same-basis read", async outcome => {

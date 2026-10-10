@@ -24,7 +24,10 @@ final4bbf8c2 command-ownership/recovery delta passes1,463 Python,1,025 frontend,
 unfiltered274 browser tests and independent source/pixel review. Separate actual
 Creator stale-binding recovery after a Brief target
 change preserves authored content and restores editing without granting acceptance
-authority. Normal cutover awaits the explicit retained-demo choice; do not update
+authority. The [presentation-authority follow-up](../verification/2026-10-09-presentation-authority-qualification.md)
+adds natural provider statuses, acknowledged availability readiness and truthful
+pending-production/read-only guidance, with separate final gates and reviewed desktop pixels.
+Normal cutover awaits the explicit retained-demo choice; do not update
 the mounted normal checkout alone or add a schema adapter. The
 [Board3 continuation](../verification/2026-10-09-review-bound-bridge-and-board3-media.md)
 separates the mounted-bridge repair, fresh media and remaining acceptance. The graph/read

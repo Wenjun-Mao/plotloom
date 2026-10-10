@@ -88,6 +88,8 @@ test("Bible entity forms and archived deep link remain readable without writing 
     const inspector = page.getByTestId(`${type}-inspector`);
     await expect(inspector.getByTestId(`${type}-name`)).toHaveValue(name);
     await expect(inspector.getByTestId(`${type}-name`)).toBeDisabled();
+    await expect(page.getByTestId("bible-entity-rail")).toContainText("设定详情");
+    await expect(page.getByTestId("bible-entity-rail")).not.toContainText("设定编辑");
     await expect(page.getByRole("button", { name: "保存故事圣经", exact: true })).toBeDisabled();
     await expect(page.getByRole("button", { name: "正在保存…", exact: true })).toHaveCount(0);
     await captureControl(page, testInfo, `bible-archived-${type}-top`, inspector.locator(".field").first());

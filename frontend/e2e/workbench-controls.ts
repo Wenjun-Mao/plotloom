@@ -27,12 +27,12 @@ export async function openTechnicalDetails(page: Page): Promise<void> {
 
 async function openTechnicalDisclosure(page: Page, selector: string): Promise<void> {
   const details = page.locator(selector);
-  if (await details.getAttribute("open") === null) await details.locator("summary").first().click();
+  if (await details.getAttribute("open") === null) await details.locator(":scope > summary").click();
 }
 
 async function openMediaDisclosure(page: Page, label: string): Promise<void> {
   const details = page.locator("details.workbench-support").filter({
     has: page.getByText(label, { exact: true }),
   });
-  if (await details.getAttribute("open") === null) await details.locator("summary").first().click();
+  if (await details.getAttribute("open") === null) await details.locator(":scope > summary").click();
 }

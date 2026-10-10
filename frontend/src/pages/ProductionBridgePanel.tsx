@@ -38,17 +38,19 @@ export function ProductionBridgePanel({ projectId, reviewBasis, readOnly: ownerR
     if (onOpenShot(shotId) === false) setError("来源文字仍有未保存的编辑；请先保存或明确放弃，再打开投产镜头。");
   } : undefined;
   return <section className="panel cast-panel" data-testid="production-bridge">
-    <header><span>投产提案</span><strong>{state.status === "accepted" ? "投产提案已确认" : state.status === "stale" ? "上下文已过期" : "待确认"}</strong></header>
+    <header><span>投产提案</span><strong>{reviewBasis.status !== "current" ? "分镜评审待确认" : state.status === "accepted" ? "投产提案已确认" : state.status === "stale" ? "上下文已过期" : "待确认"}</strong></header>
     {!review.acknowledged && <div className="notice warning" role="status">{loadFailed ? "投产提案刷新失败；已显示内容与草稿保留，操作暂时停用。" : "正在核对当前分镜评审对应的投产提案；草稿保留，操作暂时停用。"}</div>}
     {loadFailed && <Button disabled={busy} onClick={retryLoad}>重试加载</Button>}
     {state.simulationLabel && <div className="notice warning" data-testid="bridge-fake-banner">{state.simulationLabel}</div>}
     <p>将已确认的故事、剧本与分镜证据整理成待审阅的投产提案。戏剧意图须单独推断或由作者填写；这里不会批准镜头、选择参考、创建资产或发起媒体任务。</p>
-    {state.status === "stale" && <div className="notice warning">故事来源或制作版本已变化。请核对当前内容，再准备新提案并重新审阅。旧提案与已有媒体仍保留；不会自动覆盖内容或生成媒体。</div>}
-    {state.installation && <InstalledProductionSummary installation={state.installation} disabled={readOnly || busy || draftConflict} canonicalReady={canonicalReady} onOpenShot={openInstalledShot} onReread={() => run(async () => state, false, false, true)} />}
+    {state.status === "stale" && <div className="notice warning">{reviewBasis.status !== "current"
+      ? "当前分镜评审尚未确认；旧提案与已有媒体仍保留。请完成分镜评审，或取消尚未确认的替换任务后重新核对。"
+      : "故事来源或制作版本已变化。请核对当前内容，再准备新提案并重新审阅。旧提案与已有媒体仍保留；不会自动覆盖内容或生成媒体。"}</div>}
+    {state.installation && <InstalledProductionSummary installation={state.installation} reviewAcknowledged={review.acknowledged} reviewBasisStatus={reviewBasis.status} disabled={readOnly || busy || draftConflict} canonicalReady={canonicalReady} onOpenShot={openInstalledShot} onReread={() => run(async () => state, false, false, true)} />}
     {canPrepare && <><Button variant="primary" disabled={readOnly || busy || localEdits || unresolvedJob || preparation.status !== "available"} onClick={() => {
       if (preparation.status === "available") run(() => plotloomApi.prepareProductionBridge(projectId, preparation.request), true, true);
     }}>{state.installation ? "准备重建提案" : proposal ? "重新准备投产提案" : "准备投产提案"}</Button>
-      {state.installation && <p>重建使用当前已确认的故事、剧本与分镜。确认后替换当前制作内容，并需要重新审核；旧媒体保留，不会自动生成或选用。</p>}
+      {state.installation && review.acknowledged && reviewBasis.status === "current" && <p>重建使用当前已确认的故事、剧本与分镜。确认后替换当前制作内容，并需要重新审核；旧媒体保留，不会自动生成或选用。</p>}
       {preparation.status === "unavailable" && <p className="action-prerequisite">当前尚不能准备提案。请核对来源、剧本与分镜评审，并等待已发起的制作任务完成。</p>}
       {proposal && <p>按当前来源新建提案，保留旧版本；戏剧意图与呈现方式需要重新审阅。{localEdits ? "请先复制所需文字，再明确放弃本地编辑。" : unresolvedJob ? "仍有执行中或结果不明的意图任务，暂不能重新准备。" : ""}</p>}
       {proposal && localEdits && <Button disabled={busy || readOnly} onClick={review.discard}>放弃本地编辑，保留已保存提案</Button>}</>}

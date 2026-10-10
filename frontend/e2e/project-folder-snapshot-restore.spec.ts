@@ -107,7 +107,11 @@ for (const viewport of [{ width: 1280, height: 768 }, { width: 1280, height: 460
       if (new URL(request.url()).pathname.startsWith("/api/v2/") && !["GET", "HEAD"].includes(request.method())) writes.push(`${request.method()} ${request.url()}`);
     });
     const status = page.locator("details.topbar-technical-status");
-    const summary = status.locator("summary");
+    const summary = status.locator(":scope > summary");
+    const diagnostics = status.locator("details").filter({
+      has: page.getByText("就绪诊断详情", { exact: true }),
+    });
+    const diagnostic = diagnostics.getByText(longReason, { exact: true });
     await page.evaluate(() => window.scrollTo(0, 500));
     expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
     expect(await page.locator(".topbar").evaluate(element => getComputedStyle(element).position)).toBe("sticky");
@@ -117,13 +121,22 @@ for (const viewport of [{ width: 1280, height: 768 }, { width: 1280, height: 460
       return bounds.top >= 0 && bounds.bottom <= innerHeight;
     })).toBe(true);
     expect(await page.locator(".topbar").evaluate(element => getComputedStyle(element).position)).toBe("relative");
+    await expect(diagnostics).not.toHaveAttribute("open");
+    await expect(diagnostic).toHaveCount(1);
+    await expect(diagnostic).toBeHidden();
+    await expect(status.locator(".badge").filter({ hasText: "API 文本服务：" })).not.toContainText(longReason);
+    await page.screenshot({ path: test.info().outputPath(`status-compact-${viewport.width}x${viewport.height}.png`) });
+    // Exact evidence is now a separate disclosure, not primary status prose.
+    // Exercise both owners without relying on descendant order or a hidden body.
+    await diagnostics.locator(":scope > summary").click();
+    await expect(diagnostics).toHaveAttribute("open", "");
     expect(await status.evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThan(viewport.height);
-    const diagnostic = status.getByText(longReason, { exact: false });
     await diagnostic.scrollIntoViewIfNeeded();
     expect(await diagnostic.evaluate(element => {
       const bounds = element.getBoundingClientRect();
       return bounds.bottom > 0 && bounds.top < innerHeight;
     })).toBe(true);
+    await page.screenshot({ path: test.info().outputPath(`status-diagnostics-${viewport.width}x${viewport.height}.png`) });
     const title = page.getByLabel("片名", { exact: true });
     await title.scrollIntoViewIfNeeded();
     expect(await title.evaluate(element => {

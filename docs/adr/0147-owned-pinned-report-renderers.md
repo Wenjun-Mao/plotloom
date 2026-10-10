@@ -4,7 +4,9 @@ Status: accepted by the owner, 2026-10-09; fork implemented, independently revie
 and published; current parent integration and software qualification complete.
 Board3 dependency rebuild and native playback are qualified, but its immutable
 Storyboard report remains frozen at the earlier266af294 pin, not native execution
-evidence for4f9b2128. See the scoped and final qualification receipts below.
+evidence for4f9b2128. The later [current-pin native report check](../verification/2026-10-09-current-pin-native-report.md)
+qualifies one real4f9b2128 delivery and its read-only presentation, then cancels
+that optional replacement without changing accepted content or media.
 
 ## Problem and ownership
 

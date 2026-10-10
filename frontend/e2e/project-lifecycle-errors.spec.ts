@@ -59,6 +59,7 @@ for (const action of ["archive", "restore"] as const) {
     try {
       await command.click();
       await expect(previousError).toBeVisible();
+      await captureDirectory(page, info, `${action}-refused`);
       await page.getByLabel("显示归档项目").uncheck();
       await page.getByLabel("显示归档项目").check();
       await expect(previousError).toBeVisible();
@@ -88,6 +89,33 @@ for (const action of ["archive", "restore"] as const) {
     } finally { release(); }
   });
 }
+
+test("a refused snapshot remains a readable failure, never a successful receipt", async ({ page, request, workbench }, info) => {
+  const target = await create(request, workbench.apiOrigin, "恢复快照失败反馈");
+  const projectUrl = `${workbench.apiOrigin}/api/v2/projects/${target.id}`;
+  const before = await (await request.get(projectUrl)).json();
+  let attempts = 0;
+  await page.route(`**/api/v2/projects/${target.id}/snapshots`, async route => {
+    attempts++;
+    await route.fulfill({ status: 503, json: { code: "snapshot_unavailable", message: "恢复快照服务暂不可用，请稍后重试。" } });
+  });
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${target.id}&stage=brief`);
+  await expect(page.getByLabel("片名")).toHaveValue(target.brief.title);
+  const command = page.getByRole("button", { name: "创建恢复快照", exact: true });
+  await command.click();
+  const error = page.getByRole("alert").filter({ hasText: "恢复快照服务暂不可用" });
+  await expect(error).toBeVisible(); await expect(command).toBeEnabled();
+  await expect(page.locator("details.topbar-snapshot-receipt")).toHaveCount(0);
+  for (const [width, height] of [[1700, 900], [1280, 768], [1280, 460]]) {
+    await page.setViewportSize({ width, height });
+    await expect(error).toBeInViewport();
+    await page.screenshot({ path: info.outputPath(`snapshot-refused-${width}x${height}.png`) });
+  }
+  await page.getByRole("button", { name: "关闭错误", exact: true }).click();
+  await expect(error).toHaveCount(0); await expect(command).toBeEnabled();
+  expect(attempts).toBe(1);
+  expect(await (await request.get(projectUrl)).json()).toEqual(before);
+});
 
 test("only a confirmed delete retry clears its previous error and erases its disposable target", async ({ page, request, workbench }, info) => {
   const target = await create(request, workbench.apiOrigin, "删除重试目标");

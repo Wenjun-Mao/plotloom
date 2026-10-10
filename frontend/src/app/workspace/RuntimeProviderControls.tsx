@@ -1,7 +1,7 @@
 import { Badge, Button } from "../../components";
-import { formatUiTimestamp } from "../../ui-time";
 import type { TextProviderProfilesResponse } from "../../types";
 import type { useRuntimeCapabilities } from "./useRuntimeCapabilities";
+import { ReadinessDiagnostics, readinessPresentation } from "./TextBackendReadiness";
 
 type CapabilityRead = ReturnType<typeof useRuntimeCapabilities>;
 
@@ -23,8 +23,7 @@ export function RuntimeTextStatus({ capability, catalog, loaded }: {
   const active = loaded ? catalog.profiles.find(profile => profile.profileId === catalog.activeProfileId) : undefined;
   if (!active) return <Badge tone="warning">API 文本供应商：配置尚未读入</Badge>;
   const readiness = active.readiness;
-  return <Badge tone={readiness?.state === "available" ? "ok" : ["unreachable", "authentication_failed", "model_mismatch", "capability_mismatch"].includes(readiness?.state || "unverified") ? "danger" : "warning"}>
-    文本后端：{readiness?.state || "unverified"} · {active.profileId} · {readiness?.reasonCode || "readiness.not_checked"}
-    {readiness?.observedAt ? ` · ${formatUiTimestamp(readiness.observedAt)}` : " · 未检测"}
-  </Badge>;
+  return <><Badge tone={readinessPresentation(readiness.state).tone}>
+    API 文本服务：{readinessPresentation(readiness.state).label} · {active.displayName}
+  </Badge><ReadinessDiagnostics readiness={readiness} /></>;
 }

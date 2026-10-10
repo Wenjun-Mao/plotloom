@@ -2,17 +2,25 @@ import { Button } from "../components";
 import { StageGuide } from "../components/StageGuide";
 import { bridgeCut } from "../production-bridge-handoff";
 import type { InstalledProduction } from "../types";
+import type { BridgeReviewBasis } from "./useProductionBridgeReview";
 
 /** Shot navigation is owned by the installed receipt, never the latest candidate. */
-export function InstalledProductionSummary({ installation, disabled, canonicalReady, onOpenShot, onReread }: {
+export function InstalledProductionSummary({ installation, reviewAcknowledged, reviewBasisStatus, disabled, canonicalReady, onOpenShot, onReread }: {
   installation: InstalledProduction; disabled: boolean; canonicalReady: boolean;
+  reviewAcknowledged: boolean; reviewBasisStatus: BridgeReviewBasis["status"];
   onOpenShot?: (shotId: string) => void; onReread: () => void;
 }) {
-  const current = installation.status === "current" && installation.staleReasons.length === 0;
+  const basisCurrent = reviewBasisStatus === "current";
+  const current = reviewAcknowledged && basisCurrent && installation.status === "current" && installation.staleReasons.length === 0;
+  const status = !reviewAcknowledged ? "制作依据尚未核实" : !basisCurrent ? "分镜评审待确认" : current ? "当前有效" : "需要重建";
   const firstCut = installation.cuts.map(bridgeCut).find(cut => cut !== undefined);
   return <section data-testid="installed-production">
-    <strong>已建立的制作内容 · {current ? "当前有效" : "需要重建"}</strong>
-    <p>{current
+    <strong>已建立的制作内容 · {status}</strong>
+    <p>{!reviewAcknowledged
+      ? "已有制作内容和媒体仍保留。当前制作依据尚未读入或核实；这里的镜头直达暂时停用，请等待核对完成或重试读取。"
+      : !basisCurrent
+      ? "当前分镜评审尚未确认，已有制作内容和媒体仍保留。请先完成分镜评审；若只是尚未确认的替换任务，可取消后重新核对。这里的镜头直达暂时停用。"
+      : current
       ? "此处展示已确认的制作内容。新的待审提案不会替换它；是否可播放仍取决于当前审核和选用的视频片段。"
       : "故事或制作版本已变化。旧内容与媒体仍保留，故事播放暂停；请核对当前内容，准备重建提案并重新审核。这里的镜头直达已暂停。"}</p>
     <details><summary>已建立的场次与镜头</summary><ul>{installation.cuts.map((raw, index) => {

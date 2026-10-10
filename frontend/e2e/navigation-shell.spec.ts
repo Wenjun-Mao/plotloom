@@ -10,7 +10,7 @@ test.describe("M1-B0 query navigation shell", () => {
     await expect(page.getByRole("heading", { name: "故事圣经" })).toBeVisible();
     // Opening a different workspace owner clears project-scoped selection.
     await expect(page).toHaveURL(/stage=bible$/);
-    await page.getByRole("button", { name: "编辑此角色" }).first().click();
+    await page.getByRole("button", { name: "查看此角色" }).first().click();
     await expect(page).toHaveURL(/stage=bible.*entity=bible%3Acharacter%3Achar_ruanxing/);
     await expect(page.getByText("char_ruanxing", { exact: true })).toBeVisible();
 

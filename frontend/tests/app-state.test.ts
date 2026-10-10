@@ -167,7 +167,7 @@ describe("App project/editor rehydration", () => {
     window.history.replaceState(null, "", "/?stage=bible");
     await renderSample(root);
 
-    await act(async () => button("编辑此角色").click());
+    await act(async () => button("查看此角色").click());
     expect(new URLSearchParams(window.location.search).get("entity")).toBe("bible:character:char_ruanxing");
   });
 

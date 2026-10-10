@@ -339,7 +339,7 @@ export function StoryBiblePage({
                   data-testid={`select-${type}-${entity.id}`}
                   onClick={() => selectEntity({ type, id: entity.id })}
                 >
-                  编辑此
+                  查看此
                   {type === "character"
                     ? "角色"
                     : type === "location"
@@ -355,7 +355,7 @@ export function StoryBiblePage({
         <Panel className="form-card" data-testid="bible-entity-rail">
           <div className="section-bar">
             <div>
-              <span className="eyebrow">设定编辑</span>
+              <span className="eyebrow">设定详情</span>
               <h2>
                 {selection.type === "character"
                   ? "角色设定"
