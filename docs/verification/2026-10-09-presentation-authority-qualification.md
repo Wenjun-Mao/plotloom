@@ -7,8 +7,9 @@ for the explicitly unobserved states and capability boundaries in the
 
 ## Candidate and root causes
 
-Backend/application base `4bbf8c2`; source checkpoint `ab441eb` plus the reviewed
-frontend-only delta, branch `codex/one-current-story-rebuild`, worktree
+Backend/application base `4bbf8c2`; reviewed frontend/test checkpoint
+`2a9364947240d5da9e8d94ae674ae37aab2e8780`, published only on branch
+`codex/one-current-story-rebuild`, worktree
 `/private/tmp/plotloom-one-story-rebuild.gfnqlc`. No Python contract, database,
 generation pin or admission predicate changes in this delta.
 
@@ -74,8 +75,11 @@ equal, retry becomes available and Close only clears the error.
   Output `/private/tmp/plotloom-presentation-disclosure-qualified-browser-20261009`.
   Existing geometry, title hit-testing, close/reopen, overflow and zero-write
   assertions remain; closed natural status and nested diagnostic checks are added.
-- A fresh unfiltered276-test gate is running on the final frozen inputs; its
-  result must be recorded before full qualification. Output
+- The fresh unfiltered gate passes **276 tests in15.0 minutes**, two workers,
+  no retries, exit0. Product/test inputs remained identical to published
+  `2a93649` throughout and were checked again after completion. This qualifies
+  the full local browser suite, not the pending exact-head CI or all native/UI
+  permutations. Output
   `/private/tmp/plotloom-ui-presentation-qualified-full-browser-20261009`.
 - Wheel build and installed-wheel smoke pass outside the source checkout;
   packaged `plotloom/static/workbench.js` matches the final served/file hash below.
@@ -85,8 +89,13 @@ Existing base CI [38000995714](https://github.com/Wenjun-Mao/plotloom/actions/ru
 is completed SUCCESS at exact `ef162100c8d7e2191908ee7a142ac2f4f6652646`:
 1,464 Python,1,025 frontend and274 browser checks (142+132) pass. It includes one
 additional CI regression test relative to the1,463 local base gate. It does
-**not** qualify the later frontend delta. The later delta's publication and exact-head
-CI must be tracked separately; that exact-head CI has not yet been dispatched.
+**not** qualify the later frontend delta. Its exact-head full CI
+[38009336409](https://github.com/Wenjun-Mao/plotloom/actions/runs/38009336409)
+was dispatched once at `2026-10-10T00:30:21Z` for exact
+`2a9364947240d5da9e8d94ae674ae37aab2e8780`, with unfiltered `browser_grep=.*`.
+It is in progress, not PASS. This is candidate-branch publication, not a normal
+checkout merge or service cutover; later receipt-only commits do not alter its
+executable/test inputs.
 The previous cancellation and reported repo-wide420 existing lint findings are
 not converted into PASS; only the established scoped lint gate passed.
 
@@ -123,9 +132,11 @@ equal to their desktop viewports. A first helper attempted a nonexistent nested
 header selector after capturing1700; its timeout is not a PASS. The corrected
 direct-strong selector completes all three frames; no runtime workaround.
 
-Fresh readback `presentation-reviewed-readback.json`, timestamp
-`2026-10-10T00:11:34.402Z`, is deep-equal to the settled r12 baseline for all eight
+Post-publication readback `presentation-published-readback.json`, timestamp
+`2026-10-10T00:36:30.000Z`, is deep-equal to the settled r12 baseline for all eight
 content/media endpoint projections, all58 asset hashes and four selected records.
+It repeats the earlier reviewed readback at `2026-10-10T00:11:34.402Z` without
+changing the disposable project's state.
 QA project `90c0f895-48de-4b57-8725-4b6f72797633` remains revision2/lifecycle9 active.
 No new job, acceptance, rebuild or media selection was dispatched in this delta.
 The optional current-pin native report delivery/cancellation is separately
