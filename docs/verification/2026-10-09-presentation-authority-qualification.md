@@ -9,8 +9,9 @@ smoke; its [receipt](2026-10-10-testing-health-cleanup.md) owns the exact frozen
 inputs and retained failures. Exact hosted qualification at `0b71359` is PASS:
 1,469 Python, 1,047 frontend and 278 browser cases, no flaky/skipped browser results
 ([CI38024405822](https://github.com/Wenjun-Mao/plotloom/actions/runs/38024405822));
-normal cutover remains pending in the
-[run profile](../roadmap/2026-10-07-full-creator-e2e-repeat.md).
+the later owner-authorized [normal cutover](2026-10-10-normal-cutover.md) now closes
+required main publication/activation. Dated pending statements below describe
+the earlier checkpoint, not the current operational status.
 
 ## Candidate and root causes
 
@@ -175,7 +176,7 @@ Current dispositions remain:
 | Scene/Prop downstream production consumption | Absent consumer/capability boundary; gallery/reference evidence does not prove production consumption; product expansion needs authority |
 | Configured API intent | Unconfigured; native intent is separately qualified, not an API fallback or configuration PASS |
 | Populated native Cast relationships | Optional native evidence variant not exercised; the four-role relationship fixture remains fixture evidence. This is not an absent-capability claim or a reason to generate more content solely for counts |
-| Normal activation | Pending retained-demo/cutover choice; no mounted-checkout-only update, owner reset or schema adapter |
+| Normal activation | Completed in the later [cutover receipt](2026-10-10-normal-cutover.md): owner-authorized intact retirement, matched backend/frontend and healthy8841; no reset or adapter |
 | Creative/audible/perceptual quality | Explicitly excluded from this technical run |
 | Exact-executable CI | Current `0b71359` workflow SUCCESS on attempt 1: 1,469 Python, 1,047 frontend and 278 browser PASS (122/156), no flaky/skipped results. The historical `2a93649` run's first failure remains preserved above; [the owning fixture repair](2026-10-09-owned-browser-listeners.md) is covered by this final gate. |
 

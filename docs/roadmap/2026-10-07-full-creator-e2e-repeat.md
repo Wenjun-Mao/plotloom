@@ -21,16 +21,19 @@ the earlier regressions and exact input boundary. Executable/test revision
 [CI38024405822](https://github.com/Wenjun-Mao/plotloom/actions/runs/38024405822)
 completed SUCCESS on attempt 1: 1,469 Python, 1,047 frontend and 278 unfiltered
 browser cases (122/156, no flaky/skipped results), plus types/build/parity/wheel/smoke.
-Normal cutover still needs the retained-demo choice. Creative/media quality,
-a new Scene/Prop downstream consumer,
+The owner authorized intact retirement of the two older demos and activation on
+October10. Required main publication and healthy normal8841 activation are now
+verified in the [cutover receipt](../verification/2026-10-10-normal-cutover.md).
+Creative/media quality, a new Scene/Prop downstream consumer,
 configured API intent and optional populated native relationships are not claimed.
 
 The final independent completion audit found no other concrete unmet requirement
 in the planned native journey or finite E22 pass. Hosted qualification is PASS.
-`AGENTS.md` also requires main publication by default: isolated-branch
-publication does not satisfy that requirement. The stopping condition permits a
-gated handoff, not a claim that the whole goal is complete. Main/normal cutover
-still needs the retained-demo decision; do not infer reset or adapter authority.
+`AGENTS.md` also requires main publication by default; that requirement is now
+satisfied. The authorized folder retirement preserved old files without migration,
+reset or adapter, and normal's fresh-project save/draft/mode/close/reopen smoke passes.
+The scoped technical run and cleanup can now close; quality and owner creative
+acceptance remain separate, not implied by these software/functional results.
 
 ## Reusable playbook and current continuation profile
 

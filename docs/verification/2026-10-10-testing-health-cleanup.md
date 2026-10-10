@@ -412,3 +412,7 @@ Exact hosted verify and both unfiltered browser jobs are terminal PASS.
 Main publication is also required by default and remains unexecuted; the gated
 stopping condition does not waive it. Normal cutover needs the retained-demo
 decision. Neither branch publication nor later CI PASS alone completes the goal.
+
+The later [owner-authorized October10 cutover](2026-10-10-normal-cutover.md)
+supersedes that pending boundary: main is published and normal8841 activated with
+intact retirement and fresh-project smoke verified. No executable/test input delta.

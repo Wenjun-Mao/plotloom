@@ -4,11 +4,11 @@ The owner adopted a reusable [creator lifecycle acceptance playbook](../creative
 on October7: Create → Revise → Recover, with one tailored run profile and one dated
 evidence ledger per major update. The existing C/P/E checks remain the acceptance
 authority; prior evidence is not copied into new PASS claims. The
-[current run profile](2026-10-07-full-creator-e2e-repeat.md) records outstanding media
-coverage and the revision/rebuild and intent-generation prerequisites. The
-owner-approved one-current-story rebuild is implemented in an isolated candidate;
-[qualification](../verification/2026-10-08-current-story-rebuild.md) separates its
-software/browser results from the still-open native revision run.
+[current run profile](2026-10-07-full-creator-e2e-repeat.md) reconciles the completed
+named technical journey and its explicit capability/quality exclusions. The
+owner-approved one-current-story rebuild, native intent generation and revised/
+restored routes are qualified by the later receipts below; earlier isolated
+[qualification](../verification/2026-10-08-current-story-rebuild.md) remains dated evidence.
 Playbook adoption is documentation/planning approval, not dispatch or implementation
 authority. The later [Board3 recovery/final-candidate receipt](../verification/2026-10-09-board3-recovery-and-final-qualification.md)
 qualifies both revised/restored native routes, source lifecycle/idle restart and
@@ -19,14 +19,18 @@ cancelled replacement; it also records an old-loaded-browser provenance correcti
 The [presentation-authority follow-up](../verification/2026-10-09-presentation-authority-qualification.md)
 closes provider/readiness, retained-production and read-only Bible wording findings;
 fresh software qualification/publication are tracked there separately from the base CI.
-The overall run remains PARTIAL for explicitly unobserved E22/capability boundaries; this is not
-creative/media acceptance or blanket whole-product coverage.
+The finite E22 pass, named native lifecycle run and focused testing cleanup are
+qualified. The [October10 cutover](../verification/2026-10-10-normal-cutover.md)
+closes required main publication and normal8841 activation after the owner authorized
+intact retirement of two older demos. The scoped technical run is complete, not
+creative/media acceptance or blanket whole-product/capability coverage.
 
 The owner has added a focused [testing-health cleanup](2026-10-10-testing-health-cleanup.md)
 to the active E2E goal: reduce repeated setup, balance browser work, use narrower
 fixtures for UI-only checks and split oversized test modules without weakening
-supported coverage. Its implementation and fresh combined qualification are
-required before goal completion; the audit alone is not completion.
+supported coverage. Its [completed combined qualification](../verification/2026-10-10-testing-health-cleanup.md)
+includes exact hosted verify and both unfiltered browser shards; the audit alone
+was not completion.
 
 The owner requested a dedicated whole-product visual-and-text pass on October8,
 including “weird wording.” It is now mandatory E22 in the reusable playbook,
