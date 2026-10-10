@@ -5,7 +5,7 @@ hosted qualified and published on the isolated branch. This receipt retains
 baseline and failed attempts separately from the corrected combined gate. Normal
 cutover is not authorized by this performance follow-up.
 
-## Performance follow-up P0–P4 (local qualification complete; hosted pending)
+## Performance follow-up P0–P4 (local and hosted qualification complete)
 
 ### P0 — same-host baseline and safety map
 
@@ -127,7 +127,8 @@ The workflow test also rejects job/step-level `continue-on-error` and limits
 step conditions to the two report uploads, each using `${{ !cancelled() }}`.
 A read-only review found that this step-level guard was initially missing; the
 test was strengthened, 62 focused tests and Ruff passed, and the reviewer
-confirmed the follow-up. No hosted workflow has been dispatched yet.
+confirmed the follow-up. The sole unfiltered hosted run passed; see the result
+record below.
 
 ### P4 — repeated measurements, review and local qualification
 
@@ -175,9 +176,37 @@ unsharded Playwright cases, wheel build and installed-wheel smoke. Python took
 320.90s; Playwright took392.242s. One existing Starlette deprecation warning
 appeared. Complete log: `/tmp/plotloom-p4-full-qualified-20261010.log`.
 
-Still pending: scoped main publication after a fresh remote-divergence check,
-then one exact-head default-unfiltered hosted workflow. Normal runtime status
-and owner project/service state have not been changed.
+### Hosted qualification
+
+One default-unfiltered `workflow_dispatch` run was made after publication:
+[main CI run 38081918996](https://github.com/Wenjun-Mao/plotloom/actions/runs/38081918996).
+It tested exact head `b47e8d7952fc21ba38ceb90f28f35b858255e2b2` on branch `main`
+with `browser_grep='.*'`, and concluded `success`. The verify job and both
+browser jobs all started at 19:58:58Z on the same SHA, proving actual overlap.
+Verify passed at 20:14:07Z in 15m09s. Browser shard 1 passed **122/122** cases
+in 27.9m and its job completed at 20:28:04Z; shard 2 passed **156/156** in
+30.3m and completed at 20:30:26Z. The manifest check had already confirmed 84
+specs and exactly 278 selected cases split 122/156 with no overlap or omissions.
+The two test logs contain no failure, flaky or retry entries.
+
+The workflow run interval was 19:58:55Z–20:30:27Z: **31m32s total**, including
+about 3s from dispatch creation to first job start. Browser setup finished at
+19:59:51Z/19:59:54Z (53/56s after their job starts). The Playwright steps
+reported 27.9m/30.3m separately from setup and uploads. This meets the planned
+under-40m hosted target versus the historical 59.5m total, but that is not a
+controlled same-runner comparison. The local unsharded Playwright suite took
+392.242s; the hosted single-worker shards took 27.9m/30.3m on different
+runners/configuration, so this is not causal speedup evidence.
+
+Both shard test-result and HTML-report artifacts were uploaded and are available
+from the run. GitHub annotations were nonblocking: the current actions declare
+Node.js 20 but were forced onto Node.js 24, and `ubuntu-latest` is scheduled to
+move to Ubuntu 26 beginning October 19, 2026. All hosted gates passed.
+
+The P0–P4 change was published on `main` and `origin/main` at
+`b47e8d7952fc21ba38ceb90f28f35b858255e2b2`; the worktree was clean after push.
+No normal runtime restart/cutover or owner project/database/service state change
+was made. Product/creative acceptance was not part of this engineering pass.
 
 After the P2/P3 edits, the preselected six-case bridge/rebuild integration
 selection passed 6/6 in 8.89s pytest time (12.975s including the focused selector

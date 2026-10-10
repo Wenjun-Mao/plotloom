@@ -7,13 +7,16 @@ mapping are recorded in the receipt; the P1 cache probe passed the fixed pair
 and additional family. P2's three verification tiers and P3's independent
 same-SHA hosted jobs are implemented, with focused guards and the selected
 production integration family passing. P4's final benchmark, profile,
-independent review and full local qualification are complete. Scoped main
-publication and the one unfiltered hosted qualification remain pending.
+independent reviews and full local qualification are complete. The scoped
+source commit is published on `main`, and the one exact-head, unfiltered hosted
+qualification passed all three jobs. This follow-up leaves the running
+application baseline unchanged and does not authorize activation.
 The original cleanup supported the
 [Create → Revise → Recover run](2026-10-07-full-creator-e2e-repeat.md), not a
 replacement acceptance checklist. That technical run and normal cutover are
 now complete; the running application baseline remains frozen for owner use.
-Use one source writer and read-only independent review for the proposed follow-up.
+The approved follow-up used one source writer and bounded read-only independent
+review.
 The owner's prior preference is GPT-6 Luna / Max for bounded implementation;
 effective host settings require confirmation at dispatch. No normal cutover,
 protected settings change or native generation is added by this plan.
@@ -160,13 +163,15 @@ Do not launch a full suite just to repeat the known diagnosis.
 P0 is complete: the approved pair and preselected four-case additional family
 each have three serial unprofiled same-host samples and a separate pair profile.
 The exact IDs, toolchain, timings, Node startup counts and dependency/safety map
-are recorded in the [receipt](../verification/2026-10-10-testing-health-cleanup.md#performance-follow-up-p0p4-local-qualification-complete-hosted-pending).
+are recorded in the [receipt](../verification/2026-10-10-testing-health-cleanup.md#performance-follow-up-p0p4-local-and-hosted-qualification-complete).
 
 The first P1 probe is materially faster on both fixed selections: the pair median
 fell from46.964s to4.304s, and the four-case family from49.575s to5.347s, with
 all samples passing. This unlocks the bounded P2/P3 work; P4 has completed its
-stable-candidate benchmarks, independent reviews and full local qualification.
-Scoped main publication and unfiltered hosted qualification remain.
+stable-candidate benchmarks, independent reviews, full local qualification,
+scoped main publication and the one unfiltered hosted qualification. No normal
+runtime activation is authorized; the running baseline remains available for
+owner use.
 
 **P1 — Remove repeated pure style derivation at its shared owner.**
 Inspect `src/plotloom/cast_style.py`, `art_style.py`, the two `scripts/*-style.mjs`
@@ -249,7 +254,7 @@ P3 is implemented: verify and browser checkouts explicitly use `${{ github.sha }
 the browser job has no `needs: verify` dependency. The workflow contract test
 guards independent same-SHA jobs, required job completion, step failure handling,
 the two existing browser groups, and report-upload-only conditions. The hosted
-workflow has not yet been dispatched.
+workflow passed in the one unfiltered, exact-SHA run recorded under P4.
 
 **P4 — Measure, independently review and qualify one stable candidate.**
 Repeat P0's unprofiled samples on the same host, toolchain and isolation conditions.
@@ -300,8 +305,31 @@ preserved earlier failure trace are detailed in the receipt.
 
 The stable candidate has completed two read-only reviews: the Playwright
 failure-state synchronization was cleared, and the full P0–P4 diff had no
-runtime blockers after the step-condition guard follow-up. Scoped main
-publication and one exact-head, default-unfiltered hosted workflow remain.
+runtime blockers after the step-condition guard follow-up. The scoped source
+commit and one exact-head, default-unfiltered hosted workflow are complete.
+
+The single hosted run [38081918996](https://github.com/Wenjun-Mao/plotloom/actions/runs/38081918996)
+used `workflow_dispatch` with `browser_grep='.*'` on
+`b47e8d7952fc21ba38ceb90f28f35b858255e2b2`; it concluded successfully. All
+three jobs started at 19:58:58Z, confirming real overlap. The verify job passed
+at 20:14:07Z (15m09s); browser shard 1 passed all 122 cases in 27.9m and
+finished at 20:28:04Z; shard 2 passed all 156 cases in 30.3m and finished at
+20:30:26Z. The manifest guard reported 84 specs and exactly 278 cases split
+122/156 with no overlap or omissions. No failures, flakes or retries appeared.
+The API run interval was 19:58:55Z–20:30:27Z (31m32s total), under the planned
+40-minute target; dispatch-to-first-job was 3s, browser setup was 53–56s, and
+the Playwright durations are reported separately above. All jobs completed on
+the same SHA.
+
+The local full Playwright suite took 392.242s (6m32s) on the M5 Pro, while the
+hosted single-worker shards took 27.9m and 30.3m. This runner-to-runner,
+unsharded-to-sharded comparison is not controlled evidence of a causal speed
+change. The 31m32s hosted total meets the under-40m target against the recorded
+historical 59.5m run, but that historical comparison is also not controlled.
+Both shard result and HTML report artifacts were uploaded by the run. GitHub
+reported nonblocking Node.js 20 action deprecation warnings (the actions were
+forced to Node.js 24) and the upcoming `ubuntu-latest` migration to Ubuntu 26
+on October 19, 2026; all gates still passed.
 
 Report controlled micro/family improvements separately from historical full-suite
 comparisons. Hosted acceptance must show actual job overlap, all gates passing,

@@ -39,10 +39,13 @@ overlap. The owner approved P0–P4 through Relay Direct on October10. P0's
 same-host baseline and safety map are recorded; the P1 cache probe passed its
 fixed pair and additional family. P2's three local verification tiers and P3's
 independent same-SHA hosted jobs are implemented with focused guards passing.
-P4's final benchmark, independent review and full local qualification are
-complete; scoped main publication and the one unfiltered hosted qualification
-remain. No normal activation is authorized, and the completed running baseline
-remains frozen for owner use.
+P4's final benchmark, independent reviews, full local qualification, scoped
+main publication and the one exact-head unfiltered hosted qualification are
+complete. Hosted verify and both browser shards passed in 31m32s total; the
+[receipt](../verification/2026-10-10-testing-health-cleanup.md#hosted-qualification)
+records job overlap, exact counts, timings and nonblocking runner warnings. No
+normal activation is authorized, and the completed running baseline remains
+frozen for owner use.
 
 The owner requested a dedicated whole-product visual-and-text pass on October8,
 including “weird wording.” It is now mandatory E22 in the reusable playbook,
