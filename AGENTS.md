@@ -9,7 +9,18 @@
 - Preserve the extraction boundary: production code must not import or read Narrative Forge V1 runtime paths or data.
 - Record durable changes to public APIs, prompt/schema contracts, persistence, runtime behavior, or workflow semantics as concise ADRs.
 - Keep generated frontend assets in `src/plotloom/static/` fresh whenever `frontend/` changes.
-- Use `uv` and checked lockfiles. Run focused checks during edits and broader required gates on stable candidates, proportional to risk; repeat only when changes or evidence justify it.
+- Use `uv` and checked lockfiles. Follow the development-verification policy below.
+
+## Development verification (required)
+
+- During development, use `quick` for general feedback and `focused` for the behavior affected by the change. Reserve `full` for the stable final release candidate; do not run it, or an equivalent collection of all release gates, after each edit or routine review.
+- **Quick:** `uv run --locked --no-sync python scripts/verify.py quick`. This is fast feedback, not backend, browser or release acceptance.
+- **Focused:** `uv run --locked --no-sync python scripts/verify.py focused` with explicit `--pytest`, `--vitest` and/or `--playwright` selectors. Choose cases from the changed contract and its affected consumers, including regression checks; the runner does not infer coverage from changed files.
+- **Final release gate:** `uv run --locked --no-sync python scripts/verify.py full`. Run the complete, unfiltered required gates on the final executable candidate; quick/focused passes never replace this qualification or required hosted CI.
+- Coordinate one owner for full qualification. Reviewers and other agents should reuse valid evidence for an unchanged executable candidate and run focused checks where needed, rather than duplicate full runs. Repeat full qualification only when material changes invalidate that evidence or a diagnosed failure requires requalification; state the reason.
+- If a check fails, diagnose the cause and iterate with the smallest relevant checks before returning to the final gate. Do not bypass failures, weaken assertions or shrink release coverage to save time.
+- For documentation-only edits that do not affect executable behavior, check the diff and consistency of documented commands; do not manually rerun the full suite solely for those edits.
+- Report the tier, explicit selections, results, qualified revision and remaining gaps. See `docs/development.md` for prerequisites, command examples and the gates included in each tier.
 
 ## Bounded delivery
 
