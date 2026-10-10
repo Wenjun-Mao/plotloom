@@ -1,7 +1,7 @@
 # Testing health cleanup
 
-Status: implemented, independently reviewed, locally qualified and published;
-exact hosted qualification is running. This receipt retains baseline and failed attempts
+Status: implemented, independently reviewed, locally/hosted qualified and published
+on the isolated branch. This receipt retains baseline and failed attempts
 separately from the corrected combined gate. Normal cutover is not authorized here.
 
 ## Baseline and scope
@@ -337,7 +337,7 @@ selection. Normal checkout remains clean and its checked JS is still
 `3a8843193da3df6852f8b12731e33c90961dbe1339a9882b30fb2e03290555d5`;
 the candidate JS remains
 `0a4fd0e721b819da4ffec7d946e0af8f7c9ae3a90e9c4d473972951ac3ace160`.
-Exact hosted qualification is running; normal/main cutover still requires
+Exact hosted qualification is now PASS; normal/main cutover still requires
 the separately requested retained-demo choice. No schema adapter or owner reset.
 
 ### Publication hygiene delta
@@ -374,9 +374,32 @@ at that exact SHA. Remote `main` remains `7d79d18b502746ba42642befce8e4510172949
 One unfiltered `browser_grep=.*` dispatch created
 [CI38024405822](https://github.com/Wenjun-Mao/plotloom/actions/runs/38024405822)
 at `2026-10-10T04:32:06Z`, event `workflow_dispatch`, exact `headSha=0b713599…`.
-Verify job `114132052924` started at04:32:10UTC and is in progress; both browser
-jobs follow verify. Queue/dispatch and early setup success are not final CI PASS.
+Verify job `114132052924` ran 04:32:10–05:06:32 UTC and completed SUCCESS.
+Its actual completed-job log records 1,469 Python PASS /one existing Starlette
+warning in 1,930.78s and 1,047 frontend PASS /132 files in 59.01s. Types, archived
+prompt verification, build/checked-bundle parity, wheel and installed smoke pass.
+Both browser jobs started 05:06:34 UTC. Job `114137988779` completed SUCCESS at
+05:27:59 UTC: 122 PASS in 20.5m. Job `114137988824` completed SUCCESS at 05:31:37 UTC:
+156 PASS in 24.0m. Both actual logs show one worker, unfiltered `--grep=.*`, the
+84-spec/278-case exact-union allocation guard and no flaky/failed/skipped summary
+or retry execution. The workflow completed SUCCESS at 05:31:38 UTC, attempt 1.
+The Playwright-reported durations changed from 34.6/17.9m to 20.5/24.0m; the
+imbalance is smaller and the observed test critical path is 10.6m shorter. These
+are test-reported durations, not complete job elapsed times. This single
+hosted sample is not a guaranteed speedup or causal production-setup benchmark.
+Completed-job logs are read through `gh api .../actions/jobs/<id>/logs` with its
+documented `--allow-escape-sequences` flag and ANSI stripping. That flag is not a
+`gh run view` option; run-level log retrieval is unavailable before run completion.
+The existing chunk/Starlette warnings and runner/action/uv-version notices remain
+visible; none is converted to a failed check or attributed to a measured speedup.
 No duplicate run, normal activation, main merge or protected-data mutation.
+
+A final read-only native comparison at 05:31:40.502 UTC matches all eight endpoint
+projections, 58 freshly hashed assets and four selected records, with zero differing
+endpoints, r2/lifecycle9 active. Artifact:
+`/private/tmp/plotloom-hosted-final-readback.koIYIm/readback.json`.
+Normal main/origin remain `7d79d18`; its checkout is clean. No generation, review,
+selection, lifecycle or owner-data write was performed by this final comparison.
 
 ### Completion audit and delivery boundary
 
@@ -385,7 +408,7 @@ restored playback, recovery, finite whole-product E22 and this cleanup against t
 current plan and owning evidence. It found no additional concrete unmet scoped
 check; this is evidence review, not a new test execution or all-frame pixel pass.
 Root rechecked the full-gate terminal results and current plan/AGENTS instructions.
-Exact hosted verify and both unfiltered browser jobs still need terminal PASS.
+Exact hosted verify and both unfiltered browser jobs are terminal PASS.
 Main publication is also required by default and remains unexecuted; the gated
 stopping condition does not waive it. Normal cutover needs the retained-demo
 decision. Neither branch publication nor later CI PASS alone completes the goal.

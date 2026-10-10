@@ -19,14 +19,15 @@ combined local gate passes1,469 Python (unchanged-input reuse),1,047 frontend an
 the earlier regressions and exact input boundary. Executable/test revision
 `0b71359` is published on the isolated branch; exact unfiltered
 [CI38024405822](https://github.com/Wenjun-Mao/plotloom/actions/runs/38024405822)
-is running, not yet PASS.
+completed SUCCESS on attempt 1: 1,469 Python, 1,047 frontend and 278 unfiltered
+browser cases (122/156, no flaky/skipped results), plus types/build/parity/wheel/smoke.
 Normal cutover still needs the retained-demo choice. Creative/media quality,
 a new Scene/Prop downstream consumer,
 configured API intent and optional populated native relationships are not claimed.
 
 The final independent completion audit found no other concrete unmet requirement
-in the planned native journey or finite E22 pass. Hosted qualification remains
-pending. `AGENTS.md` also requires main publication by default: isolated-branch
+in the planned native journey or finite E22 pass. Hosted qualification is PASS.
+`AGENTS.md` also requires main publication by default: isolated-branch
 publication does not satisfy that requirement. The stopping condition permits a
 gated handoff, not a claim that the whole goal is complete. Main/normal cutover
 still needs the retained-demo decision; do not infer reset or adapter authority.

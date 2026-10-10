@@ -6,7 +6,8 @@ qualified, not every possible state permutation or creative/media quality.
 The combined test-harness cleanup gate now passes1,469 Python (bounded reuse),
 1,047 frontend and278 unfiltered browser cases, plus types/build/wheel/installed
 smoke; its [receipt](2026-10-10-testing-health-cleanup.md) owns the exact frozen
-inputs and retained failures. Exact hosted qualification at0b71359 is running
+inputs and retained failures. Exact hosted qualification at `0b71359` is PASS:
+1,469 Python, 1,047 frontend and 278 browser cases, no flaky/skipped browser results
 ([CI38024405822](https://github.com/Wenjun-Mao/plotloom/actions/runs/38024405822));
 normal cutover remains pending in the
 [run profile](../roadmap/2026-10-07-full-creator-e2e-repeat.md).
@@ -176,7 +177,7 @@ Current dispositions remain:
 | Populated native Cast relationships | Optional native evidence variant not exercised; the four-role relationship fixture remains fixture evidence. This is not an absent-capability claim or a reason to generate more content solely for counts |
 | Normal activation | Pending retained-demo/cutover choice; no mounted-checkout-only update, owner reset or schema adapter |
 | Creative/audible/perceptual quality | Explicitly excluded from this technical run |
-| Exact-executable CI | Existing2a93649 workflow SUCCESS; verify PASS, browser aggregate275PASS/1flaky across276tests. Shard1 is clean143PASS; shard2's first failure is proved duplicate fixture-port allocation. No clean first-pass claim. [Owning fixture repair](2026-10-09-owned-browser-listeners.md) is separately qualifying. |
+| Exact-executable CI | Current `0b71359` workflow SUCCESS on attempt 1: 1,469 Python, 1,047 frontend and 278 browser PASS (122/156), no flaky/skipped results. The historical `2a93649` run's first failure remains preserved above; [the owning fixture repair](2026-10-09-owned-browser-listeners.md) is covered by this final gate. |
 
 ### First stale lower-action closure
 
@@ -233,6 +234,6 @@ downstream consumption is a new capability boundary; API intent is unconfigured
 and not a native fallback; populated native relationships are an unexercised
 optional variant. Generic active API Trace is not applicable to the native-only
 composition. These dispositions do not claim their execution. Creative, audible
-and perceptual quality remain excluded. Required remaining work is exact hosted
-qualification and the separately authorized normal cutover—not indefinitely
+and perceptual quality remain excluded. Exact hosted qualification is PASS;
+required remaining delivery is the separately authorized main/normal cutover—not indefinitely
 enumerating hypothetical state permutations.
