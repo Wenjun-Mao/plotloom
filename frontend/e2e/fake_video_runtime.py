@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import argparse
+import json
 import os
 import sys
 
@@ -11,36 +13,47 @@ from plotloom.config import PlotloomSettings
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.codex_image_dispatch import NativeCodexImageDispatcher
 from plotloom.project_storage import ProjectFolderStorage
-from plotloom.runtime import build_runtime_app, select_available_port
+from plotloom.runtime import build_runtime_app
 from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
+from owned_listener import owned_loopback_listener
 
 
 H3_FIXTURE_DIRECTORY = Path(__file__).parent / "video_backends" / "minimax_h3"
 sys.path.insert(0, str(H3_FIXTURE_DIRECTORY))
 from offline_gateway import OfflineH3GatewayFake  # noqa: E402
 
-settings = PlotloomSettings.from_env()
-if os.environ.get("PLOTLOOM_E2E_NATIVE_ONLY") == "1":
-    app = create_project_folder_authoring_app(
-        ProjectFolderStorage(
-            outputs_root=settings.outputs_dir,
-            application_data_root=settings.application_data_dir,
-        ),
-        static_dir=settings.static_dir,
-    )
-else:
-    app = build_runtime_app(
-        settings,
-        test_video_provider=OfflineH3GatewayFake(),
-        test_video_adapter=MiniMaxH3GatewayAdapter(),
-        test_image_dispatcher=NativeCodexImageDispatcher(
-            "00000000-0000-4000-8000-000000000001",
-            settings.application_data_dir / "fixture-native-image-dispatch",
-            executable="/usr/bin/true",
-        ),
-    )
-uvicorn.run(
-    app,
-    host=settings.host,
-    port=select_available_port(settings.host, settings.port, settings.port_fallback_count),
-)
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", type=int, default=0)
+    arguments = parser.parse_args()
+    with owned_loopback_listener(arguments.port) as listener:
+        host, port = listener.getsockname()
+        # Port zero belongs only to socket allocation. The production settings
+        # receive the actual positive port and retain exact-port semantics.
+        os.environ.update(PLOTLOOM_HOST=host, PLOTLOOM_PORT=str(port), PORT=str(port))
+        settings = PlotloomSettings.from_env()
+        if os.environ.get("PLOTLOOM_E2E_NATIVE_ONLY") == "1":
+            app = create_project_folder_authoring_app(
+                ProjectFolderStorage(
+                    outputs_root=settings.outputs_dir,
+                    application_data_root=settings.application_data_dir,
+                ),
+                static_dir=settings.static_dir,
+            )
+        else:
+            app = build_runtime_app(
+                settings,
+                test_video_provider=OfflineH3GatewayFake(),
+                test_video_adapter=MiniMaxH3GatewayAdapter(),
+                test_image_dispatcher=NativeCodexImageDispatcher(
+                    "00000000-0000-4000-8000-000000000001",
+                    settings.application_data_dir / "fixture-native-image-dispatch",
+                    executable="/usr/bin/true",
+                ),
+            )
+        print("PLOTLOOM_E2E_LISTENER " + json.dumps({"role": "backend", "host": host, "port": port}), flush=True)
+        uvicorn.Server(uvicorn.Config(app, host=host, port=port)).run(sockets=[listener])
+
+
+if __name__ == "__main__":
+    main()

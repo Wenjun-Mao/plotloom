@@ -1,12 +1,13 @@
 """Current-schema admission refuses retired layouts without migrating data."""
 
-from contextlib import closing
-from pathlib import Path
 import json
 import sqlite3
+from contextlib import closing
+from pathlib import Path
 
 import pytest
 
+from plotloom.authored_route_timing import route_budget_hash
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.project_storage import (
     ProjectClosedError,
@@ -16,8 +17,7 @@ from plotloom.project_storage import (
 )
 from plotloom.project_storage.current_schema import assert_current_project_database
 from plotloom.project_storage.recovery_validation import assert_database_contract
-from plotloom.authored_route_timing import route_budget_hash
-from tests.test_project_storage_art import _binding
+from tests.art_delivery_fixtures import _binding
 
 
 def _project(tmp_path: Path):
@@ -146,35 +146,70 @@ def test_current_schema_open_observes_closed_state_in_committed_wal(
 @pytest.mark.parametrize("kind", ["candidates", "revisions"])
 @pytest.mark.parametrize("closed", [False, True])
 def test_obsolete_review_json_rejected_before_open_or_recovery_mutation(
-    tmp_path: Path, stage: str, kind: str, closed: bool,
+    tmp_path: Path,
+    stage: str,
+    kind: str,
+    closed: bool,
 ) -> None:
     storage, home, database, manifest = _project(tmp_path)
     if closed:
         storage.projects.close_project(manifest.project_id)
     raw = _binding().model_dump(mode="json", by_alias=True)
-    bindings = [{"sectionId": node, "episode": i + 1} for i, node in enumerate(raw["sectionIds"])]
+    bindings = [
+        {"sectionId": node, "episode": i + 1}
+        for i, node in enumerate(raw["sectionIds"])
+    ]
     routes = [["opening", "ending-a"], ["opening", "ending-b"]]
-    raw.update(artRevision=1, artContentHash="f" * 64,
-               targetPlaythroughSeconds=15, sectionBindings=bindings,
-               completeRouteSectionIds=routes, routeOnlySectionIds=[],
-               routeBudgetHash=route_budget_hash(target_seconds=15, section_bindings=bindings,
-                                                 routes=routes, route_only_ids=[]))
+    raw.update(
+        artRevision=1,
+        artContentHash="f" * 64,
+        targetPlaythroughSeconds=15,
+        sectionBindings=bindings,
+        completeRouteSectionIds=routes,
+        routeOnlySectionIds=[],
+        routeBudgetHash=route_budget_hash(
+            target_seconds=15,
+            section_bindings=bindings,
+            routes=routes,
+            route_only_ids=[],
+        ),
+    )
     payload_column = "script" if stage == "script" else "storyboard"
     if stage == "storyboard_review":
-        raw.update(scriptRevision=1, scriptContentHash="a" * 64,
-                   reviewMinCutSeconds=2, reviewMaxCutSeconds=8, reviewMaxSegmentSeconds=15)
-    values = {"project_id": manifest.project_id, "binding": json.dumps(raw), payload_column: "{}"}
+        raw.update(
+            scriptRevision=1,
+            scriptContentHash="a" * 64,
+            reviewMinCutSeconds=2,
+            reviewMaxCutSeconds=8,
+            reviewMaxSegmentSeconds=15,
+        )
+    values = {
+        "project_id": manifest.project_id,
+        "binding": json.dumps(raw),
+        payload_column: "{}",
+    }
     if kind == "candidates":
-        values.update(job_id="ch_" + "z" * 32, request="{}", status="cancelled",
-                      created_at="2026-10-08T00:00:00",
-                      **{f"expected_{'script' if stage == 'script' else 'review'}_revision": 0})
+        values.update(
+            job_id="ch_" + "z" * 32,
+            request="{}",
+            status="cancelled",
+            created_at="2026-10-08T00:00:00",
+            **{f"expected_{'script' if stage == 'script' else 'review'}_revision": 0},
+        )
     else:
-        values.update(id="review-fixture", revision=1, candidate_job_id="ch_" + "z" * 32,
-                      content_hash="b" * 64, accepted_at="2026-10-08T00:00:00")
+        values.update(
+            id="review-fixture",
+            revision=1,
+            candidate_job_id="ch_" + "z" * 32,
+            content_hash="b" * 64,
+            accepted_at="2026-10-08T00:00:00",
+        )
     table = f"v2_{stage}_{kind}"
     with sqlite3.connect(database) as connection:
-        connection.execute(f"INSERT INTO {table} ({', '.join(values)}) VALUES ({', '.join('?' for _ in values)})",
-                           tuple(values.values()))
+        connection.execute(
+            f"INSERT INTO {table} ({', '.join(values)}) VALUES ({', '.join('?' for _ in values)})",
+            tuple(values.values()),
+        )
     # The current contract admits even closed folders; the JSON change alone
     # must trigger refusal, not the presence of review rows or operational state.
     assert_current_project_database(database, manifest.project_id)
@@ -193,7 +228,9 @@ def test_obsolete_review_json_rejected_before_open_or_recovery_mutation(
         lambda: storage.projects.reopen_project(manifest.project_id),
         lambda: assert_database_contract(database, manifest),
     ):
-        with pytest.raises(ProjectStorageCorruptionError, match="review contract.*explicit.*reset"):
+        with pytest.raises(
+            ProjectStorageCorruptionError, match="review contract.*explicit.*reset"
+        ):
             operation()
         assert database.read_bytes() == original
         assert (home / "project.json").read_bytes() == manifest_bytes

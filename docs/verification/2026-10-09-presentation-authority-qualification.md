@@ -1,9 +1,13 @@
 # Presentation authority and final E22 follow-up
 
-This is a bounded continuation of Create → Revise → Recover and E22, not
-whole-product or creative/media acceptance. The overall run remains **PARTIAL**
-for the explicitly unobserved states and capability boundaries in the
-[run profile](../roadmap/2026-10-07-full-creator-e2e-repeat.md).
+This is a bounded continuation of Create → Revise → Recover and E22. The named
+native lifecycle journey and finite whole-product visual/text coverage below are
+qualified, not every possible state permutation or creative/media quality.
+The combined test-harness cleanup gate now passes1,469 Python (bounded reuse),
+1,047 frontend and278 unfiltered browser cases, plus types/build/wheel/installed
+smoke; its [receipt](2026-10-10-testing-health-cleanup.md) owns the exact frozen
+inputs and retained failures. Exact hosted qualification and normal cutover remain
+pending in the [run profile](../roadmap/2026-10-07-full-creator-e2e-repeat.md).
 
 ## Candidate and root causes
 
@@ -98,7 +102,10 @@ The actual completed-job log records **1,464 Python PASS /one existing Starlette
 warning in2,147.28 seconds** and **1,037 frontend PASS /125 files**; types,
 build, checked-bundle parity, wheel and installed smoke steps also pass.
 Browser shards `114093851297` and `114093851328` started at01:08:33UTC and
-remain live; the whole workflow is **not yet PASS**. The first job-log read
+completed successfully at01:44:28UTC and01:27:29UTC respectively; the workflow
+completed SUCCESS at01:44:29UTC. Actual logs record shard1's143PASS/zero flaky and
+shard2's132PASS/one flaky test, for275PASS/one flaky across276tests. First-attempt
+evidence is retained, so green is not clean first-pass. The first job-log read
 was refused by the CLI's terminal-escape output guard; its documented
 `--allow-escape-sequences` option allowed the filtered read without rerunning
 any check. This is candidate-branch publication, not a normal checkout merge
@@ -154,18 +161,37 @@ evidence, not native delivery or whole-form/all-state acceptance.
 
 The completion-gap review reconciled the historical register against the later
 named receipts rather than reopening already qualified routes, multishot, OS blur,
-provider copy or archived Bible reading. Current dispositions remain:
+provider copy or archived Bible reading. Its only concrete remaining E22 capture
+gap was the first stale Cast/Script lower-action row; that gap is closed below.
+Current dispositions remain:
 
 | Requirement/boundary | Current disposition |
 |---|---|
 | Named Create → Revise → Recover native journey | Revised/restored routes, multishot, source lifecycle and58-asset/four-selection preservation are qualified in the Board3 receipts; no creative-quality claim |
-| Whole-product E22 | Named view/state slices are qualified, including the15 frames above; other unobserved permutations remain PARTIAL, not inherited from functional tests |
+| Whole-product E22 | Finite named view/state coverage is qualified across Home/directory, Brief/settings, Source/Outline, Creator/Pro, Cast/gallery, Bible, Art/references, Script, Storyboard/production, Media/shot details, Reader/Play, Trace/repair and specialist/provider dialogs. This includes the15 frames above and21 lower-action frames below; it is not an exhaustive Cartesian state matrix or acceptance inherited from functional tests |
 | Scene/Prop downstream production consumption | Absent consumer/capability boundary; gallery/reference evidence does not prove production consumption; product expansion needs authority |
 | Configured API intent | Unconfigured; native intent is separately qualified, not an API fallback or configuration PASS |
-| Populated native Cast relationships | Missing native evidence, not demonstrated absent capability; the four-role fixture remains fixture evidence; no extra generation solely for counts |
+| Populated native Cast relationships | Optional native evidence variant not exercised; the four-role relationship fixture remains fixture evidence. This is not an absent-capability claim or a reason to generate more content solely for counts |
 | Normal activation | Pending retained-demo/cutover choice; no mounted-checkout-only update, owner reset or schema adapter |
 | Creative/audible/perceptual quality | Explicitly excluded from this technical run |
-| Exact-executable CI | Existing2a93649 verify job PASS; both browser shards live, whole workflow not yet PASS; no duplicate dispatch |
+| Exact-executable CI | Existing2a93649 workflow SUCCESS; verify PASS, browser aggregate275PASS/1flaky across276tests. Shard1 is clean143PASS; shard2's first failure is proved duplicate fixture-port allocation. No clean first-pass claim. [Owning fixture repair](2026-10-09-owned-browser-listeners.md) is separately qualifying. |
+
+### First stale lower-action closure
+
+The final capture method directly checks Cast-ready confirmation/abandonment and
+Script-prepared sending/checking/cancellation plus Script-ready confirmation/rejection.
+At1700×900,1280×768 and1280×460, exact disabled/enabled action eligibility,
+strict viewport intersection, sticky-header clearance and no horizontal overflow
+are asserted. All21 final PNGs were directly inspected by root and an independent
+read-only reviewer, with no actionable visual/copy finding. This is fixture-based
+action readability/geometry, not native delivery, keyboard handling or whole-form fit.
+
+The first scoped attempt recorded2 PASS/1 capture failure: nearest-edge scrolling
+left a fractional bottom clipping at1280×768 (intersection0.9967105). The capture
+helper now uses centered ordinary scrolling; the strict geometry assertion was
+not relaxed and no product layout patch was made. Final three cases PASS in15.7s,
+one worker, zero retries, exit0; E2E types PASS. Evidence:
+`/private/tmp/plotloom-first-stale-actions-qualified-20261010`.
 
 ## Loaded bytes, data and service preservation
 
@@ -183,6 +209,11 @@ Post-publication readback `presentation-published-readback.json`, timestamp
 content/media endpoint projections, all58 asset hashes and four selected records.
 It repeats the earlier reviewed readback at `2026-10-10T00:11:34.402Z` without
 changing the disposable project's state.
+The later fresh read-only comparison at `2026-10-10T02:36:07.251Z` again matches
+all eight endpoint projections,58 freshly hashed assets and all four selected
+records, with zero differing endpoints. Its artifact is
+`/private/tmp/plotloom-e22-native-final.MuRJ51/readback.json`; no new generation,
+review, selection or lifecycle write was performed.
 QA project `90c0f895-48de-4b57-8725-4b6f72797633` remains revision2/lifecycle9 active.
 No new job, acceptance, rebuild or media selection was dispatched in this delta.
 The optional current-pin native report delivery/cancellation is separately
@@ -195,7 +226,11 @@ serves JS `3a8843193da3df6852f8b12731e33c90961dbe1339a9882b30fb2e03290555d5`;
 its checkout is clean. Fork pin `4f9b2128c82adf623f594ba714c97d0afcfc16a2` is clean.
 
 Normal cutover still awaits the explicit retained-demo choice. Do not update its
-mounted checkout alone, reset owner databases or add a schema adapter. Remaining
-native Scene/Prop production consumption, API intent configuration, populated
-native Cast relationships and unobserved E22 permutations are not closed by this
-presentation slice. Creative, audible and perceptual media quality remain excluded.
+mounted checkout alone, reset owner databases or add a schema adapter. Scene/Prop
+downstream consumption is a new capability boundary; API intent is unconfigured
+and not a native fallback; populated native relationships are an unexercised
+optional variant. Generic active API Trace is not applicable to the native-only
+composition. These dispositions do not claim their execution. Creative, audible
+and perceptual quality remain excluded. Required remaining work is exact hosted
+qualification and the separately authorized normal cutover—not indefinitely
+enumerating hypothetical state permutations.

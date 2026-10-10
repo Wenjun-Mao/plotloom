@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 
 const port = Number(process.argv[process.argv.indexOf("--port") + 1]);
-if (!Number.isInteger(port) || port < 1) throw new Error("--port is required");
+if (!process.argv.includes("--port") || !Number.isInteger(port) || port < 0 || port > 65535) throw new Error("--port between 0 and 65535 is required");
 
 const state = {
   requests: [],
@@ -213,4 +213,7 @@ const server = createServer(async (request, response) => {
   });
 });
 
-server.listen(port, "127.0.0.1");
+server.listen(port, "127.0.0.1", () => {
+  const address = server.address();
+  console.log("PLOTLOOM_E2E_LISTENER " + JSON.stringify({ role: "provider", host: address.address, port: address.port }));
+});

@@ -11,7 +11,7 @@ from plotloom.generation.orchestration import GenerationOrchestrator
 from plotloom.generation.prompts import PromptRenderer
 from plotloom.generation.validation import CanonicalStageValidationAdapter
 
-from conftest import QueueProvider, secret_lease
+from tests.generation.conftest import QueueProvider, secret_lease
 
 
 class SecretEchoErrorProvider:

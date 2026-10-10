@@ -8,11 +8,8 @@ from plotloom.api import create_project_folder_authoring_app
 from plotloom.art_contracts import ArtAcceptRequest
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.project_storage.composition import ProjectFolderStorage
-from tests.test_project_storage_art import (
-    _deliver,
-    _prepare_art_context,
-    _write_art_reference_delivery,
-)
+from tests.art_delivery_fixtures import _deliver, _write_art_reference_delivery
+from tests.creative_delivery_fixtures import _prepare_art_context
 
 
 def test_another_candidate_preserves_first_request_bytes_and_selected_reference(

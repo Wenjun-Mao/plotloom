@@ -1,11 +1,16 @@
 """Guard manual release-gate evidence, acceptance and bounded runner budgets."""
 
+import json
 import re
 from pathlib import Path
 
 import yaml
 
 WORKFLOW = Path(__file__).parents[1] / ".github/workflows/ci.yml"
+FRONTEND = WORKFLOW.parents[2] / "frontend"
+PLAYWRIGHT_CONFIG = FRONTEND / "playwright.config.ts"
+SHARD_MANIFEST = FRONTEND / "e2e/browser-shard-manifest.json"
+SHARD_GUARD = FRONTEND / "scripts/check_browser_shard_manifest.mjs"
 
 
 def _workflow():
@@ -22,6 +27,7 @@ def test_filtered_browser_runs_remain_opt_in_diagnostics():
     step = next(item for item in browser["steps"] if item.get("name") == "Browser regression contracts")
     assert step["env"]["BROWSER_GREP"] == "${{ inputs.browser_grep }}"
     assert '--grep="${BROWSER_GREP}"' in step["run"]
+    assert "--pass-with-no-tests" in step["run"]
     assert "inputs.browser_grep" not in step["run"]
 
 
@@ -29,9 +35,51 @@ def test_browser_shards_preserve_all_results_without_runner_contention():
     browser = _workflow()["jobs"]["browser"]
     assert browser["strategy"]["fail-fast"] == "false"
     assert browser["strategy"]["matrix"]["shard"] == ["1", "2"]
-    step = next(item for item in browser["steps"] if item.get("name") == "Browser regression contracts")
+    steps = browser["steps"]
+    guard_index = next(
+        index
+        for index, item in enumerate(steps)
+        if item.get("name") == "Verify browser shard allocation and selected case coverage"
+    )
+    step_index = next(
+        index
+        for index, item in enumerate(steps)
+        if item.get("name") == "Browser regression contracts"
+    )
+    guard = steps[guard_index]
+    step = steps[step_index]
+    assert guard_index < step_index
+    assert guard["working-directory"] == "frontend"
+    assert guard["env"]["BROWSER_GREP"] == "${{ inputs.browser_grep }}"
+    assert guard["run"] == "node scripts/check_browser_shard_manifest.mjs"
     assert "--workers=1" in step["run"]
-    assert '--shard="${BROWSER_SHARD}/2"' in step["run"]
+    assert "--shard" not in step["run"]
+    assert step["env"]["BROWSER_SHARD"] == "${{ matrix.shard }}"
+    assert '--grep="${BROWSER_GREP}"' in step["run"]
+    config = PLAYWRIGHT_CONFIG.read_text()
+    assert "process.env.BROWSER_SHARD" in config
+    assert "testMatch:" in config
+    assert "fullyParallel: false" in config
+
+    manifest = json.loads(SHARD_MANIFEST.read_text())
+    assert set(manifest) == {"1", "2"}
+    assigned = manifest["1"] + manifest["2"]
+    expected = {
+        path.relative_to(FRONTEND / "e2e").as_posix()
+        for path in (FRONTEND / "e2e").rglob("*")
+        if path.is_file() and re.search(r"\.(?:spec|test)\.(?:[cm]?[jt]sx?)$", path.name)
+    }
+    assert len(assigned) == len(set(assigned))
+    assert set(assigned) == expected
+    guard_source = SHARD_GUARD.read_text()
+    assert "assignmentCounts" in guard_source
+    assert "unexpectedCases" in guard_source
+    assert "missingCases" in guard_source
+    assert "overlap" in guard_source
+    assert "BROWSER_GREP" in guard_source
+    assert '"--list"' in guard_source
+    assert 'browserGrep === ".*"' in guard_source
+    assert "shardOne.size === 0 || shardTwo.size === 0" in guard_source
     uploads = [item for item in browser["steps"] if item.get("uses") == "actions/upload-artifact@v4"]
     assert len(uploads) == 2
     assert all(item["if"] == "${{ !cancelled() }}" for item in uploads)

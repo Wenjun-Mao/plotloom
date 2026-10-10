@@ -99,14 +99,19 @@ jobs:
       - name: Install Playwright Chromium
         working-directory: frontend
         run: npx playwright install --with-deps chromium
+      - name: Verify browser shard allocation and selected case coverage
+        working-directory: frontend
+        env:
+          BROWSER_GREP: ${{ inputs.browser_grep }}
+        run: node scripts/check_browser_shard_manifest.mjs
       - name: Browser regression contracts
-        # Keep one real fixture stack per runner; distribute files across runners.
+        # Keep one real fixture stack per runner; distribute whole specs by duration.
         # Playwright must finalize reports before the step/job cancellation budget.
         timeout-minutes: 45
         env:
           BROWSER_GREP: ${{ inputs.browser_grep }}
           BROWSER_SHARD: ${{ matrix.shard }}
-        run: npm --prefix frontend run test:e2e -- --workers=1 --shard="${BROWSER_SHARD}/2" --grep="${BROWSER_GREP}" --global-timeout=2400000
+        run: npm --prefix frontend run test:e2e -- --workers=1 --grep="${BROWSER_GREP}" --global-timeout=2400000 --pass-with-no-tests
       - name: Upload Playwright test results
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4

@@ -39,6 +39,8 @@ leads separately from approved work.
 | Production playback timing | [0082](0082-proposed-production-playback-timing.md) distinguishes authored shot time, frozen request, measured take and a reviewed segment. The bounded synthetic-media implementation is approved; the H3 original-output contract remains intact. |
 | Capability tracking and delivery | [0008](0008-capability-based-adoption-tracking.md)'s tracking method survives, but its named [matrix](../roadmap/archive/superseded/2026-09-02-capability-matrix.md) is archived. Use the [roadmap](../roadmap/README.md) for active work and acceptance. |
 | Verification tooling | [0081](0081-narrow-source-static-and-api-lint-checks.md) separates checked source-bundle browser evidence from installed-wheel packaging evidence and keeps Ruff scoped to API F401 findings. [0109](0109-bounded-browser-ci-evidence.md) bounds independent browser shards, preserves failure evidence and distinguishes filtered diagnostics from the full release gate. |
+| Browser-fixture port ownership | [0152](0152-owned-browser-fixture-listeners.md) binds each role before publishing its address and retains exact backend-origin restarts; released port probes are not reservations. |
+| Hosted browser allocation and UI-only fixture scope | [0153](0153-duration-balanced-browser-files.md) assigns whole specs by historic duration, checks exact manifest/list coverage, preserves diagnostic filters and confines Vite-only execution to the proven creator-confirmation journey. |
 
 Two files retain the historical number `0040`; cite each by its full slug and
 link, never by number alone. This index is a navigation aid, not a declaration

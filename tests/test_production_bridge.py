@@ -14,135 +14,194 @@ from plotloom.production_bridge_contracts import (
     ProductionBridgeProposal,
 )
 from plotloom.project_storage.composition import ProjectFolderStorage
-from plotloom.project_storage.project_handle import ProjectStore
 from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
-from tests.test_project_storage_art import _accepted_f4_script, _deliver_stage
+from tests.creative_delivery_fixtures import _accepted_f4_script, _deliver_stage
+from tests.production_bridge_fixtures import (
+    _prepare_installable_bridge,
+    _source_shaped_review_board,
+)
 
 
-def _source_shaped_review_board(seconds: float = 3, episodes=(1, 2, 3)) -> dict[str, object]:
-    """Pass the pinned upstream validator; no review-validation bypass is used."""
-
-    def segment(ep: int, segment_index: int, beat_ranges: list[list[int]]) -> dict[str, object]:
-        cuts = [{"seconds": seconds, "beats": beat_range, "size": "medium", "camera": "Static Shot", "characters": [], "props": [], "frame": "medium shot of an empty beacon room at dawn, cinematic film still, cool gray palette, 16:9"} for beat_range in beat_ranges]
-        starts = [index * seconds for index in range(len(cuts))]
-        align = "; ".join(f"Picture {index} (from Shot {index}) aligns with the {start:.2f}-second mark of the target video" for index, start in enumerate(starts, 1)) + "."
-        shots = "\n".join(f"[Shot {index}] Cinematic, live-action, cool gray palette. The empty beacon room of <Picture {index}> holds while the camera uses a static shot." if index == 1 else f"[Shot {index}] At 00:{starts[index - 1]:06.3f}, the camera cuts to <Picture {index}> and holds a static shot in the empty beacon room." for index in range(1, len(cuts) + 1))
-        return {"id": f"E{ep:02}-{segment_index:02}", "sceneIndex": 1, "cuts": cuts, "h3Prompt": f"How the reference pictures align with the target video — {align}\n\nintegrated_multimodal_description:\n{shots}\n\noverall_soundscape: Quiet wind around an empty beacon room.\n\nnon_diegetic_music: N/A"}
-
-    return {"source": "Tide Light", "params": {"minCutSeconds": 2, "maxCutSeconds": 8, "maxSegmentSeconds": 15}, "episodes": [{"ep": ep, "segments": [segment(ep, 1, [[1, 1], [2, 2], [3, 3], [4, 4]]), segment(ep, 2, [[5, 5], [6, 6], [7, 7], [8, 8], [9, 10]])]} for ep in episodes]}
-
-
-def _review_fixture_presentation(store, proposal):
-    from plotloom.production_presentation import ProductionPresentationUpdateRequest
-    package = proposal.presentation
-    assert package is not None
-    return store.update_production_bridge_presentation(ProductionPresentationUpdateRequest(
-        expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash,
-        source_hash=package.source_hash, reviewed_complete=True,
-        entries=[{"id": source.id, "spans": [{"start": 0, "end": len(source.source_text),
-            "role": "dialogue" if source.kind == "dialogue" else "physical",
-            "rendering": "" if source.kind == "dialogue" else source.source_text}]} for source in package.sources],
-    )).proposal
-
-
-def _prepare_installable_bridge(store: ProjectStore, seconds: float = 3, structure_factory=None) -> ProductionBridgeProposal:
-    _accepted_f4_script(store, structure_factory)
-    candidate, request = store.prepare_storyboard_review_candidate("ch_" + "b" * 32)
-    ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", _source_shaped_review_board(seconds, [item.episode for item in candidate.binding.section_bindings]), "bridge-fixture"))
-    store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
-    proposal = store.prepare_production_bridge(store.production_bridge_state().preparation.request).proposal
-    assert proposal and not proposal.installable
-    assert proposal.intent_package.review_state == "pending"
-    assert proposal.intent_package.suggestion_origin == "none"
-    assert all(not entry.text for entry in proposal.intent_package.entries)
-    assert all(entry.source_excerpt and entry.suggested_text is None for entry in proposal.intent_package.entries)
-    proposal = _review_fixture_presentation(store, proposal)
-    authored = [{"id": entry.id, "text": f"作者明确的戏剧目的：{entry.id}"} for entry in proposal.intent_package.entries]
-    ready = store.update_production_bridge_intent_package(ProductionBridgeIntentUpdateRequest(
-        expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash,
-        entries=authored,
-    )).proposal
-    assert ready and ready.installable, ready.conflicts if ready else None
-    return ready
-
-
-def test_bridge_projects_one_f4_scene_to_one_canonical_scene_and_installs_atomically(tmp_path: Path) -> None:
-    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
-    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}))
+def test_bridge_projects_one_f4_scene_to_one_canonical_scene_and_installs_atomically(
+    tmp_path: Path,
+) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    store = storage.projects.create(
+        FIXED_CHINESE_BRIEF.model_copy(
+            update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}
+        )
+    )
     try:
         proposal = _prepare_installable_bridge(store)
         assert len(proposal.scenes) == 3 and len(proposal.cuts) == 27
         edited_text = "作者复核后的场次目标"
-        updates = [{"id": entry.id, "text": edited_text if entry.target_kind == "scene_objective" else entry.text} for entry in proposal.intent_package.entries]
-        revised = store.update_production_bridge_intent_package(ProductionBridgeIntentUpdateRequest(expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash, entries=updates)).proposal
-        assert revised and revised.revision == proposal.revision + 1 and revised.intent_package.entries[0].text
-        accepted = store.accept_production_bridge(ProductionBridgeAcceptRequest(expected_proposal_revision=revised.revision, expected_content_hash=revised.content_hash))
+        updates = [
+            {
+                "id": entry.id,
+                "text": edited_text
+                if entry.target_kind == "scene_objective"
+                else entry.text,
+            }
+            for entry in proposal.intent_package.entries
+        ]
+        revised = store.update_production_bridge_intent_package(
+            ProductionBridgeIntentUpdateRequest(
+                expected_proposal_revision=proposal.revision,
+                expected_content_hash=proposal.content_hash,
+                entries=updates,
+            )
+        ).proposal
+        assert (
+            revised
+            and revised.revision == proposal.revision + 1
+            and revised.intent_package.entries[0].text
+        )
+        accepted = store.accept_production_bridge(
+            ProductionBridgeAcceptRequest(
+                expected_proposal_revision=revised.revision,
+                expected_content_hash=revised.content_hash,
+            )
+        )
         assert accepted.status == "accepted"
-        assert accepted.installation.installed_stage_revisions == {"story_bible": 1, "story_graph": 1, "scene_beats": 1, "storyboard": 1}
+        assert accepted.installation.installed_stage_revisions == {
+            "story_bible": 1,
+            "story_graph": 1,
+            "scene_beats": 1,
+            "storyboard": 1,
+        }
         assert accepted.installation.status == "current"
-        installed = store.authoring.get_stage_payload(store.manifest.project_id, StageName.SCENE_BEATS)
+        installed = store.authoring.get_stage_payload(
+            store.manifest.project_id, StageName.SCENE_BEATS
+        )
         assert {scene.objective for scene in installed.scenes} == {edited_text}
-        board = store.authoring.get_stage_payload(store.manifest.project_id, StageName.STORYBOARD)
+        board = store.authoring.get_stage_payload(
+            store.manifest.project_id, StageName.STORYBOARD
+        )
         for shot in board.shots:
             assert shot.title == f"场次 1 · 镜头 {shot.order}"
-            assert shot.composition == "medium shot of an empty beacon room at dawn, cinematic film still, cool gray palette, 16:9"
+            assert (
+                shot.composition
+                == "medium shot of an empty beacon room at dawn, cinematic film still, cool gray palette, 16:9"
+            )
         assert revised.intent_package.review_state == "author_saved"
         assert revised.intent_package.suggestion_origin == "none"
     finally:
         store.close()
 
 
-def test_current_bridge_proposal_requires_its_presentation_package(tmp_path: Path) -> None:
-    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
-    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}))
+def test_current_bridge_proposal_requires_its_presentation_package(
+    tmp_path: Path,
+) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    store = storage.projects.create(
+        FIXED_CHINESE_BRIEF.model_copy(
+            update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}
+        )
+    )
     try:
         proposal = _prepare_installable_bridge(store)
         payload = proposal.model_dump(mode="json", by_alias=True)
         assert ProductionBridgeProposal.model_validate(payload).presentation.reviewed
-        for invalid in ({key: value for key, value in payload.items() if key != "presentation"}, payload | {"presentation": None}):
+        for invalid in (
+            {key: value for key, value in payload.items() if key != "presentation"},
+            payload | {"presentation": None},
+        ):
             with pytest.raises(ValidationError, match="presentation"):
                 ProductionBridgeProposal.model_validate(invalid)
     finally:
         store.close()
 
 
-def test_bridge_handoff_stops_when_installed_storyboard_revision_drifts(tmp_path: Path) -> None:
-    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
-    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}))
+def test_bridge_handoff_stops_when_installed_storyboard_revision_drifts(
+    tmp_path: Path,
+) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    store = storage.projects.create(
+        FIXED_CHINESE_BRIEF.model_copy(
+            update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}
+        )
+    )
     try:
         proposal = _prepare_installable_bridge(store)
-        accepted = store.accept_production_bridge(ProductionBridgeAcceptRequest(
-            expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash,
-        ))
+        accepted = store.accept_production_bridge(
+            ProductionBridgeAcceptRequest(
+                expected_proposal_revision=proposal.revision,
+                expected_content_hash=proposal.content_hash,
+            )
+        )
         assert accepted.installation.status == "current"
         project_id = store.manifest.project_id
         board = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
-        edited = board.model_copy(update={"shots": [
-            shot.model_copy(update={"title": shot.title + " · revised"}) if index == 0 else shot
-            for index, shot in enumerate(board.shots)
-        ]})
+        edited = board.model_copy(
+            update={
+                "shots": [
+                    shot.model_copy(update={"title": shot.title + " · revised"})
+                    if index == 0
+                    else shot
+                    for index, shot in enumerate(board.shots)
+                ]
+            }
+        )
         store.update_stage(StageName.STORYBOARD, edited, expected_revision=1)
         state = store.production_bridge_state()
-        assert state.status == "accepted"  # Source acceptance is not undone by downstream editing.
-        assert state.installation.installed_stage_revisions == accepted.installation.installed_stage_revisions
+        assert (
+            state.status == "accepted"
+        )  # Source acceptance is not undone by downstream editing.
+        assert (
+            state.installation.installed_stage_revisions
+            == accepted.installation.installed_stage_revisions
+        )
         assert state.installation.status == "outdated"
     finally:
         store.close()
 
 
 def test_bridge_rejects_stale_brief_and_stale_f4_inputs(tmp_path: Path) -> None:
-    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
-    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}))
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    store = storage.projects.create(
+        FIXED_CHINESE_BRIEF.model_copy(
+            update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}
+        )
+    )
     try:
         proposal = _prepare_installable_bridge(store)
         current = store.project()
-        store.update_brief(current.brief.model_copy(update={"target_playthrough_seconds": current.brief.target_playthrough_seconds + 1}), expected_revision=current.revision)
+        store.update_brief(
+            current.brief.model_copy(
+                update={
+                    "target_playthrough_seconds": current.brief.target_playthrough_seconds
+                    + 1
+                }
+            ),
+            expected_revision=current.revision,
+        )
         with pytest.raises(InvalidTransitionError, match="stale"):
-            store.accept_production_bridge(ProductionBridgeAcceptRequest(expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash))
+            store.accept_production_bridge(
+                ProductionBridgeAcceptRequest(
+                    expected_proposal_revision=proposal.revision,
+                    expected_content_hash=proposal.content_hash,
+                )
+            )
     finally:
         store.close()
 
-    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}))
+    store = storage.projects.create(
+        FIXED_CHINESE_BRIEF.model_copy(
+            update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}
+        )
+    )
     try:
         proposal = _prepare_installable_bridge(store)
         script = store.script_state().accepted_script
@@ -152,58 +211,159 @@ def test_bridge_rejects_stale_brief_and_stale_f4_inputs(tmp_path: Path) -> None:
             ScriptSectionSaveRequest,
         )
 
-        store.reopen_script(ScriptReopenRequest(expected_script_revision=script.revision))
-        opening = dict(script.script["episodes"][0]); opening["cliff"] = "Changed F4 authority after the bridge proposal."
-        store.save_script_section(ScriptSectionSaveRequest(expected_script_revision=script.revision, binding=script.binding, section_id="opening", episode=opening))
+        store.reopen_script(
+            ScriptReopenRequest(expected_script_revision=script.revision)
+        )
+        opening = dict(script.script["episodes"][0])
+        opening["cliff"] = "Changed F4 authority after the bridge proposal."
+        store.save_script_section(
+            ScriptSectionSaveRequest(
+                expected_script_revision=script.revision,
+                binding=script.binding,
+                section_id="opening",
+                episode=opening,
+            )
+        )
         with pytest.raises(InvalidTransitionError, match="stale"):
-            store.accept_production_bridge(ProductionBridgeAcceptRequest(expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash))
+            store.accept_production_bridge(
+                ProductionBridgeAcceptRequest(
+                    expected_proposal_revision=proposal.revision,
+                    expected_content_hash=proposal.content_hash,
+                )
+            )
     finally:
         store.close()
 
 
-def test_shot_policy_edit_preserves_source_chain_but_stales_old_bridge_proposal(tmp_path: Path) -> None:
-    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
-    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9, "shot_count_policy": "strict"}))
+def test_shot_policy_edit_preserves_source_chain_but_stales_old_bridge_proposal(
+    tmp_path: Path,
+) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    store = storage.projects.create(
+        FIXED_CHINESE_BRIEF.model_copy(
+            update={
+                "shots_per_scene_min": 9,
+                "shots_per_scene_max": 9,
+                "shot_count_policy": "strict",
+            }
+        )
+    )
     try:
         old = _prepare_installable_bridge(store)
         current = store.project()
-        store.update_brief(current.brief.model_copy(update={"shot_count_policy": "advisory"}), expected_revision=current.revision)
-        assert store.authoring.get_stage_head(store.manifest.project_id, StageName.STORY_GRAPH).status == StageStatus.READY
+        store.update_brief(
+            current.brief.model_copy(update={"shot_count_policy": "advisory"}),
+            expected_revision=current.revision,
+        )
+        assert (
+            store.authoring.get_stage_head(
+                store.manifest.project_id, StageName.STORY_GRAPH
+            ).status
+            == StageStatus.READY
+        )
         assert store.script_state().status == "accepted"
         assert store.storyboard_review_state().status == "accepted"
         with pytest.raises(InvalidTransitionError, match="stale"):
-            store.accept_production_bridge(ProductionBridgeAcceptRequest(
-                expected_proposal_revision=old.revision, expected_content_hash=old.content_hash,
-            ))
+            store.accept_production_bridge(
+                ProductionBridgeAcceptRequest(
+                    expected_proposal_revision=old.revision,
+                    expected_content_hash=old.content_hash,
+                )
+            )
     finally:
         store.close()
 
 
-def test_bridge_rejects_stale_cas_and_non_exact_source_excerpt_edits(tmp_path: Path) -> None:
-    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
-    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}))
+def test_bridge_rejects_stale_cas_and_non_exact_source_excerpt_edits(
+    tmp_path: Path,
+) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    store = storage.projects.create(
+        FIXED_CHINESE_BRIEF.model_copy(
+            update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}
+        )
+    )
     try:
         proposal = _prepare_installable_bridge(store)
-        all_entries = [{"id": entry.id, "text": entry.text} for entry in proposal.intent_package.entries]
+        all_entries = [
+            {"id": entry.id, "text": entry.text}
+            for entry in proposal.intent_package.entries
+        ]
         with pytest.raises(RevisionConflictError):
-            store.accept_production_bridge(ProductionBridgeAcceptRequest(expected_proposal_revision=proposal.revision + 1, expected_content_hash=proposal.content_hash))
+            store.accept_production_bridge(
+                ProductionBridgeAcceptRequest(
+                    expected_proposal_revision=proposal.revision + 1,
+                    expected_content_hash=proposal.content_hash,
+                )
+            )
         with pytest.raises(InvalidTransitionError, match="not installable"):
-            store.accept_production_bridge(ProductionBridgeAcceptRequest(expected_proposal_revision=proposal.revision, expected_content_hash="0" * 64))
+            store.accept_production_bridge(
+                ProductionBridgeAcceptRequest(
+                    expected_proposal_revision=proposal.revision,
+                    expected_content_hash="0" * 64,
+                )
+            )
         with pytest.raises(RevisionConflictError):
-            store.update_production_bridge_intent_package(ProductionBridgeIntentUpdateRequest(expected_proposal_revision=proposal.revision + 1, expected_content_hash=proposal.content_hash, entries=all_entries))
+            store.update_production_bridge_intent_package(
+                ProductionBridgeIntentUpdateRequest(
+                    expected_proposal_revision=proposal.revision + 1,
+                    expected_content_hash=proposal.content_hash,
+                    entries=all_entries,
+                )
+            )
         with pytest.raises(InvalidTransitionError, match="changed before"):
-            store.update_production_bridge_intent_package(ProductionBridgeIntentUpdateRequest(expected_proposal_revision=proposal.revision, expected_content_hash="0" * 64, entries=all_entries))
-        with pytest.raises(InvalidTransitionError, match="every exact package entry once"):
-            store.update_production_bridge_intent_package(ProductionBridgeIntentUpdateRequest(expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash, entries=all_entries[:-1]))
-        with pytest.raises(InvalidTransitionError, match="every exact package entry once"):
-            store.update_production_bridge_intent_package(ProductionBridgeIntentUpdateRequest(expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash, entries=[*all_entries, {"id": "unknown-target", "text": "not allowed"}]))
+            store.update_production_bridge_intent_package(
+                ProductionBridgeIntentUpdateRequest(
+                    expected_proposal_revision=proposal.revision,
+                    expected_content_hash="0" * 64,
+                    entries=all_entries,
+                )
+            )
+        with pytest.raises(
+            InvalidTransitionError, match="every exact package entry once"
+        ):
+            store.update_production_bridge_intent_package(
+                ProductionBridgeIntentUpdateRequest(
+                    expected_proposal_revision=proposal.revision,
+                    expected_content_hash=proposal.content_hash,
+                    entries=all_entries[:-1],
+                )
+            )
+        with pytest.raises(
+            InvalidTransitionError, match="every exact package entry once"
+        ):
+            store.update_production_bridge_intent_package(
+                ProductionBridgeIntentUpdateRequest(
+                    expected_proposal_revision=proposal.revision,
+                    expected_content_hash=proposal.content_hash,
+                    entries=[
+                        *all_entries,
+                        {"id": "unknown-target", "text": "not allowed"},
+                    ],
+                )
+            )
     finally:
         store.close()
 
 
-def test_bridge_install_rolls_back_all_heads_when_a_later_stage_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
-    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}))
+def test_bridge_install_rolls_back_all_heads_when_a_later_stage_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    store = storage.projects.create(
+        FIXED_CHINESE_BRIEF.model_copy(
+            update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}
+        )
+    )
     try:
         proposal = _prepare_installable_bridge(store)
         canonical = store.repository.production_bridge._canonical
@@ -216,50 +376,101 @@ def test_bridge_install_rolls_back_all_heads_when_a_later_stage_fails(tmp_path: 
 
         monkeypatch.setattr(canonical, "_install_stage_in_session", fail_scene_beats)
         with pytest.raises(RuntimeError, match="injected scene-beats"):
-            store.accept_production_bridge(ProductionBridgeAcceptRequest(expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash))
+            store.accept_production_bridge(
+                ProductionBridgeAcceptRequest(
+                    expected_proposal_revision=proposal.revision,
+                    expected_content_hash=proposal.content_hash,
+                )
+            )
         state = store.production_bridge_state()
         assert state.status == "ready" and state.installation is None
-        for stage in (StageName.STORY_BIBLE, StageName.SCENE_BEATS, StageName.STORYBOARD):
+        for stage in (
+            StageName.STORY_BIBLE,
+            StageName.SCENE_BEATS,
+            StageName.STORYBOARD,
+        ):
             head = store.authoring.get_stage_head(store.manifest.project_id, stage)
             assert head.revision == 0 and head.status == StageStatus.MISSING
     finally:
         store.close()
 
 
-def test_bridge_surfaces_brief_policy_conflict_without_splitting_source_scene(tmp_path: Path) -> None:
-    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
-    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shot_count_policy": "strict"}))
+def test_bridge_surfaces_brief_policy_conflict_without_splitting_source_scene(
+    tmp_path: Path,
+) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    store = storage.projects.create(
+        FIXED_CHINESE_BRIEF.model_copy(update={"shot_count_policy": "strict"})
+    )
     try:
         _accepted_f4_script(store)
-        candidate, request = store.prepare_storyboard_review_candidate("ch_" + "d" * 31 + "1")
+        candidate, request = store.prepare_storyboard_review_candidate(
+            "ch_" + "d" * 31 + "1"
+        )
         board = _source_shaped_review_board()
-        ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", board, "bridge-conflict"))
-        store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
-        proposal = store.prepare_production_bridge(store.production_bridge_state().preparation.request).proposal
+        ready = store.admit_storyboard_review_delivery(
+            _deliver_stage(store, request, "storyboard.json", board, "bridge-conflict")
+        )
+        store.accept_storyboard_review_candidate(
+            StoryboardReviewAcceptRequest(
+                job_id=candidate.job_id,
+                expected_review_revision=0,
+                binding=ready.binding,
+            )
+        )
+        proposal = store.prepare_production_bridge(
+            store.production_bridge_state().preparation.request
+        ).proposal
         assert proposal and not proposal.installable
         assert len(proposal.scenes) == 3 and len(proposal.cuts) == 27
-        assert proposal.conflicts[0].message == "不能安装：源场次有 9 个镜头，当前项目规则为 1–4 个"
-        assert proposal.cuts[4]["source"] == {"segmentIndex": 2, "segmentSceneIndex": 1, "cutIndex": 1}
-        completed = store.update_production_bridge_intent_package(ProductionBridgeIntentUpdateRequest(
-            expected_proposal_revision=proposal.revision,
-            expected_content_hash=proposal.content_hash,
-            entries=[{"id": entry.id, "text": f"作者明确的戏剧目的：{entry.id}"} for entry in proposal.intent_package.entries],
-        )).proposal
+        assert (
+            proposal.conflicts[0].message
+            == "不能安装：源场次有 9 个镜头，当前项目规则为 1–4 个"
+        )
+        assert proposal.cuts[4]["source"] == {
+            "segmentIndex": 2,
+            "segmentSceneIndex": 1,
+            "cutIndex": 1,
+        }
+        completed = store.update_production_bridge_intent_package(
+            ProductionBridgeIntentUpdateRequest(
+                expected_proposal_revision=proposal.revision,
+                expected_content_hash=proposal.content_hash,
+                entries=[
+                    {"id": entry.id, "text": f"作者明确的戏剧目的：{entry.id}"}
+                    for entry in proposal.intent_package.entries
+                ],
+            )
+        ).proposal
         assert completed and not completed.installable
         assert completed.intent_package.review_state == "author_saved"
-        assert any("源场次有 9 个镜头" in conflict.message for conflict in completed.conflicts)
+        assert any(
+            "源场次有 9 个镜头" in conflict.message for conflict in completed.conflicts
+        )
         with pytest.raises(InvalidTransitionError, match="not installable"):
-            store.accept_production_bridge(ProductionBridgeAcceptRequest(
-                expected_proposal_revision=completed.revision,
-                expected_content_hash=completed.content_hash,
-            ))
+            store.accept_production_bridge(
+                ProductionBridgeAcceptRequest(
+                    expected_proposal_revision=completed.revision,
+                    expected_content_hash=completed.content_hash,
+                )
+            )
     finally:
         store.close()
 
 
-def test_advisory_bridge_keeps_all_source_cuts_and_exposes_nonblocking_notice(tmp_path: Path) -> None:
-    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
-    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shot_count_policy": "advisory"}))
+def test_advisory_bridge_keeps_all_source_cuts_and_exposes_nonblocking_notice(
+    tmp_path: Path,
+) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    store = storage.projects.create(
+        FIXED_CHINESE_BRIEF.model_copy(update={"shot_count_policy": "advisory"})
+    )
     try:
         proposal = _prepare_installable_bridge(store)
         assert proposal.installable
@@ -267,11 +478,16 @@ def test_advisory_bridge_keeps_all_source_cuts_and_exposes_nonblocking_notice(tm
         assert len(proposal.advisories) == 3
         assert all(item.code == "shot_count_preference" for item in proposal.advisories)
         assert all(item.code != "brief_shot_count" for item in proposal.conflicts)
-        accepted = store.accept_production_bridge(ProductionBridgeAcceptRequest(
-            expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash,
-        ))
+        accepted = store.accept_production_bridge(
+            ProductionBridgeAcceptRequest(
+                expected_proposal_revision=proposal.revision,
+                expected_content_hash=proposal.content_hash,
+            )
+        )
         assert accepted.status == "accepted"
-        installed = store.authoring.get_stage_payload(store.manifest.project_id, StageName.STORYBOARD)
+        installed = store.authoring.get_stage_payload(
+            store.manifest.project_id, StageName.STORYBOARD
+        )
         assert len(installed.shots) == 27
     finally:
         store.close()

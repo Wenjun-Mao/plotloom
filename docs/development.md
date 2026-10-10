@@ -310,6 +310,15 @@ uv build --wheel --out-dir "$wheel_dir"
 uv run python scripts/smoke_installed_wheel.py "$wheel_dir"
 ```
 
+When splitting collected test modules, compare the expanded case IDs, including
+`pytest.mark.parametrize` rows and Vitest `it.each` cases, not just function or
+registration-expression counts. Search the whole repository, including E2E
+fixture packages, for consumers importing helpers from collected test modules;
+move reusable setup into non-collected fixture modules and update every
+consumer.
+Before committing, run `git diff --cached --check` on the staged candidate;
+unstaged diff checks alone do not cover newly added, untracked test files.
+
 The E2E fixture uses temporary SQLite and artifact storage, empties provider keys, and never contacts a live provider. Install Chromium once with `cd frontend && npx playwright install chromium`.
 
 The distribution contract builds and probes a wheel in isolation. It verifies

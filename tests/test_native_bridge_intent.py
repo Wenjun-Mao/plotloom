@@ -15,10 +15,14 @@ from plotloom.exceptions import InvalidTransitionError
 from plotloom.image_job_contracts import ImageJobError
 from plotloom.native_bridge_intent_contract import render_native_intent_report
 from plotloom.native_bridge_intent_service import NativeBridgeIntentService
+from plotloom.pipeline import RunSecretBroker
 from plotloom.production_bridge_contracts import ProductionBridgeIntentUpdateRequest
 from plotloom.production_bridge_intent_service import ProductionBridgeIntentService
-from plotloom.pipeline import RunSecretBroker
-from tests.test_production_bridge_intent import _pending_project, FakeResolver, FakeAdapter
+from tests.production_bridge_intent_fixtures import (
+    FakeAdapter,
+    FakeResolver,
+    _pending_project,
+)
 from tests.test_specialist_settings import configured
 
 
@@ -145,9 +149,10 @@ def test_cancelled_or_changed_authority_contains_late_delivery(native, change):
                 store.update_brief(state.brief.model_copy(update={"target_playthrough_seconds": state.brief.target_playthrough_seconds + 1}), expected_revision=state.revision)
             else:
                 # A changed canonical replacement target is distinct from source.
-                from plotloom.persistence.schema import StageHeadRow
-                from plotloom.domain import StageName
                 from sqlalchemy import select
+
+                from plotloom.domain import StageName
+                from plotloom.persistence.schema import StageHeadRow
                 with store.repository._write() as session:
                     head = session.scalar(select(StageHeadRow).where(StageHeadRow.project_id == project, StageHeadRow.stage == StageName.STORY_GRAPH.value))
                     head.revision += 1

@@ -6,7 +6,25 @@ after the earlier deadline; no new deadline was specified. Baseline: clean
 retained main `8782dab`. One source/browser/data writer; independent review and
 owner-data protection remain required before publication.
 
+Current completion reconciliation (October10): the named same-project
+Create → Revise → Recover journey, both revised/restored native routes and finite
+whole-product E22 view/state coverage are qualified by the linked Board3 and
+presentation receipts. The first stale Cast/Script lower-action gap now has three
+passing desktop cases and21 root/independently inspected frames. Historical
+PARTIAL/unobserved entries below remain dated evidence, not newly reopened work.
+The focused test-health cleanup is implemented and independently reviewed. Its
+combined local gate passes1,469 Python (unchanged-input reuse),1,047 frontend and
+278 unfiltered browser cases, plus types/build/wheel/installed smoke; the
+[cleanup receipt](../verification/2026-10-10-testing-health-cleanup.md) preserves
+the earlier regressions and exact input boundary. Exact hosted CI is pending.
+Normal cutover still needs the retained-demo choice. Creative/media quality,
+a new Scene/Prop downstream consumer,
+configured API intent and optional populated native relationships are not claimed.
+
 ## Reusable playbook and current continuation profile
+
+The October9 continuation snapshot below is historical; the October10 completion
+reconciliation above is current. Its owner decisions remain binding.
 
 Current owner decisions (October9): explicit unassessable identity review may
 authorize production with a separate recorded reviewer decision, never a fabricated
@@ -35,6 +53,16 @@ repair's first full browser sweep exposed an empty-queue drain regression; its
 owning correction and fresh full gate are recorded in the
 [read-recovery receipt](../verification/2026-10-09-graph-directory-read-recovery.md).
 Normal8841, protected projects/settings and the native media remain unchanged.
+
+### Added goal requirement: testing health cleanup
+
+The owner accepted the independent suite audit and added its focused cleanup to
+this active goal. The [testing-health track](2026-10-10-testing-health-cleanup.md)
+owns the bounded implementation and verification. Complete it alongside the
+remaining finite E22 checks, then qualify the stable combined candidate; do not
+dispatch a redundant full CI gate for an intermediate test-harness checkpoint.
+Passing the previous E2E gate alone no longer completes this goal. Preserve
+current supported behaviors; test-count reduction is not an acceptance target.
 
 Historical graph/read checkpoint: the corrected full gate is264 browser/945 frontend
 PASS, with1,418 Python PASS and unchanged913-input fingerprint. Serialized wheel

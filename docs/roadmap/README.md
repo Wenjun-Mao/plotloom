@@ -22,6 +22,12 @@ fresh software qualification/publication are tracked there separately from the b
 The overall run remains PARTIAL for explicitly unobserved E22/capability boundaries; this is not
 creative/media acceptance or blanket whole-product coverage.
 
+The owner has added a focused [testing-health cleanup](2026-10-10-testing-health-cleanup.md)
+to the active E2E goal: reduce repeated setup, balance browser work, use narrower
+fixtures for UI-only checks and split oversized test modules without weakening
+supported coverage. Its implementation and fresh combined qualification are
+required before goal completion; the audit alone is not completion.
+
 The owner requested a dedicated whole-product visual-and-text pass on October8,
 including “weird wording.” It is now mandatory E22 in the reusable playbook,
 not incidental observation during functional tests. The

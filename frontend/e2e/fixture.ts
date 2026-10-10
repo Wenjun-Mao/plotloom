@@ -1,12 +1,12 @@
 import { test as base, expect } from "@playwright/test";
 import { spawn, type ChildProcess } from "node:child_process";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
-import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { usePageWithDrainedRoutes } from "./page-route-lifecycle";
 import { pollHttpReadiness } from "./http-readiness";
+import { waitForListenerOrigin, type ListenerRole } from "./listener-address";
 
 const configDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(configDirectory, "../..");
@@ -61,28 +61,14 @@ function createWorkbenchTest(frontendMode: FrontendMode) {
     });
     const outputsRoot = path.join(temporaryRoot, "outputs");
     const applicationDataRoot = path.join(temporaryRoot, "application");
-    const { backendPort, frontendPort, providerPort } = await base.step("Workbench setup: owned loopback ports", async () => ({
-      backendPort: await reserveLoopbackPort(),
-      frontendPort: frontendMode === "vite" ? await reserveLoopbackPort() : undefined,
-      providerPort: await reserveLoopbackPort(),
-    }));
-    const apiOrigin = `http://${loopbackHost}:${backendPort}`;
-    const frontendOrigin = frontendPort
-      ? `http://${loopbackHost}:${frontendPort}`
-      : apiOrigin;
-    const providerOrigin = `http://${loopbackHost}:${providerPort}`;
     const provider = startProcess(
       "external OpenAI-compatible fake",
       process.execPath,
-      [path.join(configDirectory, "fixtures", "external-openai-provider.mjs"), "--port", String(providerPort)],
+      [path.join(configDirectory, "fixtures", "external-openai-provider.mjs"), "--port", "0"],
       {},
     );
     const backendEnvironment = {
       PLOTLOOM_HOST: loopbackHost,
-      PLOTLOOM_PORT: String(backendPort),
-      // PORT deliberately disables the runtime's fallback range, so this test
-      // cannot accidentally exercise a different backend than its proxy.
-      PORT: String(backendPort),
       TEXT_MODEL_API_KEY: "",
       IMAGE_MODEL_API_KEY: "",
       VIDEO_MODEL_API_KEY: "",
@@ -97,23 +83,20 @@ function createWorkbenchTest(frontendMode: FrontendMode) {
     try {
       await mkdir(outputsRoot, { recursive: true });
       await mkdir(applicationDataRoot, { recursive: true });
+      const providerOrigin = await ownedOrigin(provider, "provider");
+      const apiOrigin = await ownedOrigin(backend, "backend");
+      let frontendOrigin = apiOrigin;
       await waitForHttp(`${providerOrigin}/control/status`, provider);
       await waitForHttp(`${apiOrigin}/openapi.json`, backend);
-      if (frontendPort) {
+      if (frontendMode === "vite") {
         frontend = startProcess(
           "Vite",
-          "npm",
-          [
-            "run",
-            "dev",
-            "--",
-            "--port",
-            String(frontendPort),
-            "--strictPort",
-          ],
+          process.execPath,
+          [path.join(configDirectory, "fixtures", "vite-runtime.mjs")],
           { PLOTLOOM_API_ORIGIN: apiOrigin },
           frontendRoot,
         );
+        frontendOrigin = await ownedOrigin(frontend, "frontend");
         await waitForHttp(`${frontendOrigin}/v2/`, frontend);
       } else {
         // Exercise the same static mount used by the source-checkout runtime,
@@ -129,7 +112,9 @@ function createWorkbenchTest(frontendMode: FrontendMode) {
         restartBackend: async (overrides = {}) => {
           await stopProcess(backend);
           await waitForHttpUnavailable(`${apiOrigin}/openapi.json`);
-          backend = startProcess("FastAPI", "uv", ["run", "python", backendEntrypoint], { ...backendEnvironment, ...overrides });
+          backend = startProcess("FastAPI", "uv", ["run", "python", backendEntrypoint, "--port", new URL(apiOrigin).port], { ...backendEnvironment, ...overrides });
+          const restartedOrigin = await ownedOrigin(backend, "backend");
+          if (restartedOrigin !== apiOrigin) throw new Error(`FastAPI restart changed its owned origin: ${apiOrigin} → ${restartedOrigin}`);
           await waitForHttp(`${apiOrigin}/openapi.json`, backend);
         },
       });
@@ -176,19 +161,8 @@ function startProcess(
   return { child, label, output: () => output };
 }
 
-async function reserveLoopbackPort(): Promise<number> {
-  const server = net.createServer();
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen({ host: loopbackHost, port: 0 }, resolve);
-  });
-  const address = server.address();
-  if (!address || typeof address === "string") {
-    server.close();
-    throw new Error("Unable to allocate a loopback port for Plotloom E2E.");
-  }
-  await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
-  return address.port;
+async function ownedOrigin(process: ManagedProcess, role: ListenerRole): Promise<string> {
+  return base.step(`Workbench listener: ${process.label} (${role})`, () => waitForListenerOrigin(process, role, Date.now() + 25_000));
 }
 
 async function waitForHttpUnavailable(url: string): Promise<void> {

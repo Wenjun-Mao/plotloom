@@ -6,12 +6,19 @@ import argparse
 from pathlib import Path
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest, ProductionBridgeIntentUpdateRequest
+from plotloom.production_bridge_contracts import (
+    ProductionBridgeAcceptRequest,
+    ProductionBridgeIntentUpdateRequest,
+)
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.script_contracts import ScriptReopenRequest, ScriptSectionSaveRequest
 from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
-from tests.test_production_bridge import _prepare_installable_bridge, _review_fixture_presentation, _source_shaped_review_board
-from tests.test_project_storage_art import _accepted_f4_script, _deliver_stage
+from tests.creative_delivery_fixtures import _accepted_f4_script, _deliver_stage
+from tests.production_bridge_fixtures import (
+    _prepare_installable_bridge,
+    _review_fixture_presentation,
+    _source_shaped_review_board,
+)
 
 
 def repeated_scene_bridge(store, seconds):

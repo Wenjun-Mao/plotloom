@@ -13,7 +13,7 @@ from plotloom.project_storage.operational_state import (
 )
 from plotloom.script_contracts import ScriptReopenRequest, ScriptSectionSaveRequest
 from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
-from tests.test_project_storage_art import _accepted_f4_script, _deliver_stage
+from tests.creative_delivery_fixtures import _accepted_f4_script, _deliver_stage
 
 
 def test_f5a_freezes_current_f4_identity_blocks_lifecycle_and_refuses_late_delivery(tmp_path: Path) -> None:

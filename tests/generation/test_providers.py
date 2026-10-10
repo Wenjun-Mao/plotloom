@@ -21,7 +21,7 @@ from plotloom.generation.exceptions import (
 )
 from plotloom.generation.providers import OpenAICompatibleAdapter
 
-from conftest import secret_lease
+from tests.generation.conftest import secret_lease
 
 
 def _request(*, schema: dict | None) -> GenerationRequest:

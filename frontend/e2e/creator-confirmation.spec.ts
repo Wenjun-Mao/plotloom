@@ -1,9 +1,9 @@
-import { expect, test } from "./fixture";
+import { expect, test } from "./vite-only-fixture";
 
-test("all four creator confirmations use DOM consent with keyboard/cancel/reload recovery", async ({ page, workbench }) => {
+test("all four creator confirmations use DOM consent with keyboard/cancel/reload recovery", async ({ page, frontendOrigin }) => {
   const nativeDialogs: string[] = [];
   page.on("dialog", async dialog => { nativeDialogs.push(dialog.type()); await dialog.dismiss(); });
-  await page.goto(`${workbench.frontendOrigin}/v2/e2e/creator-confirmation-fixture.html`);
+  await page.goto(`${frontendOrigin}/v2/e2e/creator-confirmation-fixture.html`);
   await expect(page.getByRole("heading", { name: "Disposable creator confirmation fixture" })).toBeVisible();
   const reject = page.getByRole("region", { name: "Rejection fixture" }).getByRole("button", { name: "拒绝此原片并撤销选择" });
   await reject.click(); const dialog = page.getByRole("alertdialog");

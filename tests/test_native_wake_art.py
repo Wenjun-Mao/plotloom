@@ -11,11 +11,8 @@ from plotloom.art_contracts import ArtAcceptRequest
 from plotloom.codex_image_dispatch import NativeCodexImageDispatcher
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.project_storage.composition import ProjectFolderStorage
-from tests.test_project_storage_art import (
-    _deliver,
-    _prepare_art_context,
-    _write_art_reference_delivery,
-)
+from tests.art_delivery_fixtures import _deliver, _write_art_reference_delivery
+from tests.creative_delivery_fixtures import _prepare_art_context
 
 
 def test_exported_art_survives_wake_warning_and_still_admits_delivery(

@@ -2,7 +2,7 @@ import { acknowledgeGraphMapping, graphDraftRevision } from "./fixtures/graph-au
 import { expect, test } from "./fixture";
 import { availableSpecialistWithoutSend, createScriptProject, fixture, json, writeDelivery } from "./f5a-fixture";
 import type { APIRequestContext } from "@playwright/test";
-import { captureDesktopState } from "./fixtures/desktop-state";
+import { captureDesktopActions, captureDesktopState } from "./fixtures/desktop-state";
 
 async function invalidate(request: APIRequestContext, origin: string, id: string, stage: "cast" | "script", expectPublicationRefusal = false) {
   const project = `${origin}/api/v2/projects/${id}`;
@@ -100,6 +100,16 @@ for (const stage of ["cast", "script"] as const) {
     }
     expect(sends()).toBe(0);
     await captureDesktopState(page, test.info(), `${stage}-first-stale-${ready ? "ready" : "prepared"}`, panel.getByRole("status", { name: "创作依据需要更新" }));
+    const action = (name: string) => panel.getByRole("button", { name, exact: true });
+    await captureDesktopActions(page, test.info(), `${stage}-first-stale-${ready ? "ready" : "prepared"}`, ready ? [
+      { name: "confirm", locator: action(stage === "cast" ? "确认使用此角色设定" : "确认使用此剧本"), enabled: false },
+      { name: "cancel", locator: action(stage === "cast" ? "放弃此角色提案" : "拒绝并取消此剧本"), enabled: true },
+    ] : [
+      { name: "send", locator: action("发送给文字创作助手"), enabled: false },
+      { name: "check", locator: action("立即检查"), enabled: true },
+      { name: "cancel", locator: action("取消此任务"), enabled: true },
+    ]);
+    expect(sends()).toBe(0);
   });
 
   test(`current ${stage} replacement remains dispatchable and acceptable over stale retained evidence`, async ({ page, request, workbench }) => {
