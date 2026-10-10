@@ -1,7 +1,7 @@
 # Testing health cleanup
 
-Status: implemented, independently reviewed and locally qualified; exact hosted
-qualification is pending. This receipt retains the baseline and failed attempts
+Status: implemented, independently reviewed, locally qualified and published;
+exact hosted qualification is running. This receipt retains baseline and failed attempts
 separately from the corrected combined gate. Normal cutover is not authorized here.
 
 ## Baseline and scope
@@ -291,9 +291,10 @@ separately from the corrected combined gate. Normal cutover is not authorized he
 
 ## Manager combined qualification
 
-The corrected frozen candidate is based on published branch HEAD
-`bd04778af90c958dc630aa9f5d0e9db8dac26eb9`; the final executable/test commit and
-hosted run identity will be recorded after publication. All 19 checks in
+The corrected frozen candidate is based on prior branch HEAD
+`bd04778af90c958dc630aa9f5d0e9db8dac26eb9`; final executable/test commit
+`0b71359923a5cbe92ff2c15cf06c30b6b9c175de` is pushed on
+`codex/one-current-story-rebuild`. All 19 checks in
 `/private/tmp/plotloom-corrected-qualification.WIAV60` ended with explicit
 `QUALIFICATION_EXIT_CODE=0` markers. Complete logs remain in that directory.
 
@@ -336,7 +337,7 @@ selection. Normal checkout remains clean and its checked JS is still
 `3a8843193da3df6852f8b12731e33c90961dbe1339a9882b30fb2e03290555d5`;
 the candidate JS remains
 `0a4fd0e721b819da4ffec7d946e0af8f7c9ae3a90e9c4d473972951ac3ace160`.
-Exact hosted qualification remains pending; normal/main cutover still requires
+Exact hosted qualification is running; normal/main cutover still requires
 the separately requested retained-demo choice. No schema adapter or owner reset.
 
 ### Publication hygiene delta
@@ -364,3 +365,15 @@ A further read-only native comparison at `2026-10-10T04:28:39.188Z` again matche
 all eight projections,58 asset hashes and four selected records with zero differing
 endpoints, r2/lifecycle9 active. Artifact:
 `/private/tmp/plotloom-prepublish-readback.OB7m17/readback.json`.
+
+### Exact hosted qualification
+
+After staged hygiene and final input verification passed, root committed and
+pushed `0b71359923a5cbe92ff2c15cf06c30b6b9c175de`; the remote branch was read back
+at that exact SHA. Remote `main` remains `7d79d18b502746ba42642befce8e4510172949c8`.
+One unfiltered `browser_grep=.*` dispatch created
+[CI38024405822](https://github.com/Wenjun-Mao/plotloom/actions/runs/38024405822)
+at `2026-10-10T04:32:06Z`, event `workflow_dispatch`, exact `headSha=0b713599…`.
+Verify job `114132052924` started at04:32:10UTC and is in progress; both browser
+jobs follow verify. Queue/dispatch and early setup success are not final CI PASS.
+No duplicate run, normal activation, main merge or protected-data mutation.

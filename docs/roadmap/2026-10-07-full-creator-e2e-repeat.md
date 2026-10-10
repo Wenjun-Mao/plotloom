@@ -16,7 +16,10 @@ The focused test-health cleanup is implemented and independently reviewed. Its
 combined local gate passes1,469 Python (unchanged-input reuse),1,047 frontend and
 278 unfiltered browser cases, plus types/build/wheel/installed smoke; the
 [cleanup receipt](../verification/2026-10-10-testing-health-cleanup.md) preserves
-the earlier regressions and exact input boundary. Exact hosted CI is pending.
+the earlier regressions and exact input boundary. Executable/test revision
+`0b71359` is published on the isolated branch; exact unfiltered
+[CI38024405822](https://github.com/Wenjun-Mao/plotloom/actions/runs/38024405822)
+is running, not yet PASS.
 Normal cutover still needs the retained-demo choice. Creative/media quality,
 a new Scene/Prop downstream consumer,
 configured API intent and optional populated native relationships are not claimed.

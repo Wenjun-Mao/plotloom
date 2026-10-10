@@ -6,8 +6,10 @@ qualified, not every possible state permutation or creative/media quality.
 The combined test-harness cleanup gate now passes1,469 Python (bounded reuse),
 1,047 frontend and278 unfiltered browser cases, plus types/build/wheel/installed
 smoke; its [receipt](2026-10-10-testing-health-cleanup.md) owns the exact frozen
-inputs and retained failures. Exact hosted qualification and normal cutover remain
-pending in the [run profile](../roadmap/2026-10-07-full-creator-e2e-repeat.md).
+inputs and retained failures. Exact hosted qualification at0b71359 is running
+([CI38024405822](https://github.com/Wenjun-Mao/plotloom/actions/runs/38024405822));
+normal cutover remains pending in the
+[run profile](../roadmap/2026-10-07-full-creator-e2e-repeat.md).
 
 ## Candidate and root causes
 
