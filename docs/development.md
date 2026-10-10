@@ -294,21 +294,55 @@ The operator and maintainer entry point is the
   every downstream stage. Complete stage rebuilding is a new current execution,
   not exact repair or a compatibility endpoint.
 
-## Verification order
+## Local verification tiers
+
+Install the locked development and frontend dependencies once, then use
+`scripts/verify.py` for three explicit local paths:
 
 ```sh
-uv lock --check
-uv run ruff check src/plotloom/api --select F401
-uv run pytest -q
-npm --prefix frontend test
-npm --prefix frontend run typecheck
-npm --prefix frontend run build:deterministic
-git diff --exit-code -- src/plotloom/static
-npm --prefix frontend run test:e2e
-wheel_dir="$(mktemp -d /tmp/plotloom-wheel.XXXXXX)"
-uv build --wheel --out-dir "$wheel_dir"
-uv run python scripts/smoke_installed_wheel.py "$wheel_dir"
+uv sync --all-groups --frozen
+npm --prefix frontend ci
+npm --prefix docs/prompt-pipeline-lab ci
 ```
+
+`quick` checks the lock, API-scoped unused imports, frontend unit tests, and both
+application and browser-fixture type contracts. It does not run Python
+integration or browser tests, the archived prompt reader, a bundle build/parity
+check, or wheel packaging. It is development feedback, never backend or release
+acceptance.
+
+```sh
+uv run --locked --no-sync python scripts/verify.py quick
+```
+
+`focused` requires explicit pytest case/file selectors, Vitest files, and/or
+Playwright specs. It validates paths, asks pytest to collect each requested
+selector, then runs the native test commands unchanged. Map each changed owner
+to its relevant families; there is no automatic changed-file selection or
+second test registry.
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest tests/test_cast_style.py::test_preparation_has_no_implicit_preset \
+  --vitest tests/app-state-opening.test.ts \
+  --playwright e2e/creator-confirmation.spec.ts
+```
+
+`full` runs the complete Python, frontend, archived-reader and unfiltered
+browser suites; application type contracts; scoped lint and lock checks; the
+deterministic bundle and parity check; wheel build and installed-wheel smoke.
+It refuses ambient diagnostic grep, shard, or pytest filter settings. The
+browser suite is local and unsharded; hosted CI independently runs both
+whole-spec groups. Full verification records each command's elapsed time and
+exit status, and does not establish product or creative acceptance.
+
+```sh
+uv run --locked --no-sync python scripts/verify.py full
+```
+
+Install Chromium once before the first local browser run with
+`cd frontend && npx playwright install chromium`. The Python suite's media
+probes require `ffmpeg` and `ffprobe` on `PATH`.
 
 When splitting collected test modules, compare the expanded case IDs, including
 `pytest.mark.parametrize` rows and Vitest `it.each` cases, not just function or

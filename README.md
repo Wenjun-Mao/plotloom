@@ -88,20 +88,37 @@ Qwen 只接受经过验证的七个精确画布：`1024x1024`、横版
 
 ## 验证
 
+先准备一次本地依赖：`uv sync --all-groups --frozen`、
+`npm --prefix frontend ci`、`npm --prefix docs/prompt-pipeline-lab ci`，并在首次浏览器运行前
+从 `frontend/` 执行 `npx playwright install chromium`。
+
+日常快速反馈：
+
 ```sh
-uv run pytest -q
-npm --prefix frontend test
-npm --prefix frontend run typecheck
-npm --prefix frontend run build
-git diff --exit-code -- src/plotloom/static
-npm --prefix frontend run test:e2e
-uv build --wheel
-uv run python scripts/smoke_installed_wheel.py dist
+uv run --locked --no-sync python scripts/verify.py quick
 ```
 
-手动 CI 默认以 `browser_grep=.*` 执行完整发布检查；浏览器测试分为两个独立
-runner，每个只运行一个 worker，并保留各自的报告。填写其他正则只用于诊断，
-不能替代完整发布验收。见 [ADR 0109](docs/adr/0109-bounded-browser-ci-evidence.md)。
+选择明确的 pytest、Vitest 文件或 Playwright spec：
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest tests/test_cast_style.py::test_preparation_has_no_implicit_preset \
+  --vitest tests/app-state-opening.test.ts \
+  --playwright e2e/creator-confirmation.spec.ts
+```
+
+完整本地软件检查：
+
+```sh
+uv run --locked --no-sync python scripts/verify.py full
+```
+
+`quick` 是反馈，不是后端或发布验收。`focused` 不会自动推断改动范围；请把
+改动的所有者映射到显式测试选择。`full` 运行完整本地套件，拒绝会缩小选择的
+环境过滤器；它也不代表产品或创意接受。手动 CI 默认以 `browser_grep=.*`
+执行完整发布检查；浏览器测试在两个独立 runner 上各用一个 worker 并保留报告。
+其他正则只用于诊断，不能替代完整发布验收。见
+[ADR 0109](docs/adr/0109-bounded-browser-ci-evidence.md)。
 
 对已保存文本 profile 的真实四阶段验收与 secret-free 回执，见
 [conformance runner](docs/conformance.md)。M1.5 只有在两个所需 profile

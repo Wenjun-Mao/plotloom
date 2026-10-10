@@ -1,8 +1,192 @@
 # Testing health cleanup
 
-Status: implemented, independently reviewed, locally/hosted qualified and published
-on the isolated branch. This receipt retains baseline and failed attempts
-separately from the corrected combined gate. Normal cutover is not authorized here.
+Status of the original cleanup: implemented, independently reviewed, locally/
+hosted qualified and published on the isolated branch. This receipt retains
+baseline and failed attempts separately from the corrected combined gate. Normal
+cutover is not authorized by this performance follow-up.
+
+## Performance follow-up P0–P4 (local qualification complete; hosted pending)
+
+### P0 — same-host baseline and safety map
+
+Baseline source revision is `dbd0e246cd2280a1fdcb06a5e31d262ba23fa921`; the
+only pre-existing worktree edits are the owner-approved roadmap plan and index.
+The tested source, Python, Node, CI and lock inputs match that revision. Samples
+ran serially on an Apple M5 Pro, macOS 27.0.1 arm64, using Python 3.12.13,
+`uv 0.12.19`, Node v24.18.0 and npm 11.16.0. The pinned Shuohao submodule is
+`4f9b2128c82adf623f594ba714c97d0afcfc16a2`. Each sample used a new pytest
+`--basetemp` under the system temporary directory; no owner project or service
+was opened or changed.
+
+The two approved pair cases are exactly:
+
+- `tests/test_production_rebuild_freshness.py::test_target_drift_is_visible_and_fresh_preparation_recovers_without_borrowing_reviews`
+- `tests/test_production_bridge_runtime_http.py::test_runtime_http_fake_inference_review_edit_save_then_explicit_install`
+
+The preselected additional four-case bridge/rebuild/currentness family is exactly:
+
+- `tests/test_production_bridge.py::test_bridge_rejects_stale_brief_and_stale_f4_inputs`
+- `tests/test_production_bridge.py::test_bridge_install_rolls_back_all_heads_when_a_later_stage_fails`
+- `tests/test_production_rebuild_freshness.py::test_target_drift_blocks_model_dispatch_or_late_adoption[queued]`
+- `tests/test_production_rebuild_freshness.py::test_target_drift_blocks_model_dispatch_or_late_adoption[dispatched]`
+
+Commands for each unprofiled sample used
+`uv run --locked --no-sync pytest -q <exact selectors> --basetemp <fresh temporary root>`.
+The pair passed three times in **47.261s, 46.946s and 46.964s** (median
+**46.964s**); the four-case family passed three times in **49.575s, 49.647s and
+49.493s** (median **49.575s**). All six commands exited 0. Complete command
+lines and pytest output are retained in `/tmp/plotloom-p0-baseline-20261010.log`
+and its JSON summary.
+
+A separate profiled pair run passed in 50.774s wall time. cProfile counted
+1,026 calls through `cast_style._run` (28.260s cumulative) and 513 through
+`art_style._run` (14.090s cumulative): **1,539 Node starts** in the pair. It
+counted 1,008 Cast and 501 Art currentness comparisons. Each calls contract
+derivation; preparation adds two derivations per style, while the four Cast and
+four Art `validate_*_style` calls remain separate Node validations. It also
+counted 1,571 total `subprocess.run` calls (42.776s cumulative); these nested
+figures are attribution, not additive wall-time estimates. The profile is
+`/tmp/plotloom-p0-profile-20261010.pstats`, with command and console result in
+`/tmp/plotloom-p0-profile-20261010.log`.
+
+The imported rule dependency closure is `scripts/cast-style.mjs` plus the pinned
+`novel-characters/scripts/novel-characters.mjs`, and `scripts/art-style.mjs` plus
+`novel-art/scripts/novel-art.mjs` and its local `gate-summary.mjs` import. The
+upstream modules use Node built-ins and have no further local imports. The
+currentness owners in `persistence/project/cast.py` and `art.py` read current
+project direction and compare each stored binding with a freshly derived
+contract. Admission/edit validators call the Node `check-style`/`validate`
+paths separately. The safe optimization boundary is therefore deterministic
+contract derivation only; project state, candidate validation, CAS/rollback and
+dispatch decisions stay live. The profile confirms sufficient startup cost to
+probe this boundary.
+
+### P1 — bounded cache probe
+
+The process-local LRU is in `src/plotloom/style_contract_cache.py` and is used
+only by the two `freeze_*_style` functions. `cast_style_current` and
+`art_style_current` still compare each stored binding with the derived contract;
+the Node `check-style`/`validate` candidate calls remain uncached. The cache
+fingerprints exact file bytes and filesystem identity for each rule dependency,
+checks resolved Node identity and PATH on every lookup, bypasses reuse whenever
+`NODE_OPTIONS` is non-empty, checks inputs again after a miss, serializes
+concurrent cache operations, and holds at most64 immutable JSON strings. No Node
+rule owner, project persistence, schema, candidate validation or dispatch code
+changed.
+
+The first same-host probe used the same commands and fresh temporary roots as
+P0. The pair passed in **4.273s, 4.304s and 4.344s** (median **4.304s**, 90.8%
+below the P0 median); the four-case family passed in **5.484s, 5.317s and
+5.347s** (median **5.347s**, 89.2% below P0). All six commands exited0. Detailed
+commands and raw output are in `/tmp/plotloom-p1-probe-20261010.log` and its JSON
+summary. This probe is on the P1 working-tree content, whose four implementation
+file SHA-256 values are:
+
+- `src/plotloom/style_contract_cache.py`: `d09fe042a3f5ff7894273cfb5f57664cdb487993bfb61e26ea2c216c57fde903`
+- `src/plotloom/cast_style.py`: `e1c400c09055e2ff841cbb2a27b7a99edd6df5bb88955f0b6ad604f3c159d65c`
+- `src/plotloom/art_style.py`: `c5cf44d0e76f4785e5f5120b454d66aac95c615fac66285fb537a2f0401e511f`
+- `tests/test_style_contract_cache.py`: `51f04ee8e88d2b17ba94368a4624ec8e26010f2a59f6156992de3553ae946c80`
+
+A separate P1 profile passed in7.028s wall time. It counted two successful
+contract derivations and four uncached Cast plus four uncached Art validator
+calls: **10 Node starts**, versus1,539 in P0. This profile's 42 total Python
+`subprocess.run` calls also include non-Node work. Profile and console evidence
+are in `/tmp/plotloom-p1-profile-20261010.pstats` and
+`/tmp/plotloom-p1-profile-20261010.log`.
+
+Focused checks passed: the new cache regression module passed10 cases, and the
+new module plus existing Cast/Art suites passed45 cases with one existing
+Starlette deprecation warning. Guards cover independent returned JSON,
+`None`/empty direction and owner key separation, complete local import closure,
+same-size/same-timestamp preset replacement, a mid-derivation rule edit, Node
+unavailability/PATH/executable identity, post-warmup `NODE_OPTIONS` failure,
+invalid JSON, LRU/concurrency, real stale-candidate validator refusal and live
+currentness comparison. One initial combined focused run failed28 cases because
+the refactor briefly removed the `json` import still used by the unchanged
+validators; restoring it fixed the cause, and the full focused suites then
+passed. No assertions or coverage were changed. The P1 probe met both
+performance targets.
+
+### P2/P3 implementation and initial checks — 2026-10-10
+
+P2 adds `scripts/verify.py` with explicit `quick`, `focused` and `full` tiers;
+the root README and development guide document setup, selectors, limitations and
+commands. The entrypoint prints each command, per-step duration/exit code and a
+tier summary. Focused selection validates project-local paths and asks pytest to
+collect each case before native execution. Full refuses ambient diagnostic
+filters and performs deterministic bundle/parity before wheel build and smoke.
+The 62-case focused suite covering the cache, CLI and hosted-workflow contracts
+passed; a real CLI selection collected and ran one exact pytest case, also
+passing.
+
+P3 removes the browser job's `needs: verify` dependency while making both jobs'
+checkout ref explicitly `${{ github.sha }}`. Verify keeps its build/parity then
+wheel/smoke order. The amended ADR0109 and workflow test preserve default
+unfiltered acceptance, all required jobs and both current browser groups.
+The workflow test also rejects job/step-level `continue-on-error` and limits
+step conditions to the two report uploads, each using `${{ !cancelled() }}`.
+A read-only review found that this step-level guard was initially missing; the
+test was strengthened, 62 focused tests and Ruff passed, and the reviewer
+confirmed the follow-up. No hosted workflow has been dispatched yet.
+
+### P4 — repeated measurements, review and local qualification
+
+The final fixed-pair samples passed in **4.391s, 4.275s and 4.325s**, median
+**4.325s** versus the P0 median **46.964s** (90.8% lower). The preselected
+four-case family passed in **5.333s, 5.346s and 5.345s**, median **5.345s**
+versus P0's **49.575s** (89.2% lower). Each sample used a fresh temporary
+pytest root, ran serially and exited 0. The host and toolchain match P0. Raw
+commands/results are in `/tmp/plotloom-p4-final-baseline-20261010.log` and
+`/tmp/plotloom-p4-final-baseline-20261010.json`.
+
+The final `quick` tier passed in **9.940s, 9.565s and 9.510s**, median
+**9.565s**, in `/tmp/plotloom-p4-quick-final-20261010.log`. A final cProfile pair
+passed in 7.050s; the cache path derived contracts twice and live Cast/Art
+validators ran eight times, for **10 Node starts**. See
+`/tmp/plotloom-p4-profile-final-20261010.pstats` and
+`/tmp/plotloom-p4-profile-final-20261010.log`.
+
+Independent read-only review found no runtime blocker. It identified one P3
+regression-guard gap: step-level failure overrides and conditional skips were
+not prohibited by the job-level assertion. The current workflow had no such
+override. The guard now rejects any job- or step-level `continue-on-error`,
+rejects job-level `if`, and permits step-level conditions only on the two
+`actions/upload-artifact@v4` steps with their exact `${{ !cancelled() }}` value.
+The reviewer confirmed the follow-up. The focused cache/CLI/CI contract suites
+passed 62 tests, and Ruff plus `git diff --check` passed.
+
+An initial unfiltered local Playwright run timed out waiting for the Source
+retry button in `graph-read-recovery.spec.ts` at 1700x900. The trace showed two
+startup Source-outline GETs returning 503, then a third returning 200 after the
+test's mutable route flag changed but before the retry locator appeared. The
+exact case passed in isolation. The correction is at the test route boundary:
+wait for startup network activity to settle while the route still fails, then
+enable success immediately before the explicit retry click. The focused spec
+passed 9/9; independent review confirmed the failure state and GET-only and
+persistence assertions remain intact.
+
+The final stable candidate passed `uv run --locked --no-sync python
+scripts/verify.py full` with `VERIFY_SUMMARY tier=full elapsed_seconds=732.075
+exit_code=0`. It included the archived prompt reader, API Ruff check, ffmpeg/
+ffprobe probes, 132 frontend unit files / 1,047 cases, frontend and E2E
+typechecks, 1,492 Python tests, deterministic bundle build and parity, the
+unfiltered browser manifest (84 specs and 278 cases split 122/156), all 278 local
+unsharded Playwright cases, wheel build and installed-wheel smoke. Python took
+320.90s; Playwright took392.242s. One existing Starlette deprecation warning
+appeared. Complete log: `/tmp/plotloom-p4-full-qualified-20261010.log`.
+
+Still pending: scoped main publication after a fresh remote-divergence check,
+then one exact-head default-unfiltered hosted workflow. Normal runtime status
+and owner project/service state have not been changed.
+
+After the P2/P3 edits, the preselected six-case bridge/rebuild integration
+selection passed 6/6 in 8.89s pytest time (12.975s including the focused selector
+collection steps). This includes stale brief/F4 rejection, atomic rollback,
+target drift while queued/dispatched, fresh preparation recovery and explicit
+install. Three serial `quick` invocations all exited 0 and each ran 1,047 frontend
+tests across 132 files plus both typechecks and the lock/API lint. Entry-point
+elapsed times were **10.141s, 9.620s and 9.881s** (median **9.881s**). The
+existing Starlette deprecation warning appeared in Python focused runs.
 
 ## Baseline and scope
 

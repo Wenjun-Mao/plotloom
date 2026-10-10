@@ -85,6 +85,8 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1280, height: 768
         await expect(page.getByRole("button", { name: "确认图内容", exact: true })).toBeDisabled();
         await expect(page.getByRole("button", { name: "应用到故事路线", exact: true })).toBeDisabled();
         await page.screenshot({ path: testInfo.outputPath(`${mode}-source-failed.png`), animations: "disabled" });
+        // Keep delayed initial Source reads failing; only the explicit retry may recover.
+        await page.waitForLoadState("networkidle");
         fail = false;
         await page.getByRole("button", { name: "重新读取来源与大纲", exact: true }).click();
         await expect(page.getByRole("button", { name: "重新读取来源与大纲", exact: true })).toHaveCount(0);

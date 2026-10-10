@@ -21,14 +21,52 @@ def _workflow():
 def test_filtered_browser_runs_remain_opt_in_diagnostics():
     workflow = _workflow()
     assert set(workflow["on"]) == {"workflow_dispatch"}
-    assert workflow["on"]["workflow_dispatch"]["inputs"]["browser_grep"]["default"] == ".*"
+    assert (
+        workflow["on"]["workflow_dispatch"]["inputs"]["browser_grep"]["default"] == ".*"
+    )
     browser = workflow["jobs"]["browser"]
-    assert browser["needs"] == "verify"
-    step = next(item for item in browser["steps"] if item.get("name") == "Browser regression contracts")
+    assert "needs" not in browser
+    step = next(
+        item
+        for item in browser["steps"]
+        if item.get("name") == "Browser regression contracts"
+    )
     assert step["env"]["BROWSER_GREP"] == "${{ inputs.browser_grep }}"
     assert '--grep="${BROWSER_GREP}"' in step["run"]
     assert "--pass-with-no-tests" in step["run"]
     assert "inputs.browser_grep" not in step["run"]
+
+
+def test_full_release_jobs_are_independent_and_must_all_succeed_on_the_same_sha():
+    jobs = _workflow()["jobs"]
+    assert set(jobs) == {"verify", "browser"}
+    conditional_steps = []
+    for job in jobs.values():
+        assert "needs" not in job
+        assert "if" not in job
+        assert "continue-on-error" not in job
+        for step in job["steps"]:
+            assert "continue-on-error" not in step
+            if "if" in step:
+                conditional_steps.append(step)
+        checkouts = [
+            step
+            for step in job["steps"]
+            if step.get("uses", "").startswith("actions/checkout@")
+        ]
+        assert checkouts
+        assert all(step["with"]["ref"] == "${{ github.sha }}" for step in checkouts)
+    assert {step.get("name") for step in conditional_steps} == {
+        "Upload Playwright test results",
+        "Upload Playwright report",
+    }
+    assert all(
+        step.get("uses") == "actions/upload-artifact@v4" for step in conditional_steps
+    )
+    assert all(step["if"] == "${{ !cancelled() }}" for step in conditional_steps)
+    browser = jobs["browser"]
+    assert browser["strategy"]["fail-fast"] == "false"
+    assert browser["strategy"]["matrix"]["shard"] == ["1", "2"]
 
 
 def test_browser_shards_preserve_all_results_without_runner_contention():
@@ -39,7 +77,8 @@ def test_browser_shards_preserve_all_results_without_runner_contention():
     guard_index = next(
         index
         for index, item in enumerate(steps)
-        if item.get("name") == "Verify browser shard allocation and selected case coverage"
+        if item.get("name")
+        == "Verify browser shard allocation and selected case coverage"
     )
     step_index = next(
         index
@@ -67,7 +106,8 @@ def test_browser_shards_preserve_all_results_without_runner_contention():
     expected = {
         path.relative_to(FRONTEND / "e2e").as_posix()
         for path in (FRONTEND / "e2e").rglob("*")
-        if path.is_file() and re.search(r"\.(?:spec|test)\.(?:[cm]?[jt]sx?)$", path.name)
+        if path.is_file()
+        and re.search(r"\.(?:spec|test)\.(?:[cm]?[jt]sx?)$", path.name)
     }
     assert len(assigned) == len(set(assigned))
     assert set(assigned) == expected
@@ -80,7 +120,11 @@ def test_browser_shards_preserve_all_results_without_runner_contention():
     assert '"--list"' in guard_source
     assert 'browserGrep === ".*"' in guard_source
     assert "shardOne.size === 0 || shardTwo.size === 0" in guard_source
-    uploads = [item for item in browser["steps"] if item.get("uses") == "actions/upload-artifact@v4"]
+    uploads = [
+        item
+        for item in browser["steps"]
+        if item.get("uses") == "actions/upload-artifact@v4"
+    ]
     assert len(uploads) == 2
     assert all(item["if"] == "${{ !cancelled() }}" for item in uploads)
     assert all("${{ matrix.shard }}" in item["with"]["name"] for item in uploads)
@@ -88,7 +132,11 @@ def test_browser_shards_preserve_all_results_without_runner_contention():
 
 def test_playwright_deadline_leaves_time_to_finalize_and_upload_evidence():
     browser = _workflow()["jobs"]["browser"]
-    step = next(item for item in browser["steps"] if item.get("name") == "Browser regression contracts")
+    step = next(
+        item
+        for item in browser["steps"]
+        if item.get("name") == "Browser regression contracts"
+    )
     global_timeout = int(re.search(r"--global-timeout=(\d+)", step["run"])[1])
     assert global_timeout < int(step["timeout-minutes"]) * 60_000
     assert int(step["timeout-minutes"]) < int(browser["timeout-minutes"])
@@ -96,7 +144,11 @@ def test_playwright_deadline_leaves_time_to_finalize_and_upload_evidence():
 
 def test_full_python_gate_has_measured_runner_budget_and_cleanup_margin():
     verify = _workflow()["jobs"]["verify"]
-    step = next(item for item in verify["steps"] if item.get("name") == "Python and distribution contracts")
+    step = next(
+        item
+        for item in verify["steps"]
+        if item.get("name") == "Python and distribution contracts"
+    )
     # The growing serial suite reached 83% before the former 30-minute job ended.
     # Preserve the full selection and leave wheel/smoke time outside its budget.
     assert 45 <= int(step["timeout-minutes"]) < int(verify["timeout-minutes"]) <= 60

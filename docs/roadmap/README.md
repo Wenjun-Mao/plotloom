@@ -32,6 +32,18 @@ supported coverage. Its [completed combined qualification](../verification/2026-
 includes exact hosted verify and both unfiltered browser shards; the audit alone
 was not completion.
 
+The owner subsequently requested a plan for the remaining test runtime problem.
+The same [testing plan's approved performance follow-up](2026-10-10-testing-health-cleanup.md#performance-follow-up--approved-p0p4-implementation)
+covers pure-contract reuse, quick/focused/full checks and independent hosted job
+overlap. The owner approved P0–P4 through Relay Direct on October10. P0's
+same-host baseline and safety map are recorded; the P1 cache probe passed its
+fixed pair and additional family. P2's three local verification tiers and P3's
+independent same-SHA hosted jobs are implemented with focused guards passing.
+P4's final benchmark, independent review and full local qualification are
+complete; scoped main publication and the one unfiltered hosted qualification
+remain. No normal activation is authorized, and the completed running baseline
+remains frozen for owner use.
+
 The owner requested a dedicated whole-product visual-and-text pass on October8,
 including “weird wording.” It is now mandatory E22 in the reusable playbook,
 not incidental observation during functional tests. The

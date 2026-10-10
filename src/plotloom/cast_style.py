@@ -2,16 +2,27 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import subprocess
 import tempfile
+from pathlib import Path
 from typing import Any, Literal
 
 from .domain import CamelModel
+from .style_contract_cache import derive_style_contract
 
 CastRenderStyle = Literal["live-action", "realistic", "ghibli"]
 CONTRACT_FILENAME = "cast-style-contract.json"
-STYLE_OWNER = Path(__file__).resolve().parents[2] / "scripts" / "cast-style.mjs"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+STYLE_OWNER = PROJECT_ROOT / "scripts" / "cast-style.mjs"
+STYLE_RULE_DEPENDENCIES = (
+    PROJECT_ROOT
+    / "third_party"
+    / "shuohao-skills"
+    / "skills"
+    / "novel-characters"
+    / "scripts"
+    / "novel-characters.mjs",
+)
 
 
 class CastPrepareRequest(CamelModel):
@@ -26,7 +37,14 @@ def _run(*args: str) -> str:
 
 
 def freeze_cast_style(style: CastRenderStyle, direction: str | None) -> dict[str, Any]:
-    return json.loads(_run("contract", "--style", style, "--author-direction", json.dumps(direction)))
+    return derive_style_contract(
+        owner="cast",
+        script=STYLE_OWNER,
+        dependencies=STYLE_RULE_DEPENDENCIES,
+        style=style,
+        direction=direction,
+        error_context="character render validation failed",
+    )
 
 
 def cast_style_current(contract: dict[str, Any] | None, direction: str | None) -> bool:

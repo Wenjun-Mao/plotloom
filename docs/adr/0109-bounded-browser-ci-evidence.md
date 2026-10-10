@@ -67,6 +67,23 @@ dispatch ownership; regress the scope and dependency ordering explicitly.
 
 This uses [Playwright fixture scope and execution order](https://playwright.dev/docs/test-fixtures#execution-order).
 
+## Independent hosted verification amendment · 2026-10-10
+
+The verify job and two browser matrix jobs now start independently on the exact
+workflow `github.sha`. Browser runners still own separate checkouts, dependency
+installs, fixture roots and reports; they do not consume the verify job's
+mutable built bundle or wheel. The verify job retains its serial production
+bundle build/parity check before wheel and installed smoke. GitHub workflow
+success requires the verify job and both browser matrix jobs to succeed; no
+job is conditional or `continue-on-error`. A failed, skipped or cancelled job
+does not qualify the candidate. A filtered `browser_grep` remains diagnostic
+only, so only the default unfiltered workflow is full hosted acceptance.
+
+This removes unnecessary scheduling serialization without changing the
+one-worker, whole-spec browser allocation, case-union guard, deadlines, retry
+policy, trigger or artifact reports. The local `full` tier remains unsharded
+and independently checks its complete browser selection.
+
 ## Setup phase evidence amendment · 2026-10-08
 
 Local121 and145 gates timed out during workbench setup before any UI assertion.

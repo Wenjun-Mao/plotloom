@@ -2,15 +2,33 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import subprocess
 import tempfile
+from pathlib import Path
 from typing import Any, Literal
 
 from .domain import CamelModel
+from .style_contract_cache import derive_style_contract
 
 ArtRenderStyle = Literal["live-action", "realistic", "ghibli"]
-ADAPTER = Path(__file__).resolve().parents[2] / "scripts" / "art-style.mjs"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+ADAPTER = PROJECT_ROOT / "scripts" / "art-style.mjs"
+STYLE_RULE_DEPENDENCIES = (
+    PROJECT_ROOT
+    / "third_party"
+    / "shuohao-skills"
+    / "skills"
+    / "novel-art"
+    / "scripts"
+    / "novel-art.mjs",
+    PROJECT_ROOT
+    / "third_party"
+    / "shuohao-skills"
+    / "skills"
+    / "novel-art"
+    / "scripts"
+    / "gate-summary.mjs",
+)
 
 
 def _run(*args: str) -> str:
@@ -25,7 +43,14 @@ class ArtPrepareRequest(CamelModel):
 
 
 def freeze_art_style(style: ArtRenderStyle, author_direction: str | None) -> dict[str, Any]:
-    return json.loads(_run("contract", "--style", style, "--author-direction", json.dumps(author_direction)))
+    return derive_style_contract(
+        owner="art",
+        script=ADAPTER,
+        dependencies=STYLE_RULE_DEPENDENCIES,
+        style=style,
+        direction=author_direction,
+        error_context="art style/upstream novel-art validation failed",
+    )
 
 
 def art_style_current(contract: dict[str, Any] | None, author_direction: str | None) -> bool:
