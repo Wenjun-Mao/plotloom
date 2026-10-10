@@ -24,6 +24,13 @@ Normal cutover still needs the retained-demo choice. Creative/media quality,
 a new Scene/Prop downstream consumer,
 configured API intent and optional populated native relationships are not claimed.
 
+The final independent completion audit found no other concrete unmet requirement
+in the planned native journey or finite E22 pass. Hosted qualification remains
+pending. `AGENTS.md` also requires main publication by default: isolated-branch
+publication does not satisfy that requirement. The stopping condition permits a
+gated handoff, not a claim that the whole goal is complete. Main/normal cutover
+still needs the retained-demo decision; do not infer reset or adapter authority.
+
 ## Reusable playbook and current continuation profile
 
 The October9 continuation snapshot below is historical; the October10 completion
