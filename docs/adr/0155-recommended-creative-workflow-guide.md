@@ -220,3 +220,18 @@ preparation requires a chosen style; its text proposal and reference images
 remain distinct. Stage changes invalidate old observations just like project
 and activation changes. Existing admission and all mutation payloads stay owned
 by the panels and server.
+
+The same walkthrough then reached missing Role settings. Extend that existing
+channel to the mounted CastPanel's verified read, selected style, operation,
+draft staleness and existing design-validity guard. Role advice must not request
+review before preparation, nor name a disabled confirmation when required
+personality/appearance fields are invalid. Keep text confirmation distinct from
+appearance-image generation and from Art/Script acceptance. This is the same
+advisory contract; no new read, mutation, automatic dispatch or creative approval.
+
+Role's existing parent read must revalidate on workspace refresh, just as the
+Art/Script owners do. Scope its readiness to the current project/refresh token;
+pending or failed reads may retain display but cannot enable Continue or image
+actions, or republish old acceptance as current advice. Use the same Cast read
+owner, preserve editor buffers and reject obsolete completions; no guide-owned
+request or automatic acceptance.

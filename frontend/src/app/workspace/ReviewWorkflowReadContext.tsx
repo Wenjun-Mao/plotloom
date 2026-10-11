@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import type { ArtRenderStyle, ArtReviewState, ScriptReviewState } from "../../types";
+import type { ArtRenderStyle, ArtReviewState, CastReviewState, ScriptReviewState } from "../../types";
 import type { ReviewContextFailure } from "../../pages/ReviewContextNotice";
 
 interface ReviewObservation {
@@ -10,7 +10,8 @@ interface ReviewObservation {
 }
 export type ScriptWorkflowObservation = ReviewObservation & { stage: "script"; state?: ScriptReviewState };
 export type ArtWorkflowObservation = ReviewObservation & { stage: "art"; state?: ArtReviewState; renderStyle: ArtRenderStyle | ""; retainedDraft: boolean };
-type Observation = ScriptWorkflowObservation | ArtWorkflowObservation;
+export type CastWorkflowObservation = ReviewObservation & { stage: "characters"; state?: CastReviewState; renderStyle: ArtRenderStyle | ""; retainedDraft: boolean; designValid: boolean };
+type Observation = ScriptWorkflowObservation | ArtWorkflowObservation | CastWorkflowObservation;
 type ReviewStage = Observation["stage"];
 type Report = (observation: Observation | undefined) => void;
 const ReviewWorkflowContext = createContext<{ projectId: string; stage?: ReviewStage; report?: Report; read?: Observation } | null>(null);
@@ -37,8 +38,9 @@ export function useReportReviewWorkflowRead(projectId: string, active: boolean, 
   const context = useContext(ReviewWorkflowContext);
   const report = active && context?.projectId === projectId && context.stage === observation.stage ? context.report : undefined;
   const { status, state, busy, dirty, error } = observation;
-  const renderStyle = observation.stage === "art" ? observation.renderStyle : undefined;
-  const retainedDraft = observation.stage === "art" ? observation.retainedDraft : undefined;
-  useEffect(() => { report?.(observation); }, [report, status, state, busy, dirty, error, renderStyle, retainedDraft]);
+  const renderStyle = observation.stage !== "script" ? observation.renderStyle : undefined;
+  const retainedDraft = observation.stage !== "script" ? observation.retainedDraft : undefined;
+  const designValid = observation.stage === "characters" ? observation.designValid : undefined;
+  useEffect(() => { report?.(observation); }, [report, status, state, busy, dirty, error, renderStyle, retainedDraft, designValid]);
   useEffect(() => () => report?.(undefined), [report]);
 }

@@ -12,19 +12,22 @@ import { hasValidCastDesign } from "./cast-design-validation";
 import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskActions";
 import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
 import { ReviewContextErrorNotice, ReviewContextNotice, reviewContextFailure, type ReviewContextFailure } from "./ReviewContextNotice";
+import { useReportReviewWorkflowRead } from "../app/workspace/ReviewWorkflowReadContext";
 
 type CastPanelProps = {
   projectId: string; readOnly: boolean; state: CastReviewState | undefined; loadError: string;
+  readStatus?: "loading" | "ready" | "failed"; refreshToken?: unknown;
   onState: (state: CastReviewState) => void; onRefresh: (expectedOwner?: number) => Promise<boolean>;
   onInvalidate: () => void; onTransitionComplete: () => void;
 };
 
-export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError, onState, onRefresh, onInvalidate, onTransitionComplete }: CastPanelProps) {
+export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError, readStatus = loadError ? "failed" : state ? "ready" : "loading", refreshToken, onState, onRefresh, onInvalidate, onTransitionComplete }: CastPanelProps) {
   const ownerDisabled = ownerReadOnly || Boolean(loadError);
   const [assignment, setAssignment] = useState("");
   const [renderStyle, setRenderStyle] = useState<ArtRenderStyle | "">("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ReviewContextFailure>("");
+  useEffect(() => setError(""), [refreshToken]);
   const [editedCast, setEditedCast] = useState<Record<string, unknown>>({});
   const draftDirty = useRef(false);
   const draftBasis = useRef("");
@@ -36,6 +39,9 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
     draftDirty.current = true; draftBasis.current = basis; setEditedCast(recovered);
   }, ownerDisabled || busy, () => { draftDirty.current = false; draftBasis.current = ""; setEditedCast(structuredClone(state?.candidate?.cast ?? state?.acceptedCast?.cast ?? {})); });
   const readOnly = ownerDisabled || reviewDraft.stale;
+  const castCharacters = charactersOf(editedCast);
+  const canConfirm = hasValidCastDesign(castCharacters);
+  useReportReviewWorkflowRead(projectId, true, { stage: "characters", status: readStatus, state, busy, dirty: draftDirty.current, error, renderStyle, retainedDraft: reviewDraft.stale, designValid: canConfirm });
   const operationOwner = useRef(0); const active = useRef(true); const projectRef = useRef(projectId);
   projectRef.current = projectId;
   useEffect(() => { active.current = true; return () => { active.current = false; operationOwner.current += 1; }; }, []);
@@ -75,9 +81,7 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
   </article>;
 
   const candidate = state.candidate; const accepted = state.acceptedCast;
-  const taskLabel = loadError ? "无法刷新角色设定" : state.status === "stale" ? "角色设定需重新确认" : state.status === "reopened" ? "正在编辑角色设定" : candidate?.status === "ready" ? "待审核角色设定" : candidate?.status === "prepared" ? "角色任务尚未交付" : accepted ? `已确认角色设定 r${accepted.revision}` : "尚无角色提案";
-  const castCharacters = charactersOf(editedCast);
-  const canConfirm = hasValidCastDesign(castCharacters);
+  const taskLabel = readStatus === "loading" ? "正在刷新角色设定" : loadError ? "无法刷新角色设定" : state.status === "stale" ? "角色设定需重新确认" : state.status === "reopened" ? "正在编辑角色设定" : candidate?.status === "ready" ? "待审核角色设定" : candidate?.status === "prepared" ? "角色任务尚未交付" : accepted ? `已确认角色设定 r${accepted.revision}` : "尚无角色提案";
   const updateDirection: CastDirectionChange = (index, group, key, value) => {
     const next = { ...editedCast, characters: charactersOf(editedCast).map((character, candidateIndex) => candidateIndex === index ? { ...character, [group]: { ...(group === "reviewNotes" ? { sourceNotes: "", performanceGuidance: "" } : {}), ...record(character[group]), [key]: value } } : character) };
     draftDirty.current = true; draftBasis.current = basis; setEditedCast(next); reviewDraft.changed(JSON.stringify(next));
@@ -92,7 +96,7 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
     <header className="cast-panel-heading"><div><span className="eyebrow">角色设定</span><h2>{taskLabel}</h2></div><span className={`reference-state ${state.status === "stale" ? "historical" : state.status === "accepted" ? "selected" : "candidate"}`}>{loadError ? "无法刷新" : state.status === "stale" ? "需更新" : state.status === "accepted" ? "已确认" : state.status === "reopened" ? "编辑中" : candidate?.status === "ready" ? "待审核" : candidate?.status === "prepared" ? "任务未交付" : "待准备"}</span></header>
     <ReviewContextNotice projectId={projectId} diagnostics={state.staleReasons} />
     {state.candidate && <AcceptedEvidenceNotice projectId={projectId} state={state.acceptedReviewState} />}
-    {accepted && <AcceptedCastSummary accepted={accepted} current={!loadError && state.acceptedReviewState.status === "current"} onEdit={() => act(() => plotloomApi.reopenCast(projectId, accepted.revision), undefined, true)} disabled={readOnly || busy || state.acceptedReviewState.status !== "current"} />}
+    {accepted && <AcceptedCastSummary accepted={accepted} current={readStatus === "ready" && !loadError && state.acceptedReviewState.status === "current"} onEdit={() => act(() => plotloomApi.reopenCast(projectId, accepted.revision), undefined, true)} disabled={readOnly || busy || state.acceptedReviewState.status !== "current"} />}
     {accepted && state.status === "stale" && <p className="action-prerequisite">当前审核依据需要更新，不能直接编辑旧版本。请准备新的角色设定任务，审核后确认；原设定与图片仍保留。</p>}
     {accepted?.reportAvailable && <AcceptedCastReport projectId={projectId} accepted={accepted} />}
     {!candidate && state.status !== "reopened" && <section className="cast-next-action"><div><strong>准备角色设定任务</strong><small>{ownerReadOnly ? "此项目为只读，不能准备或发送角色设定任务。" : "选择角色图像的表现形式，再准备并发送任务。项目简报中的视觉要求会一并带入，结果需要你审核确认。"}</small><label>角色图像风格<select aria-label="角色图像风格" value={renderStyle} disabled={readOnly || busy} onChange={event => setRenderStyle(event.target.value as ArtRenderStyle | "")}><option value="">请选择</option><option value="live-action">真人写实</option><option value="realistic">半写实厚涂</option><option value="ghibli">吉卜力式动画</option></select></label></div><Button variant="quiet" disabled={readOnly || busy || !renderStyle} onClick={() => renderStyle && act(() => plotloomApi.prepareCastCandidate(projectId, renderStyle), (result) => setAssignment(result.assignment))}>准备角色设定任务</Button></section>}

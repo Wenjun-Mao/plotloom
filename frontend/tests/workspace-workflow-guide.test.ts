@@ -22,7 +22,7 @@ const source: SourceOutlineReviewState = {
   acceptedSectionMap: { revision: 1, sourceRevision: 1, outlineRevision: 1, outlineContentHash: "outline", contentHash: "map", mapping: structuredClone(draft.mapping) as SectionMap } as never,
   graphAdmission: { status: "current", sourceRevision: 1, outlineRevision: 1, outlineContentHash: "outline", sectionMapRevision: 1, sectionMapContentHash: "map", graphRevision: 1, graphContentHash: "graph" } as never,
 };
-const input: Omit<RecommendedWorkflowInput, "branchDraft" | "productionRead" | "scriptRead" | "artRead"> = {
+  const input: Omit<RecommendedWorkflowInput, "branchDraft" | "productionRead" | "scriptRead" | "artRead" | "castRead"> = {
   activePage: "creator", activeHash: "", project: { ...demoProject, id: "project", revision: 1 },
   stageHeads: { story_graph: { revision: 1, status: "ready", contentHash: "graph" } as StageHead },
   sourceReviewStatus: "ready", sourceReview: source, branchTaskStatus: "idle", branchTask: null,

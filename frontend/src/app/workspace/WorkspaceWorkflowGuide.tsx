@@ -7,7 +7,7 @@ import { buildRecommendedWorkflow, type RecommendedWorkflowInput, type Recommend
 
 /** Observe the same graph draft as the branch editor; never infer import from delivery. */
 export function WorkspaceWorkflowGuide({ input, onNavigate }: {
-  input: Omit<RecommendedWorkflowInput, "branchDraft" | "productionRead" | "scriptRead" | "artRead">;
+  input: Omit<RecommendedWorkflowInput, "branchDraft" | "productionRead" | "scriptRead" | "artRead" | "castRead">;
   onNavigate: (route: RecommendedWorkflowRoute) => void;
 }) {
   const owner = useGraphWorkbench();
@@ -15,9 +15,10 @@ export function WorkspaceWorkflowGuide({ input, onNavigate }: {
   const reviewRead = useReviewWorkflowRead();
   const scriptRead = reviewRead?.stage === "script" ? reviewRead : undefined;
   const artRead = reviewRead?.stage === "art" ? reviewRead : undefined;
+  const castRead = reviewRead?.stage === "characters" ? reviewRead : undefined;
   const mapping = owner.draft?.mapping ?? null;
   const pendingFields = Boolean(owner.draft && Object.keys(owner.draft.fieldBuffers).length);
-  const model = buildRecommendedWorkflow({ ...input, productionRead: production.data, scriptRead, artRead, branchDraft: {
+  const model = buildRecommendedWorkflow({ ...input, productionRead: production.data, scriptRead, artRead, castRead, branchDraft: {
     status: owner.readStatus,
     dirty: branchDraftIsDirty(mapping, input.sourceReview?.acceptedSectionMap ?? null, Boolean(owner.state?.draft))
       || pendingFields,

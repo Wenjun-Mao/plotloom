@@ -5,6 +5,10 @@ repairing demonstrated UX problems while pausing at creative sign-off or a new
 provider/cost decision. The first continuation corrects verified preparation
 rejections and Art lifecycle advice; scope, qualification and stopping boundary
 are recorded in [the Art/preparation receipt](../verification/2026-10-11-art-and-preparation-workflow-hints.md).
+The [Role continuation receipt](../verification/2026-10-11-role-workflow-hints.md)
+records the verified prerequisite, returned but unconfirmed Role proposal, and
+state-based Role guidance with refresh ownership. The real journey is paused
+for author review; no Role, Art or Script creative acceptance is inferred.
 
 The October11 owner-approved [Script-page next-action correction](../verification/2026-10-11-script-page-workflow-hints.md)
 observes the existing review panel so missing scripts point to preparation,
