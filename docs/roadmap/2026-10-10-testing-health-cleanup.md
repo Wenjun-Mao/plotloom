@@ -678,3 +678,31 @@ checks passed. Independent read-only re-review of `8eb9291` found no
 actionable findings and ran no tests. The exact-candidate full local and hosted
 qualification still need to cover this revision and the manager's final UI
 baseline.
+
+### Final state-based UI baseline reconciliation — 2026-10-11
+
+The manager published `62f031337d2711e6d5e76017a676487420d002b4` as the
+final state-based workflow-hint baseline. Its diff from `4566ec7` spans 19
+documentation, frontend and generated-static files; it changes no backend or
+API contract, persistence, dependencies, or build tooling. The M0–M5 branch
+rebased onto this exact SHA, and `git range-diff` preserved all 13 prior
+commits. The owner map then exposed two new Vitest files, both assigned to
+`creative-production`; `workflow-production-fixture.ts` is recorded as their
+shared support helper.
+
+Two consecutive native ownership scans matched at 1,517 pytest / 157 files
+(SHA-256 `98cad9469ca9a77bce6048decefa8a2ebb1b5be6560954e47e07a3edeea44059`),
+1,164 Vitest / 139 files (SHA-256
+`116c4ae1b5feb1e180cfde9265cad00f34c1a158b653ad71efab64c9632893c0`), and
+285 Playwright / 85 files (SHA-256
+`6878b73005c1ef59e76cbee3d73ae29883bd7554c9be08e5facb536542c6c8ac`). The
+manager supplied exact-baseline evidence for all 1,164 frontend tests, both
+type checks, 95 focused unit/component cases, six selected browser cases,
+desktop inspection and deterministic static assets. The verification-tooling
+complete profile passed in 40.341 seconds with 64 pytest, 2 Vitest and 6
+Playwright cases; full ownership preflight, both type checks, locked
+dependencies, deterministic bundle/parity, the four-shard guard at 83/61/70/71,
+wheel build and installed-wheel smoke all passed. Existing Starlette and Vite
+large-chunk warnings remain. The exact combined-candidate independent review,
+one local `full` gate and one unfiltered hosted same-SHA run remain
+outstanding.

@@ -1220,3 +1220,40 @@ findings and ran no tests. This is still not final runner qualification. One
 exact-revision `verify.py full` and one unfiltered hosted same-SHA run remain
 required after the manager publishes the final UI baseline and quiet
 checkpoint. Windows process-tree containment remains unqualified.
+
+### Final state-based UI baseline reconciliation — 2026-10-11
+
+The manager published final UI baseline
+`62f031337d2711e6d5e76017a676487420d002b4`; this supersedes `4566ec7` for
+combined frontend qualification. The baseline delta from `4566ec7` spans 19
+documentation, frontend and generated-static files. It adds a shared
+read-only production observer to give explicit state-based script, storyboard
+and production hints; the manager's review found no actionable findings.
+There are no backend/API schema or payload, persistence, admission, auth,
+provider/prompt, dependency, build-tool or package-contract changes. The
+manager's same-SHA local evidence is 1,164 frontend tests / 139 files, both
+type checks and locked-dependency checks, 95 focused unit/component cases, six
+selected browser cases, desktop pixel inspection, and two deterministic
+seven-file builds with tree SHA-256
+`c9c858c2a1a179fac11684cb1b54b04bff9b31a322bec8a12f4231f23e09cada`. The
+handoff explicitly does not claim hosted CI success.
+
+The isolated M0–M5 branch rebased from `4566ec7` onto the exact `62f0313` SHA.
+`git range-diff` confirmed all 13 M0–M5 commits were preserved. The refreshed
+native guard initially found two unowned Vitest files; both production-hint
+and shared production-read test files now belong to `creative-production`, and
+`workflow-production-fixture.ts` is listed as its test helper. Two consecutive
+native ownership scans matched: pytest 1,517 / 157, SHA-256
+`98cad9469ca9a77bce6048decefa8a2ebb1b5be6560954e47e07a3edeea44059`; Vitest
+1,164 / 139, SHA-256
+`116c4ae1b5feb1e180cfde9265cad00f34c1a158b653ad71efab64c9632893c0`; and
+Playwright 285 / 85, SHA-256
+`6878b73005c1ef59e76cbee3d73ae29883bd7554c9be08e5facb536542c6c8ac`.
+The verification-tooling complete profile passed in 40.341 seconds with 64
+pytest, 2 Vitest and 6 Playwright cases. Full ownership preflight, both type
+checks, locked dependencies, deterministic bundle and parity, four-shard
+allocation at 83/61/70/71, wheel build and installed-wheel smoke all passed.
+The build emitted the existing large-chunk advisory, and pytest emitted the
+existing Starlette TestClient deprecation warning. Exact combined-candidate
+independent review, local `full` and unfiltered hosted same-SHA qualification
+remain pending.
