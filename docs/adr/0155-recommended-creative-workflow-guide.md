@@ -189,3 +189,19 @@ Retaining an editor for review does not restore currentness or permission to
 confirm. The guide must first ask the author to wait or retry the read, then
 return to unsaved-draft guidance once verification succeeds. Guard both read
 states with dirty buffers in the model and native browser refresh regressions.
+
+## Script-page task progression (2026-10-11)
+
+The Script-page guide must observe the active ScriptPanel's read and operation
+state, not repeat generic review advice before a candidate exists. Publish a
+project/activation-owned advisory observation from that existing owner, with no
+additional API read or write. Loading/failed reads, busy operations and unsaved
+chapters precede missing, prepared, delivered and accepted instructions. Name
+the actual prepare, retry, confirm or continue control. Clear observation on
+page exit and reject late observations after project changes; retained evidence
+does not restore current review authority.
+
+An active replacement candidate retains the previous accepted script without
+making that candidate stale. Project the candidate's own review status first;
+retained old evidence only blocks continuation on that old version. Guard fresh
+replacement preparation and delivery as well as first-candidate transitions.

@@ -1,5 +1,11 @@
 # Plotloom roadmap entrypoint
 
+The October11 owner-approved [Script-page next-action correction](../verification/2026-10-11-script-page-workflow-hints.md)
+observes the existing review panel so missing scripts point to preparation,
+delivered candidates to review/confirmation, and current confirmed scripts to
+the next real control. It adds no generation or approval authority; the scoped
+receipt records qualification and the separate combined-release boundary.
+
 The owner-approved [node filming control clarification](2026-10-10-node-footage-guidance.md)
 renames the shared checkbox and explains its existing production/playback effects,
 including possible rework in step 5/6 and affected-route checks in step 6/6;

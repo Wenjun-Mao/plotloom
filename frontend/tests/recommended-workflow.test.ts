@@ -13,6 +13,7 @@ const base: RecommendedWorkflowInput = {
   branchTaskBusy: false,
   branchTaskBlocked: false,
   productionRead: undefined,
+  scriptRead: undefined,
   branchDraft: { status: "ready", dirty: false, complete: false, stale: false, busy: false, blocked: false },
   readOnly: false, actionDisabled: false, playHref: "?project=project&view=play",
 };
