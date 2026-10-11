@@ -711,3 +711,9 @@ ownership tests and the verification-tooling complete profile passed after this
 correction. Independent re-review of `b9a5b7f` confirmed the fix and regression
 guard with no further findings; it ran no tests. One local `full` gate and one
 unfiltered hosted same-SHA run remain outstanding.
+
+The exact local full gate passed on `d53a99f` with exit 0 in 706.390 seconds:
+1,518 Python, 1,164 Vitest and all 285 unfiltered Playwright cases passed, along
+with build parity, four-shard coverage, and wheel smoke. The hosted unfiltered
+same-SHA run remains outstanding; this full gate is local software
+qualification, not product acceptance.

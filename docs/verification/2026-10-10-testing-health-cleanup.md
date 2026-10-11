@@ -1273,5 +1273,24 @@ existing Starlette TestClient deprecation warning. Independent re-review of
 `b9a5b7f` confirmed that both fixture records include the graph and
 story-authoring consumers and that the regression guard discovers and enforces
 the exact transitive consumer sets. The read-only re-review found no further
-issues and ran no tests. The one local `full` and unfiltered hosted same-SHA
-qualification remain pending.
+issues and ran no tests.
+
+#### M5 exact-candidate local full qualification — 2026-10-11
+
+`uv run --locked --no-sync python scripts/verify.py full` passed on
+`d53a99fe14b753e4641e259ab3a60c121efb9fd9` with exit 0 in 706.390 seconds.
+The gate passed locked dependencies, FFmpeg/FFprobe probes, API unused-import
+lint, archived prompt-reader verification, all 1,164 Vitest cases, frontend
+type checking, all 1,518 Python cases, deterministic frontend build and checked
+asset parity, unfiltered browser shard coverage, all 285 Playwright cases, wheel
+build, and installed-wheel smoke.
+
+Python ran in two isolated workers with 759 cases each and no failures; the
+runner completed in 212.510 seconds. Playwright ran all 285 cases with four
+local workers in 472.524 seconds (7.8 minutes), with zero failures. Vitest
+completed all 1,164 cases across 139 files. The full run emitted the existing
+Starlette TestClient deprecation warning, Vite large-chunk advisory, and Node
+color-environment notices; none caused a gate failure. The separately rerun
+verification-tooling complete profile and native ownership preflight remain
+documented above. This is local software qualification, not product or creative
+acceptance. The unfiltered hosted same-SHA qualification is still outstanding.
