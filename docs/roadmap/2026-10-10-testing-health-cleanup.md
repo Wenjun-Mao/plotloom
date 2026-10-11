@@ -21,6 +21,11 @@ The owner's prior preference is GPT-6 Luna / Max for bounded implementation;
 effective host settings require confirmation at dispatch. No normal cutover,
 protected settings change or native generation is added by this plan.
 
+The proposed M0–M5 modular verification and remaining-runtime follow-up is
+appended below. It is a draft for owner review and awaits separate
+implementation approval; no suite, module, profiling or CI changes are
+authorized by this planning addition.
+
 The [completion receipt](../verification/2026-10-10-testing-health-cleanup.md)
 records exact `0b71359` CI38024405822 SUCCESS, preserved behavior and measured
 browser allocation results. The later
@@ -368,3 +373,65 @@ follow-up incomplete if its performance or safety acceptance is unmet.
 Finish when P0–P4 are proven with preserved coverage, measured gains, explicit
 verification gaps and a reviewable receipt. No new E2E creative acceptance is
 required or claimed by this engineering pass.
+
+## Modular verification and remaining runtime — proposed M0–M5 follow-up
+
+Status: draft for owner review on October 10. The owner requested a handoff-ready plan through Relay Brainstorm-and-Plan because local runs exceed 12 minutes and hosted full verification exceeds 30 minutes. Planning authorization is not implementation or CI-dispatch authority. Completed P0–P4 remains completed. M0–M5 is separate from the approved workflow-guide UI/policy delivery and proposes better reliable selection, not weaker full coverage. The separately authorized risk-scoped frontend policy is ADR 0156.
+
+### Outcome and evidence
+
+Make ordinary checks short and explainable, run all affected test modules, and lower full-suite runtime without changing product contracts, sacrificing isolation or deleting behavior coverage. Existing scripts/verify.py already supports quick/focused/full. Focused accepts native pytest, Vitest and Playwright files/cases, but has no product-module ownership or dependency map. Python discovery remains tests/ and Vitest uses tests/**/*.test.ts in jsdom. tests/generation and tests/backend_core already have partial domain organization; do not reorganize everything just for directory symmetry.
+
+The trusted completed baseline b47e8d7 recorded local full at 732.075s, Python at 320.90s (runner step 325.292s), browser at 392.242s and quick median at 9.565s. Hosted run 38081918996 recorded verify at 15m09s, browser groups at 27.9m and 30.3m, and workflow total at 31m32s. These are different hosts, concurrency and configurations, not controlled speed comparisons. The owner-guide candidate adds tests and is not this baseline. M0 must freeze the post-guide source before measuring.
+
+frontend/e2e/fixture.ts creates test-scoped backend, provider and Vite stacks with isolated roots. vite-only-fixture.ts already offers worker-scoped Vite for proven UI-only tests. Browser local configuration has four workers; hosted CI deliberately uses one worker per each of two whole-spec groups. CI is workflow_dispatch and all three jobs overlap on the same SHA. These are leads to measure, not proof of which part causes the remaining wall time. The profiled full Python log's slowest single calls are about five seconds, so investigate cumulative repeated setup as well as outliers; top twenty alone is insufficient.
+
+### Design and alternatives
+
+Recommended: explicit capability modules with small reviewed source/fixture dependency metadata, expanding into native test selectors in the existing verify runner. Explain the selected tests/checks and why dependents are included before execution. Native discovery and results remain the authority for which test cases exist. Avoid manually enumerating parameterized case IDs or adding another test framework. Keep the existing browser shard manifest as execution allocation, not a second semantic coverage map.
+
+Directory-only selection is simple but misses cross-domain consumers and shared-fixture effects. Automatic changed-file/import inference is attractive but cannot safely infer dynamic schemas, prompts, routes and lifecycle consumers yet; defer it. Do not infer minimal coverage from a file extension or claim the selector proves semantic completeness.
+
+Initial module vocabulary: story-authoring (brief/source/outline/branches), graph, creative-production (cast/art/script/storyboard; split subfamilies when evidence warrants), media-lifecycle, playback, project-lifecycle (save/stale/revise/recover/snapshot), shared-contracts/tooling (schema/API/security/provider/prompt/build/package owners with explicit subfamilies). This taxonomy is proposed, not a command contract. Assign every native test/spec a primary owner; cross-module checks can be included by several profiles but execute once in a combined selection. Shared fixtures/helpers need dependent ownership even though they are not collected tests. Preserve dedicated lifecycle journeys; modules define selection and ownership, not permission to replace cross-stack tests with mocks.
+
+Use distinct depth profiles: fast (unit/pure-contract feedback), contract (affected integration owners and consumers), browser (affected journeys), and module-complete (union plus required build/package guards). Exact CLI spellings are left to the implementer; examples such as “verify module graph --level contract” are proposed, not currently runnable. Development selectors do not replace the risk-appropriate final gate or required full hosted CI. Schema, persistence, admission, authentication, provider, prompt or build dependency changes and unresolved impact default to broad/full checks until a reviewed narrower closure is proven. Unknown modules, unknown selectors, empty selection, stale maps or conflicting ambient filters must fail explicitly; never silently pass.
+
+### Ordered deliverables
+
+#### M0 — Freeze baseline and profile the remaining costs
+
+After the guide/policy assignment ends, record exact SHA, toolchain, expanded native inventory/parameter rows, module candidates and existing gate inputs. Reuse trustworthy current full logs/artifacts first; do not launch full suites merely for discovery. Choose representative source, graph, media and recovery families before optimization and measure three serial same-host warm-dependency samples with isolated roots and no competing benchmarks. Separately profile setup, action, teardown and process-start/readiness costs; use existing runner elapsed output, pytest/JUnit/Playwright reports or bounded instrumentation, not a benchmark service. Separate queue/setup/test time for hosted evidence. Identify top cumulative costs and publish a concrete prioritized shortlist. This precedes any conditional concurrency or prepared-seed change.
+
+#### M1 — Review ownership and dependent selection
+
+Add one cohesive selection/dependency metadata home alongside existing verification tools. Resolve modules to real native file/case selectors; prefer file-level ownership, splitting mixed files only when needed for useful isolation/selection. Report the union/dependent reasons, checks omitted and final-gate category. Add an inventory guard: all module-complete selections cover the full native collected suite/parameter rows, with no unknown or unowned tests and no accidental duplicate execution. For moved tests reconcile identities/parameter rows and behavior, not just counts. Addition of a new unowned test/source/fixture cannot narrow coverage silently. Amend ADR 0156 or add a linked concise ADR when the module contract is actually approved for implementation.
+
+#### M2 — Add explicit module commands to scripts/verify.py
+
+Preserve quick/focused/full and native failure semantics. Support named modules, explicit depth, multiple-module union/deduplication and a show/plan-only mode that prints expanded selectors and impact rationale. Unknown, empty or invalid selection fails before launching suites; module success cannot mean pass-with-no-tests. Include always-required shared gates where appropriate. Test selector correctness, cross-module expansion, moved/new parameter rows, ambient filter refusal, failure propagation and complete-union guard. Update AGENTS.md and docs/development.md with when to choose fast/contract/browser/module-complete/full and exact runnable examples. Do not add an automatic changed-file engine in this phase.
+
+#### M3 — Optimize measured owning fixture/setup costs
+
+Apply only M0-supported changes, not another cosmetic file split. Candidates: smaller valid fixtures for narrow refusal/read-only contracts, immutable validated preparation reused via isolated per-test copies where preparation itself is not under test, and worker-scoped Vite/narrow frontend fixtures for genuinely API-mocked UI cases. Never reuse mutable databases/projects/provider state, bypass real validators/transactions/CAS/currentness/rollback/dispatch, or rewrite evidence. Tests of startup/restart/preparation/recovery retain those actual paths. Profile process teardown/readiness before altering waits; do not substitute sleeps for observability, add retries, weaken assertions or inflate deadlines. Prove repeated/order-independent/cross-root execution and cleanup. Any production/runtime semantic change uncovered by profiling is a separate scope decision, not blanket permission to cache approvals or refactor the DAG.
+
+#### M4 — Reduce full CI critical path through bounded measured execution changes
+
+First rebalance whole-spec groups from fresh durations and eliminate proven setup waste using M3. If hosted browser remains dominant, probe four duration-balanced hosted shards, still one real fixture stack per runner, against the existing two. Retain exact case-union/disjointness, same SHA, fail-fast false, full reports, no skips/retry inflation. Limit changes to existing GitHub runner infrastructure/capacity; add no paid runners.
+
+Python process parallelism (start two workers) is conditional on a demonstrated bottleneck and isolation audit of ports/roots/env/monkeypatch/process ownership/caches. Compare serial results and investigate nondeterminism. Do not increase local browser concurrency above the current four by default. Keep frontend builds and package creation serialized within a checkout; use separate process roots/outputs for concurrent gates. A module-only hosted run, if exposed, must be distinctly named diagnostic/scoped, never full release success. Required full hosted coverage remains unchanged. Stop a concurrency probe after two unsuccessful attempts and reassess rather than increasing resources/retries indefinitely.
+
+#### M5 — Independently review, benchmark and qualify the stable combined candidate
+
+Repeat preselected M0 family samples on the same host and conditions; record local module timings and setup attribution, and actual hosted critical-path/result artifacts. Demonstrate complete collected-case/parameter coverage preservation, selected-module dependency correctness, cross-root fixture safety, union/allocation guards and failure/unknown-selection refusal. Run one complete local and one unfiltered same-SHA hosted qualification for this cross-layer verification/tooling change; reuse valid unchanged inputs and avoid repeated full reruns after documentation-only adjustments. Preserve prior failed attempts and candidate identity. Publish scoped source/docs through the normal non-force main workflow after approval; report pending CI separately. Extend the existing cleanup receipt; do not invent another suite dashboard or qualification system.
+
+### Proposed acceptance targets and boundaries
+
+Correctness gates are nonnegotiable: retain existing supported assertions/parameter rows/lifecycle/negative states, exact native full-union coverage, refusal of unsafe/unknown selections, no live owner data/settings/jobs altered, and no overlapping shared build output.
+
+Performance targets are provisional until M0 sizes modules: current quick stays at or below 30s warm median; ordinary selected frontend checks plus affected browser journey aim at or below 90s; a typical affected backend contract module aims at or below 3m (some genuine cross-stack journeys may remain larger and must be reported separately); full local aims at or below 8m; full hosted aims at or below 20m with a 15m stretch. Targets are not test deadlines, guaranteed estimates or grounds to delete tests. For optimized bottleneck families seek at least 30% median improvement with no regression in preselected other families. If M0 shows an infeasible target, explain measurement and revise the budget before expanding scope; do not relabel an unmet target as success.
+
+Scope includes selection/tooling metadata, relevant tests/config/fixtures, documentation and bounded standard-runner CI allocation. It excludes product/UI redesign, provider/specialist/native-media generation, real image/video quality acceptance, owner project/schema migration/reset, normal8841 restart/cutover, credential/settings changes, unsupported narrow-screen tests, new compatibility adapters, broad test deletion, speculative dependency inference and new paid infrastructure.
+
+Planning currently authorizes only this draft. Subsequent implementation approval should cover M0–M5 source/test/fixture/tooling/CI/docs, disposable verification roots, bounded process/shard probes, final gates and ordinary main publication without extra milestone approvals. Shared normal static assets must not be rewritten during an active owner walkthrough; use an isolated qualification checkout/build output when required. No service restart or operational cutover is needed for test tooling; if one becomes necessary, stop and obtain separate authority. Use one retained-checkout source writer, bounded read-only independent review and serial performance samples.
+
+On unsafe or regressing optimization, revert only its exact scoped changes non-destructively, preserve original tests/logs and run affected checks; retain the unfiltered full path as fallback. Completion requires both trustworthy useful module selection and measured final latency improvement, not merely a new command or directory layout.
