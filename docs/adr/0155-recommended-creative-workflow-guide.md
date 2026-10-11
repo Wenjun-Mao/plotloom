@@ -47,3 +47,25 @@ Regression coverage must retain route/phase mapping, currentness and hash
 checks, failed/read-only states, playback versus static-reading language,
 source-draft action suppression, unsaved-versus-loading status, supported
 desktop visibility and the existing draft-navigation dialog.
+
+## State-specific next controls (2026-10-10 refinement)
+
+The owner walkthrough found that delivered branch suggestions still received
+a generic instruction. Route selection correctly advanced to the branch step,
+but task-specific instructions were incorrectly nested in the outline step
+and therefore unreachable. The guide must select its next instruction within
+the current step, naming the actual owning control when its state is known.
+
+Observe the existing graph-draft owner using the same dirty/completeness checks
+as the branch editor. Delivery invites review and optional import; import is
+not confirmation. A complete dirty draft points to its confirm/save control,
+an incomplete draft requires missing fields, a clean confirmed map points to
+route application, and only a matching applied route invites the creator view.
+Loading, failed, stale, busy, read-only and unsaved-source states take precedence
+over unavailable actions. Observe the owning branch panel's edit restrictions,
+including partial page-read failures; a shared source read alone cannot prove
+its controls are available. The named manual refresh retries both the page read
+and its shared graph-draft read without replacing unsent edits. No new persisted guide state, approval authority or
+automatic mutation is introduced. Regression tests must traverse this actual
+route/state sequence and failed-read recovery, not merely assert the step number
+or sticky geometry.

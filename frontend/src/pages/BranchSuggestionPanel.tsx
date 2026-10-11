@@ -12,10 +12,10 @@ export function BranchSuggestionPanel({ projectId, basis, disabled, cancelDisabl
   useEffect(() => { if (state?.plannedTopology) onPlan(state.plannedTopology); }, [state?.plannedTopology?.topologyHash]);
   useEffect(() => {
     if (!onTaskRead) return;
-    onTaskRead(projectId, { basis, ...(state
+    onTaskRead(projectId, { basis, busy, blocked: disabled, ...(state
       ? { status: "ready" as const, value: state }
       : error ? { status: "failed" as const, value: null } : { status: "loading" as const, value: null }) });
-  }, [projectId, basis, state, error, onTaskRead]);
+  }, [projectId, basis, state, error, busy, disabled, onTaskRead]);
   const candidate = state?.candidate;
   const suggestion = candidate?.suggestion;
   const stale = Boolean(state?.staleReasons.length);

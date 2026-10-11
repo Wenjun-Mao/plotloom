@@ -38,8 +38,8 @@ import { useWorkspaceProjectLoader } from "./useWorkspaceProjectLoader";
 import { useWorkspaceSession } from "./useWorkspaceSession";
 import { editableStages, messageFrom, navigation, stageForPage } from "./contracts";
 import { CreatorWorkflowNavigation } from "./CreatorWorkflowNavigation";
-import { RecommendedWorkflowGuide } from "./RecommendedWorkflowGuide";
-import { branchSuggestionBasis, buildRecommendedWorkflow, type BranchTaskReadObservation } from "./recommendedWorkflow";
+import { WorkspaceWorkflowGuide } from "./WorkspaceWorkflowGuide";
+import { branchSuggestionBasis, type BranchTaskReadObservation, type RecommendedWorkflowInput } from "./recommendedWorkflow";
 import { useWorkspaceSourceReview } from "./useWorkspaceSourceReview";
 import { sourceWorkflowLabel } from "./sourceWorkflowNavigation";
 import { encodeStoryboardEntity } from "../../storyboard-editor";
@@ -56,7 +56,7 @@ function revealOpenedStatus(event: SyntheticEvent<HTMLDetailsElement>) {
 export default function WorkspaceController() {
   const session = useWorkspaceSession();
   const sourceReview = useWorkspaceSourceReview(session.project.id, session.project.revision);
-  const [branchTaskRead, setBranchTaskRead] = useState<{ projectId: string; basis: string; status: "idle" | BranchTaskReadObservation["status"]; value: BranchTaskState | null }>({ projectId: "", basis: "", status: "idle", value: null });
+  const [branchTaskRead, setBranchTaskRead] = useState<{ projectId: string; basis: string; status: "idle" | BranchTaskReadObservation["status"]; value: BranchTaskState | null; busy: boolean; blocked: boolean }>({ projectId: "", basis: "", status: "idle", value: null, busy: false, blocked: true });
   const [sourceDraftState, setSourceDraftState] = useState({ projectId: "", dirty: false });
   const reportBranchTaskRead = useCallback((projectId: string, observation: BranchTaskReadObservation) => {
     setBranchTaskRead({ projectId, ...observation });
@@ -274,7 +274,7 @@ export default function WorkspaceController() {
     sourceReview.value?.outlineStatus === "accepted", JSON.stringify(project.brief));
   const branchTaskCurrent = branchTaskRead.projectId === project.id && branchTaskRead.basis === branchBasis;
   const sourceDraftDirty = sourceDraftState.projectId === project.id && sourceDraftState.dirty;
-  const workflowGuide = buildRecommendedWorkflow({
+  const workflowGuide: Omit<RecommendedWorkflowInput, "branchDraft"> = {
     activePage,
     activeHash: session.route.hash,
     project,
@@ -283,13 +283,15 @@ export default function WorkspaceController() {
     sourceReview: sourceReview.value,
     branchTaskStatus: branchTaskCurrent ? branchTaskRead.status : "idle",
     branchTask: branchTaskCurrent ? branchTaskRead.value : null,
+    branchTaskBusy: branchTaskCurrent && branchTaskRead.busy,
+    branchTaskBlocked: !branchTaskCurrent || branchTaskRead.blocked,
     workspaceAvailable: Boolean(project.id) && !initialProjectUnavailable && connection === "connected",
     projectPending: Boolean(navigationProjectId && !project.id),
     sourceDraftDirty,
     readOnly: project.lifecycleStatus === "archived" || Boolean(project.archivedAt),
     actionDisabled: workspaceHydrating || projectClosing || projectSnapshotting,
     playHref: playUrl,
-  });
+  };
   const stageOverview = editableStages.map((stage) => ({
     stage,
     status: project.staleStages.includes(stage) ? "stale" : stageHeads[stage]?.status || (project.stageRevisions[stage] > 0 ? "ready" : "missing"),
@@ -355,7 +357,7 @@ export default function WorkspaceController() {
       {error && <div className="global-error"><ErrorNotice message={error} /><button aria-label="关闭错误" onClick={() => setError("")}>×</button></div>}
       {lifecycle.duplicateNotice && <div className="notice workspace-copy-notice" role="status"><span>{lifecycle.duplicateNotice}</span><Button onClick={lifecycle.dismissDuplicateNotice}>知道了</Button></div>}
       {recovery.discardNotice?.projectId === navigationProjectId && <div ref={discardNoticeTarget} className="notice workspace-copy-notice" role="status"><span>已丢弃本标签页选中的保留草稿。项目中已保存的草稿和已确认内容未删除。</span><Button onClick={recovery.dismissDiscardNotice}>知道了</Button></div>}
-      <RecommendedWorkflowGuide model={workflowGuide} actionDisabled={workspaceHydrating || projectClosing || projectSnapshotting} onNavigate={(route) => workspaceNavigation.requestNavigation({ project: navigationProjectId, ...route })} />
+      <WorkspaceWorkflowGuide input={workflowGuide} onNavigate={(route) => workspaceNavigation.requestNavigation({ project: navigationProjectId, ...route })} />
       <div className="workbench-grid">
         <main id="workspace-main">
           {!initialProjectUnavailable && session.loadFailure?.projectId === navigationProjectId && <ProjectLoadDetails projectId={navigationProjectId} failure={session.loadFailure} />}

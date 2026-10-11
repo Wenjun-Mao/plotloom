@@ -1,8 +1,11 @@
-import type { SectionChoice, SectionMap, SourceTopology } from "../types";
+import type { AcceptedSectionMapRevision, SectionChoice, SectionMap, SourceTopology } from "../types";
 import type { GraphMapDraft } from "../features/graph/contracts";
 export const cloneMap = (mapping?: SectionMap | null): SectionMap | null => mapping ? structuredClone(mapping) : null;
 const ordered = (value: unknown): unknown => Array.isArray(value) ? value.map(ordered) : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)).map(([key, item]) => [key, ordered(item)])) : value;
 export const mapsEqual = (left: GraphMapDraft | null, right?: GraphMapDraft | null) => JSON.stringify(ordered(left)) === JSON.stringify(ordered(right ?? null));
+export function branchDraftIsDirty(mapping: GraphMapDraft | null, accepted: AcceptedSectionMapRevision | null, hasStoredDraft: boolean): boolean {
+  return accepted ? !mapsEqual(mapping, accepted.mapping) : Boolean(hasStoredDraft || mapping?.topologyOrigin === "author" || mapping?.sections.some(section => section.title || section.summary));
+}
 export const graphStructuresEqual = (left: GraphMapDraft, right: GraphMapDraft) => JSON.stringify(ordered({ topology: left.topology, footage: left.sections.map(({ sectionId, footageMode }) => ({ sectionId, footageMode })) })) === JSON.stringify(ordered({ topology: right.topology, footage: right.sections.map(({ sectionId, footageMode }) => ({ sectionId, footageMode })) }));
 export const mapChoices = (mapping: SectionMap): SectionChoice[] => mapping.choices;
 export function blankStructure(topology: SourceTopology): SectionMap {

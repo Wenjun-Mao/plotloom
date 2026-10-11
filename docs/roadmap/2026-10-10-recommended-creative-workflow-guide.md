@@ -1,6 +1,69 @@
 # Recommended creative workflow guide
 
-Status: **published on main; required hosted CI run 38098197412 is active on 4955bbf (verify passed; browser shards pending)**.
+Status: original guide published on main; owner walkthrough correction below
+locally qualified for publication. Required hosted CI for the correction remains
+separate. Original run 38098197412 on 4955bbf was last recorded with verify passed
+and browser shards pending; the separate modular-verification task owns follow-up.
+
+## Owner walkthrough correction — concrete branch next controls
+
+Status: implemented and locally qualified (2026-10-10); hosted CI pending.
+
+The owner found that a delivered branch suggestion was described generically
+instead of naming `带入可编辑草稿`. Root cause: task-specific advice lived under
+the outline step, which route classification no longer selected after outline
+acceptance. Correct the branch step and observe the existing graph-draft owner
+to distinguish delivery, import, incomplete draft, confirmation and application.
+The guide remains advisory, and the owning controls retain all mutation guards.
+This correction does not change source/server contracts, dependencies, providers,
+project settings or the owner's story. ADR 0155 records the refined invariant.
+
+Independent review found two adjacent availability gaps: manual `刷新` did not
+retry the graph owner, and a successful shared source read could hide a failed
+page-local stage read. Manual refresh now retries both owners; project/basis-
+scoped branch observations report the owning panel's actual edit restrictions.
+The reviewer confirmed both causes repaired with no additional production-code
+findings. Its assertion-wording finding was also corrected.
+
+Qualification against trusted baseline `b8dc2aff312fab6e4df1a52d58268848f61d13da`:
+
+- Actual diff: frontend guidance/owner observations, a shared existing dirty
+  check, explicit manual read retry, tests, ADR/receipt and generated JS only.
+  Backend/API schemas and request payloads, persistence, admission, auth,
+  providers/prompts, dependencies, build tooling and packaging are unchanged.
+  No second draft owner or compatibility path was introduced.
+- `verify.py quick`: 1,072 tests across 133 frontend files and both type checks
+  passed (12.371s), plus the runner's lock and API-unused-import checks.
+- Focused model/source/project-read checks: 39 tests passed using
+  `tests/recommended-workflow.test.ts`,
+  `tests/project-directory-read-recovery.test.ts` and
+  `tests/outline-cancel-reprepare.test.ts`.
+- `verify.py focused --playwright e2e/recommended-workflow-guide.spec.ts`:
+  both browser cases passed (11.395s). The real disposable project traverses
+  prepared task → deterministic delivery → import → incomplete/complete draft
+  → confirmation → application → later unsaved revision. Injected graph and
+  partial stage GET failures verify named retry and action suppression/recovery.
+  Guide inspection preserves source readback; no specialist was dispatched.
+  Two earlier browser attempts stopped on mismatched test error wording, not
+  product failure; assertions were aligned with the observed guide/API transport.
+- Imported-suggestion screenshots inspected at 1280×768, 1280×460 and 1700×900;
+  compact advice and the actual import control fit. Expanded/sticky geometry and
+  the existing unsaved-draft navigation protection also pass.
+- Two deterministic builds match sorted static-tree manifest SHA-256
+  `1cfeade34c909798479f22d17f3afbede90fcfc434f7b948ff30b685dc2bb75c`.
+  No-cache GETs of `/v2/workbench.js` and `/v2/workbench2.css` from normal8841
+  match local bytes: JS
+  `9a71f57f6673d18d9e9759deb1abb4e559250c10d7a80838fc0525b13b7deffd`,
+  CSS `3a9232c1494593f281de68e182649bd955f690abad74f1f9d42e7d588917b9ae`.
+  `/healthz` is healthy. No service restart or owner-project operation occurred.
+
+Required unfiltered hosted CI must be dispatched on the published correction
+SHA and reported separately; this local evidence is not a full local release
+gate, hosted success or owner creative acceptance. No broad local suite rerun
+for this unchanged-backend frontend correction.
+
+## Original guide delivery
+
 Prepared October 10, 2026.
 Authority: owner-approved follow-up coordinated through manager
 <code>01a04525-e907-7630-9640-78790d69e8ae</code>; retained <code>main</code>, one source owner.
@@ -93,7 +156,7 @@ both type checks, repeat-build hash comparison and affected browser/pixel
 checks. Cross-layer, contract, dependency/build-tool and uncertain changes
 still require unfiltered <code>full</code>; hosted CI remains mandatory and separate.
 This is policy documentation, not a new verification runner tier. The separate
-modular-suite follow-up is proposed and pending owner implementation approval;
+modular-suite follow-up is owner-approved for M0–M5 in an isolated worktree;
 it is recorded at
 <code>docs/roadmap/2026-10-10-testing-health-cleanup.md</code>.
 
@@ -101,9 +164,10 @@ it is recorded at
 
 Scoped publication is complete: guide/policy commit <code>e6ca2d1</code> and separate
 planning-note commit <code>4955bbf</code> are on main. Required unfiltered hosted CI
-run <code>38098197412</code> (<code>workflow_dispatch</code>, <code>browser_grep=.*</code>) is active on
-<code>4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c</code>; the verify job passed in 15m26s
-and both browser shards remain in progress. Local frontend qualification does
+run <code>38098197412</code> (<code>workflow_dispatch</code>, <code>browser_grep=.*</code>) was dispatched on
+<code>4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c</code>; at the last original-delivery
+check, verify passed in 15m26s and both browser shards were in progress.
+This historical run does not qualify the correction above. Local frontend qualification does
 not imply hosted CI completion, full local release qualification, owner
 walkthrough acceptance or creative acceptance. Do not restart normal8841.
 Owner refresh guidance is <code>⌘R</code>, then <code>⌘⇧R</code> if the open browser tab still shows

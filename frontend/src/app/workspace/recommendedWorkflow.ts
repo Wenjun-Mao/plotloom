@@ -5,7 +5,7 @@ import type { WorkspaceSourceReviewStatus } from "./useWorkspaceSourceReview";
 
 export type RecommendedWorkflowStepId = "brief" | "source" | "branches" | "creator" | "production" | "play";
 export type RecommendedWorkflowRoute = { stage: PageId; hash?: string };
-export type BranchTaskReadObservation = { basis: string; status: "loading" | "ready" | "failed"; value: BranchTaskState | null };
+export type BranchTaskReadObservation = { basis: string; status: "loading" | "ready" | "failed"; value: BranchTaskState | null; busy: boolean; blocked: boolean };
 export type RecommendedWorkflowAction =
   | { kind: "navigate"; label: string; route: RecommendedWorkflowRoute }
   | { kind: "play"; label: string; href: string };
@@ -19,6 +19,9 @@ export interface RecommendedWorkflowInput {
   sourceReview: SourceOutlineReviewState | null;
   branchTaskStatus: "idle" | "loading" | "ready" | "failed";
   branchTask: BranchTaskState | null;
+  branchTaskBusy: boolean;
+  branchTaskBlocked: boolean;
+  branchDraft: { status: "loading" | "ready" | "failed"; dirty: boolean; complete: boolean; stale: boolean; busy: boolean; blocked: boolean };
   workspaceAvailable: boolean;
   projectPending: boolean;
   sourceDraftDirty: boolean;
@@ -131,6 +134,7 @@ function branchStatus(input: RecommendedWorkflowInput): string {
   if (input.sourceReviewStatus !== "ready" || !input.sourceReview) return "正在读取";
   const review = input.sourceReview;
   if (!acceptedOutlineIsCurrent(review)) return "等待当前大纲";
+  if (input.activePage === "source" && input.branchDraft.status === "ready" && input.branchDraft.dirty) return "草稿待确认保存";
   if (review.sectionMapStatus === "stale" || review.graphAdmission?.status === "stale") return "需重新检查";
   if (currentGraphAdmission(input)) return `已应用到路线 r${review.graphAdmission!.graphRevision}`;
   if (currentSectionMap(review)) return `分支方案 r${review.acceptedSectionMap!.revision} 已确认`;
@@ -221,37 +225,40 @@ function nextRecommendation(input: RecommendedWorkflowInput, currentStep: Recomm
       return { text: "来源已变化或大纲修订已打开。先为当前来源完成新一轮大纲审阅；旧大纲仅供查看。" };
     }
     if (!acceptedOutlineIsCurrent(review)) return { text: "故事来源已确认。下一步准备大纲任务，检查候选后再明确确认。" };
-    if (review.sectionMapStatus === "stale" || review.graphAdmission?.status === "stale") {
-      return { text: `大纲 r${review.acceptedOutline!.revision} 已确认；分支方案需要按当前来源与简报重新检查，再应用到故事路线。` };
-    }
-    if (currentSectionMap(review) && !currentGraphAdmission(input)) {
-      return { text: `分支方案 r${review.acceptedSectionMap!.revision} 已确认。下一步应用到故事路线，再进入创作工作台检查每条播放路线。` };
-    }
-    if (currentGraphAdmission(input)) {
-      return {
-        text: `当前分支已应用到故事路线 r${review.graphAdmission!.graphRevision}。下一步进入创作工作台检查路线与简报结构。`,
-        action: { kind: "navigate", label: "进入创作工作台", route: { stage: "creator" } },
-      };
-    }
-    if (input.branchTaskStatus === "loading") return { text: "正在读取剧情分支建议任务；读取完成后按任务区状态继续。" };
-    if (input.branchTaskStatus === "failed") return { text: "无法读取剧情分支建议任务；请先在本页重试，再决定是否准备或审阅建议。" };
-    if (input.branchTask?.staleReasons.length) return { text: "当前分支建议的依据已变化；按页面提示重新核对当前来源与大纲，再处理建议。" };
-    if (input.branchTask?.candidate?.status === "ready") return { text: "剧情分支建议已交付。先审阅建议并决定是否带入可编辑草稿；保存和应用路线仍是独立操作。" };
-    if (input.branchTask?.candidate?.status === "prepared") return { text: "剧情分支建议任务已准备；按下方任务区的当前状态继续，交付后审阅并确认。" };
-    if (input.branchTask?.candidate?.status === "cancelled") return { text: "上一份分支建议已取消；如仍需要建议，可在本页重新准备，也可继续手工编辑剧情图。" };
-    return { text: "大纲已确认。下一步：准备剧情分支建议，审阅并确认后，进入创作工作台检查故事路线。" };
+    return { text: "请先完成当前大纲审阅，再继续剧情分支。" };
   }
   if (currentStep === "branches") {
-    if (currentGraphAdmission(input)) return {
-      text: "当前分支已应用到故事路线。下一步进入创作工作台检查每条完整播放路线、选择与结局。",
-      action: { kind: "navigate", label: "进入创作工作台", route: { stage: "creator" } },
-    };
     if (input.activePage === "graph") return {
       text: "专业工作台可直接编辑剧情分支。保存图草稿、确认图内容和应用路线是独立操作；检查后可返回创作工作台查看完整路线。",
       action: { kind: "navigate", label: "返回创作工作台", route: { stage: "creator" } },
     };
-    if (currentSectionMap(input.sourceReview)) return { text: "分支方案已确认。下一步在本页单独应用到故事路线，再进入创作工作台检查完整播放路线。" };
-    return { text: "继续本页分支区：审阅建议、保存已确认的结构，再按需应用到故事路线；也可直接手工编辑剧情图。" };
+    const draft = input.branchDraft;
+    if (draft.status === "loading") return { text: "正在读取当前分支草稿；读取完成后再继续。" };
+    if (draft.status === "failed") return { text: "无法读取当前分支草稿。请点击「刷新」重新读取，暂不要带入或确认建议。" };
+    if (draft.busy) return { text: "正在处理分支草稿，请等待完成；不要重复带入、保存或应用。" };
+    if (draft.stale) return { text: "当前分支草稿的依据已变化。请先按分支区提示核对内容，再点击「在当前版本恢复为新草稿」。" };
+    if (draft.blocked || input.branchTaskBlocked) return { text: "当前分支暂不可编辑。请先处理分支区显示的限制；读取失败时点击「刷新」，读取中请等待完成。" };
+    if (draft.dirty || input.sourceReview?.sectionMapStatus === "stale") {
+      const saveLabel = input.sourceReview?.acceptedSectionMap ? "保存修改" : "确认并保存故事分支";
+      return { text: draft.complete
+        ? `请审阅可编辑草稿；确认无误后点击「${saveLabel}」。保存不会自动应用到故事路线。`
+        : `请先补全分支区的必填内容，再点击「${saveLabel}」。当前草稿尚不能确认保存。` };
+    }
+    if (currentGraphAdmission(input)) return {
+      text: "当前分支已应用到故事路线。下一步点击「进入创作工作台」，检查每条完整播放路线、选择与结局。",
+      action: { kind: "navigate", label: "进入创作工作台", route: { stage: "creator" } },
+    };
+    if (currentSectionMap(input.sourceReview)) return { text: "分支方案已确认。下一步点击本页「应用到故事路线」；应用后再进入创作工作台。" };
+    if (input.branchTaskStatus === "loading" || input.branchTaskStatus === "idle") return { text: "正在读取剧情分支建议任务；读取完成后再继续。" };
+    if (input.branchTaskStatus === "failed") return { text: "无法读取剧情分支建议。请点击分支区的「重试读取建议」。" };
+    if (input.branchTask?.infeasibleReason) return { text: "当前结构无法生成分支建议。请先根据分支区说明调整项目简报与结构设置。" };
+    if (input.branchTask?.staleReasons.length) return { text: "当前分支建议的依据已变化。请先核对当前来源与大纲，再按分支区提示处理；不要带入旧建议。" };
+    if (input.branchTaskBusy) return { text: "正在处理分支建议任务，请等待完成；不要重复发送或带入。" };
+    const candidate = input.branchTask?.candidate;
+    if (candidate?.status === "ready" && candidate.suggestion) return { text: "分支建议已生成。请先审阅；如果满意，点击「带入可编辑草稿」。带入不会确认保存或应用路线。" };
+    if (candidate?.status === "ready") return { text: "分支建议的内容未能读入。请点击「刷新」重新读取，暂不要带入草稿。" };
+    if (candidate?.status === "prepared") return { text: "分支建议任务已准备。请按任务区发送状态继续：未发送时点击「发送给文字创作助手」；已发送时等待交付，或点击「立即检查」。" };
+    return { text: "下一步点击分支区的「准备剧情分支建议」；也可自行填写当前结构草稿。" };
   }
   if (currentStep === "creator") {
     const applied = currentGraphAdmission(input);

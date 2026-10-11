@@ -8,7 +8,7 @@ import { GraphDraftDiscard } from "../features/graph/GraphDraftDiscard";
 import { BranchSuggestionPanel } from "./BranchSuggestionPanel";
 import { branchSuggestionBasis, type BranchTaskReadObservation } from "../app/workspace/recommendedWorkflow";
 import { SourceStructureEditor } from "./SourceStructureEditor";
-import { blankStructure, completeMap, mapsEqual } from "./sourceStructureModel";
+import { blankStructure, branchDraftIsDirty, completeMap } from "./sourceStructureModel";
 
 export function SectionMapPanel({ projectId = "", structureKey = "", outline, outlineCurrent = true, accepted, status, staleReasons, graphAdmission, graphReady, sourceDirty, routes, readOnly, busy, onSave, onInstall, onContinue, onBranchTaskRead }: {
   projectId?: string; structureKey?: string; outline: AcceptedOutlineRevision | null; outlineCurrent?: boolean; accepted: AcceptedSectionMapRevision | null;
@@ -21,7 +21,7 @@ export function SectionMapPanel({ projectId = "", structureKey = "", outline, ou
   const mapping = owner.draft?.mapping ?? null;
   const [planned, setPlanned] = useState<SourceTopology>();
   const basis = branchSuggestionBasis(outline, accepted, outlineCurrent, structureKey);
-  const dirty = accepted ? !mapsEqual(mapping, accepted.mapping) : Boolean(owner.state?.draft || mapping?.topologyOrigin === "author" || mapping?.sections.some(section => section.title || section.summary));
+  const dirty = branchDraftIsDirty(mapping, accepted, Boolean(owner.state?.draft));
   const setMapping = owner.changeMapping;
   const saveMapping = async () => {
     if (!mapping || readOnly || busy || owner.busy || owner.stale || !outlineCurrent || sourceDirty) return;
