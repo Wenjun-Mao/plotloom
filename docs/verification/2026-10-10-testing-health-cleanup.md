@@ -1116,3 +1116,31 @@ seconds: full ownership preflight, frontend application type check, all 62
 pytest cases and 2 Vitest cases. The complete-profile browser, package, lock
 and static-bundle gates were unchanged by this assertion-only extension and
 retain their preceding passing evidence.
+
+#### Process-group descendant cleanup — second review follow-up
+
+The independent re-review reproduced a child process surviving cleanup when
+its pytest leader exited on SIGTERM. The root cause was escalation based on the
+leader's `poll()` result: once the leader exited, cleanup skipped that worker
+even if a descendant still occupied its detached process group. Cleanup now
+checks each process group independently, allows up to five seconds for graceful
+exit, sends SIGKILL to remaining groups, and then waits for each leader before
+removing logs and temporary output.
+
+A POSIX real-process regression starts a worker leader and child, configures the
+child to ignore SIGTERM, and confirms the descendant is no longer running after
+cleanup. All 8 runner tests passed in 0.27 seconds; Ruff check, Ruff format
+check and `git diff --check` passed. Two consecutive native ownership guards
+matched: pytest 1,516 cases / 157 files, SHA-256
+93f2e6e50d57336edfd352318aaac7d82d3414b524068ca7f630c0c771322fa3; Vitest
+1,074 / 133, SHA-256
+0c26f4523c07ed8c31bab06afbcab99b9a15a326ebe0991a429f523d84d914ce; and
+Playwright 280 / 85, SHA-256
+878a9ad8e999be52222c4060c7aaaa53ff96cc44ceadb5c5a65dde2b1cde1ffe.
+
+The verification-tooling complete profile passed in 31.817 seconds: full
+ownership preflight, both frontend type checks, lock check, deterministic
+bundle and parity, four-shard allocation, wheel/package smoke, 63 pytest, 2
+Vitest and 6 Playwright cases. An independent review of this updated candidate,
+a quiet matched serial/two-process comparison, the exact-runner full local gate,
+and one unfiltered hosted same-SHA qualification remain outstanding.

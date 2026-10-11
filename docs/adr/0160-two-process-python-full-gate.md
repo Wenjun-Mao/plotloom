@@ -57,3 +57,8 @@ reassess the local runtime target before broadening concurrency.
 Detached worker sessions prevent a signal sent only to the coordinator from
 reaching its children. The coordinator therefore records SIGTERM and completes
 cleanup itself instead of allowing the default handler to exit immediately.
+Cleanup tracks process-group existence independently of pytest leader status:
+a leader can exit on SIGTERM while a child remains. The runner waits up to five
+seconds for each group to exit, sends SIGKILL to any remaining group, then
+reaps each leader before closing logs or removing temporary files. A real-process
+regression covers a leader that exits while its child ignores SIGTERM.

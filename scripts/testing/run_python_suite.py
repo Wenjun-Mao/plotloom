@@ -16,6 +16,7 @@ from typing import TextIO
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKER_COUNT = 2
+WORKER_SHUTDOWN_GRACE_SECONDS = 5.0
 
 
 class SuiteError(ValueError):
@@ -93,29 +94,55 @@ def _command(files: Sequence[str], basetemp: Path) -> list[str]:
     ]
 
 
+def _process_group_exists(process: subprocess.Popen[str]) -> bool:
+    try:
+        os.killpg(process.pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
 def _stop_processes(processes: Sequence[subprocess.Popen[str]]) -> None:
-    for process in processes:
-        if process.poll() is not None:
-            continue
-        if os.name == "posix":
+    if not processes:
+        return
+
+    if os.name == "posix":
+        for process in processes:
             try:
                 os.killpg(process.pid, signal.SIGTERM)
             except ProcessLookupError:
                 pass
-        else:
-            process.terminate()
+
+        deadline = time.monotonic() + WORKER_SHUTDOWN_GRACE_SECONDS
+        remaining_groups = list(processes)
+        while remaining_groups and time.monotonic() < deadline:
+            for process in processes:
+                process.poll()
+            remaining_groups = [
+                process for process in processes if _process_group_exists(process)
+            ]
+            if remaining_groups:
+                time.sleep(min(0.05, max(0, deadline - time.monotonic())))
+
+        for process in remaining_groups:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        for process in processes:
+            process.wait()
+        return
+
+    for process in processes:
+        if process.poll() is not None:
+            continue
+        process.terminate()
     for process in processes:
         if process.poll() is None:
             try:
-                process.wait(timeout=5)
+                process.wait(timeout=WORKER_SHUTDOWN_GRACE_SECONDS)
             except subprocess.TimeoutExpired:
-                if os.name == "posix":
-                    try:
-                        os.killpg(process.pid, signal.SIGKILL)
-                    except ProcessLookupError:
-                        pass
-                else:
-                    process.kill()
+                process.kill()
                 process.wait()
 
 

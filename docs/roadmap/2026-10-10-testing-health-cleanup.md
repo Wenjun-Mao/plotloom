@@ -599,3 +599,23 @@ The exact consumer assertion was then covered by a verification-tooling
 contract profile: full ownership preflight, app type check, 62 pytest and 2
 Vitest cases passed in 15.182 seconds. The complete profile's unaffected
 browser, package, lock and static-bundle gates remain valid.
+
+### Process-group descendant cleanup — second review follow-up — 2026-10-11
+
+The independent re-review reproduced a pytest child surviving after its worker
+leader exited on SIGTERM. Cleanup previously based escalation on leader status,
+so it skipped a process group whose leader was gone but whose child remained.
+The runner now tracks group existence independently, waits up to five seconds
+for graceful exit, kills remaining groups, and reaps leaders before deleting
+temporary logs. A POSIX real-process regression verifies the child is stopped
+when it ignores SIGTERM.
+
+The runner-focused suite passed 8/8. Two consecutive native guards matched at
+1,516 pytest / 157 files (SHA-256
+93f2e6e50d57336edfd352318aaac7d82d3414b524068ca7f630c0c771322fa3), 1,074
+Vitest / 133 files and 280 Playwright / 85 specs. The verification-tooling
+complete profile passed in 31.817 seconds with 63 pytest, 2 Vitest and 6
+Playwright cases, plus its full-map, type, lock, static-bundle/parity,
+four-shard and wheel/package gates. The updated candidate still needs an
+independent review, a quiet matched serial/two-process comparison, one full
+local gate and one unfiltered hosted same-SHA qualification.

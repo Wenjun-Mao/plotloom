@@ -5,6 +5,7 @@ import os
 import signal
 import subprocess
 import sys
+import time
 from collections import Counter
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -105,6 +106,8 @@ def test_runner_reports_each_worker_and_fails_if_either_worker_fails(
             command, 0, stdout=collection, stderr=""
         ),
     )
+    monkeypatch.setattr(RUNNER, "WORKER_SHUTDOWN_GRACE_SECONDS", 0)
+    monkeypatch.setattr(RUNNER.os, "killpg", lambda *_args: None)
     outcomes = iter((0, 7))
     commands = []
 
@@ -117,6 +120,9 @@ def test_runner_reports_each_worker_and_fails_if_either_worker_fails(
             self.pid = len(commands) + 100
 
         def poll(self):
+            return self.returncode
+
+        def wait(self, timeout=None):
             return self.returncode
 
     monkeypatch.setattr(RUNNER.subprocess, "Popen", CompletedWorker)
@@ -155,6 +161,7 @@ def test_sigterm_stops_running_worker_groups(tmp_path, monkeypatch, capsys):
         return previous
 
     monkeypatch.setattr(RUNNER.signal, "signal", recording_signal)
+    monkeypatch.setattr(RUNNER, "WORKER_SHUTDOWN_GRACE_SECONDS", 0)
     killed_groups = []
     terminated_processes = []
     monkeypatch.setattr(
@@ -193,6 +200,82 @@ def test_sigterm_stops_running_worker_groups(tmp_path, monkeypatch, capsys):
     assert len(processes) == 2
     assert all(process.returncode is not None for process in processes)
     if os.name == "posix":
-        assert killed_groups == [(process.pid, signal.SIGTERM) for process in processes]
+        assert killed_groups == [
+            *((process.pid, signal.SIGTERM) for process in processes),
+            *((process.pid, signal.SIGKILL) for process in processes),
+        ]
     else:
         assert terminated_processes == [process.pid for process in processes]
+
+
+@pytest.mark.skipif(os.name != "posix", reason="requires POSIX process groups")
+def test_stop_processes_kills_descendant_after_worker_leader_exits(
+    tmp_path, monkeypatch
+):
+    ready_path = tmp_path / "child-ready"
+    child_script = (
+        "import pathlib, signal, sys, time\n"
+        "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+        "pathlib.Path(sys.argv[1]).write_text('ready', encoding='utf-8')\n"
+        "time.sleep(30)\n"
+    )
+    leader_script = (
+        "import pathlib, subprocess, sys, time\n"
+        "ready = pathlib.Path(sys.argv[1])\n"
+        "child = subprocess.Popen(\n"
+        "    [sys.executable, '-c', sys.argv[2], str(ready)],\n"
+        "    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,\n"
+        ")\n"
+        "deadline = time.monotonic() + 5\n"
+        "while not ready.exists() and time.monotonic() < deadline:\n"
+        "    time.sleep(0.01)\n"
+        "if not ready.exists():\n"
+        "    raise SystemExit('child did not become ready')\n"
+        "print(child.pid, flush=True)\n"
+        "time.sleep(30)\n"
+    )
+    monkeypatch.setattr(RUNNER, "WORKER_SHUTDOWN_GRACE_SECONDS", 0.15)
+    leader = subprocess.Popen(
+        [sys.executable, "-c", leader_script, str(ready_path), child_script],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        start_new_session=True,
+    )
+    child_pid: int | None = None
+
+    def process_state(pid: int) -> str:
+        result = subprocess.run(
+            ["ps", "-o", "stat=", "-p", str(pid)],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        return result.stdout.strip()
+
+    try:
+        assert leader.stdout is not None
+        child_pid_text = leader.stdout.readline().strip()
+        assert child_pid_text.isdecimal()
+        child_pid = int(child_pid_text)
+        assert ready_path.read_text(encoding="utf-8") == "ready"
+        state = process_state(child_pid)
+        assert state and not state.startswith("Z")
+        RUNNER._stop_processes([leader])
+        assert leader.poll() is not None
+
+        deadline = time.monotonic() + 3
+        state = process_state(child_pid)
+        while state and not state.startswith("Z") and time.monotonic() < deadline:
+            time.sleep(0.05)
+            state = process_state(child_pid)
+        assert not state or state.startswith("Z")
+    finally:
+        try:
+            os.killpg(leader.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        if leader.poll() is None:
+            leader.wait(timeout=3)
+        if leader.stdout is not None:
+            leader.stdout.close()
