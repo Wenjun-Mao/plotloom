@@ -7,8 +7,17 @@ from plotloom.graph_authoring_drafts import GraphAuthoringDraft
 from plotloom.graph_command_execution import execute_graph_command
 from plotloom.graph_commands import GraphCommandApplyRequest, GraphCommandRequest
 from plotloom.persistence.project.graph_workbench import GraphDraftRebaseRequest
+from tests.graph_authoring_fixtures import authored_map, copy_accepted_source_project
 from tests.graph_draft_fixtures import save_graph_mapping
-from tests.test_graph_authoring_contract import authored_map, source_project  # noqa: F401
+
+
+@pytest.fixture
+def source_project(tmp_path, accepted_source_project_seed):
+    store = copy_accepted_source_project(accepted_source_project_seed, tmp_path)
+    try:
+        yield store
+    finally:
+        store.close()
 
 
 def request(receipt, command):
@@ -280,3 +289,21 @@ def test_input_replacement_detaches_prior_and_preserves_displaced_target(source_
         store.preview_graph_command(request(saved, {"operation": "replace_input", "nodeId": "inserted-step",
             "priorEdgeId": "option-222", "chosenEdgeId": "option-222"}))
     assert store.graph_workbench_state().draft == saved
+
+
+def test_graph_command_seed_copies_are_independent(tmp_path, accepted_source_project_seed):
+    first = copy_accepted_source_project(accepted_source_project_seed, tmp_path / "first")
+    second = copy_accepted_source_project(accepted_source_project_seed, tmp_path / "second")
+    try:
+        assert first.home != second.home
+        assert first.manifest.project_id == second.manifest.project_id
+        assert first.graph_workbench_state().draft is None
+        assert second.graph_workbench_state().draft is None
+
+        save_graph_mapping(first, authored_map(first))
+
+        assert first.graph_workbench_state().draft is not None
+        assert second.graph_workbench_state().draft is None
+    finally:
+        first.close()
+        second.close()

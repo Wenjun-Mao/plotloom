@@ -22,7 +22,7 @@ from plotloom.source_outline_contracts import (
 from plotloom.source_structures import complete_routes
 from tests.creative_delivery_fixtures import _deliver_stage
 from tests.graph_draft_fixtures import graph_draft_revision, graph_map_save_request
-from tests.test_project_storage_source_outline import (
+from tests.source_outline_fixtures import (
     _deliver,
     _material,
     _request,

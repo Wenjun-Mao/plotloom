@@ -1,6 +1,6 @@
 """Current shared graph HTTP boundary and explicit recovery, without dispatch."""
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 from plotloom.api.project_folder import create_project_folder_authoring_app
 from plotloom.conformance import FIXED_CHINESE_BRIEF
@@ -9,9 +9,13 @@ from plotloom.exceptions import InvalidTransitionError
 from plotloom.graph_authoring_drafts import GraphAuthoringDraft
 from plotloom.persistence.project.graph_workbench import GraphDraftRebaseRequest
 from plotloom.source_structures import planned_structure
-from tests.graph_draft_fixtures import save_graph_mapping, graph_map_save_request, graph_draft_revision
-from tests.test_graph_authoring_contract import source_project, authored_map, install_request  # noqa: F401
-from tests.test_project_storage_source_outline import _storage
+from tests.graph_authoring_fixtures import authored_map, install_request
+from tests.graph_draft_fixtures import (
+    graph_draft_revision,
+    graph_map_save_request,
+    save_graph_mapping,
+)
+from tests.source_outline_fixtures import _storage
 
 
 def test_http_preview_cancel_apply_stale_failure_and_reload(tmp_path):

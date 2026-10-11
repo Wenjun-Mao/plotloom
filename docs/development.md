@@ -363,9 +363,10 @@ candidate or replace required unfiltered hosted CI.
 browser suites; application type contracts; scoped lint and lock checks; the
 deterministic bundle and parity check; wheel build and installed-wheel smoke.
 It refuses ambient diagnostic grep, shard, or pytest filter settings. The
-browser suite is local and unsharded; hosted CI independently runs both
-whole-spec groups. Full verification records each command's elapsed time and
-exit status, and does not establish product or creative acceptance.
+browser suite is local and unsharded; hosted CI runs four duration-balanced
+whole-spec shards with one worker per runner. Full verification records each
+command's elapsed time and exit status, and does not establish product or
+creative acceptance.
 
 ```sh
 uv run --locked --no-sync python scripts/verify.py full

@@ -40,7 +40,7 @@ leads separately from approved work.
 | Capability tracking and delivery | [0008](0008-capability-based-adoption-tracking.md)'s tracking method survives, but its named [matrix](../roadmap/archive/superseded/2026-09-02-capability-matrix.md) is archived. Use the [roadmap](../roadmap/README.md) for active work and acceptance. |
 | Verification tooling | [0081](0081-narrow-source-static-and-api-lint-checks.md) separates checked source-bundle browser evidence from installed-wheel packaging evidence and keeps Ruff scoped to API F401 findings. [0109](0109-bounded-browser-ci-evidence.md) bounds independent browser shards, preserves failure evidence and distinguishes filtered diagnostics from the full release gate. |
 | Browser-fixture port ownership | [0152](0152-owned-browser-fixture-listeners.md) binds each role before publishing its address and retains exact backend-origin restarts; released port probes are not reservations. |
-| Hosted browser allocation and UI-only fixture scope | [0153](0153-duration-balanced-browser-files.md) assigns whole specs by historic duration, checks exact manifest/list coverage, preserves diagnostic filters and confines Vite-only execution to the proven creator-confirmation journey. |
+| Hosted browser allocation and UI-only fixture scope | [0153](0153-duration-balanced-browser-files.md) assigns whole specs by historic duration, checks exact manifest/list coverage, preserves diagnostic filters and confines Vite-only execution to the proven creator-confirmation journey. [0159](0159-four-duration-balanced-hosted-browser-shards.md) adopts four duration-balanced hosted groups while retaining one worker per runner and the same full native case-union guard. |
 
 Two files retain the historical number `0040`; cite each by its full slug and
 link, never by number alone. This index is a navigation aid, not a declaration
@@ -81,3 +81,6 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0151 Local project-command admission and progress](0151-local-project-command-admission.md)
 - [0155 Recommended creative workflow guide](0155-recommended-creative-workflow-guide.md)
 - [0156 Risk-scoped local qualification](0156-risk-scoped-local-qualification.md)
+- [0157 Native test module ownership](0157-native-test-module-ownership.md)
+- [0158 Accepted-source seed for graph-command tests](0158-accepted-source-seed-for-graph-command-tests.md)
+- [0159 Four duration-balanced hosted browser shards](0159-four-duration-balanced-hosted-browser-shards.md)

@@ -799,9 +799,153 @@ The correction added 14 Vitest and one Playwright case in already-owned files.
 
 The owner later published executable UI change 7da7b6efa20e43a3b2d692eeac7defe6838a1e1c
 and documentation-only main receipt 51cb4080200a6cca524fec2b2844022564d3707f.
-The executable commit adds two Vitest and five Playwright cases in those same
-owned files; this branch must rebase and rerun the guard before final
-qualification. Hosted run 38101824564 is the unfiltered run on exact SHA
-7da7b6efa20e43a3b2d692eeac7defe6838a1e1c and is still in progress at this
-receipt checkpoint. Do not dispatch a duplicate for documentation-only
-51cb408.
+The executable commit adds two Vitest cases and extends one existing Playwright
+case across the two graph views and three supported desktop sizes; the native
+Playwright count remains 280. The branch has been rebased onto 51cb408 and the
+current native inventory is recorded below. Hosted run 38101824564 is the
+unfiltered run on exact SHA 7da7b6efa20e43a3b2d692eeac7defe6838a1e1c. Do not
+dispatch a duplicate for documentation-only 51cb408.
+
+### M2 reconciliation and M3 graph-command fixture — 2026-10-11
+
+#### Current native inventory after rebase and M3 regression guard
+
+Two consecutive `scripts/testing/check_module_ownership.py` runs on the current
+worktree passed native collection without running test bodies. Counts and
+normalized ID hashes matched exactly:
+
+| Runner | Cases / files | Normalized case-ID SHA-256 |
+| --- | ---: | --- |
+| Pytest | 1,507 / 156 | 7c513fc83d7bbff6f67471c096847d4d88e4e42e97b3641a4e4344075ebb18f2 |
+| Vitest | 1,074 / 133 | 0c26f4523c07ed8c31bab06afbcab99b9a15a326ebe0991a429f523d84d914ce |
+| Playwright | 280 / 85 | 878a9ad8e999be52222c4060c7aaaa53ff96cc44ceadb5c5a65dde2b1cde1ffe |
+
+The owner UI commit contributes two new Vitest rows. It extends the existing
+recommended-workflow browser case to cover the shared graph view switch without
+adding another native Playwright row. The guide correction and the UI commit are
+already ancestors of this worktree; no additional rebase is pending at this
+checkpoint. The ownership manifest now records 64 support dependencies,
+including the root pytest fixture module and the two extracted source/graph
+fixture modules introduced by M3.
+
+#### Root cause and change
+
+The graph-command family rebuilt the same accepted source/outline state for each
+function-scoped test. Each of the 19 original cases created a project, saved
+source material, prepared an outline candidate, wrote and admitted a local
+delivery, and accepted it before exercising graph commands. M0 measured 1.89s
+of fixture setup across those cases versus 0.31s median test call time and
+3.027s median suite wall time. The outline acceptance is a required current
+graph precondition, but repeating its production path is not behavior under
+test in this command family.
+
+The graph-command suite now performs that same real accepted-source flow once
+per pytest session through a fixture registered in `tests/conftest.py`, closes
+the seed project and checks that no SQLite sidecars remain, then copies the
+complete project home into each test's own temporary output root. Each test
+reopens its copy through `ProjectFolderStorage` and closes its handle during
+fixture teardown. The shared function-scoped `source_project` fixture remains
+in place for graph tests outside the measured command family. No mutable store
+or database connection is shared between command cases. A focused regression
+mutates one of two copies and verifies that the second copy retains its original
+graph draft state. The copies use separate output and application roots; their
+identical project ID is local to each isolated root and is never combined in a
+shared registry.
+
+The first module-scoped fixture attempt put the session seed beside the
+graph-authoring test module. Other test modules imported `source_project`, but
+did not register its nested session-seed fixture. The graph module then had 10
+setup errors despite 54 cases passing. Moving the seed to the root `conftest.py`
+made it visible to all consumers; the optimized fixture now lives only in
+`test_graph_commands.py`, so the optimization remains scoped to the measured
+family. Reusable source/outline and graph-authoring builders were moved out of
+collected test modules into `tests/source_outline_fixtures.py` and
+`tests/graph_authoring_fixtures.py`.
+
+#### M3 measurements and checks
+
+The before and after samples use the same host, warm dependencies, serial
+execution, `pytest -q --durations=0`, and a fresh basetemp for every run. The
+after suite contains the 19 original graph-command cases plus the isolation
+regression. Wall/setup seconds by sample were:
+
+| Candidate | Cases | Sample 1 | Sample 2 | Sample 3 | Median |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Before | 19 | 3.155 / — | 3.027 / — | 3.004 / — | 3.027 / — |
+| After | 20 | 1.514 / 0.350 setup | 1.361 / 0.330 setup | 1.301 / 0.320 setup | 1.361 / 0.330 setup |
+
+The after command time is 55.0% lower while retaining every original case and
+adding the copy-isolation check. The original separate setup-attribution sample
+was 1.89s; the three after samples attributed 0.320–0.350s to setup (0.330s
+median), about 82% below that single reference. This is descriptive setup
+evidence, not a triplicate before/after setup comparison. A separate copy probe
+measured copy/open/read/write/close totals of 28ms, 20ms and 20ms. These small
+local timings are family-level evidence, not a promise about the full pytest
+suite or hosted CI.
+
+- Five consumers of the extracted source/outline helpers — PASS, 52 cases.
+- `uv run --locked --no-sync python scripts/verify.py module --module graph --depth contract` — PASS: native preflight, app typecheck, all 64 graph pytest cases and the graph Vitest selection.
+- A separate run reversed the native order of all graph owner cases under a new basetemp — PASS, 64 cases.
+- Targeted Ruff `F401,F821,F823` checks across all touched Python modules and Ruff formatting for the three new fixture modules — PASS.
+- Two consecutive native module ownership checks — PASS with the identical inventory/hashes above; no test bodies executed.
+
+An initial fixture attempt checked for SQLite sidecars while the seed store was
+still open; the focused run exposed the lifecycle mistake. The guard now runs
+after the seed handle closes, and the post-close sidecar check is part of the
+fixture contract. No product-code or persistence workaround was added.
+
+Run 38101073289 on exact SHA 63b25f4 is terminal failure: verify passed;
+browser shard 1 passed 117 and failed 5 cases in 30.8 minutes, while shard 2
+passed 156 and failed 2 in 31.7 minutes. Run 38101824564 on exact SHA 7da7b6e
+is terminal failure: verify passed; browser shard 1 passed 117 and failed 5 in
+31.0 minutes, and shard 2 passed 155, failed 2 and had one flaky case that
+passed on retry in 26.2 minutes. The seven first-attempt failures repeat the
+creator layout bounds/resize, production rebuild, source-entry dirty-refresh,
+source-outline duplicate-text and creator-brief small-viewport failures
+recorded above. Neither run has been duplicated. The run 38098197412 failure
+and its shard-level details remain recorded above.
+
+M3 is complete on the isolated worktree. M4 uses the 7da per-case Playwright log
+timestamps, including retry attempts and inter-case setup/teardown intervals,
+to rebalance all 85 whole-spec assignments. The four LPT groups estimate
+14.35–14.41 minutes each from the two observed browser-step durations of 31.18
+and 26.28 minutes. This is a one-run allocation estimate, not a hosted
+four-shard result. The manifest has 22/21/21/21 specs, and the local allocation
+guard lists 280 cases as 81/61/67/71 with zero overlap or omissions. CI retains
+`fail-fast: false`, one Playwright worker per runner, the existing retry and
+timeouts, and full-report uploads. Focused CI-contract tests, actual local
+four-shard `--list` coverage and both frontend type checks passed.
+
+ADR 0158 records the accepted-seed lifecycle and isolation contract. M5
+independent review, same-host family retiming, the one local full gate, and one
+unfiltered hosted qualification remain outstanding. That hosted run will also
+be the M4 four-shard probe; do not dispatch a separate duplicate run.
+
+#### M4 complete-profile local qualification — 2026-10-11
+
+The local verification-tooling complete profile passed in 40.869 seconds:
+
+- Native full-union ownership preflight — PASS, 1,507 pytest, 1,074 Vitest and
+  280 Playwright cases with the same hashes listed above.
+- Frontend application and browser-fixture type checks — PASS.
+- Locked dependencies, deterministic production bundle and checked static
+  parity — PASS.
+- Four-shard unfiltered allocation guard — PASS, 85 specs and 280 cases across
+  shards 81/61/67/71, with no overlap or omissions.
+- Wheel build and installed-wheel smoke — PASS.
+- Verification-tooling owned tests — PASS, 54 pytest, 2 Vitest and 6
+  Playwright cases.
+
+The separate focused browser-contract selector passed all five tests. The
+seven-file focused run of source/outline helper consumers passed 58 pytest
+cases. Ruff check passed for the touched Python scope after import sorting,
+excluding C408 on an unchanged dict call already present at the base revision;
+the newly added fixture modules, conftest and browser-contract test pass Ruff
+format checks. The working diff check passed. The build emitted its existing
+non-blocking large-chunk advisory; the focused Python run emitted the existing
+Starlette TestClient deprecation warning.
+
+This establishes the local workflow and exact case allocation, not actual
+four-runner hosted duration or hosted acceptance. The candidate still requires
+independent review, same-host M0 family retiming and one complete local full
+gate before the single unfiltered hosted qualification.

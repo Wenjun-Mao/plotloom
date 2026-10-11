@@ -18,7 +18,7 @@ from plotloom.source_outline_contracts import (
 )
 from tests.graph_draft_fixtures import save_graph_mapping
 from tests.production_bridge_fixtures import _prepare_installable_bridge
-from tests.test_project_storage_source_outline import _storage
+from tests.source_outline_fixtures import _storage
 
 
 def _store_with_installed_bridge(tmp_path):

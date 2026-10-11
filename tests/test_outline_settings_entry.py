@@ -13,7 +13,7 @@ from plotloom.creative_handoff_contracts import CreativeHandoffError
 from plotloom.domain import ProjectBrief
 from plotloom.outline_settings import OUTLINE_SETTINGS_FILENAME, outline_settings
 from plotloom.source_outline_contracts import OutlineAcceptRequest, SourceMaterial
-from tests.test_project_storage_source_outline import _deliver, _material, _request, _storage
+from tests.source_outline_fixtures import _deliver, _material, _request, _storage
 
 
 @pytest.mark.parametrize("direction", [None, "", "  ", " 用动作表达情绪 "])

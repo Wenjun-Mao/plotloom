@@ -513,6 +513,14 @@
   "support_dependencies": [
     {
       "suite": "playwright",
+      "path": ".github/workflows/ci.yml",
+      "kind": "runner-configuration",
+      "consumers": [
+        "verification-tooling"
+      ]
+    },
+    {
+      "suite": "playwright",
       "path": "frontend/e2e/art-review-fixture.ts",
       "kind": "shared-fixture-or-helper",
       "consumers": [
@@ -848,6 +856,14 @@
     },
     {
       "suite": "playwright",
+      "path": "frontend/scripts/check_browser_shard_manifest.mjs",
+      "kind": "test-support-tool",
+      "consumers": [
+        "verification-tooling"
+      ]
+    },
+    {
+      "suite": "playwright",
       "path": "frontend/playwright.config.ts",
       "kind": "runner-configuration",
       "consumers": [
@@ -957,6 +973,14 @@
     },
     {
       "suite": "pytest",
+      "path": "tests/conftest.py",
+      "kind": "conftest",
+      "consumers": [
+        "graph"
+      ]
+    },
+    {
+      "suite": "pytest",
       "path": "tests/generation/conftest.py",
       "kind": "conftest",
       "consumers": [
@@ -970,6 +994,14 @@
       "kind": "shared-fixture-or-helper",
       "consumers": [
         "shared-generation"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/graph_authoring_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "graph"
       ]
     },
     {
@@ -1076,6 +1108,17 @@
       "consumers": [
         "creative-production",
         "project-lifecycle",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/source_outline_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "shared-provider-dispatch",
         "story-authoring"
       ]
     },

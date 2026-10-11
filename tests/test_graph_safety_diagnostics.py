@@ -10,12 +10,9 @@ from plotloom.domain import StageName
 from plotloom.graph_authoring_drafts import GraphAuthoringDraft
 from plotloom.graph_edit_safety import assert_edit_safe, structural_violations
 from plotloom.graph_safety_diagnostics import GraphEditSafetyError
+from tests.graph_authoring_fixtures import authored_map
 from tests.graph_draft_fixtures import save_graph_mapping
-from tests.test_graph_authoring_contract import authored_map
-from tests import test_graph_authoring_contract as graph_contract
-from tests.test_project_storage_source_outline import _storage
-
-source_project = graph_contract.source_project
+from tests.source_outline_fixtures import _storage
 
 
 @pytest.mark.parametrize("kind,maximum,actual,limit", [

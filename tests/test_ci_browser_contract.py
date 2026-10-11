@@ -66,13 +66,14 @@ def test_full_release_jobs_are_independent_and_must_all_succeed_on_the_same_sha(
     assert all(step["if"] == "${{ !cancelled() }}" for step in conditional_steps)
     browser = jobs["browser"]
     assert browser["strategy"]["fail-fast"] == "false"
-    assert browser["strategy"]["matrix"]["shard"] == ["1", "2"]
+    assert browser["strategy"]["matrix"]["shard"] == ["1", "2", "3", "4"]
 
 
 def test_browser_shards_preserve_all_results_without_runner_contention():
     browser = _workflow()["jobs"]["browser"]
     assert browser["strategy"]["fail-fast"] == "false"
-    assert browser["strategy"]["matrix"]["shard"] == ["1", "2"]
+    shard_ids = ["1", "2", "3", "4"]
+    assert browser["strategy"]["matrix"]["shard"] == shard_ids
     steps = browser["steps"]
     guard_index = next(
         index
@@ -101,8 +102,8 @@ def test_browser_shards_preserve_all_results_without_runner_contention():
     assert "fullyParallel: false" in config
 
     manifest = json.loads(SHARD_MANIFEST.read_text())
-    assert set(manifest) == {"1", "2"}
-    assigned = manifest["1"] + manifest["2"]
+    assert set(manifest) == set(shard_ids)
+    assigned = [spec for shard in shard_ids for spec in manifest[shard]]
     expected = {
         path.relative_to(FRONTEND / "e2e").as_posix()
         for path in (FRONTEND / "e2e").rglob("*")
@@ -119,7 +120,8 @@ def test_browser_shards_preserve_all_results_without_runner_contention():
     assert "BROWSER_GREP" in guard_source
     assert '"--list"' in guard_source
     assert 'browserGrep === ".*"' in guard_source
-    assert "shardOne.size === 0 || shardTwo.size === 0" in guard_source
+    assert "emptyShards.length > 0" in guard_source
+    assert "ownerByCase" in guard_source
     uploads = [
         item
         for item in browser["steps"]

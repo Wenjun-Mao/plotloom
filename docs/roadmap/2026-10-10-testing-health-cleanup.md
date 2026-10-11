@@ -439,7 +439,7 @@ On unsafe or regressing optimization, revert only its exact scoped changes non-d
 
 The owner approved M0–M5 after the initial read-only plan review. Work is isolated on branch **codex/testing-health-m0-m5**, created at **4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c**. M0 is complete on that candidate. Executable, test and dependency inputs match guide commit **e6ca2d18448c24cc4129670df4df41e166551cc3**; the only e6ca2d1..4955bbf change at freeze was this roadmap draft. Native inventory, family samples, setup/action/teardown attribution and the M3/M4 shortlist are recorded in the verification receipt.
 
-M1 ownership/dependency closure and its native full-union guard are implemented in the isolated worktree; the exact map, consumers and guard result are recorded in the receipt. M1 was reconciled after rebasing on guide correction **63b25f461367b5732e08e6aac5eef3c429721f75**: 1,497 pytest / 156 files, 1,072 Vitest / 133 files, and 280 Playwright / 85 files. The precise hashes are recorded below. The owner then published the shared-graph UI commit **7da7b6efa20e43a3b2d692eeac7defe6838a1e1c** and documentation-only receipt **51cb4080200a6cca524fec2b2844022564d3707f**; the UI commit adds two Vitest and five browser cases in already-owned files. Rebase this worktree onto 51cb408 and refresh the final inventory before M5 qualification. Track unfiltered runs 38098197412 on exact SHA 4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c, 38101073289 on exact SHA 63b25f461367b5732e08e6aac5eef3c429721f75, and 38101824564 on exact SHA 7da7b6efa20e43a3b2d692eeac7defe6838a1e1c; do not duplicate any run. The first run failed in both browser shards. The second run's verify job passed and its browser shards remain in progress at the last readback. All jobs in the third run remain in progress at the last readback. Main publication waits for the manager's quiet-checkpoint coordination while the owner walkthrough is active.
+M1 ownership/dependency closure and its native full-union guard are implemented in the isolated worktree; the exact map, consumers and guard result are recorded in the receipt. M1 was reconciled after rebasing on guide correction **63b25f461367b5732e08e6aac5eef3c429721f75**: 1,497 pytest / 156 files, 1,072 Vitest / 133 files, and 280 Playwright / 85 files. The precise hashes are recorded below. The owner then published shared-graph UI commit **7da7b6efa20e43a3b2d692eeac7defe6838a1e1c** and documentation-only receipt **51cb4080200a6cca524fec2b2844022564d3707f**. The UI commit adds two Vitest cases and extends one existing browser case; the Playwright native count remains 280. This worktree is now rebased onto 51cb408 and its refreshed inventory is recorded in the receipt. Track unfiltered runs 38098197412 on exact SHA 4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c, 38101073289 on exact SHA 63b25f461367b5732e08e6aac5eef3c429721f75, and 38101824564 on exact SHA 7da7b6efa20e43a3b2d692eeac7defe6838a1e1c; do not duplicate any run. The first run failed in both browser shards. At the latest readback, run 38101073289's verify job passed and both browser shards remained in progress; all jobs in run 38101824564 remained in progress. Main publication waits for the manager's quiet-checkpoint coordination while the owner walkthrough is active.
 
 ### M1 execution checkpoint — native ownership map
 
@@ -460,8 +460,9 @@ passed with 1,497 pytest cases (same hash), 1,072 Vitest cases / 133 files
 280 Playwright cases / 85 files (hash
 4d0020410503c0d1bedcfb33d3323535d755ba43cb59943ff1337a47c8cb08c1). That
 guide correction added 14 Vitest and one browser case to already-owned files.
-The newer owner UI change at 7da7b6e adds two Vitest and five browser cases in
-the same files; rebase and refresh the final inventory before M5.
+The newer owner UI change at 7da7b6e adds two Vitest cases and extends an
+existing Playwright case across the two graph views and three supported desktop
+sizes. The Playwright native case count remains 280.
 
 ### M2 execution checkpoint — 2026-10-11
 
@@ -489,5 +490,49 @@ passed 26 cases. Native inventory guard passed with 1,506 pytest / 156 files,
 passed in 11.046s with all 1,072 Vitest cases and both TypeScript checks. A real
 shared-api-security contract selection passed all 49 pytest and 41 Vitest cases
 in 15.782s including full-map preflight and app typecheck. Ruff and diff checks
-passed. The local inventory predates rebase onto UI commit 7da7b6e; refresh the
-hashes after rebasing. M3–M5, independent review and final qualification remain.
+passed. The refreshed post-rebase inventory and M3 fixture optimization are
+recorded below; M4–M5, independent review and final qualification remain.
+
+### M2 reconciliation and M3 execution checkpoint — 2026-10-11
+
+The M2 branch is rebased onto `51cb4080200a6cca524fec2b2844022564d3707f`.
+Two consecutive collection-only ownership checks produced the same current
+inventory: 1,507 pytest / 156 files, 1,074 Vitest / 133 files, and 280
+Playwright / 85 files. Exact hashes and module counts are in the verification
+receipt. The only native-count change from the owner UI commit was two Vitest
+cases; its existing Playwright guide case was extended without changing the
+native Playwright case count.
+
+M3 reduces repeated graph-command fixture setup by building one accepted-source
+seed through the existing prepare, deliver, admit and accept path per pytest
+session, then closing it and opening a full project-folder copy under each
+command case's isolated temporary root. Each command case still edits its own
+database through `ProjectFolderStorage`; other graph suites retain their
+function-scoped accepted-source setup. Reusable source/outline and graph
+authoring builders are in cohesive fixture modules rather than imported test
+modules. A separate regression confirms writes to one copy do not appear in
+another. The root-cause evidence, exact before/after timings and focused checks
+are in the receipt. M3 is implemented; the M4 four-shard allocation is
+implemented locally and passes its complete verification-tooling module gate.
+M5 review and final qualification remain. ADR 0158 records the seed lifecycle
+and isolation contract. Hosted run 38101073289 is terminal failure on exact
+SHA 63b25f4 with verify passing and both browser shards failing. Run 38101824564
+on exact SHA 7da7b6e is terminal failure: verify passed and both browser shards
+failed. Neither carried-over run is to be duplicated.
+
+### M4 execution checkpoint — 2026-10-11
+
+The two-shard hosted assignment remains the observed baseline. M4 uses its
+whole-spec timestamps to propose four LPT-balanced groups; the estimated
+14.35–14.41 minute groups are not a hosted result or a causal speed claim.
+ADR 0159 records the four-shard candidate, its exact native union guard and the
+decision to use one unfiltered hosted run as both the M4 probe and M5 hosted
+qualification.
+
+Local M4 checks passed: the browser contract selector passed all five tests;
+the manifest guard listed all 280 native cases across shards 81/61/67/71 with
+zero overlap or omissions; and the complete verification-tooling profile
+passed in 40.869 seconds, including both type checks, locked dependencies,
+deterministic static build/parity, wheel/package smoke, 54 pytest cases, 2
+Vitest cases and 6 browser tests. A hosted four-shard result, same-host family
+retiming, independent review and the one full local gate remain outstanding.
