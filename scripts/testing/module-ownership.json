@@ -1,6 +1,20 @@
 {
   "schema_version": 1,
   "path_basis": "Repository-relative exact test-file owners; native case IDs expand each owner during the guard.",
+  "required_complete_gates": {
+    "locked-dependencies": [
+      "verification-tooling"
+    ],
+    "static-bundle": [
+      "verification-tooling"
+    ],
+    "browser-allocation": [
+      "verification-tooling"
+    ],
+    "wheel-package": [
+      "verification-tooling"
+    ]
+  },
   "modules": {
     "story-authoring": {
       "description": "Brief, source, outline, branch suggestion and authored story behavior.",
@@ -869,6 +883,22 @@
     {
       "suite": "pytest",
       "path": "scripts/testing/check_module_ownership.py",
+      "kind": "test-support-tool",
+      "consumers": [
+        "verification-tooling"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "scripts/testing/module-ownership.json",
+      "kind": "test-support-contract",
+      "consumers": [
+        "verification-tooling"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "scripts/testing/module_selection.py",
       "kind": "test-support-tool",
       "consumers": [
         "verification-tooling"

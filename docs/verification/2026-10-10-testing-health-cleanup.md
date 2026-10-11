@@ -785,10 +785,23 @@ The repeatable hashes are pytest
 e3d5d34841c4fb01c9e1ce5b827fc08c632c47119db8300f43da7ce1cdc4f39a, and
 Playwright 7de7e0969cc64a5b2fdb90c0fbd82d3c951949401d38ba2629ef24e5420b4f77.
 
-### Reconciliation boundary
+### Reconciliation to the 63b25f4 guide correction
 
-These hashes are on the 4955bbf worktree base and precede guide correction
-63b25f461367b5732e08e6aac5eef3c429721f75. That later commit adds 14 Vitest
-cases and one Playwright case. Preserve the M0/M1 records as exact historical
-inventories, then reconcile the map and rerun this guard on the corrected
-candidate before final qualification.
+The 4955bbf M0/M1 tables above remain exact historical inventories. After
+rebasing onto 63b25f461367b5732e08e6aac5eef3c429721f75, the ownership guard
+passed on dcd7264 with 1,497 pytest cases / 156 files (hash unchanged from the
+4955bbf M1 run), 1,072 Vitest cases / 133 files, and 280 Playwright cases / 85
+files. Current hashes were pytest
+94499697321db8b52f5da9d36da5e10ab6e7130715dd36b228639565b8b2f424, Vitest
+11b554c8714fd1842dc4f14ef234c78f3f1f7f084b940139e5ed3586a9c70278, and
+Playwright 4d0020410503c0d1bedcfb33d3323535d755ba43cb59943ff1337a47c8cb08c1.
+The correction added 14 Vitest and one Playwright case in already-owned files.
+
+The owner later published executable UI change 7da7b6efa20e43a3b2d692eeac7defe6838a1e1c
+and documentation-only main receipt 51cb4080200a6cca524fec2b2844022564d3707f.
+The executable commit adds two Vitest and five Playwright cases in those same
+owned files; this branch must rebase and rerun the guard before final
+qualification. Hosted run 38101824564 is the unfiltered run on exact SHA
+7da7b6efa20e43a3b2d692eeac7defe6838a1e1c and is still in progress at this
+receipt checkpoint. Do not dispatch a duplicate for documentation-only
+51cb408.

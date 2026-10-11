@@ -152,6 +152,26 @@ def validate_manifest_data(manifest: Any, root: Path = ROOT) -> dict[str, Any]:
         if key in seen_dependencies:
             raise OwnershipError(f"duplicate support dependency: {suite} {path_value}")
         seen_dependencies.add(key)
+
+    complete_gates = manifest.get("required_complete_gates", {})
+    if not isinstance(complete_gates, dict):
+        raise OwnershipError("required_complete_gates must be an object")
+    for gate, consumers in complete_gates.items():
+        if not isinstance(gate, str) or not gate.strip():
+            raise OwnershipError("required complete gate names must be nonempty")
+        if (
+            not isinstance(consumers, list)
+            or not consumers
+            or not all(isinstance(consumer, str) for consumer in consumers)
+        ):
+            raise OwnershipError(f"required complete gate {gate} needs consumers")
+        if len(consumers) != len(set(consumers)):
+            raise OwnershipError(f"duplicate consumers for complete gate {gate}")
+        for consumer in consumers:
+            if consumer not in module_names:
+                raise OwnershipError(
+                    f"unknown complete gate consumer {consumer}: {gate}"
+                )
     return selectors_by_suite
 
 

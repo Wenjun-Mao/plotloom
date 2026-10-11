@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -143,6 +144,215 @@ def test_full_steps_include_all_release_gates_in_safe_build_order(tmp_path):
         ("BROWSER_GREP", ".*"),
     )
     assert "BROWSER_SHARD" not in dict(by_label["unfiltered browser suite"].environment)
+
+
+def _module_manifest():
+    return json.loads(
+        (ROOT / "scripts" / "testing" / "module-ownership.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+
+def test_module_union_deduplicates_modules_and_shared_dependencies():
+    selection = VERIFY._load_module_selection()
+    plan = selection.build_module_plan(
+        _module_manifest(), ["graph", "story-authoring", "graph"], "contract", root=ROOT
+    )
+
+    assert plan.names == ("graph", "story-authoring")
+    selectors = dict(plan.selectors)
+    assert "tests/test_graph_commands.py" in selectors["pytest"]
+    assert "tests/test_project_storage_source_outline.py" in selectors["pytest"]
+    assert all(
+        "::" not in selector for values in selectors.values() for selector in values
+    )
+    dependency_paths = [dependency["path"] for dependency in plan.dependencies]
+    assert dependency_paths.count("frontend/tests/setup-browser-dom.ts") == 1
+
+
+def test_module_complete_skips_unowned_suite_and_browser_depth_refuses_empty():
+    selection = VERIFY._load_module_selection()
+    manifest = _module_manifest()
+
+    complete = selection.build_module_plan(
+        manifest, ["shared-generation"], "complete", root=ROOT
+    )
+    assert complete.suites == ("pytest", "vitest")
+    with pytest.raises(ValueError, match="no playwright tests"):
+        selection.build_module_plan(
+            manifest, ["shared-generation"], "browser", root=ROOT
+        )
+
+
+def test_module_complete_expands_owned_shared_build_and_package_gates(capsys):
+    with patch.object(
+        VERIFY.subprocess,
+        "run",
+        side_effect=AssertionError("show mode must not execute checks"),
+    ):
+        assert (
+            VERIFY.main(
+                [
+                    "module",
+                    "--module",
+                    "verification-tooling",
+                    "--depth",
+                    "complete",
+                    "--show",
+                ]
+            )
+            == 0
+        )
+
+    output = capsys.readouterr().out
+    labels = [
+        "locked dependencies",
+        "deterministic production bundle",
+        "checked production bundle parity",
+        "unfiltered browser shard coverage",
+        "wheel build",
+        "installed wheel smoke",
+        "module pytest",
+        "module Vitest",
+        "module Playwright",
+    ]
+    assert (
+        "MODULE_PLAN required_complete_gates=locked-dependencies,static-bundle,"
+        "browser-allocation,wheel-package"
+    ) in output
+    positions = [output.index(f"command label={label}") for label in labels]
+    assert positions == sorted(positions)
+
+
+def test_module_selection_rejects_unknown_or_invalid_required_gates():
+    selection = VERIFY._load_module_selection()
+    manifest = _module_manifest()
+    manifest["required_complete_gates"]["unmapped-gate"] = ["verification-tooling"]
+
+    with pytest.raises(ValueError, match="unknown required complete gate"):
+        selection.build_module_plan(
+            manifest, ["verification-tooling"], "complete", root=ROOT
+        )
+
+
+def test_module_rejects_unknown_and_empty_selection_before_execution(capsys):
+    with patch.object(
+        VERIFY.subprocess,
+        "run",
+        side_effect=AssertionError("module suites must not launch"),
+    ):
+        assert VERIFY.main(["module", "--depth", "contract"]) == 2
+        assert (
+            VERIFY.main(["module", "--module", "no-such-module", "--depth", "contract"])
+            == 2
+        )
+        assert (
+            VERIFY.main(
+                [
+                    "module",
+                    "--module",
+                    "shared-generation",
+                    "--depth",
+                    "browser",
+                ]
+            )
+            == 2
+        )
+    output = capsys.readouterr()
+    assert "requires at least one --module" in output.err
+    assert "unknown module(s)" in output.err
+    assert "no playwright tests" in output.err
+
+
+def test_module_show_prints_expanded_selectors_and_commands_without_execution(
+    capsys,
+):
+    with patch.object(
+        VERIFY.subprocess,
+        "run",
+        side_effect=AssertionError("show mode must not execute checks"),
+    ):
+        assert (
+            VERIFY.main(
+                ["module", "--module", "graph", "--depth", "contract", "--show"]
+            )
+            == 0
+        )
+    output = capsys.readouterr().out
+    assert "MODULE_PLAN depth=contract modules=graph gate=module-scoped" in output
+    assert "MODULE_PLAN selector=tests/test_graph_commands.py" in output
+    assert "shared_dependency=pytest:tests/generation/conftest.py" in output
+    assert "omitted_suites=playwright" in output
+    assert "MODULE_PLAN command label=module pytest" in output
+    assert "VERIFY_SUMMARY tier=module-plan" in output
+
+
+def test_module_refuses_ambient_filters_before_showing_or_execution(
+    monkeypatch, capsys
+):
+    monkeypatch.setenv("PLAYWRIGHT_GREP", "currentness")
+    with patch.object(
+        VERIFY.subprocess,
+        "run",
+        side_effect=AssertionError("ambient filter must be refused first"),
+    ):
+        assert (
+            VERIFY.main(
+                ["module", "--module", "graph", "--depth", "contract", "--show"]
+            )
+            == 2
+        )
+    output = capsys.readouterr()
+    assert "PLAYWRIGHT_GREP" in output.err
+    assert "currentness" not in output.err
+
+
+def test_module_runner_propagates_failure_without_running_later_suites():
+    calls = []
+
+    def pass_then_fail(command, **kwargs):
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0 if len(calls) < 4 else 23)
+
+    with patch.object(VERIFY.subprocess, "run", side_effect=pass_then_fail):
+        assert VERIFY.main(["module", "--module", "graph", "--depth", "browser"]) == 23
+
+    assert len(calls) == 4
+    assert calls[0][-1] == "scripts/testing/check_module_ownership.py"
+    assert calls[1][-1] == "typecheck"
+    assert calls[2][-1] == "typecheck:e2e"
+    playwright_index = calls[3].index("test:e2e")
+    assert calls[3][playwright_index + 1] == "--"
+    assert any(selector.startswith("e2e/") for selector in calls[3])
+
+
+def test_module_pytest_failure_stops_before_later_native_suites():
+    calls = []
+
+    def fail_pytest(command, **kwargs):
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 19 if len(calls) == 3 else 0)
+
+    with patch.object(VERIFY.subprocess, "run", side_effect=fail_pytest):
+        assert (
+            VERIFY.main(
+                [
+                    "module",
+                    "--module",
+                    "shared-api-security",
+                    "--depth",
+                    "complete",
+                ]
+            )
+            == 19
+        )
+
+    assert len(calls) == 3
+    assert calls[0][-1] == "scripts/testing/check_module_ownership.py"
+    assert calls[1][-1] == "typecheck"
+    assert "pytest" in calls[2]
+    assert "test" not in calls[2]
 
 
 def test_quick_stops_on_first_failure_and_reports_exit_code(monkeypatch, capsys):

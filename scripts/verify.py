@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
 import shlex
 import subprocess
@@ -331,6 +332,24 @@ def _focused_steps(args: argparse.Namespace) -> list[Step]:
     return steps
 
 
+def _load_module_selection():
+    name = "_plotloom_module_selection"
+    if name in sys.modules:
+        return sys.modules[name]
+    path = ROOT / "scripts" / "testing" / "module_selection.py"
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise ValueError("module selection planner is unavailable")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    try:
+        spec.loader.exec_module(module)
+    except Exception:
+        sys.modules.pop(name, None)
+        raise
+    return module
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="tier", required=True)
@@ -344,6 +363,10 @@ def _parser() -> argparse.ArgumentParser:
     )
     focused.add_argument("--vitest", action="append", default=[], metavar="FILE")
     focused.add_argument("--playwright", action="append", default=[], metavar="SPEC")
+    module = subparsers.add_parser(
+        "module", help="run explicitly named product-module test selections"
+    )
+    _load_module_selection().add_module_arguments(module)
     return parser
 
 
@@ -366,6 +389,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             return 2
         return _run_steps(args.tier, steps)
+
+    if args.tier == "module":
+        return _load_module_selection().run_module_command(
+            args,
+            root=ROOT,
+            environment=os.environ,
+            filter_names=FILTER_ENVIRONMENT,
+            command_factory=_command,
+            full_steps_builder=_full_steps,
+            run_steps=_run_steps,
+        )
 
     refused = _validate_full_filters(os.environ)
     if refused:

@@ -107,6 +107,13 @@ uv run --locked --no-sync python scripts/verify.py focused \
   --playwright e2e/creator-confirmation.spec.ts
 ```
 
+按已审查的产品模块选择测试并查看展开计划：
+
+```sh
+uv run --locked --no-sync python scripts/verify.py module \
+  --module graph --module story-authoring --depth contract --show
+```
+
 完整本地软件检查：
 
 ```sh
@@ -114,7 +121,9 @@ uv run --locked --no-sync python scripts/verify.py full
 ```
 
 `quick` 是反馈，不是后端或发布验收。`focused` 不会自动推断改动范围；请把
-改动的所有者映射到显式测试选择。`full` 运行完整本地套件，拒绝会缩小选择的
+改动的所有者映射到显式测试选择。`module` 从已审查的所有权表展开 `contract`、
+`browser` 或 `complete` 选择，并先检查完整原生测试集合的唯一归属；`--show`
+只显示选择计划。模块结果仍是局部开发证据。`full` 运行完整本地套件，拒绝会缩小选择的
 环境过滤器；它也不代表产品或创意接受。手动 CI 默认以 `browser_grep=.*`
 执行完整发布检查；浏览器测试在两个独立 runner 上各用一个 worker 并保留报告。
 其他正则只用于诊断，不能替代完整发布验收。见

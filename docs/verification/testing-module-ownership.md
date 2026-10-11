@@ -17,6 +17,24 @@ global setup, fixtures and helpers used by each suite, including the product
 modules that consume cross-domain helpers. Support dependencies document
 selection closure; they do not create duplicate test ownership.
 
+Run selected owners through the existing verification runner:
+
+    uv run --locked --no-sync python scripts/verify.py module --module graph --depth contract
+
+`contract` runs pytest and Vitest owners, `browser` runs Playwright owners, and
+`complete` runs every nonempty suite owned by the selected modules. Multiple
+`--module` arguments make one deduplicated union. The manifest's
+`required_complete_gates` assigns build/package gates to their owning module;
+those gates run only at `complete` depth. The current verification-tooling
+owner requires the lock check, static bundle build/parity, browser allocation
+guard and wheel build/smoke.
+
+Every module execution runs the native ownership guard before selected test
+bodies and refuses ambient filters. Use `--show` to review owner rationale,
+file selectors, shared dependencies, required and omitted checks, and exact
+commands without running them. A module result is scoped development evidence;
+it is not the full release gate.
+
 Vitest's list JSON does not expose row identity beyond file and title for some
 parameterized cases. When multiple discovered rows share those fields, the
 guard preserves the native list order and adds an occurrence number and total
@@ -24,6 +42,6 @@ to each normalized ID. It keeps all rows and their multiplicity, though the
 parameter values themselves are not present in the native listing.
 
 The module ownership guard is distinct from test execution and from the
-existing quick, focused and full verification tiers. M2 will add named
-module execution with explicit dependency expansion; this metadata does not
-infer selection from changed files.
+quick, focused, module and full verification tiers. Module selection does not
+infer scope from changed files; the implementer maps changed owners and
+consumers to the reviewed manifest.

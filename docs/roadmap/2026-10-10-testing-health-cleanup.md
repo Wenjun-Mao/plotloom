@@ -393,7 +393,7 @@ Directory-only selection is simple but misses cross-domain consumers and shared-
 
 Initial module vocabulary: story-authoring (brief/source/outline/branches), graph, creative-production (cast/art/script/storyboard; split subfamilies when evidence warrants), media-lifecycle, playback, project-lifecycle (save/stale/revise/recover/snapshot), shared-contracts/tooling (schema/API/security/provider/prompt/build/package owners with explicit subfamilies). This taxonomy is proposed, not a command contract. Assign every native test/spec a primary owner; cross-module checks can be included by several profiles but execute once in a combined selection. Shared fixtures/helpers need dependent ownership even though they are not collected tests. Preserve dedicated lifecycle journeys; modules define selection and ownership, not permission to replace cross-stack tests with mocks.
 
-Use distinct depth profiles: fast (unit/pure-contract feedback), contract (affected integration owners and consumers), browser (affected journeys), and module-complete (union plus required build/package guards). Exact CLI spellings are left to the implementer; examples such as “verify module graph --level contract” are proposed, not currently runnable. Development selectors do not replace the risk-appropriate final gate or required full hosted CI. Schema, persistence, admission, authentication, provider, prompt or build dependency changes and unresolved impact default to broad/full checks until a reviewed narrower closure is proven. Unknown modules, unknown selectors, empty selection, stale maps or conflicting ambient filters must fail explicitly; never silently pass.
+Use distinct paths: fast (`quick`) feedback, exact `focused` selectors, named `module` profiles and full release verification. The implemented command is `scripts/verify.py module --module NAME --depth DEPTH`, where `contract` selects pytest and Vitest files, `browser` selects Playwright specs, and `complete` selects every nonempty suite for the owner plus its explicitly declared complete gates. Repeated module arguments make one deduplicated union; `--show` prints the selectors, dependencies, gates, omissions and commands without running checks. The verification-tooling module currently owns the lock, static bundle build/parity, browser-allocation and wheel/package gates. Module profiles do not replace the risk-appropriate final gate or required full hosted CI. Schema, persistence, admission, authentication, provider, prompt or build dependency changes and unresolved impact default to broad/full checks until a reviewed narrower closure is proven. Unknown modules, unknown selectors, empty selection, stale maps or conflicting ambient filters must fail explicitly; never silently pass.
 
 ### Ordered deliverables
 
@@ -405,7 +405,7 @@ After the guide/policy assignment ends, record exact SHA, toolchain, expanded na
 
 Add one cohesive selection/dependency metadata home alongside existing verification tools. Resolve modules to real native file/case selectors; prefer file-level ownership, splitting mixed files only when needed for useful isolation/selection. Report the union/dependent reasons, checks omitted and final-gate category. Add an inventory guard: all module-complete selections cover the full native collected suite/parameter rows, with no unknown or unowned tests and no accidental duplicate execution. For moved tests reconcile identities/parameter rows and behavior, not just counts. Addition of a new unowned test/source/fixture cannot narrow coverage silently. Amend ADR 0156 or add a linked concise ADR when the module contract is actually approved for implementation.
 
-#### M2 — Add explicit module commands to scripts/verify.py
+#### M2 — Explicit module commands in scripts/verify.py (implemented locally)
 
 Preserve quick/focused/full and native failure semantics. Support named modules, explicit depth, multiple-module union/deduplication and a show/plan-only mode that prints expanded selectors and impact rationale. Unknown, empty or invalid selection fails before launching suites; module success cannot mean pass-with-no-tests. Include always-required shared gates where appropriate. Test selector correctness, cross-module expansion, moved/new parameter rows, ambient filter refusal, failure propagation and complete-union guard. Update AGENTS.md and docs/development.md with when to choose fast/contract/browser/module-complete/full and exact runnable examples. Do not add an automatic changed-file engine in this phase.
 
@@ -439,7 +439,7 @@ On unsafe or regressing optimization, revert only its exact scoped changes non-d
 
 The owner approved M0–M5 after the initial read-only plan review. Work is isolated on branch **codex/testing-health-m0-m5**, created at **4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c**. M0 is complete on that candidate. Executable, test and dependency inputs match guide commit **e6ca2d18448c24cc4129670df4df41e166551cc3**; the only e6ca2d1..4955bbf change at freeze was this roadmap draft. Native inventory, family samples, setup/action/teardown attribution and the M3/M4 shortlist are recorded in the verification receipt.
 
-M1 ownership/dependency closure and its native full-union guard are implemented in the isolated worktree; the exact map, consumers and guard result are recorded in the receipt. M2–M5 remain pending in order. Main later received guide documentation at **b8dc2aff312fab6e4df1a52d58268848f61d13da**, followed by the owner-authorized guide correction at **63b25f461367b5732e08e6aac5eef3c429721f75**. That correction adds 14 Vitest cases and one browser case, so the original post-guide M0 inventory remains historical evidence and the current main SHA must be reconciled before final module inventory and qualification. Track carried-over unfiltered runs 38098197412 on exact SHA 4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c and 38101073289 on exact SHA 63b25f461367b5732e08e6aac5eef3c429721f75; do not duplicate either run. The first run failed in both browser shards; diagnose its concrete failures. The second run is in progress. Main publication waits for the manager's quiet-checkpoint coordination while the owner walkthrough is active.
+M1 ownership/dependency closure and its native full-union guard are implemented in the isolated worktree; the exact map, consumers and guard result are recorded in the receipt. M1 was reconciled after rebasing on guide correction **63b25f461367b5732e08e6aac5eef3c429721f75**: 1,497 pytest / 156 files, 1,072 Vitest / 133 files, and 280 Playwright / 85 files. The precise hashes are recorded below. The owner then published the shared-graph UI commit **7da7b6efa20e43a3b2d692eeac7defe6838a1e1c** and documentation-only receipt **51cb4080200a6cca524fec2b2844022564d3707f**; the UI commit adds two Vitest and five browser cases in already-owned files. Rebase this worktree onto 51cb408 and refresh the final inventory before M5 qualification. Track unfiltered runs 38098197412 on exact SHA 4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c, 38101073289 on exact SHA 63b25f461367b5732e08e6aac5eef3c429721f75, and 38101824564 on exact SHA 7da7b6efa20e43a3b2d692eeac7defe6838a1e1c; do not duplicate any run. The first run failed in both browser shards. The second run's verify job passed and its browser shards remain in progress at the last readback. All jobs in the third run remain in progress at the last readback. Main publication waits for the manager's quiet-checkpoint coordination while the owner walkthrough is active.
 
 ### M1 execution checkpoint — native ownership map
 
@@ -453,6 +453,41 @@ includes five ownership-guard unit tests. The Vitest native list contains 19
 rows across four file/name pairs whose JSON omits parameter identity; the
 guard keeps the 15 repeated occurrences beyond the first and assigns
 deterministic collection-occurrence suffixes. The Playwright normalized ID
-hash remains equal to M0. The carried-forward guide fix at 63b25f4 adds another
-14 Vitest cases and one browser case; reconcile and rerun the inventory guard
-after bringing that commit into this branch.
+hash remains equal to M0. This table is the exact historical 4955bbf inventory.
+After rebasing onto 63b25f461367b5732e08e6aac5eef3c429721f75, the map guard
+passed with 1,497 pytest cases (same hash), 1,072 Vitest cases / 133 files
+(hash 11b554c8714fd1842dc4f14ef234c78f3f1f7f084b940139e5ed3586a9c70278), and
+280 Playwright cases / 85 files (hash
+4d0020410503c0d1bedcfb33d3323535d755ba43cb59943ff1337a47c8cb08c1). That
+guide correction added 14 Vitest and one browser case to already-owned files.
+The newer owner UI change at 7da7b6e adds two Vitest and five browser cases in
+the same files; rebase and refresh the final inventory before M5.
+
+### M2 execution checkpoint — 2026-10-11
+
+Root cause: the existing quick/focused/full runner had no product-module
+selector, so developers had to manually reconstruct cross-suite selectors and
+could omit an owner or its parameterized file cases. M1 established the reviewed
+owner and dependency contract. M2 adds an explicit module planner and runner in
+scripts/testing/module_selection.py without changing existing tier behavior.
+The module command supports contract (pytest and Vitest), browser (Playwright),
+and complete (all nonempty module suites plus gates declared in the manifest).
+It deduplicates multi-module selectors, explains shared dependencies and
+omitted gates, refuses unknown/empty/ambient-filtered selections, and runs the
+full native ownership guard before any selected test body. The `--show` plan
+executes no checks. verification-tooling owns declared lock, static bundle
+build/parity, browser-allocation and wheel/package gates at complete depth.
+
+The CLI guidance and gate contract are recorded in AGENTS.md,
+docs/development.md, README.md, docs/verification/testing-module-ownership.md
+and ADR 0157. Focused `verify.py` selectors for the runner and ownership guard
+passed 26 cases. Native inventory guard passed with 1,506 pytest / 156 files,
+1,072 Vitest / 133 files and 280 Playwright / 85 files; its hashes were
+558d7528a855e49581582c81bc3f41bb4f5c3559fb7cf61987d30745909cb6aa,
+11b554c8714fd1842dc4f14ef234c78f3f1f7f084b940139e5ed3586a9c70278 and
+4d0020410503c0d1bedcfb33d3323535d755ba43cb59943ff1337a47c8cb08c1. Quick
+passed in 11.046s with all 1,072 Vitest cases and both TypeScript checks. A real
+shared-api-security contract selection passed all 49 pytest and 41 Vitest cases
+in 15.782s including full-map preflight and app typecheck. Ruff and diff checks
+passed. The local inventory predates rebase onto UI commit 7da7b6e; refresh the
+hashes after rebasing. M3–M5, independent review and final qualification remain.

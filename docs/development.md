@@ -297,7 +297,7 @@ The operator and maintainer entry point is the
 ## Local verification tiers
 
 Install the locked development and frontend dependencies once, then use
-`scripts/verify.py` for three explicit local paths:
+`scripts/verify.py` for quick, focused, module, and full local verification:
 
 ```sh
 uv sync --all-groups --frozen
@@ -327,6 +327,37 @@ uv run --locked --no-sync python scripts/verify.py focused \
   --vitest tests/app-state-opening.test.ts \
   --playwright e2e/creator-confirmation.spec.ts
 ```
+
+Use `module` when the changed contract has a reviewed owner in
+`scripts/testing/module-ownership.json`. `contract` runs that module's pytest
+and Vitest files, `browser` runs its Playwright specs, and `complete` runs all
+nonempty native suites for the selected modules. Repeating `--module` builds a
+deduplicated union. The complete depth also runs shared gates explicitly
+assigned to those owners in the same manifest; verification-tooling currently
+owns the lock check, generated-bundle parity, browser-allocation guard and
+wheel/package smoke. Frontend type contracts run for selected TypeScript suites.
+
+Every module run first checks the complete native case inventories and their
+exact owner union without running test bodies. Module selectors use whole test
+files so the native runners retain every collected parameter row. Ambient
+pytest, Vitest and browser filters are refused. `--show` (`--plan`) prints the
+owner rationale, selected files, shared dependencies, included gates, omitted
+checks and exact commands without launching checks.
+
+```sh
+uv run --locked --no-sync python scripts/verify.py module \
+  --module graph --depth contract
+uv run --locked --no-sync python scripts/verify.py module \
+  --module graph --module story-authoring --depth browser --show
+uv run --locked --no-sync python scripts/verify.py module \
+  --module verification-tooling --depth complete
+```
+
+Choose `contract` for affected backend/frontend unit and integration contracts,
+`browser` for affected user journeys, and `complete` when all of one or more
+owners' test suites and their declared shared gates should run. A module result
+is scoped development evidence. It does not qualify the full local release
+candidate or replace required unfiltered hosted CI.
 
 `full` runs the complete Python, frontend, archived-reader and unfiltered
 browser suites; application type contracts; scoped lint and lock checks; the
