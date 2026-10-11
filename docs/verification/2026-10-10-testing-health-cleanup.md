@@ -1294,3 +1294,43 @@ color-environment notices; none caused a gate failure. The separately rerun
 verification-tooling complete profile and native ownership preflight remain
 documented above. This is local software qualification, not product or creative
 acceptance. The unfiltered hosted same-SHA qualification is still outstanding.
+
+#### Reconciliation to Script-page UI baseline `ea20d6b` — 2026-10-11
+
+Main advanced to `ea20d6ba07ee25b02be273d0b50bd43fc959405a`. The owner receipt
+classifies its 16-file change as frontend, documentation and generated static
+assets, with no backend/API, persistence, admission, auth, provider/prompt,
+dependency, build-tool or package-contract changes. The source owner's exact
+baseline evidence is 1,181 Vitest cases, both type checks, eight unique
+affected browser cases across recorded scoped runs, desktop inspection, and two
+deterministic seven-file builds with tree SHA-256
+`e031d50cfbb8ad7ed8a53a20a464ad954ce91843e1ca9059484c5bb1bb3f0efc`.
+
+The M0–M5 candidate includes this baseline. The ownership map assigns
+`recommended-script-workflow.test.ts`,
+`script-workflow-observation.test.ts`, and
+`recommended-script-workflow.spec.ts` to `story-authoring`; its existing
+workflow and F5A fixture dependencies already cover these consumers. The
+existing four-shard allocation was retained, with the new whole spec assigned
+to its lightest shard. Two consecutive native ownership scans matched at 1,518
+pytest / 157 files (SHA-256
+`b7f5a75e9b124c688a9bd93c389356b4af1c7ae5dc05b8e15511f7cb4798d9c6`), 1,181
+Vitest / 141 files (SHA-256
+`138b616d7f4594eaaf5b134ec4737f7aafc554e78419dce9db4ae2640c2188a0`), and 287
+Playwright / 86 files (SHA-256
+`ae7ba96e5a0bd722a2ccc402e1100aad2d5c151f0ee625930627e48bb5960487`). The
+unfiltered shard guard passed with 83/63/70/71 cases and zero gaps or overlap.
+
+The verification-tooling complete profile passed in 33.565 seconds with 65
+pytest, 2 Vitest and 6 Playwright cases; ownership preflight, both type checks,
+locked dependencies, deterministic build/parity, four-shard coverage, wheel
+build and installed-wheel smoke passed. The build emitted the existing
+large-chunk advisory and pytest emitted the existing Starlette deprecation
+warning.
+
+Per the source owner's instruction, the exact M0–M5 local full result on
+`d53a99f` is reused for unchanged backend/Python inputs; no duplicate full run
+was started solely for this frontend change. The exact unfiltered hosted run
+38113104300 is on M0–M5 SHA `5d007935e8657bba02ff72e37bdc31d22fe3ea41`, which
+does not contain `ea20d6b`; its status and scope must be recorded separately and
+must not be described as hosted qualification of this updated UI baseline.

@@ -36,6 +36,7 @@
     "production-presentation.spec.ts",
     "reference-gallery-layout.spec.ts",
     "navigation-shell.spec.ts",
+    "recommended-script-workflow.spec.ts",
     "missing-media-layout.spec.ts",
     "branch-mutation-remount.spec.ts",
     "cast-reference-revision.spec.ts",

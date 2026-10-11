@@ -12,6 +12,7 @@ import { StageGuide } from "../components/StageGuide";
 import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
 import { sectionEpisode } from "../features/graph/scriptProjection";
 import { ScriptEpisodeView } from "../features/graph/ScriptEpisodeView";
+import { useReportScriptWorkflowRead } from "../app/workspace/ScriptWorkflowReadContext";
 
 type ProjectSession = { projectId: string; epoch: number };
 
@@ -50,6 +51,7 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
     };
   }, [projectId, load]);
   const { checking, failed, recheck } = useReviewActivation({ projectId, active, refreshToken, load });
+  useReportScriptWorkflowRead(projectId, active, { status: checking ? "loading" : failed ? "failed" : "ready", state, busy, dirty: draftDirty.current });
   const readOnly = ownerReadOnly || checking || failed;
   const acceptedHead = state?.acceptedScript;
   const reviewDraft = useReviewEditorDraft(projectId, "script", acceptedHead ? `script:${acceptedHead.revision}:${acceptedHead.contentHash}:${state?.status}` : "", text => {

@@ -717,3 +717,19 @@ The exact local full gate passed on `d53a99f` with exit 0 in 706.390 seconds:
 with build parity, four-shard coverage, and wheel smoke. The hosted unfiltered
 same-SHA run remains outstanding; this full gate is local software
 qualification, not product acceptance.
+
+### Reconciliation to the Script-page UI baseline — 2026-10-11
+
+Main advanced to `ea20d6ba07ee25b02be273d0b50bd43fc959405a`, a bounded
+frontend/docs/generated-asset change with no backend, API, persistence,
+dependency or package-contract changes. The owner supplied exact-source quick,
+type, eight affected browser-case and deterministic-build evidence. The
+M0–M5 candidate now includes that baseline; two native ownership scans match
+at 1,518 pytest / 157 files, 1,181 Vitest / 141 files and 287 Playwright / 86
+files. The four-shard guard passes at 83/63/70/71, and the refreshed
+verification-tooling complete profile passes. Per the owner instruction, the
+full local qualification is reused for unchanged backend/Python inputs and no
+duplicate full run is started solely for this frontend change. Hosted run
+38113104300 is being consumed on the preceding M0–M5 revision `5d007935`; it
+does not include the new UI commit, so it cannot be reported as hosted
+qualification of `ea20d6b`.
