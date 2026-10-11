@@ -21,9 +21,10 @@ test("shows applied graph status and the next production control without hiding 
       await viewSwitch.getByRole("button", { name: `${view}工作台`, exact: true }).click();
       await expect(guide).toContainText(`当前 · 4/6 剧情图编辑 · ${view}视图`);
       await expect(guide.getByRole("status")).toHaveText("当前状态：当前图内容已应用到故事路线。");
-      await expect(guide).toContainText(`选择「${opening.title}」，打开「制作」标签。`);
-      await expect(guide).toContainText("尚无当前可用剧本时，点击左侧「剧本」");
-      await expect(guide).toContainText("点击「分镜与投产整包评审」（第5/6步「制作与审阅」）");
+      await expect(guide).toContainText(`选择「${opening.title}」，打开「制作」标签，`);
+      await expect(guide).toContainText("点击该节点镜头下的「镜头审核与媒体」");
+      await expect(guide).toContainText("不代表影片已完成（第5/6步「制作与审阅」）");
+      await expect(guide).not.toContainText("尚无当前可用剧本时");
       await expect(page.getByRole("link", { name: "剧本", exact: true })).toBeVisible();
       await expect(page.getByLabel("章节标题", { exact: true })).toHaveValue(ending.title);
       await expect(guide.getByRole("button", { name: "返回创作工作台", exact: true })).toHaveCount(view === "专业" ? 1 : 0);
@@ -78,6 +79,16 @@ test("shows applied graph status and the next production control without hiding 
   expect(after.acceptedSectionMap).toEqual(source.acceptedSectionMap);
   expect(after.graphAdmission).toEqual(source.graphAdmission);
   expect((await json(request.get(`${base}/runs`))).runs).toEqual([]);
+  const pendingId = execFileSync("uv", ["run", "python", "-m", "frontend.e2e.fixtures.bridge_handoff_project", "--outputs", workbench.outputsRoot, "--application", workbench.applicationDataRoot, "--pending"], { cwd: path.resolve(".."), encoding: "utf8" }).trim();
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${pendingId}&stage=creator`);
+  await expect(guide).toContainText("投产提案待审阅与确认；点击「分镜与投产整包评审」");
+  await expect(guide).not.toContainText("镜头审核与媒体");
+  await page.getByRole("tab", { name: "制作", exact: true }).click();
+  await page.setViewportSize({ width: 1280, height: 460 });
+  await page.screenshot({ path: info.outputPath("pending-production-1280x460.png") });
+  await page.getByTestId("creator-production").getByRole("button", { name: "分镜与投产整包评审", exact: true }).click();
+  await expect(page).toHaveURL(/stage=source.*#storyboard-review$/);
+  await expect(page.getByTestId("production-bridge")).toBeVisible();
 });
 
 test("names the real next branch control through delivery, import, confirmation and route application", async ({ page, request, workbench }, info) => {
@@ -184,9 +195,36 @@ test("names the real next branch control through delivery, import, confirmation 
   await expect(guide).toContainText("点击「保存修改」");
   await expect(guide.getByRole("button", { name: "进入创作工作台", exact: true })).toHaveCount(0);
   await title.fill(value);
+  let scriptReadMode: "held" | "failed" | "native" = "held", productionReads = 0;
+  // ScriptPanel remains a separate review owner and reads on its own activation.
+  // The bridge read isolates the shared guide/production observer's requests.
+  await page.route(`**/api/v2/projects/${id}/production-bridge`, async route => {
+    if (route.request().method() === "GET") productionReads++;
+    await route.continue();
+  });
+  let releaseScript!: () => void;
+  const heldScript = new Promise<void>(resolve => { releaseScript = resolve; });
+  await page.route(`**/api/v2/projects/${id}/script`, async route => {
+    if (scriptReadMode === "held") await heldScript;
+    if (scriptReadMode === "failed") await route.fulfill({ status: 503, json: { detail: "Temporary script read failure" } });
+    else await route.continue();
+  });
   await guide.getByRole("button", { name: "进入创作工作台", exact: true }).click();
   await expect(page).toHaveURL(/stage=creator/);
   await expect(guide).toContainText("当前 · 4/6 剧情图编辑 · 创作视图");
+  await expect(guide).toContainText("正在核对剧本、分镜与投产状态");
+  await expect(guide).not.toContainText("剧本未确认");
+  scriptReadMode = "failed";
+  releaseScript();
+  await expect(guide).toContainText("制作来源读取失败，状态暂不能核实");
+  await expect(guide).toContainText("点击「重新核对制作来源」");
+  await expect(guide).not.toContainText("剧本未确认");
+  await page.getByRole("tab", { name: "制作", exact: true }).click();
+  scriptReadMode = "native";
+  await page.getByTestId("creator-production").getByRole("button", { name: "重新核对制作来源", exact: true }).click();
+  await expect(guide).toContainText("剧本未确认。点击左侧「剧本」，进入剧本准备与审阅");
+  expect((await json(request.get(`${base}/script`))).acceptedScript).toBeNull();
+  await page.getByRole("tab", { name: "故事", exact: true }).click();
   const beforeViews = await json(request.get(`${base}/source-outline`));
   const ending = topology.nodes.find(node => node.kind === "ending")!;
   const endingTitle = `灯的剧情 ${topology.nodes.findIndex(node => node.id === ending.id) + 1}`;
@@ -194,6 +232,18 @@ test("names the real next branch control through delivery, import, confirmation 
   await selectedNode.click();
   const graphTitle = page.getByLabel("章节标题", { exact: true });
   await expect(graphTitle).toHaveValue(endingTitle);
+  for (const size of [{ width: 1280, height: 768 }, { width: 1280, height: 460 }, { width: 1700, height: 900 }]) {
+    await page.setViewportSize(size);
+    for (const view of ["专业", "创作"] as const) {
+      await viewSwitch.getByRole("button", { name: `${view}工作台`, exact: true }).click();
+      await expect(guide).toContainText("剧本未确认。点击左侧「剧本」，进入剧本准备与审阅");
+      await expect(guide).not.toContainText("尚无当前可用剧本时");
+      await expect(guide.getByRole("status")).toContainText("当前图内容已应用到故事路线");
+      await expect(page.getByRole("link", { name: "剧本", exact: true })).toBeVisible();
+      await page.screenshot({ path: info.outputPath(`missing-script-${view === "专业" ? "professional" : "creator"}-${size.width}x${size.height}.png`) });
+    }
+  }
+  expect(productionReads).toBe(2);
   await graphTitle.fill(`${endingTitle} 视图草稿`);
 
   for (const size of [{ width: 1280, height: 768 }, { width: 1280, height: 460 }, { width: 1700, height: 900 }]) {
@@ -216,6 +266,9 @@ test("names the real next branch control through delivery, import, confirmation 
   }
   expect(await json(request.get(`${base}/source-outline`))).toEqual(beforeViews);
   await graphTitle.fill(endingTitle);
+  await page.getByRole("link", { name: "剧本", exact: true }).click();
+  await expect(page).toHaveURL(/stage=source.*#script$/);
+  await expect(page.getByTestId("script-review")).toBeVisible();
 });
 
 test("keeps the recommended workflow visible on supported desktops and retains draft navigation protection", async ({ page, workbench }, info) => {

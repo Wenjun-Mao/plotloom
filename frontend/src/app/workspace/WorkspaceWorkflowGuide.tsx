@@ -1,17 +1,19 @@
 import { useGraphWorkbench } from "../../features/graph/GraphWorkbenchContext";
+import { useWorkspaceProduction } from "../../features/graph/WorkspaceProductionContext";
 import { branchDraftIsDirty, completeMap } from "../../pages/sourceStructureModel";
 import { RecommendedWorkflowGuide } from "./RecommendedWorkflowGuide";
 import { buildRecommendedWorkflow, type RecommendedWorkflowInput, type RecommendedWorkflowRoute } from "./recommendedWorkflow";
 
 /** Observe the same graph draft as the branch editor; never infer import from delivery. */
 export function WorkspaceWorkflowGuide({ input, onNavigate }: {
-  input: Omit<RecommendedWorkflowInput, "branchDraft">;
+  input: Omit<RecommendedWorkflowInput, "branchDraft" | "productionRead">;
   onNavigate: (route: RecommendedWorkflowRoute) => void;
 }) {
   const owner = useGraphWorkbench();
+  const production = useWorkspaceProduction();
   const mapping = owner.draft?.mapping ?? null;
   const pendingFields = Boolean(owner.draft && Object.keys(owner.draft.fieldBuffers).length);
-  const model = buildRecommendedWorkflow({ ...input, branchDraft: {
+  const model = buildRecommendedWorkflow({ ...input, productionRead: production.data, branchDraft: {
     status: owner.readStatus,
     dirty: branchDraftIsDirty(mapping, input.sourceReview?.acceptedSectionMap ?? null, Boolean(owner.state?.draft))
       || pendingFields,

@@ -4,6 +4,7 @@ import type { AcceptedSectionMapRevision, BranchTaskState, SectionMap, ServerSta
 import { branchSuggestionBasis, buildRecommendedWorkflow, type RecommendedWorkflowInput } from "../src/app/workspace/recommendedWorkflow";
 import { creativeWorkflowStepReference, creativeWorkflowSteps } from "../src/creative-workflow-steps";
 import { graphDraftFixture } from "./graph-workbench-fixture";
+import { workflowProductionFixture } from "./workflow-production-fixture";
 
 const project = { ...demoProject, id: "project", revision: 4 } as WorkspaceProject;
 const base: RecommendedWorkflowInput = {
@@ -11,6 +12,7 @@ const base: RecommendedWorkflowInput = {
   branchTaskStatus: "idle", branchTask: null, workspaceAvailable: true, projectPending: false, sourceDraftDirty: false,
   branchTaskBusy: false,
   branchTaskBlocked: false,
+  productionRead: undefined,
   branchDraft: { status: "ready", dirty: false, complete: false, stale: false, busy: false, blocked: false },
   readOnly: false, actionDisabled: false, playHref: "?project=project&view=play",
 };
@@ -37,11 +39,12 @@ function appliedGraphInput(activePage: "creator" | "graph" = "creator"): Recomme
   const mapping = graphDraftFixture().mapping as SectionMap;
   mapping.sections[0].title = "离开前，最后点亮";
   mapping.sections.reverse(); // The guide must follow the start node, not section storage order.
-  return { ...base, activePage, branchDraft: { ...base.branchDraft, complete: true },
+  const input = { ...base, activePage, branchDraft: { ...base.branchDraft, complete: true },
     sourceReview: acceptedReview({ sectionMapStatus: "current",
       acceptedSectionMap: { revision: 5, sourceRevision: 2, outlineRevision: 3, outlineContentHash: "outline-hash", contentHash: "map-hash", mapping } as AcceptedSectionMapRevision,
       graphAdmission: { status: "current", sourceRevision: 2, outlineRevision: 3, outlineContentHash: "outline-hash", sectionMapRevision: 5, sectionMapContentHash: "map-hash", graphRevision: 8, graphContentHash: "graph-hash" } as never }),
     stageHeads: { story_graph: head("story_graph", 8, "graph-hash") } };
+  return { ...input, productionRead: workflowProductionFixture(input.sourceReview) };
 }
 
 describe("recommended creative workflow", () => {
@@ -190,8 +193,8 @@ describe("recommended creative workflow", () => {
     expect(model.currentStep).toBe("creator");
     expect(model.statusText).toBe("当前图内容已应用到故事路线。");
     expect(model.nextText).toContain("选择「离开前，最后点亮」，打开「制作」标签");
-    expect(model.nextText).toContain("尚无当前可用剧本时，点击左侧「剧本」");
-    expect(model.nextText).toContain("剧本与分镜确认后，返回「创作工作台」并打开「制作」，点击「分镜与投产整包评审」");
+    expect(model.nextText).toContain("剧本与分镜已确认，尚未建立当前制作内容");
+    expect(model.nextText).toContain("点击「分镜与投产整包评审」");
     expect(model.nextText).toContain("第5/6步「制作与审阅」");
     expect(model.nextText).not.toContain("继续第5/6步");
     expect(model.nextText.includes("点击「返回创作工作台」")).toBe(activePage === "graph");
@@ -204,8 +207,10 @@ describe("recommended creative workflow", () => {
     const withStages = buildRecommendedWorkflow({ ...input, stageHeads: { ...input.stageHeads,
       scene_beats: head("scene_beats", 2, "scenes"), storyboard: head("storyboard", 3, "shots") } })!;
     expect(withStages.nextText).toBe(model.nextText);
-    expect(model.nextText).toContain("尚无当前可用剧本时");
-    expect(model.nextText).toContain("剧本与分镜确认后");
+    expect(model.nextText).toContain("剧本与分镜已确认");
+    const unknown = buildRecommendedWorkflow({ ...input, productionRead: undefined })!;
+    expect(unknown.nextText).toContain("正在核对剧本、分镜与投产状态");
+    expect(unknown.nextText).not.toContain("剧本未确认");
   });
 
   it.each([

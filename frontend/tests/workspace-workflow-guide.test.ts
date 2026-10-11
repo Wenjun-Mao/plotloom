@@ -5,8 +5,10 @@ import { demoProject } from "../src/demo";
 import type { SectionMap, SourceOutlineReviewState, StageHead } from "../src/types";
 import { GraphWorkbenchContext } from "../src/features/graph/GraphWorkbenchContext";
 import { WorkspaceWorkflowGuide } from "../src/app/workspace/WorkspaceWorkflowGuide";
+import { WorkspaceProductionContext } from "../src/features/graph/WorkspaceProductionContext";
 import type { RecommendedWorkflowInput } from "../src/app/workspace/recommendedWorkflow";
 import { graphControllerFixture, graphDraftFixture } from "./graph-workbench-fixture";
+import { workflowProductionFixture } from "./workflow-production-fixture";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>;
@@ -20,7 +22,7 @@ const source: SourceOutlineReviewState = {
   acceptedSectionMap: { revision: 1, sourceRevision: 1, outlineRevision: 1, outlineContentHash: "outline", contentHash: "map", mapping: structuredClone(draft.mapping) as SectionMap } as never,
   graphAdmission: { status: "current", sourceRevision: 1, outlineRevision: 1, outlineContentHash: "outline", sectionMapRevision: 1, sectionMapContentHash: "map", graphRevision: 1, graphContentHash: "graph" } as never,
 };
-const input: Omit<RecommendedWorkflowInput, "branchDraft"> = {
+const input: Omit<RecommendedWorkflowInput, "branchDraft" | "productionRead"> = {
   activePage: "creator", activeHash: "", project: { ...demoProject, id: "project", revision: 1 },
   stageHeads: { story_graph: { revision: 1, status: "ready", contentHash: "graph" } as StageHead },
   sourceReviewStatus: "ready", sourceReview: source, branchTaskStatus: "idle", branchTask: null,
@@ -34,12 +36,14 @@ it.each(["matching", "changed mapping", "pending field buffer", "failed read"])(
   if (state === "pending field buffer") nextDraft.fieldBuffers["edge-effects"] = "invalid unsent value";
   const owner = graphControllerFixture({ draft: nextDraft, readStatus: state === "failed read" ? "failed" : "ready",
     state: { bindingHash: draft.bindingHash, baseCanonicalRevision: 1, draft: null, initialPayload: draft, readOnlyReason: null } });
-  await act(async () => root.render(createElement(GraphWorkbenchContext.Provider, { value: owner }, createElement(WorkspaceWorkflowGuide, { input, onNavigate: vi.fn() }))));
+  await act(async () => root.render(createElement(GraphWorkbenchContext.Provider, { value: owner },
+    createElement(WorkspaceProductionContext.Provider, { value: { data: workflowProductionFixture(source), retry: vi.fn() } },
+      createElement(WorkspaceWorkflowGuide, { input, onNavigate: vi.fn() })))));
   const status = host.querySelector('[role="status"]');
   if (state === "matching") {
     expect(status?.textContent).toBe("当前状态：当前图内容已应用到故事路线。");
     expect(host.textContent).toContain("选择「opening」，打开「制作」标签");
-    expect(host.textContent).toContain("尚无当前可用剧本时，点击左侧「剧本」");
+    expect(host.textContent).toContain("剧本与分镜已确认");
     expect(host.textContent).toContain("点击「分镜与投产整包评审」（第5/6步「制作与审阅」）");
   } else {
     expect(status).toBeNull();

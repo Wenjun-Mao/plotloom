@@ -153,21 +153,34 @@ accepted map. Pending field buffers are unconfirmed edits: name the pending
 input and its existing blur-to-submit action rather than asking for unrelated
 node/choice/connection edits. Dirty/incomplete,
 stale, failed, busy and read-only states take precedence; confirmation without
-application points to Apply. The guide observes existing owners, adds no reads
-or persisted state, and performs no selection, approval or production mutation.
+application points to Apply. The guide observes existing owners, adds no
+persisted state, and performs no selection, approval or production mutation.
 The step index remains the current graph-view activity, not a completion ratio.
 Guard status/instruction transitions after native confirmation/application and
 both-view desktop visibility as well as the pure state projection.
 
-The step name is orientation, not a clickable control. After the node/tab
-entry, name the owning controls: when the Production panel reports no current
-confirmed script, click the left-side `剧本` entry; after script and storyboard
-confirmation, return to `创作工作台`, reopen `制作`, and click
-`分镜与投产整包评审`. Keep these prerequisites
-conditional because graph/source and canonical stage-head reads do not prove
-script/storyboard review acceptance. This is a stable handoff instruction;
-switching the small Story/Production tab need not change the guide. Do not add
-tab tracking, infer approval, or introduce another production read owner.
+The step name is orientation, not a clickable control. The October11 owner
+correction supersedes conditional prerequisite advice: the guide must observe
+actual Script and source-storyboard accepted review state before naming the next
+control. Lift the existing Creator production read into one workspace observer
+shared by both graph views, the guide and the Creator inspector. Read unchanged
+Script, source-storyboard, canonical storyboard-review and bridge APIs; keep
+all writes with their existing owners. Do not infer acceptance from stage heads.
+
+Missing, pending, reopened and retained review states name their owning sidebar
+entry and state-specific review task. Current Script and source-storyboard
+identities must match before directing the author to the whole-package review;
+installed mirror identities must also match before naming `镜头审核与媒体`.
+Accepted review currentness owns the authored-route versus canonical-graph
+distinction: production installation can rebind canonical graph/Bible heads
+without changing authored content. Do not reject current accepted reviews merely
+because their frozen canonical graph identity predates that rebind.
+Loading, failed or inconsistent reads explicitly remain unknown and name the
+existing Production retry control. Key reads by project/revisions/binding and
+activation, suppress late responses, and recheck on return from review pages.
+Story/Production tab and graph-view switching share that read and do not trigger
+another request or change the verified advice. This is advisory observation,
+not tab tracking, approval, generation or a new admission gate.
 
 ## Retained Source display and guide priority (2026-10-10)
 

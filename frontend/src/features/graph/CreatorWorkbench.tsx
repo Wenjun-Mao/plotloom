@@ -16,7 +16,7 @@ import { CreatorEditDialog, type CreatorEdit } from "./CreatorEditDialog";
 import { creatorLayout, CARD_HEIGHT } from "./creatorLayout";
 import { creatorStructure } from "./creatorStructure";
 import { useCreatorGeometry } from "./useCreatorGeometry";
-import { useCreatorProduction } from "./useCreatorProduction";
+import { useWorkspaceProduction } from "./WorkspaceProductionContext";
 import { CreatorProductionInspector } from "./CreatorProductionInspector";
 import { creatorAdmission } from "./creatorAdmission";
 import { workspaceViewportTop } from "../../app/workspace/workspaceViewport";
@@ -35,7 +35,7 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onSourceRetry, 
   const owner = useGraphWorkbench(), draft = owner.draft!;
   const [action, setAction] = useState<CreatorEdit | null>(null), [tab, setTab] = useState<"story" | "production">("story");
   const [selectedY, setSelectedY] = useState<number>();
-  const production = useCreatorProduction(project, owner.state?.bindingHash, tab === "production");
+  const production = useWorkspaceProduction();
   const admission = creatorAdmission(draft, source, owner.state!.baseCanonicalRevision, production.data?.bridge);
   const geometry = useCreatorGeometry(project.id!, selectedY);
   const revealedSelection = useRef<string | null>(null);

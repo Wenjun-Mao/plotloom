@@ -4,6 +4,7 @@ import { sourceWorkflowTarget } from "./sourceWorkflowNavigation";
 import type { WorkspaceSourceReviewStatus } from "./useWorkspaceSourceReview";
 import { creativeWorkflowSteps, type CreativeWorkflowStepId } from "../../creative-workflow-steps";
 import { graphWorkflowRecommendation } from "./recommendedGraphWorkflow";
+import type { ProductionRead } from "../../features/graph/useCreatorProduction";
 
 export type RecommendedWorkflowStepId = CreativeWorkflowStepId;
 export type RecommendedWorkflowRoute = { stage: PageId; hash?: string };
@@ -26,6 +27,7 @@ export interface RecommendedWorkflowInput {
   branchTaskBusy: boolean;
   branchTaskBlocked: boolean;
   branchDraft: { status: "loading" | "ready" | "failed"; dirty: boolean; complete: boolean; pendingFields?: boolean; stale: boolean; busy: boolean; blocked: boolean };
+  productionRead: ProductionRead | undefined;
   workspaceAvailable: boolean;
   projectPending: boolean;
   sourceDraftDirty: boolean;

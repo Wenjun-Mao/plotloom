@@ -2,6 +2,9 @@
 
 The 2026-10-11 concrete production-control refinement and its local qualification
 are recorded in [the follow-up receipt](../verification/2026-10-11-concrete-production-hints.md).
+The owner's subsequent state-based correction replaces conditional prerequisites
+with verified review/production reads; scope and qualification are recorded in
+[the state-based hint receipt](../verification/2026-10-11-state-based-production-hints.md).
 
 ## Approved browser release-blocker repair (2026-10-10)
 

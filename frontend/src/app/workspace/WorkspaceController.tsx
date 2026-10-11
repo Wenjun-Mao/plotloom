@@ -10,6 +10,7 @@ import { StoryBiblePage } from "../../pages/StoryBiblePage";
 import { ProfessionalGraphWorkbench } from "../../features/graph/ProfessionalGraphWorkbench";
 import { CreatorWorkbench } from "../../features/graph/CreatorWorkbench";
 import { GraphWorkbenchProvider } from "../../features/graph/GraphWorkbenchProvider";
+import { WorkspaceProductionProvider } from "../../features/graph/WorkspaceProductionContext";
 import { SceneBeatsPage } from "../../pages/SceneBeatsPage";
 import { StoryboardPage } from "../../pages/StoryboardPage";
 import { TracePage } from "../../pages/TracePage";
@@ -275,7 +276,7 @@ export default function WorkspaceController() {
     sourceReview.value?.outlineStatus === "accepted", JSON.stringify(project.brief));
   const branchTaskCurrent = branchTaskRead.projectId === project.id && branchTaskRead.basis === branchBasis;
   const sourceDraftDirty = sourceDraftState.projectId === project.id && sourceDraftState.dirty;
-  const workflowGuide: Omit<RecommendedWorkflowInput, "branchDraft"> = {
+  const workflowGuide: Omit<RecommendedWorkflowInput, "branchDraft" | "productionRead"> = {
     activePage,
     activeHash: session.route.hash,
     project,
@@ -343,7 +344,7 @@ export default function WorkspaceController() {
     serverDrafts={session.serverDrafts} remember={payload => authoring.rememberDraft("story_graph", payload)} flush={() => authoring.flushAuthoringDraft("story_graph")}
     revisionConflict={record => authoring.setDraftConflict({ scope: "story_graph", record, workspace: project, serverReloaded: false })}
     clearDraftWorkflow={authoring.clearDraftWorkflow} canonicalChanged={async () => { if (project.id) await loadProject(project.id, session.refreshCurrentRoute()); }}>
-    <BranchOperationContext.Provider value={branchOperations}><ReviewDraftContext.Provider value={{ store: reviewDraftStore, quiescence: mediaDraftQuiescence, projectId: project.id || "", revision: project.revision, enabled: durableDraftsEnabled }}><div className="app-shell">
+    <WorkspaceProductionProvider project={project} active={workflowGuide.workspaceAvailable && (activePage === "creator" || activePage === "graph")}><BranchOperationContext.Provider value={branchOperations}><ReviewDraftContext.Provider value={{ store: reviewDraftStore, quiescence: mediaDraftQuiescence, projectId: project.id || "", revision: project.revision, enabled: durableDraftsEnabled }}><div className="app-shell">
     <a className="skip-link" href="#workspace-main">跳到工作区</a>
     <aside className="sidebar">
       <button type="button" className="brand brand-home" aria-label="返回首页" title="返回首页，不会关闭项目" disabled={projectClosing || projectSnapshotting || workspaceHydrating || authoring.projectSaving} onClick={() => workspaceNavigation.requestNavigation({ project: "", stage: "brief", home: true })}><span className="brand-mark" aria-hidden="true">PL</span><span className="brand-home-copy"><strong>Plotloom<span className="brand-home-label" aria-hidden="true">首页</span></strong><small>叙织 · PIPELINE WORKBENCH</small></span></button>
@@ -387,5 +388,5 @@ export default function WorkspaceController() {
       onRetry={() => { void workspaceNavigation.resolvePendingNavigation("cancel"); void loadProject(session.unsafeDraft!.record.projectId); }} />}
     {session.unsafeDraft?.dismissed && <div className="notice"><span>草稿已保留，核实项目后才能恢复。</span><Button onClick={() => session.setUnsafeDraft({ ...session.unsafeDraft!, dismissed: false })}>查看保留草稿</Button></div>}
     {lifecycle.confirmation}
-  </div></ReviewDraftContext.Provider></BranchOperationContext.Provider></GraphWorkbenchProvider>;
+  </div></ReviewDraftContext.Provider></BranchOperationContext.Provider></WorkspaceProductionProvider></GraphWorkbenchProvider>;
 }

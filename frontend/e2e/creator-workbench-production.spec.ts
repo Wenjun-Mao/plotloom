@@ -43,7 +43,8 @@ for (const view of ["创作", "专业"] as const) {
     await viewSwitch.getByRole("button", { name: "创作工作台", exact: true }).click();
     await expect(page.getByRole("region", { name: "整张剧情图 · 保存与应用", exact: true })).toContainText("当前图内容已应用到故事路线");
     await expect(guide.getByRole("status")).toContainText("当前图内容已应用到故事路线");
-    await expect(guide).toContainText("打开「制作」标签，继续第5/6步「制作与审阅」");
+    await expect(guide).toContainText("点击左侧「剧本」");
+    await expect(guide).toContainText("保留的已确认剧本不能用于当前制作");
     await expect(page.getByRole("button", { name: "应用到故事路线", exact: true })).toBeDisabled();
     expect((await json(request.get(`${base}/runs`))).runs).toEqual([]);
   });
