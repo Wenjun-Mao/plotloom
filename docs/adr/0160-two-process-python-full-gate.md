@@ -1,6 +1,7 @@
 # ADR 0160 — Two-process Python full gate
 
-Status: proposed, pending a quiet-window performance comparison and final M5 qualification.
+Status: proposed, pending the exact-runner local full gate and unfiltered
+hosted same-SHA qualification.
 
 ## Context
 
@@ -18,6 +19,15 @@ temporary roots, project locks and spawned-process files are case-local, test
 environment changes remain process-local, and the only socket listeners bind
 ephemeral ports. The production style-contract and schema caches are
 process-local. No test reads or writes the shared pytest cache API.
+
+A quiet matched comparison on the Apple M5 Pro used the M0–M5 candidate
+rebased to base 4566ec7 and ran the same 1,516 native cases. Serial pytest passed in 390.050 seconds of external wall
+time (364.08 seconds reported by pytest). The two-process runner passed 758
+cases in each worker, split across 78 and 79 files with separate basetemps, in
+240.026 seconds external wall time (222.738 seconds in the runner summary).
+This single pair reduced external wall time by 38.5%; it is not a repeated
+median. The raw serial and worker logs are retained under the task's temporary
+M5 measurement directory.
 
 ## Decision
 
@@ -47,12 +57,13 @@ needed for the bounded two-process plan and would add a dependency. A checked-in
 static shard list would need updates whenever cases move or are added; native
 collection allows the assignment to adapt while retaining exact coverage.
 
-The process split can contend for CPU and file-system bandwidth, so speedup is
-not assumed. The existing timing samples are exploratory; M5 must repeat a
-matched serial and two-process comparison after the manager's main-thread work
-is quiet. If the quiet comparison fails to show material improvement or
-repeated execution exposes isolation defects, restore the serial full step and
-reassess the local runtime target before broadening concurrency.
+The measured comparison shows a material improvement for this host and
+configuration, while representing one pair rather than a timing distribution.
+Keep the change limited to the local full gate and two workers. The exact-runner
+local full gate and unfiltered hosted same-SHA qualification remain required.
+If final qualification fails or later repeated execution exposes isolation
+defects, restore the serial full step and reassess the local runtime target
+before broadening concurrency.
 
 Detached worker sessions prevent a signal sent only to the coordinator from
 reaching its children. The coordinator therefore records SIGTERM and completes

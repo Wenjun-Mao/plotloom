@@ -35,9 +35,10 @@ before accepting the change.
 
 Keeping two groups avoids additional runner concurrency but preserves the
 observed long browser critical path and leaves the measured imbalance
-unaddressed. Python parallelism was not demonstrated to be the bottleneck and
-would require a separate isolation probe. Splitting files or cases would
-increase assignment churn and weaken within-spec ordering.
+unaddressed. Python full-suite parallelism is a separate local-gate decision
+recorded in ADR 0160; it shortens the Python step and does not replace balancing
+the hosted browser step. Splitting files or cases would increase assignment
+churn and weaken within-spec ordering.
 
 The exact local manifest guard proves coverage and disjointness, not hosted
 runtime or runner availability. Four runners use more concurrent standard
