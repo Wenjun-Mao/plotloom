@@ -81,7 +81,7 @@ def test_worker_command_keeps_results_isolated_and_durations_visible():
 def test_runner_refuses_ambient_pytest_selection_before_collecting(capsys):
     with patch.object(
         RUNNER.subprocess,
-        "run",
+        "Popen",
         side_effect=AssertionError("must refuse before collection"),
     ):
         assert (
@@ -99,13 +99,6 @@ def test_runner_reports_each_worker_and_fails_if_either_worker_fails(
     for name in ("test_a.py", "test_b.py"):
         (tests / name).touch()
     collection = "tests/test_a.py::test_a\ntests/test_b.py::test_b\n"
-    monkeypatch.setattr(
-        RUNNER.subprocess,
-        "run",
-        lambda command, **_kwargs: subprocess.CompletedProcess(
-            command, 0, stdout=collection, stderr=""
-        ),
-    )
     monkeypatch.setattr(RUNNER, "WORKER_SHUTDOWN_GRACE_SECONDS", 0)
     monkeypatch.setattr(RUNNER.os, "killpg", lambda *_args: None)
     outcomes = iter((0, 7))
@@ -125,7 +118,26 @@ def test_runner_reports_each_worker_and_fails_if_either_worker_fails(
         def wait(self, timeout=None):
             return self.returncode
 
-    monkeypatch.setattr(RUNNER.subprocess, "Popen", CompletedWorker)
+    class CompletedCollector:
+        pid = 900
+        returncode = None
+
+        def communicate(self, timeout=None):
+            self.returncode = 0
+            return collection, ""
+
+        def poll(self):
+            return self.returncode
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+    def start_process(command, **kwargs):
+        if "--collect-only" in command:
+            return CompletedCollector()
+        return CompletedWorker(command, **kwargs)
+
+    monkeypatch.setattr(RUNNER.subprocess, "Popen", start_process)
 
     assert RUNNER.run_python_suite(root=tmp_path, environment={}) == 1
     output = capsys.readouterr().out
@@ -143,14 +155,6 @@ def test_sigterm_stops_running_worker_groups(tmp_path, monkeypatch, capsys):
     for name in ("test_a.py", "test_b.py"):
         (tests / name).touch()
     collection = "tests/test_a.py::test_a\ntests/test_b.py::test_b\n"
-    monkeypatch.setattr(
-        RUNNER.subprocess,
-        "run",
-        lambda command, **_kwargs: subprocess.CompletedProcess(
-            command, 0, stdout=collection, stderr=""
-        ),
-    )
-
     original_signal = RUNNER.signal.signal
     handlers = {}
 
@@ -164,12 +168,28 @@ def test_sigterm_stops_running_worker_groups(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(RUNNER, "WORKER_SHUTDOWN_GRACE_SECONDS", 0)
     killed_groups = []
     terminated_processes = []
-    monkeypatch.setattr(
-        RUNNER.os,
-        "killpg",
-        lambda pid, received_signal: killed_groups.append((pid, received_signal)),
-    )
+
+    def kill_process_group(pid, received_signal):
+        if pid == 900:
+            raise ProcessLookupError
+        killed_groups.append((pid, received_signal))
+
+    monkeypatch.setattr(RUNNER.os, "killpg", kill_process_group)
     processes = []
+
+    class CompletedCollector:
+        pid = 900
+        returncode = None
+
+        def communicate(self, timeout=None):
+            self.returncode = 0
+            return collection, ""
+
+        def poll(self):
+            return self.returncode
+
+        def wait(self, timeout=None):
+            return self.returncode
 
     class RunningWorker:
         def __init__(self, _command, **_kwargs):
@@ -190,7 +210,12 @@ def test_sigterm_stops_running_worker_groups(tmp_path, monkeypatch, capsys):
             terminated_processes.append(self.pid)
             self.returncode = -signal.SIGTERM
 
-    monkeypatch.setattr(RUNNER.subprocess, "Popen", RunningWorker)
+    def start_process(command, **kwargs):
+        if "--collect-only" in command:
+            return CompletedCollector()
+        return RunningWorker(command, **kwargs)
+
+    monkeypatch.setattr(RUNNER.subprocess, "Popen", start_process)
 
     assert (
         RUNNER.run_python_suite(root=tmp_path, environment={}) == 128 + signal.SIGTERM
@@ -206,6 +231,73 @@ def test_sigterm_stops_running_worker_groups(tmp_path, monkeypatch, capsys):
         ]
     else:
         assert terminated_processes == [process.pid for process in processes]
+
+
+def test_sigterm_during_collection_stops_and_reaps_collector(
+    tmp_path, monkeypatch, capsys
+):
+    (tmp_path / "tests").mkdir()
+    handlers = {}
+    original_signal = RUNNER.signal.signal
+
+    def recording_signal(signum, handler):
+        previous = original_signal(signum, handler)
+        if signum == signal.SIGTERM and callable(handler):
+            handlers[signum] = handler
+        return previous
+
+    monkeypatch.setattr(RUNNER.signal, "signal", recording_signal)
+    monkeypatch.setattr(RUNNER, "WORKER_SHUTDOWN_GRACE_SECONDS", 0.1)
+    process_calls = []
+    process_state = {"group_exists": True, "reaped": False, "terminated": False}
+    group_signals = []
+
+    class BlockingCollector:
+        pid = 901
+        returncode = None
+
+        def __init__(self, command, **_kwargs):
+            self.command = command
+            process_calls.append(command)
+
+        def communicate(self, timeout=None):
+            handlers[signal.SIGTERM](signal.SIGTERM, None)
+            raise subprocess.TimeoutExpired(self.command, timeout)
+
+        def poll(self):
+            return self.returncode
+
+        def wait(self, timeout=None):
+            self.returncode = -signal.SIGTERM
+            process_state["reaped"] = True
+            return self.returncode
+
+        def terminate(self):
+            process_state["terminated"] = True
+
+    def kill_process_group(pid, received_signal):
+        assert pid == BlockingCollector.pid
+        group_signals.append(received_signal)
+        if received_signal == signal.SIGTERM:
+            process_state["group_exists"] = False
+        elif received_signal == 0 and not process_state["group_exists"]:
+            raise ProcessLookupError
+
+    monkeypatch.setattr(RUNNER.subprocess, "Popen", BlockingCollector)
+    monkeypatch.setattr(RUNNER.os, "killpg", kill_process_group)
+
+    assert (
+        RUNNER.run_python_suite(root=tmp_path, environment={}) == 128 + signal.SIGTERM
+    )
+    assert len(process_calls) == 1
+    assert "--collect-only" in process_calls[0]
+    assert process_state["reaped"]
+    if os.name == "posix":
+        assert signal.SIGTERM in group_signals
+        assert signal.SIGKILL not in group_signals
+    else:
+        assert process_state["terminated"]
+    assert "TERMINATED signal=15" in capsys.readouterr().out
 
 
 @pytest.mark.skipif(os.name != "posix", reason="requires POSIX process groups")

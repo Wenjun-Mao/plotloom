@@ -1182,3 +1182,40 @@ This single matched pair reduced external wall time by 38.5% (150.024 seconds). 
 The hosted baseline workflow 38109502813 on exact SHA `927d441eb647804d4202aeeabffd487b02b9867b` completed with failure. Verify and browser shard 1 passed. Browser shard 2 passed 160 cases and failed one case (with the same failure on retry) in `creator-workbench-operations.spec.ts`: the test expected “投产状态尚未核对，暂不能应用路线。” but received “先确认当前图内容，再应用到故事路线。” The complete failed log is retained at `/tmp/plotloom-m0m5-baseline-38109502813-browser2-failed.log`; the run is an old two-shard baseline, not candidate qualification, and was not duplicated.
 
 A state-aware hint correction began after baseline `4566ec7`; it lifts the existing read-only production-state read into a shared workspace observer. The manager says no API/request/payload/backend/persistence/admission/auth/provider/prompt/dependency/build/package changes, and is performing a fresh independent review/qualification. Treat `4566ec7` as intermediate for combined frontend coverage. Confirm the final source diff and exact SHA before running the affected module and full combined gates. The Python comparison above remains reusable if final diff confirms Python sources/tests and runner configuration are unchanged.
+
+### M5 review follow-up — collection cancellation and runner count
+
+Independent review of candidate `a517554` found that the coordinator only
+recorded SIGTERM while native collection ran inside blocking
+`subprocess.run`; a stuck collector therefore could keep the coordinator alive
+and could not be cleaned up. The runner now owns collection through a
+`Popen` process group on POSIX and repeatedly calls `communicate(timeout=0.25)`
+to drain stdout and stderr while checking the signal flag. Its cleanup stops
+and reaps the collector before returning the conventional `128 + SIGTERM`
+status. The regression injects SIGTERM during collection, confirms that the
+collector group is stopped and reaped, and verifies that no workers start.
+`uv run --locked --no-sync python scripts/verify.py focused --pytest
+tests/test_python_suite_runner.py` passed 9/9 in 2.260 seconds. Ruff check and
+format plus `git diff --check` passed. The README's hosted browser runner count
+was updated from two to four to match ADR 0159 and the workflow matrix.
+
+Two consecutive native ownership scans matched at 1,517 pytest / 157 files
+(SHA-256
+`98cad9469ca9a77bce6048decefa8a2ebb1b5be6560954e47e07a3edeea44059`), 1,128
+Vitest / 137 files (SHA-256
+`922b4d76e58839904c257e5aaf26442ccd0875b987f2806541d925e4574798cf`), and
+285 Playwright / 85 files (SHA-256
+`9237573e2419b6b79123462d295af57c6f074177a64eb0619e0191e0fdcfba60`). The
+four-shard guard passed with 83/61/70/71 cases and no omissions or overlap.
+The verification-tooling complete profile passed in 36.936 seconds with 64
+pytest, 2 Vitest and 6 Playwright cases, frontend and browser type checks,
+locked dependencies, deterministic bundle and parity, four-shard allocation,
+and wheel/package smoke. The build emitted the existing large-chunk advisory;
+pytest emitted the existing Starlette TestClient deprecation warning. `quick`
+passed in 18.340 seconds with 1,128 Vitest cases and both type checks. Ruff
+check, Ruff format, and `git diff --check` passed.
+
+This is not final runner qualification. Independent re-review, one exact
+revision `verify.py full`, and one unfiltered hosted same-SHA run remain
+required after the manager publishes the final UI baseline and quiet
+checkpoint. Windows process-tree containment remains unqualified.

@@ -125,7 +125,7 @@ uv run --locked --no-sync python scripts/verify.py full
 `browser` 或 `complete` 选择，并先检查完整原生测试集合的唯一归属；`--show`
 只显示选择计划。模块结果仍是局部开发证据。`full` 运行完整本地套件，拒绝会缩小选择的
 环境过滤器；它也不代表产品或创意接受。手动 CI 默认以 `browser_grep=.*`
-执行完整发布检查；浏览器测试在两个独立 runner 上各用一个 worker 并保留报告。
+执行完整发布检查；浏览器测试在四个独立 runner 上各用一个 worker 并保留报告。
 其他正则只用于诊断，不能替代完整发布验收。见
 [ADR 0109](docs/adr/0109-bounded-browser-ci-evidence.md)。
 

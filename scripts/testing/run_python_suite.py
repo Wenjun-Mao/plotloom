@@ -185,23 +185,57 @@ def run_python_suite(
             "no:cacheprovider",
         ]
         print(f"[python-suite] COLLECT {shlex.join(collector)}", flush=True)
-        collected = subprocess.run(
-            collector,
-            cwd=root,
-            env=env,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if received_sigterm is not None:
-            return sigterm_exit_code()
-        if collected.stderr:
-            print(collected.stderr, end="", file=sys.stderr, flush=True)
-        if collected.returncode:
-            print(collected.stdout, end="", flush=True)
-            return collected.returncode
+        collector_process: subprocess.Popen[str] | None = None
+        collector_stdout = ""
+        collector_stderr = ""
+        collection_interrupted = False
         try:
-            cases = parse_collected_cases(collected.stdout, root=root)
+            try:
+                collector_process = subprocess.Popen(
+                    collector,
+                    cwd=root,
+                    env=env,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    start_new_session=os.name == "posix",
+                    text=True,
+                )
+            except OSError as error:
+                print(
+                    f"Python collection could not start: {error}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                return 127
+
+            while True:
+                if received_sigterm is not None:
+                    collection_interrupted = True
+                    break
+                try:
+                    collector_stdout, collector_stderr = collector_process.communicate(
+                        timeout=0.25
+                    )
+                    break
+                except subprocess.TimeoutExpired:
+                    continue
+            if received_sigterm is not None:
+                collection_interrupted = True
+        finally:
+            if collector_process is not None:
+                _stop_processes([collector_process])
+
+        if collection_interrupted:
+            return sigterm_exit_code()
+        if collector_process is None:
+            raise RuntimeError("pytest collector was not started")
+        if collector_stderr:
+            print(collector_stderr, end="", file=sys.stderr, flush=True)
+        if collector_process.returncode:
+            print(collector_stdout, end="", flush=True)
+            return collector_process.returncode
+        try:
+            cases = parse_collected_cases(collector_stdout, root=root)
             assignments = partition_test_files(cases)
         except SuiteError as error:
             print(

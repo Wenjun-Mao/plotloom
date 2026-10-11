@@ -651,3 +651,29 @@ The M0–M5 branch was rebased from `927d441eb647804d4202aeeabffd487b02b9867b` t
 A quiet serial/two-worker Python comparison on the same M5 Pro passed all 1,516 cases in both modes. External wall time was 390.050 seconds serial and 240.026 seconds with two workers (758 cases each, 78/79 files), a 38.5% reduction for this single matched pair. The full logs and top serial durations are recorded in the verification receipt. This evidence validates the bounded local Python split; it does not qualify the final UI state or hosted four-shard candidate.
 
 The unfiltered baseline run on `927d441` (38109502813) is terminal failure: verify and browser shard 1 passed; shard 2 passed 160 cases and failed one existing graph-action explanation assertion after retry. The expected project-state message was not present; logs are preserved in the receipt. A further state-aware hint correction began after `4566ec7`, and the manager will provide its final qualified SHA. Reconcile the ownership map and rerun affected gates against that SHA before final independent review and qualification.
+
+### M5 review follow-up — 2026-10-11
+
+Independent review of candidate `a517554` found two gaps: a SIGTERM received
+during native pytest collection could not stop its blocking `subprocess.run`,
+and README still described two hosted browser runners after the four-shard
+change. Collection now runs as an owned subprocess group and polls
+`communicate(timeout=0.25)` while draining both streams; interruption cleans up
+and reaps the collector before returning status 143. A focused regression
+covers cancellation during collection. README now says four independent
+runners. The runner-focused `verify.py focused --pytest
+tests/test_python_suite_runner.py` passed all 9 cases. Two consecutive native
+ownership scans matched at 1,517 pytest / 157 files (SHA-256
+`98cad9469ca9a77bce6048decefa8a2ebb1b5be6560954e47e07a3edeea44059`), 1,128
+Vitest / 137 files (SHA-256
+`922b4d76e58839904c257e5aaf26442ccd0875b987f2806541d925e4574798cf`), and
+285 Playwright / 85 files (SHA-256
+`9237573e2419b6b79123462d295af57c6f074177a64eb0619e0191e0fdcfba60`). The
+four-shard guard still passes with 83/61/70/71 cases and no omissions or
+overlap. The verification-tooling complete profile passed in 36.936 seconds
+with 64 pytest, 2 Vitest and 6 Playwright cases plus its type, lock,
+deterministic bundle/parity, shard and wheel/package gates. `quick` passed in
+18.340 seconds with all 1,128 Vitest cases and both type checks. Ruff and diff
+checks passed. Independent re-review and final full local and hosted
+qualification still need to cover this revision and the manager's final UI
+baseline.
