@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
+import os
+import signal
 import subprocess
 import sys
 from collections import Counter
@@ -127,3 +129,70 @@ def test_runner_reports_each_worker_and_fails_if_either_worker_fails(
     assert len(commands) == 2
     assert commands[0][-1] == "tests/test_a.py"
     assert commands[1][-1] == "tests/test_b.py"
+
+
+def test_sigterm_stops_running_worker_groups(tmp_path, monkeypatch, capsys):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    for name in ("test_a.py", "test_b.py"):
+        (tests / name).touch()
+    collection = "tests/test_a.py::test_a\ntests/test_b.py::test_b\n"
+    monkeypatch.setattr(
+        RUNNER.subprocess,
+        "run",
+        lambda command, **_kwargs: subprocess.CompletedProcess(
+            command, 0, stdout=collection, stderr=""
+        ),
+    )
+
+    original_signal = RUNNER.signal.signal
+    handlers = {}
+
+    def recording_signal(signum, handler):
+        previous = original_signal(signum, handler)
+        if signum == signal.SIGTERM and callable(handler):
+            handlers[signum] = handler
+        return previous
+
+    monkeypatch.setattr(RUNNER.signal, "signal", recording_signal)
+    killed_groups = []
+    terminated_processes = []
+    monkeypatch.setattr(
+        RUNNER.os,
+        "killpg",
+        lambda pid, received_signal: killed_groups.append((pid, received_signal)),
+    )
+    processes = []
+
+    class RunningWorker:
+        def __init__(self, _command, **_kwargs):
+            self.pid = 100 + len(processes)
+            self.returncode = None
+            processes.append(self)
+            if len(processes) == 2:
+                handlers[signal.SIGTERM](signal.SIGTERM, None)
+
+        def poll(self):
+            return self.returncode
+
+        def wait(self, timeout=None):
+            self.returncode = -signal.SIGTERM
+            return self.returncode
+
+        def terminate(self):
+            terminated_processes.append(self.pid)
+            self.returncode = -signal.SIGTERM
+
+    monkeypatch.setattr(RUNNER.subprocess, "Popen", RunningWorker)
+
+    assert (
+        RUNNER.run_python_suite(root=tmp_path, environment={}) == 128 + signal.SIGTERM
+    )
+    output = capsys.readouterr().out
+    assert "TERMINATED signal=15" in output
+    assert len(processes) == 2
+    assert all(process.returncode is not None for process in processes)
+    if os.name == "posix":
+        assert killed_groups == [(process.pid, signal.SIGTERM) for process in processes]
+    else:
+        assert terminated_processes == [process.pid for process in processes]

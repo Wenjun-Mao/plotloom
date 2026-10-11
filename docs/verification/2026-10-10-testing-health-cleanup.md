@@ -1072,3 +1072,47 @@ latest failure-path test changes. The final local full gate remains required
 to exercise the exact runner revision. Same-host performance comparison,
 independent review, final local full gate and one unfiltered hosted
 same-SHA qualification remain outstanding.
+
+#### M5 review finding remediation — isolated candidate
+
+The independent review of 9bc5d0e found two actionable gaps. First, the
+coordinator detached pytest worker process groups but did not handle SIGTERM;
+second, the shared-helper register omitted real test owners of
+tests/backend_core/conftest.py and omitted tests/identity_review_assertions.py.
+
+The runner now records SIGTERM and exits with 128 plus the signal after cleanup.
+Its worker-scope finally block terminates and waits for every remaining process
+group before closing log handles and deleting the temporary root. SIGINT and
+unexpected exceptions also reach cleanup. A bounded signal regression delivers
+SIGTERM during second-worker startup and verifies that both started groups are
+stopped and the runner returns 143.
+
+The conftest support dependency now names its nine consuming modules, including
+story-authoring, graph, creative-production and shared-generation. The
+identity-review helper is registered under media-lifecycle. A focused ownership
+regression derives each named consumer module from its owned test path and
+requires the helper relationship to be present in the manifest.
+
+The runner, ownership-map and verification-runner focused selectors passed 34
+pytest cases in 0.70 seconds. Ruff check, Ruff format check and diff check
+passed. Two consecutive native guards matched at 1,515 pytest cases / 157
+files, SHA-256
+d08649eff0424a768a47aef70c9f702302521b7f639c41cb4e0ce86c38e87756; 1,074
+Vitest cases / 133 files, SHA-256
+0c26f4523c07ed8c31bab06afbcab99b9a15a326ebe0991a429f523d84d914ce; and
+280 Playwright cases / 85 files, SHA-256
+878a9ad8e999be52222c4060c7aaaa53ff96cc44ceadb5c5a65dde2b1cde1ffe.
+
+The verification-tooling complete profile passed in 32.748 seconds: complete
+native ownership preflight, both frontend type checks, lock check,
+deterministic bundle and parity, four-shard allocation, wheel/package smoke,
+62 pytest, 2 Vitest and 6 Playwright cases. The remaining exact-runner
+end-to-end full local gate, review recheck, matched serial/two-process
+comparison and one unfiltered hosted qualification remain outstanding.
+
+After the consumer regression added the verification-tooling owner represented
+by a backend-core test, its contract profile was rerun and passed in 15.182
+seconds: full ownership preflight, frontend application type check, all 62
+pytest cases and 2 Vitest cases. The complete-profile browser, package, lock
+and static-bundle gates were unchanged by this assertion-only extension and
+retain their preceding passing evidence.

@@ -574,3 +574,28 @@ full local gate. No matched quiet serial/two-process comparison has been
 accepted. The main UI candidate is now c1b24f7 locally and remains unpushed
 and unqualified; continue to use the 51cb408 published baseline boundary
 until the manager provides a final published baseline and quiet checkpoint.
+
+### M5 independent-review finding remediation — 2026-10-11
+
+The independent review of 9bc5d0e found that SIGTERM could orphan the detached
+pytest workers and that the shared-helper map missed actual consumer modules.
+The coordinator now records SIGTERM, stops/waits for worker groups in its
+cleanup path before temporary output removal, and preserves the conventional
+signal exit status. A focused cancellation regression verifies both groups are
+stopped. The support map now includes all nine modules consuming the backend
+conftest and the media-lifecycle identity-review helper; a regression guards
+those relationships.
+
+Two consecutive ownership guards matched at 1,515 pytest / 157 files
+(SHA-256 d08649eff0424a768a47aef70c9f702302521b7f639c41cb4e0ce86c38e87756),
+1,074 Vitest / 133 files and 280 Playwright / 85 specs. The verification-tooling
+complete profile passed in 32.748 seconds with 62 pytest, 2 Vitest and 6
+Playwright cases plus its full-map, type, lock, static bundle/parity,
+four-shard and wheel/package gates. The exact revision still needs independent
+review, matched serial/two-process timing, one full local gate and one
+unfiltered hosted same-SHA qualification.
+
+The exact consumer assertion was then covered by a verification-tooling
+contract profile: full ownership preflight, app type check, 62 pytest and 2
+Vitest cases passed in 15.182 seconds. The complete profile's unaffected
+browser, package, lock and static-bundle gates remain valid.

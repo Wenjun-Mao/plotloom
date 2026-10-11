@@ -28,7 +28,11 @@ Check that the worker file union is exact and disjoint before starting tests.
 Each pytest process receives a distinct `--basetemp`; disable pytest's shared
 cache provider and bytecode writes. Preserve `--durations=20`, wait for both
 workers, print each report separately, and fail the full step if either worker
-fails. On interruption, terminate both worker process groups.
+fails. Record SIGTERM without immediately exiting, then terminate both worker
+process groups, wait up to five seconds and kill any remaining group. A
+`finally` cleanup stops live workers before closing logs and removing their
+temporary root on any abnormal exit. SIGINT returns 130; SIGTERM returns its
+standard `128 + signal` status.
 
 The runner lives in `scripts/testing/run_python_suite.py`; only `verify.py
 full` uses it. Focused and module selections continue to use their native
@@ -49,3 +53,7 @@ matched serial and two-process comparison after the manager's main-thread work
 is quiet. If the quiet comparison fails to show material improvement or
 repeated execution exposes isolation defects, restore the serial full step and
 reassess the local runtime target before broadening concurrency.
+
+Detached worker sessions prevent a signal sent only to the coordinator from
+reaching its children. The coordinator therefore records SIGTERM and completes
+cleanup itself instead of allowing the default handler to exit immediately.

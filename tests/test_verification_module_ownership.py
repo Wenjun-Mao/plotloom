@@ -177,3 +177,42 @@ def test_native_ownership_guard_refuses_ambient_selectors_before_collection(
         pytest.raises(CHECKER.OwnershipError, match="ambient selectors: BROWSER_SHARD"),
     ):
         CHECKER.collect_native_cases()
+
+
+def test_manifest_maps_cross_module_pytest_helper_consumers():
+    manifest = json.loads(CHECKER.MANIFEST.read_text(encoding="utf-8"))
+    owners = {
+        selector: module_name
+        for module_name, module in manifest["modules"].items()
+        for selector in module["selectors"]["pytest"]
+    }
+    dependencies = {
+        dependency["path"]: set(dependency["consumers"])
+        for dependency in manifest["support_dependencies"]
+        if dependency["suite"] == "pytest"
+    }
+
+    known_consumers = {
+        "tests/backend_core/conftest.py": {
+            "tests/test_current_stage_evidence.py",
+            "tests/test_graph_authoring_contract.py",
+            "tests/test_media.py",
+            "tests/test_project_storage_authoring_control_contracts.py",
+            "tests/test_project_storage_route_contracts.py",
+            "tests/test_project_storage_source_outline.py",
+            "tests/test_project_storage_work_unit_contracts.py",
+            "tests/test_production_project_folder_runtime.py",
+            "tests/backend_core/test_e2e_listener_ownership.py",
+            "tests/generation/test_prompts.py",
+            "tests/backend_core/test_domain.py",
+            "tests/backend_core/test_jobs.py",
+        },
+        "tests/identity_review_assertions.py": {
+            "tests/test_project_storage_image_identity_contracts.py",
+        },
+    }
+    for helper_path, consumer_files in known_consumers.items():
+        assert helper_path in dependencies
+        assert consumer_files <= owners.keys()
+        expected_modules = {owners[path] for path in consumer_files}
+        assert expected_modules <= dependencies[helper_path]

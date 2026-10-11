@@ -955,10 +955,14 @@
       "path": "tests/backend_core/conftest.py",
       "kind": "conftest",
       "consumers": [
+        "creative-production",
+        "graph",
         "media-lifecycle",
         "project-lifecycle",
         "shared-api-security",
+        "shared-generation",
         "shared-provider-dispatch",
+        "story-authoring",
         "verification-tooling"
       ]
     },
@@ -1032,6 +1036,14 @@
         "project-lifecycle",
         "shared-provider-dispatch",
         "story-authoring"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/identity_review_assertions.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle"
       ]
     },
     {
