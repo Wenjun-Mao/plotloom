@@ -788,3 +788,27 @@ unqualified. Later owner-walkthrough runtime changes are separate inputs and
 cannot inherit this exact-SHA CI claim. Recoverable archive was requested from
 the owning worker and returned `queued`; readback still shows an active
 attachment and registered checkout, so cleanup completion remains unconfirmed.
+
+### Final combined runtime and walkthrough checkpoint — 2026-10-11
+
+The independently reviewed H3 deployment/media-guidance input is published on
+main at `d59bcdab17af8f4850b082cf832ad12537946583`. Its one combined local
+full gate passed in 721.842s with 1,542 Python, 1,226 Vitest and 294 Playwright
+cases, plus all required inventory, four-shard, build/parity and package gates.
+Unfiltered hosted run `38146928907` passed verification and all four browser
+jobs on that exact SHA in 18m14s. Main integration, code publication and final
+qualification are complete; no older green run is substituted for this input.
+
+The separate owner-authorized walkthrough completed nine selected media clips
+and both real interactive endings (17.5s take / 15s leave), with four wrong-action
+originals explicitly rejected and retained. This is walkthrough evidence, not
+final artistic or audio acceptance; see the
+[owner receipt](../verification/2026-10-11-lamp-owner-walkthrough.md).
+
+Recoverable worker-worktree archival remains the sole M0–M5 cleanup gap: the
+latest read-only check still found its active attachment and clean pushed
+`e8767b9` checkout, with no exposed archive-operation status. Preserve the
+checkout rather than repeat the ambiguous queued operation or manually delete
+it. Windows process-tree containment remains outside the qualified POSIX
+guarantee. These final checkpoint edits are documentation-only and do not
+change the tested runtime inputs.

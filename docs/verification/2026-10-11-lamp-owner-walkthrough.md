@@ -109,6 +109,118 @@ hosted run `38143271232` passed all jobs. Recoverable worker-worktree archival
 was requested but remains unconfirmed; the later H3 runtime input requires
 separate qualification.
 
-Status: in progress; first keyframe and current identity review are accepted.
-Video media and both real playback routes remain. No E2E success or final-media
-claim yet.
+## Completed media and actual interactive playback
+
+Runtime source was held at pushed `d59bcdab17af8f4850b082cf832ad12537946583`
+through the remaining frozen image/video jobs. The protected H3 opt-in was
+activated only after its independent review and final local/hosted qualification;
+see [the H3 receipt](2026-10-11-creator-h3-media-progression.md). All jobs were
+settled before these documentation-only receipt edits.
+
+Nine opening keyframes and three endpoint refinements were delivered, ingested
+and actually viewed. Each opening keyframe was separately selected and received
+the required C01 identity comparison against the frozen production reference.
+The three endpoint refinements were also actually compared with the opening
+frames and C01 reference; they did not replace the approved opening keyframes.
+
+| Route / shot | Selected opening keyframe asset | Selected clip |
+| --- | --- | --- |
+| Shared opening, scene 1 / shot 1 | `aaca6264-25ca-4246-910a-a250386828e1` | 0–60 frames |
+| Shared opening, scene 1 / shot 2 | `17387533-3992-4377-a9db-16339e231f3f` | 0–60 frames |
+| Shared opening, scene 2 / shot 1 | `d0e2c392-19ea-4f25-83d4-843c7adfd668` | 0–60 frames |
+| Shared opening, scene 2 / shot 2 | `717f7984-f795-4006-bafb-5481efe29352` | 0–60 frames |
+| Take, scene 1 / shot 1 | `2d46a05e-03fc-4886-8a34-70cc4f307e47` | 0–60 frames |
+| Take, scene 2 / shot 1 | `79a4d52e-7c4e-4bea-a90c-f4b90a511e2c` | 0–60 frames |
+| Take, scene 2 / shot 2 | `09772baa-5ba1-496d-90f6-24a43deebace` | 0–60 frames |
+| Leave, scene 1 / shot 1 | `8fb3090d-d7ca-4630-be1c-b320080d20be` | 0–60 frames |
+| Leave, scene 1 / shot 2 | `8e260521-8a3c-4a4c-995b-397b2d2c70a5` | 0–60 frames |
+
+Thirteen raw H3 candidates were generated through explicit submissions: nine
+selected, four rejected. Each raw was technically admitted at quality 8,
+832×480, 124 frames / 24fps (5.167s) from a five-second request, with native
+AAC 32kHz stereo audio. Actual native-browser playback reached the end of each
+original, supplemented by four-frame-per-second contact sheets. Every selected
+60-frame continuous preview separately reached its native 2.5-second end.
+Transport/profile validation did not substitute for action review.
+
+### Preserved rejections and endpoint-guided corrections
+
+- Take pickup originals `vj_4323f3e6c256418fbf33d08e141d5053` and
+  `vj_4fc902ae404b4fd88fed1d397bb7bf4e` illuminated the lamp before lifting it.
+  Neither provided a valid continuous 60-frame pickup with the lamp already
+  off. Both were explicitly rejected in the UI and their evidence retained.
+  Matching endpoint image `cef2f5a0-5df6-4104-9471-f58b54c4e1ca` and concise
+  positive action instructions produced `vj_68db20c1eece4a6496f90eea02700635`:
+  pickup completed inside the selected interval with the lamp remaining off.
+- Leave withdrawal original `vj_b66c71bfc143474e8eb2d5c721ca475a` reached toward
+  the lamp and switched it off rather than withdrawing. It was rejected, not
+  shortened into a purportedly correct action. Endpoint
+  `c36c2444-e369-4fa6-ac8d-4d00f9805499` yielded
+  `vj_e27c851a343e4aebb5b1a9c4c81b46fe`, with hand withdrawal and steady light
+  throughout the selected interval.
+- Leave turn original `vj_d37509dc610e4ccbb0f09579a3c7e48f` approached the table
+  and picked up the lit lamp. It was explicitly rejected. Endpoint
+  `083180a7-da8c-438c-908b-def7fd058ede` yielded
+  `vj_268191a7d52b48b2b760a3deb32a7fae`: a calm turn away, lamp left lit and
+  untouched. Rejected originals remain retained and locked against selection;
+  endpoint changes correctly made their frozen inputs noncurrent.
+- The shared gaze original darkened the lamp late, near four seconds. Its
+  explicitly reviewed 0–60-frame interval retains the lit-lamp gaze; the
+  unintended later state is excluded, not claimed correct.
+
+Matching endpoint guidance succeeded in this walkthrough; no causal claim
+about negative prompts or general model reliability is established. Cosmetic
+prop wear, framing and identity-detail variation were accepted only within the
+owner's walkthrough brief. Core lamp/action reversals were not waived.
+
+### Actual player acceptance
+
+The state-based guide observed all nine current selected clips, then offered
+`检查交互式播放` without inferring readiness from installation alone. Followed
+that link into the real standalone player, not just a workbench preview:
+
+1. `播放当前` played the four shared opening clips in sequence. At the route-only
+   choice, no video remained and no option was automatically selected; the
+   current question and both authored options were visible.
+2. Chose `带走，让记忆随行`. All three take clips played, ending on
+   `vj_8fdd677aa22644ecb92c0f1bd5a0426b`, shot 3/3. Native media readback showed
+   duration/currentTime 2.5s, ended true and paused true; `从头开始` appeared.
+   The choice history contained only the take option. No leave ending followed.
+3. Used `从头开始`, then `播放当前`. The opening played again and waited at the
+   same question with cleared choice history. Chose `留下，把温暖传下去`.
+   Both leave clips played, ending on `vj_268191a7d52b48b2b760a3deb32a7fae`,
+   shot 2/2, with the lamp lit. Native duration/currentTime was 2.5s, ended true
+   and paused true; `从头开始` appeared. No take ending followed.
+
+The complete film durations remain **17.5s take / 15s leave**, excluding the
+viewer's decision time. The 30s project setting is a ceiling; the 5.167s H3
+originals do not automatically change the 2.5s accepted cuts. There is no
+choice footage, shared tail, combined-endings export or implicit padding.
+
+Local screenshots are preserved under
+`output/playwright/owner-walkthrough/interactive-choice.png`,
+`interactive-take-ending.png` and `interactive-leave-ending.png`. Rejected and
+corrected contact sheets remain alongside them; original media and audit
+records remain in the owner project. This is real UI/media evidence, distinct
+from synthetic regression fixtures.
+
+Audio was checked technically with FFmpeg, not certified through human
+listening or final mixing. Several originals have very quiet ambience; no
+dialogue intelligibility or polished soundtrack claim is made. The walkthrough
+does not certify final film continuity or artistic quality.
+
+## Final status and remaining boundary
+
+The owner-authorized creative/media walkthrough is complete through both
+actual interactive endings. M0–M5 integration and code publication are also
+complete: exact `d59bcda` passed local full in 721.842s (1,542 Python, 1,226
+Vitest, 294 Playwright) and all five jobs of
+[hosted run 38146928907](https://github.com/Wenjun-Mao/plotloom/actions/runs/38146928907)
+in 18m14s. These final receipt edits do not change runtime code or media source.
+
+Recoverable archival of the verification worker checkout remains unconfirmed
+in the app; the latest readback still found its clean pushed branch and active
+attachment. Preserve it rather than manually delete it or repeat an ambiguous
+queued operation. Windows process-tree cleanup remains unqualified; the
+verified guarantee covers macOS and Ubuntu. Neither gap invalidates the
+completed code qualification or actual two-route owner walkthrough.

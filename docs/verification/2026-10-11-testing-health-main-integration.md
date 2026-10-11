@@ -53,3 +53,29 @@ operation, and do not touch other checkouts.
 Windows process-tree containment remains unqualified. Current cancellation
 guarantees are POSIX-only (macOS and Ubuntu). This software qualification is not
 owner walkthrough or final-media acceptance.
+
+## Latest combined qualification — October 11
+
+The later H3 deployment and media-guide source was independently reviewed,
+committed and pushed at exact
+`d59bcdab17af8f4850b082cf832ad12537946583`. One combined local full gate passed
+in 721.842s, exit 0: 1,542 Python cases / 158 files, 1,226 Vitest cases / 149
+files and 294 unfiltered Playwright cases / 89 specs. Both type checks, lock,
+API lint, archived reader, deterministic bundle/parity, native ownership,
+four-shard union/disjointness and installed-wheel smoke passed. The Python
+workers each passed 771 disjoint cases; browser allocation was 83/70/70/71.
+
+The single unfiltered [hosted run 38146928907](https://github.com/Wenjun-Mao/plotloom/actions/runs/38146928907)
+passed `verify` and all four browser jobs on that exact SHA, independently
+read back by the manager. It ran 14:22:43Z–14:40:57Z (18m14s). This qualifies
+the current integrated runtime code, unlike the older hosted checkpoints above.
+Main integration, code publication and qualification are complete. The final
+receipt publication changes documentation only and does not relabel this CI
+run as qualification of its later documentation SHA.
+
+At the latest read-only cleanup check (15:31Z), the worker was idle and its
+attachment `01a12b36-adc4-70b1-8932-2c2c8bd6883e` still referenced the existing,
+Git-registered checkout at `e8767b9`. No archive operation status or recovery
+endpoint was exposed. The queued recoverable archive remains unconfirmed;
+the pushed clean branch and checkout are preserved. Do not claim cleanup
+completed or retry an ambiguous archive by manually deleting its target.
