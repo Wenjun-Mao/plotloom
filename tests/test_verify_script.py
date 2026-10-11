@@ -140,6 +140,14 @@ def test_full_steps_include_all_release_gates_in_safe_build_order(tmp_path):
     ]
     assert labels.index("deterministic production bundle") < labels.index("wheel build")
     by_label = {step.label: step for step in steps}
+    assert by_label["Python contracts"].command == (
+        "uv",
+        "run",
+        "--locked",
+        "--no-sync",
+        "python",
+        "scripts/testing/run_python_suite.py",
+    )
     assert by_label["unfiltered browser shard coverage"].environment == (
         ("BROWSER_GREP", ".*"),
     )

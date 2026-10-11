@@ -949,3 +949,126 @@ This establishes the local workflow and exact case allocation, not actual
 four-runner hosted duration or hosted acceptance. The candidate still requires
 independent review, same-host M0 family retiming and one complete local full
 gate before the single unfiltered hosted qualification.
+
+#### M5 controlled Python family retiming — candidate 919ca5d
+
+On the same Apple Silicon host, the four M0 Python selectors were repeated
+serially with warm dependencies, a fresh basetemp per sample, and no active
+pytest, Vitest, Playwright or full-verification process. No normal8841 or owner
+project data was used. Raw logs and basetemps are retained under
+/var/folders/ys/g3nd6nfx2xd9wmw053lg109m0000gn/T/plotloom-testing-health-m5-919ca5d-controlled-vswewh6t.
+
+| Family | Cases | Wall samples | Median wall | Call samples | Median call | M0 median wall / call |
+| --- | ---: | --- | ---: | --- | ---: | ---: |
+| Source | 11 | 2.331 / 1.971 / 1.920 | 1.971 | 1.40 / 1.18 / 1.27 | 1.27 | 2.209 / 1.410 |
+| Graph commands | 20 | 1.297 / 1.317 / 1.295 | 1.297 | 0.33 / 0.33 / 0.33 | 0.33 | 3.027 / 0.310 |
+| Media reconciliation | 4 | 3.719 / 3.766 / 3.906 | 3.766 | 2.89 / 2.92 / 3.09 | 2.92 | 3.973 / 3.010 |
+| Recovery | 19 | 4.143 / 5.309 / 4.413 | 4.413 | 3.16 / 4.34 / 3.24 | 3.24 | 4.868 / 3.500 |
+
+All twelve commands passed. Median wall time changed by -10.8% for source,
+-57.1% for graph, -5.2% for media and -9.3% for recovery. Median graph setup
+was 0.32s, compared with the single 1.89s M0 setup-attribution sample; this is
+not a triplicate setup comparison. These family timings support the scoped
+graph fixture optimization and show no median wall regression in the other
+selected families.
+
+A prior exploratory repeat was discarded because it overlapped with the
+manager's unrelated caption/browser checks. The table above is the controlled
+repeat performed after confirming those checks had ended. This candidate is
+919ca5d; the pending UI-only baseline changes do not alter Python tests. Recheck
+ownership and Python inputs after the final baseline is supplied.
+
+#### Owner UI candidate diagnostic — not M5 qualification
+
+The separate local main candidate e923b58 completed its full runner with exit 1.
+Its Python step passed 1,492 cases in 387.69s (verify step 393.043s); the full
+run took 876.785s and the browser suite passed 277 and failed 6 in 7.8 minutes.
+The slowest 20 Python calls ranged from 1.73s to 6.79s, so no single listed
+test explains the Python wall time. This was a different candidate from the
+M0–M5 branch and had browser failures; it is diagnostic evidence only, not
+controlled comparison with the 732.075s historical full run or final
+qualification. The subsequent owner caption commit adds no Python changes.
+
+#### M4 Python process isolation and full-runner implementation — candidate 919ca5d
+
+The M0–M5 candidate's unfiltered Python duration profile passed 1,507 cases in
+383.07 seconds. The slowest 20 individual setup/call/teardown phases totalled
+58.29 seconds (15.2% of the Python step), with a 6.72-second maximum. No one
+case explains the wall time; the evidence supports looking at suite-level
+execution rather than changing assertions or reducing coverage.
+
+The bounded isolation review found:
+
+- Native Python discovery returned 1,507 case IDs across 156 test files.
+- The project-folder/session seed fixtures use pytest temporary roots; project
+  lock, staging and spawned-process cases use their owning `tmp_path`.
+- The socket-binding tests use ephemeral ports. Other loopback endpoint strings
+  are provider fixtures, not listeners.
+- Environment monkeypatches and Python caches are process-local. The only
+  production `lru_cache` and the style-contract `OrderedDict` cache are in
+  memory; no test uses pytest's shared cache fixture.
+- Representative spawned-process tests manage their children in `finally`
+  blocks and keep mutable files inside temporary roots.
+
+A manual two-process whole-file split passed all 1,507 cases as 754/753 across
+78/78 files. The implemented runner was then exercised end to end after adding
+five runner-contract cases: it collected 1,512 native cases from 157 files,
+split them 756/756 across 78/79 files, and both workers passed. Two consecutive
+native ownership guards matched: pytest SHA-256
+`62e9680f6d72d454b440ad4b836d1930ae4f91a8c618074c07ab29662bb01009`, Vitest
+`0c26f4523c07ed8c31bab06afbcab99b9a15a326ebe0991a429f523d84d914ce`, and
+Playwright `878a9ad8e999be52222c4060c7aaaa53ff96cc44ceadb5c5a65dde2b1cde1ffe`.
+
+The full Python runner discovers cases, refuses empty/duplicate/unsafe
+collection rows, deterministically assigns whole files by case count, uses
+distinct worker basetemps, disables the shared pytest cache and bytecode
+writes, preserves each worker's top-20 duration report, and fails if either
+worker fails. It logs both reports separately and terminates worker process
+groups on interruption. `verify.py full` owns this path; focused and module
+commands remain direct native selections. ADR 0160 records the proposed
+contract, and `docs/development.md` documents its scope.
+
+The focused runner/verify selectors passed 26 pytest cases; quick passed all
+1,074 Vitest cases and both TypeScript checks in 14.783 seconds. The full
+two-process runner passed all 1,512 cases with one existing Starlette
+TestClient deprecation warning. Ruff check/format and JSON/diff checks passed.
+These are functional results. The broader work window also contained
+main-thread UI verification, so the observed serial and two-process elapsed
+values are exploratory and are not accepted M5 speed evidence. A matched
+quiet-window serial/two-process comparison, independent review, final full
+local gate, and one unfiltered same-SHA hosted run remain outstanding. The
+The manager later reported UI commit `c1b24f742d701d7ca8ca3407d91b673caf4f3f20`
+as the latest local candidate; it remains unpushed and unqualified. Do not
+rebase or qualify against it until the manager supplies the final published
+baseline and quiet checkpoint.
+
+#### M4 Python runner failure-path recheck — isolated candidate
+
+After adding a runner contract case for separate worker reports and a nonzero
+worker exit, two consecutive native ownership guards matched: pytest 1,513 /
+157 files, SHA-256
+`98616447651137f987255599a066164a76a5b55546d0d144d80200df53cdc8f3`;
+Vitest 1,074 / 133 files, SHA-256
+`0c26f4523c07ed8c31bab06afbcab99b9a15a326ebe0991a429f523d84d914ce`;
+Playwright 280 / 85 files, SHA-256
+`878a9ad8e999be52222c4060c7aaaa53ff96cc44ceadb5c5a65dde2b1cde1ffe`.
+The guard executed no test bodies. The runner/verify focused selector passed
+27 pytest cases before a formatting-only edit; Ruff check, Ruff format check
+and diff check passed afterward.
+
+The verification-tooling complete profile was rerun on this candidate and
+passed in 31.556 seconds. It included full native ownership preflight, both
+frontend type checks, locked dependency check, deterministic bundle and static
+parity, four-shard allocation, wheel/package smoke, 60 pytest cases, 2 Vitest
+cases and 6 Playwright cases. The six browser tests passed; pytest emitted the
+existing Starlette TestClient deprecation warning and the static build emitted
+its existing large-chunk advisory.
+
+The added test simulates both workers completing, verifies each captured report
+is printed, and confirms that one nonzero worker makes the full step fail. It
+does not replace the final unfiltered full-runner qualification. The earlier
+end-to-end runner pass covered 1,512 cases before the heartbeat/poll loop and
+latest failure-path test changes. The final local full gate remains required
+to exercise the exact runner revision. Same-host performance comparison,
+independent review, final local full gate and one unfiltered hosted
+same-SHA qualification remain outstanding.

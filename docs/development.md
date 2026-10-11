@@ -364,9 +364,12 @@ browser suites; application type contracts; scoped lint and lock checks; the
 deterministic bundle and parity check; wheel build and installed-wheel smoke.
 It refuses ambient diagnostic grep, shard, or pytest filter settings. The
 browser suite is local and unsharded; hosted CI runs four duration-balanced
-whole-spec shards with one worker per runner. Full verification records each
-command's elapsed time and exit status, and does not establish product or
-creative acceptance.
+whole-spec shards with one worker per runner. The Python full step discovers
+the native case set, assigns whole test files across two processes by case
+count, and gives each process a separate temporary root. It refuses ambient
+pytest options and fails if collection is empty, duplicated, unsafe, or either
+worker fails. Full verification records each command's elapsed time and exit
+status, and does not establish product or creative acceptance.
 
 ```sh
 uv run --locked --no-sync python scripts/verify.py full

@@ -471,6 +471,7 @@
           "tests/test_ci_browser_contract.py",
           "tests/test_dependency_boundary.py",
           "tests/test_extraction_contract.py",
+          "tests/test_python_suite_runner.py",
           "tests/test_retained_runtime_coverage_inventory.py",
           "tests/test_shared_runtime_retirement.py",
           "tests/test_static_asset_freshness.py",
@@ -915,6 +916,22 @@
     {
       "suite": "pytest",
       "path": "scripts/testing/module_selection.py",
+      "kind": "test-support-tool",
+      "consumers": [
+        "verification-tooling"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "scripts/testing/run_python_suite.py",
+      "kind": "test-support-tool",
+      "consumers": [
+        "verification-tooling"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "scripts/verify.py",
       "kind": "test-support-tool",
       "consumers": [
         "verification-tooling"

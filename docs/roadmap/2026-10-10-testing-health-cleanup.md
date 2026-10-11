@@ -536,3 +536,41 @@ passed in 40.869 seconds, including both type checks, locked dependencies,
 deterministic static build/parity, wheel/package smoke, 54 pytest cases, 2
 Vitest cases and 6 browser tests. A hosted four-shard result, same-host family
 retiming, independent review and the one full local gate remain outstanding.
+
+### M4 Python process probe checkpoint — 2026-10-11
+
+A full Python duration profile passed 1,507 cases in 383.07 seconds; the top
+20 setup/call/teardown phases totalled 58.29 seconds, with a 6.72-second
+maximum. The suite cost is cumulative. The isolation audit and an end-to-end
+two-process run supported a dynamic whole-file runner in `verify.py full`;
+ADR 0160 records the proposed contract. Two consecutive ownership guards agree
+on the refreshed 1,512 Python / 157 file, 1,074 Vitest / 133 file and 280
+Playwright / 85 spec inventory. Focused tests and quick pass, and the full
+two-process Python runner passed all 1,512 cases.
+
+The broader timing window also contained main-thread UI verification. Do not
+cite the serial or parallel wall times from that window as an accepted speed
+comparison. The runner's actual performance still needs a matched serial and
+two-process retime after the main task is quiet. The latest main UI commit
+`c1b24f742d701d7ca8ca3407d91b673caf4f3f20` is local, unpushed and unqualified;
+retain the 51cb408 baseline boundary until a final published baseline and quiet
+checkpoint are provided. Independent review, one final local full gate and one unfiltered
+same-SHA hosted qualification remain pending.
+
+### M4 runner recheck — 2026-10-11
+
+The failure-report test now covers both child reports and nonzero worker exit.
+Two consecutive native guards match at 1,513 pytest cases / 157 files
+(SHA-256 `98616447651137f987255599a066164a76a5b55546d0d144d80200df53cdc8f3`),
+1,074 Vitest cases / 133 files and 280 Playwright cases / 85 specs. The
+verification-tooling complete profile passed in 31.556 seconds with 60 pytest,
+2 Vitest and 6 Playwright cases; its complete preflight, type, lock, static
+bundle/parity, four-shard allocation and wheel/package gates passed.
+
+The module result is not the final full-runner qualification. End-to-end
+two-process execution passed 1,512 cases before the heartbeat/poll loop and
+latest failure-path test. The pending exact runner revision still needs the
+full local gate. No matched quiet serial/two-process comparison has been
+accepted. The main UI candidate is now c1b24f7 locally and remains unpushed
+and unqualified; continue to use the 51cb408 published baseline boundary
+until the manager provides a final published baseline and quiet checkpoint.

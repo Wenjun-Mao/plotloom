@@ -152,9 +152,8 @@ def _full_steps(wheel_dir: Path) -> list[Step]:
             "run",
             "--locked",
             "--no-sync",
-            "pytest",
-            "-q",
-            "--durations=20",
+            "python",
+            "scripts/testing/run_python_suite.py",
         ),
         _command(
             "deterministic production bundle",
