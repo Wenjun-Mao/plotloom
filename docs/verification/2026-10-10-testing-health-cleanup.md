@@ -1150,3 +1150,11 @@ qualified for the current macOS and Ubuntu verification targets; Windows worker
 descendant containment remains unqualified. A quiet matched serial/two-process
 comparison, the exact-runner full local gate and one unfiltered hosted
 same-SHA qualification remain outstanding.
+
+### Published baseline reconciliation — 2026-10-11
+
+The manager confirmed quiet completion and published baseline `927d441eb647804d4202aeeabffd487b02b9867b`. The M0–M5 branch was rebased onto that SHA, and a range-diff preserved all nine implementation/review commits. At checkpoint creation, branch HEAD was `d1247871a779bc212321d53bfd00dfa05e09398d`; the four new Vitest file-owner entries had passed the native guard and remained uncommitted. The main commit changed frontend tests only, leaving the M0 Python selections and their controlled comparison inputs unchanged.
+
+Two consecutive post-rebase ownership guards matched at 1,516 pytest cases / 157 files, SHA-256 `93f2e6e50d57336edfd352318aaac7d82d3414b524068ca7f630c0c771322fa3`; 1,126 Vitest cases / 137 files, SHA-256 `306c6062c3a59c7085174debefc21736ba847e452d1e7dfe8c4b8dc4603f4711`; and 285 Playwright cases / 85 files, SHA-256 `4feb9c25937c3f1dc953fb390c8b3817f1db431c81c304e3a2b050fe977a8969`. The new files are graph-workflow-actions and workspace-workflow-guide (graph), source-review-display (story-authoring), and workspace-viewport (shared-presentation). The four-shard allocation guard passed with 83/61/70/71 cases, with no gaps or overlap. The graph + story-authoring + shared-presentation contract union passed in 37.620 seconds: 174 pytest and 254 Vitest cases.
+
+Hosted run 38109502813 is the unfiltered comparison run on baseline SHA `927d441eb647804d4202aeeabffd487b02b9867b`. The verify job passed at 04:04:04Z; both browser jobs were still running at 04:04Z. This is baseline evidence, not candidate qualification. A new next-action hint update remains active in the manager's main task. Defer the quiet M5 timing comparison and final full candidate gates until that work provides a final published baseline and quiet checkpoint.

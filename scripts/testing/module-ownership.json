@@ -43,6 +43,7 @@
           "frontend/tests/recommended-workflow.test.ts",
           "frontend/tests/scene-beats-editor.test.ts",
           "frontend/tests/section-map-panel-actions.test.ts",
+          "frontend/tests/source-review-display.test.ts",
           "frontend/tests/source-structure-model.test.ts",
           "frontend/tests/source-workflow-navigation.test.ts"
         ],
@@ -83,7 +84,9 @@
           "frontend/tests/graph-presentation.test.ts",
           "frontend/tests/graph-read-autosave.test.ts",
           "frontend/tests/graph-safety-notice.test.ts",
-          "frontend/tests/graph-workbench-provider.test.ts"
+          "frontend/tests/graph-workbench-provider.test.ts",
+          "frontend/tests/graph-workflow-actions.test.ts",
+          "frontend/tests/workspace-workflow-guide.test.ts"
         ],
         "playwright": [
           "frontend/e2e/branch-mutation-remount.spec.ts",
@@ -500,7 +503,8 @@
           "frontend/tests/confirmation.test.ts",
           "frontend/tests/context-help.test.ts",
           "frontend/tests/run-presentation.test.ts",
-          "frontend/tests/ui-time.test.ts"
+          "frontend/tests/ui-time.test.ts",
+          "frontend/tests/workspace-viewport.test.ts"
         ],
         "playwright": [
           "frontend/e2e/creator-confirmation.spec.ts",

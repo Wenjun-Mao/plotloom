@@ -635,3 +635,11 @@ an unqualified local candidate, not a published baseline. The M0–M5 worktree
 remains based on `51cb408`; do not rebase, run the quiet timing comparison or
 start final qualification until the manager provides the final published
 baseline and quiet checkpoint.
+
+### Published baseline reconciliation — 2026-10-11
+
+The manager confirmed quiet completion and published baseline `927d441eb647804d4202aeeabffd487b02b9867b`. The isolated M0–M5 branch was rebased onto that commit; `git range-diff` confirmed all nine M0–M5 commits were preserved. At checkpoint creation the branch HEAD was `d1247871a779bc212321d53bfd00dfa05e09398d`; verified ownership-map additions for four newly introduced Vitest files were uncommitted. The baseline adds frontend tests only, so backend inputs and the controlled Python family selections remain unchanged.
+
+After mapping the new files, two consecutive native ownership guards matched at 1,516 pytest cases / 157 files (SHA-256 `93f2e6e50d57336edfd352318aaac7d82d3414b524068ca7f630c0c771322fa3`), 1,126 Vitest cases / 137 files (`306c6062c3a59c7085174debefc21736ba847e452d1e7dfe8c4b8dc4603f4711`), and 285 Playwright cases / 85 files (`4feb9c25937c3f1dc953fb390c8b3817f1db431c81c304e3a2b050fe977a8969`). The four-shard native allocation guard passed with 83/61/70/71 cases and no overlap or omissions. A combined graph, story-authoring and shared-presentation contract profile passed in 37.620 seconds with 174 pytest and 254 Vitest cases.
+
+Unfiltered hosted baseline run 38109502813 was dispatched on the exact published baseline SHA. The verify job passed at 04:04:04Z; both browser shards were still running at 04:04Z. This is not candidate qualification. A separate next-action hint update is active in the manager's main task, so final quiet performance timing and full candidate qualification remain deferred until that work has a final published SHA and quiet checkpoint.
