@@ -1,14 +1,16 @@
 # Recommended creative workflow guide
 
 Status: guide and concrete branch-control correction published on main. The
-one-graph/two-views refinement below is locally qualified for publication. Hosted CI remains
-separate: original run 38098197412 on 4955bbf completed with verify passed and both
-browser shards failed; correction run 38101073289 on 63b25f4 is in progress at this
-check. The isolated modular-verification task owns their completion follow-up.
+one-graph/two-views refinement is published as `7da7b6e`; its required unfiltered
+hosted run 38101824564 remains in progress. Hosted CI is separate: original run
+38098197412 on 4955bbf completed with verify passed and both browser shards failed;
+correction run 38101073289 on 63b25f4 is in progress at this check. The isolated
+modular-verification task owns completion follow-up. This status-only update
+does not change the qualified executable inputs or require another dispatch.
 
 ## Owner walkthrough correction — one graph, two views
 
-Status: implemented and locally qualified for publication (2026-10-10).
+Status: published as `7da7b6e` after local qualification (2026-10-10); hosted CI pending.
 Trusted baseline: `63b25f461367b5732e08e6aac5eef3c429721f75`.
 
 The workbench switch exposes two presentations of the existing shared graph
@@ -72,9 +74,12 @@ Local qualification evidence against that baseline:
   `/healthz` is healthy; no service restart or owner-project read/write occurred.
 - Independent GPT-6 Luna / Max stable-candidate review found no findings and
   confirmed the existing guarded navigation, shared graph owner and unchanged
-  API/persistence boundary. Required unfiltered hosted
-  CI will be dispatched once on the published refinement SHA, not counted as
-  passed before terminal success. Local frontend qualification is not full
+  API/persistence boundary. Required unfiltered hosted CI was dispatched once
+  with `browser_grep=.*` on executable SHA
+  `7da7b6efa20e43a3b2d692eeac7defe6838a1e1c`:
+  [run 38101824564](https://github.com/Wenjun-Mao/plotloom/actions/runs/38101824564)
+  is in progress, not counted as passed before terminal success.
+  Local frontend qualification is not full
   local release qualification or owner product/creative acceptance.
 
 ## Earlier correction — concrete branch next controls

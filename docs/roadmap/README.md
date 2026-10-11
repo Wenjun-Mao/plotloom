@@ -4,8 +4,10 @@ The October10 [recommended creative workflow guide](2026-10-10-recommended-creat
 implements an advisory six-step workspace guide. Its risk-scoped local frontend
 qualification and supported-desktop screenshots passed under
 [ADR 0156](../adr/0156-risk-scoped-local-qualification.md); publication is on
-main. The one-graph/two-views owner refinement is locally qualified in that
-receipt. Historical hosted run [38098197412](https://github.com/Wenjun-Mao/plotloom/actions/runs/38098197412)
+main. The one-graph/two-views owner refinement is locally qualified and published
+as 7da7b6e; its unfiltered hosted run
+[38101824564](https://github.com/Wenjun-Mao/plotloom/actions/runs/38101824564)
+is pending. Historical hosted run [38098197412](https://github.com/Wenjun-Mao/plotloom/actions/runs/38098197412)
 finished with verify passed and both browser shards failed; the concrete-control
 correction run [38101073289](https://github.com/Wenjun-Mao/plotloom/actions/runs/38101073289)
 on 63b25f4 is still pending at this check. Owner acceptance remains separate.
