@@ -1141,6 +1141,10 @@ Playwright 280 / 85, SHA-256
 The verification-tooling complete profile passed in 31.817 seconds: full
 ownership preflight, both frontend type checks, lock check, deterministic
 bundle and parity, four-shard allocation, wheel/package smoke, 63 pytest, 2
-Vitest and 6 Playwright cases. An independent review of this updated candidate,
-a quiet matched serial/two-process comparison, the exact-runner full local gate,
-and one unfiltered hosted same-SHA qualification remain outstanding.
+Vitest and 6 Playwright cases. The independent read-only review of commit
+71defcae081d2542618338d5faa6876e0d8cbf5f found no actionable findings. The
+reviewer reran the bounded reproduction with a shortened shutdown grace and
+observed leader exit -15, an empty child process state and `child_running=False`.
+The reviewer did not run project suites. A quiet matched serial/two-process
+comparison, the exact-runner full local gate and one unfiltered hosted
+same-SHA qualification remain outstanding.
