@@ -1,8 +1,10 @@
 # ADR 0160 — Two-process Python full gate
 
-Status: proposed, pending unfiltered hosted same-SHA qualification. The
-exact-runner integrated local full gate passed on `038b468` on 2026-10-11;
-see the verification receipt for results and the later UI-only evidence scope.
+Status: accepted. The exact-runner integrated local full gate passed on
+`038b468` on 2026-10-11, and unfiltered hosted run `38143271232` passed on
+`606626d32d7fc099986c90292e0a76e015c142c0`. See the verification receipt
+for results and the later UI-only evidence scope. Worktree archival remains a
+separate cleanup checkpoint and does not expand platform qualification.
 
 ## Context
 

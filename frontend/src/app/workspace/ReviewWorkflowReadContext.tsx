@@ -13,16 +13,17 @@ export type ArtWorkflowObservation = ReviewObservation & { stage: "art"; state?:
 export type CastWorkflowObservation = ReviewObservation & { stage: "characters"; state?: CastReviewState; renderStyle: ArtRenderStyle | ""; retainedDraft: boolean; designValid: boolean };
 export type StoryboardWorkflowObservation = ReviewObservation & { stage: "storyboard-review"; state?: StoryboardReviewState };
 export type BridgeWorkflowObservation = ReviewObservation & { stage: "production-bridge"; state?: ProductionBridgeState; blocked: boolean; canonicalReady: boolean; canOpenShot: boolean };
-type Observation = ScriptWorkflowObservation | ArtWorkflowObservation | CastWorkflowObservation | StoryboardWorkflowObservation | BridgeWorkflowObservation;
+export type ShotWorkflowObservation = ReviewObservation & { stage: "shot-media"; state?: undefined; shotId?: string; nextText: string; allRoutesReady: boolean };
+type Observation = ScriptWorkflowObservation | ArtWorkflowObservation | CastWorkflowObservation | StoryboardWorkflowObservation | BridgeWorkflowObservation | ShotWorkflowObservation;
 type ReviewStage = Exclude<Observation["stage"], "production-bridge">;
 type Report = (stage: Observation["stage"], observation: Observation | undefined) => void;
 const ReviewWorkflowContext = createContext<{ projectId: string; stage?: ReviewStage; report?: Report; read?: Observation; bridgeRead?: BridgeWorkflowObservation } | null>(null);
 
 /** Observe the active review owner, without duplicating its reads or writes. */
-export function ReviewWorkflowReadProvider({ projectId, revision, stage, children }: {
-  projectId: string; revision: number; stage?: ReviewStage; children: ReactNode;
+export function ReviewWorkflowReadProvider({ projectId, revision, stage, entity, children }: {
+  projectId: string; revision: number; stage?: ReviewStage; entity?: string; children: ReactNode;
 }) {
-  const identity = JSON.stringify([projectId, revision, stage]);
+  const identity = JSON.stringify([projectId, revision, stage, entity]);
   const owner = useRef({ identity });
   if (owner.current.identity !== identity) owner.current = { identity };
   const token = owner.current;
@@ -51,6 +52,9 @@ export function useReportReviewWorkflowRead(projectId: string, active: boolean, 
   const blocked = observation.stage === "production-bridge" ? observation.blocked : undefined;
   const canonicalReady = observation.stage === "production-bridge" ? observation.canonicalReady : undefined;
   const canOpenShot = observation.stage === "production-bridge" ? observation.canOpenShot : undefined;
-  useEffect(() => { report?.(observation.stage, observation); }, [report, status, state, busy, dirty, error, renderStyle, retainedDraft, designValid, blocked, canonicalReady, canOpenShot]);
+  const shotId = observation.stage === "shot-media" ? observation.shotId : undefined;
+  const nextText = observation.stage === "shot-media" ? observation.nextText : undefined;
+  const allRoutesReady = observation.stage === "shot-media" ? observation.allRoutesReady : undefined;
+  useEffect(() => { report?.(observation.stage, observation); }, [report, status, state, busy, dirty, error, renderStyle, retainedDraft, designValid, blocked, canonicalReady, canOpenShot, shotId, nextText, allRoutesReady]);
   useEffect(() => () => report?.(observation.stage, undefined), [report, observation.stage]);
 }

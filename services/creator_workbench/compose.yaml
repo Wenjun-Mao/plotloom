@@ -17,6 +17,7 @@ services:
       PLOTLOOM_CREATOR_DATA: ${PLOTLOOM_CREATOR_DATA}
       PLOTLOOM_CODEX_BRIDGE_URL: http://host.docker.internal:8842
       PLOTLOOM_CODEX_BRIDGE_TOKEN_FILE: /run/secrets/codex_bridge_token
+      PLOTLOOM_CREATOR_ENABLE_H3: "false"
     secrets:
       - codex_bridge_token
     volumes:

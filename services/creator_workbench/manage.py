@@ -12,6 +12,8 @@ import sys
 from hashlib import sha256
 from pathlib import Path
 
+from h3_configuration import read_h3_configuration
+
 SERVICE = Path(__file__).resolve().parent
 REPOSITORY = SERVICE.parents[1]
 CONFIG = REPOSITORY / ".local" / "creator-workbench" / "deployment.json"
@@ -93,10 +95,31 @@ def compose(config, *arguments):
         "PLOTLOOM_UID": str(os.getuid()),
         "PLOTLOOM_GID": str(os.getgid()),
     }
+    command = ["docker", "compose", "-f", str(SERVICE / "compose.yaml")]
+    if config.get("h3_config"):
+        environment["PLOTLOOM_CREATOR_H3_CONFIG"] = config["h3_config"]
+        command.extend(["-f", str(SERVICE / "compose.h3.yaml")])
     return run(
-        ["docker", "compose", "-f", str(SERVICE / "compose.yaml"), *arguments],
+        [*command, *arguments],
         env=environment,
     )
+
+
+def configure_h3(config, path=None, *, disable=False):
+    selected = str(path.absolute()) if path is not None else config.get("h3_config")
+    if disable:
+        selected = None
+    if selected:
+        candidate = Path(selected)
+        data = Path(config["data"]).resolve()
+        if candidate.resolve().is_relative_to(data) or candidate.resolve().is_relative_to(
+            SERVICE
+        ):
+            raise ValueError("H3 credentials must remain outside creator data and service source")
+        read_h3_configuration(candidate)
+    if selected != config.get("h3_config"):
+        config["h3_config"] = selected
+        CONFIG.write_text(json.dumps(config, indent=2) + "\n")
 
 
 def install_bridge(config):
@@ -150,13 +173,25 @@ def main():
         "action", choices=["start", "status", "logs", "stop", "check-bridge"]
     )
     parser.add_argument("--data-root", type=Path)
+    h3 = parser.add_mutually_exclusive_group()
+    h3.add_argument(
+        "--h3-config", type=Path,
+        help="Enable the existing private H3 gateway using an owner-only configuration file",
+    )
+    h3.add_argument(
+        "--disable-h3", action="store_true",
+        help="Disable H3 without deleting job evidence or credentials",
+    )
     args = parser.parse_args()
+    if args.action != "start" and (args.h3_config is not None or args.disable_h3):
+        parser.error("H3 configuration changes require start")
     if sys.platform != "darwin":
         parser.error(
             "this creator deployment requires Docker on macOS and the native Codex app"
         )
     config = load_config(args.data_root)
     if args.action == "start":
+        configure_h3(config, args.h3_config, disable=args.disable_h3)
         compose(config, "build")
         install_bridge(config)
         # Mounted Python edits do not change the image/config identity used by

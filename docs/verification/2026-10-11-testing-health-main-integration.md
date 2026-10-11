@@ -29,17 +29,26 @@ cases; four browser shards are 83/70/70/71, without gaps or overlap.
 ## Hosted and cleanup checkpoint
 
 The older green hosted run `38113104300` is pinned to `5d007935`, before this
-main and UI input. It is not current qualification. Publish the reviewed main
-candidate, dispatch one unfiltered workflow with `browser_grep=.*`, and consume
-that exact-SHA result before completing the hosted qualification checkpoint.
+main and UI input. It is not current qualification.
+
+Unfiltered [hosted run 38143271232](https://github.com/Wenjun-Mao/plotloom/actions/runs/38143271232)
+passed on exact `606626d32d7fc099986c90292e0a76e015c142c0`, with
+`browser_grep=.*`: verification and all four browser shard jobs succeeded.
+The manager independently read back the exact SHA and all job conclusions.
+This qualifies the integrated M0-M5 and that UI revision, not later source or
+runtime configuration changes.
 
 Read-only worker cleanup inspection found a clean worktree with no nonignored
 untracked files or unique ignored evidence. Ignored items are reproducible
 dependencies and caches plus `.last-run.json`; durable receipts are tracked.
 Its managed attachment identity is
 `/Users/wjmao/.codex/worktrees/verification-health/plotloom`, attached to the
-worker task. Archive recoverably through that task after qualification; preserve
-the pushed branch and do not touch other checkouts. No archive has happened yet.
+worker task. After qualification, the worker deinitialized the clean pinned
+submodule without force and requested recoverable archival. The app returned
+`queued`, without a status identifier. Subsequent readbacks still showed the
+checkout and active attachment; archival is not confirmed. Preserve the pushed
+branch, do not manually delete the checkout or duplicate the ambiguous queued
+operation, and do not touch other checkouts.
 
 Windows process-tree containment remains unqualified. Current cancellation
 guarantees are POSIX-only (macOS and Ubuntu). This software qualification is not

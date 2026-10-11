@@ -58,6 +58,26 @@ actual observations separately from software regression qualification.
   before preparing again. No unknown dispatch or acceptance was bypassed.
 - Replaced the Storyboard page's generic guide with acknowledged state-based
   instructions. See the separate scoped UI qualification receipt below.
+- Saved and inspected the complete dramatic-intent package (18 rows) and
+  presentation package (nine actions and nine compositions), then confirmed and
+  installed all five scenes / nine shots. Approved the current whole storyboard
+  (`5f6db813`) separately from creative proposal acceptance.
+- Selected the production identity reference for C01, froze first-shot image
+  job `ij_f03a8428a0de497d9cce49e0d48b931a` on source `606626d`, and sent it
+  once. Delivery was ingested; actual pixels were inspected before selecting
+  asset `aaca6264-25ca-4246-910a-a250386828e1` as the first shot's keyframe.
+  Recorded the current cross-shot identity review `b613fb05`; image generation,
+  keyframe selection and visual review remain distinct acknowledgements.
+- The persistent creator server exposed H3 as unconfigured because its
+  composition explicitly supplied no provider/adapter. Host environment values
+  could not enable it. Added an explicit, protected-file deployment opt-in,
+  validated the current catalog locally, and checked Docker secret ownership,
+  privacy and readability without printing contents or contacting the gateway.
+  Activation and actual video generation follow the reviewed source checkpoint.
+- Installed shots also exposed premature playback advice. The guide now
+  observes existing media-owner reads and distinguishes prerequisites, frozen
+  requests, originals, segment review and all-route selection. Actual playback
+  acceptance remains pending; test fixtures are not owner media evidence.
 
 ## Separate verification-tooling assignment
 
@@ -84,8 +104,11 @@ to exact-current hosted qualification.
 The integrated local full gate passed on `038b46850e5a4f2b31d7a251d56eff5fe6af0cf5`
 in 711.499s: 1,518 Python, 1,201 Vitest and 292 browser cases, plus build/parity,
 ownership/shards and wheel smoke. The later Storyboard UI-only delta uses ADR
-0156 risk-scoped qualification, not another full Python run. Hosted latest-SHA
-qualification and recoverable worker-worktree cleanup remain pending.
+0156 risk-scoped qualification, not another full Python run. Exact `606626d`
+hosted run `38143271232` passed all jobs. Recoverable worker-worktree archival
+was requested but remains unconfirmed; the later H3 runtime input requires
+separate qualification.
 
-Status: in progress; production intent, installation, media and both real
-playback routes remain. No E2E success or final-media claim yet.
+Status: in progress; first keyframe and current identity review are accepted.
+Video media and both real playback routes remain. No E2E success or final-media
+claim yet.

@@ -55,6 +55,33 @@ generated deployment configuration and runtime data remain outside both source
 subtrees. Adding another service requires an explicit ownership decision, not
 a general `services/*` exception. Focused tests exercise both admitted owners.
 
+### Explicit private H3 composition (2026-10-11)
+
+The owner E2E walkthrough reached an approved keyframe, but the persistent
+server still hardcoded `video_provider=None` and `video_adapter=None`. Host
+provider configuration and installed FFmpeg could not change that composition.
+The fix belongs in the deployment owner, not the UI or generation contracts.
+
+`manage.py start --h3-config <protected-file>` is an explicit retained opt-in.
+Validate an owned, non-symlink, owner-only file before Docker/bridge changes;
+retain only its path in ignored deployment state. A selected Compose override
+mounts it as a read-only secret. Parse only provider fields without dotenv
+interpolation or environment mutation; specialist subprocesses never receive
+these values. Keep installation outputs/application paths authoritative and
+require the existing trusted catalog, bearer credential and private gateway
+root. Invalid configuration fails closed with a sanitized error. Default
+composition ignores ambient enable flags and credentials.
+
+An existing protected checkout `.env` is permitted as an operator-selected
+server file outside service source and installation state; a dedicated private
+file is preferred for narrower contents. Neither is copied into the image or
+project payload. Mandatory gateway preflight remains at generation preparation
+and submission, not deployment startup. `start --disable-h3` removes the opt-in
+without deleting credentials, leases, approvals, media or job evidence. No
+startup path dispatches or retries jobs. Native regression discovery now
+covers default-off, private configuration, redaction, storage ownership,
+persistence, disable and fail-before-Docker behavior.
+
 ### Wake-up boundary clarification (2026-10-01)
 
 The later [ADR 0096](0096-native-specialist-deep-link-wake.md) qualifies the

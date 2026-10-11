@@ -1,0 +1,11 @@
+# Selected only by manage.py after explicit operator opt-in and validation.
+services:
+  workbench:
+    environment:
+      PLOTLOOM_CREATOR_ENABLE_H3: "true"
+      PLOTLOOM_CREATOR_H3_CONFIG_FILE: /run/secrets/h3_configuration
+    secrets:
+      - h3_configuration
+secrets:
+  h3_configuration:
+    file: ${PLOTLOOM_CREATOR_H3_CONFIG:?Use manage.py start --h3-config}

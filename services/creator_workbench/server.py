@@ -7,6 +7,7 @@ import uvicorn
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.project_storage.composition import ProjectFolderStorage
+from h3_configuration import creator_h3_backend
 
 
 def create_app():
@@ -23,10 +24,11 @@ def create_app():
     )
     # Installation-local specialist settings and leases are already durable.
     # Both roles use the same codex CLI bridge supplied on the container PATH.
+    video_provider, video_adapter = creator_h3_backend()
     app = create_project_folder_authoring_app(
         storage,
-        video_provider=None,
-        video_adapter=None,
+        video_provider=video_provider,
+        video_adapter=video_adapter,
         static_dir=repository / "src" / "plotloom" / "static",
     )
 

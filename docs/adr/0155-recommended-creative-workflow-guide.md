@@ -258,3 +258,27 @@ project/revision replacement invalidate both advisory observations. Regressions
 cover simultaneous parent/child observations, one read per owner, held A-B-A
 responses, actual desktop controls, unresolved execution and separate approval,
 installation and media steps.
+
+## Installed-shot media progression (2026-10-11)
+
+The owner walkthrough installed nine shots, but the guide prematurely offered
+story playback before any clip was selected. Formal production installation
+proves shot structure, not media readiness. Observe VideoPilotPanel's existing
+video/backend reads and the media owner's readiness, keyframe and identity
+review. Scope observations to the selected entity as well as project, revision
+and activation; no additional reads or automatic dispatch are introduced.
+
+The mounted media and video owners revalidate their existing reads when the
+project revision changes, even if the storyboard editor is preserved. A new
+advisory provider token alone cannot make an old owner's snapshot current.
+Formal playback-stage readiness gates both advice text and its action, so stale
+structure cannot retain a misleading instruction to click a withheld button.
+
+Name the existing prerequisite, request, retrieval, segment review or selection
+control from verified current state. Unknown reads and read-only state withdraw
+action advice. Offer interactive playback only when every derived route has
+current, selected, duration-matched clips, using the same route projection as
+the existing preview. Clip selection still does not imply playback acceptance.
+Regressions cover owned-read counts, entity changes, late A-B-A completions,
+failed reads and the distinction between original, preview, selected shot and
+complete routes.

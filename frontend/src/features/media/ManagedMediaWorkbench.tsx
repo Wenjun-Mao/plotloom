@@ -22,6 +22,7 @@ import { ShotPresentationReview } from "./keyframes/ShotPresentationReview";
 import { generatedCandidateState } from "./keyframes/shot-presentation";
 import { shotLabel } from "../../shot-label";
 import { VideoPilotPanel } from "../../video-pilot";
+import { hasCurrentStoryboardApproval } from "./current-storyboard-approval";
 import { useAssetKeyframeActions } from "./assets/useAssetKeyframeActions";
 import { useImageJobActions } from "./image-jobs/useImageJobActions";
 import { useCharacterReferenceActions } from "./references/useCharacterReferenceActions";
@@ -35,6 +36,7 @@ import type { SamePersonComparisonDraft } from "../../same-person-review-types";
 export function ManagedMediaWorkbench({
   projectId,
   lifecycleRevision,
+  projectRevision,
   lifecycleStatus,
   storyboard,
   bible,
@@ -55,6 +57,7 @@ export function ManagedMediaWorkbench({
 }: {
   projectId?: string;
   lifecycleRevision?: number;
+  projectRevision?: number;
   lifecycleStatus?: "active" | "archived";
   storyboard: Storyboard;
   bible: StoryBible;
@@ -74,11 +77,12 @@ export function ManagedMediaWorkbench({
   draftChanged?: boolean;
 }) {
   const currentApproval: ApprovalDecision | undefined = review?.activeApproval ?? undefined;
+  const approvalCurrent = hasCurrentStoryboardApproval(review, storyboardRevision, draftChanged);
   const {
     workbench, acknowledgeSelectionRevision, refreshAfterProjectWrite, imageJobs, imageExchangeConfigured,
     previewId, setPreviewId, refresh, mediaReadPhase,
   } = useMediaWorkbenchData({
-    projectId, lifecycleRevision, approvalId: currentApproval?.id,
+    projectId, projectRevision, lifecycleRevision, approvalId: currentApproval?.id,
     approvalRevision: currentApproval?.subjectRevision, storyboardRevision,
     shotId: selectedShot?.id,
   });
@@ -306,7 +310,7 @@ export function ManagedMediaWorkbench({
           </select>
         </Field>
         <Button variant="quiet" onClick={onReview}>
-          {currentApproval ? "查看分镜批准" : "前往分镜审核"}
+          {approvalCurrent ? "查看分镜批准" : "前往分镜审核"}
         </Button>
         <Button variant="quiet" disabled={!selectedShot} onClick={onEditShot}>编辑镜头细节</Button>
       </div>
@@ -322,7 +326,7 @@ export function ManagedMediaWorkbench({
       )}
       <div className="shot-workbench-focus">
         <div className="shot-workbench-heading"><div><small>{selectedShot ? `当前镜头 · ${selectedShot.durationUnits / 1000} 秒` : "尚未选择镜头"}</small><strong>{selectedShot ? shotLabel(selectedShot) : "请选择镜头"}</strong>{selectedShot && <p>{selectedShot.action}</p>}</div></div>
-        <VideoPilotPanel projectId={projectId} lifecycleRevision={lifecycleRevision} lifecycleStatus={lifecycleStatus} shot={selectedShot} approvalId={review?.activeApproval?.id}
+        <VideoPilotPanel projectId={projectId} projectRevision={projectRevision} lifecycleRevision={lifecycleRevision} lifecycleStatus={lifecycleStatus} shot={selectedShot} approvalId={review?.activeApproval?.id} approvalCurrent={approvalCurrent}
           storyboardRevision={storyboardRevision} selectionRevision={workbench.selectionRevision}
           keyframe={selectedBinding ? assetById.get(selectedBinding.assetId) : undefined}
           reviewedBinding={selectedBinding} samePersonReviewId={selectedBinding ? currentReviewByBinding.get(selectedBinding.id)?.id : undefined}

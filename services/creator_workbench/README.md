@@ -61,12 +61,45 @@ sign-in recovery are not qualified by the local wake probe. The bridge makes
 one queue and one post-acknowledgement open attempt and never retries; the
 existing Plotloom reservations still protect unknown queue outcomes. Never
 delete leases to get around a failed send. `check-bridge` checks connectivity
-without queueing a task. This deployment retains the walkthrough's disabled
-video backend and existing explicit review/acceptance behavior (ADRs 0095/0096).
+without queueing a task. Video generation is disabled by default and retains
+the existing explicit review/acceptance behavior (ADRs 0095/0096).
 
 To remove only the host bridge, use `launchctl bootout gui/$(id -u)/com.plotloom.creator-codex-bridge`
 and remove its exact plist from `~/Library/LaunchAgents/`. Stopping or removing
 the container leaves the bound project directories in place.
+
+## Explicit private H3 gateway opt-in
+
+An operator can enable the existing reviewed H3 gateway at a quiet dispatch
+checkpoint. Supply a regular, non-symlink configuration file owned by the
+current user with no group/other permissions (0600), outside creator data and
+the service source directory. The file must contain `VIDEO_PROVIDER`,
+`VIDEO_MODEL` (the current reviewed H3 catalog/profile), `VIDEO_BASE_URL`
+(a credential-free private IP host root), `VIDEO_AUTH_MODE=bearer` and
+`VIDEO_MODEL_API_KEY`. An existing protected checkout `.env` is supported;
+unrelated storage/settings keys are ignored. Never put credentials in a command.
+
+```sh
+uv run --locked python services/creator_workbench/manage.py start --h3-config /absolute/private/owner.env
+uv run --locked python services/creator_workbench/manage.py start --disable-h3
+```
+
+The enabled deployment remembers only the absolute configuration path and
+mounts the file as a read-only Compose secret. It does not export parsed values
+into the environment or pass them to specialist tasks. Ambient provider flags
+cannot enable a default installation. Subsequent `start` retains and validates
+the explicit configuration before Docker or bridge changes; invalid settings
+fail closed without printing credential-bearing validation details.
+
+Startup validates local configuration, not gateway availability. The existing
+generation preflight checks the gateway before freezing/submitting a job.
+Enabling or disabling does not dispatch jobs, select media, change approvals,
+delete credentials or remove job evidence. Disabling preserves project data
+and native specialist leases. Tests use fake credentials and no gateway calls:
+
+```sh
+uv run --locked pytest tests/services/creator_workbench/test_h3_runtime.py services/creator_workbench/test_manage.py -q
+```
 
 ## Isolated test installation
 

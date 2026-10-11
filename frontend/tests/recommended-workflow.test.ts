@@ -321,12 +321,24 @@ describe("recommended creative workflow", () => {
     });
   });
 
-  it("distinguishes interactive playback checks from a static report", () => {
-    const model = buildRecommendedWorkflow({ ...base, activePage: "storyboard" })!;
+  it("requires an observed complete media read before recommending playback", () => {
+    const unknown = buildRecommendedWorkflow({ ...base, activePage: "storyboard" })!;
+    expect(unknown.action).toBeUndefined();
+    expect(unknown.nextText).toContain("已安装分镜不代表影片");
+    const model = buildRecommendedWorkflow({ ...base, activePage: "storyboard", shotRead: {
+      stage: "shot-media", status: "ready", busy: false, dirty: false, allRoutesReady: true,
+      nextText: "所有完整路线已有当前选定的播放片段。",
+    } })!;
     expect(model.currentStep).toBe("production");
     expect(model.steps.find(step => step.id === "play")?.status).toBe("可检查播放器条件");
-    expect(model.nextText).toContain("静态报告只供阅读");
+    expect(model.nextText).toContain("所有完整路线");
     expect(model.action).toEqual({ kind: "play", label: "检查交互式播放", href: base.playHref });
+    const stale = buildRecommendedWorkflow({ ...base, activePage: "storyboard", project: { ...project, staleStages: ["story_graph"] },
+      shotRead: { stage: "shot-media", status: "ready", busy: false, dirty: false, allRoutesReady: true,
+        nextText: "点击「检查交互式播放」。" } })!;
+    expect(stale.action).toBeUndefined();
+    expect(stale.nextText).not.toContain("点击「检查交互式播放」");
+    expect(stale.nextText).toContain("尚未全部有效");
   });
 
   it("avoids readiness and actions while source reads fail or the project is read-only", () => {

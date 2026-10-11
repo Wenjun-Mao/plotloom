@@ -21,6 +21,8 @@ import { ReviewedVideoPlayer } from "./features/media/ReviewedVideoPlayer";
 import { isCurrentVideoSelection, videoNextAction } from "./features/media/video-next-action";
 import { frozenVideoSnapshot } from "./features/media/frozen-video-snapshot";
 import { videoJobLabel } from "./features/media/video-job-label";
+import { useReportReviewWorkflowRead } from "./app/workspace/ReviewWorkflowReadContext";
+import { shotWorkflowNextText } from "./app/workspace/recommendedShotWorkflow";
 
 type FrozenShot = { id?: string; title?: string; action?: string; sceneId?: string; order?: number };
 
@@ -202,9 +204,11 @@ function OrderedVideoPlayback({ projectId, jobs, sourceIdentity }: { projectId: 
   </section>;
 }
 
-export function VideoPilotPanel({ projectId, lifecycleRevision, lifecycleStatus, shot, approvalId, storyboardRevision, selectionRevision, keyframe, reviewedBinding, samePersonReviewId, mediaReadPhase, storyboard, sceneBeats, graph, routeId, readOnly }: {
+export function VideoPilotPanel({ projectId, projectRevision, lifecycleRevision, lifecycleStatus, shot, approvalId, approvalCurrent, storyboardRevision, selectionRevision, keyframe, reviewedBinding, samePersonReviewId, mediaReadPhase, storyboard, sceneBeats, graph, routeId, readOnly }: {
   projectId?: string; shot?: Shot; approvalId?: string; storyboardRevision?: number; selectionRevision: number;
   lifecycleRevision?: number;
+  projectRevision?: number;
+  approvalCurrent?: boolean;
   lifecycleStatus?: "active" | "archived";
   keyframe?: ManagedAsset; storyboard: Storyboard; sceneBeats: SceneBeatPlan; graph: StoryGraph; routeId?: string; readOnly: boolean;
   reviewedBinding?: ReviewedKeyframe; samePersonReviewId?: string; mediaReadPhase: MediaReadPhase;
@@ -212,7 +216,7 @@ export function VideoPilotPanel({ projectId, lifecycleRevision, lifecycleStatus,
   const [budget, setBudget] = useState<VideoPilotBudget | null>(null);
   const [backend, setBackend] = useState<VideoBackend | null>(null);
   const [loadedJobs, setJobs] = useState<VideoJob[]>([]);
-  const videoContext = JSON.stringify([projectId, lifecycleRevision]);
+  const videoContext = JSON.stringify([projectId, projectRevision, lifecycleRevision]);
   const [loadedContext, setLoadedContext] = useState<string>();
   const [loadedProjectId, setLoadedProjectId] = useState<string>();
   const videoReadCurrent = loadedContext === videoContext;
@@ -349,6 +353,18 @@ export function VideoPilotPanel({ projectId, lifecycleRevision, lifecycleStatus,
   const currentH3Timing = h3Timing(shot?.durationUnits ?? 0, h3DurationSeconds, backend?.qualifiedDurationSeconds);
   const h3RequestedFrames = currentH3Timing.requestFrames;
   const h3TimingMismatch = h3 && !currentH3Timing.playbackIntent;
+  const routes = deriveRoutes(graph);
+  const allRoutesReady = mediaReady && routes.length > 0 && routes.every(route => {
+    const sequence = selectedRouteVideos(jobs.filter(job => job.projectId === projectId), storyboard, sceneBeats, graph, route.id);
+    return sequence !== null && sequence.jobs.length > 0 && sequence.missingShotTitles.length === 0;
+  });
+  useReportReviewWorkflowRead(projectId ?? "", Boolean(projectId), {
+    stage: "shot-media", status: videoReadCurrent && mediaReadPhase === "ready" ? "ready" : error || mediaReadPhase === "error" ? "failed" : "loading",
+    busy: false, dirty: readOnly, shotId: shot?.id, allRoutesReady,
+    nextText: shotWorkflowNextText({ videoReady: videoReadCurrent, videoError: Boolean(error), mediaPhase: mediaReadPhase,
+      shot, availableShots: storyboard.shots.length, readOnly, approvalCurrent: approvalCurrent === true, keyframeReady: Boolean(keyframe && reviewedBinding), identityReviewed: Boolean(samePersonReviewId),
+      backendEnabled: backend?.enabled, h3: h3 || h3Unavailable, jobs: visibleJobs, allRoutesReady }),
+  });
   // Empty jobs mean "none" only after an owned, complete project read. Do not
   // expose missing-media advice or production actions from an unknown snapshot.
   if (!projectId || loadedProjectId !== projectId) return <Panel className="video-pilot-workflow" data-testid="video-pilot-panel">

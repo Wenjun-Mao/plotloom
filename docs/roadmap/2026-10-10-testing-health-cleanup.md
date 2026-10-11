@@ -778,3 +778,13 @@ and four shards now cover 294 browser cases. See the
 [manager integration receipt](../verification/2026-10-11-testing-health-main-integration.md).
 One exact-current unfiltered hosted run and recoverable worker attachment
 archive remain; no older hosted run is promoted to current qualification.
+
+### Manager hosted qualification — 2026-10-11
+
+Exact main `606626d32d7fc099986c90292e0a76e015c142c0` passed unfiltered
+hosted run `38143271232`: verification plus all four browser shards. ADR 0160
+is accepted for the documented POSIX targets; Windows containment remains
+unqualified. Later owner-walkthrough runtime changes are separate inputs and
+cannot inherit this exact-SHA CI claim. Recoverable archive was requested from
+the owning worker and returned `queued`; readback still shows an active
+attachment and registered checkout, so cleanup completion remains unconfirmed.

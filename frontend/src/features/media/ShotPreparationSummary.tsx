@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { hasCurrentStoryboardApproval } from "./current-storyboard-approval";
 import { plotloomApi } from "../../api";
 import { Button } from "../../components";
 import { currentBridgeCut } from "../../production-bridge-handoff";
@@ -63,11 +64,7 @@ export function ShotPreparationSummary({
   const current = sources && sources.projectId === projectId && sources.storyboardRevision === storyboardRevision && sources.retryEpoch === retryEpoch ? sources : undefined;
   const cut = currentBridgeCut(current?.bridge, storyboardRevision, shot.id);
   const sourceMatches = Boolean(cut && shot.durationUnits === sourceSecondsToMilliseconds(cut.seconds) && !draftChanged);
-  const approvalCurrent = Boolean(
-    !draftChanged && review?.activeApproval && review.head.status === "ready" &&
-    review.head.revision === storyboardRevision &&
-    review.activeApproval.subjectRevision === storyboardRevision,
-  );
+  const approvalCurrent = hasCurrentStoryboardApproval(review, storyboardRevision, draftChanged);
   const selectedKeyframe = mediaReadPhase === "ready" && approvalCurrent
     ? workbench.reviewedKeyframes.find((item) => item.shotId === shot.id && workbench.assets.some((asset) => asset.id === item.assetId))
     : undefined;

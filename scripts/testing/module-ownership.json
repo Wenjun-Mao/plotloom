@@ -242,6 +242,8 @@
           "frontend/tests/media-workbench-read-freshness.test.ts",
           "frontend/tests/native-media-diagnostics.test.ts",
           "frontend/tests/retained-video-evidence.test.ts",
+          "frontend/tests/recommended-shot-workflow.test.ts",
+          "frontend/tests/shot-workflow-observation.test.ts",
           "frontend/tests/verified-video-geometry.test.ts",
           "frontend/tests/video-disposal-confirmation.test.ts",
           "frontend/tests/video-pilot-candidates.test.ts",
@@ -381,6 +383,7 @@
         "pytest": [
           "tests/backend_core/test_config_and_boundaries.py",
           "tests/backend_core/test_domain.py",
+          "tests/services/creator_workbench/test_h3_runtime.py",
           "tests/test_conformance.py",
           "tests/test_secret_value_contract.py",
           "tests/test_service_source_contract.py"

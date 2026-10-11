@@ -5,7 +5,7 @@ import type { WorkspaceSourceReviewStatus } from "./useWorkspaceSourceReview";
 import { creativeWorkflowSteps, type CreativeWorkflowStepId } from "../../creative-workflow-steps";
 import { graphWorkflowRecommendation } from "./recommendedGraphWorkflow";
 import type { ProductionRead } from "../../features/graph/useCreatorProduction";
-import type { ArtWorkflowObservation, CastWorkflowObservation, ScriptWorkflowObservation, StoryboardWorkflowObservation, BridgeWorkflowObservation } from "./ReviewWorkflowReadContext";
+import type { ArtWorkflowObservation, CastWorkflowObservation, ScriptWorkflowObservation, StoryboardWorkflowObservation, BridgeWorkflowObservation, ShotWorkflowObservation } from "./ReviewWorkflowReadContext";
 import { scriptWorkflowNextText } from "./recommendedScriptWorkflow";
 import { artWorkflowNextText } from "./recommendedArtWorkflow";
 import { castWorkflowNextText } from "./recommendedCastWorkflow";
@@ -38,6 +38,7 @@ export interface RecommendedWorkflowInput {
   castRead: CastWorkflowObservation | undefined;
   storyboardRead?: StoryboardWorkflowObservation;
   bridgeRead?: BridgeWorkflowObservation;
+  shotRead?: ShotWorkflowObservation;
   workspaceAvailable: boolean;
   projectPending: boolean;
   sourceDraftDirty: boolean;
@@ -193,7 +194,7 @@ function statusFor(input: RecommendedWorkflowInput, id: RecommendedWorkflowStepI
   return playbackStatus(input);
 }
 
-function productionNextText(input: RecommendedWorkflowInput): { text: string; action?: RecommendedWorkflowAction } {
+function productionNextText(input: RecommendedWorkflowInput): WorkflowRecommendation {
   const target = input.activePage === "source" ? sourceWorkflowTarget(input.activeHash) : undefined;
   if (target === "art") return artWorkflowNextText(input.artRead);
   if (target === "script") return scriptWorkflowNextText(input.scriptRead);
@@ -202,10 +203,16 @@ function productionNextText(input: RecommendedWorkflowInput): { text: string; ac
   if (input.activePage === "bible") return { text: "检查故事设定是否与当前故事路线一致，再按需继续场景制作。" };
   if (input.activePage === "beats") return { text: "检查场景节拍与事件顺序；保存后再进入分镜工作台审阅镜头。" };
   const playerStagesReady = playbackStages.every(stage => stageState(input, stage).status === "ready");
-  if (input.activePage === "storyboard" && playerStagesReady && input.playHref) {
+  if (input.activePage === "storyboard") {
+    const read = input.shotRead;
+    if (!read) return { text: "正在读取当前镜头的制作与媒体状态；已安装分镜不代表影片或播放路线已完成。" };
+    if (read.status === "ready" && read.allRoutesReady && !read.busy && !read.dirty && !playerStagesReady) return {
+      text: "当前故事路线、场景或分镜尚未全部有效。先核对本页的来源与过期提示；保留的播放片段不代表当前路线可播放。",
+    };
     return {
-      text: "下一步可打开交互式播放器核对当前路线；播放器会再次检查制作状态。静态报告只供阅读，不会等待你的路线选择。",
-      action: { kind: "play", label: "检查交互式播放", href: input.playHref },
+      text: read.nextText,
+      ...(read.status === "ready" && read.allRoutesReady && !read.busy && !read.dirty && playerStagesReady && input.playHref
+        ? { action: { kind: "play" as const, label: "检查交互式播放", href: input.playHref } } : {}),
     };
   }
   return { text: "按当前页面继续制作与审阅；播放器会核对正式故事路线、场景和分镜，内容齐备后再体验交互式路线。" };
