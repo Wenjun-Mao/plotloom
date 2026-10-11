@@ -38,7 +38,7 @@ for (const view of ["创作", "专业"] as const) {
     expect(installed.graphAdmission.status).toBe("current");
     expect(installed.graphAdmission.sectionMapRevision).toBe(confirmed.acceptedSectionMap.revision);
     await viewSwitch.getByRole("button", { name: "创作工作台", exact: true }).click();
-    await expect(page.locator(".creator-inspector > footer")).toContainText("当前图内容已应用到故事路线");
+    await expect(page.getByRole("region", { name: "整张剧情图 · 保存与应用", exact: true })).toContainText("当前图内容已应用到故事路线");
     await expect(page.getByRole("button", { name: "应用到故事路线", exact: true })).toBeDisabled();
     expect((await json(request.get(`${base}/runs`))).runs).toEqual([]);
   });
@@ -64,7 +64,7 @@ test("creator Production shows every repeated scene and exact cut, guards drafts
   await expect(production.locator("[data-production-shot]")).toHaveCount(9);
   await expect(production.locator(`[data-production-scene="${secondScene.sceneId}"]`)).toContainText("场次 2 · S01 · 5 个镜头");
   await expect(page.getByRole("button", { name: "应用到故事路线", exact: true })).toBeDisabled();
-  await expect(page.locator(".creator-inspector > footer")).toContainText("当前图内容已应用到故事路线");
+  await expect(page.getByRole("region", { name: "整张剧情图 · 保存与应用", exact: true })).toContainText("当前图内容已应用到故事路线");
   await page.screenshot({ path: info.outputPath("production-1700-viewport.png") });
   await page.locator(`[data-creator-node="${controlId}"] .creator-node-select`).click();
   await expect(production).toContainText("没有剧本场次、镜头或节点视频");

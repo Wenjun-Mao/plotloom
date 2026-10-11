@@ -209,3 +209,74 @@ The captions are served locally, but the prior full-gate failures and repeated
 short-inspector failure still block release qualification and push. No hosted
 CI for either unpushed candidate is claimed. Repairing those separate guide,
 geometry and Source-editor blockers is not folded into this caption request.
+
+## Whole-graph action placement — approved follow-up
+
+The owner noticed that the Creator inspector footer visually associated Save,
+Confirm and Apply with the selected node. The actions already have whole-graph
+semantics; the root cause is their presentation within the node-detail boundary.
+The owner approved moving them above the canvas into a full-width region labeled
+`整张剧情图 · 保存与应用`, with the scope note `作用于全部节点和连接，不仅是当前选中的节点。`.
+Both views share this presentation. The Creator graph-currentness reason moves
+with these controls; the inspector now contains node editing/production only.
+
+Against trusted candidate `9f655e8`, this changes markup, accessible descriptions
+and layout only. Exact per-view callbacks, disabled predicates and variants are
+preserved. The provider, payloads, APIs, persistence, admission, auth, generation,
+prompts, dependencies, build tooling and package contracts are unchanged. Use
+ADR 0156's frontend qualification; do not repeat unaffected Python evidence.
+The earlier failed full/browser gates remain recorded and block publication.
+
+The first placement kept too many separate rows (about 170px), pushing the
+opening card below the initial viewport and triggering automatic scrolling.
+The checked-bundle regression retained its `scrollY === 0` assertion and caught
+this. Compact the same information into a wrapping heading/scope row, action
+row and notice/status row; do not change selection scrolling or weaken the
+initial-position contract. A second layout check read the inspector's previous
+height immediately after node selection; the screenshot showed its subsequently
+settled body. It now waits for the same >70px body-space assertion to settle.
+The failed intermediate run and traces remain in
+`/tmp/plotloom-whole-graph-action-layout-20261010/` (five passes, two failures).
+
+Executed checks on the final compact presentation:
+
+- `uv run --locked --no-sync python scripts/verify.py focused --vitest
+  tests/graph-workflow-actions.test.ts --vitest tests/graph-confirmation-read.test.ts`:
+  all 14 passed, including unique scope/help references and unchanged dispatch.
+- `uv run --locked --no-sync python scripts/verify.py quick`: all 1,093 frontend
+  tests in 134 files, both TypeScript checks and locked-dependency/API import
+  checks passed (12.498 seconds). No Python integration rerun was needed.
+- `npm --prefix frontend run test:e2e -- --workers=1
+  --output=/tmp/plotloom-whole-graph-actions-final-20261010
+  --grep '^(?!.*creator desktop rows and tall inspector 1280x460).*'
+  e2e/creator-workbench-operations.spec.ts e2e/creator-workbench-production.spec.ts
+  e2e/production-rebuild.spec.ts e2e/creator-workbench-layout.spec.ts
+  e2e/creator-workbench-delivery.spec.ts`: all 17 selected cases passed (1.5m).
+  This is explicitly focused feedback, not a full release gate. The known
+  1280×460 divider-pointer failure was not repaired or blindly retried; its
+  retained earlier failure still blocks publication. No release test was removed.
+  Selected cases include native confirm/apply in both views, node editing and
+  reload, installed-production preservation/rebuild, zero-dispatch clean entry,
+  normal/tall layout and production-control reachability at all three sizes.
+- Inspected all six final whole-graph bar screenshots at 1280×768, 1280×460 and
+  1700×900, plus the clean-entry screenshot: labels and captions are readable,
+  outside the inspector, without horizontal overflow. The bar test explicitly
+  positions the whole region below the sticky guide, changes node selection,
+  and keeps its accepted source review unchanged. Clean entry again has no
+  automatic page or horizontal scrolling.
+- Browser manifest collection retained all 85 specs and 284 exact cases across
+  the existing 124/160 shards, with no missing or overlapping cases.
+- Two final deterministic builds matched the seven-file sorted path/SHA-256
+  JSON manifest `f0bf5dfe3eb876e7f4fa43b0e8dce69a75c724f35b315ef1ae7337f568aa4a96`.
+  No-cache `/v2/` normal8841 reads matched `workbench.js`
+  `64aab147b8a11114ea489e96d74abebfc0cf01e5b4ce8e82bc587517c8f9ad64`
+  and `workbench2.css`
+  `f5ab4497cd68f32fae9550b47aa8f0279f04494e8c4aba83b87302d82d8306cf`.
+
+Independent GPT-6 Luna / Max read-only review checked the stable diff, then
+rechecked the compact layout adjustment; no actionable findings. It confirmed
+unchanged action predicates/callbacks/variants and preserved scope, captions,
+generation notice and currentness status. It did not run tests or inspect pixels;
+the source owner performed the above checks. The presentation is served locally,
+without restart or owner project mutation, but remains unpushed with the earlier
+unqualified runtime candidate. No new full-gate or hosted-CI success is claimed.

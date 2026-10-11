@@ -73,6 +73,12 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onSourceRetry, 
       <p>简报目标：节点上限 {project.brief.nodeBudget} · {project.brief.endingCount} 结局 · {project.brief.desiredJoinCount} 汇合 · 每次完整播放 {project.brief.decisionPointsPerPath} 次选择 · 最多 {Math.min(6, project.brief.maxOutDegree)} 个选项。</p>
       <p>{structure.actual.pending} 条待连接 · {structure.actual.detached} 个未接入节点。{structure.mismatches.join("；")}</p><p>实际结构与简报分别保留。修改目标请返回简报预览并确认；不会自动改图或提高容量。最终确认由当前来源与规范验证。</p>
     </details>
+    <GraphWorkflowActions
+      save={{ disabled, onClick: () => void owner.saveDraft() }}
+      confirm={{ disabled: disabled || !source?.acceptedOutline || structure.incomplete || structure.mismatches.length > 0 || !production.data?.bridge, onClick: () => source && void owner.confirmMapping(source) }}
+      apply={{ variant: "primary", disabled: disabled || admission.installBlocked, onClick: () => source && void owner.installMapping(source) }}
+      status={admission.reason}
+    />
     <div ref={geometry.layout} className="creator-layout">
       <div className="creator-chart-column"><p className="creator-pan-hint">图按连接自动排列；剧情图较宽时，可在图内横向平移。向下滚动页面可查看后续剧情。</p>
         <div ref={geometry.chart} className="creator-chart-scroll" tabIndex={0} aria-label="剧情图横向平移"><CreatorChart layout={layout} disabled={disabled} onEdit={setAction} /></div>
@@ -82,14 +88,6 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onSourceRetry, 
       <div className="creator-inspector-track"><aside ref={geometry.inspector} className="creator-inspector" aria-label="当前节点详情">
         <header><strong>{section?.title || "选择故事节点"}</strong><div className="creator-tabs" role="tablist"><button role="tab" aria-selected={tab === "story"} onClick={() => setTab("story")}>故事</button><button role="tab" aria-selected={tab === "production"} onClick={() => setTab("production")}>制作</button></div>{!action && <GraphSafetyNotice />}</header>
         <div className="creator-inspector-body"><CreatorStoryInspector projectId={project.id!} disabled={disabled} active={tab === "story"} onNavigate={onNavigate} />{tab === "production" && <CreatorProductionInspector project={project} read={production} graphCurrent={admission.graphCurrent} disabled={disabled} onNavigate={onNavigate} onOpenShot={onOpenShot} />}</div>
-        <footer>
-          <GraphWorkflowActions
-            save={{ disabled, onClick: () => void owner.saveDraft() }}
-            confirm={{ disabled: disabled || !source?.acceptedOutline || structure.incomplete || structure.mismatches.length > 0 || !production.data?.bridge, onClick: () => source && void owner.confirmMapping(source) }}
-            apply={{ variant: "primary", disabled: disabled || admission.installBlocked, onClick: () => source && void owner.installMapping(source) }}
-          />
-          <p>{admission.reason}</p>
-        </footer>
       </aside></div>
     </div>
     {action && <CreatorEditDialog action={action} onClose={() => setAction(null)} />}

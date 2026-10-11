@@ -23,7 +23,7 @@ async function save(page: Page) {
 }
 async function nameNode(page: Page, title: string) { await page.getByRole("textbox", { name: "章节标题", exact: true }).fill(title); await page.getByRole("textbox", { name: "剧情摘要", exact: true }).fill(`${title} 的正文完整保留。`); await page.getByRole("button", { name: "保存图草稿", exact: true }).click(); }
 
-test("graph action explanations distinguish save confirm and apply in both views on supported desktops", async ({ page, request, workbench }, info) => {
+test("graph action explanations identify whole-graph scope outside node details in both views on supported desktops", async ({ page, request, workbench }, info) => {
   const id = await createCreatorGraph(request, workbench.apiOrigin, "action-help");
   const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   const before = await json(request.get(`${base}/source-outline`));
@@ -34,24 +34,38 @@ test("graph action explanations distinguish save confirm and apply in both views
     await page.setViewportSize(size);
     for (const view of ["创作", "专业"] as const) {
       await viewSwitch.getByRole("button", { name: `${view}工作台`, exact: true }).click();
-      const actions = page.getByRole("group", { name: "保存、确认与应用", exact: true });
-      await actions.scrollIntoViewIfNeeded();
+      const bar = page.getByRole("region", { name: "整张剧情图 · 保存与应用", exact: true });
+      const actions = bar.getByRole("group", { name: "保存、确认与应用", exact: true });
+      // Inspect the whole region below the sticky guide, not only its buttons.
+      await bar.evaluate(element => element.scrollIntoView({ block: "center" }));
+      await expect(bar).toHaveAccessibleDescription("作用于全部节点和连接，不仅是当前选中的节点。");
+      expect(await bar.evaluate(element => {
+        const layout = document.querySelector(".creator-layout, .graph-editor-layout")!;
+        return !element.closest("aside") && Boolean(element.compareDocumentPosition(layout) & Node.DOCUMENT_POSITION_FOLLOWING);
+      })).toBe(true);
+      await expect(page.locator("aside").getByRole("button", { name: /^(保存图草稿|确认图内容|应用到故事路线)$/ })).toHaveCount(0);
       for (const [label, help] of [
         ["保存图草稿", "保存修改，仍是草稿。"],
         ["确认图内容", "确认版本，不应用路线。"],
         ["应用到故事路线", "启用已确认的故事路线。"],
       ]) {
         const button = actions.getByRole("button", { name: label, exact: true });
-        await expect(button).toHaveAccessibleDescription(`${help} 三项操作均不会生成影片。`);
+        await expect(button).toHaveAccessibleDescription(`作用于全部节点和连接，不仅是当前选中的节点。 ${help} 三项操作均不会生成影片。`);
         await expect(actions.getByText(help, { exact: true })).toBeVisible();
       }
-      const bounds = await actions.boundingBox();
-      expect(bounds!.y).toBeGreaterThanOrEqual(0);
+      const bounds = await bar.boundingBox();
+      const guide = await page.getByTestId("recommended-workflow").boundingBox();
+      expect(bounds!.y).toBeGreaterThanOrEqual(guide!.y + guide!.height);
       expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(size.height);
-      expect(await actions.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+      expect(await bar.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(size.width);
-      if (view === "创作") expect(await page.locator(".creator-inspector-body").evaluate(element => element.clientHeight)).toBeGreaterThan(70);
       await page.screenshot({ path: info.outputPath(`graph-actions-${view === "创作" ? "creator" : "professional"}-${size.width}x${size.height}.png`) });
+      if (view === "创作") {
+        await page.locator('[data-creator-node="ending-a"] .creator-node-select').click();
+        await expect(page.getByRole("complementary", { name: "当前节点详情" }).getByLabel("章节标题", { exact: true })).toHaveValue("结局 A");
+        await expect.poll(() => page.locator(".creator-inspector-body").evaluate(element => element.clientHeight)).toBeGreaterThan(70);
+        await expect(bar).toHaveCount(1);
+      }
     }
   }
   expect(await json(request.get(`${base}/source-outline`))).toEqual(before);

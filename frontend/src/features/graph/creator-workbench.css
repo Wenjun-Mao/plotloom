@@ -47,7 +47,7 @@
 .creator-divider { position: absolute; left: 0; width: 18px; height: 500px; cursor: col-resize; display: grid; place-items: center; touch-action: none; }
 .creator-divider span { width: 3px; height: 64px; background: var(--line); border-radius: 2px; }
 .creator-divider:hover span, .creator-divider:focus-visible span { background: var(--accent); }
-.creator-inspector { position: absolute; left: 0; width: 100%; height: 500px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); box-shadow: 0 8px 24px #0002; }
+.creator-inspector { position: absolute; left: 0; width: 100%; height: 500px; display: grid; grid-template-rows: auto minmax(0, 1fr); border: 1px solid var(--line); border-radius: 10px; background: var(--panel); box-shadow: 0 8px 24px #0002; }
 .creator-inspector > header { padding: 12px 14px 0; border-bottom: 1px solid var(--line); }
 .creator-inspector > header > strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .creator-inspector > header [role="alert"] { max-height: 120px; overflow-y: auto; padding: 8px 0; margin: 0; font-size: 12px; color: var(--danger); overflow-wrap: anywhere; }
@@ -63,16 +63,15 @@
 .creator-inspector-body details { margin: 12px 0; }.creator-inspector-body summary { color: var(--muted); cursor: pointer; }
 .creator-inspector-body .graph-edge-detail { margin: 12px 0; padding: 10px; border: 1px solid var(--line); border-radius: 6px; overflow-wrap: anywhere; }
 .creator-inspector-body .graph-node-details { min-width: 0; }
-.creator-inspector > footer { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; border-top: 1px solid var(--line); }
-.creator-inspector > footer .button { padding: 6px 8px; font-size: 12px; }
-.creator-inspector > footer p { width: 100%; margin: 0; font-size: 12px; color: var(--muted); }
+.graph-workflow-bar { display: grid; gap: 6px; margin: 10px 0; padding: 8px 14px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; background: var(--panel); }
+.graph-workflow-bar > header, .graph-workflow-bar > footer { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.graph-workflow-bar h2 { margin: 0; font-size: 14px; }
+.graph-workflow-scope, .graph-workflow-status { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .graph-workflow-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 14px; }
 .graph-workflow-action { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px; align-items: center; }
 .graph-workflow-action > span, .graph-workflow-generation-help { color: var(--muted); font-size: 12px; line-height: 1.5; }
-.graph-workflow-action > .button { white-space: nowrap; }
-.graph-workflow-actions > .graph-workflow-generation-help { grid-column: 1 / -1; margin: 0; }
-.creator-inspector > footer .graph-workflow-actions { width: 100%; grid-template-columns: 1fr; }
-.creator-inspector .graph-workflow-action { grid-template-columns: 104px minmax(0, 1fr); }
+.graph-workflow-action > .button { white-space: nowrap; min-height: 32px; padding: 6px 9px; font-size: 12px; }
+.graph-workflow-generation-help { margin: 0; }
 .creator-production-cut { margin: 10px 0; padding: 10px; border: 1px solid var(--line); border-radius: 6px; overflow-wrap: anywhere; }
 .creator-production-cut p { margin: 6px 0; }.creator-production-cut small { display: block; color: var(--muted); margin-top: 6px; }
 .creator-edit-dialog { width: min(600px, calc(100vw - 48px)); }

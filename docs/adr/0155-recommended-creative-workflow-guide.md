@@ -111,3 +111,13 @@ separate confirmation/application and production currentness remain unchanged.
 Regression coverage must retain the returned review, failed-write and held-read
 boundaries, project-switch isolation, both views' apply path and installed-media
 preservation after an explicit footage change.
+
+## Whole-graph action scope (2026-10-10 refinement)
+
+Save, confirm and apply operate on the whole graph, not the selected node.
+Placing them in the Creator node inspector falsely suggests node-scoped approval.
+Both views therefore use a shared, labeled whole-graph action region above the
+canvas, outside node details. Keep operation captions, the no-video-generation
+notice and graph currentness status with those global controls. Node selection
+must not change their scope; all existing handlers and admission rules remain
+unchanged. Regressions check this separation and native confirm/apply behavior.

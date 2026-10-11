@@ -110,7 +110,7 @@ test("same project recovers a stale rebuild target, requires fresh reviews and p
   await page.getByRole("button", { name: "确认图内容", exact: true }).click();
   await expect(page.getByRole("button", { name: "应用到故事路线", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "应用到故事路线", exact: true }).click();
-  await expect(page.locator(".creator-inspector > footer")).toContainText("当前图内容已应用到故事路线");
+  await expect(page.getByRole("region", { name: "整张剧情图 · 保存与应用", exact: true })).toContainText("当前图内容已应用到故事路线");
   const revised = await json(request.get(endpoint));
   expect(revised.installation.admissionId).toBe(accepted.installation.admissionId);
   expect(revised.installation.status).toBe("outdated");

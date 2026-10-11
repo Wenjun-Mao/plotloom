@@ -7,6 +7,7 @@ import { GraphWorkflowActions } from "../src/features/graph/GraphWorkflowActions
 let host: HTMLDivElement, root: Root;
 const labels = ["保存图草稿", "确认图内容", "应用到故事路线"];
 const explanations = ["保存修改，仍是草稿。", "确认版本，不应用路线。", "启用已确认的故事路线。"];
+const scope = "作用于全部节点和连接，不仅是当前选中的节点。";
 
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
@@ -17,11 +18,21 @@ it("shows adjacent explanations and describes every action without changing its 
   expect(buttons.map(button => button.textContent)).toEqual(labels);
   for (const [index, button] of buttons.entries()) {
     const ids = button.getAttribute("aria-describedby")!.split(" ");
-    expect(ids.map(id => document.getElementById(id)?.textContent)).toEqual([explanations[index], "三项操作均不会生成影片。"]);
+    expect(ids.map(id => document.getElementById(id)?.textContent)).toEqual([scope, explanations[index], "三项操作均不会生成影片。"]);
     expect(button.nextElementSibling?.textContent).toBe(explanations[index]);
   }
   expect(buttons[2].classList.contains("primary")).toBe(true);
   expect(host.querySelectorAll(".graph-workflow-generation-help")).toHaveLength(1);
+});
+
+it("names the whole-graph region and keeps its currentness status with global actions", async () => {
+  await act(async () => root.render(createElement(GraphWorkflowActions, {
+    save: {}, confirm: {}, apply: {}, status: "当前图内容已应用到故事路线。",
+  })));
+  const bar = host.querySelector("section")!;
+  expect(document.getElementById(bar.getAttribute("aria-labelledby")!)?.textContent).toBe("整张剧情图 · 保存与应用");
+  expect(document.getElementById(bar.getAttribute("aria-describedby")!)?.textContent).toBe(scope);
+  expect(bar.querySelector(".graph-workflow-status")?.textContent).toBe("当前图内容已应用到故事路线。");
 });
 
 it.each(["save", "confirm", "apply"] as const)("%s delegates only its own handler and preserves disabled admission", async action => {
