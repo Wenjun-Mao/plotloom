@@ -27,7 +27,7 @@ function Harness() {
   return createElement(GraphWorkbenchProvider, { project, enabled: true, readOnly: false, restoredNonce: 0, serverDrafts,
     readAdmission: (_projectId, allowed) => { authority.current = allowed; },
     remember: payload => { putDraft(project, "story_graph", payload); autosave.scheduleAuthoringDraftAutosave("story_graph"); },
-    flush: () => autosave.flushAuthoringDraft("story_graph"), clearDraftWorkflow: vi.fn(), canonicalChanged: vi.fn(async () => {}), revisionConflict: vi.fn(),
+    flush: () => autosave.flushAuthoringDraft("story_graph"), clearDraftWorkflow: vi.fn(), canonicalChanged: vi.fn(async () => {}), sourceReviewChanged: vi.fn(), revisionConflict: vi.fn(),
     children: createElement(Probe) });
 }
 beforeEach(() => { sessionStorage.clear(); vi.spyOn(plotloomApi, "getGraphWorkbench").mockImplementation(async () => state()); });

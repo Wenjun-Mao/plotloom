@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { demoProject } from "../src/demo";
 import type { AcceptedSectionMapRevision, BranchTaskState, ServerStageName, SourceOutlineReviewState, StageHead, WorkspaceProject } from "../src/types";
 import { branchSuggestionBasis, buildRecommendedWorkflow, type RecommendedWorkflowInput } from "../src/app/workspace/recommendedWorkflow";
+import { creativeWorkflowStepReference, creativeWorkflowSteps } from "../src/creative-workflow-steps";
 
 const project = { ...demoProject, id: "project", revision: 4 } as WorkspaceProject;
 const base: RecommendedWorkflowInput = {
@@ -32,6 +33,14 @@ function head(stage: ServerStageName, revision: number, contentHash: string): St
 }
 
 describe("recommended creative workflow", () => {
+  it("shares the six step labels and one-based references with node impact guidance", () => {
+    const model = buildRecommendedWorkflow(base)!;
+    expect(model.steps.map(({ id, label }) => ({ id, label }))).toEqual(creativeWorkflowSteps);
+    expect(model.steps.map(step => creativeWorkflowStepReference(step.id))).toEqual([
+      "第1/6步「项目简报」", "第2/6步「来源与大纲」", "第3/6步「剧情分支」",
+      "第4/6步「剧情图编辑」", "第5/6步「制作与审阅」", "第6/6步「播放」",
+    ]);
+  });
   const branchInput = (): RecommendedWorkflowInput => ({ ...base, activePage: "source", sourceReview: acceptedReview(), branchTaskStatus: "ready" });
   const branchTask = (status: string): BranchTaskState => ({
     candidate: { jobId: "branch-job", status, suggestion: status === "ready" ? { nodes: [], choices: [], joins: [], clarifications: [] } : null, reportAvailable: false },

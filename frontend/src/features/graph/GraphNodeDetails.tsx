@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Button, Field } from "../../components";
 import { useGraphWorkbench } from "./GraphWorkbenchContext";
 import { GraphEdgeDetails } from "./GraphEdgeDetails";
@@ -7,12 +7,14 @@ import { newGraphId } from "./contracts";
 import { bypassUnavailableReason } from "./deletionEligibility";
 import type { StoryNode } from "../../types";
 import { storyNodeKinds, storyNodeKindLabels } from "./presentation";
+import { creativeWorkflowStepReference } from "../../creative-workflow-steps";
 
 export function GraphNodeDetails({ disabled }: { disabled: boolean }) {
   const owner = useGraphWorkbench(), mapping = owner.draft?.mapping;
   const node = mapping?.topology.nodes.find(node => node.id === owner.selectedNodeId);
   const section = mapping?.sections.find(section => section.sectionId === owner.selectedNodeId);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const footageHelpId = useId();
   if (!mapping || !node || !section) return <p>选择一个节点查看内容与精确连接。</p>;
   const patchSection = (patch: Partial<typeof section>) => owner.changeMapping({ ...mapping,
     topologyOrigin: patch.footageMode ? "author" : mapping.topologyOrigin,
@@ -26,7 +28,15 @@ export function GraphNodeDetails({ disabled }: { disabled: boolean }) {
   return <div className="graph-node-details" data-node-id={node.id}>
     <Field label="章节标题"><input disabled={disabled} value={section.title} onChange={event => patchSection({ title: event.target.value })} /></Field>
     <Field label="剧情摘要"><textarea rows={5} disabled={disabled} value={section.summary} onChange={event => patchSection({ summary: event.target.value })} /></Field>
-    {(node.kind === "decision" || node.kind === "join") && <label><input type="checkbox" disabled={disabled} checked={section.footageMode === "footage"} onChange={event => patchSection({ footageMode: event.target.checked ? "footage" : "route_only" })} />包含画面与剧本场景</label>}
+    {(node.kind === "decision" || node.kind === "join") && <>
+      <label><input type="checkbox" aria-describedby={footageHelpId} disabled={disabled} checked={section.footageMode === "footage"} onChange={event => patchSection({ footageMode: event.target.checked ? "footage" : "route_only" })} />此节点需要拍摄</label>
+      <div id={footageHelpId} className="graph-node-footage-help">
+        <p>勾选后需制作剧本场景、分镜和影片，时长计入完整路线。
+          {node.kind === "decision" ? "先播放本节点影片，再显示问题与选项。" : "播放本节点影片后，再继续后续路线。"}
+          不勾选则仅控制路线，无需拍摄。修改只更新图草稿；确认并应用后才影响故事路线，不会自动生成影片。</p>
+        <p>影响{creativeWorkflowStepReference("production")}：更改拍摄设置可能需要重新分配路线时长，并修订或重新审阅已有剧本、分镜和制作内容。目标时长不会自动增加；完成后在{creativeWorkflowStepReference("play")}核对受影响路线。</p>
+      </div>
+    </>}
     {choice && <section><Field label="播放时的问题"><textarea rows={2} disabled={disabled} value={choice.prompt} onChange={event => patchChoice({ prompt: event.target.value })} /></Field>
       {choice.outcomes.map(option => <section key={option.outcomeId}><Field label="选项文字"><input disabled={disabled} value={option.label} onChange={event => patchChoice({ outcomes: choice.outcomes.map(item => item.outcomeId === option.outcomeId ? { ...item, label: event.target.value } : item) })} /></Field>
         <Field label="选择后的剧情"><textarea rows={2} disabled={disabled} value={option.consequence} onChange={event => patchChoice({ outcomes: choice.outcomes.map(item => item.outcomeId === option.outcomeId ? { ...item, consequence: event.target.value } : item) })} /></Field></section>)}

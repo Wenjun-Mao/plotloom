@@ -23,7 +23,7 @@ export function RecommendedWorkflowGuide({ model, actionDisabled, onNavigate }: 
               <strong>{step.label}</strong><span>{step.status}</span>
             </li>)}
           </ol>
-          <p>推荐顺序：项目简报 → 来源与大纲 → 剧情分支 → 剧情图编辑 → 制作与审阅 → 播放。序号表示当前工作步骤，不是完成比例；创作与专业视图同属剧情图编辑，切换不会退回前一步。可返回前序工作或直接手工编辑；保存、确认与应用仍由现有页面负责。</p>
+          <p>推荐顺序：{model.steps.map(step => step.label).join(" → ")}。序号表示当前工作步骤，不是完成比例；创作与专业视图同属剧情图编辑，切换不会退回前一步。可返回前序工作或直接手工编辑；保存、确认与应用仍由现有页面负责。</p>
           <p>播放会在路线分歧处等待选择；静态报告只供阅读，不构成交互式播放。</p>
         </div>
       </details>

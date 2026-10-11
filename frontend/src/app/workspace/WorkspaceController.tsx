@@ -336,6 +336,7 @@ export default function WorkspaceController() {
   </>;
 
   return <GraphWorkbenchProvider project={project} enabled={durableDraftsEnabled && connection === "connected"} readOnly={projectReadOnly}
+    sourceReviewChanged={sourceReview.replace}
     readAdmission={(projectId, allowed) => { graphReadAdmission.current = { projectId, allowed }; }}
     restoredPayload={authoring.restoredDraft?.scope === "story_graph" ? authoring.restoredDraft.payload : undefined}
     restoredNonce={recovery.editorNonce}

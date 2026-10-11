@@ -2,8 +2,9 @@ import type { AcceptedOutlineRevision, AcceptedSectionMapRevision, BranchTaskSta
 import type { PageId } from "./contracts";
 import { sourceWorkflowTarget } from "./sourceWorkflowNavigation";
 import type { WorkspaceSourceReviewStatus } from "./useWorkspaceSourceReview";
+import { creativeWorkflowSteps, type CreativeWorkflowStepId } from "../../creative-workflow-steps";
 
-export type RecommendedWorkflowStepId = "brief" | "source" | "branches" | "creator" | "production" | "play";
+export type RecommendedWorkflowStepId = CreativeWorkflowStepId;
 export type RecommendedWorkflowRoute = { stage: PageId; hash?: string };
 export type BranchTaskReadObservation = { basis: string; status: "loading" | "ready" | "failed"; value: BranchTaskState | null; busy: boolean; blocked: boolean };
 export type RecommendedWorkflowAction =
@@ -45,14 +46,7 @@ export interface RecommendedWorkflowModel {
   action?: RecommendedWorkflowAction;
 }
 
-const steps: Array<{ id: RecommendedWorkflowStepId; label: string }> = [
-  { id: "brief", label: "项目简报" },
-  { id: "source", label: "来源与大纲" },
-  { id: "branches", label: "剧情分支" },
-  { id: "creator", label: "剧情图编辑" },
-  { id: "production", label: "制作与审阅" },
-  { id: "play", label: "播放" },
-];
+const steps = creativeWorkflowSteps;
 
 const primaryPages = new Set<PageId>(["brief", "source", "graph", "creator", "characters", "bible", "beats", "storyboard"]);
 const productionStages: ServerStageName[] = ["story_bible", "scene_beats", "storyboard"];

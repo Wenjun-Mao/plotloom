@@ -21,6 +21,7 @@ interface Input {
   flush: () => Promise<boolean>;
   clearDraftWorkflow: () => void;
   canonicalChanged: () => Promise<void>;
+  sourceReviewChanged: (value: SourceOutlineReviewState) => void;
   revisionConflict: (record: DraftRecord) => void;
   readAdmission?: (projectId: string | undefined, allowed: boolean) => void;
 }
@@ -296,12 +297,15 @@ export function GraphWorkbenchProvider(input: Input) {
     const basis = owner.current, receipt = await acknowledge();
     const payload = readGraphDraft(receipt.payload);
     if (!completeMap(payload.mapping) || Object.keys(payload.fieldBuffers).length) throw new Error("图草稿有待填写、待连接或未提交的字段，请先完成再确认。");
-    await plotloomApi.saveSectionMap(current.current.project.id!, {
+    const confirmed = await plotloomApi.saveSectionMap(current.current.project.id!, {
       expectedGraphDraftRevision: receipt.draftRevision, expectedSectionMapRevision: source.acceptedSectionMap?.revision ?? 0,
       expectedSourceRevision: source.source.revision, expectedOutlineRevision: source.acceptedOutline.revision,
       expectedOutlineContentHash: source.acceptedOutline.contentHash, mapping: payload.mapping as SectionMap,
     });
     if (basis !== owner.current) return false;
+    // The shared review owns accepted-map currentness for both views and the
+    // guide. Publish the write receipt before the independent graph read.
+    current.current.sourceReviewChanged(confirmed);
     confirmedReadBasis.current = { owner: basis, receipt, payload };
     await refresh();
     // Confirmation has succeeded even if its follow-up read failed or was
@@ -312,12 +316,13 @@ export function GraphWorkbenchProvider(input: Input) {
     const map = source.acceptedSectionMap, material = source.source, outline = source.acceptedOutline;
     if (!map || !material || !outline) throw new Error("请先明确确认当前图内容。");
     const basis = owner.current, receipt = await acknowledge(), projectId = current.current.project.id!;
-    await plotloomApi.installSectionMapGraph(projectId, { expectedSourceRevision: material.revision,
+    const installed = await plotloomApi.installSectionMapGraph(projectId, { expectedSourceRevision: material.revision,
       expectedSourceContentHash: material.contentHash, expectedOutlineRevision: outline.revision,
       expectedOutlineContentHash: outline.contentHash, expectedSectionMapRevision: map.revision,
       expectedSectionMapContentHash: map.contentHash, expectedGraphRevision: receipt.baseCanonicalRevision,
       expectedGraphDraftRevision: receipt.draftRevision });
     if (basis !== owner.current) return false;
+    current.current.sourceReviewChanged(installed);
     readGeneration.current++;
     current.current.serverDrafts.current.delete(graphDraftKey(projectId)); discardDraft(current.current.project, "story_graph");
     current.current.clearDraftWorkflow(); resetHistory(); await current.current.canonicalChanged(); await refresh(); return true;

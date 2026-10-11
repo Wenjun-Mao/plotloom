@@ -86,3 +86,28 @@ admission/read guards and independent save, confirm and apply operations;
 navigation uses the existing draft protections. Regressions must check both
 directions, shared unsaved edits/selection, unchanged canonical versions and
 failed/read-only states rather than merely making the displayed number sticky.
+
+## Confirmed graph response handoff (2026-10-10 refinement)
+
+The filming-mode regression exposed missed writers: graph confirmation returned
+the accepted section map, and application returned the current graph admission,
+but the provider discarded both responses and refreshed only its graph/project.
+Both graph views and the guide still consumed the older shared source review.
+The exact-map apply guard correctly rejected the first mismatch; after successful
+application the UI still reported that the graph was waiting to be applied.
+
+After a successful, project/epoch-owned section-map confirmation or application, the graph
+provider must publish its returned source review to the existing workspace read
+owner before the independent graph/project refresh. The required callback is wired once
+by the workspace, not separately by each view. Replacement invalidates older
+in-flight source reads using that owner's existing epoch; late confirmations
+or applications after project changes must not publish. Failed writes publish nothing. A failed
+or superseded follow-up graph read retains the successful confirmation outcome
+but still blocks graph operations under ADR 0145.
+
+Do not relax exact-map admission, infer acceptance from a local checkbox, create
+a second review owner, or require a page reload. API payloads, persistence, CAS,
+separate confirmation/application and production currentness remain unchanged.
+Regression coverage must retain the returned review, failed-write and held-read
+boundaries, project-switch isolation, both views' apply path and installed-media
+preservation after an explicit footage change.

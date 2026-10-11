@@ -36,7 +36,7 @@ function Harness({ mode = "story", enabled = true, restoredPayload, restoredNonc
       serverDrafts.current.set(graphDraftKey(source.id!), saved);
       acknowledgeDraft(source, "story_graph", local.localRevision, saved.draftRevision);
       return true;
-    }, clearDraftWorkflow: vi.fn(), canonicalChanged: vi.fn().mockResolvedValue(undefined), revisionConflict,
+    }, clearDraftWorkflow: vi.fn(), canonicalChanged: vi.fn().mockResolvedValue(undefined), sourceReviewChanged: vi.fn(), revisionConflict,
     children: createElement(Probe, { mode }) });
 }
 async function show(mode?: string) { await act(async () => root.render(createElement(Harness, { mode }))); }

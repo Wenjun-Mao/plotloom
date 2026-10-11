@@ -23,6 +23,33 @@ async function save(page: Page) {
 }
 async function nameNode(page: Page, title: string) { await page.getByRole("textbox", { name: "章节标题", exact: true }).fill(title); await page.getByRole("textbox", { name: "剧情摘要", exact: true }).fill(`${title} 的正文完整保留。`); await page.getByRole("button", { name: "保存图草稿", exact: true }).click(); }
 
+test("node filming help explains production and playback in both shared graph views on supported desktops", async ({ page, request, workbench }, info) => {
+  const id = await createCreatorGraph(request, workbench.apiOrigin, "filming-help");
+  const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
+  const accepted = await json(request.get(`${base}/source-outline`));
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`);
+  await select(page, "choose");
+  const viewSwitch = page.getByRole("group", { name: "同一剧情图的两种视图" });
+  for (const size of [{ width: 1280, height: 768 }, { width: 1280, height: 460 }, { width: 1700, height: 900 }]) {
+    await page.setViewportSize(size);
+    for (const view of ["创作", "专业"] as const) {
+      await viewSwitch.getByRole("button", { name: `${view}工作台`, exact: true }).click();
+      await expect(page).toHaveURL(view === "创作" ? /stage=creator/ : /stage=graph/);
+      const checkbox = page.getByRole("checkbox", { name: "此节点需要拍摄", exact: true });
+      await expect(checkbox).not.toBeChecked();
+      await expect(checkbox).toHaveAccessibleDescription(/需制作剧本场景、分镜和影片.*时长计入完整路线.*先播放本节点影片，再显示问题与选项.*确认并应用后才影响故事路线.*不会自动生成影片/);
+      await expect(checkbox).toHaveAccessibleDescription(/影响第5\/6步「制作与审阅」.*修订或重新审阅已有剧本、分镜和制作内容.*目标时长不会自动增加.*第6\/6步「播放」核对受影响路线/);
+      const help = page.locator(".graph-node-footage-help");
+      await help.scrollIntoViewIfNeeded();
+      await expect(help).toBeVisible();
+      expect(await help.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(size.width);
+      await page.screenshot({ path: info.outputPath(`filming-help-${view === "创作" ? "creator" : "professional"}-${size.width}x${size.height}.png`) });
+    }
+  }
+  expect(await json(request.get(`${base}/source-outline`))).toEqual(accepted);
+});
+
 test("creator node-role, join and effect controls retain selected ownership and unfinished input", async ({ page, request, workbench }, info) => {
   test.setTimeout(100_000); await page.setViewportSize({ width: 1700, height: 900 });
   const id = await createCreatorGraph(request, workbench.apiOrigin, "detail-controls");
@@ -73,7 +100,8 @@ test("creator node-role, join and effect controls retain selected ownership and 
   await expect.poll(async () => Object.keys((await read()).fieldBuffers).length).toBe(0);
   expect((await read()).mapping.topology.edges.find(item => item.id === "last-step-choice")!.stateEffects).toEqual({ memory: "restored" });
   await select(page, "choose");
-  const checkbox = inspector.getByRole("checkbox", { name: "包含画面与剧本场景" });
+  const checkbox = inspector.getByRole("checkbox", { name: "此节点需要拍摄", exact: true });
+  await expect(checkbox).toHaveAccessibleDescription(/需制作剧本场景、分镜和影片.*先播放本节点影片，再显示问题与选项/);
   const box = (await checkbox.boundingBox())!; expect(box.width).toBe(16); expect(box.height).toBe(16);
   await checkbox.check(); await save(page);
   await expect.poll(async () => (await read()).mapping.sections.find(item => item.sectionId === "choose")!.footageMode).toBe("footage");

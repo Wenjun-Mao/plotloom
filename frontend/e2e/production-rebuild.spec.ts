@@ -104,7 +104,7 @@ test("same project recovers a stale rebuild target, requires fresh reviews and p
   await page.getByRole("button", { name: "创作工作台", exact: true }).click();
   await page.locator('[data-creator-node="choose"] .creator-node-select').click();
   await page.getByRole("tab", { name: "故事", exact: true }).click();
-  await page.getByLabel("包含画面与剧本场景").check();
+  await page.getByLabel("此节点需要拍摄", { exact: true }).check();
   await page.getByRole("button", { name: "保存图草稿", exact: true }).click();
   await expect(page.getByRole("button", { name: "确认图内容", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "确认图内容", exact: true }).click();

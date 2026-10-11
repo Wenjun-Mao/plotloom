@@ -1,5 +1,13 @@
 # Plotloom roadmap entrypoint
 
+The owner-approved [node filming control clarification](2026-10-10-node-footage-guidance.md)
+renames the shared checkbox and explains its existing production/playback effects,
+including possible rework in step 5/6 and affected-route checks in step 6/6;
+it does not change footage policy or the owner's graph. The owner then approved
+repairing the shared confirmation/application response handoff exposed by its
+regression. This expanded runtime candidate requires full local qualification;
+publication and hosted CI are recorded in that receipt.
+
 The October10 [recommended creative workflow guide](2026-10-10-recommended-creative-workflow-guide.md)
 implements an advisory six-step workspace guide. Its risk-scoped local frontend
 qualification and supported-desktop screenshots passed under

@@ -5,6 +5,45 @@ import { json } from "./f5a-fixture";
 
 test.use({ actionTimeout: 10_000 });
 
+for (const view of ["创作", "专业"] as const) {
+  test(`${view} graph confirmation and application share current review without reload`, async ({ page, request, workbench }) => {
+    await page.setViewportSize({ width: 1700, height: 900 });
+    // Confirmation requires accepted source/outline, not just an editable graph.
+    const id = execFileSync("uv", ["run", "python", "-m", "frontend.e2e.fixtures.bridge_handoff_project", "--outputs", workbench.outputsRoot, "--application", workbench.applicationDataRoot], { cwd: path.resolve(".."), encoding: "utf8" }).trim();
+    const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
+    const before = await json(request.get(`${base}/graph-workbench`));
+    const viewSwitch = page.getByRole("group", { name: "同一剧情图的两种视图" });
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`);
+    await page.locator('[data-creator-node="choose"] .creator-node-select').click();
+    await viewSwitch.getByRole("button", { name: `${view}工作台`, exact: true }).click();
+    await page.getByRole("checkbox", { name: "此节点需要拍摄", exact: true }).check();
+    const save = page.getByRole("button", { name: "保存图草稿", exact: true });
+    await save.click();
+    await expect(save).toBeEnabled();
+    const confirm = page.getByRole("button", { name: "确认图内容", exact: true });
+    await expect(confirm).toBeEnabled();
+    const confirmedResponse = page.waitForResponse(response => response.url().endsWith("/source-outline/section-map") && response.request().method() === "PUT");
+    await confirm.click();
+    const confirmed = await json(await confirmedResponse);
+    expect(confirmed.acceptedSectionMap.mapping.sections.find((section: { sectionId: string }) => section.sectionId === "choose").footageMode).toBe("footage");
+    expect((await json(request.get(`${base}/graph-workbench`))).baseCanonicalRevision).toBe(before.baseCanonicalRevision);
+    // The other view consumes the same write receipt, not a reload or a new GET.
+    await viewSwitch.getByRole("button", { name: `${view === "创作" ? "专业" : "创作"}工作台`, exact: true }).click();
+    await expect(page.getByRole("checkbox", { name: "此节点需要拍摄", exact: true })).toBeChecked();
+    const apply = page.getByRole("button", { name: "应用到故事路线", exact: true });
+    await expect(apply).toBeEnabled();
+    const installedResponse = page.waitForResponse(response => response.url().endsWith("/source-outline/section-map/install-graph") && response.request().method() === "POST");
+    await apply.click();
+    const installed = await json(await installedResponse);
+    expect(installed.graphAdmission.status).toBe("current");
+    expect(installed.graphAdmission.sectionMapRevision).toBe(confirmed.acceptedSectionMap.revision);
+    await viewSwitch.getByRole("button", { name: "创作工作台", exact: true }).click();
+    await expect(page.locator(".creator-inspector > footer")).toContainText("当前图内容已应用到故事路线");
+    await expect(page.getByRole("button", { name: "应用到故事路线", exact: true })).toBeDisabled();
+    expect((await json(request.get(`${base}/runs`))).runs).toEqual([]);
+  });
+}
+
 test("creator Production shows every repeated scene and exact cut, guards drafts and preserves installed media", async ({ page, request, workbench }, info) => {
   test.setTimeout(120_000);
   const id = execFileSync("uv", ["run", "python", "-m", "frontend.e2e.fixtures.bridge_handoff_project", "--outputs", workbench.outputsRoot, "--application", workbench.applicationDataRoot, "--seconds", "2.5", "--repeat-scenes"], { cwd: path.resolve(".."), encoding: "utf8" }).trim();
@@ -56,7 +95,7 @@ test("creator Production shows every repeated scene and exact cut, guards drafts
   await expect(production.locator(`[data-production-shot="${exact.shotId}"]`).getByRole("button", { name: "镜头审核与媒体", exact: true })).toBeEnabled();
   await page.locator(`[data-creator-node="${controlId}"] .creator-node-select`).click();
   await page.getByRole("tab", { name: "故事", exact: true }).click();
-  await page.getByLabel("包含画面与剧本场景").check();
+  await page.getByLabel("此节点需要拍摄", { exact: true }).check();
   await page.getByRole("button", { name: "保存图草稿", exact: true }).click();
   await expect(page.getByRole("button", { name: "确认图内容", exact: true })).toBeEnabled();
   const restoredGraphAck = page.waitForResponse(response => {
@@ -65,7 +104,7 @@ test("creator Production shows every repeated scene and exact cut, guards drafts
     return draft.editorScope === "story_graph" && draft.payload.selectedNodeId === controlId
       && draft.payload.mapping.sections.some((section: { sectionId: string; footageMode: string }) => section.sectionId === controlId && section.footageMode === "route_only");
   });
-  await page.getByLabel("包含画面与剧本场景").uncheck();
+  await page.getByLabel("此节点需要拍摄", { exact: true }).uncheck();
   // Drain and acknowledge the restored graph before external board drift and
   // reload; interrupting autosave would correctly protect an older local receipt.
   const graphSave = page.getByRole("button", { name: "保存图草稿", exact: true });
