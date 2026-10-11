@@ -10,6 +10,18 @@ records the verified prerequisite, returned but unconfirmed Role proposal, and
 state-based Role guidance with refresh ownership. The real journey is paused
 for author review; no Role, Art or Script creative acceptance is inferred.
 
+On October11 the owner authorized the manager to make walkthrough creative
+choices and carry this real project E2E, explicitly for improving Plotloom rather
+than delivering a final film. Use the existing configured specialists, Codex
+ImageGen and owner H3 gateway; preserve dispatch identity and current-state
+approval boundaries. Resolve the choice node as route-only to match the outline,
+then re-confirm/re-apply the graph and refresh affected frozen candidates before
+Role, Art, Script, storyboard/production and both playback routes. Record
+demonstrated defects and proportionate verification; do not silently approve
+stale inputs or add other paid providers. The separate M0–M5 worker resumes
+latest-main ownership/shard reconciliation in its isolated checkout, holding
+final combined qualification until the UI checkpoint is stable.
+
 The October11 owner-approved [Script-page next-action correction](../verification/2026-10-11-script-page-workflow-hints.md)
 observes the existing review panel so missing scripts point to preparation,
 delivered candidates to review/confirmation, and current confirmed scripts to
