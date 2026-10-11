@@ -66,7 +66,7 @@
 .graph-workflow-bar { display: grid; gap: 6px; margin: 10px 0; padding: 8px 14px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; background: var(--panel); }
 .graph-workflow-bar > header { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
 .graph-workflow-bar h2 { margin: 0; font-size: 14px; }
-.graph-workflow-scope, .graph-workflow-status { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.graph-workflow-scope, .graph-workflow-status, .graph-workflow-confirm-impact { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .graph-workflow-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 14px; }
 .graph-workflow-action { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px; align-items: center; }
 .graph-workflow-action > span { color: var(--muted); font-size: 12px; line-height: 1.5; }

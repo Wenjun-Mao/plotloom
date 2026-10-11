@@ -349,3 +349,38 @@ neither a new full-gate pass nor hosted-CI success is claimed. Preserve the
 owner's pending graph edits before refreshing the walkthrough tab. Separate
 geometry/Source-editor repairs and test-suite modularization are not part of
 this presentation follow-up.
+
+## Confirmation effect — approved clarification
+
+The owner identified the remaining ambiguity: the caption did not explain what
+confirmation changes beyond saving. The existing provider first acknowledges
+the graph draft, then accepts a new section-map version; persistence marks an
+existing route admission stale, without replacing the canonical route or
+deleting media. The shared action bar now names this approval effect, distinguishes
+it from route application, and shows an always-visible conditional old-route
+warning with step 5/6 production-review guidance. No new dialog or gate is added.
+Native regressions now confirm pending edits directly without clicking Save,
+and assert the old route is stale but its canonical revision unchanged until Apply.
+
+Against `db37111`, the diff is captions/help markup, accessibility, tests and
+documentation only. Handlers, API payloads/schemas, persistence, admission,
+auth, provider/prompt behavior, dependencies, build tooling and package contracts
+remain unchanged. Use ADR 0156's frontend qualification; do not repeat unaffected
+Python integration evidence. Earlier release blockers still prevent push.
+
+Executed qualification for this clarification:
+
+- `uv run --locked --no-sync python scripts/verify.py focused --vitest tests/graph-workflow-actions.test.ts --vitest tests/graph-confirmation-read.test.ts --vitest tests/recommended-workflow.test.ts`: 43 passed in 3 files; 0.856s.
+- `uv run --locked --no-sync python scripts/verify.py quick`: 1,096 frontend tests in 134 files, both type checks, lock and API import lint passed; 11.136s.
+- `npm --prefix frontend run test:e2e -- --workers=1 --output=/tmp/plotloom-confirm-effect-20261010 --grep 'graph action explanations|graph confirmation and application|creator Production|same project recovers|checked bundle|checked production controls' e2e/creator-workbench-operations.spec.ts e2e/creator-workbench-production.spec.ts e2e/production-rebuild.spec.ts e2e/creator-workbench-delivery.spec.ts`: all 9 passed; 50.3s.
+- Pixel inspection: both graph-view action bars at 1280×768, 1280×460 and 1700×900, plus checked-static clean entry. The visible impact line is unclipped, descriptions remain beside their buttons, and the bar remains outside node details. Screenshots are under `/tmp/plotloom-confirm-effect-20261010`.
+- `node scripts/check_browser_shard_manifest.mjs` from `frontend`: 85 specs, 284 cases, shards 124/160, zero overlap or missing cases.
+- Two `npm --prefix frontend run build:deterministic` builds matched all seven static files. SHA-256 of the JSON-encoded sorted path/hash manifest: `cd6b42909df84e16243dbed649cde398b13bf37f4550068dfb981b20668e8dee`.
+- No-cache GETs of normal8841 `/v2/workbench.js` and `/v2/workbench2.css` returned 200 and matched local bytes. JS SHA-256: `2ee280f33f69c506d244aefaaac50cf572c684290257800b7d56d6d4e0c07181`; CSS: `2e205336ab0f8bed3bb10ac6d0b266842a13c5c711457dc4deedecb70f16b72b`.
+- Independent native read-only review `/root/confirmation_effect_review`, requested GPT-6 Luna / Max (effective settings not independently verified): no findings. Its residual pixel-check condition was covered by the inspection above.
+
+This is qualified bounded frontend presentation, not a new full-gate pass or
+hosted-CI result. No Python integration rerun, runtime semantic change, owner
+project mutation, job dispatch, service restart or Safari reload occurred.
+Earlier release failures remain unresolved, so keep the local main commits
+unpushed. Preserve pending graph edits before refreshing the walkthrough tab.

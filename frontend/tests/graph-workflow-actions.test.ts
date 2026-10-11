@@ -6,8 +6,9 @@ import { GraphWorkflowActions } from "../src/features/graph/GraphWorkflowActions
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let host: HTMLDivElement, root: Root;
 const labels = ["保存图草稿", "确认图内容", "应用到故事路线"];
-const explanations = ["保存修改，仍是草稿。", "确认版本，不应用路线。", "启用已确认的故事路线。"];
+const explanations = ["保存修改，仍是草稿。", "保存并确认新版本，不应用路线。", "启用已确认的故事路线。"];
 const scope = "作用于全部节点和连接，不仅是当前选中的节点。";
+const confirmationImpact = "如有已应用路线，确认新版本会将旧路线标记为过期；需重新应用，并在第5/6步「制作与审阅」核对已有剧本、分镜和制作内容（不删除）。";
 
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
@@ -18,12 +19,18 @@ it("shows adjacent explanations and describes every action without changing its 
   expect(buttons.map(button => button.textContent)).toEqual(labels);
   for (const [index, button] of buttons.entries()) {
     const ids = button.getAttribute("aria-describedby")!.split(" ");
-    expect(ids.map(id => document.getElementById(id)?.textContent)).toEqual([scope, explanations[index], "三项操作均不会生成影片。"]);
+    expect(ids.map(id => document.getElementById(id)?.textContent)).toEqual([scope, explanations[index], "三项操作均不会生成影片。", ...(index === 1 ? [confirmationImpact] : [])]);
     expect(button.nextElementSibling?.textContent).toBe(explanations[index]);
   }
   expect(buttons[2].classList.contains("primary")).toBe(true);
   expect(host.querySelector("header > p")?.textContent).toBe(`${scope} 三项操作均不会生成影片。`);
   expect(host.querySelector("footer")).toBeNull();
+});
+
+it("shows the approval effect before confirmation, not only in a tooltip or dialog", async () => {
+  await act(async () => root.render(createElement(GraphWorkflowActions, { save: {}, confirm: {}, apply: {} })));
+  expect(host.querySelector(".graph-workflow-confirm-impact")?.textContent).toBe(confirmationImpact);
+  expect(host.querySelector("details, dialog, [hidden]")).toBeNull();
 });
 
 it.each([
@@ -38,7 +45,7 @@ it.each([
   expect(document.getElementById(bar.getAttribute("aria-labelledby")!)?.textContent).toBe("整张剧情图 · 保存与应用");
   expect(document.getElementById(bar.getAttribute("aria-describedby")!)?.textContent).toBe(`${scope} 三项操作均不会生成影片。 ${status}`);
   expect(bar.querySelector(".graph-workflow-status")?.textContent).toBe(status);
-  expect(bar.querySelectorAll("p")).toHaveLength(1);
+  expect(bar.querySelector("header")?.querySelectorAll("p")).toHaveLength(1);
 });
 
 it.each(["save", "confirm", "apply"] as const)("%s delegates only its own handler and preserves disabled admission", async action => {

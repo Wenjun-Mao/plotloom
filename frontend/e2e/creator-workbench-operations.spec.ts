@@ -42,6 +42,8 @@ test("graph action explanations identify whole-graph scope outside node details 
       await expect(bar).toHaveAccessibleDescription(`作用于全部节点和连接，不仅是当前选中的节点。 三项操作均不会生成影片。${status ? ` ${status}` : ""}`);
       await expect(bar.locator("header > p")).toHaveCount(1);
       await expect(bar.locator("footer")).toHaveCount(0);
+      const impact = "如有已应用路线，确认新版本会将旧路线标记为过期；需重新应用，并在第5/6步「制作与审阅」核对已有剧本、分镜和制作内容（不删除）。";
+      await expect(bar.getByText(impact, { exact: true })).toBeVisible();
       expect(await bar.evaluate(element => {
         const layout = document.querySelector(".creator-layout, .graph-editor-layout")!;
         return !element.closest("aside") && Boolean(element.compareDocumentPosition(layout) & Node.DOCUMENT_POSITION_FOLLOWING);
@@ -49,11 +51,11 @@ test("graph action explanations identify whole-graph scope outside node details 
       await expect(page.locator("aside").getByRole("button", { name: /^(保存图草稿|确认图内容|应用到故事路线)$/ })).toHaveCount(0);
       for (const [label, help] of [
         ["保存图草稿", "保存修改，仍是草稿。"],
-        ["确认图内容", "确认版本，不应用路线。"],
+        ["确认图内容", "保存并确认新版本，不应用路线。"],
         ["应用到故事路线", "启用已确认的故事路线。"],
       ]) {
         const button = actions.getByRole("button", { name: label, exact: true });
-        await expect(button).toHaveAccessibleDescription(`作用于全部节点和连接，不仅是当前选中的节点。 ${help} 三项操作均不会生成影片。`);
+        await expect(button).toHaveAccessibleDescription(`作用于全部节点和连接，不仅是当前选中的节点。 ${help} 三项操作均不会生成影片。${label === "确认图内容" ? ` ${impact}` : ""}`);
         await expect(actions.getByText(help, { exact: true })).toBeVisible();
       }
       const bounds = await bar.boundingBox();

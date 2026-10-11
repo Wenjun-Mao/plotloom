@@ -17,15 +17,15 @@ for (const view of ["创作", "专业"] as const) {
     await page.locator('[data-creator-node="choose"] .creator-node-select').click();
     await viewSwitch.getByRole("button", { name: `${view}工作台`, exact: true }).click();
     await page.getByRole("checkbox", { name: "此节点需要拍摄", exact: true }).check();
-    const save = page.getByRole("button", { name: "保存图草稿", exact: true });
-    await save.click();
-    await expect(save).toBeEnabled();
+    // Confirm drains the current draft itself; explicit Save is not a prerequisite.
     const confirm = page.getByRole("button", { name: "确认图内容", exact: true });
     await expect(confirm).toBeEnabled();
     const confirmedResponse = page.waitForResponse(response => response.url().endsWith("/source-outline/section-map") && response.request().method() === "PUT");
     await confirm.click();
     const confirmed = await json(await confirmedResponse);
     expect(confirmed.acceptedSectionMap.mapping.sections.find((section: { sectionId: string }) => section.sectionId === "choose").footageMode).toBe("footage");
+    expect(confirmed.graphAdmission.status).toBe("stale");
+    expect(confirmed.graphAdmission.graphRevision).toBe(before.baseCanonicalRevision);
     expect((await json(request.get(`${base}/graph-workbench`))).baseCanonicalRevision).toBe(before.baseCanonicalRevision);
     // The other view consumes the same write receipt, not a reload or a new GET.
     await viewSwitch.getByRole("button", { name: `${view === "创作" ? "专业" : "创作"}工作台`, exact: true }).click();

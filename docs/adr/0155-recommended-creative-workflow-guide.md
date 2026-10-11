@@ -121,3 +121,14 @@ canvas, outside node details. Keep operation captions, the no-video-generation
 notice and graph currentness status with those global controls. Node selection
 must not change their scope; all existing handlers and admission rules remain
 unchanged. Regressions check this separation and native confirm/apply behavior.
+
+The confirmation caption must describe approval, not imply another draft-only
+save. Confirmation flushes pending edits and records a new accepted section-map
+revision, without applying the route. If an applied route exists, confirmation
+marks its old admission/graph context stale; dependent production needs review
+against the new version. Show this consequence before the action, including
+step 5/6 for script, storyboard and production review, and preserve the distinction
+between outdated status and deletion. Existing artifacts are retained and none
+of these actions generates video. Keep this explanation shared by both views
+and associated with Confirm for assistive technology. It documents existing
+semantics, not a new confirmation gate, automatic application or forced rebuild.
