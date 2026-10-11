@@ -205,3 +205,18 @@ An active replacement candidate retains the previous accepted script without
 making that candidate stale. Project the candidate's own review status first;
 retained old evidence only blocks continuation on that old version. Guard fresh
 replacement preparation and delivery as well as first-candidate transitions.
+
+## Preparation prerequisites and Art progression (2026-10-11)
+
+The continued owner walkthrough rejected Script preparation because Art was not
+confirmed, while the guide repeated Prepare. The Art page also offered generic
+review advice without a candidate. Observe the active Art or Script panel's
+existing read, operation failure, draft and style-selection state through one
+stage-scoped advisory channel. A structured prerequisite rejection must name
+its existing owning navigation, rather than repeat an action the server denied.
+Do not infer prerequisite readiness from a missing candidate, add duplicate
+reads, or turn technical generation/delivery into creative acceptance. Art
+preparation requires a chosen style; its text proposal and reference images
+remain distinct. Stage changes invalidate old observations just like project
+and activation changes. Existing admission and all mutation payloads stay owned
+by the panels and server.

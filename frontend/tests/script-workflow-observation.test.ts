@@ -2,8 +2,9 @@ import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
 import { plotloomApi } from "../src/api";
+import { ApiError } from "../src/api-transport";
 import { ScriptPanel } from "../src/pages/ScriptPanel";
-import { ScriptWorkflowReadProvider, useScriptWorkflowRead } from "../src/app/workspace/ScriptWorkflowReadContext";
+import { ReviewWorkflowReadProvider, useReviewWorkflowRead } from "../src/app/workspace/ReviewWorkflowReadContext";
 import { scriptWorkflowNextText } from "../src/app/workspace/recommendedScriptWorkflow";
 import type { ScriptReviewState } from "../src/types";
 
@@ -17,8 +18,8 @@ async function harness() {
   const api = vi.spyOn(plotloomApi, "getScript").mockResolvedValue(missing);
   const host = document.createElement("div"), root = createRoot(host);
   let projectId = "one", active = true, token = 1;
-  function Guide() { const read = useScriptWorkflowRead(); return createElement("p", { "data-hint": true }, scriptWorkflowNextText(read).text); }
-  const render = () => act(async () => root.render(createElement(ScriptWorkflowReadProvider, { projectId, revision: 1, active,
+  function Guide() { const read = useReviewWorkflowRead(); return createElement("p", { "data-hint": true }, scriptWorkflowNextText(read?.stage === "script" ? read : undefined).text); }
+  const render = () => act(async () => root.render(createElement(ReviewWorkflowReadProvider, { projectId, revision: 1, stage: active ? "script" : undefined,
     children: [createElement(Guide, { key: "guide" }), active ? createElement(ScriptPanel, { key: "panel", projectId, readOnly: false, refreshToken: token }) : null] })));
   await render();
   return { api, host, render, get text() { return host.querySelector("[data-hint]")?.textContent; },
@@ -76,5 +77,16 @@ it("keeps failed refreshes unknown even when the old script state remains visibl
     expect(view.text).not.toContain("准备剧本任务");
     await act(async () => [...view.host.querySelectorAll("button")].find(button => button.textContent === "重试加载剧本")!.click());
     expect(view.text).toContain("准备剧本任务");
+  } finally { await view.close(); }
+});
+it("observes a structured preparation rejection from the existing operation owner", async () => {
+  const view = await harness();
+  try {
+    const diagnostic = { code: "accepted_art_not_current", owner: "art", field: null, technicalMessage: "Art is missing" };
+    vi.spyOn(plotloomApi, "prepareScriptCandidate").mockRejectedValue(new ApiError("Not current", 409, { code: "review_context_not_current", diagnostic }));
+    await act(async () => [...view.host.querySelectorAll("button")].find(button => button.textContent === "准备剧本任务")!.click());
+    expect(view.text).toContain("点击左侧「美术参考」");
+    expect(view.text).not.toContain("点击「准备剧本任务」");
+    expect(view.api).toHaveBeenCalledOnce();
   } finally { await view.close(); }
 });

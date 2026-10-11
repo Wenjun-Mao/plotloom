@@ -1,10 +1,12 @@
-import type { ScriptWorkflowObservation } from "./ScriptWorkflowReadContext";
+import type { ScriptWorkflowObservation } from "./ReviewWorkflowReadContext";
+import { reviewWorkflowFailureText } from "./recommendedReviewFailure";
 
 /** The active ScriptPanel owns currentness, operation state and draft protection. */
 export function scriptWorkflowNextText(read: ScriptWorkflowObservation | undefined): { text: string } {
   if (!read || read.status === "loading") return { text: "正在读取当前剧本状态；读取完成后显示具体下一步。" };
   if (read.status === "failed" || !read.state) return { text: "剧本状态读取失败。点击本页「重试加载剧本」；暂不能确认当前剧本。" };
   if (read.busy) return { text: "正在处理剧本任务，请等待完成；不要重复准备或确认。" };
+  if (read.error) return { text: reviewWorkflowFailureText(read.error) };
   if (read.dirty) return { text: "章节有未保存修改。先保存或明确舍弃章节草稿，再继续。" };
   const state = read.state;
   if (state.status === "reopened" || state.acceptedReviewState.status === "reopened") return { text: "剧本修订已打开。选择「编辑章节」，修改后点击「保存此章节，不覆盖其他章节」。" };

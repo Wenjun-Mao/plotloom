@@ -1,5 +1,11 @@
 # Plotloom roadmap entrypoint
 
+The owner authorized continuing the `留一盏灯` walkthrough on October11,
+repairing demonstrated UX problems while pausing at creative sign-off or a new
+provider/cost decision. The first continuation corrects verified preparation
+rejections and Art lifecycle advice; scope, qualification and stopping boundary
+are recorded in [the Art/preparation receipt](../verification/2026-10-11-art-and-preparation-workflow-hints.md).
+
 The October11 owner-approved [Script-page next-action correction](../verification/2026-10-11-script-page-workflow-hints.md)
 observes the existing review panel so missing scripts point to preparation,
 delivered candidates to review/confirmation, and current confirmed scripts to

@@ -68,6 +68,7 @@
     "reference-gallery-layout.spec.ts",
     "cast-reference-revision.spec.ts",
     "navigation-shell.spec.ts",
+    "recommended-art-workflow.spec.ts",
     "recommended-script-workflow.spec.ts",
     "recommended-workflow-guide.spec.ts",
     "video_backends/minimax_h3/h3-video-pilot.spec.ts",
