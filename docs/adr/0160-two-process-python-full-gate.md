@@ -62,3 +62,10 @@ a leader can exit on SIGTERM while a child remains. The runner waits up to five
 seconds for each group to exit, sends SIGKILL to any remaining group, then
 reaps each leader before closing logs or removing temporary files. A real-process
 regression covers a leader that exits while its child ignores SIGTERM.
+
+This descendant-cleanup guarantee is qualified on POSIX, matching the current
+macOS developer and Ubuntu hosted-CI targets. The Windows fallback terminates
+the pytest worker process itself; it does not provide process-tree containment,
+so Windows cancellation safety for this full-gate runner remains unqualified.
+Add and verify Windows process-tree containment before treating it as a
+supported full-gate target.

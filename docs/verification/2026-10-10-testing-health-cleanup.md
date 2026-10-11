@@ -1145,6 +1145,8 @@ Vitest and 6 Playwright cases. The independent read-only review of commit
 71defcae081d2542618338d5faa6876e0d8cbf5f found no actionable findings. The
 reviewer reran the bounded reproduction with a shortened shutdown grace and
 observed leader exit -15, an empty child process state and `child_running=False`.
-The reviewer did not run project suites. A quiet matched serial/two-process
+The reviewer did not run project suites. The process-tree cleanup guarantee is
+qualified for the current macOS and Ubuntu verification targets; Windows worker
+descendant containment remains unqualified. A quiet matched serial/two-process
 comparison, the exact-runner full local gate and one unfiltered hosted
 same-SHA qualification remain outstanding.

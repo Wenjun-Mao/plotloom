@@ -619,5 +619,7 @@ Playwright cases, plus its full-map, type, lock, static-bundle/parity,
 four-shard and wheel/package gates. Independent read-only review of commit
 71defcae081d2542618338d5faa6876e0d8cbf5f passed with no actionable findings;
 the reviewer also reran the bounded descendant reproduction and observed that
-the child stopped. A quiet matched serial/two-process comparison, one full
-local gate and one unfiltered hosted same-SHA qualification remain.
+the child stopped. The descendant-cleanup guarantee is qualified on the
+current macOS and Ubuntu targets; Windows process-tree containment remains
+unqualified. A quiet matched serial/two-process comparison, one full local
+gate and one unfiltered hosted same-SHA qualification remain.
