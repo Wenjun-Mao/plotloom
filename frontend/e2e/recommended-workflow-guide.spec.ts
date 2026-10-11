@@ -32,6 +32,10 @@ test("names the real next branch control through delivery, import, confirmation 
   const suggestion = page.getByRole("region", { name: "助手剧情分支建议" });
   const map = page.getByTestId("section-map");
   await expect(guide).toContainText("当前 · 3/6 剧情分支");
+  const viewSwitch = page.getByRole("group", { name: "同一剧情图的两种视图" });
+  await expect(viewSwitch).toContainText("同一剧情图 · 两种视图");
+  await expect(viewSwitch.getByRole("button", { name: "创作工作台", exact: true })).toHaveAttribute("aria-pressed", "false");
+  await expect(viewSwitch.getByRole("button", { name: "专业工作台", exact: true })).toHaveAttribute("aria-pressed", "false");
   await expect(guide).toContainText("无法读取当前分支草稿");
   await expect(guide).toContainText("点击「刷新」");
   graphReadFailed = false;
@@ -102,6 +106,39 @@ test("names the real next branch control through delivery, import, confirmation 
   await title.fill(`${value} 再修订`);
   await expect(guide).toContainText("点击「保存修改」");
   await expect(guide.getByRole("button", { name: "进入创作工作台", exact: true })).toHaveCount(0);
+  await title.fill(value);
+  await guide.getByRole("button", { name: "进入创作工作台", exact: true }).click();
+  await expect(page).toHaveURL(/stage=creator/);
+  await expect(guide).toContainText("当前 · 4/6 剧情图编辑 · 创作视图");
+  const beforeViews = await json(request.get(`${base}/source-outline`));
+  const ending = topology.nodes.find(node => node.kind === "ending")!;
+  const endingTitle = `灯的剧情 ${topology.nodes.findIndex(node => node.id === ending.id) + 1}`;
+  const selectedNode = page.locator(`[data-creator-node="${ending.id}"] .creator-node-select`);
+  await selectedNode.click();
+  const graphTitle = page.getByLabel("章节标题", { exact: true });
+  await expect(graphTitle).toHaveValue(endingTitle);
+  await graphTitle.fill(`${endingTitle} 视图草稿`);
+
+  for (const size of [{ width: 1280, height: 768 }, { width: 1280, height: 460 }, { width: 1700, height: 900 }]) {
+    await page.setViewportSize(size);
+    for (const view of ["专业", "创作"] as const) {
+      await viewSwitch.getByRole("button", { name: `${view}工作台`, exact: true }).click();
+      await expect(page).toHaveURL(view === "专业" ? /stage=graph/ : /stage=creator/);
+      await expect(guide).toContainText(`当前 · 4/6 剧情图编辑 · ${view}视图`);
+      await expect(guide).not.toContainText("当前 · 3/6");
+      await expect(graphTitle).toHaveValue(`${endingTitle} 视图草稿`);
+      await expect(viewSwitch.getByRole("button", { name: `${view}工作台`, exact: true })).toHaveAttribute("aria-pressed", "true");
+      await expect(viewSwitch.getByRole("button", { name: `${view === "专业" ? "创作" : "专业"}工作台`, exact: true })).toHaveAttribute("aria-pressed", "false");
+      if (view === "创作") await expect(selectedNode).toHaveAttribute("aria-pressed", "true");
+      await viewSwitch.scrollIntoViewIfNeeded();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(size.width);
+      const geometry = await guide.evaluate(element => ({ top: element.getBoundingClientRect().top, toolbarBottom: document.querySelector(".topbar")!.getBoundingClientRect().bottom }));
+      expect(Math.abs(geometry.top - geometry.toolbarBottom)).toBeLessThanOrEqual(2);
+      await page.screenshot({ path: info.outputPath(`shared-graph-${view === "专业" ? "professional" : "creator"}-${size.width}x${size.height}.png`) });
+    }
+  }
+  expect(await json(request.get(`${base}/source-outline`))).toEqual(beforeViews);
+  await graphTitle.fill(endingTitle);
 });
 
 test("keeps the recommended workflow visible on supported desktops and retains draft navigation protection", async ({ page, workbench }, info) => {

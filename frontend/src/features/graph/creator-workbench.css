@@ -3,6 +3,9 @@
 .sidebar > * { flex-shrink: 0; }
 .sidebar .creator-workflow-navigation { flex: 1 0 auto; min-height: 190px; overflow: visible; }
 .workbench-mode-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px 14px 10px; }
+.workbench-view-heading, .workbench-view-hint { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+.workbench-view-heading { margin-bottom: 2px; font-weight: 600; }
+.workbench-view-hint { margin-top: 2px; line-height: 1.5; }
 .workbench-mode-switch button { padding: 8px 4px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--muted); font-size: 12px; }
 .workbench-mode-switch button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
 .creator-workbench { padding: 18px 24px 32px; }

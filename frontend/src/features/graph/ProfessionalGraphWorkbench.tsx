@@ -32,7 +32,7 @@ export function ProfessionalGraphWorkbench({ projectId, canonical, readOnly, sou
   if (!projectId) return <section className="page"><p>先保存项目，再从来源与大纲建立当前图草稿。</p></section>;
   if (owner.state?.readOnlyReason) return <section className="page"><GraphPreviewRecovery /><p className="notice warning">{owner.state.readOnlyReason}</p><CanonicalGraphReader value={canonical} /></section>;
   return <section className="page professional-graph-workbench">
-    <PageHeader eyebrow="专业工作台" title="剧情图与结构规则" description="与创作工作台共用当前图草稿。保存图草稿、确认图内容、应用到故事路线是三项独立操作。" />
+    <PageHeader eyebrow="专业工作台" title="剧情图与结构规则" description="同一剧情图的专业视图：自由查看画布，编辑连接与结构规则。与创作工作台共用图草稿；保存、确认、应用仍是三项独立操作。" />
     <GraphSafetyNotice className="notice warning" />
     <GraphPreviewRecovery />
     {sourceReview.status === "failed" && <p className="notice warning" role="alert">无法读取来源与大纲：{sourceReview.error}<Button onClick={() => void sourceReview.refresh()}>重新读取来源与大纲</Button></p>}

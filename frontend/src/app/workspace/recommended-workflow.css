@@ -23,9 +23,11 @@
 }
 
 .recommended-workflow-current { flex-wrap: wrap; }
+.recommended-workflow-compact { flex-wrap: wrap; }
 .recommended-workflow-current > strong { color: var(--accent); font-size: 12px; }
 .recommended-workflow-current > span { font-size: 12px; font-weight: 600; }
 .recommended-workflow-details { flex: 0 0 auto; position: relative; }
+.recommended-workflow-details[open] { flex-basis: 100%; min-width: 0; }
 .recommended-workflow-details > summary {
   min-height: 30px;
   padding: 4px 9px;

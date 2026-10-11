@@ -58,7 +58,7 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onSourceRetry, 
     }
   }, [owner.selectedNodeId, layout.nodes.find(node => node.id === owner.selectedNodeId)?.rank, geometry.ready]);
   return <section className="page creator-workbench" data-testid="creator-workbench">
-    <PageHeader eyebrow="故事 → 制作" title="创作工作台" description="在同一份故事图上编辑剧情、检查路线并进入制作。保存图草稿、确认图内容、应用到故事路线是三项独立操作。" />
+    <PageHeader eyebrow="故事 → 制作" title="创作工作台" description="同一剧情图的创作视图：自动排列剧情，检查路线并进入制作。与专业工作台共用图草稿；保存、确认、应用仍是三项独立操作。" />
     <div className="creator-toolbar">
       <Button onClick={() => onNavigate("source", "source")}>来源、分支建议与报告</Button><Button onClick={() => onNavigate("characters")}>角色</Button><Button onClick={() => onNavigate("source", "art")}>美术参考</Button><Button onClick={() => onNavigate("brief")}>项目简报与结构设置</Button>
       <Button disabled={disabled || !owner.canUndo} onClick={() => void owner.undo()}>撤销结构修改</Button><GraphDraftDiscard disabled={disabled} />

@@ -101,10 +101,34 @@ describe("recommended creative workflow", () => {
     expect(buildRecommendedWorkflow({ ...base, activePage: "source", sourceReview: acceptedReview() })?.currentStep).toBe("branches");
     expect(buildRecommendedWorkflow({ ...base, activePage: "source", activeHash: "art" })?.currentStep).toBe("production");
     expect(buildRecommendedWorkflow({ ...base, activePage: "source", activeHash: "script" })?.currentStep).toBe("production");
-    expect(buildRecommendedWorkflow({ ...base, activePage: "graph" })?.currentStep).toBe("branches");
+    expect(buildRecommendedWorkflow({ ...base, activePage: "graph" })?.currentStep).toBe("creator");
     expect(buildRecommendedWorkflow({ ...base, activePage: "creator" })?.currentStep).toBe("creator");
     expect(buildRecommendedWorkflow({ ...base, activePage: "characters" })?.currentStep).toBe("production");
     expect(buildRecommendedWorkflow({ ...base, activePage: "trace" })).toBeNull();
+  });
+
+  it.each([["creator", "创作视图"], ["graph", "专业视图"]] as const)("keeps %s in the shared graph step without claiming completion", (activePage, viewLabel) => {
+    const input = { ...base, activePage, sourceReview: acceptedReview(), branchTaskBlocked: true };
+    const model = buildRecommendedWorkflow(input)!;
+    expect(model.currentStep).toBe("creator");
+    expect(model.currentStepLabel).toBe("剧情图编辑");
+    expect(model.steps.findIndex(step => step.id === model.currentStep)).toBe(3);
+    expect(model.currentViewLabel).toBe(viewLabel);
+    expect(model.steps[3].status).toBe("正在查看");
+    expect(model.nextText).toContain("共用同一剧情图");
+    expect(model.nextText).toContain("尚未与已确认分支匹配");
+    expect(model.steps[2].status).not.toContain("已应用");
+
+    const failed = buildRecommendedWorkflow({ ...input, sourceReviewStatus: "failed" })!;
+    expect(failed.currentStep).toBe(model.currentStep);
+    expect(failed.currentViewLabel).toBe(viewLabel);
+    expect(failed.nextText).toContain("无法核实");
+    expect(failed.action).toBeUndefined();
+    const readOnly = buildRecommendedWorkflow({ ...input, readOnly: true })!;
+    expect(readOnly.currentStep).toBe(model.currentStep);
+    expect(readOnly.steps.every(step => step.status === "只读快照")).toBe(true);
+    expect(readOnly.action).toBeUndefined();
+    expect(buildRecommendedWorkflow({ ...base, activePage: "source", sourceReview: acceptedReview() })?.currentViewLabel).toBeUndefined();
   });
 
   it("does not treat a retained outline as current for a newer source", () => {
@@ -126,6 +150,17 @@ describe("recommended creative workflow", () => {
     const changedGraph = buildRecommendedWorkflow({ ...base, activePage: "source", sourceReview: review, stageHeads: { story_graph: head("story_graph", 8, "different-hash") } })!;
     expect(changedGraph.steps.find(step => step.id === "branches")?.status).toBe("分支方案 r5 已确认");
     expect(changedGraph.nextText).toContain("应用到故事路线");
+    for (const activePage of ["creator", "graph"] as const) {
+      const input = { ...base, activePage, sourceReview: review, stageHeads: { story_graph: head("story_graph", 8, "graph-hash") } };
+      const graphView = buildRecommendedWorkflow(input)!;
+      expect(graphView.currentStepLabel).toBe("剧情图编辑");
+      expect(graphView.steps[2].status).toBe("已应用到路线 r8");
+      expect(graphView.nextText).not.toContain("尚未与已确认分支匹配");
+      const mismatched = buildRecommendedWorkflow({ ...input, stageHeads: { story_graph: head("story_graph", 8, "different-hash") } })!;
+      expect(mismatched.currentStep).toBe(graphView.currentStep);
+      expect(mismatched.nextText).toContain("尚未与已确认分支匹配");
+      expect(mismatched.steps[2].status).not.toContain("已应用");
+    }
   });
 
   it("keeps branch-task observations bound to the brief and accepted revisions", () => {

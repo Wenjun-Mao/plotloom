@@ -1,11 +1,83 @@
 # Recommended creative workflow guide
 
-Status: original guide published on main; owner walkthrough correction below
-locally qualified for publication. Required hosted CI for the correction remains
-separate. Original run 38098197412 on 4955bbf was last recorded with verify passed
-and browser shards pending; the separate modular-verification task owns follow-up.
+Status: guide and concrete branch-control correction published on main. The
+one-graph/two-views refinement below is locally qualified for publication. Hosted CI remains
+separate: original run 38098197412 on 4955bbf completed with verify passed and both
+browser shards failed; correction run 38101073289 on 63b25f4 is in progress at this
+check. The isolated modular-verification task owns their completion follow-up.
 
-## Owner walkthrough correction — concrete branch next controls
+## Owner walkthrough correction — one graph, two views
+
+Status: implemented and locally qualified for publication (2026-10-10).
+Trusted baseline: `63b25f461367b5732e08e6aac5eef3c429721f75`.
+
+The workbench switch exposes two presentations of the existing shared graph
+draft, but route classification labels professional graph editing as step 3
+and creator graph editing as step 4. The switch also incorrectly marks every
+non-creator page as the professional view. This makes view navigation look
+like lost progress and hides the shared-graph relationship.
+
+Deliverable: label the switch as two views of one graph; mark only the actual
+graph view active; classify both graph routes as step 4, `剧情图编辑`, with a
+separate view label. Source-page branch preparation remains step 3. The step
+number describes the current activity, not a completed percentage. Preserve
+the existing shared draft owner, guarded navigation and independent save,
+confirm and apply operations. No persisted progress or alternate graph copies.
+
+Evidence: focused workflow mapping and guard regressions; disposable browser
+switches in both directions, shared unsaved draft/selection and unchanged
+canonical readback; supported desktop pixel inspection; unfiltered frontend
+tests, both type checks, repeat deterministic builds and independent review.
+Actual dependency review must confirm this is a bounded frontend change before
+using risk-scoped local qualification. Suite tooling stays with the isolated
+M0–M5 task. Exclude owner project/state, Safari operations, generation and live
+service restarts. Stop after scoped main publication and one required
+unfiltered hosted-CI dispatch, reported separately from local qualification.
+
+Local qualification evidence against that baseline:
+
+- Actual executable diff changes guide classification/copy and layout, graph
+  page descriptions and the existing sidebar switch presentation. Its extracted
+  component invokes the same guarded navigation with the same route arguments
+  and disabled conditions. No backend/API schema or request payload, graph/draft
+  ownership, persistence, admission, auth, provider/prompt, dependency, build or
+  package contract changes. Internal view labels do not introduce server state.
+- `uv run --locked --no-sync python scripts/verify.py quick`: 1,074 tests across
+  133 frontend files, both TypeScript checks, lock and API unused-import checks
+  passed (12.606s). These source/type inputs remain unchanged by the subsequent
+  expanded-guide CSS repair.
+- `verify.py focused --vitest tests/recommended-workflow.test.ts --playwright
+  e2e/recommended-workflow-guide.spec.ts --playwright
+  e2e/creator-workbench-story.spec.ts`: 25 model cases and all 5 browser cases
+  passed (17.480s). Both graph views remain step 4 for applied, mismatched,
+  failed-read and read-only states, without weakening exact identity checks.
+  The disposable branch journey switches in both directions at all three
+  approved sizes, retains the selected node and unsaved graph title, and leaves
+  source/accepted-map/admission readback unchanged. The existing script-draft
+  mode-switch, failed-read recovery and unsaved navigation cases also pass.
+- The first browser attempt exposed an expanded-layout overflow at 1280px:
+  the non-shrinking details flex item used its longer paragraph's intrinsic
+  width and squeezed the current-step label. Expanded details now take a
+  full-width row with a bounded minimum width. The same width/height checks
+  pass after repair; no assertion or supported viewport was removed.
+- Directly inspected creator/professional screenshots at 1280×768, 1280×460
+  and 1700×900, plus the expanded guide at 1280×460. The shared-graph switch and
+  compact step/view label fit; sticky placement and no page overflow pass.
+- Two deterministic builds match sorted static-tree manifest SHA-256
+  `3f05eceef0408a37a3b69578420cdfb4fde351ef35f35272b46e16211819686f`.
+  No-cache normal8841 reads match local `/v2/workbench.js` SHA-256
+  `182d45787330dd264c737b69669819633b03df12b4a18c3c7de317c80b7cc2cc`
+  and `/v2/workbench2.css` SHA-256
+  `0a9066ec0305d9a56414bc6ad66c54c94716c6fe957e286a9b1f9d90df570ed0`.
+  `/healthz` is healthy; no service restart or owner-project read/write occurred.
+- Independent GPT-6 Luna / Max stable-candidate review found no findings and
+  confirmed the existing guarded navigation, shared graph owner and unchanged
+  API/persistence boundary. Required unfiltered hosted
+  CI will be dispatched once on the published refinement SHA, not counted as
+  passed before terminal success. Local frontend qualification is not full
+  local release qualification or owner product/creative acceptance.
+
+## Earlier correction — concrete branch next controls
 
 Status: implemented and locally qualified (2026-10-10); hosted CI pending.
 

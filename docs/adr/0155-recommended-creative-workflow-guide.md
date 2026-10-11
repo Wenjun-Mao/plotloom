@@ -69,3 +69,20 @@ and its shared graph-draft read without replacing unsent edits. No new persisted
 automatic mutation is introduced. Regression tests must traverse this actual
 route/state sequence and failed-read recovery, not merely assert the step number
 or sticky geometry.
+
+## One graph, two editing views (2026-10-10 refinement)
+
+The walkthrough exposed a classification mismatch: professional graph editing
+selected branch preparation (step 3), while creator graph editing selected step
+4, despite both consuming the same graph-draft owner. Both graph routes now
+belong to step 4, `剧情图编辑`; the active view is labeled separately. Source-page
+branch preparation remains step 3. The index denotes the current activity, not
+a completed percentage or a persisted monotonic progress counter. Switching
+graph views must not imply loss of progress, new graph copies or acceptance.
+
+Label the workbench switch as two views of one graph, and mark only the actual
+graph route selected (neither on other pages). Both views retain the same
+admission/read guards and independent save, confirm and apply operations;
+navigation uses the existing draft protections. Regressions must check both
+directions, shared unsaved edits/selection, unchanged canonical versions and
+failed/read-only states rather than merely making the displayed number sticky.

@@ -39,6 +39,7 @@ export interface RecommendedWorkflowStep {
 export interface RecommendedWorkflowModel {
   currentStep: RecommendedWorkflowStepId;
   currentStepLabel: string;
+  currentViewLabel?: string;
   steps: RecommendedWorkflowStep[];
   nextText: string;
   action?: RecommendedWorkflowAction;
@@ -48,7 +49,7 @@ const steps: Array<{ id: RecommendedWorkflowStepId; label: string }> = [
   { id: "brief", label: "项目简报" },
   { id: "source", label: "来源与大纲" },
   { id: "branches", label: "剧情分支" },
-  { id: "creator", label: "创作工作台" },
+  { id: "creator", label: "剧情图编辑" },
   { id: "production", label: "制作与审阅" },
   { id: "play", label: "播放" },
 ];
@@ -110,8 +111,8 @@ function currentStepFor(input: RecommendedWorkflowInput): RecommendedWorkflowSte
     const candidateNeedsOutlineReview = ["prepared", "ready"].includes(input.sourceReview?.candidate?.status ?? "");
     return acceptedOutlineIsCurrent(input.sourceReview) && !candidateNeedsOutlineReview ? "branches" : "source";
   }
-  if (input.activePage === "graph") return "branches";
-  if (input.activePage === "creator") return "creator";
+  // Editing presentations share one graph owner and one workflow activity.
+  if (input.activePage === "graph" || input.activePage === "creator") return "creator";
   if (["characters", "bible", "beats", "storyboard"].includes(input.activePage)) return "production";
   return null;
 }
@@ -228,10 +229,6 @@ function nextRecommendation(input: RecommendedWorkflowInput, currentStep: Recomm
     return { text: "请先完成当前大纲审阅，再继续剧情分支。" };
   }
   if (currentStep === "branches") {
-    if (input.activePage === "graph") return {
-      text: "专业工作台可直接编辑剧情分支。保存图草稿、确认图内容和应用路线是独立操作；检查后可返回创作工作台查看完整路线。",
-      action: { kind: "navigate", label: "返回创作工作台", route: { stage: "creator" } },
-    };
     const draft = input.branchDraft;
     if (draft.status === "loading") return { text: "正在读取当前分支草稿；读取完成后再继续。" };
     if (draft.status === "failed") return { text: "无法读取当前分支草稿。请点击「刷新」重新读取，暂不要带入或确认建议。" };
@@ -262,9 +259,14 @@ function nextRecommendation(input: RecommendedWorkflowInput, currentStep: Recomm
   }
   if (currentStep === "creator") {
     const applied = currentGraphAdmission(input);
-    return { text: applied
-      ? "检查每条完整播放路线、选择与结局；需要调整时可继续手工编辑。保存图草稿、确认图内容和应用路线彼此独立。"
-      : "当前正式路线尚未与已确认分支匹配；仍可在创作工作台手工编辑草稿，按本页检查后再确认和应用。" };
+    return {
+      text: applied
+        ? "两种视图共用同一剧情图。检查每条完整播放路线、选择与结局；保存图草稿、确认图内容和应用路线彼此独立。"
+        : "两种视图共用同一剧情图。当前正式路线尚未与已确认分支匹配；可在任一视图编辑草稿，按本页检查后再确认和应用。",
+      action: input.activePage === "graph"
+        ? { kind: "navigate", label: "返回创作工作台", route: { stage: "creator" } }
+        : undefined,
+    };
   }
   return productionNextText(input);
 }
@@ -278,6 +280,7 @@ export function buildRecommendedWorkflow(input: RecommendedWorkflowInput): Recom
   return {
     currentStep,
     currentStepLabel: steps.find(step => step.id === currentStep)!.label,
+    currentViewLabel: input.activePage === "creator" ? "创作视图" : input.activePage === "graph" ? "专业视图" : undefined,
     steps: steps.map(step => ({ ...step, status: statusFor(input, step.id, currentStep) })),
     nextText: recommendation.text,
     action: recommendation.action,
