@@ -3,6 +3,7 @@ import type { PageId } from "./contracts";
 import { sourceWorkflowTarget } from "./sourceWorkflowNavigation";
 import type { WorkspaceSourceReviewStatus } from "./useWorkspaceSourceReview";
 import { creativeWorkflowSteps, type CreativeWorkflowStepId } from "../../creative-workflow-steps";
+import { graphWorkflowRecommendation } from "./recommendedGraphWorkflow";
 
 export type RecommendedWorkflowStepId = CreativeWorkflowStepId;
 export type RecommendedWorkflowRoute = { stage: PageId; hash?: string };
@@ -10,6 +11,8 @@ export type BranchTaskReadObservation = { basis: string; status: "loading" | "re
 export type RecommendedWorkflowAction =
   | { kind: "navigate"; label: string; route: RecommendedWorkflowRoute }
   | { kind: "play"; label: string; href: string };
+
+export type WorkflowRecommendation = { text: string; statusText?: string; action?: RecommendedWorkflowAction };
 
 export interface RecommendedWorkflowInput {
   activePage: PageId;
@@ -22,7 +25,7 @@ export interface RecommendedWorkflowInput {
   branchTask: BranchTaskState | null;
   branchTaskBusy: boolean;
   branchTaskBlocked: boolean;
-  branchDraft: { status: "loading" | "ready" | "failed"; dirty: boolean; complete: boolean; stale: boolean; busy: boolean; blocked: boolean };
+  branchDraft: { status: "loading" | "ready" | "failed"; dirty: boolean; complete: boolean; pendingFields?: boolean; stale: boolean; busy: boolean; blocked: boolean };
   workspaceAvailable: boolean;
   projectPending: boolean;
   sourceDraftDirty: boolean;
@@ -42,6 +45,7 @@ export interface RecommendedWorkflowModel {
   currentStepLabel: string;
   currentViewLabel?: string;
   steps: RecommendedWorkflowStep[];
+  statusText?: string;
   nextText: string;
   action?: RecommendedWorkflowAction;
 }
@@ -195,7 +199,7 @@ function productionNextText(input: RecommendedWorkflowInput): { text: string; ac
   return { text: "按当前页面继续制作与审阅；播放器会核对正式故事路线、场景和分镜，内容齐备后再体验交互式路线。" };
 }
 
-function nextRecommendation(input: RecommendedWorkflowInput, currentStep: RecommendedWorkflowStepId): { text: string; action?: RecommendedWorkflowAction } {
+function nextRecommendation(input: RecommendedWorkflowInput, currentStep: RecommendedWorkflowStepId): WorkflowRecommendation {
   const archived = input.project.lifecycleStatus === "archived" || Boolean(input.project.archivedAt);
   if (archived || input.readOnly) return { text: "项目为只读快照，可查看保留内容；恢复项目后再核实当前状态并继续创作。" };
   if (input.projectPending) return { text: "正在读取当前项目版本；读取完成后再核实已有确认和后续步骤。" };
@@ -252,15 +256,7 @@ function nextRecommendation(input: RecommendedWorkflowInput, currentStep: Recomm
     return { text: "下一步点击分支区的「准备剧情分支建议」；也可自行填写当前结构草稿。" };
   }
   if (currentStep === "creator") {
-    const applied = currentGraphAdmission(input);
-    return {
-      text: applied
-        ? "两种视图共用同一剧情图。检查每条完整播放路线、选择与结局；保存图草稿、确认图内容和应用路线彼此独立。"
-        : "两种视图共用同一剧情图。当前正式路线尚未与已确认分支匹配；可在任一视图编辑草稿，按本页检查后再确认和应用。",
-      action: input.activePage === "graph"
-        ? { kind: "navigate", label: "返回创作工作台", route: { stage: "creator" } }
-        : undefined,
-    };
+    return graphWorkflowRecommendation(input, currentSectionMap(input.sourceReview), currentGraphAdmission(input));
   }
   return productionNextText(input);
 }
@@ -276,6 +272,7 @@ export function buildRecommendedWorkflow(input: RecommendedWorkflowInput): Recom
     currentStepLabel: steps.find(step => step.id === currentStep)!.label,
     currentViewLabel: input.activePage === "creator" ? "创作视图" : input.activePage === "graph" ? "专业视图" : undefined,
     steps: steps.map(step => ({ ...step, status: statusFor(input, step.id, currentStep) })),
+    statusText: recommendation.statusText,
     nextText: recommendation.text,
     action: recommendation.action,
   };

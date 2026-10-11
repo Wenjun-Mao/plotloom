@@ -249,3 +249,74 @@ not imply hosted CI completion, full local release qualification, owner
 walkthrough acceptance or creative acceptance. Do not restart normal8841.
 Owner refresh guidance is <code>⌘R</code>, then <code>⌘⇧R</code> if the open browser tab still shows
 the previous bundle.
+
+## Applied-route next-control refinement — approved
+
+The owner requested that the compact guide itself show both application success
+and a concrete next production instruction. Root cause: its graph-view branch
+already verified exact applied admission, but returned generic editing advice
+and did not give pending graph edits precedence. The owning frontend projection
+now checks the existing graph read/draft state, then shows a distinct applied
+status and names the first reachable footage section and Creator `制作` tab for
+step 5/6. Professional view first names its return-to-Creator control. Titles
+come from the exact accepted map, not this owner's story or current selection;
+route-only and unconnected nodes are skipped. Pending field buffers count as
+unconfirmed edits. No reachable footage is not a production-completion claim.
+Independent review identified two advisory edge cases: pending JSON fields must
+name field submission rather than unrelated structural edits, and editable
+titles can repeat. Both are handled explicitly; ambiguous titles fall back to
+selecting a filming node on the current route, without adding selection state.
+
+Scope against trusted `aca29bc`: advisory projection/rendering, shared graph-draft
+observation, styles, regression coverage, documentation and generated assets.
+Backend/API schemas and payloads, persistence, admission, auth, providers/prompts,
+dependencies, build tooling and package contracts remain unchanged. No new read,
+selection action, confirmation/application authority or production dispatch is
+introduced. Preserve the current graph-page step index and existing navigation
+guards. ADR 0155 records the contract; ADR 0156 supplies bounded frontend
+qualification. Earlier release failures still prohibit push. Tests and pixel
+checks must prove both-view state transitions, native writes without reload,
+pending/unavailable-state suppression and no owner-project mutation.
+
+### Executed local qualification
+
+The stable refinement diff is based on `aca29bc987e7dec13db7f2ccc75cf6223ee554c0`.
+Its actual dependency surface remains within ADR 0156's bounded frontend policy;
+the review corrections do not change requests, persisted drafts or admission.
+
+- Focused Vitest: `recommended-workflow.test.ts`,
+  `workspace-workflow-guide.test.ts`, `graph-confirmation-read.test.ts`:
+  **53 passed** (3 files).
+- `verify.py quick`: unfiltered frontend **1,115 passed** (135 files), both
+  frontend/browser-fixture type checks, locked-dependency check and API F401
+  lint passed; 10.637 seconds total. No full Python integration rerun.
+- Explicit Playwright selection: `recommended-workflow-guide.spec.ts`,
+  `creator-workbench-production.spec.ts`, `creator-workbench-delivery.spec.ts`,
+  `production-rebuild.spec.ts`, one worker, grep
+  `applied graph status|real next branch control|workflow visible|graph confirmation and application|creator Production|checked bundle|checked production controls|same project recovers`:
+  **11 passed**, about one minute. Includes native Confirm/Apply without reload,
+  dirty/incomplete/pending-field recovery, retained selection/media, manual
+  production-tab entry and source branch progression. Disposable fixtures only.
+- Inspected both applied views at 1280×768, 1280×460 and 1700×900, plus the
+  pending-field short viewport, expanded short guide and checked clean entry.
+  Status/instruction rows are readable without clipping or horizontal overflow.
+  Evidence: `/tmp/plotloom-applied-guide-review-20261010/`.
+- Two deterministic builds matched all seven static files. SHA-256 of the
+  sorted path/hash manifest JSON:
+  `7e22d1b53cd4308e1b5e8fff4e78e9120f48611ea80059fe9724f556e8b7c904`.
+  No-cache normal8841 static GETs returned HTTP 200 and exactly matched local
+  JS `d30499ee4bb869a1b21b391b135cec3c1023b5ac2c00c92f367a3dc11a8b6566`
+  and CSS `6d9ed4e83d49b4ee0d4a35516929085f69cbd7f1f644880ddc9813a71ed1bb87`.
+  The existing large-chunk warning remains unchanged.
+- Browser shard manifest: 85 specs, 285 selected cases split 124/161, no overlap
+  or omissions. `git diff --check` passed.
+- Independent read-only review requested GPT-6 Luna / Max; effective host model
+  settings were not independently verified. Both concrete findings were fixed
+  and re-reviewed as resolved, with no related defect. Reviewer ran no checks.
+
+This is local frontend qualification, not full release or hosted-CI success.
+The earlier `e923b58` full gate's six browser failures and unrun downstream
+package gates remain outstanding; do not push or waive them. No owner project,
+normal8841 runtime or creative content was mutated; only its served static UI
+assets changed. Owner refresh/walkthrough acceptance remains pending, and any
+pending user edits must be preserved before refreshing.

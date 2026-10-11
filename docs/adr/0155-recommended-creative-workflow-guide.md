@@ -132,3 +132,29 @@ between outdated status and deletion. Existing artifacts are retained and none
 of these actions generates video. Keep this explanation shared by both views
 and associated with Confirm for assistive technology. It documents existing
 semantics, not a new confirmation gate, automatic application or forced rebuild.
+
+## Applied-route production entry (2026-10-10 refinement)
+
+An applied route must not leave the compact guide at generic graph-editing
+advice. On both graph views, show the verified applied status separately from
+one concrete next instruction: select the first reachable section requiring
+footage, by its accepted title, and open the Creator `制作` tab for step 5/6.
+Professional view first names its existing return-to-Creator control. Follow
+topology from its start identity, not section storage order or node selection;
+skip route-only and unconnected nodes. With no reachable footage, ask the
+author to check filming requirements rather than claim production is complete.
+If the target title is not unique across visible graph sections, ask the author
+to select a filming node on the current route instead of naming an ambiguous
+single target; identity uniqueness does not imply title uniqueness.
+
+Only show current application when exact admission/head identity checks pass
+and the shared graph-draft read is ready, editable, settled and matches the
+accepted map. Pending field buffers are unconfirmed edits: name the pending
+input and its existing blur-to-submit action rather than asking for unrelated
+node/choice/connection edits. Dirty/incomplete,
+stale, failed, busy and read-only states take precedence; confirmation without
+application points to Apply. The guide observes existing owners, adds no reads
+or persisted state, and performs no selection, approval or production mutation.
+The step index remains the current graph-view activity, not a completion ratio.
+Guard status/instruction transitions after native confirmation/application and
+both-view desktop visibility as well as the pure state projection.

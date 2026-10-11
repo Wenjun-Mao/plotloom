@@ -1,7 +1,68 @@
 import { expect, test } from "./fixture";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import { json, writeDelivery, type Preparation } from "./f5a-fixture";
-import type { SourceTopology } from "../src/types";
+import type { SourceOutlineReviewState, SourceTopology } from "../src/types";
+
+test("shows applied graph status and the next production control without hiding pending edits", async ({ page, request, workbench }, info) => {
+  const id = execFileSync("uv", ["run", "python", "-m", "frontend.e2e.fixtures.bridge_handoff_project", "--outputs", workbench.outputsRoot, "--application", workbench.applicationDataRoot], { cwd: path.resolve(".."), encoding: "utf8" }).trim();
+  const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
+  const source = await json<SourceOutlineReviewState>(request.get(`${base}/source-outline`));
+  const mapping = source.acceptedSectionMap!.mapping;
+  const opening = mapping.sections.find(section => section.sectionId === mapping.topology.startNodeId)!;
+  const ending = mapping.sections.find(section => section.ending)!;
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`);
+  const guide = page.getByTestId("recommended-workflow");
+  const viewSwitch = page.getByRole("group", { name: "同一剧情图的两种视图" });
+  await page.locator(`[data-creator-node="${ending.sectionId}"] .creator-node-select`).click();
+  for (const size of [{ width: 1280, height: 768 }, { width: 1280, height: 460 }, { width: 1700, height: 900 }]) {
+    await page.setViewportSize(size);
+    for (const view of ["专业", "创作"] as const) {
+      await viewSwitch.getByRole("button", { name: `${view}工作台`, exact: true }).click();
+      await expect(guide).toContainText(`当前 · 4/6 剧情图编辑 · ${view}视图`);
+      await expect(guide.getByRole("status")).toHaveText("当前状态：当前图内容已应用到故事路线。");
+      await expect(guide).toContainText(`选择「${opening.title}」，打开「制作」标签，继续第5/6步「制作与审阅」。`);
+      await expect(page.getByLabel("章节标题", { exact: true })).toHaveValue(ending.title);
+      await expect(guide.getByRole("button", { name: "返回创作工作台", exact: true })).toHaveCount(view === "专业" ? 1 : 0);
+      const geometry = await guide.evaluate(element => ({ top: element.getBoundingClientRect().top, height: element.getBoundingClientRect().height, toolbarBottom: document.querySelector(".topbar")!.getBoundingClientRect().bottom }));
+      expect(Math.abs(geometry.top - geometry.toolbarBottom)).toBeLessThanOrEqual(2);
+      expect(geometry.height).toBeLessThan(110);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(size.width);
+      await page.screenshot({ path: info.outputPath(`applied-next-${view === "专业" ? "professional" : "creator"}-${size.width}x${size.height}.png`) });
+    }
+  }
+  const title = page.getByLabel("章节标题", { exact: true });
+  await title.fill(`${ending.title} 未确认修订`);
+  await expect(guide.getByRole("status")).toHaveCount(0);
+  await expect(guide).toContainText("点击「确认图内容」，再点击「应用到故事路线」");
+  await expect(guide).not.toContainText("打开「制作」标签");
+  await title.fill("");
+  await expect(guide).toContainText("先补全节点、选项与连接");
+  await title.fill(ending.title);
+  await expect(guide.getByRole("status")).toContainText("当前图内容已应用到故事路线");
+  await page.getByText("状态与实体效果", { exact: true }).click();
+  const effects = page.getByLabel("事实效果 JSON", { exact: true });
+  const originalEffects = await effects.inputValue();
+  await effects.fill("{");
+  await title.click();
+  await expect(guide.getByRole("status")).toHaveCount(0);
+  await expect(guide).toContainText("待提交的字段输入");
+  await expect(guide).toContainText("点击输入框外提交字段");
+  await expect(guide).not.toContainText("先补全节点、选项与连接");
+  await expect(guide).not.toContainText("打开「制作」标签");
+  await page.setViewportSize({ width: 1280, height: 460 });
+  await page.screenshot({ path: info.outputPath("pending-field-input-1280x460.png") });
+  await effects.fill(originalEffects);
+  await title.click();
+  await expect(guide.getByRole("status")).toContainText("当前图内容已应用到故事路线");
+  await page.locator(`[data-creator-node="${opening.sectionId}"] .creator-node-select`).click();
+  await page.getByRole("tab", { name: "制作", exact: true }).click();
+  await expect(page.getByTestId("creator-production")).toBeVisible();
+  const after = await json<SourceOutlineReviewState>(request.get(`${base}/source-outline`));
+  expect(after.acceptedSectionMap).toEqual(source.acceptedSectionMap);
+  expect(after.graphAdmission).toEqual(source.graphAdmission);
+  expect((await json(request.get(`${base}/runs`))).runs).toEqual([]);
+});
 
 test("names the real next branch control through delivery, import, confirmation and route application", async ({ page, request, workbench }, info) => {
   await page.goto(`${workbench.frontendOrigin}/v2/`);

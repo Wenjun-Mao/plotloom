@@ -14,6 +14,7 @@ for (const view of ["创作", "专业"] as const) {
     const before = await json(request.get(`${base}/graph-workbench`));
     const viewSwitch = page.getByRole("group", { name: "同一剧情图的两种视图" });
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`);
+    const guide = page.getByTestId("recommended-workflow");
     await page.locator('[data-creator-node="choose"] .creator-node-select').click();
     await viewSwitch.getByRole("button", { name: `${view}工作台`, exact: true }).click();
     await page.getByRole("checkbox", { name: "此节点需要拍摄", exact: true }).check();
@@ -27,6 +28,8 @@ for (const view of ["创作", "专业"] as const) {
     expect(confirmed.graphAdmission.status).toBe("stale");
     expect(confirmed.graphAdmission.graphRevision).toBe(before.baseCanonicalRevision);
     expect((await json(request.get(`${base}/graph-workbench`))).baseCanonicalRevision).toBe(before.baseCanonicalRevision);
+    await expect(guide).toContainText("下一步点击「应用到故事路线」");
+    await expect(guide.getByRole("status")).toHaveCount(0);
     // The other view consumes the same write receipt, not a reload or a new GET.
     await viewSwitch.getByRole("button", { name: `${view === "创作" ? "专业" : "创作"}工作台`, exact: true }).click();
     await expect(page.getByRole("checkbox", { name: "此节点需要拍摄", exact: true })).toBeChecked();
@@ -39,6 +42,8 @@ for (const view of ["创作", "专业"] as const) {
     expect(installed.graphAdmission.sectionMapRevision).toBe(confirmed.acceptedSectionMap.revision);
     await viewSwitch.getByRole("button", { name: "创作工作台", exact: true }).click();
     await expect(page.getByRole("region", { name: "整张剧情图 · 保存与应用", exact: true })).toContainText("当前图内容已应用到故事路线");
+    await expect(guide.getByRole("status")).toContainText("当前图内容已应用到故事路线");
+    await expect(guide).toContainText("打开「制作」标签，继续第5/6步「制作与审阅」");
     await expect(page.getByRole("button", { name: "应用到故事路线", exact: true })).toBeDisabled();
     expect((await json(request.get(`${base}/runs`))).runs).toEqual([]);
   });

@@ -33,6 +33,7 @@ export function RecommendedWorkflowGuide({ model, actionDisabled, onNavigate }: 
         </div>
       </details>
     </div>
+    {model.statusText && <p className="recommended-workflow-status" role="status"><strong>当前状态：</strong>{model.statusText}</p>}
     <div className="recommended-workflow-next">
       <p><strong>下一步建议：</strong>{model.nextText}</p>
       {action?.kind === "navigate" && <Button variant="quiet" disabled={actionDisabled} onClick={() => onNavigate(action.route)}>{action.label}</Button>}

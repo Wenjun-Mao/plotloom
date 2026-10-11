@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { demoProject } from "../src/demo";
-import type { AcceptedSectionMapRevision, BranchTaskState, ServerStageName, SourceOutlineReviewState, StageHead, WorkspaceProject } from "../src/types";
+import type { AcceptedSectionMapRevision, BranchTaskState, SectionMap, ServerStageName, SourceOutlineReviewState, StageHead, WorkspaceProject } from "../src/types";
 import { branchSuggestionBasis, buildRecommendedWorkflow, type RecommendedWorkflowInput } from "../src/app/workspace/recommendedWorkflow";
 import { creativeWorkflowStepReference, creativeWorkflowSteps } from "../src/creative-workflow-steps";
+import { graphDraftFixture } from "./graph-workbench-fixture";
 
 const project = { ...demoProject, id: "project", revision: 4 } as WorkspaceProject;
 const base: RecommendedWorkflowInput = {
@@ -30,6 +31,17 @@ function acceptedReview(overrides: Partial<SourceOutlineReviewState> = {}): Sour
 
 function head(stage: ServerStageName, revision: number, contentHash: string): StageHead {
   return { stage, revision, status: "ready", entityRevisionId: null, contentHash, schemaVersion: 2, inputRevisions: {}, staleReasons: [], updatedAt: "2026-10-10T00:00:00Z" };
+}
+
+function appliedGraphInput(activePage: "creator" | "graph" = "creator"): RecommendedWorkflowInput {
+  const mapping = graphDraftFixture().mapping as SectionMap;
+  mapping.sections[0].title = "离开前，最后点亮";
+  mapping.sections.reverse(); // The guide must follow the start node, not section storage order.
+  return { ...base, activePage, branchDraft: { ...base.branchDraft, complete: true },
+    sourceReview: acceptedReview({ sectionMapStatus: "current",
+      acceptedSectionMap: { revision: 5, sourceRevision: 2, outlineRevision: 3, outlineContentHash: "outline-hash", contentHash: "map-hash", mapping } as AcceptedSectionMapRevision,
+      graphAdmission: { status: "current", sourceRevision: 2, outlineRevision: 3, outlineContentHash: "outline-hash", sectionMapRevision: 5, sectionMapContentHash: "map-hash", graphRevision: 8, graphContentHash: "graph-hash" } as never }),
+    stageHeads: { story_graph: head("story_graph", 8, "graph-hash") } };
 }
 
 describe("recommended creative workflow", () => {
@@ -117,7 +129,7 @@ describe("recommended creative workflow", () => {
   });
 
   it.each([["creator", "创作视图"], ["graph", "专业视图"]] as const)("keeps %s in the shared graph step without claiming completion", (activePage, viewLabel) => {
-    const input = { ...base, activePage, sourceReview: acceptedReview(), branchTaskBlocked: true };
+    const input = { ...base, activePage, sourceReview: acceptedReview(), branchTaskBlocked: true, branchDraft: { ...base.branchDraft, complete: true } };
     const model = buildRecommendedWorkflow(input)!;
     expect(model.currentStep).toBe("creator");
     expect(model.currentStepLabel).toBe("剧情图编辑");
@@ -160,16 +172,79 @@ describe("recommended creative workflow", () => {
     expect(changedGraph.steps.find(step => step.id === "branches")?.status).toBe("分支方案 r5 已确认");
     expect(changedGraph.nextText).toContain("应用到故事路线");
     for (const activePage of ["creator", "graph"] as const) {
-      const input = { ...base, activePage, sourceReview: review, stageHeads: { story_graph: head("story_graph", 8, "graph-hash") } };
+      const input = { ...base, activePage, sourceReview: review, branchDraft: { ...base.branchDraft, complete: true }, stageHeads: { story_graph: head("story_graph", 8, "graph-hash") } };
       const graphView = buildRecommendedWorkflow(input)!;
       expect(graphView.currentStepLabel).toBe("剧情图编辑");
       expect(graphView.steps[2].status).toBe("已应用到路线 r8");
       expect(graphView.nextText).not.toContain("尚未与已确认分支匹配");
       const mismatched = buildRecommendedWorkflow({ ...input, stageHeads: { story_graph: head("story_graph", 8, "different-hash") } })!;
       expect(mismatched.currentStep).toBe(graphView.currentStep);
-      expect(mismatched.nextText).toContain("尚未与已确认分支匹配");
+      expect(mismatched.nextText).toContain("尚未应用到当前故事路线");
+      expect(mismatched.statusText).toBeUndefined();
       expect(mismatched.steps[2].status).not.toContain("已应用");
     }
+  });
+
+  it.each(["creator", "graph"] as const)("shows applied status and the real production entry on %s", activePage => {
+    const model = buildRecommendedWorkflow(appliedGraphInput(activePage))!;
+    expect(model.currentStep).toBe("creator");
+    expect(model.statusText).toBe("当前图内容已应用到故事路线。");
+    expect(model.nextText).toContain("选择「离开前，最后点亮」，打开「制作」标签");
+    expect(model.nextText).toContain("第5/6步「制作与审阅」");
+    expect(model.nextText.includes("点击「返回创作工作台」")).toBe(activePage === "graph");
+    expect(model.action).toEqual(activePage === "graph" ? { kind: "navigate", label: "返回创作工作台", route: { stage: "creator" } } : undefined);
+  });
+
+  it.each([
+    { status: "loading" as const, wording: "正在读取当前图草稿" },
+    { status: "failed" as const, wording: "无法读取当前图草稿" },
+    { busy: true, wording: "正在处理图草稿" },
+    { stale: true, wording: "在当前版本恢复为新草稿" },
+    { blocked: true, wording: "当前图暂不可编辑" },
+    { pendingFields: true, wording: "待提交的字段输入" },
+    { dirty: true, wording: "点击「确认图内容」" },
+    { complete: false, wording: "先补全节点、选项与连接" },
+    { dirty: true, complete: false, wording: "先补全节点、选项与连接" },
+  ])("does not invite production for an unready graph draft: $wording", ({ wording, ...state }) => {
+    for (const activePage of ["creator", "graph"] as const) {
+      const input = appliedGraphInput(activePage);
+      const model = buildRecommendedWorkflow({ ...input, branchDraft: { ...input.branchDraft, ...state } })!;
+      expect(model.nextText).toContain(wording);
+      expect(model.statusText).toBeUndefined();
+      expect(model.nextText).not.toContain("打开「制作」标签");
+      expect(model.action).toBeUndefined();
+    }
+  });
+
+  it("follows reachable routes past control-only nodes, not an unconnected filmed section", () => {
+    const input = appliedGraphInput(), mapping = input.sourceReview!.acceptedSectionMap!.mapping;
+    mapping.sections.find(section => section.sectionId === "opening")!.footageMode = "route_only";
+    mapping.sections.unshift({ sectionId: "detached", title: "不在路线中的影片", summary: "保留草稿", ending: false, footageMode: "footage" });
+    mapping.topology.nodes.push({ id: "detached", kind: "scene" });
+    const model = buildRecommendedWorkflow(input)!;
+    expect(model.nextText).toContain("选择「ending」");
+    expect(model.nextText).not.toContain("不在路线中的影片");
+  });
+
+  it.each(["creator", "graph"] as const)("avoids an ambiguous filming target when node titles repeat on %s", activePage => {
+    const input = appliedGraphInput(activePage), mapping = input.sourceReview!.acceptedSectionMap!.mapping;
+    const opening = mapping.sections.find(section => section.sectionId === mapping.topology.startNodeId)!;
+    mapping.sections.find(section => section.ending)!.title = ` ${opening.title} `;
+    const model = buildRecommendedWorkflow(input)!;
+    expect(model.statusText).toBe("当前图内容已应用到故事路线。");
+    expect(model.nextText).toContain("选择当前路线中需要拍摄的节点，打开「制作」标签");
+    expect(model.nextText).not.toContain(`选择「${opening.title}」`);
+    expect(model.nextText).toContain("第5/6步「制作与审阅」");
+  });
+
+  it("does not claim production is complete when there is no reachable filmed node", () => {
+    const input = appliedGraphInput(), mapping = input.sourceReview!.acceptedSectionMap!.mapping;
+    mapping.sections.forEach(section => { section.footageMode = "route_only"; });
+    mapping.topology.edges.push({ ...mapping.topology.edges[0], id: "cycle", sourceNodeId: "ending", targetNodeId: "opening" });
+    const model = buildRecommendedWorkflow(input)!;
+    expect(model.statusText).toBe("当前图内容已应用到故事路线。");
+    expect(model.nextText).toContain("不能据此视为制作已完成");
+    expect(model.nextText).not.toContain("打开「制作」标签");
   });
 
   it("keeps branch-task observations bound to the brief and accepted revisions", () => {

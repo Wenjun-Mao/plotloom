@@ -10,10 +10,13 @@ export function WorkspaceWorkflowGuide({ input, onNavigate }: {
 }) {
   const owner = useGraphWorkbench();
   const mapping = owner.draft?.mapping ?? null;
+  const pendingFields = Boolean(owner.draft && Object.keys(owner.draft.fieldBuffers).length);
   const model = buildRecommendedWorkflow({ ...input, branchDraft: {
     status: owner.readStatus,
-    dirty: branchDraftIsDirty(mapping, input.sourceReview?.acceptedSectionMap ?? null, Boolean(owner.state?.draft)),
-    complete: completeMap(mapping),
+    dirty: branchDraftIsDirty(mapping, input.sourceReview?.acceptedSectionMap ?? null, Boolean(owner.state?.draft))
+      || pendingFields,
+    complete: completeMap(mapping) && !pendingFields,
+    pendingFields,
     stale: owner.stale,
     busy: owner.busy,
     blocked: Boolean(owner.state?.readOnlyReason),
