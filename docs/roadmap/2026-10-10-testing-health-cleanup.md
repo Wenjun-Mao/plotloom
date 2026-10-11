@@ -708,5 +708,6 @@ found an omitted graph/story-authoring consumer edge for the production
 workflow fixture and its transitive bridge fixture. The map now includes both
 owners, and a regression guard checks their transitive import consumers. Focused
 ownership tests and the verification-tooling complete profile passed after this
-correction. Independent re-review, one local `full` gate and one unfiltered
-hosted same-SHA run remain outstanding.
+correction. Independent re-review of `b9a5b7f` confirmed the fix and regression
+guard with no further findings; it ran no tests. One local `full` gate and one
+unfiltered hosted same-SHA run remain outstanding.

@@ -1270,5 +1270,8 @@ type checks, locked dependencies, deterministic bundle and parity, four-shard
 allocation at 83/61/70/71, wheel build and installed-wheel smoke all passed. The
 build emitted the existing large-chunk advisory, and pytest emitted the
 existing Starlette TestClient deprecation warning. Independent re-review of
-this correction, local `full` and unfiltered hosted same-SHA qualification
-remain pending.
+`b9a5b7f` confirmed that both fixture records include the graph and
+story-authoring consumers and that the regression guard discovers and enforces
+the exact transitive consumer sets. The read-only re-review found no further
+issues and ran no tests. The one local `full` and unfiltered hosted same-SHA
+qualification remain pending.
