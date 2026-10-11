@@ -159,6 +159,16 @@ The step index remains the current graph-view activity, not a completion ratio.
 Guard status/instruction transitions after native confirmation/application and
 both-view desktop visibility as well as the pure state projection.
 
+The step name is orientation, not a clickable control. After the node/tab
+entry, name the owning controls: when the Production panel reports no current
+confirmed script, click the left-side `剧本` entry; after script and storyboard
+confirmation, return to `创作工作台`, reopen `制作`, and click
+`分镜与投产整包评审`. Keep these prerequisites
+conditional because graph/source and canonical stage-head reads do not prove
+script/storyboard review acceptance. This is a stable handoff instruction;
+switching the small Story/Production tab need not change the guide. Do not add
+tab tracking, infer approval, or introduce another production read owner.
+
 ## Retained Source display and guide priority (2026-10-10)
 
 Pending or failed source reads take precedence over dirty-buffer instructions.

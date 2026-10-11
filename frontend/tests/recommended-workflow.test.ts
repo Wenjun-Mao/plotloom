@@ -190,9 +190,22 @@ describe("recommended creative workflow", () => {
     expect(model.currentStep).toBe("creator");
     expect(model.statusText).toBe("当前图内容已应用到故事路线。");
     expect(model.nextText).toContain("选择「离开前，最后点亮」，打开「制作」标签");
+    expect(model.nextText).toContain("尚无当前可用剧本时，点击左侧「剧本」");
+    expect(model.nextText).toContain("剧本与分镜确认后，返回「创作工作台」并打开「制作」，点击「分镜与投产整包评审」");
     expect(model.nextText).toContain("第5/6步「制作与审阅」");
+    expect(model.nextText).not.toContain("继续第5/6步");
     expect(model.nextText.includes("点击「返回创作工作台」")).toBe(activePage === "graph");
     expect(model.action).toEqual(activePage === "graph" ? { kind: "navigate", label: "返回创作工作台", route: { stage: "creator" } } : undefined);
+  });
+
+  it.each(["creator", "graph"] as const)("leaves script confirmation to its owner, not canonical stage heads on %s", activePage => {
+    const input = appliedGraphInput(activePage);
+    const model = buildRecommendedWorkflow(input)!;
+    const withStages = buildRecommendedWorkflow({ ...input, stageHeads: { ...input.stageHeads,
+      scene_beats: head("scene_beats", 2, "scenes"), storyboard: head("storyboard", 3, "shots") } })!;
+    expect(withStages.nextText).toBe(model.nextText);
+    expect(model.nextText).toContain("尚无当前可用剧本时");
+    expect(model.nextText).toContain("剧本与分镜确认后");
   });
 
   it.each([

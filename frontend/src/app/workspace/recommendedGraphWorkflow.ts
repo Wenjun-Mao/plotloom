@@ -48,7 +48,7 @@ export function graphWorkflowRecommendation(input: RecommendedWorkflowInput, con
   return {
     statusText: "当前图内容已应用到故事路线。",
     text: section
-      ? `${entry}选择${target}，打开「制作」标签，继续${creativeWorkflowStepReference("production")}。`
+      ? `${entry}选择${target}，打开「制作」标签。尚无当前可用剧本时，点击左侧「剧本」；剧本与分镜确认后，返回「创作工作台」并打开「制作」，点击「分镜与投产整包评审」（${creativeWorkflowStepReference("production")}）。`
       : `${entry}检查当前路线中需要拍摄的节点；仅控制路线的节点无需拍摄，不能据此视为制作已完成。`,
     action: returnToCreator,
   };

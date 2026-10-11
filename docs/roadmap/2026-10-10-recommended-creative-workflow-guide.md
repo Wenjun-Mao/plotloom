@@ -1,5 +1,8 @@
 # Recommended creative workflow guide
 
+The 2026-10-11 concrete production-control refinement and its local qualification
+are recorded in [the follow-up receipt](../verification/2026-10-11-concrete-production-hints.md).
+
 ## Approved browser release-blocker repair (2026-10-10)
 
 The owner approved fixing the six unfiltered browser failures against trusted

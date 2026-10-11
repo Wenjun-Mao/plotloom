@@ -38,7 +38,9 @@ it.each(["matching", "changed mapping", "pending field buffer", "failed read"])(
   const status = host.querySelector('[role="status"]');
   if (state === "matching") {
     expect(status?.textContent).toBe("当前状态：当前图内容已应用到故事路线。");
-    expect(host.textContent).toContain("选择「opening」，打开「制作」标签，继续第5/6步「制作与审阅」");
+    expect(host.textContent).toContain("选择「opening」，打开「制作」标签");
+    expect(host.textContent).toContain("尚无当前可用剧本时，点击左侧「剧本」");
+    expect(host.textContent).toContain("点击「分镜与投产整包评审」（第5/6步「制作与审阅」）");
   } else {
     expect(status).toBeNull();
     expect(host.textContent).not.toContain("打开「制作」标签");
