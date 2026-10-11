@@ -1,7 +1,7 @@
 # Portrait creator walkthrough ledger
 
 Authority and boundaries: [run profile](../roadmap/2026-10-11-portrait-creator-walkthrough.md).
-Status: IN PROGRESS. No portrait media or playback acceptance yet.
+Status: IN PROGRESS. Portrait reference images reviewed; no shot-media or playback acceptance yet.
 
 ## Starting evidence
 
@@ -79,9 +79,71 @@ SHA-256 manifests; workbench.js is
 Supported-desktop guide captures inspected at 1280×768, 1280×460 and 1700×900;
 no layout rules changed. Normal 8841 readback after reload correctly identified
 the portrait project's missing branches, without a rejected preparation click.
-Hosted qualification of this advisory change is separate and pending publication.
+Published main `9455e71c7dec04e0349088e14c349b8d4ea7d929` includes the advisory fix.
+Hosted qualification of this advisory change is separate and pending.
 The main task-card controls remain server-gated; this change improves the shared
 guide, not every empty card's explanatory copy.
+
+## Reviewed creative inputs and portrait references
+
+All following native jobs froze clean `9455e71c`; source/package/canonical data
+were not edited by specialists. Candidates were read and accepted through UI.
+
+- Branches `ch_d2487f42a59e4d958021231de85d2a2d`: reviewed four nodes, the
+  question, both option targets and constraints, imported to draft, confirmed
+  r1, then separately applied. Choice remains route-only, without extra film.
+- Cast `ch_8f112e9b157a42e7b515437e96078925`, Art
+  `ch_665c8821d74c44dcb7db6caa35c419db`: complete JSON/report reviewed and
+  confirmed r1. Inferred appearance and lamp geometry are identified as design
+  proposals, not source facts. Art negative wording was made specific to
+  displayed wall pictures before validation, not a relaxation of realism.
+- Script `ch_ce3e268b1ff24650952e4554d2aa1445`: confirmed r1 after full
+  candidate review. Three footage episodes, five scenes, nine actions; no dummy
+  choice episode. Planned shared/take/leave durations 10/7.5/5 seconds produce
+  17.5/15-second routes, under the 30-second ceiling. Technical `lang=en` is the
+  explicit frozen renderer contract, not a change to Chinese story content.
+- Storyboard `ch_c5f8bf4d2d7f483ca308e8205cfac317`: reviewed UI's readable
+  cut list and full JSON, then confirmed r1. Nine 2.5-second static shots,
+  native portrait staging; the intentional face close-up is not widened into a
+  full-body image. Production proposal/mapping still pending. Its preparation
+  was temporarily blocked by the unresolved lamp image publication, diagnosed
+  by the visible preparation diagnostic, not bypassed.
+
+Actual ImageGen receipts and explicit UI selections:
+
+| Subject | Native job | Delivered SHA-256 |
+| --- | --- | --- |
+| C01 identity | `ij_0f3546b1f31d4c58a5d8fb35c33bbd5f` | `6bcff55bc847e0420c02082091102d0d4b332f9edf51698079378cf17eb55442` |
+| S01 room | `ij_e3fdd6cffa5a40abb5668bdb317b675e` | `f89985395c60308860cfef2eb140c01bd1194b4e8e940bba9d33076e79bc12ab` |
+| P01 lamp | `ij_bf1421588a484d6ebbe1ea77c05d6311` | `8c4e771aa3e32e16fd59ec8c76fb3834b1fb9ebde6a9c671df670f591d6589a1` |
+
+All three originals are 941×1672, nominal portrait but not exactly 9:16 by
+integer cross-product. Viewed in full-image dialogs: character head/hands/shoes,
+room action space, and complete unlit lamp fit without UI cropping. Captures:
+`portrait-character-viewer.png`, `portrait-room-viewer.png`,
+`portrait-lamp-viewer.png` under `output/playwright/portrait-walkthrough/`.
+Character selection explicitly recorded r1. Art UI explicitly states room/prop
+selection is reference-review only and is not passed to shot production; that
+selection must not be reported as actual shot reference alignment.
+
+The lamp worker corrected two conspicuous chips to one shallow base scuff before
+publishing. All image receipts passed hash/provenance checks; candidates were
+not automatically selected. Art delivery required explicit Check delivery;
+navigation preserved the active job without duplicate dispatch.
+
+Cleanup is NOT complete: the staging helper refused because the generated-images
+directory is not private. Delivered project-local images and staging originals
+remain intact. Preserved worker staging files: `exec-a8fad3bc-2350-408c-8f3f-102c5bfdd0aa.png`,
+`exec-0279b002-9d6a-4ba7-9d96-7c2c02ed986e.png`,
+`exec-3e405616-8052-4197-b09d-7dc5c7388569.png` (lamp initial draft), and
+`exec-c2b078fe-2be8-4cd6-a1ce-786e77293fee.png` under the image specialist's
+`/Users/wjmao/.codex/generated_images/01a0c506-84d5-7161-8ae0-2ae914e5d81a/`.
+No permissions were weakened and no manual deletion was attempted.
+
+Deferred observations, not completed fixes: Script candidate disclosure still
+requires raw JSON reading (Storyboard has a readable cut list); Source's route
+checkbox copy differs from Creator's “此节点需要拍摄”. Shot preview cropping and
+actual H3 geometry/timing remain hypotheses until real shot media exercises them.
 
 ## Coverage focus
 
