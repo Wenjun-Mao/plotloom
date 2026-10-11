@@ -1,0 +1,83 @@
+.recommended-workflow-guide {
+  position: sticky;
+  top: 58px;
+  z-index: 25;
+  width: min(1500px, 100%);
+  padding: 7px 24px 8px;
+  margin: 0 auto;
+  border-bottom: 1px solid var(--line-strong);
+  border-left: 3px solid var(--accent);
+  background: rgba(12, 18, 25, .97);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .28);
+  backdrop-filter: blur(12px);
+}
+
+.recommended-workflow-compact,
+.recommended-workflow-current,
+.recommended-workflow-next {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.recommended-workflow-current { flex-wrap: wrap; }
+.recommended-workflow-current > strong { color: var(--accent); font-size: 12px; }
+.recommended-workflow-current > span { font-size: 12px; font-weight: 600; }
+.recommended-workflow-details { flex: 0 0 auto; position: relative; }
+.recommended-workflow-details > summary {
+  min-height: 30px;
+  padding: 4px 9px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  list-style-position: inside;
+}
+.recommended-workflow-details > summary:hover { border-color: var(--accent); color: var(--text); }
+.recommended-workflow-expanded { padding: 10px 0 4px; }
+.recommended-workflow-expanded ol {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 7px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.recommended-workflow-expanded li {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 3px;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.recommended-workflow-expanded li[aria-current="step"] {
+  border-color: var(--accent);
+  color: var(--text);
+  background: rgba(235, 186, 98, .1);
+}
+.recommended-workflow-expanded li strong { font-size: 11px; }
+.recommended-workflow-expanded li[aria-current="step"] strong { color: var(--accent-2); }
+.recommended-workflow-expanded p { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.recommended-workflow-next { align-items: center; margin-top: 4px; }
+.recommended-workflow-next p { flex: 1 1 auto; min-width: 0; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.recommended-workflow-next p strong { color: var(--text); }
+.recommended-workflow-next .button { flex: 0 0 auto; min-height: 30px; padding: 5px 9px; font-size: 12px; white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .recommended-workflow-expanded ol { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .recommended-workflow-guide { padding-inline: 12px; }
+  .recommended-workflow-next { align-items: flex-start; flex-wrap: wrap; }
+  .recommended-workflow-expanded ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

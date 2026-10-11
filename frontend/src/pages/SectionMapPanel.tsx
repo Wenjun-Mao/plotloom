@@ -6,19 +6,21 @@ import { useGraphWorkbench } from "../features/graph/GraphWorkbenchContext";
 import type { GraphMapDraft } from "../features/graph/contracts";
 import { GraphDraftDiscard } from "../features/graph/GraphDraftDiscard";
 import { BranchSuggestionPanel } from "./BranchSuggestionPanel";
+import { branchSuggestionBasis, type BranchTaskReadObservation } from "../app/workspace/recommendedWorkflow";
 import { SourceStructureEditor } from "./SourceStructureEditor";
 import { blankStructure, completeMap, mapsEqual } from "./sourceStructureModel";
 
-export function SectionMapPanel({ projectId = "", structureKey = "", outline, outlineCurrent = true, accepted, status, staleReasons, graphAdmission, graphReady, sourceDirty, routes, readOnly, busy, onSave, onInstall, onContinue }: {
+export function SectionMapPanel({ projectId = "", structureKey = "", outline, outlineCurrent = true, accepted, status, staleReasons, graphAdmission, graphReady, sourceDirty, routes, readOnly, busy, onSave, onInstall, onContinue, onBranchTaskRead }: {
   projectId?: string; structureKey?: string; outline: AcceptedOutlineRevision | null; outlineCurrent?: boolean; accepted: AcceptedSectionMapRevision | null;
   status: "missing" | "current" | "stale"; staleReasons: string[]; graphAdmission: SourceMapGraphAdmission | null; graphReady: boolean;
   sourceDirty: boolean; routes: StoryRoute[]; readOnly: boolean; busy: boolean;
   onSave: (mapping: GraphMapDraft) => void | Promise<boolean>; onInstall: () => void; onContinue: () => void;
+  onBranchTaskRead?: (projectId: string, observation: BranchTaskReadObservation) => void;
 }) {
   const owner = useGraphWorkbench();
   const mapping = owner.draft?.mapping ?? null;
   const [planned, setPlanned] = useState<SourceTopology>();
-  const basis = outline ? `map:${outline.revision}:${outline.contentHash}:${accepted?.revision ?? 0}:${outlineCurrent}:${structureKey}` : "";
+  const basis = branchSuggestionBasis(outline, accepted, outlineCurrent, structureKey);
   const dirty = accepted ? !mapsEqual(mapping, accepted.mapping) : Boolean(owner.state?.draft || mapping?.topologyOrigin === "author" || mapping?.sections.some(section => section.title || section.summary));
   const setMapping = owner.changeMapping;
   const saveMapping = async () => {
@@ -41,7 +43,7 @@ export function SectionMapPanel({ projectId = "", structureKey = "", outline, ou
       {staleReasons.length > 0 && <details><summary>技术详情：分支过期原因</summary><ul>{staleReasons.map((reason, index) => <li key={index}>{reason}</li>)}</ul></details>}
     </div></div>}
     {!outline ? <p className="muted">先确认大纲，再准备完整分支建议。</p> : <>
-      {projectId && <BranchSuggestionPanel projectId={projectId} basis={basis} disabled={disabled || sourceDirty} cancelDisabled={readOnly || busy || owner.busy} dirty={dirty || owner.stale} onPlan={setPlanned} onAdopt={owner.adoptMapping} />}
+      {projectId && <BranchSuggestionPanel projectId={projectId} basis={basis} disabled={disabled || sourceDirty} cancelDisabled={readOnly || busy || owner.busy} dirty={dirty || owner.stale} onPlan={setPlanned} onAdopt={owner.adoptMapping} onTaskRead={onBranchTaskRead} />}
       {dirty && <GraphDraftDiscard disabled={disabled} />}
       {planned && <Button variant="quiet" disabled={disabled || dirty} onClick={() => owner.adoptMapping(blankStructure(planned))}>自行填写当前结构草稿</Button>}
       {mapping && <>

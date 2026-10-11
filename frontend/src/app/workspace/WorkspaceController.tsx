@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type SyntheticEvent } from "react";
-import type { SceneBeatPlan, StoryBible, StoryGraph, Storyboard } from "../../types";
+import type { BranchTaskState, SceneBeatPlan, StoryBible, StoryGraph, Storyboard } from "../../types";
 import { providerSessionKeys } from "../../session-key";
 import { findProjectDrafts, hasDraft, type DraftScope } from "../../draft-registry";
 import { stageLabels } from "../../model";
@@ -38,6 +38,9 @@ import { useWorkspaceProjectLoader } from "./useWorkspaceProjectLoader";
 import { useWorkspaceSession } from "./useWorkspaceSession";
 import { editableStages, messageFrom, navigation, stageForPage } from "./contracts";
 import { CreatorWorkflowNavigation } from "./CreatorWorkflowNavigation";
+import { RecommendedWorkflowGuide } from "./RecommendedWorkflowGuide";
+import { branchSuggestionBasis, buildRecommendedWorkflow, type BranchTaskReadObservation } from "./recommendedWorkflow";
+import { useWorkspaceSourceReview } from "./useWorkspaceSourceReview";
 import { sourceWorkflowLabel } from "./sourceWorkflowNavigation";
 import { encodeStoryboardEntity } from "../../storyboard-editor";
 import { ProjectLoadDetails, ProjectUnavailable } from "./ProjectUnavailable";
@@ -52,6 +55,15 @@ function revealOpenedStatus(event: SyntheticEvent<HTMLDetailsElement>) {
 /** Composes view wiring around independently owned workspace transitions. */
 export default function WorkspaceController() {
   const session = useWorkspaceSession();
+  const sourceReview = useWorkspaceSourceReview(session.project.id, session.project.revision);
+  const [branchTaskRead, setBranchTaskRead] = useState<{ projectId: string; basis: string; status: "idle" | BranchTaskReadObservation["status"]; value: BranchTaskState | null }>({ projectId: "", basis: "", status: "idle", value: null });
+  const [sourceDraftState, setSourceDraftState] = useState({ projectId: "", dirty: false });
+  const reportBranchTaskRead = useCallback((projectId: string, observation: BranchTaskReadObservation) => {
+    setBranchTaskRead({ projectId, ...observation });
+  }, []);
+  const reportSourceDraftDirty = useCallback((projectId: string, dirty: boolean) => {
+    setSourceDraftState(current => current.projectId === projectId && current.dirty === dirty ? current : { projectId, dirty });
+  }, []);
   const [busy, setBusy] = useState(false);
   const [specialistsOpen, setSpecialistsOpen] = useState(false);
   const [error, setError] = useState("");
@@ -258,6 +270,26 @@ export default function WorkspaceController() {
   const projectSnapshotting = Boolean(project.id && lifecycle.snapshottingProjectId === project.id);
   const projectReadOnly = projectClosing || projectSnapshotting || project.lifecycleStatus === "archived" || Boolean(project.archivedAt);
   const toolbarHint = initialProjectUnavailable ? "项目内容尚未读入；请重新读取或打开项目目录。" : !project.id ? "保存项目后可刷新服务器版本或创建恢复快照。" : projectClosing ? `${projectTransitionLabel}，请稍候。` : projectSnapshotting ? "正在创建恢复快照，请稍候。" : connection === "loading" ? "正在读取服务器版本。" : projectReadOnly ? "归档项目只读，无法创建恢复快照。" : "";
+  const branchBasis = branchSuggestionBasis(sourceReview.value?.acceptedOutline ?? null, sourceReview.value?.acceptedSectionMap ?? null,
+    sourceReview.value?.outlineStatus === "accepted", JSON.stringify(project.brief));
+  const branchTaskCurrent = branchTaskRead.projectId === project.id && branchTaskRead.basis === branchBasis;
+  const sourceDraftDirty = sourceDraftState.projectId === project.id && sourceDraftState.dirty;
+  const workflowGuide = buildRecommendedWorkflow({
+    activePage,
+    activeHash: session.route.hash,
+    project,
+    stageHeads,
+    sourceReviewStatus: sourceReview.status,
+    sourceReview: sourceReview.value,
+    branchTaskStatus: branchTaskCurrent ? branchTaskRead.status : "idle",
+    branchTask: branchTaskCurrent ? branchTaskRead.value : null,
+    workspaceAvailable: Boolean(project.id) && !initialProjectUnavailable && connection === "connected",
+    projectPending: Boolean(navigationProjectId && !project.id),
+    sourceDraftDirty,
+    readOnly: project.lifecycleStatus === "archived" || Boolean(project.archivedAt),
+    actionDisabled: workspaceHydrating || projectClosing || projectSnapshotting,
+    playHref: playUrl,
+  });
   const stageOverview = editableStages.map((stage) => ({
     stage,
     status: project.staleStages.includes(stage) ? "stale" : stageHeads[stage]?.status || (project.stageRevisions[stage] > 0 ? "ready" : "missing"),
@@ -270,7 +302,7 @@ export default function WorkspaceController() {
   const page = useMemo(() => {
     switch (activePage) {
       case "source": return project.id
-        ? <SourceOutlinePage projectId={project.id} briefSeed={project.brief} readOnly={projectReadOnly} navigationTarget={session.route.hash} refreshToken={project} onProductionInstalled={async installedProjectId => {
+        ? <SourceOutlinePage projectId={project.id} briefSeed={project.brief} readOnly={projectReadOnly} navigationTarget={session.route.hash} refreshToken={project} sourceReview={sourceReview} onBranchTaskRead={reportBranchTaskRead} onSourceDraftDirtyChange={reportSourceDraftDirty} onProductionInstalled={async installedProjectId => {
           if (session.routeRef.current.project !== installedProjectId) return;
           session.markCanonicalRefreshRequired(installedProjectId);
           await loadProject(installedProjectId, session.refreshCurrentRoute());
@@ -282,8 +314,8 @@ export default function WorkspaceController() {
         : <section className="page"><p>请先保存项目，再审核角色文字和外观参考。</p></section>;
       case "brief": return <BriefPage apiTextPipeline={apiTextPipeline} key={`${editorRevisionKey(project, "brief")}:${recovery.editorNonce}`} value={recoveredValue("brief", project.brief)} hasSavedProject={Boolean(project.id)} bible={project.storyBible} graph={project.storyGraph} saving={authoring.projectSaving} readOnly={projectReadOnly} proposalRunning={Boolean(running && run?.requestedStages.some((stage) => stage === "story_bible" || stage === "story_graph"))} proposalReady={Boolean(stageHeads.story_bible?.status === "ready" && stageHeads.story_graph?.status === "ready" && !project.staleStages.includes("story_bible") && !project.staleStages.includes("story_graph"))} storyboardRunning={Boolean(running && run?.requestedStages.some((stage) => stage === "scene_beats" || stage === "storyboard"))} onSave={(brief) => authoring.commitProject({ brief })} onSaveAndContinue={async (brief) => { const projectId = await authoring.commitProject({ brief }); if (projectId) workspaceNavigation.requestNavigation({ project: projectId, stage: "source", hash: "source" }); }} onGenerateProposal={apiTextPipelineEnabled ? async (brief) => { await commands.saveAndStartProposal(() => authoring.commitProject({ brief })); } : undefined} onGenerateStoryboard={apiTextPipelineEnabled ? async () => { if (project.id) await commands.startStoryboard(project.id); } : undefined} onContinueToSource={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "source", hash: "source" })} onDraftChange={(value) => authoring.rememberDraft("brief", value)} onReviewStage={(stage) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage })} onContinueToPlanning={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "beats" })} />;
       case "bible": return <StoryBiblePage key={`${editorRevisionKey(project, "story_bible")}:${recovery.editorNonce}`} value={recoveredValue("story_bible", project.storyBible)} stale={project.staleStages.includes("story_bible")} saving={authoring.projectSaving} entityId={routeEntity} referenceContext={{ sceneBeats: project.sceneBeats, storyboard: project.storyboard }} issues={validationIssues.story_bible} onEntitySelect={workspaceNavigation.selectRouteEntity} onSave={(value: StoryBible) => authoring.commitStage("story_bible", value)} onDraftChange={(value) => authoring.rememberDraft("story_bible", value)} />;
-      case "graph": return <ProfessionalGraphWorkbench projectId={project.id || ""} canonical={project.storyGraph} readOnly={projectReadOnly} onOpenSource={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "source" })} />;
-      case "creator": return <CreatorWorkbench project={project} readOnly={projectReadOnly} onNavigate={(stage, hash) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage, hash })} onOpenShot={(shotId) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "storyboard", entity: encodeStoryboardEntity({ kind: "shot", shotId }) })} />;
+      case "graph": return <ProfessionalGraphWorkbench projectId={project.id || ""} canonical={project.storyGraph} readOnly={projectReadOnly} sourceReview={sourceReview} onOpenSource={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "source" })} />;
+      case "creator": return <CreatorWorkbench project={project} readOnly={projectReadOnly} sourceReview={sourceReview} onNavigate={(stage, hash) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage, hash })} onOpenShot={(shotId) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "storyboard", entity: encodeStoryboardEntity({ kind: "shot", shotId }) })} />;
       case "beats": return <SceneBeatsPage key={`${editorRevisionKey(project, "scene_beats")}:${recovery.editorNonce}`} value={recoveredValue("scene_beats", project.sceneBeats)} stale={project.staleStages.includes("scene_beats")} saving={authoring.projectSaving} entityId={routeEntity} referenceContext={{ nodes: project.storyGraph.nodes, characters: project.storyBible.characters, locations: project.storyBible.locations, props: project.storyBible.props, storyboard: { shots: project.storyboard.shots.map(({ id, sceneId, cueIds }) => ({ id, sceneId, cueIds })), shotBeatLinks: project.storyboard.shotBeatLinks.map(({ shotId, beatId }) => ({ shotId, beatId })) } }} issues={validationIssues.scene_beats} onEntitySelect={workspaceNavigation.selectRouteEntity} onSave={(value: SceneBeatPlan) => authoring.commitStage("scene_beats", value)} onDraftChange={(value) => authoring.rememberDraft("scene_beats", value)} />;
       case "storyboard": return <StoryboardPage key={`${editorRevisionKey(project, "storyboard")}:${recovery.editorNonce}`} projectId={project.id} lifecycleRevision={project.lifecycleRevision} lifecycleStatus={project.lifecycleStatus} revision={stageHeads.storyboard?.revision} contentHash={stageHeads.storyboard?.contentHash} bible={project.storyBible} graph={project.storyGraph} sceneBeats={project.sceneBeats} value={recoveredValue("storyboard", project.storyboard)} stale={project.staleStages.includes("storyboard")} mediaTasks={mediaTasks} saving={authoring.projectSaving} readOnly={projectReadOnly} entityId={routeEntity} issues={validationIssues.storyboard} review={storyboardReview} mediaDraftsEnabled={durableMediaDraftsEnabled} mediaDraftQuiescence={mediaDraftQuiescence} onEntitySelect={workspaceNavigation.selectRouteEntity} onNavigateIssue={(stage, entity) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage, entity })} onReturnToBridge={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "source", hash: "storyboard-review" })} onReviewChange={session.acceptStoryboardReview} onSave={(value: Storyboard) => authoring.commitStage("storyboard", value)} onDraftChange={(value) => authoring.rememberDraft("storyboard", value)} />;
       case "trace": return <TracePage apiTextPipeline={apiTextPipeline} run={run} progress={runProgress} trace={trace} executionTrace={executionTrace} running={Boolean(running)} onRun={commands.startRun} onResume={commands.resumeRun} onCancel={commands.cancelRun} />;
@@ -291,7 +323,7 @@ export default function WorkspaceController() {
     }
   // Commit callbacks intentionally read current canonical revisions at invocation time.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiTextPipeline, apiTextPipelineEnabled, commands, activePage, authoring, busy, executionTrace, mediaTasks, project, projectReadOnly, recovery, routeEntity, run, runProgress, running, storyboardReview, validationIssues, workspaceNavigation]);
+  }, [apiTextPipeline, apiTextPipelineEnabled, commands, activePage, authoring, busy, executionTrace, mediaTasks, project, projectReadOnly, recovery, reportBranchTaskRead, reportSourceDraftDirty, routeEntity, run, runProgress, running, sourceReview, storyboardReview, validationIssues, workspaceNavigation]);
 
   if (session.onboarding) return <>
     <WelcomeOnboarding onBlank={startBlank} onSample={openSample} onDirectory={directory.openDirectory} />
@@ -323,6 +355,7 @@ export default function WorkspaceController() {
       {error && <div className="global-error"><ErrorNotice message={error} /><button aria-label="关闭错误" onClick={() => setError("")}>×</button></div>}
       {lifecycle.duplicateNotice && <div className="notice workspace-copy-notice" role="status"><span>{lifecycle.duplicateNotice}</span><Button onClick={lifecycle.dismissDuplicateNotice}>知道了</Button></div>}
       {recovery.discardNotice?.projectId === navigationProjectId && <div ref={discardNoticeTarget} className="notice workspace-copy-notice" role="status"><span>已丢弃本标签页选中的保留草稿。项目中已保存的草稿和已确认内容未删除。</span><Button onClick={recovery.dismissDiscardNotice}>知道了</Button></div>}
+      <RecommendedWorkflowGuide model={workflowGuide} actionDisabled={workspaceHydrating || projectClosing || projectSnapshotting} onNavigate={(route) => workspaceNavigation.requestNavigation({ project: navigationProjectId, ...route })} />
       <div className="workbench-grid">
         <main id="workspace-main">
           {!initialProjectUnavailable && session.loadFailure?.projectId === navigationProjectId && <ProjectLoadDetails projectId={navigationProjectId} failure={session.loadFailure} />}

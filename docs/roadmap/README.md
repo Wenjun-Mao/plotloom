@@ -1,5 +1,12 @@
 # Plotloom roadmap entrypoint
 
+The October10 [recommended creative workflow guide](2026-10-10-recommended-creative-workflow-guide.md)
+implements an advisory six-step workspace guide. Its risk-scoped local frontend
+qualification and supported-desktop screenshots passed under
+[ADR 0156](../adr/0156-risk-scoped-local-qualification.md); scoped publication,
+required hosted full CI and owner acceptance remain separate pending steps.
+The guide does not authorize a normal8841 restart or imply creative acceptance.
+
 The owner adopted a reusable [creator lifecycle acceptance playbook](../creative-workflow/graph-workbench-acceptance.md)
 on October7: Create → Revise → Recover, with one tailored run profile and one dated
 evidence ledger per major update. The existing C/P/E checks remain the acceptance

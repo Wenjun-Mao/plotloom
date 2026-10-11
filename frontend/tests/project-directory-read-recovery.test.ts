@@ -4,7 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { plotloomApi } from "../src/api";
 import { useProjectDirectory } from "../src/app/workspace/useProjectDirectory";
 import { ProjectDirectoryDialog } from "../src/app/workspace/ProjectDirectoryDialog";
-import { useGraphSourceRead } from "../src/features/graph/useGraphSourceRead";
+import { useWorkspaceSourceReview } from "../src/app/workspace/useWorkspaceSourceReview";
 import type { ProjectListItem, SourceOutlineReviewState } from "../src/types";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -72,7 +72,7 @@ it("directory close and newer filter invalidate held replies", async () => {
   const read = vi.spyOn(plotloomApi, "listProjects").mockImplementationOnce(() => new Promise(done => { resolve = done; }));
   const state = await directoryHarness();
   try {
-    let pending!: Promise<void>;
+    let pending!: Promise<unknown>;
     await act(async () => { pending = state.owner.openDirectory(); });
     await act(async () => state.owner.closeDirectory());
     await act(async () => { resolve({ projects: [row("late")], nextCursor: null }); await pending; });
@@ -82,15 +82,15 @@ it("directory close and newer filter invalidate held replies", async () => {
   } finally { await state.close(); }
 });
 it("shared source read catches failure, retries GET and excludes late project results", async () => {
-  let owner!: ReturnType<typeof useGraphSourceRead>, project = "a";
+  let owner!: ReturnType<typeof useWorkspaceSourceReview>, project = "a";
   const read = vi.spyOn(plotloomApi, "getSourceOutline").mockRejectedValueOnce(new Error("source offline"));
   const root = createRoot(document.createElement("div"));
-  function Probe() { owner = useGraphSourceRead(project, "binding"); return null; }
+  function Probe() { owner = useWorkspaceSourceReview(project, 1); return null; }
   try {
     await act(async () => root.render(createElement(Probe))); expect(owner.status).toBe("failed");
     let resolve!: (value: SourceOutlineReviewState) => void;
     read.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
-    let pending!: Promise<void>;
+    let pending!: Promise<unknown>;
     await act(async () => { pending = owner.refresh(); }); expect(owner.status).toBe("loading"); expect(owner.value).toBeNull();
     const source = (marker: string): SourceOutlineReviewState => ({ source: null, candidate: null, acceptedOutline: null, outlineStatus: "missing", acceptedSectionMap: null, sectionMapStatus: "missing", sectionMapStaleReasons: [marker], graphAdmission: null });
     project = "b"; read.mockResolvedValue(source("b"));
@@ -98,5 +98,31 @@ it("shared source read catches failure, retries GET and excludes late project re
     await act(async () => { resolve(source("a")); await pending; });
     expect(owner.value?.sectionMapStaleReasons).toEqual(["b"]); expect(owner.status).toBe("ready");
     expect(read.mock.calls.map(call => call[0])).toEqual(["a", "a", "b"]);
+  } finally { await act(async () => root.unmount()); }
+});
+
+it("coalesces source reads and prevents a held read from replacing a mutation result", async () => {
+  const source = (revision: number): SourceOutlineReviewState => ({
+    source: { revision } as never, candidate: null, acceptedOutline: null, outlineStatus: "missing",
+    acceptedSectionMap: null, sectionMapStatus: "missing", sectionMapStaleReasons: [], graphAdmission: null,
+  });
+  let resolve!: (value: SourceOutlineReviewState) => void;
+  const read = vi.spyOn(plotloomApi, "getSourceOutline").mockImplementation(() => new Promise(done => { resolve = done; }));
+  let owner!: ReturnType<typeof useWorkspaceSourceReview>;
+  const root = createRoot(document.createElement("div"));
+  function Probe() { owner = useWorkspaceSourceReview("project", 1); return null; }
+  try {
+    await act(async () => root.render(createElement(Probe)));
+    expect(read).toHaveBeenCalledOnce();
+    let refresh!: Promise<unknown>;
+    await act(async () => { refresh = owner.refresh(); });
+    expect(read).toHaveBeenCalledOnce();
+    await act(async () => {
+      owner.replace(source(2));
+      resolve(source(1));
+      await refresh;
+    });
+    expect(owner.status).toBe("ready");
+    expect(owner.value?.source?.revision).toBe(2);
   } finally { await act(async () => root.unmount()); }
 });

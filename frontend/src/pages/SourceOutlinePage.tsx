@@ -15,6 +15,9 @@ import { sourceWorkflowTarget } from "../app/workspace/sourceWorkflowNavigation"
 import { useReviewActivation } from "./useReviewActivation";
 import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
 import { useGraphWorkbench } from "../features/graph/GraphWorkbenchContext";
+import type { WorkspaceSourceReviewRead } from "../app/workspace/useWorkspaceSourceReview";
+import { useWorkspaceSourceReview } from "../app/workspace/useWorkspaceSourceReview";
+import type { BranchTaskReadObservation } from "../app/workspace/recommendedWorkflow";
 
 const blankSource: SourceMaterial = {
   kind: "synopsis",
@@ -35,15 +38,21 @@ function sourceMessage(error: unknown) {
   return error instanceof Error ? error.message : "来源与大纲操作失败。";
 }
 
-export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnly, navigationTarget = "", refreshToken, onOpenShot, onProductionInstalled, onContinueToCharacters, onContinueToScript, onContinueToStoryboard }: { projectId: string; briefSeed: ProjectBrief; readOnly: boolean; navigationTarget?: string; refreshToken?: unknown; onOpenShot?: (shotId: string) => void; onProductionInstalled: (projectId: string) => Promise<void>; onContinueToCharacters?: () => void; onContinueToScript?: () => void; onContinueToStoryboard?: () => void }) {
+export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnly, navigationTarget = "", refreshToken, sourceReview, onBranchTaskRead, onSourceDraftDirtyChange, onOpenShot, onProductionInstalled, onContinueToCharacters, onContinueToScript, onContinueToStoryboard }: { projectId: string; briefSeed: ProjectBrief; readOnly: boolean; navigationTarget?: string; refreshToken?: unknown; sourceReview?: WorkspaceSourceReviewRead; onBranchTaskRead?: (projectId: string, observation: BranchTaskReadObservation) => void; onSourceDraftDirtyChange?: (projectId: string, dirty: boolean) => void; onOpenShot?: (shotId: string) => void; onProductionInstalled: (projectId: string) => Promise<void>; onContinueToCharacters?: () => void; onContinueToScript?: () => void; onContinueToStoryboard?: () => void }) {
+  const fallbackSourceReview = useWorkspaceSourceReview(projectId, 0, false);
+  const reviewOwner = sourceReview ?? fallbackSourceReview;
   const graphOwner = useGraphWorkbench();
-  const [state, setState] = useState<SourceOutlineReviewState>();
+  const state = reviewOwner.value;
   const [draft, setDraft] = useState<SourceMaterial>(blankSource);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [graph, setGraph] = useState<{ payload: StoryGraph; revision: number; contentHash: string | null }>();
   const [loadedProjectId, setLoadedProjectId] = useState("");
   const draftDirty = useRef(false);
+  const reportSourceDraftDirty = useCallback((dirty: boolean) => {
+    draftDirty.current = dirty;
+    onSourceDraftDirtyChange?.(projectId, dirty);
+  }, [onSourceDraftDirtyChange, projectId]);
   const activeProject = useRef({ projectId, epoch: 0 });
   if (activeProject.current.projectId !== projectId) activeProject.current = { projectId, epoch: activeProject.current.epoch + 1 };
   const ownsProject = (session: { projectId: string; epoch: number }) => activeProject.current === session;
@@ -53,42 +62,50 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
     const session = activeProject.current;
     setError("");
     try {
-      const next = await plotloomApi.getSourceOutline(session.projectId);
+      const result = await reviewOwner.refresh();
       if (!ownsProject(session) || !isCurrent()) return false;
+      if (!result || result.status === "failed") {
+        setError(result?.error || "无法读取来源与大纲，请重试。");
+        return false;
+      }
+      const next = result.value;
       const stages = await plotloomApi.getStages(session.projectId);
       if (!ownsProject(session) || !isCurrent()) return false;
-      setState(next);
       const graphStage = stages.stages.find((stage) => stage.head.stage === "story_graph");
       setGraph(graphStage?.payload ? { payload: graphStage.payload as StoryGraph, revision: graphStage.head.revision, contentHash: graphStage.head.contentHash } : undefined);
       // React Strict Mode can issue a second initial read after the author
       // begins typing. A late read must not silently erase unsaved source text.
       if (!draftDirty.current) {
         setDraft(next.source?.material || sourceDraftFromBrief(briefSeed));
-        draftDirty.current = false;
+        reportSourceDraftDirty(false);
       }
       setLoadedProjectId(session.projectId);
       return true;
     } catch (loadError) { if (ownsProject(session) && isCurrent()) setError(sourceMessage(loadError)); }
     return false;
-  }, [projectId, briefSeed]);
+  }, [projectId, briefSeed, reportSourceDraftDirty, reviewOwner.refresh]);
 
   useEffect(() => {
     const session = activeProject.current;
-    draftDirty.current = false;
-    setState(undefined); setGraph(undefined); setLoadedProjectId(""); setError(""); setBusy(false); setDraft(blankSource);
-    return () => { if (ownsProject(session)) activeProject.current = { projectId: session.projectId, epoch: session.epoch + 1 }; };
-  }, [projectId]); // The project route owns refreshes.
+    reportSourceDraftDirty(false);
+    setGraph(undefined); setLoadedProjectId(""); setError(""); setBusy(false); setDraft(blankSource);
+    return () => {
+      onSourceDraftDirtyChange?.(session.projectId, false);
+      if (ownsProject(session)) activeProject.current = { projectId: session.projectId, epoch: session.epoch + 1 };
+    };
+  }, [projectId, onSourceDraftDirtyChange, reportSourceDraftDirty]); // The project route owns refreshes.
+  useEffect(() => () => onBranchTaskRead?.(projectId, { basis: "", status: "loading", value: null }), [projectId, onBranchTaskRead]);
   const { checking, failed, recheck } = useReviewActivation({ projectId, active: focusedTarget === "source", refreshToken, load });
   const ownerDisabled = ownerReadOnly || checking || failed;
   const reviewDraft = useReviewEditorDraft(projectId, "source", state ? `source:${state.source?.revision ?? 0}` : "", text => {
     const recovered = JSON.parse(text) as SourceMaterial;
     if (typeof recovered.text !== "string" || typeof recovered.title !== "string") throw new Error("来源草稿格式无效，请复制内容后重新填写。");
-    draftDirty.current = true; setDraft(recovered);
-  }, ownerDisabled || busy, () => { draftDirty.current = false; setDraft(state?.source?.material || sourceDraftFromBrief(briefSeed)); });
+    reportSourceDraftDirty(true); setDraft(recovered);
+  }, ownerDisabled || busy, () => { reportSourceDraftDirty(false); setDraft(state?.source?.material || sourceDraftFromBrief(briefSeed)); });
   const readOnly = ownerDisabled || reviewDraft.stale || focusedTarget !== "source";
 
   const updateDraft = (next: SourceMaterial) => {
-    draftDirty.current = true;
+    reportSourceDraftDirty(true);
     setDraft(next);
     reviewDraft.changed(JSON.stringify(next));
   };
@@ -99,8 +116,8 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
     try {
       const next = await operation();
       if (!ownsProject(session)) return false;
-      setState(next);
-      if (savedSource) { setDraft(next.source?.material || sourceDraftFromBrief(briefSeed)); draftDirty.current = false; await reviewDraft.clear(); }
+      reviewOwner.replace(next);
+      if (savedSource) { setDraft(next.source?.material || sourceDraftFromBrief(briefSeed)); reportSourceDraftDirty(false); await reviewDraft.clear(); }
       await recheck();
       await graphOwner.refresh();
       return true;
@@ -176,6 +193,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
 
       <SectionMapPanel key={projectId} projectId={projectId}
         structureKey={JSON.stringify(briefSeed)}
+        onBranchTaskRead={onBranchTaskRead}
         outline={accepted || null} accepted={state.acceptedSectionMap} status={state.sectionMapStatus}
         staleReasons={state.sectionMapStaleReasons} readOnly={readOnly} busy={busy}
         graphAdmission={state.graphAdmission}

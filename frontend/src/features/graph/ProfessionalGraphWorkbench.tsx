@@ -3,7 +3,7 @@ import { ReactFlow, Controls, Background, MarkerType, type Node, type Edge } fro
 import "@xyflow/react/dist/style.css";
 import { Button, PageHeader } from "../../components";
 import type { StoryGraph } from "../../types";
-import { useGraphSourceRead } from "./useGraphSourceRead";
+import type { WorkspaceSourceReviewRead } from "../../app/workspace/useWorkspaceSourceReview";
 import { CanonicalGraphReader } from "./CanonicalGraphReader";
 import { GraphDraftDiscard } from "./GraphDraftDiscard";
 import { useGraphWorkbench } from "./GraphWorkbenchContext";
@@ -14,9 +14,9 @@ import { GraphCommandDialog } from "./GraphCommandDialog";
 import { newGraphId } from "./contracts";
 import { GraphSafetyNotice } from "./GraphSafetyNotice";
 
-export function ProfessionalGraphWorkbench({ projectId, canonical, readOnly, onOpenSource }: { projectId: string; canonical: StoryGraph; readOnly: boolean; onOpenSource: () => void }) {
+export function ProfessionalGraphWorkbench({ projectId, canonical, readOnly, sourceReview, onOpenSource }: { projectId: string; canonical: StoryGraph; readOnly: boolean; sourceReview: WorkspaceSourceReviewRead; onOpenSource: () => void }) {
   const owner = useGraphWorkbench(), mapping = owner.draft?.mapping;
-  const sourceRead = useGraphSourceRead(projectId, owner.state?.bindingHash), source = sourceRead.value;
+  const source = sourceReview.value;
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
   const [insertionEdge, setInsertionEdge] = useState("");
   const nodes = useMemo<Node[]>(() => mapping?.topology.nodes.map((node, index) => ({ id: node.id,
@@ -35,7 +35,7 @@ export function ProfessionalGraphWorkbench({ projectId, canonical, readOnly, onO
     <PageHeader eyebrow="专业工作台" title="剧情图与结构规则" description="与创作工作台共用当前图草稿。保存图草稿、确认图内容、应用到故事路线是三项独立操作。" />
     <GraphSafetyNotice className="notice warning" />
     <GraphPreviewRecovery />
-    {sourceRead.status === "failed" && <p className="notice warning" role="alert">无法读取来源与大纲：{sourceRead.error}<Button onClick={() => void sourceRead.refresh()}>重新读取来源与大纲</Button></p>}
+    {sourceReview.status === "failed" && <p className="notice warning" role="alert">无法读取来源与大纲：{sourceReview.error}<Button onClick={() => void sourceReview.refresh()}>重新读取来源与大纲</Button></p>}
     {owner.stale && <p className="notice warning">规范上下文已变化，图草稿仍保留。<Button disabled={owner.busy || owner.readStatus !== "ready"} onClick={() => void owner.recover()}>在当前版本恢复为新草稿</Button></p>}
     <div className="button-row">
       <Button disabled={disabled || !mapping} onClick={() => void owner.saveDraft()}>保存图草稿</Button>

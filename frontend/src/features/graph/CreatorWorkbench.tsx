@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, PageHeader } from "../../components";
-import { useGraphSourceRead } from "./useGraphSourceRead";
 import type { SourceOutlineReviewState, WorkspaceProject } from "../../types";
 import type { PageId } from "../../app/workspace/contracts";
+import type { WorkspaceSourceReviewRead } from "../../app/workspace/useWorkspaceSourceReview";
 import { useGraphWorkbench } from "./GraphWorkbenchContext";
 import { GraphSafetyNotice } from "./GraphSafetyNotice";
 import { GraphPreviewRecovery } from "./GraphPreviewRecovery";
@@ -20,16 +20,16 @@ import { CreatorProductionInspector } from "./CreatorProductionInspector";
 import { creatorAdmission } from "./creatorAdmission";
 
 export type CreatorNavigate = (stage: PageId, hash?: string) => void;
-type CreatorProps = { project: WorkspaceProject; readOnly: boolean; onNavigate: CreatorNavigate; onOpenShot: (shotId: string) => void };
-export function CreatorWorkbench({ project, readOnly, onNavigate, onOpenShot }: CreatorProps) {
-  const owner = useGraphWorkbench(), sourceRead = useGraphSourceRead(project.id, owner.state?.bindingHash);
+type CreatorProps = { project: WorkspaceProject; readOnly: boolean; sourceReview: WorkspaceSourceReviewRead; onNavigate: CreatorNavigate; onOpenShot: (shotId: string) => void };
+export function CreatorWorkbench({ project, readOnly, sourceReview, onNavigate, onOpenShot }: CreatorProps) {
+  const owner = useGraphWorkbench();
   if (!project.id) return <section className="page"><PageHeader title="创作工作台" description="先保存项目简报，再建立来源与故事路线。" /><Button onClick={() => onNavigate("brief")}>返回项目简报</Button></section>;
   if (owner.state?.readOnlyReason) return <section className="page"><h1>创作工作台</h1><GraphPreviewRecovery /><p className="notice warning">{owner.state.readOnlyReason}</p><CanonicalGraphReader value={project.storyGraph} /></section>;
   if (!owner.draft || !owner.state) return <section className="page"><GraphPreviewRecovery /></section>;
-  return <CreatorCanvas project={project} readOnly={readOnly} source={sourceRead.value} sourceError={sourceRead.error} onSourceRetry={sourceRead.refresh} onNavigate={onNavigate} onOpenShot={onOpenShot} />;
+  return <CreatorCanvas project={project} readOnly={readOnly} source={sourceReview.value} sourceError={sourceReview.error} onSourceRetry={sourceReview.refresh} onNavigate={onNavigate} onOpenShot={onOpenShot} />;
 }
 
-function CreatorCanvas({ project, readOnly, source, sourceError, onSourceRetry, onNavigate, onOpenShot }: CreatorProps & { source: SourceOutlineReviewState | null; sourceError: string; onSourceRetry: () => Promise<void> }) {
+function CreatorCanvas({ project, readOnly, source, sourceError, onSourceRetry, onNavigate, onOpenShot }: Omit<CreatorProps, "sourceReview"> & { source: SourceOutlineReviewState | null; sourceError: string; onSourceRetry: WorkspaceSourceReviewRead["refresh"] }) {
   const owner = useGraphWorkbench(), draft = owner.draft!;
   const [action, setAction] = useState<CreatorEdit | null>(null), [tab, setTab] = useState<"story" | "production">("story");
   const [selectedY, setSelectedY] = useState<number>();

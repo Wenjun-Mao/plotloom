@@ -340,6 +340,54 @@ exit status, and does not establish product or creative acceptance.
 uv run --locked --no-sync python scripts/verify.py full
 ```
 
+### Risk-scoped local frontend qualification
+
+For a bounded frontend presentation or navigation change consuming unchanged
+APIs, a local frontend qualification can establish the affected local software
+result without rerunning the full local Python/release suite. This is a scope
+decision, not a new `verify.py` tier. Review and record the actual diff and
+dependency surface against a trusted revision. Confirm that backend/API
+schemas and request payloads, persistence, admission, authentication,
+provider/prompt behavior, package and build dependencies, and build tooling are
+unchanged; a list of frontend paths alone does not establish this boundary.
+
+Run the unfiltered frontend unit suite and both type checks, then build the
+static assets twice and compare the sorted SHA-256 manifests:
+
+```sh
+npm --prefix frontend test
+npm --prefix frontend run typecheck
+npm --prefix frontend run typecheck:e2e
+npm --prefix frontend run build:deterministic
+find src/plotloom/static -type f -print | sort | xargs shasum -a 256 > /tmp/plotloom-static-first.sha256
+npm --prefix frontend run build:deterministic
+find src/plotloom/static -type f -print | sort | xargs shasum -a 256 > /tmp/plotloom-static-second.sha256
+diff -u /tmp/plotloom-static-first.sha256 /tmp/plotloom-static-second.sha256
+```
+
+Keep the first build's generated files in the candidate and review them with
+the source diff. The full runner's current bundle-parity step compares
+`src/plotloom/static/` to Git; an expected generated change in an uncommitted
+candidate can therefore stop that step even when the build itself succeeded.
+The two-build comparison above checks that the intended candidate generates
+stable bytes without discarding those assets or rerunning unaffected suites.
+
+Run explicitly selected Playwright regressions for every affected navigation
+and state contract, inspect the supported desktop captures at 1280×768,
+1280×460 and 1700×900 when the layout is affected, and run shared-contract or
+package checks if the actual diff reaches those owners. Use `focused` for
+selected tests during edits. If the diff changes one of the contracts or
+dependencies above, broadens into a cross-layer runtime/refactor, or leaves
+impact uncertain, run the complete unfiltered `full` gate instead.
+
+Required hosted CI remains unfiltered and separate from this local result.
+Report it as pending until it passes; local frontend qualification is not full
+local release qualification or product acceptance. Reuse evidence for
+unchanged source/dependency inputs. After diagnosing a failed step, rerun that
+step and its affected downstream checks; invalidate earlier evidence only when
+the inputs it covers changed. Do not repeat expensive unaffected integration
+checks because generated assets changed alone.
+
 Install Chromium once before the first local browser run with
 `cd frontend && npx playwright install chromium`. The Python suite's media
 probes require `ffmpeg` and `ffprobe` on `PATH`.

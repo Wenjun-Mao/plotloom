@@ -5,10 +5,17 @@ import { ProjectReportFrame } from "../components/ProjectReportFrame";
 import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskActions";
 import type { SectionMap, SourceTopology } from "../types";
 import { useBranchSuggestions } from "../features/branches/useBranchSuggestions";
+import type { BranchTaskReadObservation } from "../app/workspace/recommendedWorkflow";
 
-export function BranchSuggestionPanel({ projectId, basis, disabled, cancelDisabled, dirty, onAdopt, onPlan }: { projectId: string; basis: string; disabled: boolean; cancelDisabled: boolean; dirty: boolean; onAdopt: (draft: SectionMap) => void; onPlan: (topology: SourceTopology) => void }) {
+export function BranchSuggestionPanel({ projectId, basis, disabled, cancelDisabled, dirty, onAdopt, onPlan, onTaskRead }: { projectId: string; basis: string; disabled: boolean; cancelDisabled: boolean; dirty: boolean; onAdopt: (draft: SectionMap) => void; onPlan: (topology: SourceTopology) => void; onTaskRead?: (projectId: string, observation: BranchTaskReadObservation) => void }) {
   const { state, busy, mutationPending, error, refresh, adopt, mutate, retryDisabled } = useBranchSuggestions(projectId, basis, dirty, onAdopt);
   useEffect(() => { if (state?.plannedTopology) onPlan(state.plannedTopology); }, [state?.plannedTopology?.topologyHash]);
+  useEffect(() => {
+    if (!onTaskRead) return;
+    onTaskRead(projectId, { basis, ...(state
+      ? { status: "ready" as const, value: state }
+      : error ? { status: "failed" as const, value: null } : { status: "loading" as const, value: null }) });
+  }, [projectId, basis, state, error, onTaskRead]);
   const candidate = state?.candidate;
   const suggestion = candidate?.suggestion;
   const stale = Boolean(state?.staleReasons.length);

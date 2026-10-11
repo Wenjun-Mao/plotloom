@@ -1,0 +1,49 @@
+# ADR 0155 — Recommended creative workflow guide
+
+Status: accepted, 2026-10-10.
+
+## Context
+
+Plotloom has a suggested creative sequence across existing routes, but each
+page owns its own controls and state. Creators need a compact way to orient
+themselves and see one useful next step without turning the sequence into a
+wizard or creating a second approval authority. Source, accepted outline,
+branch-map admission, canonical stage heads, playback prerequisites and local
+draft navigation already have separate owners.
+
+## Decision
+
+Show one always-visible, compact guide directly below the workspace toolbar on
+the Brief, source/outline, branch, creator, production/review and storyboard
+routes. It presents the six recommended steps, expands to show current status,
+and offers at most one context-aware navigation or playback action. The guide
+is advisory: manual graph authoring, return navigation and all existing save,
+confirm, install, and unsaved-draft guards remain authoritative.
+
+Derive workflow status from existing project, source-review, branch-task and
+stage-head reads. Share one project/revision-scoped source-review owner across
+the guide and source/graph views; coalesce concurrent reads and reject late
+results after project changes or mutations. A branch-task observation is usable
+only for the exact outline, accepted-map and Brief basis it read. An outline is
+current only when its source revision matches; an applied branch additionally
+requires exact source, outline, map, graph revision and content-hash agreement.
+Unavailable reads remain unknown. Playback status only invites a player check
+when its required stages are present; static reports are explicitly reading
+only. The source editor reports its transient dirty state to the guide so the
+guide can suppress navigation while source text is unsaved; save and navigation
+guards in the owning page remain authoritative. A blank workspace without a
+project is labeled unsaved, while a project still being loaded remains unknown.
+
+## Alternatives and consequences
+
+Page-local hard-coded progress would duplicate status ownership and drift from
+the existing admission rules. A blocking wizard would restrict the supported
+hand-authored and return paths. A separate server endpoint or persisted guide
+state would add authority and storage without new product capability. The
+chosen guide adds no persisted state or generation behavior; unknown status
+can make guidance less specific until the owning read succeeds.
+
+Regression coverage must retain route/phase mapping, currentness and hash
+checks, failed/read-only states, playback versus static-reading language,
+source-draft action suppression, unsaved-versus-loading status, supported
+desktop visibility and the existing draft-navigation dialog.

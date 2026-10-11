@@ -40,6 +40,29 @@ it.each([
   } finally { await act(async () => root.unmount()); }
 });
 
+it("reports local source-editor draft changes to the workspace guide owner", async () => {
+  const host = document.createElement("div"); const root = createRoot(host);
+  vi.spyOn(plotloomApi, "getSourceOutline").mockResolvedValue({
+    source: { revision: 1, material: { kind: "synopsis", title: "Confirmed", text: "current source", adaptationIntent: "" } },
+    candidate: null, acceptedOutline: null, outlineStatus: "missing", sectionMapStaleReasons: [],
+  } as never);
+  vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: [] });
+  const onSourceDraftDirtyChange = vi.fn();
+  try {
+    await act(async () => root.render(branchOperationView(branchOperationFixture(), createElement(GraphWorkbenchContext.Provider, {
+      value: graphControllerFixture(),
+      children: createElement(SourceOutlinePage, { projectId: "project", briefSeed: demoProject.brief, readOnly: false, onProductionInstalled: async () => undefined, onSourceDraftDirtyChange }),
+    }))));
+    const textarea = host.querySelector<HTMLTextAreaElement>(".source-outline-source textarea")!;
+    const setValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+    await act(async () => {
+      setValue?.call(textarea, "unsaved source change");
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(onSourceDraftDirtyChange).toHaveBeenLastCalledWith("project", true);
+  } finally { await act(async () => root.unmount()); }
+});
+
 it.each(["prepared", "queued", "outcome_unknown"] as const)("does not infer dispatch from a prepared outline candidate: %s", async taskState => {
   const host = document.createElement("div"); const root = createRoot(host);
   vi.spyOn(plotloomApi, "getSourceOutline").mockResolvedValue({ source: { revision: 1, material: { kind: "synopsis", title: "Confirmed", text: "unchanged source", adaptationIntent: "" } }, candidate: { jobId: "pending", status: "prepared", sourceRevision: 1, expectedOutlineRevision: 0 }, acceptedOutline: null, outlineStatus: "missing", sectionMapStaleReasons: [] } as never);
@@ -78,7 +101,7 @@ it.each([false, true])("exposes explicit first-candidate cancel recovery with re
       expect(prepare).toHaveBeenCalledExactlyOnceWith("project");
       get.mockRejectedValue(new Error("failed currentness read"));
       await act(async () => [...host.querySelectorAll("button")].find(item => item.textContent === "刷新")!.click());
-      expect(button.disabled).toBe(true);
+      expect([...host.querySelectorAll("button")].some(item => item.textContent === "重新准备大纲任务")).toBe(false);
     } else expect(prepare).not.toHaveBeenCalled();
     expect(saveSource).not.toHaveBeenCalled();
   } finally { await act(async () => root.unmount()); }
