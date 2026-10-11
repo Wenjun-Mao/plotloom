@@ -1,5 +1,13 @@
 # Plotloom roadmap entrypoint
 
+The owner requested a fresh portrait-image/video walkthrough on October11,
+looking for details missed by the completed landscape run. The
+[portrait run profile](2026-10-11-portrait-creator-walkthrough.md) preserves the
+landscape project and scopes real 9:16 creation, aspect handling, selected
+revision/recovery checks and both actual endings. Its
+[ledger](../verification/2026-10-11-portrait-creator-walkthrough.md) separates
+current evidence, demonstrated defects and remaining coverage.
+
 The owner authorized continuing the `留一盏灯` walkthrough on October11,
 repairing demonstrated UX problems while pausing at creative sign-off or a new
 provider/cost decision. The first continuation corrects verified preparation
