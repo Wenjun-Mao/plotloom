@@ -733,3 +733,10 @@ duplicate full run is started solely for this frontend change. Hosted run
 38113104300 is being consumed on the preceding M0–M5 revision `5d007935`; it
 does not include the new UI commit, so it cannot be reported as hosted
 qualification of `ea20d6b`.
+
+The merged candidate was pushed as b888894c67cc7517f6a405f81576da68196def74.
+Independent read-only review found no ownership, dependency, or shard-coverage
+issues; the reviewer confirmed all 86 specs appear exactly once across four
+shards containing 22/22/21/21 files and ran no tests. The already-running hosted
+workflow remains pinned to 5d007935e8657bba02ff72e37bdc31d22fe3ea41 and does
+not qualify ea20d6b.

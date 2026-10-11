@@ -1334,3 +1334,11 @@ was started solely for this frontend change. The exact unfiltered hosted run
 38113104300 is on M0–M5 SHA `5d007935e8657bba02ff72e37bdc31d22fe3ea41`, which
 does not contain `ea20d6b`; its status and scope must be recorded separately and
 must not be described as hosted qualification of this updated UI baseline.
+
+The merged candidate was committed and pushed to the scoped branch as
+b888894c67cc7517f6a405f81576da68196def74. Independent read-only review of
+that exact commit found no actionable findings: both new Vitest files and the
+Script browser spec are owned by story-authoring, the registered shared
+dependencies cover them, and all 86 Playwright specs appear exactly once
+across four shards of 22/22/21/21 files. The reviewer ran no tests or
+benchmarks. Hosted run 38113104300 remains pinned to the earlier SHA above.
