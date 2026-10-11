@@ -623,3 +623,15 @@ the child stopped. The descendant-cleanup guarantee is qualified on the
 current macOS and Ubuntu targets; Windows process-tree containment remains
 unqualified. A quiet matched serial/two-process comparison, one full local
 gate and one unfiltered hosted same-SHA qualification remain.
+
+### Main UI follow-up dependency checkpoint — 2026-10-11
+
+The manager completed the separate recommended-workflow UI follow-up and
+committed it locally as `62fe259`. Its 1,115 frontend tests, both type checks,
+11 focused browser checks and desktop layout inspections passed. The local main
+checkout is six commits ahead of origin/main; the UI commit remains unpushed
+because earlier release-gate failures still block publication. Treat this as
+an unqualified local candidate, not a published baseline. The M0–M5 worktree
+remains based on `51cb408`; do not rebase, run the quiet timing comparison or
+start final qualification until the manager provides the final published
+baseline and quiet checkpoint.
