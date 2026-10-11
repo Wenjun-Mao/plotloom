@@ -235,3 +235,26 @@ pending or failed reads may retain display but cannot enable Continue or image
 actions, or republish old acceptance as current advice. Use the same Cast read
 owner, preserve editor buffers and reject obsolete completions; no guide-owned
 request or automatic acceptance.
+
+## Storyboard and production-proposal progression (2026-10-11)
+
+The live lamp walkthrough reached delivered and then accepted Storyboard while
+the top guide still repeated generic review advice. After acceptance, production
+preparation was unavailable because reference-image work remained unresolved;
+Storyboard acceptance alone could not prove that Prepare was enabled.
+
+Observe StoryboardReviewPanel and its nested ProductionBridgePanel independently
+through the same project/revision/activation-scoped advisory channel. Keep both
+observations: a child bridge read must not replace the Storyboard authority.
+Unknown, failed, busy, rejected and dirty states precede action advice. Name the
+existing prepare, candidate disclosure, confirm, retry, diagnostic, same-job
+dispatch/check, intent save, presentation save, install or installed-shot control
+only at its corresponding verified stage. Never infer production readiness from
+Storyboard acceptance or media readiness from production installation. No new
+API reads, mutation payloads, persisted state or automatic approvals are added.
+
+Retained and failed reads cannot revive old continuation advice. Stage exit and
+project/revision replacement invalidate both advisory observations. Regressions
+cover simultaneous parent/child observations, one read per owner, held A-B-A
+responses, actual desktop controls, unresolved execution and separate approval,
+installation and media steps.

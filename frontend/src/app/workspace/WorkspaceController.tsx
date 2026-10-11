@@ -392,4 +392,4 @@ export default function WorkspaceController() {
   </div></ReviewDraftContext.Provider></BranchOperationContext.Provider></ReviewWorkflowReadProvider></WorkspaceProductionProvider></GraphWorkbenchProvider>;
 }
 
-function reviewGuideStage(hash: string) { const target = sourceWorkflowTarget(hash); return target === "script" || target === "art" ? target : undefined; }
+function reviewGuideStage(hash: string) { const target = sourceWorkflowTarget(hash); return target === "script" || target === "art" || target === "storyboard-review" ? target : undefined; }

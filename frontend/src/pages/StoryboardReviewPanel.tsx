@@ -11,6 +11,7 @@ import { ManualTaskAssignment } from "./ManualTaskAssignment";
 import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskActions";
 import { useReviewActivation } from "./useReviewActivation";
 import { StageGuide } from "../components/StageGuide";
+import { useReportReviewWorkflowRead } from "../app/workspace/ReviewWorkflowReadContext";
 
 /** F5A preserves upstream review evidence; it deliberately cannot create product shots. */
 export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOpenShot, onInstalled, active: visible = true, refreshToken }: { projectId: string; readOnly: boolean; onOpenShot?: (shotId: string) => boolean | void; onInstalled: (projectId: string) => Promise<void>; active?: boolean; refreshToken?: unknown }) {
@@ -39,6 +40,7 @@ export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOp
     return () => { if (owns(session)) active.current = { projectId: session.projectId, epoch: session.epoch + 1 }; };
   }, [projectId, load]);
   const { checking, failed, recheck } = useReviewActivation({ projectId, active: visible, refreshToken, load });
+  useReportReviewWorkflowRead(projectId, visible, { stage: "storyboard-review", status: checking ? "loading" : failed ? "failed" : "ready", state, busy, dirty: false, error });
   const readOnly = ownerReadOnly || checking || failed;
   const run = <T,>(operation: () => Promise<T>, accepted?: (result: T) => void) => {
     const session = active.current;

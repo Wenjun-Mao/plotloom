@@ -5,6 +5,7 @@ import { InstalledProductionSummary } from "./InstalledProductionSummary";
 import { NativeBridgeIntentControls } from "./NativeBridgeIntentControls";
 import { useExplicitReviewCloseGuard } from "../features/authoring/ReviewDraftContext";
 import { useProductionBridgeReview, type BridgeReviewBasis } from "./useProductionBridgeReview";
+import { useReportReviewWorkflowRead } from "../app/workspace/ReviewWorkflowReadContext";
 
 function userFacingBridgeMessage(message: string): string {
   return message.replace(/^不能安装：/, "暂不能确认投产提案：");
@@ -19,6 +20,8 @@ export function ProductionBridgePanel({ projectId, reviewBasis, readOnly: ownerR
   const { state, proposal, intentEntries, presentationDirty, presentationTouched, presentationEditorNonce,
     busy, canonicalReady, error, loadFailed, draftConflict, intentDirty, retryLoad, run, setIntentEntries, setError } = review;
   const readOnly = ownerReadOnly || reviewBasis.status !== "current" || !review.acknowledged;
+  useReportReviewWorkflowRead(projectId, true, { stage: "production-bridge", status: loadFailed ? "failed" : review.acknowledged ? "ready" : "loading",
+    state, busy, dirty: intentDirty || draftConflict || (presentationTouched && presentationDirty), error, blocked: readOnly, canonicalReady, canOpenShot: Boolean(onOpenShot) });
   useExplicitReviewCloseGuard(projectId, "production_bridge", intentDirty || draftConflict || (presentationTouched && presentationDirty), false,
     review.discard, "投产提案审阅");
   const job = state?.intentJob;

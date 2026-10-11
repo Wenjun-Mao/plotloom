@@ -1,7 +1,8 @@
 # ADR 0160 — Two-process Python full gate
 
-Status: proposed, pending the exact-runner local full gate and unfiltered
-hosted same-SHA qualification.
+Status: proposed, pending unfiltered hosted same-SHA qualification. The
+exact-runner integrated local full gate passed on `038b468` on 2026-10-11;
+see the verification receipt for results and the later UI-only evidence scope.
 
 ## Context
 

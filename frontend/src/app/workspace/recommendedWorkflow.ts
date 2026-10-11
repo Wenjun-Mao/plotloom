@@ -5,10 +5,11 @@ import type { WorkspaceSourceReviewStatus } from "./useWorkspaceSourceReview";
 import { creativeWorkflowSteps, type CreativeWorkflowStepId } from "../../creative-workflow-steps";
 import { graphWorkflowRecommendation } from "./recommendedGraphWorkflow";
 import type { ProductionRead } from "../../features/graph/useCreatorProduction";
-import type { ArtWorkflowObservation, CastWorkflowObservation, ScriptWorkflowObservation } from "./ReviewWorkflowReadContext";
+import type { ArtWorkflowObservation, CastWorkflowObservation, ScriptWorkflowObservation, StoryboardWorkflowObservation, BridgeWorkflowObservation } from "./ReviewWorkflowReadContext";
 import { scriptWorkflowNextText } from "./recommendedScriptWorkflow";
 import { artWorkflowNextText } from "./recommendedArtWorkflow";
 import { castWorkflowNextText } from "./recommendedCastWorkflow";
+import { storyboardWorkflowNextText } from "./recommendedStoryboardWorkflow";
 
 export type RecommendedWorkflowStepId = CreativeWorkflowStepId;
 export type RecommendedWorkflowRoute = { stage: PageId; hash?: string };
@@ -35,6 +36,8 @@ export interface RecommendedWorkflowInput {
   scriptRead: ScriptWorkflowObservation | undefined;
   artRead: ArtWorkflowObservation | undefined;
   castRead: CastWorkflowObservation | undefined;
+  storyboardRead?: StoryboardWorkflowObservation;
+  bridgeRead?: BridgeWorkflowObservation;
   workspaceAvailable: boolean;
   projectPending: boolean;
   sourceDraftDirty: boolean;
@@ -194,7 +197,7 @@ function productionNextText(input: RecommendedWorkflowInput): { text: string; ac
   const target = input.activePage === "source" ? sourceWorkflowTarget(input.activeHash) : undefined;
   if (target === "art") return artWorkflowNextText(input.artRead);
   if (target === "script") return scriptWorkflowNextText(input.scriptRead);
-  if (target === "storyboard-review") return { text: "继续分镜评审；明确确认投产后，实际媒体仍需单独检查。" };
+  if (target === "storyboard-review") return storyboardWorkflowNextText(input.storyboardRead, input.bridgeRead);
   if (input.activePage === "characters") return castWorkflowNextText(input.castRead);
   if (input.activePage === "bible") return { text: "检查故事设定是否与当前故事路线一致，再按需继续场景制作。" };
   if (input.activePage === "beats") return { text: "检查场景节拍与事件顺序；保存后再进入分镜工作台审阅镜头。" };

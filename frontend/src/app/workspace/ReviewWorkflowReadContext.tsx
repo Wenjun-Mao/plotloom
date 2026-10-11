@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import type { ArtRenderStyle, ArtReviewState, CastReviewState, ScriptReviewState } from "../../types";
+import type { ArtRenderStyle, ArtReviewState, CastReviewState, ScriptReviewState, StoryboardReviewState, ProductionBridgeState } from "../../types";
 import type { ReviewContextFailure } from "../../pages/ReviewContextNotice";
 
 interface ReviewObservation {
@@ -11,10 +11,12 @@ interface ReviewObservation {
 export type ScriptWorkflowObservation = ReviewObservation & { stage: "script"; state?: ScriptReviewState };
 export type ArtWorkflowObservation = ReviewObservation & { stage: "art"; state?: ArtReviewState; renderStyle: ArtRenderStyle | ""; retainedDraft: boolean };
 export type CastWorkflowObservation = ReviewObservation & { stage: "characters"; state?: CastReviewState; renderStyle: ArtRenderStyle | ""; retainedDraft: boolean; designValid: boolean };
-type Observation = ScriptWorkflowObservation | ArtWorkflowObservation | CastWorkflowObservation;
-type ReviewStage = Observation["stage"];
-type Report = (observation: Observation | undefined) => void;
-const ReviewWorkflowContext = createContext<{ projectId: string; stage?: ReviewStage; report?: Report; read?: Observation } | null>(null);
+export type StoryboardWorkflowObservation = ReviewObservation & { stage: "storyboard-review"; state?: StoryboardReviewState };
+export type BridgeWorkflowObservation = ReviewObservation & { stage: "production-bridge"; state?: ProductionBridgeState; blocked: boolean; canonicalReady: boolean; canOpenShot: boolean };
+type Observation = ScriptWorkflowObservation | ArtWorkflowObservation | CastWorkflowObservation | StoryboardWorkflowObservation | BridgeWorkflowObservation;
+type ReviewStage = Exclude<Observation["stage"], "production-bridge">;
+type Report = (stage: Observation["stage"], observation: Observation | undefined) => void;
+const ReviewWorkflowContext = createContext<{ projectId: string; stage?: ReviewStage; report?: Report; read?: Observation; bridgeRead?: BridgeWorkflowObservation } | null>(null);
 
 /** Observe the active review owner, without duplicating its reads or writes. */
 export function ReviewWorkflowReadProvider({ projectId, revision, stage, children }: {
@@ -24,23 +26,31 @@ export function ReviewWorkflowReadProvider({ projectId, revision, stage, childre
   const owner = useRef({ identity });
   if (owner.current.identity !== identity) owner.current = { identity };
   const token = owner.current;
-  const [read, setRead] = useState<{ owner: object; observation: Observation | undefined }>();
-  const report = useCallback<Report>((observation) => {
-    setRead(current => token === owner.current && stage && (!observation || observation.stage === stage) ? { owner: token, observation } : current);
+  const [read, setRead] = useState<{ owner: object; observations: Partial<Record<Observation["stage"], Observation>> }>();
+  const report = useCallback<Report>((reportedStage, observation) => {
+    const allowed = reportedStage === stage || stage === "storyboard-review" && reportedStage === "production-bridge";
+    setRead(current => token === owner.current && stage && allowed ? { owner: token,
+      observations: { ...(current?.owner === token ? current.observations : {}), [reportedStage]: observation } } : current);
   }, [identity]);
+  const observations = read?.owner === owner.current ? read.observations : undefined;
   return <ReviewWorkflowContext.Provider value={{ projectId, stage, report: stage ? report : undefined,
-    read: read?.owner === owner.current ? read.observation : undefined }}>{children}</ReviewWorkflowContext.Provider>;
+    read: stage ? observations?.[stage] : undefined, bridgeRead: observations?.["production-bridge"] as BridgeWorkflowObservation | undefined }}>{children}</ReviewWorkflowContext.Provider>;
 }
 
 export function useReviewWorkflowRead() { return useContext(ReviewWorkflowContext)?.read; }
+export function useBridgeWorkflowRead() { return useContext(ReviewWorkflowContext)?.bridgeRead; }
 
 export function useReportReviewWorkflowRead(projectId: string, active: boolean, observation: Observation) {
   const context = useContext(ReviewWorkflowContext);
-  const report = active && context?.projectId === projectId && context.stage === observation.stage ? context.report : undefined;
+  const matchingStage = context?.stage === observation.stage || context?.stage === "storyboard-review" && observation.stage === "production-bridge";
+  const report = active && context?.projectId === projectId && matchingStage ? context.report : undefined;
   const { status, state, busy, dirty, error } = observation;
-  const renderStyle = observation.stage !== "script" ? observation.renderStyle : undefined;
-  const retainedDraft = observation.stage !== "script" ? observation.retainedDraft : undefined;
+  const renderStyle = observation.stage === "art" || observation.stage === "characters" ? observation.renderStyle : undefined;
+  const retainedDraft = observation.stage === "art" || observation.stage === "characters" ? observation.retainedDraft : undefined;
   const designValid = observation.stage === "characters" ? observation.designValid : undefined;
-  useEffect(() => { report?.(observation); }, [report, status, state, busy, dirty, error, renderStyle, retainedDraft, designValid]);
-  useEffect(() => () => report?.(undefined), [report]);
+  const blocked = observation.stage === "production-bridge" ? observation.blocked : undefined;
+  const canonicalReady = observation.stage === "production-bridge" ? observation.canonicalReady : undefined;
+  const canOpenShot = observation.stage === "production-bridge" ? observation.canOpenShot : undefined;
+  useEffect(() => { report?.(observation.stage, observation); }, [report, status, state, busy, dirty, error, renderStyle, retainedDraft, designValid, blocked, canonicalReady, canOpenShot]);
+  useEffect(() => () => report?.(observation.stage, undefined), [report, observation.stage]);
 }

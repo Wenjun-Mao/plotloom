@@ -163,6 +163,7 @@
           "frontend/tests/recommended-art-workflow.test.ts",
           "frontend/tests/recommended-cast-workflow.test.ts",
           "frontend/tests/recommended-production-workflow.test.ts",
+          "frontend/tests/recommended-storyboard-workflow.test.ts",
           "frontend/tests/review-activation.test.ts",
           "frontend/tests/review-context-notice.test.ts",
           "frontend/tests/same-person-presentation.test.ts",
@@ -174,6 +175,7 @@
           "frontend/tests/shot-presentation.test.ts",
           "frontend/tests/storyboard-editor.test.ts",
           "frontend/tests/storyboard-shot-route.test.ts",
+          "frontend/tests/storyboard-workflow-observation.test.ts",
           "frontend/tests/visual-intent-drafts.test.ts",
           "frontend/tests/workspace-production-read.test.ts"
         ],
@@ -192,6 +194,7 @@
           "frontend/e2e/production-rebuild.spec.ts",
           "frontend/e2e/recommended-art-workflow.spec.ts",
           "frontend/e2e/recommended-cast-workflow.spec.ts",
+          "frontend/e2e/recommended-storyboard-workflow.spec.ts",
           "frontend/e2e/review-seam-currentness.spec.ts",
           "frontend/e2e/script-static-report.spec.ts",
           "frontend/e2e/storyboard-review-ownership.spec.ts",

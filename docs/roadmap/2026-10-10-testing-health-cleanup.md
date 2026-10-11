@@ -765,3 +765,16 @@ complete profile pass. No full suite or hosted run was launched at this
 checkpoint. The final combined qualification, main publication and worktree
 cleanup remain manager-owned while the real walkthrough may produce further
 product changes.
+
+### Manager integrated full checkpoint — 2026-10-11
+
+The non-destructive main merge `038b468` passed the exact local full gate in
+711.499s: 1,518 Python, 1,201 Vitest and 292 browser cases plus all build,
+inventory/shard and package gates. The subsequent Storyboard-guide delta is
+bounded frontend observation/presentation with unchanged backend and package
+contracts; it uses ADR 0156 qualification (1,214 Vitest, types, seven affected
+browser cases, deterministic parity and independent review). Native ownership
+and four shards now cover 294 browser cases. See the
+[manager integration receipt](../verification/2026-10-11-testing-health-main-integration.md).
+One exact-current unfiltered hosted run and recoverable worker attachment
+archive remain; no older hosted run is promoted to current qualification.

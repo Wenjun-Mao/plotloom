@@ -35,9 +35,29 @@ actual observations separately from software regression qualification.
   voice proposals, route-only choice context and both mutually exclusive ending
   performances. Confirmed Role r1 through `确认使用此角色设定`; no image was
   automatically generated or selected.
-- Prepared and sent a separate character-sheet image proposal through the
-  existing image assistant. Continued to Art, selected `真人写实` and prepared
-  the current Art text task. The image proposal is awaiting delivery.
+- Character image `ij_cbdf1eff9827419a9a0eb8e17451512a` returned. Inspected the
+  actual pixels and selected it as the identity reference, separately from Role.
+- Art text `ch_692c9bfc5f9c4b9b97e893ef7cdf8269` returned; inspected the complete
+  report and JSON, then confirmed Art r1. Studio image
+  `ij_73d5f46dda6741698cee258cced3efe2` and lamp image
+  `ij_a13bd97b42314d02a9ac26ff9d1d8756` returned, were inspected and selected.
+  The studio detail panels retain minor visual variation; this is accepted for
+  the walkthrough, not a claim of final shot continuity. Art gallery selection
+  remains reference-only and does not automatically bind production shots.
+- Script `ch_b1effd40e6b14086a46f9a8910887777` returned and was confirmed after
+  full inspection: opening 10s, take ending 7.5s, leave ending 5s. Complete
+  routes are 17.5s and 15s, not the 22.5s aggregate. The 30s setting is a hard
+  per-route ceiling, not a padding requirement. No new scene or dialogue added.
+- Storyboard `ch_d74b021ffe934fd3a1031834afd22a95` returned and was confirmed
+  as r1, hash prefix `ac067fd08143`: nine cuts in five video segments. Both
+  endings remain mutually exclusive and the choice has no footage episode.
+- Production preparation correctly paused while the lamp image was unresolved.
+  After final delivery ingestion and a current read, prepared proposal r1 with
+  five scenes and nine shots. Native intent preparation rejected the uncommitted
+  software source before creating a task; commit the reviewed UI checkpoint
+  before preparing again. No unknown dispatch or acceptance was bypassed.
+- Replaced the Storyboard page's generic guide with acknowledged state-based
+  instructions. See the separate scoped UI qualification receipt below.
 
 ## Separate verification-tooling assignment
 
@@ -61,4 +81,11 @@ found. Windows process-tree containment remains unqualified. Integration and
 one combined final gate follow; do not promote the worker's earlier green run
 to exact-current hosted qualification.
 
-Status: in progress; no E2E success or final-media claim yet.
+The integrated local full gate passed on `038b46850e5a4f2b31d7a251d56eff5fe6af0cf5`
+in 711.499s: 1,518 Python, 1,201 Vitest and 292 browser cases, plus build/parity,
+ownership/shards and wheel smoke. The later Storyboard UI-only delta uses ADR
+0156 risk-scoped qualification, not another full Python run. Hosted latest-SHA
+qualification and recoverable worker-worktree cleanup remain pending.
+
+Status: in progress; production intent, installation, media and both real
+playback routes remain. No E2E success or final-media claim yet.
