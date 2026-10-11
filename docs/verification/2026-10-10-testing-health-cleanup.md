@@ -1342,3 +1342,33 @@ Script browser spec are owned by story-authoring, the registered shared
 dependencies cover them, and all 86 Playwright specs appear exactly once
 across four shards of 22/22/21/21 files. The reviewer ran no tests or
 benchmarks. Hosted run 38113104300 remains pinned to the earlier SHA above.
+
+#### Hosted CI outcome — run 38113104300
+
+The unfiltered workflow completed successfully in 17 minutes 23 seconds on
+SHA 5d007935e8657bba02ff72e37bdc31d22fe3ea41. The verify job passed 1,518
+Python cases in 735.45 seconds, 1,164 Vitest cases across 139 files, frontend
+type checks, production build and parity, and wheel build/install smoke. All
+four browser jobs passed: 83, 61, 70 and 71 cases (285 total); the full run
+had no failed jobs. This run is pinned before the ea20d6b and 6371bf6 UI
+baselines and is evidence for SHA 5d007935, not the latest UI candidate.
+
+#### Later owner UI input — 6371bf6
+
+The owner reports main at 6371bf6291f9b708200730b7866df2c3b76fe1ac with a
+locally qualified Art/preparation workflow-guide correction. The owner points
+to main's receipt at
+docs/verification/2026-10-11-art-and-preparation-workflow-hints.md. It records
+1,191 Vitest cases and both type checks passing, all 10 unique affected browser
+cases passing, deterministic generated assets matching, and a clean
+independent review. The source diff is limited to frontend code/tests, the
+generated bundle, ADR/roadmap/verification documentation, with no backend,
+API/payload, dependency or build-tool changes.
+
+This revision adds two Vitest test files and one Playwright spec and updates
+the shard manifest. It is not included in the pushed M0–M5 candidate at
+cdc4df693ed8a11f80948dc75574682b83c9e991. Per the owner handoff, it remains an
+input for the authorized combined qualification; no rebase or new full run
+was started solely for this handoff. The ownership map and four-shard manifest
+must be refreshed if this source revision is later integrated. Neither the
+local full on d53a99f nor hosted run 38113104300 covers 6371bf6.

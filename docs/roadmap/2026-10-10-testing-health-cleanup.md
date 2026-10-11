@@ -740,3 +740,16 @@ issues; the reviewer confirmed all 86 specs appear exactly once across four
 shards containing 22/22/21/21 files and ran no tests. The already-running hosted
 workflow remains pinned to 5d007935e8657bba02ff72e37bdc31d22fe3ea41 and does
 not qualify ea20d6b.
+
+Hosted run 38113104300 completed successfully in 17m23s on SHA
+5d007935e8657bba02ff72e37bdc31d22fe3ea41: verify passed 1,518 Python and
+1,164 Vitest cases plus build/package gates; the four browser jobs passed
+83/61/70/71 cases. It predates the ea20d6b and 6371bf6 UI baselines. The owner
+has since reported main at 6371bf6291f9b708200730b7866df2c3b76fe1ac with
+1,191 frontend unit cases, both type checks, 10 affected browser cases,
+deterministic assets and independent review passing. That UI input adds two
+Vitest files and one browser spec and is not yet in this branch. The owner
+directed that it remain a combined-qualification input without starting a
+new full run or rebase solely for the handoff. The M0–M5 code checkpoint
+remains cdc4df693ed8a11f80948dc75574682b83c9e991; this receipt update is
+documentation-only.
