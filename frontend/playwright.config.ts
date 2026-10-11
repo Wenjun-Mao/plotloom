@@ -2,17 +2,24 @@ import { defineConfig, devices } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
 const browserShard = process.env.BROWSER_SHARD;
-if (browserShard !== undefined && browserShard !== "1" && browserShard !== "2") {
-  throw new Error(`BROWSER_SHARD must be 1 or 2, received ${browserShard}`);
+const browserShardIds = ["1", "2", "3", "4"] as const;
+type BrowserShardId = (typeof browserShardIds)[number];
+function parseBrowserShard(value: string | undefined): BrowserShardId | undefined {
+  if (value === undefined) return undefined;
+  if (browserShardIds.includes(value as BrowserShardId)) return value as BrowserShardId;
+  throw new Error(`BROWSER_SHARD must be 1, 2, 3, or 4, received ${value}`);
 }
+const selectedBrowserShard = parseBrowserShard(browserShard);
 const browserShardManifest = JSON.parse(
   readFileSync(new URL("./e2e/browser-shard-manifest.json", import.meta.url), "utf8"),
-) as Record<"1" | "2", string[]>;
+) as Record<BrowserShardId, string[]>;
 
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
-  testMatch: browserShard ? browserShardManifest[browserShard].map((file) => `**/${file}`) : undefined,
+  testMatch: selectedBrowserShard
+    ? browserShardManifest[selectedBrowserShard].map((file) => `**/${file}`)
+    : undefined,
   // CI assigns whole specs by historical duration, preserving within-file
   // order; without BROWSER_SHARD local runs still collect the complete suite.
   // Each test owns its own backend/provider or narrow UI fixture and data roots.

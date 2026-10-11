@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.runtime import build_runtime_app
-from tests.test_project_storage_source_outline import _deliver, _material
+from tests.source_outline_fixtures import _deliver, _material
 from tests.test_project_storage_source_outline_api import _settings
 
 

@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from plotloom.api.errors import register_api_error_handlers
 from plotloom.api.project_folder import create_project_folder_authoring_app
 from plotloom.exceptions import SamePersonReviewRequiredError
-from tests.test_project_storage_source_outline import _storage
+from tests.source_outline_fixtures import _storage
 
 
 @pytest.mark.parametrize("composition", ["service", "project_folder"])

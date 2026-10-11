@@ -21,10 +21,9 @@ The owner's prior preference is GPT-6 Luna / Max for bounded implementation;
 effective host settings require confirmation at dispatch. No normal cutover,
 protected settings change or native generation is added by this plan.
 
-The proposed M0–M5 modular verification and remaining-runtime follow-up is
-appended below. It is a draft for owner review and awaits separate
-implementation approval; no suite, module, profiling or CI changes are
-authorized by this planning addition.
+The owner-approved M0–M5 modular verification and remaining-runtime follow-up
+is appended below. Its implementation is isolated from the completed P0–P4
+work and from the active owner walkthrough.
 
 The [completion receipt](../verification/2026-10-10-testing-health-cleanup.md)
 records exact `0b71359` CI38024405822 SUCCESS, preserved behavior and measured
@@ -374,9 +373,9 @@ Finish when P0–P4 are proven with preserved coverage, measured gains, explicit
 verification gaps and a reviewable receipt. No new E2E creative acceptance is
 required or claimed by this engineering pass.
 
-## Modular verification and remaining runtime — proposed M0–M5 follow-up
+## Modular verification and remaining runtime — approved M0–M5 follow-up
 
-Status: draft for owner review on October 10. The owner requested a handoff-ready plan through Relay Brainstorm-and-Plan because local runs exceed 12 minutes and hosted full verification exceeds 30 minutes. Planning authorization is not implementation or CI-dispatch authority. Completed P0–P4 remains completed. M0–M5 is separate from the approved workflow-guide UI/policy delivery and proposes better reliable selection, not weaker full coverage. The separately authorized risk-scoped frontend policy is ADR 0156.
+Status: owner-approved for implementation on October 10 in an isolated worktree, including bounded final qualification and ordinary scoped branch publication after independent review. The work addresses local runs above 12 minutes and hosted full verification above 30 minutes. Completed P0–P4 remains completed and is not reopened. M0–M5 is separate from the workflow-guide UI/policy delivery and improves reliable selection without weakening full coverage. The risk-scoped frontend policy is ADR 0156.
 
 ### Outcome and evidence
 
@@ -394,7 +393,7 @@ Directory-only selection is simple but misses cross-domain consumers and shared-
 
 Initial module vocabulary: story-authoring (brief/source/outline/branches), graph, creative-production (cast/art/script/storyboard; split subfamilies when evidence warrants), media-lifecycle, playback, project-lifecycle (save/stale/revise/recover/snapshot), shared-contracts/tooling (schema/API/security/provider/prompt/build/package owners with explicit subfamilies). This taxonomy is proposed, not a command contract. Assign every native test/spec a primary owner; cross-module checks can be included by several profiles but execute once in a combined selection. Shared fixtures/helpers need dependent ownership even though they are not collected tests. Preserve dedicated lifecycle journeys; modules define selection and ownership, not permission to replace cross-stack tests with mocks.
 
-Use distinct depth profiles: fast (unit/pure-contract feedback), contract (affected integration owners and consumers), browser (affected journeys), and module-complete (union plus required build/package guards). Exact CLI spellings are left to the implementer; examples such as “verify module graph --level contract” are proposed, not currently runnable. Development selectors do not replace the risk-appropriate final gate or required full hosted CI. Schema, persistence, admission, authentication, provider, prompt or build dependency changes and unresolved impact default to broad/full checks until a reviewed narrower closure is proven. Unknown modules, unknown selectors, empty selection, stale maps or conflicting ambient filters must fail explicitly; never silently pass.
+Use distinct paths: fast (`quick`) feedback, exact `focused` selectors, named `module` profiles and full release verification. The implemented command is `scripts/verify.py module --module NAME --depth DEPTH`, where `contract` selects pytest and Vitest files, `browser` selects Playwright specs, and `complete` selects every nonempty suite for the owner plus its explicitly declared complete gates. Repeated module arguments make one deduplicated union; `--show` prints the selectors, dependencies, gates, omissions and commands without running checks. The verification-tooling module currently owns the lock, static bundle build/parity, browser-allocation and wheel/package gates. Module profiles do not replace the risk-appropriate final gate or required full hosted CI. Schema, persistence, admission, authentication, provider, prompt or build dependency changes and unresolved impact default to broad/full checks until a reviewed narrower closure is proven. Unknown modules, unknown selectors, empty selection, stale maps or conflicting ambient filters must fail explicitly; never silently pass.
 
 ### Ordered deliverables
 
@@ -406,7 +405,7 @@ After the guide/policy assignment ends, record exact SHA, toolchain, expanded na
 
 Add one cohesive selection/dependency metadata home alongside existing verification tools. Resolve modules to real native file/case selectors; prefer file-level ownership, splitting mixed files only when needed for useful isolation/selection. Report the union/dependent reasons, checks omitted and final-gate category. Add an inventory guard: all module-complete selections cover the full native collected suite/parameter rows, with no unknown or unowned tests and no accidental duplicate execution. For moved tests reconcile identities/parameter rows and behavior, not just counts. Addition of a new unowned test/source/fixture cannot narrow coverage silently. Amend ADR 0156 or add a linked concise ADR when the module contract is actually approved for implementation.
 
-#### M2 — Add explicit module commands to scripts/verify.py
+#### M2 — Explicit module commands in scripts/verify.py (implemented locally)
 
 Preserve quick/focused/full and native failure semantics. Support named modules, explicit depth, multiple-module union/deduplication and a show/plan-only mode that prints expanded selectors and impact rationale. Unknown, empty or invalid selection fails before launching suites; module success cannot mean pass-with-no-tests. Include always-required shared gates where appropriate. Test selector correctness, cross-module expansion, moved/new parameter rows, ambient filter refusal, failure propagation and complete-union guard. Update AGENTS.md and docs/development.md with when to choose fast/contract/browser/module-complete/full and exact runnable examples. Do not add an automatic changed-file engine in this phase.
 
@@ -432,6 +431,337 @@ Performance targets are provisional until M0 sizes modules: current quick stays 
 
 Scope includes selection/tooling metadata, relevant tests/config/fixtures, documentation and bounded standard-runner CI allocation. It excludes product/UI redesign, provider/specialist/native-media generation, real image/video quality acceptance, owner project/schema migration/reset, normal8841 restart/cutover, credential/settings changes, unsupported narrow-screen tests, new compatibility adapters, broad test deletion, speculative dependency inference and new paid infrastructure.
 
-Planning currently authorizes only this draft. Subsequent implementation approval should cover M0–M5 source/test/fixture/tooling/CI/docs, disposable verification roots, bounded process/shard probes, final gates and ordinary main publication without extra milestone approvals. Shared normal static assets must not be rewritten during an active owner walkthrough; use an isolated qualification checkout/build output when required. No service restart or operational cutover is needed for test tooling; if one becomes necessary, stop and obtain separate authority. Use one retained-checkout source writer, bounded read-only independent review and serial performance samples.
+The owner approved M0–M5 source/test/fixture/tooling/CI/docs, disposable verification roots, bounded process/shard probes, final gates and ordinary scoped branch publication after independent review, without extra milestone approvals. Shared normal static assets must not be rewritten during an active owner walkthrough; use an isolated qualification checkout/build output when required. No service restart or operational cutover is needed for test tooling; if one becomes necessary, stop and obtain separate authority. Use one retained-checkout source writer, bounded read-only independent review and serial performance samples.
 
 On unsafe or regressing optimization, revert only its exact scoped changes non-destructively, preserve original tests/logs and run affected checks; retain the unfiltered full path as fallback. Completion requires both trustworthy useful module selection and measured final latency improvement, not merely a new command or directory layout.
+
+### Execution checkpoint — 2026-10-10
+
+The owner approved M0–M5 after the initial read-only plan review. Work is isolated on branch **codex/testing-health-m0-m5**, created at **4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c**. M0 is complete on that candidate. Executable, test and dependency inputs match guide commit **e6ca2d18448c24cc4129670df4df41e166551cc3**; the only e6ca2d1..4955bbf change at freeze was this roadmap draft. Native inventory, family samples, setup/action/teardown attribution and the M3/M4 shortlist are recorded in the verification receipt.
+
+M1 ownership/dependency closure and its native full-union guard are implemented in the isolated worktree; the exact map, consumers and guard result are recorded in the receipt. M1 was reconciled after rebasing on guide correction **63b25f461367b5732e08e6aac5eef3c429721f75**: 1,497 pytest / 156 files, 1,072 Vitest / 133 files, and 280 Playwright / 85 files. The precise hashes are recorded below. The owner then published shared-graph UI commit **7da7b6efa20e43a3b2d692eeac7defe6838a1e1c** and documentation-only receipt **51cb4080200a6cca524fec2b2844022564d3707f**. The UI commit adds two Vitest cases and extends one existing browser case; the Playwright native count remains 280. This worktree is now rebased onto 51cb408 and its refreshed inventory is recorded in the receipt. Track unfiltered runs 38098197412 on exact SHA 4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c, 38101073289 on exact SHA 63b25f461367b5732e08e6aac5eef3c429721f75, and 38101824564 on exact SHA 7da7b6efa20e43a3b2d692eeac7defe6838a1e1c; do not duplicate any run. The first run failed in both browser shards. At the latest readback, run 38101073289's verify job passed and both browser shards remained in progress; all jobs in run 38101824564 remained in progress. Main publication waits for the manager's quiet-checkpoint coordination while the owner walkthrough is active.
+
+### M1 execution checkpoint — native ownership map
+
+At worktree HEAD **4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c**, the reviewed
+manifest assigns all 156 pytest, 133 Vitest and 85 Playwright files to 11
+nonempty product/verification modules. It records 59 configuration, setup,
+fixture and helper dependencies with explicit consuming modules. The native
+guard expands and verifies all 1,497 pytest, 1,058 Vitest and 279 Playwright
+case rows exactly once without executing test bodies. The Python inventory now
+includes five ownership-guard unit tests. The Vitest native list contains 19
+rows across four file/name pairs whose JSON omits parameter identity; the
+guard keeps the 15 repeated occurrences beyond the first and assigns
+deterministic collection-occurrence suffixes. The Playwright normalized ID
+hash remains equal to M0. This table is the exact historical 4955bbf inventory.
+After rebasing onto 63b25f461367b5732e08e6aac5eef3c429721f75, the map guard
+passed with 1,497 pytest cases (same hash), 1,072 Vitest cases / 133 files
+(hash 11b554c8714fd1842dc4f14ef234c78f3f1f7f084b940139e5ed3586a9c70278), and
+280 Playwright cases / 85 files (hash
+4d0020410503c0d1bedcfb33d3323535d755ba43cb59943ff1337a47c8cb08c1). That
+guide correction added 14 Vitest and one browser case to already-owned files.
+The newer owner UI change at 7da7b6e adds two Vitest cases and extends an
+existing Playwright case across the two graph views and three supported desktop
+sizes. The Playwright native case count remains 280.
+
+### M2 execution checkpoint — 2026-10-11
+
+Root cause: the existing quick/focused/full runner had no product-module
+selector, so developers had to manually reconstruct cross-suite selectors and
+could omit an owner or its parameterized file cases. M1 established the reviewed
+owner and dependency contract. M2 adds an explicit module planner and runner in
+scripts/testing/module_selection.py without changing existing tier behavior.
+The module command supports contract (pytest and Vitest), browser (Playwright),
+and complete (all nonempty module suites plus gates declared in the manifest).
+It deduplicates multi-module selectors, explains shared dependencies and
+omitted gates, refuses unknown/empty/ambient-filtered selections, and runs the
+full native ownership guard before any selected test body. The `--show` plan
+executes no checks. verification-tooling owns declared lock, static bundle
+build/parity, browser-allocation and wheel/package gates at complete depth.
+
+The CLI guidance and gate contract are recorded in AGENTS.md,
+docs/development.md, README.md, docs/verification/testing-module-ownership.md
+and ADR 0157. Focused `verify.py` selectors for the runner and ownership guard
+passed 26 cases. Native inventory guard passed with 1,506 pytest / 156 files,
+1,072 Vitest / 133 files and 280 Playwright / 85 files; its hashes were
+558d7528a855e49581582c81bc3f41bb4f5c3559fb7cf61987d30745909cb6aa,
+11b554c8714fd1842dc4f14ef234c78f3f1f7f084b940139e5ed3586a9c70278 and
+4d0020410503c0d1bedcfb33d3323535d755ba43cb59943ff1337a47c8cb08c1. Quick
+passed in 11.046s with all 1,072 Vitest cases and both TypeScript checks. A real
+shared-api-security contract selection passed all 49 pytest and 41 Vitest cases
+in 15.782s including full-map preflight and app typecheck. Ruff and diff checks
+passed. The refreshed post-rebase inventory and M3 fixture optimization are
+recorded below; M4–M5, independent review and final qualification remain.
+
+### M2 reconciliation and M3 execution checkpoint — 2026-10-11
+
+The M2 branch is rebased onto `51cb4080200a6cca524fec2b2844022564d3707f`.
+Two consecutive collection-only ownership checks produced the same current
+inventory: 1,507 pytest / 156 files, 1,074 Vitest / 133 files, and 280
+Playwright / 85 files. Exact hashes and module counts are in the verification
+receipt. The only native-count change from the owner UI commit was two Vitest
+cases; its existing Playwright guide case was extended without changing the
+native Playwright case count.
+
+M3 reduces repeated graph-command fixture setup by building one accepted-source
+seed through the existing prepare, deliver, admit and accept path per pytest
+session, then closing it and opening a full project-folder copy under each
+command case's isolated temporary root. Each command case still edits its own
+database through `ProjectFolderStorage`; other graph suites retain their
+function-scoped accepted-source setup. Reusable source/outline and graph
+authoring builders are in cohesive fixture modules rather than imported test
+modules. A separate regression confirms writes to one copy do not appear in
+another. The root-cause evidence, exact before/after timings and focused checks
+are in the receipt. M3 is implemented; the M4 four-shard allocation is
+implemented locally and passes its complete verification-tooling module gate.
+M5 review and final qualification remain. ADR 0158 records the seed lifecycle
+and isolation contract. Hosted run 38101073289 is terminal failure on exact
+SHA 63b25f4 with verify passing and both browser shards failing. Run 38101824564
+on exact SHA 7da7b6e is terminal failure: verify passed and both browser shards
+failed. Neither carried-over run is to be duplicated.
+
+### M4 execution checkpoint — 2026-10-11
+
+The two-shard hosted assignment remains the observed baseline. M4 uses its
+whole-spec timestamps to propose four LPT-balanced groups; the estimated
+14.35–14.41 minute groups are not a hosted result or a causal speed claim.
+ADR 0159 records the four-shard candidate, its exact native union guard and the
+decision to use one unfiltered hosted run as both the M4 probe and M5 hosted
+qualification.
+
+Local M4 checks passed: the browser contract selector passed all five tests;
+the manifest guard listed all 280 native cases across shards 81/61/67/71 with
+zero overlap or omissions; and the complete verification-tooling profile
+passed in 40.869 seconds, including both type checks, locked dependencies,
+deterministic static build/parity, wheel/package smoke, 54 pytest cases, 2
+Vitest cases and 6 browser tests. A hosted four-shard result, same-host family
+retiming, independent review and the one full local gate remain outstanding.
+
+### M4 Python process probe checkpoint — 2026-10-11
+
+A full Python duration profile passed 1,507 cases in 383.07 seconds; the top
+20 setup/call/teardown phases totalled 58.29 seconds, with a 6.72-second
+maximum. The suite cost is cumulative. The isolation audit and an end-to-end
+two-process run supported a dynamic whole-file runner in `verify.py full`;
+ADR 0160 records the proposed contract. Two consecutive ownership guards agree
+on the refreshed 1,512 Python / 157 file, 1,074 Vitest / 133 file and 280
+Playwright / 85 spec inventory. Focused tests and quick pass, and the full
+two-process Python runner passed all 1,512 cases.
+
+The broader timing window also contained main-thread UI verification. Do not
+cite the serial or parallel wall times from that window as an accepted speed
+comparison. The runner's actual performance still needs a matched serial and
+two-process retime after the main task is quiet. The latest main UI commit
+`c1b24f742d701d7ca8ca3407d91b673caf4f3f20` is local, unpushed and unqualified;
+retain the 51cb408 baseline boundary until a final published baseline and quiet
+checkpoint are provided. Independent review, one final local full gate and one unfiltered
+same-SHA hosted qualification remain pending.
+
+### M4 runner recheck — 2026-10-11
+
+The failure-report test now covers both child reports and nonzero worker exit.
+Two consecutive native guards match at 1,513 pytest cases / 157 files
+(SHA-256 `98616447651137f987255599a066164a76a5b55546d0d144d80200df53cdc8f3`),
+1,074 Vitest cases / 133 files and 280 Playwright cases / 85 specs. The
+verification-tooling complete profile passed in 31.556 seconds with 60 pytest,
+2 Vitest and 6 Playwright cases; its complete preflight, type, lock, static
+bundle/parity, four-shard allocation and wheel/package gates passed.
+
+The module result is not the final full-runner qualification. End-to-end
+two-process execution passed 1,512 cases before the heartbeat/poll loop and
+latest failure-path test. The pending exact runner revision still needs the
+full local gate. No matched quiet serial/two-process comparison has been
+accepted. The main UI candidate is now c1b24f7 locally and remains unpushed
+and unqualified; continue to use the 51cb408 published baseline boundary
+until the manager provides a final published baseline and quiet checkpoint.
+
+### M5 independent-review finding remediation — 2026-10-11
+
+The independent review of 9bc5d0e found that SIGTERM could orphan the detached
+pytest workers and that the shared-helper map missed actual consumer modules.
+The coordinator now records SIGTERM, stops/waits for worker groups in its
+cleanup path before temporary output removal, and preserves the conventional
+signal exit status. A focused cancellation regression verifies both groups are
+stopped. The support map now includes all nine modules consuming the backend
+conftest and the media-lifecycle identity-review helper; a regression guards
+those relationships.
+
+Two consecutive ownership guards matched at 1,515 pytest / 157 files
+(SHA-256 d08649eff0424a768a47aef70c9f702302521b7f639c41cb4e0ce86c38e87756),
+1,074 Vitest / 133 files and 280 Playwright / 85 specs. The verification-tooling
+complete profile passed in 32.748 seconds with 62 pytest, 2 Vitest and 6
+Playwright cases plus its full-map, type, lock, static bundle/parity,
+four-shard and wheel/package gates. The exact revision still needs independent
+review, matched serial/two-process timing, one full local gate and one
+unfiltered hosted same-SHA qualification.
+
+The exact consumer assertion was then covered by a verification-tooling
+contract profile: full ownership preflight, app type check, 62 pytest and 2
+Vitest cases passed in 15.182 seconds. The complete profile's unaffected
+browser, package, lock and static-bundle gates remain valid.
+
+### Process-group descendant cleanup — second review follow-up — 2026-10-11
+
+The independent re-review reproduced a pytest child surviving after its worker
+leader exited on SIGTERM. Cleanup previously based escalation on leader status,
+so it skipped a process group whose leader was gone but whose child remained.
+The runner now tracks group existence independently, waits up to five seconds
+for graceful exit, kills remaining groups, and reaps leaders before deleting
+temporary logs. A POSIX real-process regression verifies the child is stopped
+when it ignores SIGTERM.
+
+The runner-focused suite passed 8/8. Two consecutive native guards matched at
+1,516 pytest / 157 files (SHA-256
+93f2e6e50d57336edfd352318aaac7d82d3414b524068ca7f630c0c771322fa3), 1,074
+Vitest / 133 files and 280 Playwright / 85 specs. The verification-tooling
+complete profile passed in 31.817 seconds with 63 pytest, 2 Vitest and 6
+Playwright cases, plus its full-map, type, lock, static-bundle/parity,
+four-shard and wheel/package gates. Independent read-only review of commit
+71defcae081d2542618338d5faa6876e0d8cbf5f passed with no actionable findings;
+the reviewer also reran the bounded descendant reproduction and observed that
+the child stopped. The descendant-cleanup guarantee is qualified on the
+current macOS and Ubuntu targets; Windows process-tree containment remains
+unqualified. A quiet matched serial/two-process comparison, one full local
+gate and one unfiltered hosted same-SHA qualification remain.
+
+### Main UI follow-up dependency checkpoint — 2026-10-11
+
+The manager completed the separate recommended-workflow UI follow-up and
+committed it locally as `62fe259`. Its 1,115 frontend tests, both type checks,
+11 focused browser checks and desktop layout inspections passed. The local main
+checkout is six commits ahead of origin/main; the UI commit remains unpushed
+because earlier release-gate failures still block publication. Treat this as
+an unqualified local candidate, not a published baseline. The M0–M5 worktree
+remains based on `51cb408`; do not rebase, run the quiet timing comparison or
+start final qualification until the manager provides the final published
+baseline and quiet checkpoint.
+
+### Published baseline reconciliation — 2026-10-11
+
+The manager confirmed quiet completion and published baseline `927d441eb647804d4202aeeabffd487b02b9867b`. The isolated M0–M5 branch was rebased onto that commit; `git range-diff` confirmed all nine M0–M5 commits were preserved. At checkpoint creation the branch HEAD was `d1247871a779bc212321d53bfd00dfa05e09398d`; verified ownership-map additions for four newly introduced Vitest files were uncommitted. The baseline adds frontend tests only, so backend inputs and the controlled Python family selections remain unchanged.
+
+After mapping the new files, two consecutive native ownership guards matched at 1,516 pytest cases / 157 files (SHA-256 `93f2e6e50d57336edfd352318aaac7d82d3414b524068ca7f630c0c771322fa3`), 1,126 Vitest cases / 137 files (`306c6062c3a59c7085174debefc21736ba847e452d1e7dfe8c4b8dc4603f4711`), and 285 Playwright cases / 85 files (`4feb9c25937c3f1dc953fb390c8b3817f1db431c81c304e3a2b050fe977a8969`). The four-shard native allocation guard passed with 83/61/70/71 cases and no overlap or omissions. A combined graph, story-authoring and shared-presentation contract profile passed in 37.620 seconds with 174 pytest and 254 Vitest cases.
+
+Unfiltered hosted baseline run 38109502813 was dispatched on the exact published baseline SHA. The verify job passed at 04:04:04Z; both browser shards were still running at 04:04Z. This is not candidate qualification. A separate next-action hint update is active in the manager's main task, so final quiet performance timing and full candidate qualification remain deferred until that work has a final published SHA and quiet checkpoint.
+
+### Reconciliation to the concrete-hint UI baseline — 2026-10-11
+
+The M0–M5 branch was rebased from `927d441eb647804d4202aeeabffd487b02b9867b` to `4566ec767df871e8799084a03806ffe429130870`; `git range-diff` preserved all ten M0–M5 and receipt commits. Two consecutive native ownership guards matched at 1,516 pytest / 157 files, 1,128 Vitest / 137 files and 285 Playwright / 85 specs. The four-shard allocation remained complete at 83/61/70/71 cases. The verification-tooling complete profile passed in 33.568 seconds with 63 pytest, 2 Vitest and 6 Playwright cases, plus its type, lock, bundle/parity, allocation and package gates.
+
+A quiet serial/two-worker Python comparison on the same M5 Pro passed all 1,516 cases in both modes. External wall time was 390.050 seconds serial and 240.026 seconds with two workers (758 cases each, 78/79 files), a 38.5% reduction for this single matched pair. The full logs and top serial durations are recorded in the verification receipt. This evidence validates the bounded local Python split; it does not qualify the final UI state or hosted four-shard candidate.
+
+The unfiltered baseline run on `927d441` (38109502813) is terminal failure: verify and browser shard 1 passed; shard 2 passed 160 cases and failed one existing graph-action explanation assertion after retry. The expected project-state message was not present; logs are preserved in the receipt. A further state-aware hint correction began after `4566ec7`, and the manager will provide its final qualified SHA. Reconcile the ownership map and rerun affected gates against that SHA before final independent review and qualification.
+
+### M5 review follow-up — 2026-10-11
+
+Independent review of candidate `a517554` found two gaps: a SIGTERM received
+during native pytest collection could not stop its blocking `subprocess.run`,
+and README still described two hosted browser runners after the four-shard
+change. Collection now runs as an owned subprocess group and polls
+`communicate(timeout=0.25)` while draining both streams; interruption cleans up
+and reaps the collector before returning status 143. A focused regression
+covers cancellation during collection. README now says four independent
+runners. The runner-focused `verify.py focused --pytest
+tests/test_python_suite_runner.py` passed all 9 cases. Two consecutive native
+ownership scans matched at 1,517 pytest / 157 files (SHA-256
+`98cad9469ca9a77bce6048decefa8a2ebb1b5be6560954e47e07a3edeea44059`), 1,128
+Vitest / 137 files (SHA-256
+`922b4d76e58839904c257e5aaf26442ccd0875b987f2806541d925e4574798cf`), and
+285 Playwright / 85 files (SHA-256
+`9237573e2419b6b79123462d295af57c6f074177a64eb0619e0191e0fdcfba60`). The
+four-shard guard still passes with 83/61/70/71 cases and no omissions or
+overlap. The verification-tooling complete profile passed in 36.936 seconds
+with 64 pytest, 2 Vitest and 6 Playwright cases plus its type, lock,
+deterministic bundle/parity, shard and wheel/package gates. `quick` passed in
+18.340 seconds with all 1,128 Vitest cases and both type checks. Ruff and diff
+checks passed. Independent read-only re-review of `8eb9291` found no
+actionable findings and ran no tests. The exact-candidate full local and hosted
+qualification still need to cover this revision and the manager's final UI
+baseline.
+
+### Final state-based UI baseline reconciliation — 2026-10-11
+
+The manager published `62f031337d2711e6d5e76017a676487420d002b4` as the
+final state-based workflow-hint baseline. Its diff from `4566ec7` spans 19
+documentation, frontend and generated-static files; it changes no backend or
+API contract, persistence, dependencies, or build tooling. The M0–M5 branch
+rebased onto this exact SHA, and `git range-diff` preserved all 13 prior
+commits. The owner map then exposed two new Vitest files, both assigned to
+`creative-production`; `workflow-production-fixture.ts` is recorded as their
+shared support helper.
+
+Two consecutive native ownership scans matched at 1,517 pytest / 157 files
+(SHA-256 `98cad9469ca9a77bce6048decefa8a2ebb1b5be6560954e47e07a3edeea44059`),
+1,164 Vitest / 139 files (SHA-256
+`116c4ae1b5feb1e180cfde9265cad00f34c1a158b653ad71efab64c9632893c0`), and
+285 Playwright / 85 files (SHA-256
+`6878b73005c1ef59e76cbee3d73ae29883bd7554c9be08e5facb536542c6c8ac`). The
+manager supplied exact-baseline evidence for all 1,164 frontend tests, both
+type checks, 95 focused unit/component cases, six selected browser cases,
+desktop inspection and deterministic static assets. The verification-tooling
+complete profile passed in 40.341 seconds with 64 pytest, 2 Vitest and 6
+Playwright cases; full ownership preflight, both type checks, locked
+dependencies, deterministic bundle/parity, the four-shard guard at 83/61/70/71,
+wheel build and installed-wheel smoke all passed. Existing Starlette and Vite
+large-chunk warnings remain. The first combined-candidate independent review
+found an omitted graph/story-authoring consumer edge for the production
+workflow fixture and its transitive bridge fixture. The map now includes both
+owners, and a regression guard checks their transitive import consumers. Focused
+ownership tests and the verification-tooling complete profile passed after this
+correction. Independent re-review of `b9a5b7f` confirmed the fix and regression
+guard with no further findings; it ran no tests. One local `full` gate and one
+unfiltered hosted same-SHA run remain outstanding.
+
+The exact local full gate passed on `d53a99f` with exit 0 in 706.390 seconds:
+1,518 Python, 1,164 Vitest and all 285 unfiltered Playwright cases passed, along
+with build parity, four-shard coverage, and wheel smoke. The hosted unfiltered
+same-SHA run remains outstanding; this full gate is local software
+qualification, not product acceptance.
+
+### Reconciliation to the Script-page UI baseline — 2026-10-11
+
+Main advanced to `ea20d6ba07ee25b02be273d0b50bd43fc959405a`, a bounded
+frontend/docs/generated-asset change with no backend, API, persistence,
+dependency or package-contract changes. The owner supplied exact-source quick,
+type, eight affected browser-case and deterministic-build evidence. The
+M0–M5 candidate now includes that baseline; two native ownership scans match
+at 1,518 pytest / 157 files, 1,181 Vitest / 141 files and 287 Playwright / 86
+files. The four-shard guard passes at 83/63/70/71, and the refreshed
+verification-tooling complete profile passes. Per the owner instruction, the
+full local qualification is reused for unchanged backend/Python inputs and no
+duplicate full run is started solely for this frontend change. Hosted run
+38113104300 is being consumed on the preceding M0–M5 revision `5d007935`; it
+does not include the new UI commit, so it cannot be reported as hosted
+qualification of `ea20d6b`.
+
+The merged candidate was pushed as b888894c67cc7517f6a405f81576da68196def74.
+Independent read-only review found no ownership, dependency, or shard-coverage
+issues; the reviewer confirmed all 86 specs appear exactly once across four
+shards containing 22/22/21/21 files and ran no tests. The already-running hosted
+workflow remains pinned to 5d007935e8657bba02ff72e37bdc31d22fe3ea41 and does
+not qualify ea20d6b.
+
+Hosted run 38113104300 completed successfully in 17m23s on SHA
+5d007935e8657bba02ff72e37bdc31d22fe3ea41: verify passed 1,518 Python and
+1,164 Vitest cases plus build/package gates; the four browser jobs passed
+83/61/70/71 cases. It predates the ea20d6b and 6371bf6 UI baselines. The owner
+has since reported main at 6371bf6291f9b708200730b7866df2c3b76fe1ac with
+1,191 frontend unit cases, both type checks, 10 affected browser cases,
+deterministic assets and independent review passing. At the c3eaf387
+checkpoint, that UI input was not yet in this branch; the manager's later
+integration authorization and current status are recorded below. No full run
+was started solely for the handoff.
+
+### Current main reconciliation — 2026-10-11
+
+Current main df333a16 is merged into the isolated M0–M5 branch with a
+non-destructive merge. The Art/Script/Role UI files and source-owner receipts
+are present. Four new Vitest files and two new browser specs are owned by
+creative-production; their fixture dependencies were already registered. The
+unfiltered four-shard allocation now covers 88 specs / 292 cases at 83/68/70/71
+with no gaps or overlap. Native ownership scans match at 1,518 pytest, 1,201
+Vitest and 292 Playwright cases. Quick and the focused verification-tooling
+complete profile pass. No full suite or hosted run was launched at this
+checkpoint. The final combined qualification, main publication and worktree
+cleanup remain manager-owned while the real walkthrough may produce further
+product changes.

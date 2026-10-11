@@ -9,6 +9,7 @@ const manifestPath = path.join(e2eRoot, "browser-shard-manifest.json");
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 const specExtension = /\.(?:spec|test)\.(?:[cm]?[jt]sx?)$/;
 const browserGrep = process.env.BROWSER_GREP ?? ".*";
+const shardIds = ["1", "2", "3", "4"];
 
 function fail(message) {
   console.error(`Browser shard manifest check failed: ${message}`);
@@ -29,13 +30,13 @@ function discoverSpecs(directory = e2eRoot, prefix = "") {
   return files;
 }
 
-if (JSON.stringify(Object.keys(manifest).sort()) !== JSON.stringify(["1", "2"])) {
-  fail('manifest must contain exactly shard keys "1" and "2"');
+if (JSON.stringify(Object.keys(manifest).sort()) !== JSON.stringify(shardIds)) {
+  fail(`manifest must contain exactly shard keys ${shardIds.map((id) => `"${id}"`).join(", ")}`);
 }
 
 const expectedSpecs = discoverSpecs();
 const assignmentCounts = new Map();
-for (const shard of ["1", "2"]) {
+for (const shard of shardIds) {
   if (!Array.isArray(manifest[shard])) fail(`shard ${shard} must be an array`);
   for (const spec of manifest[shard]) {
     if (typeof spec !== "string") fail(`shard ${shard} contains a non-string spec path`);
@@ -79,18 +80,26 @@ function listTests(shard) {
 
 const all = listTests();
 if (all.size === 0) fail("BROWSER_GREP selected no tests in the unsharded suite");
-const shardOne = listTests("1");
-const shardTwo = listTests("2");
-if (browserGrep === ".*" && (shardOne.size === 0 || shardTwo.size === 0)) {
-  fail("the full-suite BROWSER_GREP='.*' selection must populate both shards");
+const selectedByShard = new Map(shardIds.map((shard) => [shard, listTests(shard)]));
+const emptyShards = shardIds.filter((shard) => selectedByShard.get(shard).size === 0);
+if (browserGrep === ".*" && emptyShards.length > 0) {
+  fail(`the full-suite BROWSER_GREP='.*' selection must populate every shard; empty: ${emptyShards.join(", ")}`);
 }
-const overlap = [...shardOne].filter((id) => shardTwo.has(id));
-const union = new Set([...shardOne, ...shardTwo]);
+const ownerByCase = new Map();
+const overlap = [];
+for (const shard of shardIds) {
+  for (const id of selectedByShard.get(shard)) {
+    const priorShard = ownerByCase.get(id);
+    if (priorShard) overlap.push({ id, shards: [priorShard, shard] });
+    else ownerByCase.set(id, shard);
+  }
+}
+const union = new Set(ownerByCase.keys());
 const missingCases = [...all].filter((id) => !union.has(id));
 const unexpectedCases = [...union].filter((id) => !all.has(id));
 if (overlap.length || missingCases.length || unexpectedCases.length) {
   fail(JSON.stringify({ overlap, missingCases, unexpectedCases }, null, 2));
 }
 console.log(
-  `Browser shard manifest verified: ${expectedSpecs.length} specs; ${all.size} selected cases across shards ${shardOne.size}/${shardTwo.size}; zero overlap or missing cases (BROWSER_GREP preserved).`,
+  `Browser shard manifest verified: ${expectedSpecs.length} specs; ${all.size} selected cases across shards ${shardIds.map((id) => selectedByShard.get(id).size).join("/")}; zero overlap or missing cases (BROWSER_GREP preserved).`,
 );

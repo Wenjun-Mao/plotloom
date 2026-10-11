@@ -8,8 +8,8 @@ from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest
 from plotloom.source_outline_contracts import SectionMap
 from plotloom.source_structures import complete_routes
 from tests.production_bridge_fixtures import _prepare_installable_bridge
-from tests.test_graph_authoring_contract import authored_map
-from tests.test_project_storage_source_outline import _storage
+from tests.graph_authoring_fixtures import authored_map
+from tests.source_outline_fixtures import _storage
 
 
 @pytest.mark.parametrize("include_controls", [False, True])
