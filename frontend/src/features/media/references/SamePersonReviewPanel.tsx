@@ -5,7 +5,7 @@ import type {
   ReviewedKeyframe,
   VisualWorkbench,
 } from "../../../types";
-import { plotloomApi } from "../../../api";
+import { ManagedAssetViewer } from "./ManagedAssetViewer";
 import { Button, Field } from "../../../components";
 import type { SamePersonComparisonDraft } from "../../../same-person-review-types";
 import { completeSamePersonComparisons, samePersonReviewSummary } from "./same-person-draft";
@@ -73,13 +73,9 @@ export function SamePersonReviewPanel({
             <article className="media-candidate">
               {projectId && assetById.get(selectedBinding.assetId) ? (
                 <>
-                  <img
-                    src={plotloomApi.managedAssetUrl(
-                      projectId,
-                      selectedBinding.assetId,
-                    )}
-                    alt="正在复核的候选图片"
-                  />
+                  <ManagedAssetViewer projectId={projectId} subjectId={selectedBinding.id}
+                    asset={assetById.get(selectedBinding.assetId)!}
+                    alt="正在复核的候选图片" trigger="image" />
                   <strong>候选 · {selectedBinding.assetId.slice(0, 8)}</strong>
                 </>
               ) : (
@@ -96,13 +92,10 @@ export function SamePersonReviewPanel({
                     data-testid={`frozen-reference-${asset.assetId}`}
                   >
                     {projectId && frozenAsset ? (
-                      <img
-                        src={plotloomApi.managedAssetUrl(
-                          projectId,
-                          frozenAsset.id,
-                        )}
-                        alt={`${mapping.characterId} 任务冻结的${index === 0 ? "主参考图" : "补充参考图"}`}
-                      />
+                      <ManagedAssetViewer projectId={projectId}
+                        subjectId={`${selectedBinding.id}:${mapping.referenceDecisionId}`}
+                        asset={frozenAsset} trigger="image"
+                        alt={`${mapping.characterId} 任务冻结的${index === 0 ? "主参考图" : "补充参考图"}`} />
                     ) : (
                       <small>
                         无法读取任务冻结的素材 {asset.assetId.slice(0, 8)}。

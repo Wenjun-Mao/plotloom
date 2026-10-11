@@ -382,6 +382,7 @@ export function ManagedMediaWorkbench({
       />
       <AssetImportPanel
         projectId={projectId}
+        shotId={selectedShot?.id}
         assets={workbench.assets}
         origin={origin}
         declaredAdditions={declaredAdditions}

@@ -2,7 +2,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { SamePersonReviewPanel } from "../src/features/media/references/SamePersonReviewPanel";
-import type { ReviewedKeyframe, VisualWorkbench } from "../src/types";
+import type { ManagedAsset, ReviewedKeyframe, VisualWorkbench } from "../src/types";
 import { newSamePersonComparisons } from "../src/features/media/references/same-person-draft";
 import { completeSamePersonComparisons, latestCurrentReviewsByBinding } from "../src/features/media/references/same-person-draft";
 import type { SamePersonComparisonDraft, SamePersonReview } from "../src/same-person-review-types";
@@ -100,4 +100,29 @@ it("keeps multiline identity and state evidence readable without implying a huma
   expect(host.querySelector('textarea[placeholder^="记录实际视觉判断"]')).not.toBeNull();
   expect(host.innerHTML).not.toContain("记录人眼判断");
   expect(host.querySelector("button")?.disabled).toBe(false);
+});
+
+it("allows read-only candidate and frozen-reference zoom without recording a review", async () => {
+  const assetById = new Map(["candidate", "primary"].map(id => [id, {
+    id, projectId: "project", originalHash: "a".repeat(64), displayHash: "b".repeat(64),
+    mimeType: "image/png", byteSize: 1024, width: 941, height: 1672, createdAt: "now",
+  } as ManagedAsset]));
+  const render = async (selectedBinding = binding) => act(async () => root.render(createElement(SamePersonReviewPanel, {
+    ...props, selectedBinding, assetById, readOnly: true,
+  })));
+  await render();
+  const images = Array.from(host.querySelectorAll<HTMLButtonElement>('button[aria-label="放大查看"]'));
+  expect(images).toHaveLength(2);
+  expect(images.every(image => !image.disabled)).toBe(true);
+  for (const image of images) {
+    await act(async () => image.click());
+    expect(document.querySelector("dialog img")?.getAttribute("src")).toBe(image.querySelector("img")?.getAttribute("src"));
+    await act(async () => document.querySelector<HTMLButtonElement>('dialog button[aria-label="关闭"]')!.click());
+  }
+  await act(async () => images[1].click());
+  await render({ ...binding, id: "new-binding", shotId: "new-shot" });
+  expect(document.querySelector("dialog")).toBeNull();
+  expect(props.onRecord).not.toHaveBeenCalled();
+  expect(props.setComparisons).not.toHaveBeenCalled();
+  expect(host.querySelector<HTMLButtonElement>('[data-testid="record-same-person-review"]')?.disabled).toBe(true);
 });

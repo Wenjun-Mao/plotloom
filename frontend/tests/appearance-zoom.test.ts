@@ -2,6 +2,9 @@ import { act, createElement, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { AssetZoomDialog, ManagedAssetImage } from "../src/features/media/references/AppearanceReviewPrimitives";
+import { ManagedAssetViewer } from "../src/features/media/references/ManagedAssetViewer";
+import { CandidateCard } from "../src/features/media/assets/MediaCandidates";
+import type { ManagedAsset } from "../src/types";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let host: HTMLDivElement;
@@ -82,4 +85,55 @@ it("releases scroll locking when the owning gallery unmounts", async () => {
   await act(async () => root.render(null));
   expect(document.querySelector("dialog")).toBeNull();
   expect(document.body.style.overflow).toBe("");
+});
+
+const asset: ManagedAsset = {
+  id: "portrait", projectId: "p", originalHash: "a".repeat(64), displayHash: "b".repeat(64),
+  mimeType: "image/png", byteSize: 1024, width: 941, height: 1672, createdAt: "2026-10-11T00:00:00Z",
+  provenance: { origin: "manual", rights: "unknown", rightsNote: null, declaredAdditions: [] },
+};
+
+it("keeps candidate zoom separate from comparison and keyframe retention", async () => {
+  const onPick = vi.fn(); const onKeep = vi.fn();
+  await act(async () => root.render(createElement(CandidateCard, {
+    asset, projectId: "p", shotId: "shot", selected: false, kept: false, onPick, onKeep,
+  })));
+  const trigger = host.querySelector<HTMLButtonElement>('[data-testid="view-asset-portrait"]')!;
+  expect(trigger.parentElement?.tagName).toBe("ARTICLE");
+  trigger.focus(); await act(async () => trigger.click());
+  const dialog = document.querySelector("dialog")!;
+  expect(dialog.querySelector("img")?.getAttribute("src")).toBe(host.querySelector("img")?.getAttribute("src"));
+  expect(dialog.textContent).toContain("941×1672");
+  expect(dialog.textContent).toContain("仅查看，不改变候选、关键帧或审核决定");
+  expect(onPick).not.toHaveBeenCalled(); expect(onKeep).not.toHaveBeenCalled();
+  await act(async () => dialog.dispatchEvent(new Event("cancel", { cancelable: true })));
+  expect(document.activeElement).toBe(trigger);
+  expect(host.querySelector('[aria-pressed="true"]')).toBeNull();
+});
+
+it.each(["project", "shot", "asset", "bytes"])("closes rather than reopens the viewer after %s evidence changes", async change => {
+  const initial = { projectId: "p", subjectId: "shot", asset, alt: "证据" };
+  await act(async () => root.render(createElement(ManagedAssetViewer, initial)));
+  await act(async () => host.querySelector<HTMLButtonElement>("button")!.click());
+  expect(document.querySelector("dialog")).not.toBeNull();
+  const changed = {
+    ...initial,
+    ...(change === "project" ? { projectId: "q" } : {}),
+    ...(change === "shot" ? { subjectId: "other-shot" } : {}),
+    ...(change === "asset" ? { asset: { ...asset, id: "other" } } : {}),
+    ...(change === "bytes" ? { asset: { ...asset, displayHash: "c".repeat(64) } } : {}),
+  };
+  await act(async () => root.render(createElement(ManagedAssetViewer, changed)));
+  expect(document.querySelector("dialog")).toBeNull();
+  expect(document.body.style.overflow).toBe("");
+  await act(async () => root.render(createElement(ManagedAssetViewer, initial)));
+  expect(document.querySelector("dialog")).toBeNull();
+});
+
+it("shows full-image read failures without implying selection or approval", async () => {
+  await act(async () => root.render(createElement(ManagedAssetViewer, { projectId: "p", subjectId: "s", asset, alt: "证据" })));
+  await act(async () => host.querySelector<HTMLButtonElement>("button")!.click());
+  await act(async () => document.querySelector("dialog img")!.dispatchEvent(new Event("error")));
+  expect(document.querySelector("dialog")?.textContent).toContain("无法读取完整图片");
+  expect(document.querySelector("dialog")?.textContent).toContain("HTTP 读取失败或无法解码");
 });

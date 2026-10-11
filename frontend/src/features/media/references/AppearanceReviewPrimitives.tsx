@@ -38,7 +38,7 @@ export function AssetZoomDialog({ open, onClose, label, children }: { open: bool
   return createPortal(<dialog ref={dialog} className="appearance-dialog" aria-label={label}
     onCancel={event => { event.preventDefault(); onClose(); }}
     onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-    <div><button type="button" className="button quiet appearance-dialog-close" aria-label="关闭" title="关闭（Esc）" onClick={onClose}>×</button>{children}</div>
+    <div><button type="button" className="button quiet appearance-dialog-close" aria-label="关闭" title="关闭（Esc）" onClick={onClose}>×</button><div className="appearance-dialog-content">{children}</div></div>
   </dialog>, document.body);
 }
 

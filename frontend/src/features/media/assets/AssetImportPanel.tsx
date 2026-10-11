@@ -4,6 +4,7 @@ import { CandidateCard } from "./MediaCandidates";
 
 export function AssetImportPanel({
   projectId,
+  shotId,
   assets,
   origin,
   declaredAdditions,
@@ -19,6 +20,7 @@ export function AssetImportPanel({
   onClear,
 }: {
   projectId?: string;
+  shotId?: string;
   assets: ManagedAsset[];
   origin: string;
   declaredAdditions: string;
@@ -66,6 +68,7 @@ export function AssetImportPanel({
             key={asset.id}
             asset={asset}
             projectId={projectId}
+            shotId={shotId}
             selected={candidates.includes(asset.id)}
             kept={keptAssetId === asset.id}
             onPick={() => onChooseCandidate(asset.id)}

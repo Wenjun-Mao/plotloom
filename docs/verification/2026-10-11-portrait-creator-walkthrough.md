@@ -1,7 +1,9 @@
 # Portrait creator walkthrough ledger
 
 Authority and boundaries: [run profile](../roadmap/2026-10-11-portrait-creator-walkthrough.md).
-Status: IN PROGRESS. Portrait reference images reviewed; no shot-media or playback acceptance yet.
+Status: IN PROGRESS. Four portrait keyframes reviewed/selected and the first
+2.5-second video cut selected; the remaining shots and both final playback routes
+are not yet accepted.
 
 ## Starting evidence
 
@@ -143,8 +145,8 @@ No permissions were weakened and no manual deletion was attempted.
 
 Deferred observations, not completed fixes: Script candidate disclosure still
 requires raw JSON reading (Storyboard has a readable cut list); Source's route
-checkbox copy differs from Creator's “此节点需要拍摄”. Shot preview cropping and
-actual H3 geometry/timing remain hypotheses until real shot media exercises them.
+checkbox copy differs from Creator's “此节点需要拍摄”. The subsequent real-media
+findings below replace the earlier shot-preview/H3 hypotheses with observations.
 
 ## E19 finding: unchanged review did not refresh external-work admission
 
@@ -187,3 +189,106 @@ E18–E20: targeted format/currentness, navigation/reopen and task-state checks.
 E22: separate visual/copy pass, especially full portrait reference visibility,
 H3 aspect consent and action-ready guidance. Other playbook combinations remain
 NOT EXERCISED until separately evidenced; previous results are not new PASS.
+
+## Portrait production installation and first media boundary
+
+At clean `7141a1ce`, native intent task `ch_29f004e6ff2c4626b9a3d2e17550176e`
+returned 14 suggestions. Reviewed the complete report and 18 action/composition
+strings, saved the whole production proposal, confirmed r4 and separately
+installed its five scenes/nine shots. Storyboard v1 (`817fd4d3…`) was approved
+through UI. C01's production identity decision is r2
+`47ad6343-8172-43a4-a050-b7e7dee84d4e`; this is distinct from image selection r1.
+
+All four opening ImageGen jobs froze `7141a1ce`. Their 941×1672 originals were
+inspected at full size, then visual intent/provenance saved and explicit
+keyframe selection plus same-person review acknowledged. These are bounded
+fictional-character visual judgments, not biometric identity verification.
+
+| Shot | Job | Delivered SHA-256 |
+| --- | --- | --- |
+| Opening approach | `ij_8bef23577a8546ecac349adfb246d1e7` | `084589c40aaac71df4e3be4c62fe7ac7ad9f9726c7c7e1c550f041e97e4fd7bf` |
+| Hand before switching on | `ij_a6a66e2acc874b6d8c5ff5822f2aa73c` | `e8e1bdb49652c50b1f7c5e0ad3d109f562f070b17692077c0181c264f777841a` |
+| Intentional face close-up | `ij_41593969985d42829160b72359f6e88f` | `40d4b9a49f79223279344decce6b0c532e34c91400f363cfb2cd00906ea4b0f0` |
+| Pause beside lit lamp | `ij_ce0b6439b8344346b7be32e4bc195068` | `f7de2ca1cdd1699198339b51927709557f2a036aff430c747701b215e0c246b2` |
+
+Identity reviews: `89a47e41…`, `ab800dac…`, `4f7a92ac…`, `513364f8…`.
+Complete head/hands/lamp were inspected where composition requires them; the
+face close-up intentionally excludes the hands and most of the lamp. Known
+visual limitations: window panes/frame color vary across opening shots and
+some lamp highlights remain glossier than the matte design. Art selections are
+not actual shot reference inputs; these are not claims of final continuity QA.
+Specialists retained first drafts and delivered originals after safe staging
+cleanup refused; no permissions or evidence were removed.
+
+H3 profile: explicit quality8 576×1024 portrait v2, full-image contain/pad consent,
+5-second request yielding 124 frames at 24fps (5.167s), no end frame. The authored
+cut remains 60 frames/2.5s, not the original's duration.
+
+First original `vj_08430e4378f24cc1a0601fca94d55b86` decoded in the real browser
+and was inspected at 0/2.5/5.167s. It reached toward and then lifted the lamp,
+violating the opening's action boundary; trimming did not repair its first cut.
+Rejected through the explicit UI confirmation; original and cut evidence remain.
+Local ffprobe independently read 576×1024 H.264 High/yuv420p, AAC-LC 32kHz stereo,
+124 frames and 5.167s. Capture: `portrait-first-original-boundary-rejected.png`.
+
+One tighter retry `vj_07b35d30e1d4451c9ce7c5b75aa98002` used seed
+`4821541421190110`, prompt hash
+`b65f26298a9a1d1ba35ee48729185ccc6297ec193f40f49274ba0d0e2b299e63`.
+Its later footage still reaches, so the whole original is not creatively passed.
+The first 0–60 frame cut approaches the unlit stationary lamp without touching
+or lifting, preserves head/shoes and actually plays through `ended=2.5` without
+decode error. Explicitly selected that cut. Audio stream/native unmuted state
+is observed; no human listening or final-mix acceptance is claimed.
+
+## E22 finding: shot media lacked full-image review
+
+Actual portrait candidate geometry was only 260.5×96 with `contain`; identity
+comparison images were similarly constrained, with no full-image dialog.
+Character/Art already support complete-image review. Downloading originals
+proved full framing, but is a poor product path for assessing hands, margins,
+and same-person reference details. Capture: `shot-candidates-small-review.png`.
+
+Root cause is missing use of the shared presentation primitive in the shot
+candidate and frozen-reference panels, not asset cropping or generation geometry.
+The bounded fix reuses `ManagedAssetImage` and `AssetZoomDialog`, exposes a
+separate “查看完整图片” button beside candidate selection, and image-triggered
+viewing for candidate/frozen-reference comparisons. Native Esc/close/backdrop,
+focus return, body scroll locking and HTTP/decode fallbacks remain shared.
+Modal ownership resets on project, shot/binding, asset and byte-identity changes,
+so stale evidence cannot reopen when returning to an old selection.
+
+Scope against `7141a1ce`: local read-only presentation only. No selection,
+approval, backend/API schemas or payloads, persistence, admission, authentication,
+provider/prompts, dependencies, build tooling or package contracts changed.
+No job was active during edits/builds. Opening the viewer neither selects nor
+approves; tests also observe no non-GET API calls. This routine reuse does not
+introduce a new workflow or generation contract.
+
+The first real 1440×900 screenshot caught an additional shared-dialog sizing
+defect: fixed image maximum height did not reserve the new title/footer. Image
+bottom was 907.7px and explanation bottom 937.8px, beyond the viewport. The
+shared shell now reserves its close control and lets the content allocate the
+remaining height, shrinking the contained image rather than clipping it.
+Regression checks assert all image/title/footer/control bounds at three desktop
+sizes. The existing Character/Art image-only consumers use the same contract.
+
+Final focused check passed 26 unit cases and four image-job/reference-layout
+browser cases (28.374s). Quick passed 149 files/1,263 cases and both TypeScript
+checks (10.960s). Seven missing-media/reference-layout regressions had also
+passed (16.249s); the final reference-layout rerun follows the sizing repair.
+Two serialized deterministic builds matched all seven asset hashes;
+workbench.js `6177684df6b04a824fc26ec905f3b98479d54fd66d40844c18ba2625b53a3d49`,
+workbench2.css `ac0655604c3f12116fec6cd7008680def5166c41ea15ea3c3d589f679e18e64a`.
+Actual portrait image, title, explanation and close control fit at 1280×460,
+1280×768 and 1700×900. Esc restored the exact candidate-view trigger and released
+scroll locking; frozen C01 reference also displayed complete head/hands/shoes.
+Local captures: `full-shot-image-{size}.png` and `full-frozen-reference.png`.
+Seventeen existing Art/Cast browser regressions passed (51.496s), including
+their shared full-image dialogs. Independent GPT-6 Luna / Max review found no
+remaining issue after inspecting the sizing repair. A proposed dismissal issue
+was resolved by distinguishing the black contained-image canvas from the true
+backdrop outside the centered content area; clicking the image canvas is not a
+dismiss action. The browser regression explicitly checks the true backdrop,
+Esc, close, focus return and non-mutation.
+The final backdrop/focus/non-mutation image-job journey passed (25.866s).
+No new full or hosted release gate is claimed.

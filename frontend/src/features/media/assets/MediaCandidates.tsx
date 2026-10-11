@@ -1,11 +1,13 @@
 import type { ManagedAsset } from "../../../types";
-import { plotloomApi } from "../../../api";
 import { Button } from "../../../components";
 import { ManagedAssetProvenanceFields } from "./ManagedAssetProvenanceFields";
+import { ManagedAssetImage } from "../references/AppearanceReviewPrimitives";
+import { ManagedAssetViewer } from "../references/ManagedAssetViewer";
 
 export function CandidateCard({
   asset,
   projectId,
+  shotId,
   selected,
   kept,
   onPick,
@@ -13,6 +15,7 @@ export function CandidateCard({
 }: {
   asset: ManagedAsset;
   projectId?: string;
+  shotId?: string;
   selected: boolean;
   kept: boolean;
   onPick: () => void;
@@ -22,8 +25,8 @@ export function CandidateCard({
     <article className={`media-candidate ${selected ? "selected" : ""}`}>
       <button onClick={onPick} aria-pressed={selected}>
         {projectId && (
-          <img
-            src={plotloomApi.managedAssetUrl(projectId, asset.id)}
+          <ManagedAssetImage projectId={projectId} subjectId={shotId ?? "candidates"}
+            asset={asset} assetId={asset.id} unavailableLabel="无法读取候选图片"
             alt={`候选图片 ${asset.id}`}
           />
         )}
@@ -35,6 +38,8 @@ export function CandidateCard({
           <small>已知新增：{asset.provenance.declaredAdditions.join("、")}</small>
         ) : null}
       </button>
+      {projectId && <ManagedAssetViewer projectId={projectId} subjectId={shotId ?? "candidates"}
+        asset={asset} alt={`候选图片 ${asset.id}`} />}
       <details className="reference-technical">
         <summary>查看候选来源与技术详情</summary>
         <dl><div><dt>资产</dt><dd>{asset.id}</dd></div><ManagedAssetProvenanceFields provenance={asset.provenance} /></dl>
