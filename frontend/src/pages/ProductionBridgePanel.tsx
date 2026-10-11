@@ -12,11 +12,12 @@ function userFacingBridgeMessage(message: string): string {
 }
 
 /** F5 projection and dramatic-intent review; this panel never dispatches media. */
-export function ProductionBridgePanel({ projectId, reviewBasis, readOnly: ownerReadOnly, onOpenShot, onInstalled }: {
+export function ProductionBridgePanel({ projectId, reviewBasis, readOnly: ownerReadOnly, onOpenShot, onInstalled, refreshToken }: {
   projectId: string; reviewBasis: BridgeReviewBasis; readOnly: boolean;
+  refreshToken?: unknown;
   onOpenShot?: (shotId: string) => boolean | void; onInstalled: (projectId: string) => Promise<void>;
 }) {
-  const review = useProductionBridgeReview(projectId, reviewBasis, ownerReadOnly || reviewBasis.status !== "current", onInstalled);
+  const review = useProductionBridgeReview(projectId, reviewBasis, ownerReadOnly || reviewBasis.status !== "current", onInstalled, refreshToken);
   const { state, proposal, intentEntries, presentationDirty, presentationTouched, presentationEditorNonce,
     busy, canonicalReady, error, loadFailed, draftConflict, intentDirty, retryLoad, run, setIntentEntries, setError } = review;
   const readOnly = ownerReadOnly || reviewBasis.status !== "current" || !review.acknowledged;

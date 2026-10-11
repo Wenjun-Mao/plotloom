@@ -106,8 +106,9 @@ were not edited by specialists. Candidates were read and accepted through UI.
   cut list and full JSON, then confirmed r1. Nine 2.5-second static shots,
   native portrait staging; the intentional face close-up is not widened into a
   full-body image. Production proposal/mapping still pending. Its preparation
-  was temporarily blocked by the unresolved lamp image publication, diagnosed
-  by the visible preparation diagnostic, not bypassed.
+  was blocked while the lamp image publication was unresolved. After that
+  publication completed, the mounted preparation observation remained stale;
+  see the re-entry finding below. The server gate was not bypassed.
 
 Actual ImageGen receipts and explicit UI selections:
 
@@ -144,6 +145,40 @@ Deferred observations, not completed fixes: Script candidate disclosure still
 requires raw JSON reading (Storyboard has a readable cut list); Source's route
 checkbox copy differs from Creator's “此节点需要拍摄”. Shot preview cropping and
 actual H3 geometry/timing remain hypotheses until real shot media exercises them.
+
+## E19 finding: unchanged review did not refresh external-work admission
+
+After the accepted storyboard and lamp delivery/selection, navigating Art →
+Storyboard kept “unresolved publication or execution prevents production
+rebuild” and disabled Prepare. Read-only project inspection showed all three
+image proposals delivered, creative candidates accepted/ready/cancelled, and
+no image/video/intent job left active. Browser reload alone read the available
+gate. This establishes stale presentation, not a stuck provider or server gate.
+
+Root cause: Storyboard's activation read revalidated on entry, but the mounted
+bridge read keyed only project/storyboard revision/hash/status. External-work
+quiescence can change without changing that basis. The bridge now consumes the
+owning acknowledged Storyboard read as a refresh token. It rechecks unchanged
+bases on entry and server refresh, retaining intent text, conflict detection,
+request sequencing and independent pending-operation occupancy. Token changes
+during same-owner mutations are coalesced until settlement, preventing an older
+pre-write read from replacing a successful save. Independent review identified
+that race in the first candidate and confirmed the deferred-token repair and
+regression test close it; no further actionable issue was found. No remount,
+automatic write, polling workaround or admission bypass was added.
+
+Scope against `d0c2b78`: unchanged APIs/payloads/backend schema, persistence,
+server admission, auth, provider/prompts, dependencies and package/build tools.
+Frontend qualification: focused 59 unit cases and eight bridge-refresh,
+shot-handoff and recommended-guide browser cases passed in 28.244 seconds;
+quick passed 149 files / 1,256 Vitest cases and both type checks in 12.217 seconds.
+Two serialized deterministic builds matched all seven asset hashes;
+workbench.js `aba440125243aeff98584169292314c545984e58f340853cfde4673f76a3b107`.
+Desktop captures inspected at 1280×460, 1280×768 and 1700×900; button and guide
+remain readable and actionable. Unfiltered browser shard reconciliation passed:
+89 specs / 296 cases across four shards (84/70/71/71), no gaps or overlap. The
+added case is in an already-owned file; no ownership or shard assignment change
+was required. Independent review is complete. No new full/hosted gate is claimed.
 
 ## Coverage focus
 

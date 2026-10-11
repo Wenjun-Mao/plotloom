@@ -14,7 +14,7 @@ type Owner = { projectId: string; basis: string; alive: boolean; read: number };
 type Read = { owner: Owner; epoch: number; value?: ProductionBridgeState; phase: "loading" | "ready" | "error" };
 
 /** Server acknowledgement owns actions; the editor base owns unsaved text. */
-export function useProductionBridgeReview(projectId: string, basis: BridgeReviewBasis, readOnly: boolean, onInstalled: (id: string) => Promise<void>) {
+export function useProductionBridgeReview(projectId: string, basis: BridgeReviewBasis, readOnly: boolean, onInstalled: (id: string) => Promise<void>, refreshToken?: unknown) {
   const basisKey = JSON.stringify([basis.revision, basis.contentHash, basis.status]);
   const active = useRef<Owner>({ projectId, basis: basisKey, alive: true, read: 0 });
   if (active.current.projectId !== projectId || active.current.basis !== basisKey) {
@@ -47,6 +47,8 @@ export function useProductionBridgeReview(projectId: string, basis: BridgeReview
   const intentIsDirty = () => JSON.stringify(entries.current) !== JSON.stringify(baseline.current);
   const localEdits = () => intentIsDirty() || presentation.current.touched && presentation.current.dirty;
   const busy = mutations.busy(projectId);
+  const activation = useRef({ owner, refreshToken });
+  if (activation.current.owner !== owner) activation.current = { owner, refreshToken };
   const acknowledged = read?.owner === owner && read.phase === "ready" && read.epoch === epoch;
   const state = read?.owner.projectId === projectId ? read.value : undefined;
   const proposal = editor?.projectId === projectId ? editor.proposal : undefined;
@@ -100,6 +102,15 @@ export function useProductionBridgeReview(projectId: string, basis: BridgeReview
     load(controller.signal);
     return () => { controller.abort(); owner.read += 1; owner.alive = false; };
   }, [projectId, basisKey, epoch]);
+
+  useEffect(() => {
+    // External work can settle without changing the storyboard basis. Coalesce
+    // entry acknowledgements until a same-owner write settles, so its response
+    // cannot be replaced by a pre-write GET that completes later.
+    if (!owns() || mutations.busy(projectId) || activation.current.refreshToken === refreshToken) return;
+    activation.current = { owner, refreshToken };
+    load();
+  }, [owner, refreshToken, busy]);
 
   useEffect(() => {
     const refresh = () => { if (owns() && !mutations.busy(projectId)) load(); };

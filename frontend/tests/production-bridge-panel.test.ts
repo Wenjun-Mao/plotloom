@@ -34,6 +34,47 @@ const deferred = <T,>() => {
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { vi.restoreAllMocks(); await act(async () => root.unmount()); host.remove(); });
 
+it("requalifies unchanged storyboard admission on a new owning read without losing local intent", async () => {
+  const first = state("reentry");
+  first.preparation = { status: "unavailable", reason: "unresolved publication or execution prevents production rebuild" };
+  const read = vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValueOnce(first).mockResolvedValue(state("reentry"));
+  const props = { projectId: "reentry", reviewBasis: { revision: 1, contentHash: "a".repeat(64), status: "current" as const }, readOnly: false, onInstalled: async () => undefined };
+  await act(async () => root.render(createElement(ProductionBridgePanel, { ...props, refreshToken: 1 })));
+  await settle();
+  expect(host.textContent).toContain("unresolved publication");
+  const field = host.querySelector(".bridge-intent-field textarea") as HTMLTextAreaElement;
+  await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, "unsaved portrait objective"); field.dispatchEvent(new Event("input", { bubbles: true })); });
+  await act(async () => root.render(createElement(ProductionBridgePanel, { ...props, refreshToken: 2 })));
+  await settle();
+  expect(read).toHaveBeenCalledTimes(2);
+  expect(host.textContent).not.toContain("unresolved publication");
+  expect((host.querySelector(".bridge-intent-field textarea") as HTMLTextAreaElement).value).toBe("unsaved portrait objective");
+  expect(button("保存戏剧意图整包").disabled).toBe(false);
+});
+
+it("coalesces same-owner entry reads after a pending save instead of reading pre-save state", async () => {
+  const first = state("pending-entry");
+  const saved = state("pending-entry", 2, "c".repeat(64), "saved objective", "author_saved");
+  const pending = deferred<ProductionBridgeState>();
+  const read = vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValueOnce(first).mockResolvedValue(saved);
+  const save = vi.spyOn(plotloomApi, "updateProductionBridgeIntent").mockReturnValue(pending.promise);
+  const props = { projectId: "pending-entry", reviewBasis: { revision: 1, contentHash: "a".repeat(64), status: "current" as const }, readOnly: false, onInstalled: async () => undefined };
+  const enter = async (refreshToken: number) => { await act(async () => root.render(createElement(ProductionBridgePanel, { ...props, refreshToken }))); await settle(); };
+  await enter(1);
+  const field = host.querySelector(".bridge-intent-field textarea") as HTMLTextAreaElement;
+  await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, "saved objective"); field.dispatchEvent(new Event("input", { bubbles: true })); });
+  await act(async () => button("保存戏剧意图整包").click());
+  await enter(2); await enter(3);
+  expect(read).toHaveBeenCalledTimes(1);
+  expect(button("确认投产提案").disabled).toBe(true);
+  await act(async () => pending.resolve(saved)); await settle();
+  expect(read).toHaveBeenCalledTimes(2);
+  expect(save).toHaveBeenCalledTimes(1);
+  expect(host.textContent).toContain("提案 r2");
+  expect((host.querySelector(".bridge-intent-field textarea") as HTMLTextAreaElement).value).toBe("saved objective");
+  expect(button("确认投产提案").disabled).toBe(false);
+});
+
 it("describes a restricted bridge action without claiming the whole project is read-only", async () => {
   vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(state("restricted", 3, "c".repeat(64), "reviewed", "author_saved"));
   const accept = vi.spyOn(plotloomApi, "acceptProductionBridge");
