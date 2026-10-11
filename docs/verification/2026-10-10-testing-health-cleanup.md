@@ -1372,3 +1372,45 @@ input for the authorized combined qualification; no rebase or new full run
 was started solely for this handoff. The ownership map and four-shard manifest
 must be refreshed if this source revision is later integrated. Neither the
 local full on d53a99f nor hosted run 38113104300 covers 6371bf6.
+
+#### Reconciliation to current Art/Script/Role baseline — 2026-10-11
+
+The manager authorized a non-destructive merge of current origin/main at
+df333a16c32eb697696997bbc91c2ab39b283f18 into this scoped branch. Git confirms
+ea20d6ba07ee25b02be273d0b50bd43fc959405a as the shared base; the new main-side
+diff is the Art/Script/Role workflow UI, tests, documentation and generated
+JavaScript. It adds no backend/API, payload, persistence, dependency or
+build-tool changes. The only merge conflict was the browser allocation
+manifest: the M0–M5 branch retains its four-shard contract and assigns both
+new specs to the previously lightest shard.
+
+Ownership assigns art-workflow-observation, recommended-art-workflow,
+cast-workflow-observation and recommended-cast-workflow Vitest files, plus the
+Art and Cast browser specs, to creative-production. Their existing shared
+fixture dependencies already list creative-production, so no new support edge
+was needed. Two consecutive native ownership scans matched at 1,518 pytest /
+157 files (SHA-256
+`b7f5a75e9b124c688a9bd93c389356b4af1c7ae5dc05b8e15511f7cb4798d9c6`), 1,201
+Vitest / 145 files (SHA-256
+`cf6e27fcfe69e6791d032d0762c76a5807bf5c7329dfcaa336146d43456e9bfe`), and
+292 Playwright / 88 files (SHA-256
+`9b5d499cb54be04a4aa23d760d54b0127e61fb5f1de0432df307fa2d8c7867f0`). The
+unfiltered four-shard guard passed at 83/68/70/71 cases, with zero gaps or
+overlap.
+
+The required quick tier passed in 11.827 seconds: all 1,201 Vitest cases,
+locked dependencies, API F401 lint and both type checks. The focused
+verification-tooling complete profile passed in 35.846 seconds with 65
+pytest, 2 Vitest and 6 Playwright cases; it also passed native ownership
+preflight, deterministic build/parity, four-shard coverage, wheel build and
+installed-wheel smoke. Existing Starlette deprecation, Vite large-chunk and
+Node color-environment warnings were the only reported warnings.
+
+The Art and Role source-owner receipts on exact UI baselines 6371bf6 and
+df333a1 record affected browser walkthroughs, screenshots, focused tests,
+type checks, deterministic asset builds and independent reviews. The M0–M5
+branch reconciles their native ownership and shard allocation. No new full
+suite or hosted run was started, as directed. The prior local full on d53a99f
+and hosted run 38113104300 predate these UI updates and do not qualify
+df333a1. Final combined qualification and main publication remain
+manager-owned.

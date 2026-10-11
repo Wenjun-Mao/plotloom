@@ -10,6 +10,7 @@ import { useReviewActivation } from "./useReviewActivation";
 import { StageGuide } from "../components/StageGuide";
 import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
 import { ReviewContextErrorNotice, ReviewContextNotice, reviewContextFailure, reviewContextNextStep, type ReviewContextFailure } from "./ReviewContextNotice";
+import { useReportReviewWorkflowRead } from "../app/workspace/ReviewWorkflowReadContext";
 
 type EditorProps = { disabled: boolean; draft: string; setDraft: (value: string) => void };
 type ProjectSession = { projectId: string; epoch: number };
@@ -70,6 +71,10 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
     };
   }, [projectId, load]);
   const { checking, failed, recheck } = useReviewActivation({ projectId, active, refreshToken, load });
+  const currentAuthority = draftAuthority(state);
+  const draftMatches = Boolean(draftBase && authorityKey(draftBase) === authorityKey(currentAuthority));
+  const retained = Boolean(draftDirty.current && draftBase && (!draftMatches || state?.status === "stale" || (draftBase.kind === "accepted" && state?.status !== "reopened")));
+  useReportReviewWorkflowRead(projectId, active, { stage: "art", status: checking ? "loading" : failed ? "failed" : "ready", state, busy, dirty: draftDirty.current, retainedDraft: retained, error, renderStyle });
   const readOnly = ownerReadOnly || checking || failed;
   const reviewDraft = useReviewEditorDraft(projectId, "art", authorityKey(draftAuthority(state)), text => {
     setDraftBase(draftAuthority(state)); draftDirty.current = true; setDraft(text);
@@ -96,9 +101,6 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
     {error ? <><ReviewContextErrorNotice error={error} projectId={projectId} /><Button variant="quiet" onClick={() => void recheck()}>重试加载美术参考</Button></> : <Spinner />}
   </article>;
   const { candidate, acceptedArt: accepted } = state;
-  const currentAuthority = draftAuthority(state);
-  const draftMatches = Boolean(draftBase && authorityKey(draftBase) === authorityKey(currentAuthority));
-  const retained = Boolean(draftDirty.current && draftBase && (!draftMatches || state.status === "stale" || (draftBase.kind === "accepted" && state.status !== "reopened")));
   const editDraft = (next: string) => { draftDirty.current = next !== JSON.stringify(draftBase?.value.art, null, 2); setDraft(next); reviewDraft.changed(next); };
   const adoptCurrent = () => { draftDirty.current = false; setDraftBase(currentAuthority); setDraft(currentAuthority?.value.art ? JSON.stringify(currentAuthority.value.art, null, 2) : ""); void reviewDraft.clear(); };
   const heading = checking ? "正在刷新" : failed ? "无法刷新" : state.status === "stale" ? "上下文已过期" : state.status === "reopened" ? "美术设定修订轮次已打开" : candidate?.status === "ready" ? "待审核美术设定" : candidate?.status === "prepared" ? "美术任务尚未交付" : accepted ? `已确认美术设定 r${accepted.revision}` : "尚无美术候选";

@@ -747,9 +747,21 @@ Hosted run 38113104300 completed successfully in 17m23s on SHA
 83/61/70/71 cases. It predates the ea20d6b and 6371bf6 UI baselines. The owner
 has since reported main at 6371bf6291f9b708200730b7866df2c3b76fe1ac with
 1,191 frontend unit cases, both type checks, 10 affected browser cases,
-deterministic assets and independent review passing. That UI input adds two
-Vitest files and one browser spec and is not yet in this branch. The owner
-directed that it remain a combined-qualification input without starting a
-new full run or rebase solely for the handoff. The M0–M5 code checkpoint
-remains cdc4df693ed8a11f80948dc75574682b83c9e991; this receipt update is
-documentation-only.
+deterministic assets and independent review passing. At the c3eaf387
+checkpoint, that UI input was not yet in this branch; the manager's later
+integration authorization and current status are recorded below. No full run
+was started solely for the handoff.
+
+### Current main reconciliation — 2026-10-11
+
+Current main df333a16 is merged into the isolated M0–M5 branch with a
+non-destructive merge. The Art/Script/Role UI files and source-owner receipts
+are present. Four new Vitest files and two new browser specs are owned by
+creative-production; their fixture dependencies were already registered. The
+unfiltered four-shard allocation now covers 88 specs / 292 cases at 83/68/70/71
+with no gaps or overlap. Native ownership scans match at 1,518 pytest, 1,201
+Vitest and 292 Playwright cases. Quick and the focused verification-tooling
+complete profile pass. No full suite or hosted run was launched at this
+checkpoint. The final combined qualification, main publication and worktree
+cleanup remain manager-owned while the real walkthrough may produce further
+product changes.

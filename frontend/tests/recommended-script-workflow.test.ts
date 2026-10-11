@@ -1,12 +1,12 @@
 import { expect, it } from "vitest";
 import { scriptWorkflowNextText } from "../src/app/workspace/recommendedScriptWorkflow";
-import type { ScriptWorkflowObservation } from "../src/app/workspace/ScriptWorkflowReadContext";
+import type { ScriptWorkflowObservation } from "../src/app/workspace/ReviewWorkflowReadContext";
 import type { ScriptCandidate, ScriptReviewState } from "../src/types";
 import { workflowProductionFixture } from "./workflow-production-fixture";
 
 const missing = (): ScriptReviewState => ({ status: "missing", candidate: null, acceptedScript: null, staleReasons: [],
   acceptedReviewState: { status: "missing", staleReasons: [] } });
-const read = (state = missing()): ScriptWorkflowObservation => ({ status: "ready", state, busy: false, dirty: false });
+const read = (state = missing()): ScriptWorkflowObservation => ({ stage: "script", status: "ready", state, busy: false, dirty: false });
 const next = (value?: ScriptWorkflowObservation) => scriptWorkflowNextText(value).text;
 
 it("names preparation, not review, before a script exists", () => {
@@ -22,6 +22,13 @@ it.each([undefined, { ...read(), status: "loading" as const }])("does not guess 
 it("names retry before using retained state on failure", () => {
   expect(next({ ...read(), status: "failed" })).toContain("点击本页「重试加载剧本」");
   expect(next({ ...read(), status: "failed" })).not.toContain("准备剧本任务");
+});
+it("names the verified prerequisite after preparation is rejected", () => {
+  const error = { code: "accepted_art_not_current", owner: "art", field: null, technicalMessage: "Art is missing" } as const;
+  expect(next({ ...read(), error })).toContain("点击左侧「美术参考」");
+  expect(next({ ...read(), error })).not.toContain("点击「准备剧本任务」");
+  expect(next({ ...read(), status: "loading", error })).toContain("正在读取");
+  expect(next({ ...read(), status: "failed", error })).toContain("重试加载剧本");
 });
 it.each([["prepared", "剧本任务已准备，尚未交付"], ["ready", "查看待审阅剧本"]] as const)("uses the actual %s candidate stage", (status, text) => {
   const state = missing(); state.candidate = { status } as ScriptCandidate;
