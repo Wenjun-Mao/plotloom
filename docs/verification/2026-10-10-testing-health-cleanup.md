@@ -1215,7 +1215,8 @@ pytest emitted the existing Starlette TestClient deprecation warning. `quick`
 passed in 18.340 seconds with 1,128 Vitest cases and both type checks. Ruff
 check, Ruff format, and `git diff --check` passed.
 
-This is not final runner qualification. Independent re-review, one exact
-revision `verify.py full`, and one unfiltered hosted same-SHA run remain
+Independent read-only re-review of commit `8eb9291` found no actionable
+findings and ran no tests. This is still not final runner qualification. One
+exact-revision `verify.py full` and one unfiltered hosted same-SHA run remain
 required after the manager publishes the final UI baseline and quiet
 checkpoint. Windows process-tree containment remains unqualified.

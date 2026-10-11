@@ -674,6 +674,7 @@ overlap. The verification-tooling complete profile passed in 36.936 seconds
 with 64 pytest, 2 Vitest and 6 Playwright cases plus its type, lock,
 deterministic bundle/parity, shard and wheel/package gates. `quick` passed in
 18.340 seconds with all 1,128 Vitest cases and both type checks. Ruff and diff
-checks passed. Independent re-review and final full local and hosted
+checks passed. Independent read-only re-review of `8eb9291` found no
+actionable findings and ran no tests. The exact-candidate full local and hosted
 qualification still need to cover this revision and the manager's final UI
 baseline.
