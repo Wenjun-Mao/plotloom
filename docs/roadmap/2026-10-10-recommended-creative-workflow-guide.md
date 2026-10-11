@@ -1,6 +1,6 @@
 # Recommended creative workflow guide
 
-Status: **local frontend qualification complete; scoped publication and required hosted full CI pending**.
+Status: **published on main; required hosted CI run 38098197412 is active on 4955bbf (verify passed; browser shards pending)**.
 Prepared October 10, 2026.
 Authority: owner-approved follow-up coordinated through manager
 <code>01a04525-e907-7630-9640-78790d69e8ae</code>; retained <code>main</code>, one source owner.
@@ -99,9 +99,12 @@ it is recorded at
 
 ## Remaining acceptance and stopping condition
 
-Scoped publication and required unfiltered hosted full CI remain pending.
-Local frontend qualification does not imply hosted CI success, full local
-release qualification, owner walkthrough acceptance or creative acceptance.
-Do not restart normal8841. After publication, report the pushed revision and
-hosted CI result separately; owner refresh guidance is <code>⌘R</code>, then <code>⌘⇧R</code> if the
-open browser tab still shows the previous bundle.
+Scoped publication is complete: guide/policy commit <code>e6ca2d1</code> and separate
+planning-note commit <code>4955bbf</code> are on main. Required unfiltered hosted CI
+run <code>38098197412</code> (<code>workflow_dispatch</code>, <code>browser_grep=.*</code>) is active on
+<code>4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c</code>; the verify job passed in 15m26s
+and both browser shards remain in progress. Local frontend qualification does
+not imply hosted CI completion, full local release qualification, owner
+walkthrough acceptance or creative acceptance. Do not restart normal8841.
+Owner refresh guidance is <code>⌘R</code>, then <code>⌘⇧R</code> if the open browser tab still shows
+the previous bundle.
