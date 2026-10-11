@@ -629,3 +629,166 @@ decision. Neither branch publication nor later CI PASS alone completes the goal.
 The later [owner-authorized October10 cutover](2026-10-10-normal-cutover.md)
 supersedes that pending boundary: main is published and normal8841 activated with
 intact retirement and fresh-project smoke verified. No executable/test input delta.
+
+## Performance follow-up M0 — post-guide native inventory and cost profile
+
+### Candidate and environment
+
+M0 ran in the isolated worktree /Users/wjmao/.codex/worktrees/verification-health/plotloom on branch codex/testing-health-m0-m5. Inventory candidate: 4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c. Executable, test and dependency inputs match guide commit e6ca2d18448c24cc4129670df4df41e166551cc3; the only e6ca2d1..4955bbf delta at freeze was the M0–M5 roadmap. The pinned Shuohao submodule is 4f9b2128c82adf623f594ba714c97d0afcfc16a2.
+
+Host: Apple M5 Pro, macOS 27.0.1 arm64. Tools: uv 0.12.19, CPython 3.12.13, Node 24.18.0, npm 11.16.0, Vitest 4.1.11 and Playwright 1.62.1. Worktree-only installs used uv sync --all-groups --frozen --python 3.12.13, npm --prefix frontend ci and npm --prefix docs/prompt-pipeline-lab ci. No lockfile changed. Frontend npm reported one high-severity audit advisory; it was not investigated or changed during this performance pass.
+
+The pre-guide local full result is reused as historical context only: b47e8d7 completed in 732.075 seconds (Python 320.90, browser 392.242, quick median 9.565). M0 did not rerun a full suite for discovery.
+
+### Native inventory
+
+Native discovery outputs and normalized IDs are retained in /tmp/plotloom-testing-health-m0-4955bbf:
+
+| Runner | Native cases | Files/specs | Normalized ID SHA256 |
+| --- | ---: | ---: | --- |
+| Pytest | 1,492 | 155 | 2b241cb1422316cd6a5e69a009c9ab3a2b8fa4cacbcc4ddba0b522a038088739 |
+| Vitest | 1,058 | 133 | 26b3126559cfeb57b0f5951abd2314e48bb328694289ffe210aa36f9b4bfe08f |
+| Playwright | 279 | 85 | 7de7e0969cc64a5b2fdb90c0fbd82d3c951949401d38ba2629ef24e5420b4f77 |
+
+The existing browser allocation guard passed its exact 122/157 split, with no overlap or missing native case. The guide added 11 Vitest cases in one file and one browser case/spec; Python inventory was unchanged. Full ID listings are kept in pytest-ids.txt, vitest-ids.txt and playwright-ids.txt beside the native outputs.
+
+### Python family samples
+
+Each row is three serial warm-dependency samples with a fresh basetemp, using pytest durations output. Wall and call values are medians in seconds.
+
+| Family and exact file | Cases | Wall samples | Median wall | Median call |
+| --- | ---: | --- | ---: | ---: |
+| Source: tests/test_project_storage_source_outline.py | 11 | 2.419 / 2.096 / 2.209 | 2.209 | 1.410 |
+| Graph: tests/test_graph_commands.py | 19 | 3.155 / 3.027 / 3.004 | 3.027 | 0.310 |
+| Media: tests/test_project_storage_video_reconciliation.py | 4 | 4.410 / 3.973 / 3.885 | 3.973 | 3.010 |
+| Recovery: tests/test_project_storage_recovery.py | 19 | 4.894 / 4.868 / 4.329 | 4.868 | 3.500 |
+
+A separate graph durations-min=0 sample attributes 1.89 seconds of setup across 19 tests against 0.30 seconds of call time. Other setup/teardown rows rounded to 0.00 seconds in pytest's report. Graph setup is the clearest backend M3 audit target; do not infer that all repeated setup is safe to share.
+
+### Browser family samples and process costs
+
+Each browser row is three serial one-worker, zero-retry samples with fresh fixture roots, local fake provider and an HTML report. Values are median seconds for whole report, test result, Before Hooks and After Hooks. Selected journeys were graph draft transaction, media image job, project snapshot/restore recovery, and UI-only creator confirmation.
+
+| Family | Report | Test | Before Hooks | After Hooks | Workbench fixture setup / teardown |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Source currentness | 4.657 | 2.638 | 1.629 | 0.264 | 1.361 / 0.200 |
+| Graph draft | 3.755 | 1.904 | 1.327 | 0.246 | 1.171 / 0.171 |
+| Media image job | 23.261 | 21.650 | 1.384 | 0.242 | 1.245 / 0.181 |
+| Snapshot/restore recovery | 9.526 | 7.796 | 1.237 | 0.315 | 1.097 / 0.207 |
+| UI-only creator confirmation | 1.671 | 1.175 | 0.302 | 0.061 | UI-only Vite setup 0.168; teardown not separately reported |
+
+The image-job time is action-dominated, so fixture work is not its optimization target. Snapshot/restore restarts the real backend twice per case and must retain that path. FastAPI listener/readiness samples were about 560–920/298–402 ms; Vite was 100–155/10–15 ms; the local fake provider was 49–52/8–9 ms. These are measured fixture lifecycle steps, not pure CPU estimates.
+
+checkedStaticTest still starts the test backend/provider stack; only vite-only-fixture.ts is genuinely UI-only, and creator-confirmation.spec.ts is its sole current consumer. It has one test, so worker scope currently does not amortize Vite startup across multiple test cases in that spec.
+
+### Prioritized follow-up and limitations
+
+1. Audit graph setup ownership in M3 first: it dominates graph Python wall time and is repeated across 19 tests, but mutable project/provider state and transaction setup must remain isolated.
+2. Keep the media image-job journey out of fixture optimization unless a new profile separates its action cost from setup.
+3. Preserve actual recovery backend restarts and their readiness checks.
+4. Reassess the hosted browser group balance in M4 from fresh completed durations; the carried-over run below is failed evidence, not qualification.
+
+The helper logs, HTML reports, native inventory and disposable roots are retained under /tmp/plotloom-testing-health-m0-4955bbf. Two uncounted source attempts preceded the three passing samples: the first used an explicit basetemp whose parent directory did not exist; after that harness error was fixed, tests exposed that the worktree's pinned Shuohao submodule had not been initialized. The submodule was initialized at the recorded pin and all prescribed triplicates then passed. Neither issue was a product-code failure.
+
+### Carried-over hosted run on the inventory candidate
+
+Unfiltered CI run 38098197412 completed on exact SHA 4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c with overall failure. Verify job 114348430291 passed. Browser shard 1 job 114348430398 failed with 117 passed and 5 failed in 21.8 minutes; browser shard 2 job 114348430372 failed with 155 passed and 2 failed in 32.1 minutes. Failures included creator layout bounds, a production rebuild journey, source dirty-refresh behavior, source-outline duplicate text matching and creator-brief bounds. Existing retry #1 attempts are visible in the workflow log; no retries were added for M0 samples. This carried-over result was not duplicated and is not final qualification. Resolve concrete failures only within approved scope before claiming M5 hosted success.
+
+## Performance follow-up M1 — native test ownership map
+
+### Contract and scope
+
+At worktree HEAD 4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c, M1 adds the
+reviewed file-owner map at scripts/testing/module-ownership.json and its
+collection-only guard at scripts/testing/check_module_ownership.py. The
+separate documentation records the command and maintenance rules, and ADR 0157
+records the one-owner-per-file contract. Existing quick, focused and full
+behavior is unchanged; M1 does not add module execution commands.
+
+The map covers all three current native inventories with 11 nonempty modules.
+It records 59 runner configuration, global setup, fixture and helper paths,
+each with explicit consuming module IDs. This captures cross-domain fixture
+reuse without giving a helper file a second test owner:
+
+| Module | Pytest files / cases | Vitest files / cases | Playwright files / cases |
+| --- | ---: | ---: | ---: |
+| story-authoring | 9 / 100 | 14 / 92 | 14 / 57 |
+| graph | 7 / 63 | 7 / 47 | 5 / 15 |
+| creative-production | 34 / 291 | 30 / 289 | 16 / 54 |
+| media-lifecycle | 23 / 220 | 19 / 184 | 12 / 28 |
+| playback | 4 / 32 | 5 / 36 | 6 / 10 |
+| project-lifecycle | 25 / 217 | 29 / 193 | 17 / 82 |
+| shared-api-security | 5 / 49 | 4 / 41 | — |
+| shared-generation | 23 / 201 | 3 / 33 | — |
+| shared-provider-dispatch | 16 / 269 | 15 / 94 | 8 / 15 |
+| verification-tooling | 9 / 45 | 1 / 2 | 3 / 6 |
+| shared-presentation | 1 / 10 | 6 / 47 | 4 / 12 |
+
+### Native inventory result
+
+Command: uv run --locked --no-sync python scripts/testing/check_module_ownership.py
+Result: PASS. It performed native pytest collect-only, Vitest list JSON and
+Playwright list discovery; it executed no test bodies. The guard checked exact
+file coverage, source test files with no cases, unique primary ownership,
+unowned or stale selectors, ambient filters and a duplicate-free exact union
+of module case IDs.
+
+| Runner | Cases / files | Normalized case-ID SHA-256 |
+| --- | ---: | --- |
+| Pytest | 1,497 / 156 | 94499697321db8b52f5da9d36da5e10ab6e7130715dd36b228639565b8b2f424 |
+| Vitest | 1,058 / 133 | e3d5d34841c4fb01c9e1ce5b827fc08c632c47119db8300f43da7ce1cdc4f39a |
+| Playwright | 279 / 85 | 7de7e0969cc64a5b2fdb90c0fbd82d3c951949401d38ba2629ef24e5420b4f77 |
+
+The five new ownership-guard unit cases are in tests/test_verification_module_ownership.py.
+Focused command: uv run --locked --no-sync pytest -q
+tests/test_verification_module_ownership.py — PASS, 5 cases. Ruff check and
+format checks for the new Python source and tests passed.
+
+Development verification: uv run --locked --no-sync python scripts/verify.py
+quick — PASS in 14.798s; the 1,058 frontend unit cases and both type checks
+passed. The relevant focused verification-tier run selected
+tests/test_verification_module_ownership.py and passed all 5 cases. The
+parameter-ID stability repair below was then checked with its exact 7-case
+selector. The quick tier does not run Python integration or browser suites.
+
+### Identity finding
+
+The first guard attempt treated Vitest's file/name pair as a unique ID and
+found 15 duplicate rows beyond the first across four parameterized test titles
+in api.test.ts, creator-presentation.test.ts, creator-production.test.ts and
+script-storyboard-diagnostics.test.ts. The list JSON omits both source location
+and parameter value when a title has no interpolation placeholder. The guard
+now suffixes each repeated file/name row with its ordered occurrence and total,
+preserving the native 1,058-row inventory rather than collapsing parameter
+coverage. This explains why the M1 Vitest normalized ID hash differs from the
+original M0 hash even though the discovered case count is unchanged. The
+ordinal makes rows distinct for inventory and is not a claim that Vitest
+exposes their underlying parameter values.
+
+An initial unit-test fixture exposed that source-file discovery was bound to
+the real checkout instead of the supplied test root; the helper now accepts the
+root explicitly, and the focused regression passes. No production test or
+runner contract was bypassed.
+
+Two consecutive collection-only guard runs then found one changing pytest ID:
+tests/test_image_terminal_settlement.py used uuid4() in a parameter decorator,
+so a valid but random task ID was generated once at module import and embedded
+in the native node ID. The test still exercises an unowned valid UUID, so its
+collection-time value is now a fixed valid UUID; the separate runtime foreign
+task branch keeps generating a fresh UUID. The exact 7-case focused selection
+passed, and two subsequent native inventory runs produced identical hashes
+for all three suites. The earlier changing hash was traced to this input, not
+to a collector race.
+
+The repeatable hashes are pytest
+94499697321db8b52f5da9d36da5e10ab6e7130715dd36b228639565b8b2f424, Vitest
+e3d5d34841c4fb01c9e1ce5b827fc08c632c47119db8300f43da7ce1cdc4f39a, and
+Playwright 7de7e0969cc64a5b2fdb90c0fbd82d3c951949401d38ba2629ef24e5420b4f77.
+
+### Reconciliation boundary
+
+These hashes are on the 4955bbf worktree base and precede guide correction
+63b25f461367b5732e08e6aac5eef3c429721f75. That later commit adds 14 Vitest
+cases and one Playwright case. Preserve the M0/M1 records as exact historical
+inventories, then reconcile the map and rerun this guard on the corrected
+candidate before final qualification.

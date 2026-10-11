@@ -7,6 +7,8 @@ import pytest
 from plotloom.specialist_settings import SpecialistRegistry
 from tests.image_terminal_support import ImageTerminalRuntime
 
+UNOWNED_TASK_ID = "4b9452e6-8fd5-41af-a769-d64e0f0e9af8"
+
 
 @pytest.mark.parametrize("target", ["image_job", "character_reference_proposal", "art_reference_proposal"])
 @pytest.mark.parametrize("unknown", [False, True])
@@ -58,7 +60,7 @@ def test_invalid_or_uncertain_marker_keeps_reservation(tmp_path, monkeypatch, fa
     assert len(runtime.calls) == 1
 
 
-@pytest.mark.parametrize("field,value", [("observedIdle", False), ("reviewedBlockedVerdict", False), ("observedIdle", 1), ("markerHash", "c" * 64), ("taskId", str(uuid4())), ("terminalTurnId", "not-a-turn"), ("terminalRevision", 0)])
+@pytest.mark.parametrize("field,value", [("observedIdle", False), ("reviewedBlockedVerdict", False), ("observedIdle", 1), ("markerHash", "c" * 64), ("taskId", UNOWNED_TASK_ID), ("terminalTurnId", "not-a-turn"), ("terminalRevision", 0)])
 def test_explicit_review_is_required_and_bound(tmp_path, monkeypatch, field, value):
     runtime = ImageTerminalRuntime(tmp_path, monkeypatch)
     runtime.review[field] = value

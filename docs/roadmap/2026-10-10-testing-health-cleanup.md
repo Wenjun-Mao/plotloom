@@ -21,10 +21,9 @@ The owner's prior preference is GPT-6 Luna / Max for bounded implementation;
 effective host settings require confirmation at dispatch. No normal cutover,
 protected settings change or native generation is added by this plan.
 
-The proposed M0–M5 modular verification and remaining-runtime follow-up is
-appended below. It is a draft for owner review and awaits separate
-implementation approval; no suite, module, profiling or CI changes are
-authorized by this planning addition.
+The owner-approved M0–M5 modular verification and remaining-runtime follow-up
+is appended below. Its implementation is isolated from the completed P0–P4
+work and from the active owner walkthrough.
 
 The [completion receipt](../verification/2026-10-10-testing-health-cleanup.md)
 records exact `0b71359` CI38024405822 SUCCESS, preserved behavior and measured
@@ -374,9 +373,9 @@ Finish when P0–P4 are proven with preserved coverage, measured gains, explicit
 verification gaps and a reviewable receipt. No new E2E creative acceptance is
 required or claimed by this engineering pass.
 
-## Modular verification and remaining runtime — proposed M0–M5 follow-up
+## Modular verification and remaining runtime — approved M0–M5 follow-up
 
-Status: draft for owner review on October 10. The owner requested a handoff-ready plan through Relay Brainstorm-and-Plan because local runs exceed 12 minutes and hosted full verification exceeds 30 minutes. Planning authorization is not implementation or CI-dispatch authority. Completed P0–P4 remains completed. M0–M5 is separate from the approved workflow-guide UI/policy delivery and proposes better reliable selection, not weaker full coverage. The separately authorized risk-scoped frontend policy is ADR 0156.
+Status: owner-approved for implementation on October 10 in an isolated worktree, including bounded final qualification and ordinary scoped branch publication after independent review. The work addresses local runs above 12 minutes and hosted full verification above 30 minutes. Completed P0–P4 remains completed and is not reopened. M0–M5 is separate from the workflow-guide UI/policy delivery and improves reliable selection without weakening full coverage. The risk-scoped frontend policy is ADR 0156.
 
 ### Outcome and evidence
 
@@ -432,6 +431,28 @@ Performance targets are provisional until M0 sizes modules: current quick stays 
 
 Scope includes selection/tooling metadata, relevant tests/config/fixtures, documentation and bounded standard-runner CI allocation. It excludes product/UI redesign, provider/specialist/native-media generation, real image/video quality acceptance, owner project/schema migration/reset, normal8841 restart/cutover, credential/settings changes, unsupported narrow-screen tests, new compatibility adapters, broad test deletion, speculative dependency inference and new paid infrastructure.
 
-Planning currently authorizes only this draft. Subsequent implementation approval should cover M0–M5 source/test/fixture/tooling/CI/docs, disposable verification roots, bounded process/shard probes, final gates and ordinary main publication without extra milestone approvals. Shared normal static assets must not be rewritten during an active owner walkthrough; use an isolated qualification checkout/build output when required. No service restart or operational cutover is needed for test tooling; if one becomes necessary, stop and obtain separate authority. Use one retained-checkout source writer, bounded read-only independent review and serial performance samples.
+The owner approved M0–M5 source/test/fixture/tooling/CI/docs, disposable verification roots, bounded process/shard probes, final gates and ordinary scoped branch publication after independent review, without extra milestone approvals. Shared normal static assets must not be rewritten during an active owner walkthrough; use an isolated qualification checkout/build output when required. No service restart or operational cutover is needed for test tooling; if one becomes necessary, stop and obtain separate authority. Use one retained-checkout source writer, bounded read-only independent review and serial performance samples.
 
 On unsafe or regressing optimization, revert only its exact scoped changes non-destructively, preserve original tests/logs and run affected checks; retain the unfiltered full path as fallback. Completion requires both trustworthy useful module selection and measured final latency improvement, not merely a new command or directory layout.
+
+### Execution checkpoint — 2026-10-10
+
+The owner approved M0–M5 after the initial read-only plan review. Work is isolated on branch **codex/testing-health-m0-m5**, created at **4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c**. M0 is complete on that candidate. Executable, test and dependency inputs match guide commit **e6ca2d18448c24cc4129670df4df41e166551cc3**; the only e6ca2d1..4955bbf change at freeze was this roadmap draft. Native inventory, family samples, setup/action/teardown attribution and the M3/M4 shortlist are recorded in the verification receipt.
+
+M1 ownership/dependency closure and its native full-union guard are implemented in the isolated worktree; the exact map, consumers and guard result are recorded in the receipt. M2–M5 remain pending in order. Main later received guide documentation at **b8dc2aff312fab6e4df1a52d58268848f61d13da**, followed by the owner-authorized guide correction at **63b25f461367b5732e08e6aac5eef3c429721f75**. That correction adds 14 Vitest cases and one browser case, so the original post-guide M0 inventory remains historical evidence and the current main SHA must be reconciled before final module inventory and qualification. Track carried-over unfiltered runs 38098197412 on exact SHA 4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c and 38101073289 on exact SHA 63b25f461367b5732e08e6aac5eef3c429721f75; do not duplicate either run. The first run failed in both browser shards; diagnose its concrete failures. The second run is in progress. Main publication waits for the manager's quiet-checkpoint coordination while the owner walkthrough is active.
+
+### M1 execution checkpoint — native ownership map
+
+At worktree HEAD **4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c**, the reviewed
+manifest assigns all 156 pytest, 133 Vitest and 85 Playwright files to 11
+nonempty product/verification modules. It records 59 configuration, setup,
+fixture and helper dependencies with explicit consuming modules. The native
+guard expands and verifies all 1,497 pytest, 1,058 Vitest and 279 Playwright
+case rows exactly once without executing test bodies. The Python inventory now
+includes five ownership-guard unit tests. The Vitest native list contains 19
+rows across four file/name pairs whose JSON omits parameter identity; the
+guard keeps the 15 repeated occurrences beyond the first and assigns
+deterministic collection-occurrence suffixes. The Playwright normalized ID
+hash remains equal to M0. The carried-forward guide fix at 63b25f4 adds another
+14 Vitest cases and one browser case; reconcile and rerun the inventory guard
+after bringing that commit into this branch.

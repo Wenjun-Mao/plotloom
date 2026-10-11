@@ -1,0 +1,1175 @@
+{
+  "schema_version": 1,
+  "path_basis": "Repository-relative exact test-file owners; native case IDs expand each owner during the guard.",
+  "modules": {
+    "story-authoring": {
+      "description": "Brief, source, outline, branch suggestion and authored story behavior.",
+      "selectors": {
+        "pytest": [
+          "tests/test_authored_route_timing.py",
+          "tests/test_creator_branch_suggestions.py",
+          "tests/test_creator_general_journey.py",
+          "tests/test_outline_settings_entry.py",
+          "tests/test_project_storage_authoring_control_contracts.py",
+          "tests/test_project_storage_source_outline.py",
+          "tests/test_project_storage_source_outline_api.py",
+          "tests/test_project_storage_work_unit_contracts.py",
+          "tests/test_v2_authoring_domain.py"
+        ],
+        "vitest": [
+          "frontend/tests/authoring-autosave-admission.test.ts",
+          "frontend/tests/bible-editor.test.ts",
+          "frontend/tests/branch-operation-owner.test.ts",
+          "frontend/tests/branch-read-binding.test.ts",
+          "frontend/tests/branch-suggestion-actions.test.ts",
+          "frontend/tests/branch-suggestion-report.test.ts",
+          "frontend/tests/outline-assignment.test.ts",
+          "frontend/tests/outline-cancel-reprepare.test.ts",
+          "frontend/tests/outline-report.test.ts",
+          "frontend/tests/recommended-workflow.test.ts",
+          "frontend/tests/scene-beats-editor.test.ts",
+          "frontend/tests/section-map-panel-actions.test.ts",
+          "frontend/tests/source-structure-model.test.ts",
+          "frontend/tests/source-workflow-navigation.test.ts"
+        ],
+        "playwright": [
+          "frontend/e2e/branch-suggestion-recovery.spec.ts",
+          "frontend/e2e/creator-brief-structure.spec.ts",
+          "frontend/e2e/creator-workbench-story.spec.ts",
+          "frontend/e2e/creator-workbench-text.spec.ts",
+          "frontend/e2e/manual-creator-entry.spec.ts",
+          "frontend/e2e/project-folder-authoring-drafts.spec.ts",
+          "frontend/e2e/recommended-workflow-guide.spec.ts",
+          "frontend/e2e/scene-beats-deletion.spec.ts",
+          "frontend/e2e/source-entry-settings.spec.ts",
+          "frontend/e2e/source-outline-section-map.spec.ts",
+          "frontend/e2e/source-review-currentness.spec.ts",
+          "frontend/e2e/story-prototype.spec.ts",
+          "frontend/e2e/storyboard-source-review.spec.ts",
+          "frontend/e2e/synopsis-proposal.spec.ts"
+        ]
+      }
+    },
+    "graph": {
+      "description": "Graph editing, validation, persistence and recovery contracts.",
+      "selectors": {
+        "pytest": [
+          "tests/generation/test_story_graph_topology.py",
+          "tests/test_graph_authoring_contract.py",
+          "tests/test_graph_authoring_production.py",
+          "tests/test_graph_commands.py",
+          "tests/test_graph_safety_diagnostics.py",
+          "tests/test_graph_workbench_api.py",
+          "tests/test_source_graph_installed_guards.py"
+        ],
+        "vitest": [
+          "frontend/tests/graph-command-dialog.test.ts",
+          "frontend/tests/graph-confirmation-read.test.ts",
+          "frontend/tests/graph-editor.test.ts",
+          "frontend/tests/graph-presentation.test.ts",
+          "frontend/tests/graph-read-autosave.test.ts",
+          "frontend/tests/graph-safety-notice.test.ts",
+          "frontend/tests/graph-workbench-provider.test.ts"
+        ],
+        "playwright": [
+          "frontend/e2e/branch-mutation-remount.spec.ts",
+          "frontend/e2e/graph-draft-recovery.spec.ts",
+          "frontend/e2e/graph-interactions.spec.ts",
+          "frontend/e2e/graph-read-recovery.spec.ts",
+          "frontend/e2e/graph-safety-diagnostics.spec.ts"
+        ]
+      }
+    },
+    "creative-production": {
+      "description": "Cast, art, script, storyboard and production review behavior.",
+      "selectors": {
+        "pytest": [
+          "tests/test_accepted_review_state.py",
+          "tests/test_alpha_acceptance.py",
+          "tests/test_alpha_qualification_contracts.py",
+          "tests/test_alpha_review_templates.py",
+          "tests/test_art_style.py",
+          "tests/test_cast_design_validation.py",
+          "tests/test_cast_style.py",
+          "tests/test_cast_writing_contract.py",
+          "tests/test_creative_handoff_exchange.py",
+          "tests/test_current_stage_evidence.py",
+          "tests/test_identity_review_refusal.py",
+          "tests/test_native_wake_art.py",
+          "tests/test_production_bridge.py",
+          "tests/test_production_bridge_fresh_preinstall.py",
+          "tests/test_production_bridge_intent.py",
+          "tests/test_production_bridge_runtime_capability.py",
+          "tests/test_production_bridge_runtime_http.py",
+          "tests/test_production_presentation.py",
+          "tests/test_production_presentation_integration.py",
+          "tests/test_production_rebuild.py",
+          "tests/test_production_rebuild_dependencies.py",
+          "tests/test_production_rebuild_freshness.py",
+          "tests/test_production_rebuild_guards.py",
+          "tests/test_production_revision_publications.py",
+          "tests/test_review_context_diagnostics.py",
+          "tests/test_review_seam_currentness.py",
+          "tests/test_same_person_review_contract.py",
+          "tests/test_script_delivery_linkage.py",
+          "tests/test_script_report_presentation.py",
+          "tests/test_script_storyboard_diagnostics.py",
+          "tests/test_shot_count_policy.py",
+          "tests/test_shot_presentation.py",
+          "tests/test_shot_presentation_integration.py",
+          "tests/test_storyboard_review_timing.py"
+        ],
+        "vitest": [
+          "frontend/tests/accepted-review-presentation.test.ts",
+          "frontend/tests/art-panel-ownership.test.ts",
+          "frontend/tests/cast-design-validation.test.ts",
+          "frontend/tests/cast-personality.test.ts",
+          "frontend/tests/cast-text-presentation.test.ts",
+          "frontend/tests/creator-edit-dialog.test.ts",
+          "frontend/tests/creator-installed-production.test.ts",
+          "frontend/tests/creator-layout.test.ts",
+          "frontend/tests/creator-presentation.test.ts",
+          "frontend/tests/creator-production.test.ts",
+          "frontend/tests/production-bridge-admission-handoff.test.ts",
+          "frontend/tests/production-bridge-api.test.ts",
+          "frontend/tests/production-bridge-basis.test.ts",
+          "frontend/tests/production-bridge-handoff.test.ts",
+          "frontend/tests/production-bridge-panel.test.ts",
+          "frontend/tests/production-presentation.test.ts",
+          "frontend/tests/production-reference.test.ts",
+          "frontend/tests/production-timing.test.ts",
+          "frontend/tests/review-activation.test.ts",
+          "frontend/tests/review-context-notice.test.ts",
+          "frontend/tests/same-person-presentation.test.ts",
+          "frontend/tests/script-panel-ownership.test.ts",
+          "frontend/tests/script-projection.test.ts",
+          "frontend/tests/script-storyboard-diagnostics.test.ts",
+          "frontend/tests/shot-label.test.ts",
+          "frontend/tests/shot-preparation-summary.test.ts",
+          "frontend/tests/shot-presentation.test.ts",
+          "frontend/tests/storyboard-editor.test.ts",
+          "frontend/tests/storyboard-shot-route.test.ts",
+          "frontend/tests/visual-intent-drafts.test.ts"
+        ],
+        "playwright": [
+          "frontend/e2e/art-review.spec.ts",
+          "frontend/e2e/art-static-report.spec.ts",
+          "frontend/e2e/cast-render-choice.spec.ts",
+          "frontend/e2e/cast-static-report.spec.ts",
+          "frontend/e2e/creator-reading-states.spec.ts",
+          "frontend/e2e/creator-workbench-cancellation.spec.ts",
+          "frontend/e2e/creator-workbench-delivery.spec.ts",
+          "frontend/e2e/creator-workbench-production.spec.ts",
+          "frontend/e2e/production-bridge-review-refresh.spec.ts",
+          "frontend/e2e/production-bridge-shot-handoff.spec.ts",
+          "frontend/e2e/production-presentation.spec.ts",
+          "frontend/e2e/production-rebuild.spec.ts",
+          "frontend/e2e/review-seam-currentness.spec.ts",
+          "frontend/e2e/script-static-report.spec.ts",
+          "frontend/e2e/storyboard-review-ownership.spec.ts",
+          "frontend/e2e/storyboard-static-report.spec.ts"
+        ]
+      }
+    },
+    "media-lifecycle": {
+      "description": "Image/video candidate, asset, dispatch, reconciliation and retention behavior.",
+      "selectors": {
+        "pytest": [
+          "tests/backend_core/test_artifacts.py",
+          "tests/services/minimax_h3_gateway/test_image_intake.py",
+          "tests/services/minimax_h3_gateway/test_qwen_image.py",
+          "tests/test_art_reference_additional_candidate.py",
+          "tests/test_candidate_asset_provenance.py",
+          "tests/test_character_reference_revision_refinement.py",
+          "tests/test_character_reference_selection_contract.py",
+          "tests/test_cleanup_imagegen_staging.py",
+          "tests/test_frozen_video_integrity.py",
+          "tests/test_image_job_exchange_contracts.py",
+          "tests/test_image_terminal_settlement.py",
+          "tests/test_managed_asset_provenance.py",
+          "tests/test_media.py",
+          "tests/test_project_storage_image_delivery_contracts.py",
+          "tests/test_project_storage_image_identity_contracts.py",
+          "tests/test_project_storage_image_workflow.py",
+          "tests/test_project_storage_video_dispatch.py",
+          "tests/test_project_storage_video_disposal.py",
+          "tests/test_project_storage_video_reconciliation.py",
+          "tests/test_project_storage_video_recovery.py",
+          "tests/test_project_storage_video_review.py",
+          "tests/test_project_storage_video_submission.py",
+          "tests/test_retained_video_evidence.py"
+        ],
+        "vitest": [
+          "frontend/tests/art-reference-preparation.test.ts",
+          "frontend/tests/candidate-provenance-disclosure.test.ts",
+          "frontend/tests/character-reference-gallery.test.ts",
+          "frontend/tests/h3-media-read-recovery.test.ts",
+          "frontend/tests/image-terminal-settlement.test.ts",
+          "frontend/tests/media-owner-navigation.test.ts",
+          "frontend/tests/media-retained-candidate.test.ts",
+          "frontend/tests/media-workbench-failed-refresh.test.ts",
+          "frontend/tests/media-workbench-read-freshness.test.ts",
+          "frontend/tests/native-media-diagnostics.test.ts",
+          "frontend/tests/retained-video-evidence.test.ts",
+          "frontend/tests/verified-video-geometry.test.ts",
+          "frontend/tests/video-disposal-confirmation.test.ts",
+          "frontend/tests/video-pilot-candidates.test.ts",
+          "frontend/tests/video-pilot-end-frame-read-state.test.ts",
+          "frontend/tests/video-pilot-read-state.test.ts",
+          "frontend/tests/video-pilot-review.test.ts",
+          "frontend/tests/video-pilot-routes.test.ts",
+          "frontend/tests/video-pilot-timing.test.ts"
+        ],
+        "playwright": [
+          "frontend/e2e/cast-image-direction-edit.spec.ts",
+          "frontend/e2e/cast-reference-delivery-observation.spec.ts",
+          "frontend/e2e/cast-reference-revision.spec.ts",
+          "frontend/e2e/cast-reference-studies.spec.ts",
+          "frontend/e2e/image-jobs.spec.ts",
+          "frontend/e2e/imported-still-preview.spec.ts",
+          "frontend/e2e/missing-media-layout.spec.ts",
+          "frontend/e2e/native-video-probe.spec.ts",
+          "frontend/e2e/project-folder-still-image-workflow.spec.ts",
+          "frontend/e2e/project-folder-video.spec.ts",
+          "frontend/e2e/reference-gallery-layout.spec.ts",
+          "frontend/e2e/video_backends/minimax_h3/h3-video-pilot.spec.ts"
+        ]
+      }
+    },
+    "playback": {
+      "description": "Playback, player, segment and end-frame read behavior.",
+      "selectors": {
+        "pytest": [
+          "tests/test_video_review_reopen.py",
+          "tests/test_video_review_reopen_refusals.py",
+          "tests/test_video_review_reopen_retention.py",
+          "tests/test_video_segments.py"
+        ],
+        "vitest": [
+          "frontend/tests/play-view-read-recovery.test.ts",
+          "frontend/tests/reviewed-video-player.test.ts",
+          "frontend/tests/video-end-frame.test.ts",
+          "frontend/tests/video-pilot-playback.test.ts",
+          "frontend/tests/video-segment-reopen-wording.test.ts"
+        ],
+        "playwright": [
+          "frontend/e2e/archived-play-guidance.spec.ts",
+          "frontend/e2e/branching-video-preview.spec.ts",
+          "frontend/e2e/interactive-segment-review.spec.ts",
+          "frontend/e2e/video-pilot.spec.ts",
+          "frontend/e2e/video_backends/minimax_h3/end-frame-playback.spec.ts",
+          "frontend/e2e/video_backends/minimax_h3/end-frame-read-state.spec.ts"
+        ]
+      }
+    },
+    "project-lifecycle": {
+      "description": "Project creation, save, close, snapshot, recovery and workspace ownership.",
+      "selectors": {
+        "pytest": [
+          "tests/backend_core/test_runtime_recovery.py",
+          "tests/test_accepted_review_lifecycle.py",
+          "tests/test_application_profile_snapshot_contracts.py",
+          "tests/test_direct_project_deletion.py",
+          "tests/test_production_project_folder_runtime.py",
+          "tests/test_production_project_folder_runtime_boundaries.py",
+          "tests/test_project_folder_native_dispatch_safety.py",
+          "tests/test_project_home_identity.py",
+          "tests/test_project_review_drafts.py",
+          "tests/test_project_specialist_ownership.py",
+          "tests/test_project_storage.py",
+          "tests/test_project_storage_art.py",
+          "tests/test_project_storage_cast.py",
+          "tests/test_project_storage_current_schema.py",
+          "tests/test_project_storage_direct_generation_regressions.py",
+          "tests/test_project_storage_exact_generation_scenarios.py",
+          "tests/test_project_storage_exact_repair_pending_siblings.py",
+          "tests/test_project_storage_exact_repair_recovery.py",
+          "tests/test_project_storage_exact_repair_regressions.py",
+          "tests/test_project_storage_generation_admission_contracts.py",
+          "tests/test_project_storage_generation_contracts.py",
+          "tests/test_project_storage_recovery.py",
+          "tests/test_project_storage_route_contracts.py",
+          "tests/test_project_storage_script.py",
+          "tests/test_project_storage_storyboard_review.py"
+        ],
+        "vitest": [
+          "frontend/tests/app-state-navigation.test.ts",
+          "frontend/tests/app-state-opening.test.ts",
+          "frontend/tests/app-state-save.test.ts",
+          "frontend/tests/draft-conflict-reload.test.ts",
+          "frontend/tests/draft-navigation-dialog.test.ts",
+          "frontend/tests/draft-recovery-dialog.test.ts",
+          "frontend/tests/draft-registry.test.ts",
+          "frontend/tests/explicit-review-close-guard.test.ts",
+          "frontend/tests/gallery-reading-recovery.test.ts",
+          "frontend/tests/m1b1-app-contract.test.ts",
+          "frontend/tests/page-route-lifecycle.test.ts",
+          "frontend/tests/project-creation.test.ts",
+          "frontend/tests/project-directory-read-recovery.test.ts",
+          "frontend/tests/project-draft-cache.test.ts",
+          "frontend/tests/project-draft-quiescence.test.ts",
+          "frontend/tests/project-lifecycle-command.test.ts",
+          "frontend/tests/project-read-admission.test.ts",
+          "frontend/tests/project-report-frame.test.ts",
+          "frontend/tests/retained-author-draft-recovery.test.ts",
+          "frontend/tests/review-draft-store.test.ts",
+          "frontend/tests/run-session-lifecycle.test.ts",
+          "frontend/tests/workspace-availability-session.test.ts",
+          "frontend/tests/workspace-home-navigation.test.ts",
+          "frontend/tests/workspace-loading-navigation.test.ts",
+          "frontend/tests/workspace-owner-contracts.test.ts",
+          "frontend/tests/workspace-project-availability.test.ts",
+          "frontend/tests/workspace-project-loader.test.ts",
+          "frontend/tests/workspace-refresh-navigation.test.ts",
+          "frontend/tests/workspace-state.test.ts"
+        ],
+        "playwright": [
+          "frontend/e2e/creator-workbench-operations.spec.ts",
+          "frontend/e2e/creator-workflow-navigation.spec.ts",
+          "frontend/e2e/current-contract-recovery.spec.ts",
+          "frontend/e2e/draft-recovery-presentation.spec.ts",
+          "frontend/e2e/exact-repair-journey.spec.ts",
+          "frontend/e2e/first-save.spec.ts",
+          "frontend/e2e/m1b1-workbench.spec.ts",
+          "frontend/e2e/navigation-shell.spec.ts",
+          "frontend/e2e/project-direct-delete.spec.ts",
+          "frontend/e2e/project-folder-close.spec.ts",
+          "frontend/e2e/project-folder-snapshot-restore.spec.ts",
+          "frontend/e2e/project-lifecycle-errors.spec.ts",
+          "frontend/e2e/project-lifecycle.spec.ts",
+          "frontend/e2e/project-read-close.spec.ts",
+          "frontend/e2e/project-save-force-close.spec.ts",
+          "frontend/e2e/workspace-home.spec.ts",
+          "frontend/e2e/workspace-presentation.spec.ts"
+        ]
+      }
+    },
+    "shared-api-security": {
+      "description": "Cross-product API, auth, secret, route, readiness and boundary contracts.",
+      "selectors": {
+        "pytest": [
+          "tests/backend_core/test_config_and_boundaries.py",
+          "tests/backend_core/test_domain.py",
+          "tests/test_conformance.py",
+          "tests/test_secret_value_contract.py",
+          "tests/test_service_source_contract.py"
+        ],
+        "vitest": [
+          "frontend/tests/api-text-pipeline-commands.test.ts",
+          "frontend/tests/api.test.ts",
+          "frontend/tests/http-readiness.test.ts",
+          "frontend/tests/listener-address.test.ts"
+        ],
+        "playwright": []
+      }
+    },
+    "shared-generation": {
+      "description": "Generation schemas, prompts, validation and orchestration contracts.",
+      "selectors": {
+        "pytest": [
+          "tests/generation/test_continuity_repair.py",
+          "tests/generation/test_correction_directives.py",
+          "tests/generation/test_correction_postconditions.py",
+          "tests/generation/test_correction_schema.py",
+          "tests/generation/test_dialogue_capacity.py",
+          "tests/generation/test_import_boundary.py",
+          "tests/generation/test_join_state_values.py",
+          "tests/generation/test_json_schema.py",
+          "tests/generation/test_m12a_contracts.py",
+          "tests/generation/test_orchestration.py",
+          "tests/generation/test_planning_and_aggregation.py",
+          "tests/generation/test_prompts.py",
+          "tests/generation/test_provider_profiles.py",
+          "tests/generation/test_providers.py",
+          "tests/generation/test_responses.py",
+          "tests/generation/test_scene_fragment_contracts.py",
+          "tests/generation/test_scene_timing_allocation.py",
+          "tests/generation/test_secrets.py",
+          "tests/generation/test_storyboard_continuity_contracts.py",
+          "tests/generation/test_storyboard_fragment_contracts.py",
+          "tests/generation/test_validation.py",
+          "tests/generation/test_work_unit_prompts.py",
+          "tests/generation/test_work_unit_scene_facts.py"
+        ],
+        "vitest": [
+          "frontend/tests/app-state-generation.test.ts",
+          "frontend/tests/model.test.ts",
+          "frontend/tests/validation-focus.test.ts"
+        ],
+        "playwright": []
+      }
+    },
+    "shared-provider-dispatch": {
+      "description": "Provider, specialist, Codex bridge and task-dispatch contracts.",
+      "selectors": {
+        "pytest": [
+          "tests/backend_core/test_atlas_wan_transport.py",
+          "tests/backend_core/test_jobs.py",
+          "tests/backend_core/test_m15_config_profiles.py",
+          "tests/services/minimax_h3_gateway/test_app.py",
+          "tests/services/minimax_h3_gateway/test_prompt_robustness_study.py",
+          "tests/test_codex_image_dispatch.py",
+          "tests/test_h3_i2va_prompt.py",
+          "tests/test_native_bridge_intent.py",
+          "tests/test_pin_image_specialist.py",
+          "tests/test_runtime_capabilities.py",
+          "tests/test_runtime_declared_text_preset.py",
+          "tests/test_specialist_routes.py",
+          "tests/test_specialist_settings.py",
+          "tests/test_specialist_terminal_reconciliation.py",
+          "tests/test_specialist_workflow.py",
+          "tests/video_backends/minimax_h3/test_transport.py"
+        ],
+        "vitest": [
+          "frontend/tests/bridge-choice-retry.test.ts",
+          "frontend/tests/frozen-profile-guidance.test.ts",
+          "frontend/tests/h3-directions-review.test.ts",
+          "frontend/tests/manual-task-assignment.test.ts",
+          "frontend/tests/minimax-h3-controls.test.ts",
+          "frontend/tests/minimax-h3-timing.test.ts",
+          "frontend/tests/multiple-bridge-choices.test.ts",
+          "frontend/tests/native-bridge-intent.test.ts",
+          "frontend/tests/provider-settings-operations.test.ts",
+          "frontend/tests/reconcile-failed-send.test.ts",
+          "frontend/tests/specialist-actions.test.ts",
+          "frontend/tests/specialist-read-admission.test.ts",
+          "frontend/tests/specialist-settings-dialog.test.ts",
+          "frontend/tests/specialist-terminal-dialog.test.ts",
+          "frontend/tests/text-backend-readiness-presentation.test.ts"
+        ],
+        "playwright": [
+          "frontend/e2e/creator-run-reading-states.spec.ts",
+          "frontend/e2e/frozen-profile-session-key.spec.ts",
+          "frontend/e2e/provider-profiles.spec.ts",
+          "frontend/e2e/provider-settings-recovery.spec.ts",
+          "frontend/e2e/runtime-provider-capabilities.spec.ts",
+          "frontend/e2e/specialist-settings-presentation.spec.ts",
+          "frontend/e2e/specialist-terminal-presentation.spec.ts",
+          "frontend/e2e/video_backends/minimax_h3/h3-controls.spec.ts"
+        ]
+      }
+    },
+    "verification-tooling": {
+      "description": "Verification runner, inventory, packaging, static build and CI allocation contracts.",
+      "selectors": {
+        "pytest": [
+          "tests/backend_core/test_e2e_listener_ownership.py",
+          "tests/test_ci_browser_contract.py",
+          "tests/test_dependency_boundary.py",
+          "tests/test_extraction_contract.py",
+          "tests/test_retained_runtime_coverage_inventory.py",
+          "tests/test_shared_runtime_retirement.py",
+          "tests/test_static_asset_freshness.py",
+          "tests/test_verification_module_ownership.py",
+          "tests/test_verify_script.py"
+        ],
+        "vitest": [
+          "frontend/tests/static-report-reader.test.ts"
+        ],
+        "playwright": [
+          "frontend/e2e/fixture-listener-ownership.spec.ts",
+          "frontend/e2e/shipped-static.spec.ts",
+          "frontend/e2e/workbench-fixture-isolation.spec.ts"
+        ]
+      }
+    },
+    "shared-presentation": {
+      "description": "App-wide presentation behavior with no more specific owning product module.",
+      "selectors": {
+        "pytest": [
+          "tests/test_style_contract_cache.py"
+        ],
+        "vitest": [
+          "frontend/tests/appearance-mode.test.ts",
+          "frontend/tests/appearance-zoom.test.ts",
+          "frontend/tests/confirmation.test.ts",
+          "frontend/tests/context-help.test.ts",
+          "frontend/tests/run-presentation.test.ts",
+          "frontend/tests/ui-time.test.ts"
+        ],
+        "playwright": [
+          "frontend/e2e/creator-confirmation.spec.ts",
+          "frontend/e2e/creator-ui-polish.spec.ts",
+          "frontend/e2e/creator-workbench-layout.spec.ts",
+          "frontend/e2e/sketch-visual-system.spec.ts"
+        ]
+      }
+    }
+  },
+  "support_dependencies": [
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/art-review-fixture.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/browser-shard-manifest.json",
+      "kind": "runner-allocation",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring",
+        "verification-tooling"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/f5a-fixture.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/fixture.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring",
+        "verification-tooling"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/fixtures/cast-reference.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "media-lifecycle"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/fixtures/cast-style.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/fixtures/creator-graph.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "project-lifecycle",
+        "shared-presentation",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/fixtures/desktop-state.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/fixtures/f5a/art.json",
+      "kind": "shared-browser-fixture-data",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/fixtures/f5a/cast.json",
+      "kind": "shared-browser-fixture-data",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/fixtures/f5a/outline.json",
+      "kind": "shared-browser-fixture-data",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/fixtures/f5a/script.json",
+      "kind": "shared-browser-fixture-data",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/fixtures/f5a/storyboard.json",
+      "kind": "shared-browser-fixture-data",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/fixtures/graph-authoring.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/http-readiness.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring",
+        "verification-tooling"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/image-jobs/fixture.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/image-jobs/identity-review-refusal.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/image-jobs/unassessable-review.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/inline-required-mark.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/listener-address.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring",
+        "verification-tooling"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/native-media-diagnostics.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle",
+        "playback"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/page-route-lifecycle.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring",
+        "verification-tooling"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/provenance-layout.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/static-report-audit.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/video_backends/minimax_h3/aspect-choice-layout.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/video_backends/minimax_h3/review-directions.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle",
+        "playback"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/vite-only-fixture.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "shared-presentation"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/e2e/workbench-controls.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/playwright.config.ts",
+      "kind": "runner-configuration",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring",
+        "verification-tooling"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "pyproject.toml",
+      "kind": "runner-configuration",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-api-security",
+        "shared-generation",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring",
+        "verification-tooling"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "scripts/testing/check_module_ownership.py",
+      "kind": "test-support-tool",
+      "consumers": [
+        "verification-tooling"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/art_delivery_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "project-lifecycle",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/backend_core/conftest.py",
+      "kind": "conftest",
+      "consumers": [
+        "media-lifecycle",
+        "project-lifecycle",
+        "shared-api-security",
+        "shared-provider-dispatch",
+        "verification-tooling"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/cast_style_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "project-lifecycle",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/creative_delivery_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "project-lifecycle",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/generation/conftest.py",
+      "kind": "conftest",
+      "consumers": [
+        "graph",
+        "shared-generation"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/generation/work_unit_contract_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "shared-generation"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/graph_draft_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "project-lifecycle",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/image_identity_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle",
+        "project-lifecycle"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/image_terminal_support.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle",
+        "project-lifecycle"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/production_bridge_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/production_bridge_intent_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "shared-provider-dispatch"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/production_presentation_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/production_rebuild_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/project_storage_exact_repair_support.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "project-lifecycle"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/project_storage_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-api-security",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/services/minimax_h3_gateway/conftest.py",
+      "kind": "conftest",
+      "consumers": [
+        "media-lifecycle",
+        "shared-provider-dispatch"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/source_graph_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "project-lifecycle",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/specialist_reconciliation_support.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle",
+        "project-lifecycle",
+        "shared-provider-dispatch"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/video_prompt_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/video_review_reopen_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "playback"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/video_storage_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "media-lifecycle",
+        "playback"
+      ]
+    },
+    {
+      "suite": "vitest",
+      "path": "frontend/tests/app-state-fixtures.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "project-lifecycle",
+        "shared-generation"
+      ]
+    },
+    {
+      "suite": "vitest",
+      "path": "frontend/tests/branch-operation-fixture.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "vitest",
+      "path": "frontend/tests/graph-workbench-fixture.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "vitest",
+      "path": "frontend/tests/production-bridge-fixture.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "media-lifecycle",
+        "playback",
+        "shared-provider-dispatch"
+      ]
+    },
+    {
+      "suite": "vitest",
+      "path": "frontend/tests/setup-browser-dom.ts",
+      "kind": "global-test-setup",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-api-security",
+        "shared-generation",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring",
+        "verification-tooling"
+      ]
+    },
+    {
+      "suite": "vitest",
+      "path": "frontend/tests/video-pilot-fixtures.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle",
+        "playback"
+      ]
+    },
+    {
+      "suite": "vitest",
+      "path": "frontend/vitest.config.ts",
+      "kind": "runner-configuration",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "playback",
+        "project-lifecycle",
+        "shared-api-security",
+        "shared-generation",
+        "shared-presentation",
+        "shared-provider-dispatch",
+        "story-authoring",
+        "verification-tooling"
+      ]
+    }
+  ]
+}
