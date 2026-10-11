@@ -25,6 +25,15 @@ The media reader continues withdrawing snapshots and disabling owner actions,
 draft autosave and quiescence writers while the read is unknown. Retention
 does not establish currentness or grant selection/generation eligibility.
 
+Unsaved keyframe compatibility observations have the same ownership boundary:
+one project, Shot/scene, retained candidate, approved storyboard revision and
+saved intent/asset byte identity. A changed target is blank immediately, before
+effects run, and requires new observations. An unchanged refresh, failure or
+retry preserves the draft while owner actions remain disabled. Durable approval
+notes are never copied into a new review draft. A selection acknowledgment alone
+does not erase observations for the same candidate/source; reviewed-binding
+reconciliation still owns actual candidate transitions.
+
 ## Consequences and guardrails
 
 - Saving an intent, polling or another same-context refresh cannot silently
@@ -38,3 +47,8 @@ does not establish currentness or grant selection/generation eligibility.
   both would leave the selection contract wrong for other refresh owners.
 - Backend frozen-parent admission remains unchanged. Invalidated candidates
   remain history and require fresh preparation rather than revival.
+- Compatibility regressions cover project/Shot/candidate changes, real intent,
+  asset-byte and approval changes, and unchanged failed-read recovery. Saved
+  approval evidence remains intact; remounting the entire media owner or copying
+  stored approval notes was rejected because either would lose independent
+  retained work or falsely imply a fresh review.

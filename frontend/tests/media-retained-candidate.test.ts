@@ -49,16 +49,21 @@ function deferred<T>() {
   const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
   return { promise, resolve, reject };
 }
-async function render(selectedShot: Shot = shot, projectId = "project", mediaDraftsEnabled = false) {
+async function render(selectedShot: Shot = shot, projectId = "project", mediaDraftsEnabled = false,
+  source = { review, storyboardRevision: 1 }) {
   await act(async () => root.render(createElement(ManagedMediaWorkbench, {
     projectId, storyboard, bible: demoProject.storyBible, graph: demoProject.storyGraph,
-    sceneBeats: demoProject.sceneBeats, selectedShot, storyboardRevision: 1, mediaDraftsEnabled, review, readOnly: false,
+    sceneBeats: demoProject.sceneBeats, selectedShot, ...source, mediaDraftsEnabled, readOnly: false,
   })));
   await settle();
 }
 async function settle() { await act(async () => { await Promise.resolve(); await Promise.resolve(); }); }
 function control<T extends HTMLElement>(testId: string) { return host.querySelector<T>(`[data-testid="${testId}"]`)!; }
 function kept(assetId: string) { return control(`keep-candidate-${assetId}`).getAttribute("aria-pressed"); }
+function compatibility() {
+  return Array.from(host.querySelectorAll("label"))
+    .find((label) => label.textContent?.includes("审核兼容性说明"))!.control as HTMLTextAreaElement;
+}
 async function click(testId: string) { await act(async () => control<HTMLButtonElement>(testId).click()); await settle(); }
 async function edit(element: HTMLTextAreaElement, value: string) {
   await act(async () => {
@@ -176,4 +181,83 @@ it("initializes each project and Shot independently, including unbound Shots and
   await click("keep-candidate-new-asset");
   await act(async () => root.unmount()); root = createRoot(host);
   await render(shot, "other-project"); expect(kept("other-asset")).toBe("true");
+});
+
+it("does not carry authored compatibility observations into another Shot, candidate or project", async () => {
+  vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValue(snapshot(
+    [binding(), binding("other-asset", otherShot)], assets.map((asset) => intent(asset.id)),
+  ));
+  await render();
+  await edit(compatibility(), "First Shot's lamp is off.");
+  await click("keep-candidate-new-asset");
+  expect(compatibility().value).toBe("");
+  expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(true);
+  await edit(compatibility(), "Replacement is reviewed for the first Shot.");
+  await render(otherShot);
+  expect(compatibility().value).toBe("");
+  expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(true);
+  await edit(compatibility(), "Other Shot's lamp is lit.");
+  await render(otherShot, "other-project");
+  expect(compatibility().value).toBe("");
+  await render();
+  expect(compatibility().value).toBe("");
+});
+
+it("preserves observations through unchanged read withdrawal, failure and retry without copying saved approvals", async () => {
+  const pending = deferred<VisualWorkbench>();
+  vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValueOnce(snapshot())
+    .mockImplementationOnce(() => pending.promise).mockResolvedValueOnce(snapshot());
+  const select = vi.spyOn(plotloomApi, "selectReviewedKeyframe").mockResolvedValue({ id: "old-asset-binding", selectionRevision: 9 });
+  await render();
+  expect(compatibility().value).toBe("");
+  await edit(compatibility(), "My new observations, not the stored approval.");
+  await refreshThroughImport();
+  expect(compatibility().value).toBe("My new observations, not the stored approval.");
+  expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(true);
+  await act(async () => pending.reject(new Error("offline"))); await settle();
+  expect(compatibility().value).toBe("My new observations, not the stored approval.");
+  await act(async () => Array.from(host.querySelectorAll("button")).find((button) => button.textContent?.includes("重试媒体读取"))!.click());
+  await settle();
+  expect(compatibility().value).toBe("My new observations, not the stored approval.");
+  await click("select-reviewed-keyframe");
+  expect(select).toHaveBeenCalledWith("project", expect.objectContaining({
+    assetId: "old-asset", shotId: shot.id,
+    compatibilityNote: "My new observations, not the stored approval.",
+  }));
+});
+
+it("requires new observations when the same candidate's reviewed intent or bytes actually change", async () => {
+  const pending = deferred<VisualWorkbench>();
+  const nextIntent = { ...intent("old-asset"), revision: 2 };
+  const nextBytes = { ...snapshot([binding()], [nextIntent]),
+    assets: assets.map((asset) => asset.id === "old-asset" ? { ...asset, displayHash: "c".repeat(64) } : asset),
+  };
+  vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValueOnce(snapshot())
+    .mockImplementationOnce(() => pending.promise).mockResolvedValueOnce(nextBytes);
+  await render(); await edit(compatibility(), "Intent r1 observations.");
+  await refreshThroughImport();
+  expect(compatibility().value).toBe("Intent r1 observations.");
+  await act(async () => pending.resolve(snapshot([binding()], [nextIntent]))); await settle();
+  expect(compatibility().value).toBe("");
+  expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(true);
+  await edit(compatibility(), "Intent r2 observations.");
+  await refreshThroughImport();
+  expect(compatibility().value).toBe("");
+  expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(true);
+});
+
+it("clears observations immediately on approval/source revision changes, even before the new read settles", async () => {
+  const pending = deferred<VisualWorkbench>();
+  const nextReview = { ...review, activeApproval: { ...review.activeApproval!, id: "new-approval", subjectRevision: 2 } };
+  vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValueOnce(snapshot())
+    .mockImplementationOnce(() => pending.promise).mockResolvedValueOnce(snapshot());
+  await render(); await edit(compatibility(), "Approved r1 observations.");
+  await render(shot, "project", false, { review: nextReview, storyboardRevision: 2 });
+  expect(compatibility().value).toBe("");
+  expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(true);
+  await act(async () => pending.resolve(snapshot())); await settle();
+  expect(compatibility().value).toBe("");
+  await edit(compatibility(), "Approved r2 observations.");
+  await render(shot, "project", false, { review, storyboardRevision: 1 });
+  expect(compatibility().value).toBe("");
 });

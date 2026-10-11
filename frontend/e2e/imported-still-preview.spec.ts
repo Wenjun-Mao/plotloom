@@ -35,7 +35,10 @@ test.describe("P0 imported still preview journey", () => {
     // Keeping each real image is an explicit comparison action; it adds the
     // candidate without treating the last imported file as a hidden default.
     await cards.nth(0).getByTestId(/^keep-candidate-/).click();
+    await page.getByLabel("审核兼容性说明").fill("Unsubmitted observations for fixture A only.");
     await cards.nth(1).getByTestId(/^keep-candidate-/).click();
+    await expect(page.getByLabel("审核兼容性说明")).toHaveValue("");
+    await expect(page.getByTestId("select-reviewed-keyframe")).toBeDisabled();
     await expect(page.getByText("正在比较两个候选", { exact: false })).toBeVisible();
     await cards.nth(0).getByTestId(/^keep-candidate-/).click();
     await page.getByTestId("visual-intent-source-refs").fill("development session image · fixture A");
@@ -46,10 +49,14 @@ test.describe("P0 imported still preview journey", () => {
 
     await page.getByRole("combobox", { name: "当前镜头", exact: true }).selectOption("shot_02");
     await cards.nth(0).getByTestId(/^keep-candidate-/).click();
+    await expect(page.getByLabel("审核兼容性说明")).toHaveValue("");
+    await expect(page.getByTestId("select-reviewed-keyframe")).toBeDisabled();
     await page.getByLabel("审核兼容性说明").fill("The retained fixture still is explicitly reviewed for the second shot.");
     await page.getByTestId("select-reviewed-keyframe").click();
     await page.getByRole("combobox", { name: "当前镜头", exact: true }).selectOption("shot_p0_03");
     await cards.nth(0).getByTestId(/^keep-candidate-/).click();
+    await expect(page.getByLabel("审核兼容性说明")).toHaveValue("");
+    await expect(page.getByTestId("select-reviewed-keyframe")).toBeDisabled();
     await page.getByLabel("审核兼容性说明").fill("The retained fixture still is explicitly reviewed for the third shot.");
     await page.getByTestId("select-reviewed-keyframe").click();
     await expect(page.getByText("所有镜头已有当前审核关键帧", { exact: false })).toBeVisible();
@@ -62,6 +69,11 @@ test.describe("P0 imported still preview journey", () => {
     await expect(page.getByText("shot_p0_03 · 2000 毫秒", { exact: false })).toBeVisible();
 
     const beforeRestart = await captureRestartEvidence(request, workbench.apiOrigin, projectId);
+    expect(beforeRestart.workbench.reviewedKeyframes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ shotId: "shot_01", compatibilityNote: "The retained still matches the approved first-shot composition." }),
+      expect.objectContaining({ shotId: "shot_02", compatibilityNote: "The retained fixture still is explicitly reviewed for the second shot." }),
+      expect.objectContaining({ shotId: "shot_p0_03", compatibilityNote: "The retained fixture still is explicitly reviewed for the third shot." }),
+    ]));
     // This terminates the owned FastAPI process and starts a new one with the
     // same SQLite database and ArtifactStore directory; it is intentionally
     // not a tab, navigation, or in-process state check.
@@ -86,6 +98,7 @@ test.describe("P0 imported still preview journey", () => {
     await page.getByRole("combobox", { name: "当前镜头", exact: true }).selectOption("shot_01");
     await openMediaPreparation(page);
     await cards.nth(1).getByTestId(/^keep-candidate-/).click();
+    await expect(page.getByLabel("审核兼容性说明")).toHaveValue("");
     await page.getByTestId("visual-intent-source-refs").fill("development session image · fixture B");
     await page.getByTestId("save-visual-intent").click();
     await page.getByLabel("审核兼容性说明").fill("The replacement still matches the approved first-shot composition.");
@@ -120,6 +133,8 @@ test.describe("P0 imported still preview journey", () => {
     await openMediaPreparation(page);
     await cards.nth(1).getByTestId(/^keep-candidate-/).click();
     await expect(page.getByText(/已保存 r1/)).toBeVisible();
+    await expect(page.getByLabel("审核兼容性说明")).toHaveValue("");
+    await expect(page.getByTestId("select-reviewed-keyframe")).toBeDisabled();
     await page.getByLabel("审核兼容性说明").fill("Reapproved board compatibility is explicit, not inherited.");
     await expect(page.getByTestId("select-reviewed-keyframe")).toBeEnabled();
     const reapprovedSelectionAck = page.waitForResponse(response =>

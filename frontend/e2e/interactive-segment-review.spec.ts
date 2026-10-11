@@ -98,7 +98,7 @@ async function selectEndingKeyframe(page: Page, request: APIRequestContext, work
   const imported = await importResponse;
   expect(imported.ok(), await imported.text()).toBeTruthy();
   const assetId = (await imported.json() as { id: string }).id;
-  await page.getByRole("button", { name: new RegExp(`候选图片 ${assetId}`) }).click();
+  await page.getByRole("button", { name: new RegExp(`^候选图片 ${assetId}`) }).click();
   await page.getByTestId(`keep-candidate-${assetId}`).click();
   await page.getByTestId("visual-intent-source-refs").fill("Synthetic test-only ending still.");
   const intentResponse = page.waitForResponse((response) => response.request().method() === "POST"

@@ -1,9 +1,11 @@
 # Portrait creator walkthrough ledger
 
 Authority and boundaries: [run profile](../roadmap/2026-10-11-portrait-creator-walkthrough.md).
-Status: IN PROGRESS. Four portrait keyframes reviewed/selected and the first
-2.5-second video cut selected; the remaining shots and both final playback routes
-are not yet accepted.
+Status: COMPLETE for the bounded product walkthrough. Nine portrait keyframes
+and nine 2.5-second cuts are explicitly selected; both interactive endings,
+restart and retained playback after page reload were exercised. This is not
+final-film acceptance: the leave-ending turn remains a recorded creative defect,
+and human listening/mixing and full visual continuity QA are not claimed.
 
 ## Starting evidence
 
@@ -292,3 +294,122 @@ dismiss action. The browser regression explicitly checks the true backdrop,
 Esc, close, focus return and non-mutation.
 The final backdrop/focus/non-mutation image-job journey passed (25.866s).
 No new full or hosted release gate is claimed.
+
+## Remaining portrait media and actual endings
+
+The five ending keyframes froze clean `6c8f44a9`; all nine shot image jobs reached
+delivered. Inspected complete images, saved visual intent r1, then explicitly
+selected and reviewed each candidate. The first four receipts are above.
+
+| Shot | Native image job | Delivered SHA-256 | Identity review |
+| --- | --- | --- | --- |
+| 5 switch off | `ij_607c360731e24b359c8cef2998d08492` | `bd356a08b129ce5dc5665f61769a7317badcfd374583e55e5a29b91eff632a11` | `fd9ac458…` |
+| 6 lift unlit lamp | `ij_e08f02611a5943a28a9d8204d72ef1ba` | `09403634386acb42ab4a8e90fc33edcbe16fcb9da2a7e7214da36f0074087e51` | `0a7c832c…` |
+| 7 hold and turn | `ij_ce535401b8ef4a8db9809b266c7bacbf` | `9b3a167286875adba2039f4cf956a3877cc6476a3ae28f25ab40565172b8d2ad` | `87607589…` |
+| 8 withdraw hand | `ij_b91e1110eb3843ddb05d33f812865a1c` | `915d85b0a36001ff08d9dedceb106a70f8c30be01c8bd1243aba54376bc7de82` | `7e464c88…` |
+| 9 leave empty-handed | `ij_f8bf1ec8b53441c5a7feec509af84dcb` | `ad12d71c0d05fb8ebf893d74d561ec473596c0997bdcbaff1f6bbc5cefa9e796` | `a9985f5d…` |
+
+All nine are 941×1672 nominal-portrait inputs. The explicit H3 quality8 v2
+576×1024 treatment uses contain/pad consent, not stretch or silent cropping.
+The real originals decode as 124 frames at 24fps / 5.167 seconds; accepted cuts
+are independently authored 0–60 frames, revision 1 / 2.5 seconds.
+
+| Shot | Selected original job | Selected cut | Cut SHA-256 |
+| --- | --- | --- | --- |
+| 1 | `vj_07b35d30e1d4451c9ce7c5b75aa98002` | `112a555a-b0c8-4e84-abf6-bf8621075372` | `2627a849f5c83f7b8643515d9d83a0e777c7570a5fe691e1a75e33a4165e5bba` |
+| 2 | `vj_ea1e2dc1e494444dbffc8ab078c1dc59` | `66707cbc-d458-4b18-8b8f-f24287f0083f` | `10fe6d01b56b0bc6466dad535706c57a5b4b3503378d02fa5f6413ee3a4ad0dd` |
+| 3 | `vj_5a68e9e5087d455b9f4b5215a7ae95c3` | `e42dd69b-8dfa-4e9b-a0eb-0ad467a4fab0` | `7184e134f96c929b122a5f637eda3ed2dd7694ed3bda64c7d7487f3d5df1072b` |
+| 4 | `vj_b7df01ff51a545c787ba368ac235085f` | `b38b4261-78a3-47fb-8cd9-8a4aac61a578` | `2f0211f13f77c397cb7edb022f05dd325db944230a5e1ed0e48d4541f78f797b` |
+| 5 | `vj_4d60c592e41a4fc69bc40d7587afc691` | `e17f7ded-3ec8-402c-ba57-a53ae3973b16` | `1cb0737dff1f36421fa0fbd4e652960751fc23a80dc017b0cc2eab2093be7d0c` |
+| 6 | `vj_4f45ab7fe8864a5ba52e7ebc9f095093` | `4d40df64-b1bb-424b-8d47-7e535c39a47f` | `566a844e844dec40c8041e821ceed863637ca090b8eaeb324165740e92c71e48` |
+| 7 | `vj_07bf34dc80d9473b83269cd5e93164f9` | `61312571-29cd-4d22-9fbd-d8079d8eac02` | `16a9b93646fe543abadd30eaca73e6071dd23a8affbcebcdbcff0cc48cb48a77` |
+| 8 | `vj_47962e7490884f09ba8d15445970c675` | `70b974a9-cbf4-4995-b350-abeaf9627762` | `a26480775afe7e6a054c562a623d6ee2aeb3fc2d22a3c63b82c4abb27dd8f2a8` |
+| 9 | `vj_a4ee858333e24342bf05790b05786927` | `cf221834-9ea0-499e-994c-ee6f7627a73d` | `1650b79f7f36213132396ab850d609f5820b6c80c7af0c0f86cfa467fe7651fd` |
+
+Twelve originals reached ingested; three were rejected and remain preserved.
+In addition to shot 1's original above, shot 4's first
+`vj_6b7b7ec487b24dcf8bde9c4aefe16c8b` lifted the lamp before the choice, and
+retry `vj_cf442d8c9240445a976b16358ce3c329` switched it off within the cut.
+Two equivalent failures triggered reassessment, not another blind retry. Using
+the same approved shot image as both start and end frame through native controls
+produced a lit, stationary pause in `vj_b7df01ff…`. The changed endpoint input
+correctly leaves older frozen jobs mismatched and unselectable; no gate bypass.
+One successful endpoint attempt is not a general model reliability guarantee.
+
+Shots 2/5 complete on/off separately; shot 6 lifts the unlit lamp just above the
+desk within its selected cut; shot 7 holds and turns; shot 8 withdraws the hand
+without moving or extinguishing the lamp. Shot 9 keeps full framing, empty
+hands and a lit stationary lamp, but its weak turn is toward the window rather
+than convincingly away. Its explicit `Codex walkthrough only` review records
+that defect and requires replacement/revision for a final film. Pose-height,
+window and lamp-finish continuity limitations are not concealed by execution
+success. AAC stereo and native unmuted decode are observed, not listening approval.
+
+Actual player journey at 1440×900: four shared cuts played automatically into
+the route-only choice, with both exact options and no dummy choice film. Take
+played its three cuts and stopped at the take ending; Restart cleared history
+and returned to opening 1/4. Leave played its two cuts and stopped at the leave
+ending without continuing into Take. Each final native video reached
+`ended`, duration 2.5, 576×1024, without decode error. Route footage totals are
+**17.5 seconds Take / 15 seconds Leave**, excluding the viewer's answer time.
+They satisfy the 30-second ceiling, not a claim of exactly 30 seconds.
+Page reload retained the nine selected cuts and reopened playable opening 1/4.
+This is reload evidence, not a new process-restart or format-revision exercise.
+
+At exploratory 390×844 playback, page width remained 390 with no horizontal
+overflow; video measured 320×568.883 against native 576×1024. Both choices fit,
+vertical scrolling remained available, and Restart → choice → Leave completed.
+This is not a mobile editor support claim. Local surrounding-context captures:
+`portrait-take-route-ended.png`, `portrait-leave-route-ended.png`,
+`portrait-player-390x844.png`, `pause-endpoint-cut-reviewed.png` under
+`output/playwright/portrait-walkthrough/`. The existing missing-clip guide first
+identified the one remaining shot precisely; after selection it offered the
+concrete interactive-play check rather than asking for a nonexistent stage button.
+
+## Finding: compatibility review draft crossed shot boundaries
+
+Actual unsaved `审核兼容性说明` for shot 9's leave action remained visible after
+switching to shot 6's unlit-lamp lift. Capture `review-note-wrong-shot.png`.
+Durable approvals were not corrupted: each actual selection received a fresh
+manually replaced note. Root cause was panel-owned unscoped `useState("")`,
+not a server approval or provenance failure.
+
+The extracted keyframe draft owner scopes observations to project, shot/scene,
+candidate, approval/storyboard revision and ready intent/asset byte identity.
+A changed target renders blank immediately, before effects or a new media read
+settle. Unchanged refresh/failure/retry preserves observations while existing
+owner gates disable actions. Stored approval notes are never copied into a new
+draft. No whole-workbench remount, new mutation or downstream tolerance.
+This ownership decision extends [ADR 0103](../adr/0103-retained-candidate-read-reconciliation.md).
+
+Scope against `6c8f44a9`: unchanged API/payload/schema, persistence, admission,
+auth, providers/prompts, dependencies, build/package tools and generation.
+No job was unresolved during edits. Regression first failed three new cases
+(five passed) without the fix, then all 18 retained-candidate/failed-refresh
+cases passed. Quick passed 149 files / 1,267 Vitest cases, both TypeScript
+checks, lock/lint in 11.271 seconds. Four affected browser specs ran: imported
+still, H3 pilot and image jobs passed; one interactive case initially matched
+both candidate selection and the separate full-image-view button. Anchoring
+that selection locator to its actual label repaired only test ambiguity. Both
+interactive cases then passed in 53.023 seconds; all five affected cases passed
+across the two runs. No assertion was weakened or Python full suite repeated.
+
+Two serialized builds matched the complete seven-file manifests; final
+workbench.js `6bda6c3982f6600d0fe533d0c72cd9c61ecf9cac7d5888a308f735bbeec866f7`,
+CSS unchanged `ac0655604c3f12116fec6cd7008680def5166c41ea15ea3c3d589f679e18e64a`.
+Independent GPT-6 Luna / Max review found no actionable issue. Normal 8841
+readback after static reload at 1440×900 showed a temporary shot-1 note clear
+immediately on shot-6 selection, remain blank after read settlement, and keep
+approval disabled. The probe was never submitted; existing intent/video and
+durable review records remained intact. Capture `compatibility-scope-fixed.png`.
+
+## Final boundary and remaining work
+
+Landscape project.json and SQLite hashes were rechecked and match the starting
+baseline. Old landscape and rejected portrait originals remain intact. No paid
+fallback, unsafe staging deletion or repeat queued worktree archive occurred.
+The Source checkbox wording, Script's raw-JSON candidate reading, deliberate
+format-change invalidation and remaining playbook combinations are deferred,
+not new PASS results. Full artistic continuity, final leave-turn quality and
+human audio review remain separate. Local bounded frontend qualification is
+complete; no new full/hosted release qualification is claimed for these fixes.

@@ -27,6 +27,7 @@ import { useAssetKeyframeActions } from "./assets/useAssetKeyframeActions";
 import { useImageJobActions } from "./image-jobs/useImageJobActions";
 import { useCharacterReferenceActions } from "./references/useCharacterReferenceActions";
 import { useMediaSelectionContext } from "./keyframes/useMediaSelectionContext";
+import { useKeyframeCompatibilityDraft } from "./keyframes/useKeyframeCompatibilityDraft";
 import { ShotPreparationSummary } from "./ShotPreparationSummary";
 import { revealMediaOwner } from "./media-owner-navigation";
 import { useMediaWorkbenchData } from "./useMediaWorkbenchData";
@@ -101,7 +102,6 @@ export function ManagedMediaWorkbench({
   const [keptAssetId, setKeptAssetId] = useState("");
   const [origin, setOrigin] = useState("Local creator import");
   const [declaredAdditions, setDeclaredAdditions] = useState("reference only");
-  const [compatibility, setCompatibility] = useState("");
   const [referenceCharacterId, setReferenceCharacterId] = useState("");
   const [referencePrimaryAssetId, setReferencePrimaryAssetId] = useState("");
   const [referenceComplementaryAssetIds, setReferenceComplementaryAssetIds] =
@@ -174,6 +174,10 @@ export function ManagedMediaWorkbench({
     setSamePersonComparisons,
     setKeptAssetId,
     setFrameIndex,
+  });
+  const { compatibility, setCompatibility } = useKeyframeCompatibilityDraft({
+    projectId, shot: selectedShot, assetId: keptAssetId, approval: currentApproval,
+    storyboardRevision, intent: activeIntent, asset: assetById.get(keptAssetId), mediaReadPhase,
   });
   const {
     chooseCandidate,

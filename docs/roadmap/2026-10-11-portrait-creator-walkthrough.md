@@ -50,3 +50,25 @@ quality and human listening/mixing are separate from software/media execution.
 
 The verification-health worktree's earlier queued archive remains unconfirmed;
 it is preserved and is not part of this portrait run.
+
+## Completed checkpoint
+
+The real portrait walkthrough reached both actual interactive endings using
+nine selected 2.5-second clips (17.5 seconds Take / 15 seconds Leave, excluding
+choice time). Restart, retained playback after reload and exploratory 390px
+playback were exercised. The landscape project hashes remain unchanged.
+Twelve H3 originals were ingested; three rejected originals remain preserved.
+
+Observed root causes produced bounded fixes for premature prerequisite hints,
+unchanged Storyboard re-entry admission, full portrait candidate/reference
+viewing and shared-dialog fit, and cross-shot compatibility-review drafts.
+Each has focused regressions, proportional frontend qualification and stable
+independent review; evidence and exact media identities are in the ledger.
+
+This completes product execution, not final-film acceptance. The leave-ending
+turn, visual continuity and human listening/mixing remain explicitly unapproved
+for a final film. Source checkbox copy, readable Script candidate presentation,
+format-change invalidation and unexercised playbook combinations are follow-ups,
+not reasons to silently regenerate or claim blanket coverage. Staging cleanup
+refusal remains preserved without weakening directory permissions. No new full
+or hosted release qualification is claimed for the portrait UI revisions.
