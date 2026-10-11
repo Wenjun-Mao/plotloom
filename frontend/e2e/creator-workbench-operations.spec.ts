@@ -23,6 +23,41 @@ async function save(page: Page) {
 }
 async function nameNode(page: Page, title: string) { await page.getByRole("textbox", { name: "章节标题", exact: true }).fill(title); await page.getByRole("textbox", { name: "剧情摘要", exact: true }).fill(`${title} 的正文完整保留。`); await page.getByRole("button", { name: "保存图草稿", exact: true }).click(); }
 
+test("graph action explanations distinguish save confirm and apply in both views on supported desktops", async ({ page, request, workbench }, info) => {
+  const id = await createCreatorGraph(request, workbench.apiOrigin, "action-help");
+  const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
+  const before = await json(request.get(`${base}/source-outline`));
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`);
+  await select(page, "choose");
+  const viewSwitch = page.getByRole("group", { name: "同一剧情图的两种视图" });
+  for (const size of [{ width: 1280, height: 768 }, { width: 1280, height: 460 }, { width: 1700, height: 900 }]) {
+    await page.setViewportSize(size);
+    for (const view of ["创作", "专业"] as const) {
+      await viewSwitch.getByRole("button", { name: `${view}工作台`, exact: true }).click();
+      const actions = page.getByRole("group", { name: "保存、确认与应用", exact: true });
+      await actions.scrollIntoViewIfNeeded();
+      for (const [label, help] of [
+        ["保存图草稿", "保存修改，仍是草稿。"],
+        ["确认图内容", "确认版本，不应用路线。"],
+        ["应用到故事路线", "启用已确认的故事路线。"],
+      ]) {
+        const button = actions.getByRole("button", { name: label, exact: true });
+        await expect(button).toHaveAccessibleDescription(`${help} 三项操作均不会生成影片。`);
+        await expect(actions.getByText(help, { exact: true })).toBeVisible();
+      }
+      const bounds = await actions.boundingBox();
+      expect(bounds!.y).toBeGreaterThanOrEqual(0);
+      expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(size.height);
+      expect(await actions.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(size.width);
+      if (view === "创作") expect(await page.locator(".creator-inspector-body").evaluate(element => element.clientHeight)).toBeGreaterThan(70);
+      await page.screenshot({ path: info.outputPath(`graph-actions-${view === "创作" ? "creator" : "professional"}-${size.width}x${size.height}.png`) });
+    }
+  }
+  expect(await json(request.get(`${base}/source-outline`))).toEqual(before);
+  expect((await json(request.get(`${base}/runs`))).runs).toEqual([]);
+});
+
 test("node filming help explains production and playback in both shared graph views on supported desktops", async ({ page, request, workbench }, info) => {
   const id = await createCreatorGraph(request, workbench.apiOrigin, "filming-help");
   const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;

@@ -10,6 +10,7 @@ import { CanonicalGraphReader } from "./CanonicalGraphReader";
 import { CreatorStoryInspector } from "./CreatorStoryInspector";
 import { GraphCommandDialog } from "./GraphCommandDialog";
 import { GraphDraftDiscard } from "./GraphDraftDiscard";
+import { GraphWorkflowActions } from "./GraphWorkflowActions";
 import { CreatorChart } from "./CreatorChart";
 import { CreatorEditDialog, type CreatorEdit } from "./CreatorEditDialog";
 import { creatorLayout, CARD_HEIGHT } from "./creatorLayout";
@@ -81,7 +82,14 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onSourceRetry, 
       <div className="creator-inspector-track"><aside ref={geometry.inspector} className="creator-inspector" aria-label="当前节点详情">
         <header><strong>{section?.title || "选择故事节点"}</strong><div className="creator-tabs" role="tablist"><button role="tab" aria-selected={tab === "story"} onClick={() => setTab("story")}>故事</button><button role="tab" aria-selected={tab === "production"} onClick={() => setTab("production")}>制作</button></div>{!action && <GraphSafetyNotice />}</header>
         <div className="creator-inspector-body"><CreatorStoryInspector projectId={project.id!} disabled={disabled} active={tab === "story"} onNavigate={onNavigate} />{tab === "production" && <CreatorProductionInspector project={project} read={production} graphCurrent={admission.graphCurrent} disabled={disabled} onNavigate={onNavigate} onOpenShot={onOpenShot} />}</div>
-        <footer><Button disabled={disabled} onClick={() => void owner.saveDraft()}>保存图草稿</Button><Button disabled={disabled || !source?.acceptedOutline || structure.incomplete || structure.mismatches.length > 0 || !production.data?.bridge} onClick={() => source && void owner.confirmMapping(source)}>确认图内容</Button><Button variant="primary" disabled={disabled || admission.installBlocked} onClick={() => source && void owner.installMapping(source)}>应用到故事路线</Button><p>{admission.reason}</p></footer>
+        <footer>
+          <GraphWorkflowActions
+            save={{ disabled, onClick: () => void owner.saveDraft() }}
+            confirm={{ disabled: disabled || !source?.acceptedOutline || structure.incomplete || structure.mismatches.length > 0 || !production.data?.bridge, onClick: () => source && void owner.confirmMapping(source) }}
+            apply={{ variant: "primary", disabled: disabled || admission.installBlocked, onClick: () => source && void owner.installMapping(source) }}
+          />
+          <p>{admission.reason}</p>
+        </footer>
       </aside></div>
     </div>
     {action && <CreatorEditDialog action={action} onClose={() => setAction(null)} />}

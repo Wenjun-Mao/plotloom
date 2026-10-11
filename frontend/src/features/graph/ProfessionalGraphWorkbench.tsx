@@ -13,6 +13,7 @@ import { GraphEdgeDetails } from "./GraphEdgeDetails";
 import { GraphCommandDialog } from "./GraphCommandDialog";
 import { newGraphId } from "./contracts";
 import { GraphSafetyNotice } from "./GraphSafetyNotice";
+import { GraphWorkflowActions } from "./GraphWorkflowActions";
 
 export function ProfessionalGraphWorkbench({ projectId, canonical, readOnly, sourceReview, onOpenSource }: { projectId: string; canonical: StoryGraph; readOnly: boolean; sourceReview: WorkspaceSourceReviewRead; onOpenSource: () => void }) {
   const owner = useGraphWorkbench(), mapping = owner.draft?.mapping;
@@ -37,10 +38,12 @@ export function ProfessionalGraphWorkbench({ projectId, canonical, readOnly, sou
     <GraphPreviewRecovery />
     {sourceReview.status === "failed" && <p className="notice warning" role="alert">无法读取来源与大纲：{sourceReview.error}<Button onClick={() => void sourceReview.refresh()}>重新读取来源与大纲</Button></p>}
     {owner.stale && <p className="notice warning">规范上下文已变化，图草稿仍保留。<Button disabled={owner.busy || owner.readStatus !== "ready"} onClick={() => void owner.recover()}>在当前版本恢复为新草稿</Button></p>}
+    <GraphWorkflowActions
+      save={{ disabled: disabled || !mapping, onClick: () => void owner.saveDraft() }}
+      confirm={{ disabled: disabled || !source, onClick: () => source && void owner.confirmMapping(source) }}
+      apply={{ disabled: disabled || !source?.acceptedSectionMap, onClick: () => source && void owner.installMapping(source) }}
+    />
     <div className="button-row">
-      <Button disabled={disabled || !mapping} onClick={() => void owner.saveDraft()}>保存图草稿</Button>
-      <Button disabled={disabled || !source} onClick={() => source && void owner.confirmMapping(source)}>确认图内容</Button>
-      <Button disabled={disabled || !source?.acceptedSectionMap} onClick={() => source && void owner.installMapping(source)}>应用到故事路线</Button>
       <Button disabled={disabled || !owner.canUndo} onClick={() => void owner.undo()}>撤销结构修改</Button>
       <Button onClick={onOpenSource}>来源、建议与接受报告</Button>
       <GraphDraftDiscard disabled={disabled || !mapping} />

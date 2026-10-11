@@ -66,6 +66,13 @@
 .creator-inspector > footer { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; border-top: 1px solid var(--line); }
 .creator-inspector > footer .button { padding: 6px 8px; font-size: 12px; }
 .creator-inspector > footer p { width: 100%; margin: 0; font-size: 12px; color: var(--muted); }
+.graph-workflow-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 14px; }
+.graph-workflow-action { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px; align-items: center; }
+.graph-workflow-action > span, .graph-workflow-generation-help { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.graph-workflow-action > .button { white-space: nowrap; }
+.graph-workflow-actions > .graph-workflow-generation-help { grid-column: 1 / -1; margin: 0; }
+.creator-inspector > footer .graph-workflow-actions { width: 100%; grid-template-columns: 1fr; }
+.creator-inspector .graph-workflow-action { grid-template-columns: 104px minmax(0, 1fr); }
 .creator-production-cut { margin: 10px 0; padding: 10px; border: 1px solid var(--line); border-radius: 6px; overflow-wrap: anywhere; }
 .creator-production-cut p { margin: 6px 0; }.creator-production-cut small { display: block; color: var(--muted); margin-top: 6px; }
 .creator-edit-dialog { width: min(600px, calc(100vw - 48px)); }

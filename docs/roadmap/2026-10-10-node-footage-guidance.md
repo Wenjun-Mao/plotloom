@@ -133,8 +133,79 @@ and `workbench2.css`
 The CSS/help layout is unchanged from the six inspected screenshots above.
 The independent review's documentation finding was checked again and resolved.
 
-Final full qualification, publication and hosted CI are pending. Product/creative
-acceptance remains with the owner; no service restart or owner project operation
-was performed. Preserve the executable candidate in a local commit before the
-gate so the deterministic-asset Git parity check uses that exact candidate, not
-the pre-change asset baseline; do not push until the full gate passes.
+The one unfiltered full run on clean candidate `e923b58` finished with exit 1
+(876.785 seconds). Frontend units/type checks, all 1,492 Python cases and
+deterministic asset/Git parity passed. The browser run passed 277 cases and
+failed six: Brief structural-help short-viewport placement, Creator inspector
+pointer resizing at 1280×460, three Source dirty-refresh retention cases and
+the accepted-outline locator in `source-outline-section-map.spec.ts`. The last
+is a strict-mode collision between guide status and the accepted-outline panel;
+do not weaken it to an arbitrary first match. The log is
+`/tmp/plotloom-node-footage-full-e923b58.log`; original failed traces remain in
+`frontend/test-results/`. Wheel/package gates after the browser step did not run.
+These are recorded failures, not full qualification or publication. All six
+precede the adjacent-caption changes below. Product/creative acceptance remains
+with the owner; no service restart or owner project operation was performed.
+
+## Adjacent graph-action explanations — approved follow-up
+
+The owner asked for short explanations beside Save, Confirm and Apply in both
+graph views. The existing state contract is correct, but button names alone
+do not explain the distinction at the point of use. A shared presentation
+component now pairs each existing control with its caption: save preserves a
+draft, confirm records approval without applying routes, and apply activates
+the confirmed story routes. A common visible notice, also in every button's
+accessible description, states that none of the three generates videos.
+
+This is a presentation-only refinement against `e923b58`: each view retains
+its exact disabled predicates, variants and callbacks. The provider, request
+payloads, source-review ownership, API schemas, persistence, admission, auth,
+provider/prompts, dependencies, build tooling and package contracts are
+unchanged. It qualifies for ADR 0156's risk-scoped frontend checks; passed
+Python evidence does not need to be repeated for these captions.
+
+Component checks cover captions, unique accessible references, unchanged
+handler delegation and disabled controls. Browser checks cover both views at
+1280×768, 1280×460 and 1700×900, preserving inspector body space and accepted
+source state, plus the existing native confirmation/application regressions.
+Executed checks for this presentation follow-up:
+
+- Focused `verify.py` selected `tests/graph-workflow-actions.test.ts` and
+  `tests/graph-confirmation-read.test.ts`: all 13 passed. An initial selector
+  included nonexistent `creator-admission.test.ts`; the runner refused it
+  before execution, then the corrected explicit selection passed.
+- `verify.py quick`: all 1,092 frontend cases in 134 files and both TypeScript
+  checks passed (13.784 seconds); locked dependencies/API import check passed.
+- The new desktop caption case and both existing real confirm/apply cases
+  passed (17.4 seconds). Output:
+  `/tmp/plotloom-graph-action-guidance-20261010/`. All six caption screenshots
+  were inspected: descriptions are adjacent and readable, without horizontal
+  overflow, and the short Creator inspector retains scrollable body space.
+- The checked-static delivery/control cases passed at all three desktop sizes;
+  Creator layout passed at 1280×768 and 1700×900. The existing 1280×460 pointer
+  resize failure reproduced unchanged at line 62 (width stays 300px), as it did
+  on `e923b58` before captions. This run is six passes and one failure, not an
+  all-pass qualification. Its retained trace is in
+  `/tmp/plotloom-graph-action-layout-20261010/`.
+- Browser manifest collection verified 85 specs and 284 exact cases across
+  existing shards, with zero overlap or omissions; no suite/tooling changes.
+- Two deterministic builds matched the seven-file sorted path/SHA-256 JSON
+  manifest `40ec79dbfe8519feecacb34c3f7c9620d1d9d1742f96c74659e1e9b114e1b789`.
+  No-cache normal8841 reads matched `workbench.js`
+  `5cfa7b4ecc943dca3f32fd3308a8a5cdba370b0550e9fba650e63be89c39a905`
+  and `workbench2.css`
+  `7799bba0df8ff3b4c32cc8e6273a0a01350c5b982155daca15ee0e6e5a6d4d15`.
+
+Independent GPT-6 Luna / Max read-only review found no actionable caption,
+accessibility or behavior findings: exact callbacks, disabled predicates and
+variants are unchanged. It also classified the six earlier browser failures
+as separate from the captions and graph write-readback repair. The short
+Creator resize screenshot shows pointer text selection on the sticky guide,
+not a successful divider drag. The source outline failure occurs before graph
+map confirmation; the dirty-refresh cases concern the Source editor, which
+these graph-action changes do not modify. No assertions were weakened.
+
+The captions are served locally, but the prior full-gate failures and repeated
+short-inspector failure still block release qualification and push. No hosted
+CI for either unpushed candidate is claimed. Repairing those separate guide,
+geometry and Source-editor blockers is not folded into this caption request.
