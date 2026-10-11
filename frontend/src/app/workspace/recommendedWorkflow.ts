@@ -196,6 +196,32 @@ function statusFor(input: RecommendedWorkflowInput, id: RecommendedWorkflowStepI
 
 function productionNextText(input: RecommendedWorkflowInput): WorkflowRecommendation {
   const target = input.activePage === "source" ? sourceWorkflowTarget(input.activeHash) : undefined;
+  const read = input.activePage === "characters" ? input.castRead : target === "art" ? input.artRead
+    : target === "script" ? input.scriptRead : target === "storyboard-review" ? input.storyboardRead : undefined;
+  // Only replace an empty owner's preparation invitation. Its pending work,
+  // errors, retained content and local edits still own their recovery guidance.
+  const emptyPreparation = read?.status === "ready" && read.state?.status === "missing"
+    && read.state.acceptedReviewState.status === "missing" && !["prepared", "ready"].includes(read.state.candidate?.status ?? "")
+    && !read.busy && !read.dirty && !read.error && !("retainedDraft" in read && read.retainedDraft);
+  if (emptyPreparation) {
+    const action: RecommendedWorkflowAction = { kind: "navigate", label: "打开来源与大纲", route: { stage: "source", hash: "source" } };
+    if (input.sourceReviewStatus === "loading" || input.sourceReviewStatus === "idle") return {
+      text: "正在核实来源、大纲与已应用路线；读取完成后再准备本页任务。",
+    };
+    if (input.sourceReviewStatus === "failed" || !input.sourceReview) return {
+      text: "无法核实本页任务的创作依据。点击左侧「来源与大纲」，再点击「刷新」重新读取；暂不建议准备任务。", action,
+    };
+    if (!input.sourceReview.source) return { text: "故事来源尚未确认。点击左侧「来源与大纲」，先点击「确认改编内容」；完成大纲与分支并应用路线后，再准备本页任务。", action };
+    if (!acceptedOutlineIsCurrent(input.sourceReview)) return {
+      text: "当前大纲尚未确认或依据已变化。点击左侧「来源与大纲」，完成当前大纲的交付与确认，再继续分支和本页任务。", action,
+    };
+    if (!currentSectionMap(input.sourceReview)) return {
+      text: "当前剧情分支尚未确认。点击左侧「来源与大纲」，审阅并确认保存分支，再应用到故事路线；随后返回本页准备任务。", action,
+    };
+    if (!currentGraphAdmission(input)) return {
+      text: "当前分支尚未应用到有效故事路线。点击左侧「来源与大纲」，核对分支区并点击「应用到故事路线」；随后返回本页准备任务。", action,
+    };
+  }
   if (target === "art") return artWorkflowNextText(input.artRead);
   if (target === "script") return scriptWorkflowNextText(input.scriptRead);
   if (target === "storyboard-review") return storyboardWorkflowNextText(input.storyboardRead, input.bridgeRead);

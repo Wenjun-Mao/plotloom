@@ -59,6 +59,42 @@ describe("recommended creative workflow", () => {
       "第4/6步「剧情图编辑」", "第5/6步「制作与审阅」", "第6/6步「播放」",
     ]);
   });
+  describe.each(["characters", "art", "script", "storyboard-review"] as const)("empty %s production prerequisites", stage => {
+    function emptyInput(): RecommendedWorkflowInput {
+      const state = { status: "missing" as const, candidate: null, acceptedReviewState: { status: "missing" as const, staleReasons: [] }, staleReasons: [] };
+      const read = { status: "ready", busy: false, dirty: false, state } as const;
+      return { ...base, activePage: stage === "characters" ? "characters" : "source", activeHash: stage,
+        castRead: { ...read, stage: "characters", state: { ...state, acceptedCast: null }, renderStyle: "live-action", retainedDraft: false, designValid: false },
+        artRead: { ...read, stage: "art", state: { ...state, acceptedArt: null }, renderStyle: "live-action", retainedDraft: false },
+        scriptRead: { ...read, stage: "script", state: { ...state, acceptedScript: null } },
+        storyboardRead: { ...read, stage: "storyboard-review", state: { ...state, acceptedReview: null } },
+      };
+    }
+    it.each([
+      [null, "确认改编内容"],
+      [acceptedReview({ acceptedOutline: null, outlineStatus: "missing" }), "当前大纲尚未确认"],
+      [acceptedReview(), "当前剧情分支尚未确认"],
+      [{ ...appliedGraphInput().sourceReview!, graphAdmission: null }, "尚未应用到有效故事路线"],
+    ] as const)("uses upstream state before inviting preparation (%#)", (sourceReview, text) => {
+      const model = buildRecommendedWorkflow({ ...emptyInput(), sourceReview: sourceReview ?? { ...acceptedReview(), source: null, acceptedOutline: null } })!;
+      expect(model.nextText).toContain(text);
+      expect(model.nextText).not.toContain("点击「准备");
+      expect(model.action).toEqual({ kind: "navigate", label: "打开来源与大纲", route: { stage: "source", hash: "source" } });
+    });
+    it.each(["loading", "failed"] as const)("does not interpret an upstream %s read as an empty project", sourceReviewStatus => {
+      const model = buildRecommendedWorkflow({ ...emptyInput(), sourceReviewStatus })!;
+      expect(model.nextText).toContain(sourceReviewStatus === "loading" ? "正在核实" : "再点击「刷新」");
+      if (sourceReviewStatus === "loading") expect(model.action).toBeUndefined();
+      else expect(model.action).toMatchObject({ kind: "navigate", route: { stage: "source", hash: "source" } });
+    });
+    it("preserves the active owner's busy guidance", () => {
+      const input = emptyInput();
+      for (const key of ["castRead", "artRead", "scriptRead", "storyboardRead"] as const) input[key]!.busy = true;
+      const model = buildRecommendedWorkflow(input)!;
+      expect(model.nextText).toContain("正在处理");
+      expect(model.action).toBeUndefined();
+    });
+  });
   const branchInput = (): RecommendedWorkflowInput => ({ ...base, activePage: "source", sourceReview: acceptedReview(), branchTaskStatus: "ready" });
   const branchTask = (status: string): BranchTaskState => ({
     candidate: { jobId: "branch-job", status, suggestion: status === "ready" ? { nodes: [], choices: [], joins: [], clarifications: [] } : null, reportAvailable: false },

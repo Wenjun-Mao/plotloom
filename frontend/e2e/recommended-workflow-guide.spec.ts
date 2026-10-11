@@ -4,6 +4,44 @@ import { execFileSync } from "node:child_process";
 import { json, writeDelivery, type Preparation } from "./f5a-fixture";
 import type { SourceOutlineReviewState, SourceTopology } from "../src/types";
 
+test("empty production pages identify missing upstream work before a rejected preparation", async ({ page, workbench }, info) => {
+  await page.goto(`${workbench.frontendOrigin}/v2/`);
+  await page.getByRole("button", { name: "创建空白项目" }).click();
+  await page.getByLabel("片名").fill("竖屏前置指引");
+  await page.getByLabel("故事梗概").fill("一个人在工作室里决定灯的去留。");
+  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  const guide = page.getByTestId("recommended-workflow");
+  for (const label of ["角色", "美术参考", "剧本", "分镜评审"]) {
+    await page.getByRole("link", { name: label, exact: true }).click();
+    await expect(guide).toContainText("故事来源尚未确认");
+    await expect(guide).toContainText("确认改编内容");
+    await expect(guide).not.toContainText("点击「准备");
+    await expect(guide.getByRole("button", { name: "打开来源与大纲", exact: true })).toBeVisible();
+  }
+  await guide.getByRole("button", { name: "打开来源与大纲", exact: true }).click();
+  await page.getByRole("button", { name: "确认改编内容", exact: true }).click();
+  await expect(page.getByText("改编内容 r1", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "角色", exact: true }).click();
+  await page.getByLabel("角色图像风格", { exact: true }).selectOption("live-action");
+  await expect(guide).toContainText("当前大纲尚未确认");
+  await expect(guide).not.toContainText("角色图像风格已选择");
+  await page.screenshot({ path: info.outputPath("portrait-upstream-prerequisite.png") });
+  const id = new URL(page.url()).searchParams.get("project")!;
+  let sourceFailed = true;
+  await page.route(`**/api/v2/projects/${id}/source-outline`, async route => sourceFailed
+    ? route.fulfill({ status: 503, json: { detail: "Temporary source read failure" } }) : route.continue());
+  await page.reload();
+  await expect(guide).toContainText("无法核实本页任务的创作依据");
+  await expect(guide).toContainText("再点击「刷新」");
+  await guide.getByRole("button", { name: "打开来源与大纲", exact: true }).click();
+  await expect(page.getByText("无法读取当前进度，请先刷新重试；保留内容不代表版本已核实。", { exact: true })).toBeVisible();
+  sourceFailed = false;
+  await page.getByRole("button", { name: "刷新", exact: true }).click();
+  await expect(page.getByText("改编内容 r1", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "角色", exact: true }).click();
+  await expect(guide).toContainText("当前大纲尚未确认");
+});
+
 test("shows applied graph status and the next production control without hiding pending edits", async ({ page, request, workbench }, info) => {
   const id = execFileSync("uv", ["run", "python", "-m", "frontend.e2e.fixtures.bridge_handoff_project", "--outputs", workbench.outputsRoot, "--application", workbench.applicationDataRoot], { cwd: path.resolve(".."), encoding: "utf8" }).trim();
   const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
