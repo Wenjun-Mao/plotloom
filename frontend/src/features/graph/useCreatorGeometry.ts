@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
+import { workspaceHeaders, workspaceViewportTop } from "../../app/workspace/workspaceViewport";
 
 type Preference = { width: number | null; pageY: number; chartX: number };
 const initial = (): Preference => ({ width: null, pageY: 0, chartX: 0 });
@@ -33,8 +34,8 @@ export function useCreatorGeometry(projectId: string, selectedY: number | undefi
     const width = effective(); element.style.setProperty("--creator-inspector-width", `${width}px`);
     handle.setAttribute("aria-valuenow", String(Math.round(width)));
     handle.setAttribute("aria-valuemax", String(Math.floor(bounds().max)));
-    const rect = element.getBoundingClientRect(), toolbar = document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 0;
-    const top = Math.max(rect.top + 8, toolbar + 8), bottom = Math.min(rect.bottom - 8, window.innerHeight - 8);
+    const rect = element.getBoundingClientRect();
+    const top = Math.max(rect.top + 8, workspaceViewportTop() + 8), bottom = Math.min(rect.bottom - 8, window.innerHeight - 8);
     const available = Math.max(0, bottom - top), height = Math.min(available, window.innerHeight * .85);
     const centre = rect.top + (selected.current ?? 56);
     const panelTop = Math.max(top, Math.min(bottom - height, centre - height / 2)) - rect.top;
@@ -53,6 +54,7 @@ export function useCreatorGeometry(projectId: string, selectedY: number | undefi
       cancel();
     };
     const observer = new ResizeObserver(resize); if (layout.current) observer.observe(layout.current); if (chart.current) observer.observe(chart.current);
+    for (const header of workspaceHeaders()) observer.observe(header);
     window.addEventListener("resize", resize); window.addEventListener("scroll", scroll, { passive: true }); window.addEventListener("keydown", cancelKey); window.addEventListener("blur", cancel);
     chart.current?.addEventListener("scroll", persist, { passive: true }); resize();
     if (chart.current) chart.current.scrollLeft = preference.current.chartX;

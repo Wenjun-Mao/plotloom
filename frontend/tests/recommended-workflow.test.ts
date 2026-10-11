@@ -291,6 +291,15 @@ describe("recommended creative workflow", () => {
     expect(model.nextText).toContain("正在读取当前项目版本");
   });
 
+  describe.each(["source", "art", "script", "storyboard-review"])("retained Source draft on #%s", activeHash => {
+    it.each(["loading", "failed"] as const)("prioritizes %s reads over dirty draft guidance", sourceReviewStatus => {
+      const model = buildRecommendedWorkflow({ ...base, activePage: "source", activeHash, sourceReviewStatus, sourceDraftDirty: true })!;
+      expect(model.nextText).toContain(sourceReviewStatus === "loading" ? "正在读取来源" : "先在本页刷新读取");
+      expect(model.nextText).not.toContain("确认或放弃修改");
+      expect(model.action).toBeUndefined();
+    });
+  });
+
   it("distinguishes interactive playback checks from a static report", () => {
     const model = buildRecommendedWorkflow({ ...base, activePage: "storyboard" })!;
     expect(model.currentStep).toBe("production");

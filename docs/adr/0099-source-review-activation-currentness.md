@@ -60,3 +60,12 @@ review, same-project refresh, pending/failed-read action guards and retry, and
 unsaved scoped-draft retention. Existing delayed-response/project-switch tests
 remain required. No production timing, media dispatch or creative acceptance
 contract changes.
+
+## Source display guardrail (2026-10-10)
+
+The shared Source read owner clears its verified value on pending/failed reads.
+Source retains its last readable payload only in a project-scoped display seam,
+keeping the editor buffer mounted and all authority-dependent actions disabled.
+Retained display never flows back into the shared guide/graph admission owner;
+switching projects clears it, including a later return to the previous project.
+Pending/failure/retry browser cases must preserve dirty text without writes.

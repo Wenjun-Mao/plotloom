@@ -208,13 +208,14 @@ function nextRecommendation(input: RecommendedWorkflowInput, currentStep: Recomm
     : { text: "当前项目尚未保存。先完成项目简报并保存，再继续来源、大纲与后续创作。" };
   if (!input.workspaceAvailable) return { text: "当前项目版本未能读取。先刷新服务器版本；读取成功后再判断此前确认是否仍适用。" };
   if (input.actionDisabled) return { text: "项目正在读取或处理，请等待状态稳定后再继续；现有草稿和导航保护仍按当前工作台处理。" };
-  if (input.activePage === "source" && input.sourceDraftDirty) return { text: "故事内容有未保存修改。先在本页确认或放弃修改，再继续导航。" };
   if (currentStep === "brief") {
     return { text: "检查并保存当前项目简报，再按需返回来源与大纲；简报修改不会自动重建后续内容。", action: { kind: "navigate", label: "打开来源与大纲", route: { stage: "source", hash: "source" } } };
   }
-  const sourceNeeded = currentStep === "source" || currentStep === "branches" || currentStep === "creator";
+  const sourceNeeded = currentStep === "source" || currentStep === "branches" || currentStep === "creator"
+    || (input.activePage === "source" && input.sourceDraftDirty);
   if (sourceNeeded && input.sourceReviewStatus === "loading") return { text: "正在读取来源、大纲和当前分支版本；读取完成前不沿用旧确认。" };
   if (sourceNeeded && input.sourceReviewStatus === "failed") return { text: "无法核实当前来源与大纲状态。先在本页刷新读取；保留版本不代表当前确认。" };
+  if (input.activePage === "source" && input.sourceDraftDirty) return { text: "故事内容有未保存修改。先在本页确认或放弃修改，再继续导航。" };
   if (currentStep === "source") {
     const review = input.sourceReview;
     if (!review?.source) return { text: "先确认故事来源，再准备大纲任务；确认来源不会自动生成大纲。" };

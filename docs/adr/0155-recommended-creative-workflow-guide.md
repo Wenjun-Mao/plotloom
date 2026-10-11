@@ -158,3 +158,11 @@ or persisted state, and performs no selection, approval or production mutation.
 The step index remains the current graph-view activity, not a completion ratio.
 Guard status/instruction transitions after native confirmation/application and
 both-view desktop visibility as well as the pure state projection.
+
+## Retained Source display and guide priority (2026-10-10)
+
+Pending or failed source reads take precedence over dirty-buffer instructions.
+Retaining an editor for review does not restore currentness or permission to
+confirm. The guide must first ask the author to wait or retry the read, then
+return to unsaved-draft guidance once verification succeeds. Guard both read
+states with dirty buffers in the model and native browser refresh regressions.

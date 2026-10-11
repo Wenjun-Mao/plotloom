@@ -18,6 +18,7 @@ import { useGraphWorkbench } from "../features/graph/GraphWorkbenchContext";
 import type { WorkspaceSourceReviewRead } from "../app/workspace/useWorkspaceSourceReview";
 import { useWorkspaceSourceReview } from "../app/workspace/useWorkspaceSourceReview";
 import type { BranchTaskReadObservation } from "../app/workspace/recommendedWorkflow";
+import { useSourceReviewDisplay } from "./useSourceReviewDisplay";
 
 const blankSource: SourceMaterial = {
   kind: "synopsis",
@@ -42,7 +43,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
   const fallbackSourceReview = useWorkspaceSourceReview(projectId, 0, false);
   const reviewOwner = sourceReview ?? fallbackSourceReview;
   const graphOwner = useGraphWorkbench();
-  const state = reviewOwner.value;
+  const state = useSourceReviewDisplay(projectId, reviewOwner);
   const [draft, setDraft] = useState<SourceMaterial>(blankSource);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -95,8 +96,11 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
     };
   }, [projectId, onSourceDraftDirtyChange, reportSourceDraftDirty]); // The project route owns refreshes.
   useEffect(() => () => onBranchTaskRead?.(projectId, { basis: "", status: "loading", value: null, busy: false, blocked: true }), [projectId, onBranchTaskRead]);
-  const { checking, failed, recheck } = useReviewActivation({ projectId, active: focusedTarget === "source", refreshToken, load });
-  const ownerDisabled = ownerReadOnly || checking || failed;
+  const activation = useReviewActivation({ projectId, active: focusedTarget === "source", refreshToken, load });
+  const { recheck } = activation;
+  const checking = activation.checking || reviewOwner.status === "loading";
+  const failed = activation.failed || reviewOwner.status === "failed";
+  const ownerDisabled = ownerReadOnly || reviewOwner.status !== "ready" || checking || failed;
   const reviewDraft = useReviewEditorDraft(projectId, "source", state ? `source:${state.source?.revision ?? 0}` : "", text => {
     const recovered = JSON.parse(text) as SourceMaterial;
     if (typeof recovered.text !== "string" || typeof recovered.title !== "string") throw new Error("来源草稿格式无效，请复制内容后重新填写。");

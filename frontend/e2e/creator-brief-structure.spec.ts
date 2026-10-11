@@ -9,18 +9,20 @@ test("structural help reserves normal-flow space without intercepting required f
   const labels = ["每次完整播放的选择次数", "不同结局的数量", "剧情节点数量上限", "每次选择的最多选项数", "分支汇合次数"];
   for (const size of [{ width: 1700, height: 900 }, { width: 1280, height: 768 }, { width: 1280, height: 460 }]) {
     await page.setViewportSize(size);
+    const shotRangeGrid = page.getByRole("spinbutton", { name: "最少", exact: true }).locator("xpath=../..");
+    expect(await shotRangeGrid.evaluate(element => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(2);
     for (const [index, label] of labels.entries()) {
       const help = page.getByRole("button", { name: `说明：${label}`, exact: true });
-      // Use normal document scrolling to place the setting group below the fixed toolbar.
+      // Normal document scrolling must respect all sticky workspace chrome.
       await help.evaluate(element => {
         const group = element.closest(".field-grid")!;
-        window.scrollTo(0, group.getBoundingClientRect().top + window.scrollY - 72);
+        const top = Math.max(0, ...[...document.querySelectorAll(".topbar, .recommended-workflow-guide")].map(header => header.getBoundingClientRect().bottom));
+        window.scrollTo(0, group.getBoundingClientRect().top + window.scrollY - top - 12);
       });
       await help.hover();
       const tooltip = page.getByRole("tooltip");
       await expect(tooltip.locator("strong")).toHaveText(label);
-      const toolbar = (await page.locator(".topbar").boundingBox())!;
-      const toolbarBottom = toolbar.y + toolbar.height;
+      const toolbarBottom = await page.evaluate(() => Math.max(0, ...[...document.querySelectorAll(".topbar, .recommended-workflow-guide")].map(header => header.getBoundingClientRect().bottom)));
       const initialBounds = (await tooltip.boundingBox())!;
       const overshoot = initialBounds.y + initialBounds.height - size.height;
       if (overshoot > 0) {

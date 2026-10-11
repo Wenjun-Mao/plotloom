@@ -1,5 +1,75 @@
 # Recommended creative workflow guide
 
+## Approved browser release-blocker repair (2026-10-10)
+
+The owner approved fixing the six unfiltered browser failures against trusted
+revision `62fe259`, with focused checks first and unchanged backend evidence
+reused. One source owner; the isolated M0–M5 worktree remains untouched.
+
+Root causes: creator geometry and the Brief hover test accounted for the toolbar
+but not the sticky guide; the narrow Brief settings column could not fit the
+first-row trigger and its normal-flow explanation on a short desktop; Source
+unmounted its editor when the shared verified read owner cleared authority
+during refresh; one outline assertion matched both guide and accepted panel.
+The baseline reproduces all six failures in seven selected cases (one passes).
+
+Repair the layout boundary, observe guide resizing, give compact Brief settings
+a wider two-row flow, retain same-project Source display separately from verified
+authority, and scope the outline assertion to its owning panel. Inspector height
+must fill the available workspace below all chrome, not an obsolete 300px minimum.
+Do not restore failed-read authority, weaken hover/resize coverage, or change
+backend/API, payloads, persistence, admission, auth, providers, dependencies,
+build tooling or package contracts. Preserve the owner's project and normal8841.
+Guard pending/failed/retry reads, project-switch isolation, expanded-guide
+geometry, all supported desktop sizes and the complete original browser suite.
+Stop after qualification, independent stable-candidate review and main
+publication; hosted CI and owner acceptance are reported separately.
+
+Independent review found two concrete adjacent corrections: pending/failed
+Source currentness must precede retained dirty-draft advice in the guide, and
+the compact Brief breakpoint must affect only the structural-help grid, not
+the separate min/max shot-count pair. Both receive regression guards; no
+broader workflow or production semantics change.
+
+### Repair qualification receipt
+
+Qualified executable candidate: the main commit containing this receipt,
+against trusted `62fe259`. The six original failures pass without removing
+coverage. Independent review is clear after its concrete currentness and
+selector-scope findings were corrected.
+
+- `focused`: 62 unit cases across recommended-workflow, source-review-display,
+  workspace-viewport, outline-cancel-reprepare and project-directory-read-recovery;
+  all 14 browser cases in creator-brief-structure, creator-workbench-layout,
+  source-entry-settings and source-outline-section-map passed in 37.275s.
+  After the final Source-hash priority correction, 49 workflow model cases and
+  all 8 source-entry-settings browser cases passed in 30.265s.
+- Final `quick`: 1,126 tests in 137 files, both frontend and browser type checks,
+  locked dependencies and API unused imports passed in 12.778s.
+- Final unfiltered browser gate: all 285 cases passed in 7.3m. Manifest: 85
+  specs, 124/161 cases per hosted shard, no omissions or overlap. Artifacts:
+  `/tmp/plotloom-browser-release-final-20261010`. Two earlier broad starts were
+  stopped for concrete review corrections; their four interrupted cases per
+  run are cancellation results, not failures or qualification evidence.
+- Desktop pixels inspected at 1700×900, 1280×768 and 1280×460: normal-flow
+  Brief help, expanded guide/inspector boundary and retained failed Source
+  editor. Applied-route guidance was also inspected in both short-height views.
+- Two deterministic builds have the same seven-file sorted path/hash tree:
+  `c1ad205886a8e2f6770620fbbfa599651a90536bc5cd5af65e38ba229b93ccba`.
+  JS: `91ed4756fff945915cc0414d78ea2717e0a305e1935db6b595ad36e434431ede`.
+  Wheel build and isolated installed-wheel smoke passed; packaged JS matches.
+  Wheel SHA-256: `a1f7941877974d74e72e8beaa9cb46ab3382db7e5739a199166473e0051d5136`.
+- Reuse the passed 1,492 Python contracts from `e923b58` (393.043s) in
+  `/tmp/plotloom-node-footage-full-e923b58.log`: actual input review finds only
+  generated static differences under backend/test/config/dependency/package
+  surfaces. This is combined gate qualification, not a fresh full-run claim.
+  The archived-reader gate also passed; its inputs are unchanged.
+
+Publication follows checked-bundle parity and non-force remote divergence
+checks. Required unfiltered hosted CI and owner acceptance remain separate;
+normal8841, Safari and the owner's project were not operated. M0–M5 remains
+isolated and was neither changed nor merged by this repair.
+
 Status: guide and concrete branch-control correction published on main. The
 one-graph/two-views refinement is published as `7da7b6e`; its required unfiltered
 hosted run 38101824564 remains in progress. Hosted CI is separate: original run

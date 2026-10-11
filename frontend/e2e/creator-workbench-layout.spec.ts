@@ -30,7 +30,14 @@ for (const viewport of [{ width: 1280, height: 768 }, { width: 1280, height: 460
   expect(new Set(labels).size).toBe(6);
   await page.getByRole("button", { name: "选择节点 风暴前的共同开场", exact: true }).click();
   await expect(inspector.getByRole("textbox", { name: "章节标题", exact: true })).toHaveValue("风暴前的共同开场");
-  if (viewport.height === 460) await expect.poll(async () => (await inspector.boundingBox())!.height).toBeGreaterThan(300);
+  if (viewport.height === 460) {
+    const available = await page.locator(".creator-layout").evaluate(element => {
+      const rect = element.getBoundingClientRect();
+      const chrome = Math.max(0, ...[...document.querySelectorAll(".topbar, .recommended-workflow-guide")].map(header => header.getBoundingClientRect().bottom));
+      return Math.min(Math.min(rect.bottom - 8, innerHeight - 8) - Math.max(rect.top + 8, chrome + 8), innerHeight * .85);
+    });
+    await expect.poll(async () => (await inspector.boundingBox())!.height).toBeCloseTo(available, 0);
+  }
   await page.screenshot({ path: info.outputPath("top.png") });
   for (const index of [1, 3, 6]) {
     await page.getByRole("button", { name: `选择节点 并行发展 ${index}：穿过长长的灯塔走廊`, exact: true }).click();
@@ -48,8 +55,17 @@ for (const viewport of [{ width: 1280, height: 768 }, { width: 1280, height: 460
   await page.getByRole("button", { name: "选择节点 结局 B", exact: true }).click();
   await expect(inspector.getByRole("textbox", { name: "章节标题", exact: true })).toHaveValue("结局 B");
   const box = (await inspector.boundingBox())!;
-  expect(box.y).toBeGreaterThanOrEqual(50); expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 1);
+  const workspaceTop = await page.evaluate(() => Math.max(0, ...[...document.querySelectorAll(".topbar, .recommended-workflow-guide")].map(header => header.getBoundingClientRect().bottom)));
+  expect(box.y).toBeGreaterThanOrEqual(workspaceTop); expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 1);
   await page.screenshot({ path: info.outputPath("bottom.png") });
+  const guide = page.getByTestId("recommended-workflow");
+  await guide.getByText("查看六步状态", { exact: true }).click();
+  await expect.poll(async () => {
+    const expanded = (await guide.boundingBox())!, panel = (await inspector.boundingBox())!;
+    return panel.y >= expanded.y + expanded.height && panel.y + panel.height <= viewport.height + 1;
+  }).toBe(true);
+  await page.screenshot({ path: info.outputPath("expanded-guide-inspector.png") });
+  await guide.getByText("查看六步状态", { exact: true }).click();
   await chart.hover(); await page.mouse.wheel(500, 0);
   await expect.poll(() => chart.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
   const separator = page.getByRole("separator", { name: "调整节点详情宽度" });

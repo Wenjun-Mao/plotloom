@@ -101,7 +101,10 @@ it.each([false, true])("exposes explicit first-candidate cancel recovery with re
       expect(prepare).toHaveBeenCalledExactlyOnceWith("project");
       get.mockRejectedValue(new Error("failed currentness read"));
       await act(async () => [...host.querySelectorAll("button")].find(item => item.textContent === "刷新")!.click());
-      expect([...host.querySelectorAll("button")].some(item => item.textContent === "重新准备大纲任务")).toBe(false);
+      const retainedPrepare = [...host.querySelectorAll("button")].find(item => item.textContent === "重新准备大纲任务")!;
+      expect(retainedPrepare.disabled).toBe(true);
+      expect(host.querySelector<HTMLTextAreaElement>(".source-outline-source textarea")?.value).toBe("unchanged source");
+      expect(host.textContent).toContain("保留内容不代表版本已核实");
     } else expect(prepare).not.toHaveBeenCalled();
     expect(saveSource).not.toHaveBeenCalled();
   } finally { await act(async () => root.unmount()); }

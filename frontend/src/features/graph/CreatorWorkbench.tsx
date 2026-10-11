@@ -19,6 +19,7 @@ import { useCreatorGeometry } from "./useCreatorGeometry";
 import { useCreatorProduction } from "./useCreatorProduction";
 import { CreatorProductionInspector } from "./CreatorProductionInspector";
 import { creatorAdmission } from "./creatorAdmission";
+import { workspaceViewportTop } from "../../app/workspace/workspaceViewport";
 
 export type CreatorNavigate = (stage: PageId, hash?: string) => void;
 type CreatorProps = { project: WorkspaceProject; readOnly: boolean; sourceReview: WorkspaceSourceReviewRead; onNavigate: CreatorNavigate; onOpenShot: (shotId: string) => void };
@@ -45,13 +46,13 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onSourceRetry, 
   useEffect(() => {
     const element = geometry.layout.current?.querySelector<HTMLElement>(`[data-creator-node="${owner.selectedNodeId}"]`);
     if (!element) { setSelectedY(undefined); return; }
-    const rect = element.getBoundingClientRect(), top = document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 0;
+    const rect = element.getBoundingClientRect(), top = workspaceViewportTop();
     setSelectedY(rect.top - geometry.layout.current!.getBoundingClientRect().top + CARD_HEIGHT / 2);
     if (!geometry.ready) return;
     const initialStoredPosition = revealedSelection.current === null && geometry.storedPosition.current;
     revealedSelection.current = owner.selectedNodeId;
     if (initialStoredPosition) return;
-    if (rect.top < top + 12 || rect.bottom > window.innerHeight - 12) element.scrollIntoView({ block: "center", inline: "nearest" });
+    if (rect.top < top + 12 || rect.bottom > window.innerHeight - 12) window.scrollBy(0, (rect.top + rect.bottom - top - window.innerHeight) / 2);
     const pane = geometry.chart.current!, paneRect = pane.getBoundingClientRect();
     if (rect.left < paneRect.left || rect.right > paneRect.right) {
       const node = layout.nodes.find(node => node.id === owner.selectedNodeId)!;

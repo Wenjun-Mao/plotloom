@@ -127,6 +127,7 @@ for (const viewport of sourceAuditViewports) {
     try {
       await page.goto(`${workbench.frontendOrigin}/v2/?project=${project.id}&stage=source#source`);
       await expect(page.getByText("正在读取故事来源和当前进度。", { exact: true })).toBeVisible();
+      await expect(page.getByTestId("recommended-workflow")).toContainText("正在读取来源、大纲和当前分支版本");
       await expect(page.locator(".source-workflow-source .spinner")).toBeVisible();
       await expect(page.getByRole("button", { name: "刷新", exact: true })).toBeDisabled();
       await sourceAuditCapture(page, info, "source-initial-pending");
@@ -179,6 +180,7 @@ for (const viewport of sourceAuditViewports) {
     try {
       await page.getByRole("button", { name: "刷新", exact: true }).click();
       await expect(page.getByText("正在读取故事来源和当前进度。", { exact: true })).toBeVisible();
+      await expect(page.getByTestId("recommended-workflow")).toContainText("正在读取来源、大纲和当前分支版本");
       await expect(story).toHaveValue(retained); await expect(story).toBeDisabled();
       await expect(page.getByRole("button", { name: "确认改编内容", exact: true })).toBeDisabled();
       await expect(page.getByRole("button", { name: "准备大纲任务", exact: true })).toBeDisabled();
@@ -187,6 +189,7 @@ for (const viewport of sourceAuditViewports) {
       await sourceAuditCapture(page, info, "source-dirty-pending-editor");
     } finally { release(); }
     await expect(page.getByRole("alert")).toContainText("来源刷新测试：服务暂不可用");
+    await expect(page.getByTestId("recommended-workflow")).toContainText("先在本页刷新读取");
     await expect(story).toHaveValue(retained); await expect(story).toBeDisabled();
     await page.getByText("无法读取当前进度，请先刷新重试；保留内容不代表版本已核实。", { exact: true }).scrollIntoViewIfNeeded();
     await sourceAuditCapture(page, info, "source-dirty-failed");

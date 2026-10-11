@@ -113,7 +113,12 @@ fieldset legend, .structured-editor legend, .section-map legend { color: var(--m
 @media (max-width: 1120px) {
   .two-column.wide-left { grid-template-columns: 1fr; }
 }
+@media (max-width: 1280px) {
+  .two-column.brief-layout { grid-template-columns: 1fr; }
+  .brief-settings .structural-settings-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 @media (max-width: 620px) {
+  .brief-settings .structural-settings-grid { grid-template-columns: 1fr; }
   .page { padding: 18px 12px 34px; }
   .page-header { display: block; }
   .page-actions { margin-top: 15px; flex-wrap: wrap; }
