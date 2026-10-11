@@ -38,7 +38,10 @@ test("graph action explanations identify whole-graph scope outside node details 
       const actions = bar.getByRole("group", { name: "保存、确认与应用", exact: true });
       // Inspect the whole region below the sticky guide, not only its buttons.
       await bar.evaluate(element => element.scrollIntoView({ block: "center" }));
-      await expect(bar).toHaveAccessibleDescription("作用于全部节点和连接，不仅是当前选中的节点。");
+      const status = await bar.locator(".graph-workflow-status").count() ? await bar.locator(".graph-workflow-status").innerText() : "";
+      await expect(bar).toHaveAccessibleDescription(`作用于全部节点和连接，不仅是当前选中的节点。 三项操作均不会生成影片。${status ? ` ${status}` : ""}`);
+      await expect(bar.locator("header > p")).toHaveCount(1);
+      await expect(bar.locator("footer")).toHaveCount(0);
       expect(await bar.evaluate(element => {
         const layout = document.querySelector(".creator-layout, .graph-editor-layout")!;
         return !element.closest("aside") && Boolean(element.compareDocumentPosition(layout) & Node.DOCUMENT_POSITION_FOLLOWING);

@@ -170,11 +170,20 @@ test("keeps the recommended workflow visible on supported desktops and retains d
     const top = await guide.evaluate(element => {
       const bar = element.getBoundingClientRect();
       const toolbar = document.querySelector(".topbar")!.getBoundingClientRect();
-      return { barTop: bar.top, toolbarBottom: toolbar.bottom, height: bar.height, scrollWidth: document.documentElement.scrollWidth };
+      const style = getComputedStyle(element);
+      return { barTop: bar.top, toolbarBottom: toolbar.bottom, height: bar.height, scrollWidth: document.documentElement.scrollWidth,
+        radius: parseFloat(style.borderTopLeftRadius), background: style.backgroundImage,
+        inset: bar.left - document.querySelector(".workspace-shell")!.getBoundingClientRect().left };
     });
     expect(Math.abs(top.barTop - top.toolbarBottom)).toBeLessThanOrEqual(2);
     expect(top.scrollWidth).toBeLessThanOrEqual(size.width);
     expect(top.height).toBeLessThan(size.height - top.toolbarBottom);
+    expect(top.height).toBeLessThan(90);
+    expect(top.radius).toBeGreaterThanOrEqual(8);
+    expect(top.background).toContain("linear-gradient");
+    expect(top.inset).toBeGreaterThanOrEqual(10);
+    await expect(guide.getByRole("img")).toHaveCount(0);
+    await expect(guide.locator('.recommended-workflow-mark[aria-hidden="true"]')).toBeVisible();
     await page.screenshot({ path: info.outputPath(`recommended-workflow-${size.width}x${size.height}-collapsed.png`) });
 
     await guide.getByText("查看六步状态").click();

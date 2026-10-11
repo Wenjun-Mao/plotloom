@@ -22,17 +22,23 @@ it("shows adjacent explanations and describes every action without changing its 
     expect(button.nextElementSibling?.textContent).toBe(explanations[index]);
   }
   expect(buttons[2].classList.contains("primary")).toBe(true);
-  expect(host.querySelectorAll(".graph-workflow-generation-help")).toHaveLength(1);
+  expect(host.querySelector("header > p")?.textContent).toBe(`${scope} 三项操作均不会生成影片。`);
+  expect(host.querySelector("footer")).toBeNull();
 });
 
-it("names the whole-graph region and keeps its currentness status with global actions", async () => {
+it.each([
+  "当前图内容已应用到故事路线。",
+  "先确认当前图内容，再应用到故事路线。",
+  "当前图有未保存修改，请先保存图草稿。",
+])("merges scope and generation help with the existing status: %s", async status => {
   await act(async () => root.render(createElement(GraphWorkflowActions, {
-    save: {}, confirm: {}, apply: {}, status: "当前图内容已应用到故事路线。",
+    save: {}, confirm: {}, apply: {}, status,
   })));
   const bar = host.querySelector("section")!;
   expect(document.getElementById(bar.getAttribute("aria-labelledby")!)?.textContent).toBe("整张剧情图 · 保存与应用");
-  expect(document.getElementById(bar.getAttribute("aria-describedby")!)?.textContent).toBe(scope);
-  expect(bar.querySelector(".graph-workflow-status")?.textContent).toBe("当前图内容已应用到故事路线。");
+  expect(document.getElementById(bar.getAttribute("aria-describedby")!)?.textContent).toBe(`${scope} 三项操作均不会生成影片。 ${status}`);
+  expect(bar.querySelector(".graph-workflow-status")?.textContent).toBe(status);
+  expect(bar.querySelectorAll("p")).toHaveLength(1);
 });
 
 it.each(["save", "confirm", "apply"] as const)("%s delegates only its own handler and preserves disabled admission", async action => {

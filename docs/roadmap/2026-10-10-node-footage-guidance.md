@@ -280,3 +280,72 @@ generation notice and currentness status. It did not run tests or inspect pixels
 the source owner performed the above checks. The presentation is served locally,
 without restart or owner project mutation, but remains unpushed with the earlier
 unqualified runtime candidate. No new full-gate or hosted-CI success is claimed.
+
+## Compact scope text and distinct workflow guide — approved follow-up
+
+The owner requested consolidating the graph bar's scope, no-generation notice
+and currentness reason, and differentiating the persistent workflow guide from
+ordinary page rows. The graph bar had separate header/footer presentation;
+the guide used an edge-to-edge row treatment. Both are presentation-layer issues.
+
+The graph bar now uses one supporting paragraph beside its whole-graph heading,
+with the existing conditional currentness reason rather than a hardcoded
+confirmation prerequisite. Per-action captions remain adjacent; each button's
+accessible description still includes its scope, own caption and no-video notice
+once. The workflow guide is an inset rounded card with a warm tint, compass mark
+and stage pill. The compass is decorative, not an additional assistant/control.
+The guide retains its sticky position, six steps and existing navigation.
+
+Diff review against `c1b24f7` confirms presentation and test changes only:
+per-view handlers, disabled predicates, variants, workflow model and navigation
+guards are unchanged. No API/schema/request payload, persistence, admission,
+auth, provider, prompt, dependency, build-tooling or package contract changes.
+ADR 0156 permits proportional frontend checks without repeating unaffected
+Python integration evidence. Earlier release blockers remain in force.
+
+Independent GPT-6 Luna / Max read-only review found no actionable findings in
+the stable source/test diff, including scope, conditional status, accessible
+descriptions and unchanged behavior. The reviewer did not run tests or inspect
+pixels; those checks belong to the source owner below.
+
+Executed verification on this presentation candidate:
+
+- `uv run --locked --no-sync python scripts/verify.py focused --vitest
+  tests/graph-workflow-actions.test.ts --vitest tests/graph-confirmation-read.test.ts
+  --vitest tests/recommended-workflow.test.ts`: 42 passed (0.911 seconds).
+- `uv run --locked --no-sync python scripts/verify.py quick`: 1,095 frontend
+  tests in 134 files, both TypeScript checks, locked dependencies and API import
+  check passed (12.648 seconds).
+- `npm --prefix frontend run test:e2e -- --workers=1
+  --output=/tmp/plotloom-guide-card-20261010 e2e/recommended-workflow-guide.spec.ts
+  e2e/creator-workbench-operations.spec.ts e2e/creator-workbench-production.spec.ts
+  e2e/production-rebuild.spec.ts e2e/creator-workbench-layout.spec.ts
+  e2e/creator-workbench-delivery.spec.ts`: 19 passed, one failed (2.0m).
+  The two guide cases and global-action case passed, including exact next
+  controls, draft guards, shared-view 4/6 state, merged accessible text,
+  collapsed/expanded visibility and no horizontal overflow. Native confirm/apply,
+  production preservation/rebuild, clean-entry `scrollY === 0`, and production
+  reachability at all three sizes passed. The existing 1280×460 divider pointer
+  failure at line 62 repeats (expected width >300px, received 300px); its failure
+  screenshot again shows guide text selected by the attempted drag. This run
+  is not an all-pass or release qualification, and no assertion was weakened.
+- Inspected the six graph-bar screenshots (both views at 1280×768, 1280×460
+  and 1700×900), six collapsed/expanded guide screenshots, short-window Source
+  next-import screenshot and clean-entry screenshot. The compact guide card is
+  distinct, texts/controls are readable, and graph actions remain outside node
+  details. Expanded status and source/navigation behavior are unchanged.
+- Browser manifest collection retains 85 specs and 284 cases across the
+  existing 124/160 shards, with zero missing/overlapping cases.
+- Two deterministic builds match the sorted seven-file path/SHA-256 JSON
+  manifest `f5e366bb2395f694fa739e0f9ad621bbafc6271752a6ed3ddd45bab12f172e46`.
+  No-cache normal8841 reads match `workbench.js`
+  `41444b675a3ea55c5991cfe926402b861d67edce5bf40a14b400a5a00bb8769f`
+  and `workbench2.css`
+  `5cb19a6b462b8c1b9350139f4885b6bf33f8e4ccec346ec10a2e9faf4e9979c1`.
+
+The UI refinement is served locally without a service restart or owner project
+mutation. It remains unpushed with the earlier failed runtime/release candidate;
+neither a new full-gate pass nor hosted-CI success is claimed. Preserve the
+owner's pending graph edits before refreshing the walkthrough tab. Separate
+geometry/Source-editor repairs and test-suite modularization are not part of
+this presentation follow-up.

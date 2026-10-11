@@ -12,8 +12,13 @@ export function RecommendedWorkflowGuide({ model, actionDisabled, onNavigate }: 
   return <section className="recommended-workflow-guide" aria-label="推荐创作流程" data-testid="recommended-workflow">
     <div className="recommended-workflow-compact">
       <div className="recommended-workflow-current">
-        <strong>推荐创作流程</strong>
-        <span>当前 · {currentIndex}/{model.steps.length} {model.currentStepLabel}{model.currentViewLabel && ` · ${model.currentViewLabel}`}</span>
+        <strong><span className="recommended-workflow-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" focusable="false">
+            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <path d="m16 8-2.5 5.5L8 16l2.5-5.5Z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+          </svg>
+        </span>推荐创作流程</strong>
+        <span className="recommended-workflow-stage">当前 · {currentIndex}/{model.steps.length} {model.currentStepLabel}{model.currentViewLabel && ` · ${model.currentViewLabel}`}</span>
       </div>
       <details className="recommended-workflow-details">
         <summary>查看六步状态</summary>
