@@ -703,6 +703,10 @@ complete profile passed in 40.341 seconds with 64 pytest, 2 Vitest and 6
 Playwright cases; full ownership preflight, both type checks, locked
 dependencies, deterministic bundle/parity, the four-shard guard at 83/61/70/71,
 wheel build and installed-wheel smoke all passed. Existing Starlette and Vite
-large-chunk warnings remain. The exact combined-candidate independent review,
-one local `full` gate and one unfiltered hosted same-SHA run remain
-outstanding.
+large-chunk warnings remain. The first combined-candidate independent review
+found an omitted graph/story-authoring consumer edge for the production
+workflow fixture and its transitive bridge fixture. The map now includes both
+owners, and a regression guard checks their transitive import consumers. Focused
+ownership tests and the verification-tooling complete profile passed after this
+correction. Independent re-review, one local `full` gate and one unfiltered
+hosted same-SHA run remain outstanding.

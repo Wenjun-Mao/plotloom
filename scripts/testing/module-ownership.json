@@ -1229,9 +1229,11 @@
       "kind": "shared-fixture-or-helper",
       "consumers": [
         "creative-production",
+        "graph",
         "media-lifecycle",
         "playback",
-        "shared-provider-dispatch"
+        "shared-provider-dispatch",
+        "story-authoring"
       ]
     },
     {
@@ -1266,7 +1268,9 @@
       "path": "frontend/tests/workflow-production-fixture.ts",
       "kind": "shared-fixture-or-helper",
       "consumers": [
-        "creative-production"
+        "creative-production",
+        "graph",
+        "story-authoring"
       ]
     },
     {

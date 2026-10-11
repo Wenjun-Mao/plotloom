@@ -1249,11 +1249,26 @@ native ownership scans matched: pytest 1,517 / 157, SHA-256
 `116c4ae1b5feb1e180cfde9265cad00f34c1a158b653ad71efab64c9632893c0`; and
 Playwright 285 / 85, SHA-256
 `6878b73005c1ef59e76cbee3d73ae29883bd7554c9be08e5facb536542c6c8ac`.
-The verification-tooling complete profile passed in 40.341 seconds with 64
-pytest, 2 Vitest and 6 Playwright cases. Full ownership preflight, both type
-checks, locked dependencies, deterministic bundle and parity, four-shard
-allocation at 83/61/70/71, wheel build and installed-wheel smoke all passed.
-The build emitted the existing large-chunk advisory, and pytest emitted the
-existing Starlette TestClient deprecation warning. Exact combined-candidate
-independent review, local `full` and unfiltered hosted same-SHA qualification
+The first independent read-only review of candidate `f59710173528b82b916c2d6f678b9f5c9e6fbdaf`
+found that `workflow-production-fixture.ts` had graph and story-authoring
+consumers missing from its support-dependency entry, and those same owners were
+missing from its transitive `production-bridge-fixture.ts` dependency. The map
+now includes both edges. A new ownership regression traverses relative imports
+among Vitest test support files and requires the discovered consumer sets for
+both fixtures to match the manifest exactly.
+
+The focused ownership selection passed 7/7; Ruff check/format, JSON parsing and
+`git diff --check` passed. The verification-tooling complete profile passed in
+45.344 seconds with 65 pytest, 2 Vitest and 6 Playwright cases. Its native
+ownership preflight found 1,518 pytest / 157 files (SHA-256
+`b7f5a75e9b124c688a9bd93c389356b4af1c7ae5dc05b8e15511f7cb4798d9c6`), 1,164
+Vitest / 139 files (SHA-256
+`116c4ae1b5feb1e180cfde9265cad00f34c1a158b653ad71efab64c9632893c0`), and
+285 Playwright / 85 files (SHA-256
+`6878b73005c1ef59e76cbee3d73ae29883bd7554c9be08e5facb536542c6c8ac`). Both
+type checks, locked dependencies, deterministic bundle and parity, four-shard
+allocation at 83/61/70/71, wheel build and installed-wheel smoke all passed. The
+build emitted the existing large-chunk advisory, and pytest emitted the
+existing Starlette TestClient deprecation warning. Independent re-review of
+this correction, local `full` and unfiltered hosted same-SHA qualification
 remain pending.

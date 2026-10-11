@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -17,6 +18,56 @@ assert SPEC is not None and SPEC.loader is not None
 CHECKER = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = CHECKER
 SPEC.loader.exec_module(CHECKER)
+
+
+def _vitest_support_consumers(manifest: dict, target: str) -> set[str]:
+    """Return modules whose Vitest sources import a frontend test helper."""
+    frontend_tests = (ROOT / "frontend" / "tests").resolve()
+    target_path = (ROOT / target).resolve()
+    import_pattern = re.compile(
+        r"(?:\bfrom\s+|\bimport\s*)['\"](?P<specifier>\.{1,2}/[^'\"]+)['\"]"
+    )
+
+    def resolve_test_import(source: Path, specifier: str) -> Path | None:
+        imported = source.parent / specifier
+        candidates = [imported]
+        if not imported.suffix:
+            candidates.extend(
+                imported.with_suffix(suffix)
+                for suffix in (".ts", ".tsx", ".js", ".jsx")
+            )
+            candidates.extend(imported / f"index{suffix}" for suffix in (".ts", ".tsx"))
+        for candidate in candidates:
+            resolved = candidate.resolve()
+            if resolved.is_file():
+                try:
+                    resolved.relative_to(frontend_tests)
+                except ValueError:
+                    continue
+                return resolved
+        return None
+
+    consumers: set[str] = set()
+    for module_name, module in manifest["modules"].items():
+        pending = [ROOT / path for path in module["selectors"]["vitest"]]
+        visited: set[Path] = set()
+        while pending:
+            source = pending.pop().resolve()
+            if source in visited:
+                continue
+            visited.add(source)
+            if source == target_path:
+                consumers.add(module_name)
+                break
+            try:
+                source.relative_to(frontend_tests)
+            except ValueError:
+                continue
+            for match in import_pattern.finditer(source.read_text(encoding="utf-8")):
+                imported = resolve_test_import(source, match.group("specifier"))
+                if imported is not None and imported not in visited:
+                    pending.append(imported)
+    return consumers
 
 
 def _fixture_repo(
@@ -216,3 +267,31 @@ def test_manifest_maps_cross_module_pytest_helper_consumers():
         assert consumer_files <= owners.keys()
         expected_modules = {owners[path] for path in consumer_files}
         assert expected_modules <= dependencies[helper_path]
+
+
+def test_manifest_maps_transitive_vitest_fixture_consumers():
+    manifest = json.loads(CHECKER.MANIFEST.read_text(encoding="utf-8"))
+    expected_consumers = {
+        "frontend/tests/workflow-production-fixture.ts": {
+            "creative-production",
+            "graph",
+            "story-authoring",
+        },
+        "frontend/tests/production-bridge-fixture.ts": {
+            "creative-production",
+            "graph",
+            "media-lifecycle",
+            "playback",
+            "shared-provider-dispatch",
+            "story-authoring",
+        },
+    }
+    dependencies = {
+        dependency["path"]: set(dependency["consumers"])
+        for dependency in manifest["support_dependencies"]
+        if dependency["suite"] == "vitest"
+    }
+
+    for helper_path, expected in expected_consumers.items():
+        assert _vitest_support_consumers(manifest, helper_path) == expected
+        assert dependencies[helper_path] == expected
