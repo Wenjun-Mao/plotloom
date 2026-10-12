@@ -2,9 +2,9 @@
 
 Plan: [approved walkthrough polish](../roadmap/2026-10-11-pre-manual-walkthrough-polish.md).
 Baseline: `ea42dba1ab29749e4342b0efd14515860559d0d7` on retained `main`.
-Status: local implementation qualification and independent review are complete;
-checkpoint commit is pending. This receipt does not claim owner product
-acceptance or hosted qualification.
+Status: implementation, local verification, independent review, and the
+ownership-manifest follow-up are complete. This receipt does not claim owner
+product acceptance or hosted qualification.
 
 ## Root cause and bounded change
 
@@ -116,4 +116,39 @@ originals, and selected clips were not accessed or changed. The test-only
 project and synthetic media remain labelled at the local fixture path above.
 
 Implementation and generated-asset checkpoint: `ddec07ce16ae7937e51e21981273f3f164fed68a`.
-This receipt update is documentation-only; it does not change the qualified code.
+The ownership-manifest follow-up in this receipt is included in the current
+checkpoint.
+
+## Ownership-manifest follow-up
+
+The manager's pre-publication check found two missing exact-file owners and an
+unassigned browser spec. The native ownership guard maps each test source file
+once and then compares the complete native case union; the browser allocation
+guard separately requires every whole spec to appear in exactly one shard.
+The quick and explicitly selected test runs used for the implementation do not
+run these two collection guards, so their success did not establish manifest
+coverage.
+
+Added `script-content-review.test.ts` to the `creative-production` Vitest owner
+and `aspect-ratio-currentness.spec.ts` to the `story-authoring` Playwright owner.
+The aspect-ratio journey is owned by Story Authoring because it changes the
+Brief's aspect ratio and verifies its downstream currentness consequences.
+Assigned the whole new browser spec to shard 2, the smallest current allocation
+at 70 of 296 collected cases; the other groups have 84, 71, and 71. The new
+spec adds one case, bringing all four groups to 71–84. No existing spec
+assignment changed.
+
+The edited aspect-ratio spec imports `frontend/e2e/f5a-fixture.ts`; that shared
+fixture dependency already lists `story-authoring` among its consumers. The new
+Script component unit test imports no shared test fixture. No support-dependency
+consumer set needed to change.
+
+Collection-only verification: `uv run --locked --no-sync python
+scripts/testing/check_module_ownership.py` passed with the complete native
+pytest/Vitest/Playwright case union and no test bodies executed: 1,542 pytest
+cases across 158 files, 1,274 Vitest cases across 150 files, and 297 Playwright
+cases across 90 files. The unfiltered browser shard allocation guard
+(`BROWSER_GREP='.*' node scripts/check_browser_shard_manifest.mjs`, from
+`frontend/`) also passed with all 90 specs and 297 cases assigned once, zero
+overlap or missing cases, and shard case counts 84/71/71/71. These are
+collection results, not a browser runtime run or hosted qualification.

@@ -40,6 +40,7 @@
     "recommended-cast-workflow.spec.ts",
     "recommended-script-workflow.spec.ts",
     "recommended-storyboard-workflow.spec.ts",
+    "aspect-ratio-currentness.spec.ts",
     "missing-media-layout.spec.ts",
     "branch-mutation-remount.spec.ts",
     "cast-reference-revision.spec.ts",
