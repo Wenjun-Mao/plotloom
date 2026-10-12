@@ -123,8 +123,7 @@ class AutopilotService:
         state, _revision = store.repository.operational_state()
         if state != "open" or store.project().lifecycle_status.value != "active":
             return False
-        view = store.repository.autopilot.current(project_id)
-        return view is not None and view.state != "handed_off" and view.id not in store.repository.autopilot.recovered_run_ids()
+        return store.repository.autopilot.controller_execution_eligible(project_id)
 
     def _step(self, project_id):
         # Discovery is observation: closed/manual folders must not gain locks or WAL.

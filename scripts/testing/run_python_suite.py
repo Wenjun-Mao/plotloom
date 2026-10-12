@@ -99,6 +99,16 @@ def _process_group_exists(process: subprocess.Popen[str]) -> bool:
         os.killpg(process.pid, 0)
     except ProcessLookupError:
         return False
+    except PermissionError:
+        # The owned leader can exit after poll(), leaving a zombie-only group
+        # that refuses SIG0. Reap it, then ask the kernel again; denied signal
+        # permission alone never proves absence or authorizes another signal.
+        if process.poll() is None:
+            raise
+        try:
+            os.killpg(process.pid, 0)
+        except ProcessLookupError:
+            return False
     return True
 
 

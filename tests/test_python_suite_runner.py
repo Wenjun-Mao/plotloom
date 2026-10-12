@@ -91,6 +91,44 @@ def test_runner_refuses_ambient_pytest_selection_before_collecting(capsys):
     assert "refuses ambient PYTEST_ADDOPTS" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize("descendant_remains", [False, True])
+def test_group_probe_reaps_owned_zombie_then_rechecks_kernel(monkeypatch, descendant_remains):
+    calls = []
+    class ExitedLeader:
+        pid = 123
+        returncode = None
+        def poll(self):
+            calls.append("reap-owned")
+            self.returncode = -signal.SIGTERM
+            return self.returncode
+    def probe(pid, sig):
+        assert (pid, sig) == (123, 0)
+        calls.append("probe")
+        if calls == ["probe"]:
+            raise PermissionError(1, "zombie-only group")
+        if not descendant_remains:
+            raise ProcessLookupError(3, "group gone after reap")
+    monkeypatch.setattr(RUNNER.os, "killpg", probe)
+    assert RUNNER._process_group_exists(ExitedLeader()) is descendant_remains
+    assert calls == ["probe", "reap-owned", "probe"]
+
+
+@pytest.mark.parametrize("leader_exited", [False, True])
+def test_group_probe_never_treats_denied_permission_as_absence(monkeypatch, leader_exited):
+    class Leader:
+        pid = 123
+        def poll(self):
+            return 0 if leader_exited else None
+    calls = []
+    def denied(pid, sig):
+        calls.append((pid, sig))
+        raise PermissionError(1, "unknown signal authority")
+    monkeypatch.setattr(RUNNER.os, "killpg", denied)
+    with pytest.raises(PermissionError, match="unknown signal authority"):
+        RUNNER._process_group_exists(Leader())
+    assert calls == [(123, 0)] * (2 if leader_exited else 1)
+
+
 def test_runner_reports_each_worker_and_fails_if_either_worker_fails(
     tmp_path, monkeypatch, capsys
 ):
@@ -298,6 +336,29 @@ def test_sigterm_during_collection_stops_and_reaps_collector(
     else:
         assert process_state["terminated"]
     assert "TERMINATED signal=15" in capsys.readouterr().out
+
+
+@pytest.mark.skipif(os.name != "posix", reason="requires POSIX process groups")
+def test_stop_processes_reaps_two_running_owned_groups():
+    workers = []
+    try:
+        for _ in range(2):
+            process = subprocess.Popen([sys.executable, "-c", "import time; print('ready', flush=True); time.sleep(30)"],
+                stdout=subprocess.PIPE, text=True, start_new_session=True)
+            workers.append(process)
+            assert process.stdout is not None
+            assert process.stdout.readline().strip() == "ready"
+            assert process.poll() is None
+        RUNNER._stop_processes(workers)
+        assert all(process.returncode is not None for process in workers)
+        assert all(not RUNNER._process_group_exists(process) for process in workers)
+    finally:
+        for process in workers:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=3)
+            if process.stdout is not None:
+                process.stdout.close()
 
 
 @pytest.mark.skipif(os.name != "posix", reason="requires POSIX process groups")

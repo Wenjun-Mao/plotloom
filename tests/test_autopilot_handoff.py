@@ -247,7 +247,8 @@ def test_manual_multiview_reference_set_is_fully_displayed_and_endorsed(tmp_path
 
 
 def test_reference_reselection_withdraws_generated_frames_from_current_review(tmp_path, monkeypatch):
-    from plotloom.persistence.schema import AutopilotHandoffRow
+    from datetime import timedelta
+    from plotloom.persistence.schema import AutopilotHandoffRow, ManagedAssetRow
     storage, _registry, service, view, _calls, _text = image_environment(tmp_path, monkeypatch)
     try:
         run_pack(storage, service, view)
@@ -255,6 +256,32 @@ def test_reference_reselection_withdraws_generated_frames_from_current_review(tm
             result = record_handoff(store, HumanHandoffRequest.model_validate(observation(review_material(store))))
             with store.repository._read() as session:
                 retained = session.get(AutopilotHandoffRow, result.handoff["receiptId"]).receipt
+            # Explicit fault fixture: metadata closure drift outside a human
+            # lifecycle command. Ordinary reference edits correctly take over.
+            with store.repository._write() as session:
+                asset = session.get(ManagedAssetRow, result.frames[0].asset_id)
+                asset.created_at += timedelta(microseconds=1)
+            with store.repository._read() as session:
+                run = store.repository.autopilot.row(session, view.project_id)
+                assert run.state == "handed_off"
+                before = (run.revision, run.claim, run.updated_at)
+                assert not video_eligible(session, view.project_id)
+            assert store.repository.autopilot.current(view.project_id).state == "stale"
+            assert not store.repository.autopilot.controller_execution_eligible(view.project_id)
+            with pytest.raises(InvalidTransitionError, match="completed human handoff"):
+                store.repository.autopilot.claim(view.project_id, "new-controller")
+        calls_before = list(_calls), list(_text)
+        with monkeypatch.context() as held:
+            held.setattr(storage.projects, "open", lambda *_: pytest.fail("completed handoff cannot acquire editable admission"))
+            service.step(view.project_id)
+            service._record_failure(view.project_id, code="controller_failure", message="fixture failure")
+        assert (list(_calls), list(_text)) == calls_before
+        with closing(storage.projects.inspect(view.project_id)) as store:
+            with store.repository._read() as session:
+                run = store.repository.autopilot.row(session, view.project_id)
+                assert (run.revision, run.claim, run.updated_at) == before
+                assert session.get(AutopilotHandoffRow, result.handoff["receiptId"]).receipt == retained
+        with closing(storage.projects.open(view.project_id)) as store:
             reference = next(item for item in store.media.list_character_reference_decisions(view.project_id)["decisions"] if item["current"])
             # Even the same bytes with a new decision ID withdraw frozen identity
             # applicability; a human binding alone cannot revive that image job.
@@ -264,6 +291,7 @@ def test_reference_reselection_withdraws_generated_frames_from_current_review(tm
             with pytest.raises(InvalidTransitionError, match="current first-frame material"):
                 review_material(store)
             with store.repository._read() as session:
+                assert store.repository.autopilot.row(session, view.project_id).state == "taken_over"
                 assert not video_eligible(session, view.project_id)
                 assert session.get(AutopilotHandoffRow, result.handoff["receiptId"]).receipt == retained
     finally:

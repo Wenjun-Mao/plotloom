@@ -1,7 +1,7 @@
 # Pre-video autopilot · single evidence receipt
 
-Status: **P5 full failed/interrupted at `b1d09fa3`; diagnosed source repairs in
-focused verification. Native/preservation/walkthrough/activation remain pending**. No owner creative
+Status: **P5 full failed/interrupted; terminal admission and reproduced cleanup
+race repairs in focused verification. Native/preservation/walkthrough/activation remain pending**. No owner creative
 acceptance, valued installation upgrade or live activation is claimed. Scope and stopping boundary are in the
 [approved plan](../roadmap/2026-10-12-pre-video-autopilot.md#p0-implementation-checkpoint)
 and [ADR 0162](../adr/0162-pre-video-autopilot-authority.md).
@@ -554,3 +554,46 @@ plus `test_start_api_retains_one_policy_and_refuses_browser_authority_fields`:
 169 files**, no bodies executed by discovery. Ruff F and working/staged/commit
 diff checks pass; one existing Starlette/httpx warning remains. This is a repair
 checkpoint, not a passed full gate or completed P5 walkthrough.
+
+### P5 terminal-state and cleanup-race follow-up
+
+Source review of `a366d404` found controller eligibility depended on projected
+currentness rather than persisted completion. Manager stopped its fresh full
+after 56.275s: frontend 1,306 tests/types passed, backend interrupted before
+results. No source writes raced it; manager verified all workers absent and then
+released bounded repairs. Full stdout is retained in ignored manager QA output;
+SIGTERM cleanup again raised EPERM, with stderr in the manager tool transcript.
+
+Persistence now owns `controller_execution_eligible`; stored `handed_off` and
+portable identities cannot resume, and claim independently refuses completed
+handoff. Paused/cancelled/taken-over receipt-only behavior stays intact. The first
+enhanced pack test failed its assumption that ordinary reference reselection left
+`handed_off` unchanged (37 other checks passed); it actually persists takeover.
+The corrected real-pack test explicitly injects independent asset metadata drift
+outside a human command, verifies durable handoff→stale projection, and proves no
+editable open, claim change or native calls. It then retains ordinary reference
+withdrawal assertions. No UI redispatch is claimed from this fault fixture.
+
+The controlled two-running-worker diagnostic reproduced EPERM with an owned
+UID-501 zombie-only group after SIGTERM, before `Popen` had reaped its leader.
+The narrow driver fix reaps the exact owned child after a denied SIG0 probe and
+reprobes only when exit is known. Only ESRCH proves absence; live/unknown or
+persistent denial still raises. The corrected run observed EPERM→reap→ESRCH for
+both PIDs 98671/98672, return codes -15, with no surviving members. Original and
+corrected metadata are preserved in
+[owned-worker diagnostic](2026-10-12-pre-video-autopilot/owned-worker-cleanup-diagnostic.json).
+ADR 0160 records the cause, unchanged descendant cleanup and denial contract.
+
+Focused handoff/controller/recovery/runner selection: **52 passed**, 79.799s;
+runner-specific first selection: **13 passed**, 1.859s, before the actual paired
+termination case was added to the final selection. Native ownership preflight:
+**1,700 pytest cases / 169 files**; Ruff F and diff checks pass. Frontend/static,
+dependencies, schema and request payloads are unchanged. Exact stable full/native
+requalification and both reviews remain manager-coordinated; no new full/native,
+live, valued-data, provider, hosted CI or main operation was performed by source.
+
+Downstream late-receipt/authority, process-lease-before-claim and verification
+driver contract selection: **46 passed**, focused runner 25.738s. This retains
+inactive receipt-only and portable exclusion coverage. Existing Starlette/httpx
+warning remains. Review closure is reported against the exact committed source,
+without a subsequent receipt-only write during manager qualification.

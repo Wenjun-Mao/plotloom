@@ -48,6 +48,12 @@ class AutopilotPersistence:
             row = self.row(session, project_id)
             return self.view_in_session(session, row) if row else None
 
+    def controller_execution_eligible(self, project_id):
+        """Admission follows durable terminal state, independently of UI currentness."""
+        with self.access.leases.read() as session:
+            row = self.row(session, project_id)
+            return row is not None and row.state != "handed_off" and row.id not in self.recovered_run_ids()
+
     def view_in_session(self, session, row):
         checkpoints = session.scalars(select(AutopilotCheckpointRow).where(AutopilotCheckpointRow.run_id == row.id)
             .order_by(AutopilotCheckpointRow.created_at, AutopilotCheckpointRow.operation_key)).all()
@@ -89,6 +95,8 @@ class AutopilotPersistence:
             row = self.row(session, project_id)
             if row is None:
                 raise InvalidTransitionError("cannot claim a missing autopilot run")
+            if row.state == "handed_off":
+                raise InvalidTransitionError("completed human handoff cannot acquire a controller claim")
             if row.id in self.recovered_run_ids():
                 raise InvalidTransitionError("portable restored autopilot run cannot acquire a native controller claim")
             if row.claim != claim:

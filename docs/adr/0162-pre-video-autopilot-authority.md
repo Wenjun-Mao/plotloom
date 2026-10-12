@@ -208,3 +208,11 @@ it does not implicitly require application storage or start a background service
 Use native-queue-only transport mocks so real Git pin checks remain authoritative.
 These corrections preserve strict closed-folder, frozen-pin and lock-order tests;
 no tolerance, platform exception or cleanup bypass is introduced.
+
+Controller eligibility is a named persistence-owned check over the stored run
+state and permanent portable exclusion. A completed `handed_off` identity stays
+terminal even if independent material drift makes its UI view `stale`; the claim
+owner also refuses it. Paused, cancelled and taken-over runs retain existing
+receipt-only reconciliation. Ordinary human reference/frame edits already persist
+takeover; the independent closure-drift regression is an explicitly injected
+fault over a real completed fixture pack, not evidence of UI redispatch.

@@ -87,3 +87,19 @@ the pytest worker process itself; it does not provide process-tree containment,
 so Windows cancellation safety for this full-gate runner remains unqualified.
 Add and verify Windows process-tree containment before treating it as a
 supported full-gate target.
+
+## Owned-leader zombie race correction
+
+On 2026-10-12, two running owned workers reproduced a cleanup race: after
+SIGTERM, the last `Popen.poll()` still returned running, but the group contained
+only its own leader as a zombie. SIG0 returned EPERM. Reaping that owned child
+then probing again returned ESRCH; metadata confirmed no remaining group members.
+This differs from probing an already-reaped empty group, which returned ESRCH.
+
+On a denied group probe, poll/reap the exact owned child and retry only when its
+exit is known. Treat only ESRCH as absence. A live/unknown child or persistent
+permission denial remains exceptional; it cannot authorize foreign signals or
+skip descendant cleanup. Keep the existing TERM/grace/KILL sequence and platform
+scope. Tests cover reap→absence, reap→living descendants, live/persistent denial,
+two actual running groups and a surviving descendant. This bounded correction is
+not a new full-gate pass; the manager requalifies the exact stable candidate.
