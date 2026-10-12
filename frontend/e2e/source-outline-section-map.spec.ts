@@ -70,6 +70,36 @@ test("installs Tide Light routes, survives restart, and retains a readable outli
   await expect(routeCards).toContainText("供电灯塔 → 结局 B");
   await expect(map.getByText("故事路线 r1 · 当前")).toBeVisible();
   await expect(map.getByTestId("section-map-ready")).toContainText("故事路线已就绪");
+  const decisionSection = map.locator(".section-map-sections fieldset").filter({ hasText: "选择节点" }).first();
+  const sourceFootageCheckbox = decisionSection.getByRole("checkbox", { name: "此节点需要拍摄", exact: true });
+  await expect(sourceFootageCheckbox).toBeVisible();
+  await expect(sourceFootageCheckbox).toHaveAccessibleDescription(/需制作剧本场景、分镜和影片.*先播放本节点影片，再显示问题与选项.*确认并应用后才影响故事路线.*不会自动生成影片/);
+  await expect(sourceFootageCheckbox).toHaveAccessibleDescription(/影响第5\/6步「制作与审阅」.*修订或重新审阅已有剧本、分镜和制作内容.*目标时长不会自动增加.*第6\/6步「播放」核对受影响路线/);
+  const sourceFootageHelp = decisionSection.locator(".graph-node-footage-help");
+  for (const size of [{ width: 1280, height: 460 }, { width: 1280, height: 768 }, { width: 1700, height: 900 }]) {
+    await page.setViewportSize(size);
+    await sourceFootageHelp.scrollIntoViewIfNeeded();
+    // scrollIntoViewIfNeeded does not account for the sticky workflow guide.
+    // Keep the shooting control visibly below the guide in the pixel evidence.
+    await sourceFootageCheckbox.evaluate(element => {
+      const top = element.getBoundingClientRect().top;
+      const stickyBottom = Math.max(0, ...Array.from(document.querySelectorAll<HTMLElement>(".topbar, .recommended-workflow-guide"), header => {
+        const rect = header.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0 && rect.top < window.innerHeight ? Math.min(window.innerHeight, rect.bottom) : 0;
+      }));
+      if (top < stickyBottom + 16) window.scrollBy(0, top - stickyBottom - 16);
+    });
+    await expect(sourceFootageCheckbox).toBeInViewport();
+    expect(await sourceFootageHelp.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(size.width);
+    const name = `source-filming-help-${size.width}x${size.height}.png`;
+    const screenshot = await page.screenshot({ path: info.outputPath(name) });
+    if (process.env.PLOTLOOM_E2E_SCREENSHOT_DIR) {
+      const screenshotPath = path.join(process.env.PLOTLOOM_E2E_SCREENSHOT_DIR, name);
+      await mkdir(path.dirname(screenshotPath), { recursive: true });
+      await writeFile(screenshotPath, screenshot);
+    }
+  }
   const writes: string[] = [];
   const recordWrite = (request: { method(): string; url(): string }) => { if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method())) writes.push(request.url()); };
   page.on("request", recordWrite);

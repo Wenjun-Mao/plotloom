@@ -1,5 +1,6 @@
 import type { GraphMapDraft } from "../features/graph/contracts";
 import { RequiredMark } from "../components";
+import { FootageRequirementControl } from "../features/graph/FootageRequirementControl";
 
 export function SourceStructureEditor({ mapping, disabled, onChange }: { mapping: GraphMapDraft; disabled: boolean; onChange: (mapping: GraphMapDraft) => void }) {
   const title = (id: string | null) => id === null ? "待连接" : mapping.sections.find(section => section.sectionId === id)?.title || "待填写剧情节点";
@@ -15,7 +16,7 @@ export function SourceStructureEditor({ mapping, disabled, onChange }: { mapping
       return <fieldset key={section.sectionId}><legend>{label} · 第 {index + 1} 个剧情节点</legend>
         <label><span>章节标题<RequiredMark /></span><input aria-required="true" disabled={disabled} value={section.title} onChange={event => onChange({ ...mapping, sections: mapping.sections.map((item, i) => i === index ? { ...item, title: event.target.value } : item) })} /></label>
         <label><span>章节摘要<RequiredMark /></span><textarea rows={3} aria-required="true" disabled={disabled} value={section.summary} onChange={event => onChange({ ...mapping, sections: mapping.sections.map((item, i) => i === index ? { ...item, summary: event.target.value } : item) })} /></label>
-        {(kind === "decision" || kind === "join") && <label><input type="checkbox" disabled={disabled} checked={section.footageMode === "footage"} onChange={event => onChange({ ...mapping, topologyOrigin: "author", sections: mapping.sections.map((item, i) => i === index ? { ...item, footageMode: event.target.checked ? "footage" : "route_only" } : item) })} />为此路线控制节点包含画面</label>}
+        {(kind === "decision" || kind === "join") && <FootageRequirementControl kind={kind} footageMode={section.footageMode} disabled={disabled} onChange={enabled => onChange({ ...mapping, topologyOrigin: "author", sections: mapping.sections.map((item, i) => i === index ? { ...item, footageMode: enabled ? "footage" : "route_only" } : item) })} />}
         <details><summary>技术详情：章节标识</summary><code>{section.sectionId}</code></details>
       </fieldset>;
     })}</div>

@@ -23,9 +23,11 @@ test("Script guide follows native preparation, delivery, confirmation and chapte
   // Deterministic technical delivery; no specialist dispatch or media generation.
   await writeDelivery(prepared, "script", await fixture("script.json"));
   await panel.getByRole("button", { name: "立即检查", exact: true }).click();
-  await expect(guide).toContainText("点击「查看待审阅剧本」");
+  await expect(guide).toContainText("已在本页按候选自身冻结绑定显示完整分支与结局");
   await expect(guide).toContainText("点击「确认使用此剧本」");
-  await panel.getByText("查看待审阅剧本", { exact: true }).click();
+  const candidateReader = panel.getByLabel("待审阅候选剧本 · 未确认", { exact: true });
+  await expect(candidateReader).toBeVisible();
+  await expect(candidateReader).toContainText("章节 opening");
   await panel.getByRole("button", { name: "确认使用此剧本", exact: true }).click();
   await expect(guide).toContainText("完整剧本已确认。点击「继续：分镜评审」");
   await expect(panel.getByRole("button", { name: "继续：分镜评审", exact: true })).toBeEnabled();
@@ -36,8 +38,9 @@ test("Script guide follows native preparation, delivery, confirmation and chapte
   await expect(guide).not.toContainText("剧本依据已变化");
   await writeDelivery(replacementPrepared, "script", await fixture("script.json"));
   await panel.getByRole("button", { name: "立即检查", exact: true }).click();
-  await expect(guide).toContainText("点击「确认使用此剧本」");
+  await expect(guide).toContainText("已在本页按候选自身冻结绑定显示完整分支与结局");
   await expect(guide).not.toContainText("剧本依据已变化");
+  await expect(panel.getByLabel("待审阅候选剧本 · 未确认", { exact: true })).toBeVisible();
   await panel.getByRole("button", { name: "确认使用此剧本", exact: true }).click();
   await expect(guide).toContainText("完整剧本已确认");
   await panel.getByRole("button", { name: "重新打开剧本", exact: true }).click();

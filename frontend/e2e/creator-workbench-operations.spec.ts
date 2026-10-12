@@ -1,4 +1,6 @@
 import type { Page } from "@playwright/test";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { expect, test } from "./fixture";
 import { createCreatorGraph } from "./fixtures/creator-graph";
 import { json } from "./f5a-fixture";
@@ -98,7 +100,13 @@ test("node filming help explains production and playback in both shared graph vi
       await expect(help).toBeVisible();
       expect(await help.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(size.width);
-      await page.screenshot({ path: info.outputPath(`filming-help-${view === "创作" ? "creator" : "professional"}-${size.width}x${size.height}.png`) });
+      const name = `filming-help-${view === "创作" ? "creator" : "professional"}-${size.width}x${size.height}.png`;
+      const screenshot = await page.screenshot({ path: info.outputPath(name) });
+      if (process.env.PLOTLOOM_E2E_SCREENSHOT_DIR) {
+        const screenshotPath = path.join(process.env.PLOTLOOM_E2E_SCREENSHOT_DIR, name);
+        await mkdir(path.dirname(screenshotPath), { recursive: true });
+        await writeFile(screenshotPath, screenshot);
+      }
     }
   }
   expect(await json(request.get(`${base}/source-outline`))).toEqual(accepted);

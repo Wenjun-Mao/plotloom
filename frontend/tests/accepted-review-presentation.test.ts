@@ -40,12 +40,14 @@ it.each([ ["prepared", "opening"], ["prepared", "choice"], ["ready", "opening"],
   vi.spyOn(plotloomApi, "getScript").mockResolvedValue(state);
   const reopen = vi.spyOn(plotloomApi, "reopenScript");
   await act(async () => root.render(createElement(ScriptPanel, { projectId: "project", readOnly: false, contextSectionId: sectionId })));
-  expect(host.textContent).toContain("查看保留的已确认剧本");
+  expect(host.textContent).toContain("保留的已确认剧本 r1");
   expect(host.textContent).not.toContain("查看当前已确认剧本");
   expect(host.textContent).not.toContain("当前已确认剧本 r1");
   expect(host.textContent).toContain("保留的已确认剧本 r1");
-  if (sectionId === "choice") expect(host.textContent).toContain("将此节点作为路线控制");
-  else expect(host.querySelector('[aria-label="当前节点的剧本场次"]')?.textContent).toContain("Opening action.");
+  expect(host.querySelector('[aria-label="保留的已确认剧本 r1"]')).not.toBeNull();
+  expect(host.querySelector(`[aria-label="保留的已确认剧本 r1 · 节点 ${sectionId}"]`)).not.toBeNull();
+  if (sectionId === "choice") expect(host.textContent).toContain("此节点按本对象的冻结绑定是路线控制点");
+  else expect(host.querySelector('[aria-label="保留的已确认剧本 r1 · 节点 opening"]')?.textContent).toContain("Opening action.");
   expect(host.querySelector('[aria-label="保留的已确认内容"]')?.textContent).toContain("美术设定版本已变化");
   const button = [...host.querySelectorAll("button")].find(b => b.textContent === "重新打开剧本")!;
   expect(button.disabled).toBe(true);

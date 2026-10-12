@@ -30,7 +30,7 @@ it("names the verified prerequisite after preparation is rejected", () => {
   expect(next({ ...read(), status: "loading", error })).toContain("正在读取");
   expect(next({ ...read(), status: "failed", error })).toContain("重试加载剧本");
 });
-it.each([["prepared", "剧本任务已准备，尚未交付"], ["ready", "查看待审阅剧本"]] as const)("uses the actual %s candidate stage", (status, text) => {
+it.each([["prepared", "剧本任务已准备，尚未交付"], ["ready", "已在本页按候选自身冻结绑定显示完整分支与结局"]] as const)("uses the actual %s candidate stage", (status, text) => {
   const state = missing(); state.candidate = { status } as ScriptCandidate;
   expect(next(read(state))).toContain(text);
   expect(next(read(state))).not.toContain("当前没有剧本候选");

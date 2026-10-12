@@ -11,7 +11,7 @@ export function scriptWorkflowNextText(read: ScriptWorkflowObservation | undefin
   const state = read.state;
   if (state.status === "reopened" || state.acceptedReviewState.status === "reopened") return { text: "剧本修订已打开。选择「编辑章节」，修改后点击「保存此章节，不覆盖其他章节」。" };
   if (state.status === "stale") return { text: "剧本依据已变化，保留内容不代表当前确认。先按本页来源与审阅提示处理，再重新准备或确认。" };
-  if (state.candidate?.status === "ready") return { text: "剧本候选已返回。点击「查看待审阅剧本」，审阅完整分支与结局后点击「确认使用此剧本」；不会自动生成分镜或影片。" };
+  if (state.candidate?.status === "ready") return { text: "剧本候选已返回。已在本页按候选自身冻结绑定显示完整分支与结局；审阅后点击「确认使用此剧本」；不会自动生成分镜或影片。" };
   if (state.candidate?.status === "prepared") return { text: "剧本任务已准备，尚未交付。按任务区发送状态继续发送或等待结果，再检查交付；收到剧本后才能审阅并确认。" };
   if (state.acceptedReviewState.status === "retained") return { text: "剧本依据已变化，保留内容不代表当前确认。先按本页来源与审阅提示处理，再重新准备或确认。" };
   if (state.acceptedReviewState.status === "current" && state.acceptedScript) return { text: "完整剧本已确认。点击「继续：分镜评审」；剧本确认不代表分镜或实际播放已通过。" };

@@ -1,5 +1,12 @@
 # Plotloom roadmap entrypoint
 
+The owner agreed to the direction of a bounded
+[pre-manual walkthrough polish plan](2026-10-11-pre-manual-walkthrough-polish.md):
+readable Script review, shared shooting-checkbox presentation and one isolated
+revision/currentness check. The owner subsequently approved implementation through
+Relay Direct: one serial source owner, isolated revision evidence and final exact-
+revision CI qualification. Live generation and valued-project mutation remain excluded.
+
 The owner requested a fresh portrait-image/video walkthrough on October11,
 looking for details missed by the completed landscape run. The
 [portrait run profile](2026-10-11-portrait-creator-walkthrough.md) preserves the

@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { APIRequestContext, APIResponse, Page, Locator } from "@playwright/test";
 import { demoProject } from "../src/demo";
+import type { ProjectBrief, StageName } from "../src/types";
 import { styledCastFixture } from "./fixtures/cast-style";
 import { expect } from "./fixture";
 
@@ -13,6 +14,10 @@ const directory = path.dirname(fileURLToPath(import.meta.url));
 export const fixtureDirectory = path.join(directory, "fixtures/f5a");
 const validator = path.resolve(directory, "../../third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs");
 export type Preparation = { jobId: string; packagePath: string; deliveryPath: string; assignment: string; binding: any; expectedReviewRevision: number };
+export type ScriptProjectOptions = {
+  briefOverrides?: Partial<ProjectBrief>;
+  initialStages?: Array<{ stage: StageName; payload: unknown }>;
+};
 export async function json<T = any>(pending: Pick<APIResponse, "ok" | "text" | "json"> | Promise<Pick<APIResponse, "ok" | "text" | "json">>): Promise<T> {
   const response = await pending;
   expect(response.ok(), await response.text()).toBeTruthy();
@@ -39,9 +44,9 @@ export async function availableSpecialistWithoutSend(page: Page, id: string, sta
 export function endpoint(origin: string, projectId: string): string {
   return `${origin}/api/v2/projects/${projectId}/storyboard-source-review`;
 }
-export async function createScriptProject(request: APIRequestContext, origin: string, label: string, candidates: Partial<Record<"cast" | "art" | "script", unknown>> = {}, stages: readonly ("cast" | "art" | "script")[] = ["cast", "art", "script"]): Promise<string> {
+export async function createScriptProject(request: APIRequestContext, origin: string, label: string, candidates: Partial<Record<"cast" | "art" | "script", unknown>> = {}, stages: readonly ("cast" | "art" | "script")[] = ["cast", "art", "script"], options: ScriptProjectOptions = {}): Promise<string> {
   const root = `${origin}/api/v2/projects`;
-  const created = await json(request.post(root, { headers: { "Idempotency-Key": `f5a-${label}-${Date.now()}` }, data: { brief: { ...demoProject.brief, decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, title: `F5A ${label}`, targetPlaythroughSeconds: 180 } } }));
+  const created = await json(request.post(root, { headers: { "Idempotency-Key": `f5a-${label}-${Date.now()}` }, data: { brief: { ...demoProject.brief, decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, title: `F5A ${label}`, targetPlaythroughSeconds: 180, ...options.briefOverrides }, initialStages: options.initialStages ?? [] } }));
   const id = created.id;
   const url = `${root}/${id}`;
   const source = await json(request.put(`${url}/source-outline/source`, { data: { expectedSourceRevision: 0, material: {

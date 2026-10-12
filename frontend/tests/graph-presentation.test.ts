@@ -2,6 +2,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { GraphNodeDetails } from "../src/features/graph/GraphNodeDetails";
+import { SourceStructureEditor } from "../src/pages/SourceStructureEditor";
 import { CanonicalGraphReader } from "../src/features/graph/CanonicalGraphReader";
 import { GraphWorkbenchContext, type GraphWorkbenchController } from "../src/features/graph/GraphWorkbenchContext";
 import { graphControllerFixture, graphDraftFixture } from "./graph-workbench-fixture";
@@ -77,6 +78,51 @@ it.each(["decision", "join"])("explains %s footage production and playback witho
   expect(owner.saveDraft).not.toHaveBeenCalled();
   expect(owner.confirmMapping).not.toHaveBeenCalled();
   expect(owner.installMapping).not.toHaveBeenCalled();
+});
+
+it.each(["decision", "join"])("shares %s shooting help with Source and retains each owner's exact draft mutation", async (kind) => {
+  owner.selectedNodeId = kind;
+  const mapping = owner.draft!.mapping;
+  const sourceChange = vi.fn();
+  await act(async () => root.render(createElement(SourceStructureEditor, { mapping, disabled: false, onChange: sourceChange })));
+  const sourceFieldset = [...host.querySelectorAll("fieldset")].find(fieldset => fieldset.querySelector("legend")?.textContent?.includes(kind === "decision" ? "选择节点" : "分支汇合"))!;
+  const sourceCheckbox = sourceFieldset.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+  const sourceLabel = sourceCheckbox.closest("label")!;
+  const sourceHelp = document.getElementById(sourceCheckbox.getAttribute("aria-describedby")!)!;
+  expect(sourceLabel.textContent).toBe("此节点需要拍摄");
+  expect(sourceHelp.textContent).toContain(kind === "decision" ? "先播放本节点影片，再显示问题与选项" : "播放本节点影片后，再继续后续路线");
+  expect(sourceHelp.textContent).toContain(`影响${creativeWorkflowStepReference("production")}`);
+  expect(sourceHelp.textContent).toContain(`完成后在${creativeWorkflowStepReference("play")}核对受影响路线`);
+  await act(async () => sourceCheckbox.click());
+  const sectionIndex = mapping.sections.findIndex(section => section.sectionId === kind);
+  const expectedSource = { ...mapping, topologyOrigin: "author", sections: mapping.sections.map((item, index) => index === sectionIndex ? { ...item, footageMode: "footage" } : item) };
+  expect(sourceChange).toHaveBeenCalledWith(expectedSource);
+
+  await act(async () => root.render(createElement(GraphWorkbenchContext.Provider, { value: owner, children: createElement(GraphNodeDetails, { disabled: false }) })));
+  const graphCheckbox = host.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+  const graphLabel = graphCheckbox.closest("label")!;
+  const graphHelp = document.getElementById(graphCheckbox.getAttribute("aria-describedby")!)!;
+  expect(graphLabel.textContent).toBe(sourceLabel.textContent);
+  expect(graphHelp.textContent).toBe(sourceHelp.textContent);
+  const expectedGraph = { ...mapping, topologyOrigin: "author", sections: mapping.sections.map(item => item.sectionId === kind ? { ...item, footageMode: "footage" } : item) };
+  await act(async () => graphCheckbox.click());
+  expect(owner.changeMapping).toHaveBeenLastCalledWith(expectedGraph);
+  expect(owner.saveDraft).not.toHaveBeenCalled();
+  expect(owner.confirmMapping).not.toHaveBeenCalled();
+  expect(owner.installMapping).not.toHaveBeenCalled();
+});
+
+it.each(["decision", "join"])("keeps Source %s shooting explanation visible when editing is disabled", async kind => {
+  owner.selectedNodeId = kind;
+  const sourceChange = vi.fn();
+  await act(async () => root.render(createElement(SourceStructureEditor, { mapping: owner.draft!.mapping, disabled: true, onChange: sourceChange })));
+  const fieldset = [...host.querySelectorAll("fieldset")].find(item => item.querySelector("legend")?.textContent?.includes(kind === "decision" ? "选择节点" : "分支汇合"))!;
+  const checkbox = fieldset.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+  expect(checkbox.disabled).toBe(true);
+  expect(checkbox.closest("label")?.textContent).toBe("此节点需要拍摄");
+  expect(document.getElementById(checkbox.getAttribute("aria-describedby")!)?.textContent).toContain("不会自动生成影片");
+  await act(async () => checkbox.click());
+  expect(sourceChange).not.toHaveBeenCalled();
 });
 
 it.each(["decision", "join"])("keeps %s footage help readable when editing is disabled", async (kind) => {
