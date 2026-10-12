@@ -82,6 +82,35 @@ startup path dispatches or retries jobs. Native regression discovery now
 covers default-off, private configuration, redaction, storage ownership,
 persistence, disable and fail-before-Docker behavior.
 
+### Owner-approved private tailnet access (2026-10-11)
+
+The owner needs colleagues on the Tailscale network to use the same workbench.
+Retain Docker's localhost-only publication and add a separate Tailscale Serve
+HTTPS 8443 root proxy to `http://127.0.0.1:8841`; preserve the existing HTTPS
+443 proxy to port 8000. Use background Serve, not public Funnel or a wildcard
+Docker port. No backend restart, project migration or direct bridge-listener
+publication is needed.
+The exact host URL, verification and endpoint-scoped disable command live in
+the [service operations guide](../../services/creator_workbench/README.md#private-colleague-access-over-tailscale).
+
+Tailnet membership and policy are the intended trusted-operator boundary, not
+a new multi-user authentication or role model. Every permitted colleague has
+the current workbench's full project, settings and native generation authority.
+The bridge's credential does not provide separate authorization for those
+web users: its configured task allowlist is itself editable through the app.
+This deployment is unsuitable for untrusted or read-only users without a
+separately designed access layer. A future API text-provider activation also
+requires credential-boundary review: editable provider destinations plus
+server-key probes give co-admins authority over that key's destination.
+The current shared composition has the API text pipeline disabled.
+
+Changing Docker to a wildcard host publication would expose unrelated LAN
+interfaces. Mounting Plotloom under the existing proxy's subpath would couple
+its root-relative API/static routes to that service. A separate private HTTPS
+port preserves both contracts. Qualification checks config preservation,
+absence of Funnel, TLS, frontend/API reachability and loopback publication;
+same-machine success does not prove another client's policy or connectivity.
+
 ### Wake-up boundary clarification (2026-10-01)
 
 The later [ADR 0096](0096-native-specialist-deep-link-wake.md) qualifies the

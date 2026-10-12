@@ -36,6 +36,54 @@ frontend assets when changing the frontend; these static bytes are served from
 the mount without a backend restart. Coordinate any schema admission and wait
 for a quiet dispatch checkpoint before activating a changed backend.
 
+## Private colleague access over Tailscale
+
+On the owner's Mac, the separately configured workbench URL is
+**https://wenjuns-macbook-pro.tail6040ad.ts.net:8443/v2/**.
+Colleagues must be connected to Tailscale and allowed by the tailnet's policy
+to reach this Mac on TCP 8443. No policy changes or public Funnel access were
+enabled. The existing HTTPS 443 proxy to localhost:8000 remains separate.
+
+This is the same installation, not a copy or a read-only player. Plotloom has
+no per-user login or roles: permitted clients share full project editing,
+deletion, settings and production controls, including the owner's configured
+native specialist queue. Grant access only to trusted co-admins; do not assume
+separate projects or credentials are isolated between colleagues.
+
+Keep the managed Docker host publication on `127.0.0.1:8841`. With the existing
+Tailscale HTTPS capability enabled, the endpoint was added without restarting
+Plotloom or exposing its native bridge on port 8842:
+
+```sh
+tailscale serve --bg --https=8443 http://127.0.0.1:8841
+tailscale serve status --json
+```
+
+Tailscale manages HTTPS and the background Serve configuration persists across
+restarts. The Mac must remain awake, connected to Tailscale, with Docker and
+Plotloom running. See the [official Serve reference](https://tailscale.com/kb/1242/tailscale-serve).
+To remove only this endpoint, preserving the existing 443 service:
+
+```sh
+tailscale serve --bg --https=8443 off
+```
+
+Do not use `serve reset` or `funnel` for this operation. Tailnet policy is the
+access boundary; allowing colleagues onto this endpoint does not install
+application-level authentication. Before enabling an API text provider on a
+shared instance, reassess credential authority: a co-admin can change a text
+profile's API destination and trigger a probe with its server-side key.
+
+Configuration was verified on 2026-10-11: Serve retained 443 -> 8000 and added
+8443 -> 8841, with no `AllowFunnel` entries; the Docker publication remained
+loopback-only. Requests from this Mac through the HTTPS URL passed certificate
+verification and returned 200 for `/healthz`, `/v2/` and the same-origin
+`/api/v2/runtime-capabilities` API. The active instance reported
+`apiTextPipeline: false`; its text-profile/probe routes are not registered.
+No project or provider action was performed. A colleague-device connection
+and that device's tailnet-policy permission still require real peer validation.
+See [ADR 0095](../../docs/adr/0095-persistent-creator-workbench.md).
+
 ## Native specialist bridge
 
 The text/image send buttons use the Mac Codex app's supported queue CLI. Linux

@@ -32,3 +32,12 @@ selected result into Plotloom or another durable asset store before expiry.
 
 Do not treat this index as an API reference. Start with the backend-specific
 guide above so a Qwen image setting is never confused with an H3 video setting.
+
+## Creator workbench access
+
+The separate [private Tailscale workbench guide](../../services/creator_workbench/README.md#private-colleague-access-over-tailscale)
+covers the colleague HTTPS URL, shared-admin trust boundary, required running
+services, verification limits and endpoint-scoped disable command. It is not
+the Spark gateway and does not expose its bearer credential or directly publish
+the Mac bridge's listener/token. Workbench co-admins can still invoke the
+configured native queues through the workbench.
