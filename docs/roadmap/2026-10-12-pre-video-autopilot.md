@@ -316,6 +316,11 @@ The accepted [implementation contract](../creative-workflow/pre-video-autopilot-
 
 ## Source entrypoints
 
+P2 source checkpoint implements the durable native text chain and canonical
+installation with fake-delivery focused evidence in the single receipt. P3's
+complete images and P4's truthful consolidated human review remain required;
+this text checkpoint does not finish the automatic material run.
+
 - Source/graph: `brief_contracts.py`, `source_outline_contracts.py`,
   `persistence/project/source_outline_mutations.py`, `source_graph_admission.py`.
 - Creative owners: `cast.py`, `art.py`, `script.py`, `storyboard_review.py`,

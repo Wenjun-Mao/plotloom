@@ -90,3 +90,32 @@ Receipt reconciliation uses the existing candidate owners but leaves creative
 head projections unchanged. It may retain exact job/manifest/output evidence;
 accepted revisions, reference selections and human facts require their distinct
 command scopes. Checkpoint updates use CAS and monotonic dispatch transitions.
+
+
+### P2 complete-intent bound refinement
+
+A disposable valid two-choice/three-ending/join chain requires 66 exact scene and
+beat intent targets. Its context is 44,914 bytes, but the prior shared 64-target
+limit rejected preparation after six successful source jobs. Raise the shared
+current intent target bound to 128 while retaining the 60,000 canonical-context byte bound and
+800 characters per target. Trusted code still owns every target ID, source binding
+and exact cardinality; models own suggestion text only. The primary native
+contract, API response schema, binder and validator share this finite ceiling.
+Do not drop targets, split the frozen job or special-case autopilot. Existing
+frozen job response min/max counts and source/pin identities are retained, not
+rewritten. General-route and over-ceiling tests guard this change.
+
+Atomic initial package publication prevents a prepared job from becoming
+unexportable after a partial write. Serialize publication with a confined empty
+per-job filesystem lock, stage request-derived bytes privately, fsync and rename
+once. Only identified unpublished static subsets that match the exact frozen
+recipe are disposable. Published packages/deliveries are never repaired or
+removed. Recovery preserves the original package bytes and the harmless lock;
+this publication lock grants no native dispatch or continuation authority.
+
+The application controller isolates known filesystem/database failures by project;
+it preserves frozen operation identities and native reservations, blocks safely
+through a fresh session, and continues unrelated projects. When failure recording
+is unavailable, quarantine that project until the blocker is durable. Known
+controller lease/discovery refusals remain supervised and inspectable. A restart
+or Resume never interprets storage failure as proof that dispatch did not occur.

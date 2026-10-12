@@ -12,8 +12,8 @@ function of the action, reaction or dialogue. Do not merely copy the source
 excerpt or describe the camera. Preserve story facts, scene/beat boundaries,
 shot counts and durations. Do not invent facts to resolve ambiguity. Put concrete
 limitations in the completion manifest. Suggestion text stays within 800
-characters per target. The whole request has at most 64 targets and 60,000
-characters of context and targets.
+characters per target. The whole request has at most 128 targets and 60,000
+UTF-8 bytes of canonical JSON context and targets.
 
 Write `intent.json` as `{"entries":[{"id":"exact-target","suggestedText":"建议"}]}`.
 Return every target exactly once, without additional fields. Derive `report.html`

@@ -35,7 +35,7 @@ def test_snapshot_and_closed_folder_restore_preserve_all_retained_creative_files
     project_id, home = accepted_outline(storage)
     original = {path.relative_to(home).as_posix(): sha256(path.read_bytes()).hexdigest()
         for path in (home / "outputs" / "creative-handoff").rglob("*") if path.is_file()}
-    assert len(original) == 8
+    assert sum(not name.endswith(".lock") for name in original) == 8
     snapshot = storage.recovery.create_snapshot(project_id)
     assert original.items() <= {(item.relative_path, item.content_hash) for item in snapshot.manifest.files}
     restored = storage_at(tmp_path / "snapshot-restored").recovery.restore(Path(snapshot.location))

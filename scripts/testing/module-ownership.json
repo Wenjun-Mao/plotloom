@@ -29,7 +29,9 @@
           "tests/test_project_storage_source_outline_api.py",
           "tests/test_project_storage_work_unit_contracts.py",
           "tests/test_v2_authoring_domain.py",
-          "tests/test_autopilot_authority.py"
+          "tests/test_autopilot_authority.py",
+          "tests/test_autopilot_text_controller.py",
+          "tests/test_autopilot_controller_safety.py"
         ],
         "vitest": [
           "frontend/tests/authoring-autosave-admission.test.ts",

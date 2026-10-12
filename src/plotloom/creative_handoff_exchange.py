@@ -87,12 +87,18 @@ class CreativeHandoffExchange:
     """Packages immutable requests and reads untrusted specialist candidates."""
 
     def __init__(self, root: Path) -> None:
-        self.root = root.expanduser().resolve()
+        configured = root.expanduser()
+        if configured.is_symlink():
+            raise CreativeHandoffError("package_conflict", "creative exchange root must not be a symlink")
+        self.root = configured.resolve()
 
     def _job_root(self, job_id: str) -> Path:
         if not is_creative_job_id(job_id):
             raise CreativeHandoffError("invalid_job_id", "creative handoff job identifier is invalid")
-        return self.root / "jobs" / job_id
+        job_root = self.root / "jobs" / job_id
+        if (self.root / "jobs").is_symlink() or job_root.is_symlink():
+            raise CreativeHandoffError("package_conflict", "creative job paths must not traverse symlinks")
+        return job_root
 
     @staticmethod
     def _names(directory: Path, *, package: bool = False) -> set[str]:
@@ -273,19 +279,16 @@ class CreativeHandoffExchange:
         request.assert_secret_free()
         job_root = self._job_root(request.job_id)
         package = job_root / "package"
-        package.mkdir(parents=True, exist_ok=True)
         projected, instructions, template, expected = self._projection(request, execution_pin)
-        names = self._names(package, package=True)
-        if names:
+        self._names(package, package=True)
+        if package.exists():
             self._verify_frozen_package(request, execution_pin)
             return {"packagePath": str(package), "deliveryPath": str(job_root / "delivery")}
-        inputs = package / "inputs"
-        inputs.mkdir(mode=0o700)
-        for filename, payload in request.input_artifacts.items():
-            _write_once(inputs / filename, canonical_json(payload))
-        _write_once(package / "request.json", canonical_json(projected))
-        _write_once(package / "COPY_ASSIGNMENT.txt", instructions)
-        _write_once(package / TEMPLATE_FILENAME, template)
+        from .creative_package_publication import publish_package
+        files = {**{f"inputs/{filename}": canonical_json(payload) for filename, payload in request.input_artifacts.items()},
+            "request.json": canonical_json(projected), "COPY_ASSIGNMENT.txt": instructions, TEMPLATE_FILENAME: template}
+        publish_package(package, digest=request_hash(request), files=files, write_once=_write_once)
+        self._verify_frozen_package(request, execution_pin)
         return {"packagePath": str(package), "deliveryPath": str(job_root / "delivery")}
 
     def read_delivery(

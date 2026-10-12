@@ -7,6 +7,7 @@ from typing import Any, Literal
 from pydantic import Field, model_validator
 
 from .domain import CamelModel
+from .machine_adoption import MachineAdoption
 from .production_presentation import ProductionPresentation, PresentationCandidate
 
 ProductionBridgeStatus = Literal["missing", "ready", "accepted", "stale"]
@@ -82,12 +83,17 @@ class ProductionBridgeIntentPackage(CamelModel):
     """One whole-package review binding, never independent questions."""
 
     suggestion_origin: Literal["none", "model_inference.v1", "codex_native.v1"]
-    review_state: Literal["pending", "model_suggested", "author_saved"]
+    review_state: Literal["pending", "model_suggested", "author_saved", "ai_adopted"]
     entries: list[ProductionBridgeIntentEntry] = Field(min_length=1)
     provenance: dict[str, Any] | None = None
+    machine_adoption: MachineAdoption | None = None
 
     @model_validator(mode="after")
     def validate_review_binding(self) -> ProductionBridgeIntentPackage:
+        if (self.review_state == "ai_adopted") != (self.machine_adoption is not None):
+            raise ValueError("machine intent adoption and review state must agree")
+        if self.review_state == "ai_adopted" and self.suggestion_origin != "codex_native.v1":
+            raise ValueError("machine intent adoption requires native delivery provenance")
         has_model = self.suggestion_origin in {"model_inference.v1", "codex_native.v1"}
         if has_model != (self.provenance is not None):
             raise ValueError("model suggestion origin and provenance must agree")

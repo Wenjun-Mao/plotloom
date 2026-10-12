@@ -2,28 +2,23 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from pathlib import Path as FilePath
 from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Path
 
+from ..creative_commands import CREATIVE_METHODS, send_creative_candidate
 from ..creative_handoff_contracts import JOB_ID_PATTERN, CreativeHandoffError
 from ..specialist_settings import SpecialistRegistry, SpecialistSettings
 from .project_folder_image_terminal import register_image_terminal_routes
+from .project_folder_autopilot import register_autopilot_runtime
 
 Stage = Literal["outline", "branches", "characters", "art", "script", "storyboard"]
 # Existing stage repositories remain the sole owners of currentness and admission.
-METHODS = {
-    "branches": ("branch_state", "branch_candidate_request", "admit_branch_delivery"),
-    "outline": ("source_outline_state", "outline_candidate_request", "admit_outline_delivery"),
-    "characters": ("cast_state", "cast_candidate_request", "admit_cast_delivery"),
-    "art": ("art_state", "art_candidate_request", "admit_art_delivery"),
-    "script": ("script_state", "script_candidate_request", "admit_script_delivery"),
-    "storyboard": ("storyboard_review_state", "storyboard_review_candidate_request", "admit_storyboard_review_delivery"),
-}
+METHODS = CREATIVE_METHODS
 
 
 def register_specialist_routes(app: FastAPI, opened_project: Callable[[str], Any], registry: SpecialistRegistry):
+    register_autopilot_runtime(app, opened_project, registry)
     register_image_terminal_routes(app, opened_project, registry)
     @app.get("/api/v2/specialists")
     def settings():
@@ -55,23 +50,7 @@ def register_specialist_routes(app: FastAPI, opened_project: Callable[[str], Any
             candidate = current(store, stage, job_id, require_fresh=True)
             if candidate.status != "prepared":
                 raise HTTPException(409, "只有尚未交付的当前提案可以发送。")
-            request = getattr(store, METHODS[stage][1])(job_id)
-            paths = store.creative_handoff_exchange().verified_package_paths(request, store.creative_handoff_execution_pin(request))
-            execution_root = FilePath(__file__).resolve().parents[3]
-            registry.dispatch(
-                "text", job_id=job_id, package_path=paths["packagePath"], delivery_path=paths["deliveryPath"],
-                context={"projectId": project_id, "stage": stage},
-                assignment=(
-                    f"Execute one frozen Plotloom {stage} assignment ({job_id}). "
-                    f"Use execution checkout {execution_root}; do not infer it from this chat's working directory. "
-                    f"Read {execution_root}/.agents/skills/plotloom-shuohao-specialist/SKILL.md, then "
-                    f"{paths['packagePath']}/request.json and COPY_ASSIGNMENT.txt. "
-                    "The package alone is authoritative; do not use previous chat assignments as project context. "
-                    f"Write only the requested delivery files under {paths['deliveryPath']}. "
-                    "Do not modify code, packages, project canon, selections or approvals. "
-                    "Do not generate images or videos. Validate with the pinned package instructions."
-                ),
-            )
+            send_creative_candidate(store, registry, stage, job_id)
             return registry.status(job_id)
 
     @app.post("/api/v2/projects/{project_id}/specialist-tasks/{stage}/{job_id}/check")

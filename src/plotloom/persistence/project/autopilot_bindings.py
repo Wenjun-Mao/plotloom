@@ -51,11 +51,11 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
                 or material.text != brief["synopsis"]):
             raise ValueError("machine source differs from the exact frozen Brief projection")
         return
-    if owner in {"installation", "bundle"}:
+    if owner in {"installation", "bundle", "bridge-proposal"}:
         if evidence.job_id or evidence.request_hash or evidence.execution_pin or evidence.delivery_hash:
             raise ValueError("local adoption cannot impersonate a native job")
-        row = _row(connection, "SELECT project_id, content_hash FROM v2_entity_revisions WHERE id=?",
-            (evidence.subject_id,))
+        table = "v2_production_bridge_revisions" if owner == "bridge-proposal" else "v2_entity_revisions"
+        row = _row(connection, f'SELECT project_id, content_hash FROM "{table}" WHERE id=?', (evidence.subject_id,))
         if row["project_id"] != project_id or row["content_hash"] != evidence.result.get("contentHash"):
             raise ValueError("local adoption canonical owner changed")
         return

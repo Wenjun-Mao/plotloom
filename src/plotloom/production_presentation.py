@@ -5,10 +5,11 @@ from copy import deepcopy
 from hashlib import sha256
 from typing import Any, Literal
 
-from pydantic import Field, StrictInt
+from pydantic import Field, StrictInt, model_validator
 
 from .creative_handoff_exchange import canonical_json
 from .domain import CamelModel
+from .machine_adoption import MachineAdoption
 
 
 def stable_hash(value: Any) -> str:
@@ -40,6 +41,13 @@ class ProductionPresentation(CamelModel):
     runtime_choice: dict[str, Any]
     frozen_evidence: dict[str, Any]
     source_hash: str
+    machine_adoption: MachineAdoption | None = None
+
+    @model_validator(mode="after")
+    def exclusive_review_owner(self):
+        if self.reviewed and self.machine_adoption is not None:
+            raise ValueError("machine presentation adoption cannot claim human review")
+        return self
 
 
 class PresentationUpdate(CamelModel):
@@ -96,7 +104,7 @@ def review_presentation(package: ProductionPresentation, request: ProductionPres
     if request.source_hash != package.source_hash:
         raise ValueError("presentation source hash changed")
     sources = bind_presentation_spans(package, request.entries)
-    return package.model_copy(update={"reviewed": True, "sources": sources})
+    return ProductionPresentation.model_validate(package.model_dump() | {"reviewed": True, "sources": sources, "machine_adoption": None})
 
 
 def bind_presentation_spans(package: ProductionPresentation, entries: list[PresentationUpdate]) -> list[PresentationSource]:
@@ -126,7 +134,10 @@ def bind_presentation_spans(package: ProductionPresentation, entries: list[Prese
                 raise ValueError("runtime-choice span needs an explicit source-choice explanation")
         if cursor != len(source.source_text):
             raise ValueError("presentation review omitted source text")
-        sources.append(source.model_copy(update={"spans": updates[source.id]}))
+        # Native suggestions use a stricter span subclass. Persist the domain
+        # model here so reopen reconstructs the same typed representation.
+        sources.append(PresentationSource.model_validate(source.model_dump() | {
+            "spans": [span.model_dump() for span in updates[source.id]]}))
     # Runtime wording comes only from the exact frozen author map, never a rendering.
     choices = choice["choices"]
     if any(not item.get("prompt") or len(item.get("outcomes", [])) < 2 for item in choices):
@@ -140,7 +151,7 @@ def physical_text(source: PresentationSource) -> str:
 
 def project_presentation(payload: dict, package: ProductionPresentation) -> dict:
     """Only reviewed media facts enter canonical presentation fields."""
-    if not package.reviewed:
+    if not package.reviewed and package.machine_adoption is None:
         raise ValueError("production presentation must be explicitly reviewed")
     projected = deepcopy(payload)
     by_target = {item.target_id: item for item in package.sources}

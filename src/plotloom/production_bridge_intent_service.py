@@ -22,7 +22,7 @@ from .generation.prompts import PromptRenderer
 from .generation.responses import extract_json_response, redact_provider_boundary_evidence
 from .pipeline import RunSecretBroker, TextProviderResolver
 from .production_bridge_intent_contract import (
-    MAX_INTENT_CONTEXT_CHARACTERS, bind_intent_suggestions, intent_response_schema,
+    MAX_INTENT_CONTEXT_BYTES, bind_intent_suggestions, intent_response_schema,
 )
 from .provider_profiles import TextProviderProfileSnapshotV3
 from .project_storage.composition import ProjectFolderStorage
@@ -53,7 +53,7 @@ class ProductionBridgeIntentService:
             context, targets = store.repository.production_bridge_intent.source_context(
                 project_id, expected_revision=expected_revision, expected_hash=expected_hash,
             )
-            if len(canonical_json({"context": context, "targets": targets})) > MAX_INTENT_CONTEXT_CHARACTERS:
+            if len(canonical_json({"context": context, "targets": targets})) > MAX_INTENT_CONTEXT_BYTES:
                 raise InvalidTransitionError("bridge intent context exceeds the bounded one-package inference limit")
             schema = intent_response_schema([item["id"] for item in targets])
             rendered = self.renderer.render(PROMPT_ID, {

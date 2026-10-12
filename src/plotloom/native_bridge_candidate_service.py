@@ -34,38 +34,44 @@ class NativeBridgeCandidateService:
 
     def send(self, project_id: str, job_id: str) -> None:
         with closing(self.storage.projects.open(project_id)) as store:
-            request, data = self._request(store, project_id, job_id)
-            if data["status"] != "queued":
-                raise InvalidTransitionError("only a never-sent native candidate can be sent")
-            exchange = store.creative_handoff_exchange()
-            frozen_pin = store.creative_handoff_execution_pin(request)
-            if exchange.current_execution_pin(request.stage) != frozen_pin:
-                raise CreativeHandoffError("execution_pin_mismatch", "当前执行版本与冻结任务不同；未发送，任务与执行锁定保持不变。")
-            paths = exchange.write_package(request, frozen_pin)
-            if Path(paths["deliveryPath"]).exists():
-                raise InvalidTransitionError("native delivery already exists; do not send a second execution")
-            owner = store.repository.production_bridge_intent
+            return self.send_in_store(store, job_id)
 
-            def before_send():
-                if not owner.mark_dispatched(project_id, job_id):
-                    raise InvalidTransitionError("native candidate proposal changed before sending")
+    def send_in_store(self, store, job_id, *, before_send=None, expected_task_id=None, expected_bindings=None):
+        project_id = store.manifest.project_id
+        request, data = self._request(store, project_id, job_id)
+        if data["status"] != "queued":
+            raise InvalidTransitionError("only a never-sent native candidate can be sent")
+        exchange = store.creative_handoff_exchange()
+        frozen_pin = store.creative_handoff_execution_pin(request)
+        if exchange.current_execution_pin(request.stage) != frozen_pin:
+            raise CreativeHandoffError("execution_pin_mismatch", "当前执行版本与冻结任务不同；未发送，任务与执行锁定保持不变。")
+        paths = exchange.write_package(request, frozen_pin)
+        if Path(paths["deliveryPath"]).exists():
+            raise InvalidTransitionError("native delivery already exists; do not send a second execution")
+        owner = store.repository.production_bridge_intent
 
-            execution_root = Path(__file__).resolve().parents[2]
-            try:
-                self.registry.dispatch("text", job_id=job_id, package_path=paths["packagePath"], delivery_path=paths["deliveryPath"],
-                    context={"projectId": project_id, "stage": self.stage}, before_send=before_send,
-                    assignment=(f"Execute one frozen native Plotloom {self.name} suggestion job {job_id}. "
-                        f"Use the exact execution checkout {execution_root} and its frozen revision; the task's original working directory is not execution authority. "
-                        f"Read {execution_root}/.agents/skills/plotloom-{self.name}-specialist/SKILL.md and {execution_root}/docs/creative-workflow/native-bridge-{self.name}.md completely; use {execution_root}/scripts/native_bridge_{self.name}.py. Then read "
-                        f"{paths['packagePath']}/request.json and COPY_ASSIGNMENT.txt. "
-                        f"The frozen package alone is authority. Write only its requested delivery files under {paths['deliveryPath']}. "
-                        "Use the pinned local validator/renderer. Do not change code, canon, package, approvals or selections. "
-                        "No API, provider fallback, image or video calls."))
-            except ImageJobError as error:
-                if error.code == "image_dispatch_outcome_unknown":
-                    owner.finish_failure(project_id, job_id, status="outcome_unknown", code="native.dispatch_outcome_unknown",
-                        message="发送结果不确定；请检查同一任务交付，不要重复发送。")
-                raise
+        def prepare_dispatch():
+            if before_send is not None:
+                before_send()
+            elif not owner.mark_dispatched(project_id, job_id):
+                raise InvalidTransitionError("native candidate proposal changed before sending")
+
+        execution_root = Path(__file__).resolve().parents[2]
+        try:
+            self.registry.dispatch("text", job_id=job_id, package_path=paths["packagePath"], delivery_path=paths["deliveryPath"],
+                    context={"projectId": project_id, "stage": self.stage}, before_send=prepare_dispatch, expected_task_id=expected_task_id, expected_bindings=expected_bindings,
+                assignment=(f"Execute one frozen native Plotloom {self.name} suggestion job {job_id}. "
+                    f"Use the exact execution checkout {execution_root} and its frozen revision; the task's original working directory is not execution authority. "
+                    f"Read {execution_root}/.agents/skills/plotloom-{self.name}-specialist/SKILL.md and {execution_root}/docs/creative-workflow/native-bridge-{self.name}.md completely; use {execution_root}/scripts/native_bridge_{self.name}.py. Then read "
+                    f"{paths['packagePath']}/request.json and COPY_ASSIGNMENT.txt. "
+                    f"The frozen package alone is authority. Write only its requested delivery files under {paths['deliveryPath']}. "
+                    "Use the pinned local validator/renderer. Do not change code, canon, package, approvals or selections. "
+                    "No API, provider fallback, image or video calls."))
+        except ImageJobError as error:
+            if error.code == "image_dispatch_outcome_unknown":
+                owner.finish_failure(project_id, job_id, status="outcome_unknown", code="native.dispatch_outcome_unknown",
+                    message="发送结果不确定；请检查同一任务交付，不要重复发送。")
+            raise
 
     def check(self, project_id: str, job_id: str) -> dict:
         with closing(self.storage.projects.open(project_id)) as store:

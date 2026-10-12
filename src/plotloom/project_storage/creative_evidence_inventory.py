@@ -8,6 +8,7 @@ from ..creative_handoff_contracts import CreativeHandoffRequest, CreativeDeliver
 from ..creative_handoff_exchange import CreativeHandoffExchange, canonical_json, request_hash, execution_pin_for_request
 from .format import ProjectStorageCorruptionError
 from .snapshot_files import _safe_directory, _safe_regular, _assert_exchange_file_is_secret_free
+from ..creative_package_publication import PUBLICATION_LOCK
 
 
 def retained_requests(connection):
@@ -72,6 +73,7 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
             "package/request.json", "package/COPY_ASSIGNMENT.txt", "package/completion-manifest.example.json",
             *(f"package/inputs/{name}" for name in request.input_artifacts),
             f"delivery/{candidate_name}", "delivery/report.html", "delivery/completion.json",
+            PUBLICATION_LOCK,
         }
         allowed_dirs = {"package", "package/inputs", "delivery"}
         observed = set()
@@ -88,6 +90,8 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
                     _safe_regular(child, label="creative evidence file")
                     if relative not in expected or child.stat().st_size > 4_000_000:
                         raise ProjectStorageCorruptionError("creative evidence file is unowned or oversized")
+                    if relative == PUBLICATION_LOCK and child.stat().st_size != 0:
+                        raise ProjectStorageCorruptionError("creative package publication lock contains unknown bytes")
                     _assert_exchange_file_is_secret_free(child)
                     observed.add(relative)
                     paths.append(PurePosixPath(child.relative_to(root).as_posix()))

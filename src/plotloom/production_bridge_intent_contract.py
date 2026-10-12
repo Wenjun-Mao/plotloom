@@ -6,8 +6,8 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
-MAX_INTENT_TARGETS = 64
-MAX_INTENT_CONTEXT_CHARACTERS = 60_000
+MAX_INTENT_TARGETS = 128
+MAX_INTENT_CONTEXT_BYTES = 60_000
 
 
 class IntentSuggestion(BaseModel):

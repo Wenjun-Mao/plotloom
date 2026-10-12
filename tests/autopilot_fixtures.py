@@ -5,7 +5,7 @@ from plotloom.source_outline_contracts import SourceMaterial
 
 
 def policy_for(store):
-    return LaunchPolicy(render_style="live-action", art_render_style="live-action",
+    return LaunchPolicy(render_style="live-action", art_render_style="live-action", code_revision="a" * 40,
         image_width=1280, image_height=720,
         specialist_bindings={"text": "00000000-0000-4000-8000-000000000001", "image": "00000000-0000-4000-8000-000000000002"},
         execution_pins={}, brief=store.project().brief.model_dump(mode="json", by_alias=False))

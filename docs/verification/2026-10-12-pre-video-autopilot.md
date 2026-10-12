@@ -1,7 +1,7 @@
 # Pre-video autopilot · single evidence receipt
 
-Status: **P1 authority/schema/recovery checkpoint committed at `fd549395`;
-P2–P4 in progress**. No full autopilot happy path, product acceptance, valued
+Status: **P1 committed at `fd549395`, preservation correction at `b3b01fb6`;
+P2 text orchestration locally verified, P3–P4 required**. No full autopilot happy path, product acceptance, valued
 installation upgrade or live activation is claimed. Scope and stopping boundary are in the
 [approved plan](../roadmap/2026-10-12-pre-video-autopilot.md#p0-implementation-checkpoint)
 and [ADR 0162](../adr/0162-pre-video-autopilot-authority.md).
@@ -20,7 +20,8 @@ and [ADR 0162](../adr/0162-pre-video-autopilot-authority.md).
   boundary, not an unsupported blocker or completion of the implementation.
 - Only prerequisites initialized: locked `uv sync --all-groups --frozen` and pinned
   `third_party/shuohao-skills` at `4f9b2128c82adf623f594ba714c97d0afcfc16a2`.
-  No frontend builds, static changes, service operations or hosted dispatch.
+  Frontend prerequisites subsequently installed from the checked lockfile for
+  quick feedback; no service operations or hosted dispatch.
 
 ## Historical P0 executed evidence
 
@@ -179,3 +180,53 @@ This correction also removes four extra blank EOFs and makes the receipt's curre
 status distinguish historical P0 evidence from committed P1 and ongoing P2–P4.
 Final staged and committed additions are checked with `git diff --cached --check`
 and `git show --check`; ordinary diff checks alone do not cover untracked additions.
+
+The manager's same GPT-6.1 Sol / High reviewer closed this correction at exact
+`b3b01fb6a5e948f01b4cf6463750292c2e2c47fc`, with no remaining bounded finding.
+The manager inspected committed coverage and clean `git show --check`; this was
+committed-code review, not an independent runtime rerun or full release gate.
+
+### P2 text orchestration checkpoint
+
+One application-owned controller now prepares, sends, reconciles and atomically
+adopts six native text stages plus native intent/presentation and installs the
+canonical bundle. Existing owners remain authoritative. Fake deliveries traverse
+the real package/schema/binder/gate owners: eight unique sends, eleven checkpoints,
+zero human approvals/intents/bindings/SamePerson reviews and zero video rows.
+The general two-choice/three-ending/join case installs six complete routes,
+54 cuts and all 66 intent targets. Images and final human review remain required.
+
+Root causes addressed: typed presentation spans previously serialized identically
+but reopened as a different model type; the shared binder now constructs domain
+spans. A valid general topology exceeded the shared 64-target intent bound;
+manager-approved shared 128 targets retain exact binding and the 60,000-byte cap.
+Interrupted static export previously stranded a prepared identity; atomic confined
+publication now reuses only the original request. Final dispatch uses current
+TEXT/INSTALL authority and frozen pins under reservation, with both task IDs
+checked under the registry lock. Receipt scope cannot grant a new send.
+
+Storage failure handling isolates OSError/SQLAlchemy failures to the project,
+reopens a clean session to persist an actionable blocker and quarantines the
+project until recording succeeds. Unrelated projects continue. Unsafe controller
+lease refusal and discovery failure remain supervised with a readable global
+blocker, without granting a claim. Existing uncertain jobs/reservations remain.
+
+Executed focused evidence (fake native transport, no real dispatch):
+- Native intent/presentation, production bridge/intent, creative exchange,
+  specialist settings, autopilot authority/text: **110 passed**, runner 84.313s.
+- Text controller plus authority and final-send/background storage isolation:
+  **44 passed**, runner 31.364s after the final send correction.
+- UTF-8 byte cap and exact 128/129 target coverage: **2 passed**, runner 3.559s.
+- Start API idempotency and forged-authority refusal: **1 passed**, runner 1.745s.
+- Unsafe controller admission supervision: **1 passed**, runner 1.643s.
+- Static orphan subset/foreign-byte refusal: **2 passed**, runner 1.457s.
+
+The first quick run passed lock/API-import checks but failed before frontend tests
+because the isolated checkout lacked Vitest. Install the checked frontend lockfile
+and reran the failed/downstream quick feedback: **quick passed**, runner 10.937s,
+151 frontend files / 1,284 unit tests and both type checks. No assertions were weakened.
+Locked npm installation reported its existing audit/install-script warnings; no
+dependency versions, lockfiles or build policy were changed.
+Existing Starlette/httpx deprecation warning remains. Ownership includes the new
+text/safety cases. P3/P4, deterministic frontend assets/browser/pixels and manager
+P5 full/native/preservation/activation qualification remain outstanding.

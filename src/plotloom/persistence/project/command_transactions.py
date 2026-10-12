@@ -53,6 +53,18 @@ class ProjectCommandTransactions:
                 run.blocker = {"code": "manual_takeover", "message": "手动编辑已接管；自动运行不会覆盖你的修改。"}
 
     @contextmanager
+    def manual_command(self):
+        """One ordinary human command may compose existing lifecycle owners."""
+        if self._command_context.get() is not None:
+            raise InvalidTransitionError("project commands cannot nest")
+        with self._lifecycle_write() as session:
+            token = self._command_context.set((session, None))
+            try:
+                yield session
+            finally:
+                self._command_context.reset(token)
+
+    @contextmanager
     def autopilot_command(self, authority):
         """Atomic existing-owner command plus run evidence, scoped to this handle."""
         if self._command_context.get() is not None:
@@ -63,6 +75,8 @@ class ProjectCommandTransactions:
             from .autopilot_closure import material_closure, MATERIAL_TABLES
             receipt_tables = tuple(name for name in MATERIAL_TABLES if name != "v2_managed_assets")
             protected_before = material_closure(session, self.project_id, tables=receipt_tables)
+            connection = session.connection().connection.driver_connection
+            changes_before = connection.total_changes
             session.info["autopilot_run_id"] = run.id
             token = self._command_context.set((session, authority))
             try:
@@ -70,10 +84,12 @@ class ProjectCommandTransactions:
                 from .autopilot_closure import material_closure
                 if authority.scope.value == "receipt_reconciliation" and protected_before != material_closure(session, self.project_id, tables=receipt_tables):
                     raise InvalidTransitionError("receipt reconciliation cannot change creative or human authority")
-                if authority.scope.value != "receipt_reconciliation" or run.state in {"running", "waiting"}:
-                    run.expected_closure = material_closure(session, self.project_id)
-                run.revision += 1
-                run.updated_at = utc_now()
+                closure = material_closure(session, self.project_id)
+                if connection.total_changes != changes_before:
+                    if authority.scope.value != "receipt_reconciliation" or run.state in {"running", "waiting"}:
+                        run.expected_closure = closure
+                    run.revision += 1
+                    run.updated_at = utc_now()
             finally:
                 self._command_context.reset(token)
 

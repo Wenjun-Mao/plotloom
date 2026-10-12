@@ -43,6 +43,7 @@ class LaunchPolicy(CamelModel):
     max_jobs: int = Field(default=96, ge=9, le=288)
     image_width: int = Field(ge=64, le=4096)
     image_height: int = Field(ge=64, le=4096)
+    code_revision: str = Field(pattern=r"^[a-f0-9]{7,64}$")
     specialist_bindings: dict[Literal["text", "image"], str]
     execution_pins: dict[str, dict[str, str]]
     brief: dict[str, Any]

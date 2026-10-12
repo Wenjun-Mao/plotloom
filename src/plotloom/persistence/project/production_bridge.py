@@ -159,6 +159,9 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
             return ProductionBridgeState(proposal=proposal, status="stale" if stale else head.status, stale_reasons=stale, installation=installation, preparation=preparation, intent_job=intent, presentation_job=presentation, presentation_candidate=candidate)
 
     def prepare(self, project_id: str, request: ProductionBridgePrepareRequest) -> ProductionBridgeState:
+        from ...autopilot_contracts import OperationScope
+        from .autopilot_authority import allow_manual_or_machine
+        allow_manual_or_machine(self._access, OperationScope.INSTALL)
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id)); head = self._head(session, project_id)
             assert_production_quiescent(self._access, session, project_id)
@@ -181,26 +184,51 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
         """Create one new review binding; client text cannot alter provenance."""
 
         require_human_command(self._access)
+        return self._save_intent_package(project_id, revision=request.expected_proposal_revision,
+            digest=request.expected_content_hash, updates=[(item.id, item.text) for item in request.entries])
+
+    def adopt_machine_intent(self, project_id, *, decision_id, expected_revision, expected_hash):
+        from .bridge_machine_adoption import bridge_adoption
         with self._access.leases.lifecycle_write() as session:
+            adoption = bridge_adoption(session, self._access, project_id, decision_id, "bridge-intent", expected_revision, expected_hash)
+            row = session.scalar(select(ProductionBridgeRevisionRow).where(ProductionBridgeRevisionRow.project_id == project_id, ProductionBridgeRevisionRow.revision == expected_revision))
+            package = self._intent_package(session, row)
+            if package.review_state != "model_suggested" or package.provenance.get("jobId") != adoption.job_id:
+                raise InvalidTransitionError("machine adoption requires the exact native intent suggestion")
+            return self._save_intent_package(project_id, revision=expected_revision, digest=expected_hash,
+                updates=[(entry.id, entry.suggested_text) for entry in package.entries], adoption=adoption)
+
+    def _save_intent_package(self, project_id, *, revision, digest, updates, adoption=None):
+        if adoption is None:
+            require_human_command(self._access)
+        with self._access.leases.lifecycle_write() as session:
+            if adoption is not None:
+                from .bridge_machine_adoption import bridge_adoption
+                if adoption != bridge_adoption(session, self._access, project_id, adoption.decision_id, "bridge-intent", revision, digest):
+                    raise InvalidTransitionError("machine intent adoption provenance changed")
             self._access.guards.active(self._access.rows.project(session, project_id)); head = self._head(session, project_id)
             if head.status == "accepted":
                 raise InvalidTransitionError("accepted production bridge evidence cannot be edited; prepare a new current proposal")
-            if head.revision != request.expected_proposal_revision:
-                raise RevisionConflictError("production bridge", request.expected_proposal_revision, head.revision)
+            if head.revision != revision:
+                raise RevisionConflictError("production bridge", revision, head.revision)
             row = session.scalar(select(ProductionBridgeRevisionRow).where(ProductionBridgeRevisionRow.project_id == project_id, ProductionBridgeRevisionRow.revision == head.revision))
-            if row is None or row.content_hash != request.expected_content_hash:
+            if row is None or row.content_hash != digest:
                 raise InvalidTransitionError("production bridge proposal changed before its intent package was saved")
             if self._proposal_stale(session, project_id, row):
                 raise InvalidTransitionError("production bridge proposal is stale")
             package = self._intent_package(session, row)
-            updates = {item.id: item.text for item in request.entries}
+            submitted = updates
+            updates = dict(submitted)
             known = {item.id for item in package.entries}
-            if len(updates) != len(request.entries) or set(updates) != known:
+            if len(updates) != len(submitted) or set(updates) != known:
                 raise InvalidTransitionError("production bridge intent package must update every exact package entry once")
             if any(not value.strip() for value in updates.values()):
                 raise InvalidTransitionError("every production bridge intent value must be nonblank")
+            if adoption is not None and (package.review_state != "model_suggested" or package.provenance.get("jobId") != adoption.job_id
+                    or updates != {entry.id: entry.suggested_text for entry in package.entries}):
+                raise InvalidTransitionError("machine intent adoption cannot alter native suggestion text")
             updated = ProductionBridgeIntentPackage(
-                suggestion_origin=package.suggestion_origin, review_state="author_saved",
+                suggestion_origin=package.suggestion_origin, review_state="ai_adopted" if adoption else "author_saved", machine_adoption=adoption,
                 entries=[entry.model_copy(update={"text": updates[entry.id]}) for entry in package.entries],
                 provenance=package.provenance,
             )
@@ -214,16 +242,25 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
         return self.get_state(project_id)
 
     def accept(self, project_id: str, request: ProductionBridgeAcceptRequest) -> ProductionBridgeState:
+        from ...autopilot_contracts import OperationScope
+        from .autopilot_authority import allow_manual_or_machine
+        allow_manual_or_machine(self._access, OperationScope.INSTALL)
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id); self._access.guards.active(project); head = self._head(session, project_id)
             assert_production_quiescent(self._access, session, project_id)
             if head.revision != request.expected_proposal_revision: raise RevisionConflictError("production bridge", request.expected_proposal_revision, head.revision)
             row = session.scalar(select(ProductionBridgeRevisionRow).where(ProductionBridgeRevisionRow.project_id == project_id, ProductionBridgeRevisionRow.revision == head.revision))
             if row is None or row.content_hash != request.expected_content_hash or not row.installable: raise InvalidTransitionError("production bridge proposal is not installable")
-            if not ProductionPresentation.model_validate(row.proposal["presentation"]).reviewed:
+            presentation = ProductionPresentation.model_validate(row.proposal["presentation"])
+            from .bridge_machine_adoption import assert_bridge_adoption
+            if presentation.machine_adoption is not None:
+                assert_bridge_adoption(session, self._access, project_id, presentation.machine_adoption, "bridge-presentation")
+            elif not presentation.reviewed:
                 raise InvalidTransitionError("production bridge requires complete reviewed presentation")
             package = self._intent_package(session, row)
-            if package.review_state != "author_saved" or any(not entry.text.strip() for entry in package.entries):
+            if package.review_state == "ai_adopted":
+                assert_bridge_adoption(session, self._access, project_id, package.machine_adoption, "bridge-intent")
+            if package.review_state not in {"author_saved", "ai_adopted"} or any(not entry.text.strip() for entry in package.entries):
                 raise InvalidTransitionError("production bridge requires a complete reviewed dramatic-intent package")
             if self._current(session, project_id, row.inputs): raise InvalidTransitionError("production bridge proposal is stale")
             self._install_bundle(session, project, row)

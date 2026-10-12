@@ -84,7 +84,7 @@ class AutopilotPersistence:
             if action == "resume":
                 if row.id in self.recovered_run_ids():
                     raise InvalidTransitionError("portable restored autopilot identities cannot resume native dispatch")
-                if row.state not in {"paused", "waiting"} or row.expected_closure != material_closure(session, project_id):
+                if row.state not in {"paused", "waiting", "blocked"} or row.expected_closure != material_closure(session, project_id):
                     raise InvalidTransitionError("only an unchanged paused run can resume its original jobs")
                 row.state = "running"
             else:
@@ -134,7 +134,7 @@ class AutopilotPersistence:
             raise InvalidTransitionError("checkpoint requires a trusted run command")
         if state == "adopted":
             expected_scope = (OperationScope.SOURCE if evidence.owner == "source"
-                else OperationScope.INSTALL if evidence.owner in {"installation", "bridge-intent", "bridge-presentation"}
+                else OperationScope.INSTALL if evidence.owner in {"installation", "bridge-proposal", "bridge-intent", "bridge-presentation"}
                 else OperationScope.SELECT if evidence.owner in {"bundle", "image", "character-reference", "art-reference"}
                 else OperationScope.TEXT)
             if authority.scope != expected_scope:
@@ -188,8 +188,12 @@ class AutopilotPersistence:
             row = self.row(session, project_id)
             if row is None or row.state not in {"running", "waiting"}:
                 return
-            row.state = "waiting" if waiting else "blocked"
-            row.blocker = {"code": code, "message": message[:2000]}
+            blocker = {"code": code, "message": message[:2000]}
+            state = "waiting" if waiting else "blocked"
+            if row.state == state and row.blocker == blocker:
+                return
+            row.state = state
+            row.blocker = blocker
             row.revision += 1
             row.updated_at = utc_now()
 
@@ -216,3 +220,14 @@ class AutopilotPersistence:
             session.add(row)
             session.flush()
             return row.id
+
+    def progress(self, phase):
+        authority = self.access.authority()
+        if authority is None or authority.scope == OperationScope.EVIDENCE:
+            raise InvalidTransitionError("receipt reconciliation cannot advance automatic progress")
+        with self.access.leases.lifecycle_write() as session:
+            row = session.get(AutopilotRunRow, authority.run_id)
+            row.phase = phase
+            row.blocker = None
+            if row.state == "waiting":
+                row.state = "running"

@@ -129,10 +129,14 @@ class SpecialistRegistry:
                 return {"state": result["state"], "taskId": task_id}
         return {"state": "prepared"}
 
-    def dispatch(self, role: Role, *, context: dict | None = None, **kwargs):
+    def dispatch(self, role: Role, *, context: dict | None = None, expected_task_id=None, expected_bindings=None, **kwargs):
         with self.lock():
             data = self._read()
+            if expected_bindings is not None and expected_bindings != {name: data["settings"][name]["taskId"] for name in ("text", "image")}:
+                raise ImageJobError("specialist_binding_changed", "冻结助手配置已变化；任务未发送。")
             task_id = data["settings"][role]["taskId"]
+            if expected_task_id is not None and task_id != expected_task_id:
+                raise ImageJobError("specialist_binding_changed", "冻结助手身份已变化；任务未发送。")
             if not task_id:
                 raise ImageJobError("specialist_unconfigured", "请先在「生成助手设置」中填写助手的聊天 ID。")
             if self._status(data, kwargs["job_id"])["state"] != "prepared":

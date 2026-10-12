@@ -47,5 +47,7 @@ def assert_autopilot_contracts(connection):
             if runs.get(run_id, (None,))[0] != project or (parsed.shot_id, parsed.job_id, parsed.asset_id) != (shot, job, asset):
                 raise ValueError("provisional frame identity changed")
             assert_frame_binding(connection, run_id, project, decision, parsed)
+        from .bridge_adoption_validation import assert_bridge_adoption_contracts
+        assert_bridge_adoption_contracts(connection)
     except (ValueError, TypeError, KeyError) as error:
         raise ProjectStorageCorruptionError("persisted autopilot authority is invalid") from error
