@@ -302,7 +302,185 @@ delivers the stable candidate and focused evidence; the manager owns independent
 review, final combined qualification, main integration and approved operational
 proof/activation. Worktree/task cleanup remains manager-owned after final review.
 
-## Entrypoints
+## P0 implementation checkpoint
+
+Status: source review and disposable baseline probes complete; manager-attended
+review requested before schema/authority writes. The manager confirmed the
+preservation refinement, separate machine/provisional owners and retained
+reference identities, exact raw Brief provenance and one counted adaptation are
+in scope. The complete contract awaits attended review. P1–P4 are not
+implemented at this checkpoint.
+Evidence is kept in [one receipt](../verification/2026-10-12-pre-video-autopilot.md).
+
+### Ownership and typed records
+
+| Owner | Durable contents and constraints |
+|---|---|
+| Run | One retained run per project; policy version/hash; exact Brief revision/hash/raw source projection; frozen Cast/Art styles, language/aspect/timing/topology settings; text/image task IDs; execution pins; image/job ceilings; state/CAS revision; lifecycle and controller claim; expected current closure; material bundle and human handoff IDs. No credentials or provider writes. |
+| Checkpoint | Unique `(run, operation key)`; typed owner/stage/subject; exact original job/request/package/pin; prepared/sent/unknown/delivered/adopted status, dispatch/evidence hashes and CAS revision. References existing native owners, never another queue. |
+| Decision | Immutable tagged actor/scope; run/policy/checkpoint; exact subject revision/hash and upstream closure; delivery/receipt evidence; selected asset IDs/hashes and rationale. Machine scope names source/text adoption, production installation, image generation or provisional selection; it contains no video scope. |
+| Provisional frame | Exact shot/scene, canonical installation/revision/hash, v3 job/unit/request/delivery, one asset/hash/geometry and frozen character-reference mapping. No human VisualIntent or review judgment. |
+| Human handoff | Immutable original material hash plus genuine reviewer/notes, per-frame intent/compatibility decisions, exact reference endorsement and resulting human approval/binding/SamePersonReview IDs. Distinct from machine material identity. |
+
+All records are project-owned, registered in the native project-table inventory
+and validated as current typed contracts on ordinary open/recovery. Same-project
+FKs and unique operation keys enforce identity. Polymorphic job IDs additionally
+require exact owner lookups; merely matching a string is insufficient.
+
+ProductionUnit gains an exclusive nullable human-approval/machine-decision FK
+union. Existing human approvals/bindings are unchanged; machine originals use the
+same canonical gate/currentness rules through explicit image-only admission.
+Machine provisional frames do not appear as current reviewed keyframes. Intent
+uses `ai_adopted`; presentation keeps `reviewed=false` and carries a typed
+machine-adoption reference with mutually exclusive states. Shared structural
+binding/projecting never substitutes for semantic or visual review.
+
+### Commands, currentness and restart
+
+One application-owned serial reconciler uses existing global native role
+reservations. Launch preflights feasible topology, explicit style consistency,
+both configured distinct specialist roles and execution pins before admission.
+It freezes a finite policy and exact Brief. Source projection is a trusted
+synopsis of the saved title/synopsis, with explicit Brief revision/hash origin;
+the current trimming behavior must not change those bytes or invent clearance.
+Use a typed Brief-origin source contract validated against the exact current
+Brief in trusted persistence; require nonblank content without trimming that
+origin's title/synopsis. Normal manual source normalization remains explicit.
+Do not use model construction/validator bypass, silently alter historical sources
+or treat a client-supplied provenance object as evidence of a Brief binding.
+
+Prepare/check/adopt are repository-bound typed commands. Their run/claim,
+lifecycle and expected closure are checked under one lifecycle writer
+transaction. Nested owner reads and writes reuse that same session; the existing
+owner mutation plus machine decision and checkpoint commit/rollback together.
+No filesystem publication or non-idempotent native send is placed inside the
+SQLite transaction. Export reconciles the original prepared request; native
+reservation/send/evidence remain owned by the existing transport. Crash after
+publication or send checks that identity, never allocates a replacement.
+
+Current closure includes Brief, source/outline/map/graph, all adopted Cast/Art/
+Script/storyboard revisions, bridge intent/presentation/installation and canonical
+gate inputs, selected references, all required frame jobs/assets/geometry,
+execution bindings and relevant manual drafts. Receipt-only ingestion is not
+creative adoption. Manual mutations pause/take over before content changes;
+late receipt reconciliation can retain evidence but cannot overwrite edits.
+Controller commands must explicitly reconcile their expected closure after each
+authorized mutation. A generic lifecycle write is not permission to dispatch.
+
+Same-host restart acquires a valid controller claim, verifies open/active project
+and every frozen binding, then reconciles original jobs before continuing. Claim
+expiry/process loss never releases native reservations. Paused/cancelled runs
+retain project/job ownership and evidence. Portable recovery permanently records
+the captured run/checkpoint IDs: acknowledgement enables inspection/manual work,
+not native continuation on the destination. Settings/pin/Brief drift withdraws
+automatic authority; no new run is silently admitted.
+
+### Complete image pack and truthful review
+
+Required images are every adopted Cast subject plus every Art environment/prop
+subject, followed by every unique installed filmed shot reachable over the union
+of all complete routes. Enumerate canonical shot identity, not route occurrences;
+route-only nodes have no shots. Reconcile exact counts against frozen ceilings
+before images. One initial output per subject/shot is the package policy; extra
+or unsupported outputs are disclosed delivery blockers, not automatic competing
+candidate selection. Character references condition shot jobs; Art images remain
+gallery materials. Every v3 shot has an exact mapping, including a valid empty
+mapping for character-free shots; absent/malformed mappings cannot bypass review.
+
+The existing limits are nine total image attachments and eight visible-character
+judgments per frame. Preflight both before image dispatch; no character omission
+or review-contract weakening. Technical image admission checks exact project/
+subject/job/pin/hash, valid bytes, current dependencies and frozen role. Machine
+selection records these facts with AI labels; it performs no aesthetic/identity
+pass and creates no human VisualIntent.
+
+Geometry review item: originals need the Brief aspect before completed-pack
+admission. Current originals admit arbitrary valid dimensions; current adaptation
+requires a human reviewed source. Extend only that source contract to a tagged
+machine-provisional frame under image scope. A mismatched original may receive
+one existing adaptation job with launch-frozen image geometry and its own counted
+checkpoint/job. Settle a technically valid original's normal delivery/reservation
+with the existing owner, retain its bytes and mismatch evidence, but exclude it
+from required-frame completion. A second incompatible output remains a blocker.
+No implicit crop, H3 request/preview,
+provider preflight or speculative regeneration. If no capacity remains, or the
+adaptation is invalid, block with evidence and a manual next action. Real native
+geometry capability is unproven until the manager's isolated generation proof.
+
+At one consolidated review, collect real per-frame intent/compatibility inputs
+and ordered per-character pass/fail/unassessable observations with attribution.
+`unassessable + authorize + reason` is uncertain authorization, never pass.
+The final lifecycle transaction revalidates the whole material hash, records
+genuine storyboard approval, human intents/bindings and SamePersonReview inputs
+through the current owners, then appends the handoff receipt. Fail/hold/missing
+inputs roll back eligibility. Endorse original reference decisions rather than
+reselecting them; identical bytes with a new reference ID stale frozen shot jobs.
+Human rows appended by handoff are separate from the original material hash.
+No video row, request, preview or provider call is created by confirmation.
+After takeover, manually completed current material may receive a new exact human
+handoff through this same bundle owner; preserve the old receipt. There is no
+automatic regeneration, permanent manual lockout or silent reuse of stale review.
+
+### Video guard inventory
+
+| Boundary | Required guard |
+|---|---|
+| `media_video_preparation.VideoJobPreparation.prepare_video_job` | Reject machine context and absent/stale whole handoff before prompt preview, compilation, freeze, row creation or accounting; `preview_only` is no exception. |
+| `project_storage.video_service.ProjectVideoService.assert_submit_allowed` / `video_jobs.VideoJobService.submit` | Reject before any provider preflight, including the retained shared service mode. |
+| `project_storage.project_video.ProjectVideoRepository.claim_video_dispatch` | Check before application reservation, then recheck under project transaction. |
+| `persistence.project.media_video.VideoJobPersistence.claim_video_dispatch` | Independent shared-owner human/scope/current-handoff admission. |
+| `media_video_currentness.VideoJobCurrentness` | Whole handoff closure currentness reaches segment/review/playback consumers; unrelated adopted subjects and other frames can withdraw eligibility. |
+| `media_video_end_frames.VideoEndFrames.choose` | No machine video preparation scope. Optional end-frame generation stays excluded. |
+| `media_tasks.GenericMediaTaskPersistence` | Retain current prohibition; no alternative video enqueue path. |
+
+Do not block immutable history, manual cancellation or safe known-ID outcome
+reconciliation when material eligibility is withdrawn. These retain uncertain
+evidence and do not grant a new dispatch. Manual-only projects retain their
+existing admission behavior when no autopilot run exists.
+
+### Preserving transition and testable invariants
+
+Freeze the complete preceding `schema_objects` tuple from `731cfdbf`, whose
+canonical SHA-256 is `ea9facef83198e8b5abdd8693923f51add1376c0b416041dbfa245b92011b825`
+(75 tables). This is a source baseline, not the actual installation layout.
+The manager separately inventories actual targets. Independent raw manifested
+folder inventory classifies prior/current/unsupported/error; ordinary discovery
+skips unsupported folders and cannot establish a rollout inventory.
+
+The named upgrader acquires installation dispatch quiescence and exclusive
+project filesystem admission, validates confinement, exact layout/identity,
+review JSON, integrity/FKs/secrets and unresolved native publications, then uses
+one explicit SQLite transaction. Add typed tables and rebuild ProductionUnit's
+authority constraint without changing old values, IDs, references or open/closed/
+archived states. Verify exact current layout, integrity/FKs and logical row
+fingerprints before commit. Unknown layout and ambiguous reservations fail
+closed. Idempotent current-layout rerun performs no rewrite; crash rolls back.
+
+Snapshots must include packages/reports from typed retained creative/branch/
+intent/presentation job identities. Current snapshot payload enumeration omits
+`outputs/creative-handoff/jobs`; P0 reproduced eight lost files and direct-restore
+refusal. Enumerate confined expected job trees and verify bytes/hashes/secrets;
+retain incomplete/rejected evidence honestly without treating it as terminal.
+Do not recursively trust arbitrary `outputs/` or allow symlink/foreign entries.
+Extend recovery operations, lifecycle busy/publication guards and permanent
+portable dispatch prohibition for autopilot. Restore immediate-prior snapshots
+only after original inventory/schema/integrity verification; upgrade a private
+destination, validate, then publish. Original snapshot bytes/hashes stay intact.
+The manager owns actual-layout/cutback proof and valued-folder mutation.
+
+Before real image integration, deterministic fake deliveries must prove atomic
+adopt/checkpoint rollback, repeated start/resume, double clients, exact source
+projection, all-route unique-shot/subject inventory, failed gates, missing/stale/
+foreign output, shared-role occupancy, unknown send, two failed criteria,
+pause/cancel/late evidence, settings/pin drift, manual takeover, same-host restart,
+portable recovery and synthetic preserving upgrade/snapshot rollback. Negative
+video tests must prove no provider calls, application reservations, video rows or
+fake human facts before handoff. Final review must refuse every stale/missing/
+failed/held dependency and preserve uncertain authorization as uncertain.
+Record ownership and browser shard registration with new collected tests;
+broader full qualification stays manager-owned on the stable candidate.
+
+## Source entrypoints
 
 - Source/graph: `brief_contracts.py`, `source_outline_contracts.py`,
   `persistence/project/source_outline_mutations.py`, `source_graph_admission.py`.
