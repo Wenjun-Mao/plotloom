@@ -8,9 +8,32 @@ import { graphControllerFixture } from "./graph-workbench-fixture";
 import { SourceOutlinePage } from "../src/pages/SourceOutlinePage";
 import { specialistsApi } from "../src/features/specialists/api";
 import { branchOperationFixture, branchOperationView } from "./branch-operation-fixture";
+import { AutopilotWorkspace } from "../src/features/autopilot/AutopilotWorkspace";
+import { autopilotApi } from "../src/features/autopilot/api";
+import { fixtureRun } from "./autopilot-fixture";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 afterEach(() => vi.restoreAllMocks());
+
+it.each(["ai", "manual", "failed"])("accepted outline candidate heading retains %s provenance", async kind => {
+  const host = document.createElement("div"); const root = createRoot(host);
+  vi.spyOn(plotloomApi, "getSourceOutline").mockResolvedValue({ source: { revision: 1, material: { kind: "synopsis", title: "Current", text: "current source", adaptationIntent: "" } },
+    candidate: { jobId: "accepted-job", status: "accepted", sourceRevision: 1, expectedOutlineRevision: 0 },
+    acceptedOutline: { revision: 1, sourceRevision: 1, candidateJobId: "accepted-job", contentHash: "outline-hash", outline: {} }, outlineStatus: "accepted", sectionMapStaleReasons: [] } as never);
+  vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: [] });
+  const read = vi.spyOn(autopilotApi, "current");
+  if (kind === "ai") read.mockResolvedValue({ ...fixtureRun, checkpoints: [{ operationKey: "outline", state: "adopted", evidence: { owner: "outline", result: { revision: 1, contentHash: "outline-hash" } } }] });
+  else if (kind === "manual") read.mockResolvedValue(null);
+  else read.mockRejectedValue(new Error("unavailable provenance"));
+  try {
+    const page = branchOperationView(branchOperationFixture(), createElement(GraphWorkbenchContext.Provider, { value: graphControllerFixture(),
+      children: createElement(SourceOutlinePage, { projectId: "project", briefSeed: demoProject.brief, readOnly: true, onProductionInstalled: async () => undefined }) }));
+    await act(async () => root.render(createElement(AutopilotWorkspace, { projectId: "project", revision: 1, readOnly: true, onChanged: async () => undefined, onVideo: () => undefined, children: page })));
+    const heading = host.querySelector('[data-testid="source-outline-candidate"] header strong')!;
+    expect(heading.textContent).toContain(kind === "ai" ? "AI 已采用" : kind === "manual" ? "已确认" : "来源待核实");
+    if (kind !== "manual") expect(heading.textContent).not.toContain("已确认");
+  } finally { await act(async () => root.unmount()); }
+});
 
 it.each([
   { sourceRevision: 1, candidateStatus: null, guidance: "返回保留的有效大纲" },

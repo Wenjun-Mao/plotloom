@@ -49,8 +49,8 @@ test("transient progress read failure retries original observation without dispa
   expect(await page.locator("#fixture-writes").textContent()).toBe("[]");
 });
 
-test("whole review requires real observations and separate uncertain identity authorization", async ({ page, frontendOrigin }, testInfo) => {
-  await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html`);
+for (const outcome of ["normal", "handoff-unknown", "handoff-uncommitted"]) test(outcome === "normal" ? "whole review requires real observations and separate uncertain identity authorization" : outcome === "handoff-unknown" ? "lost handoff acknowledgment reconciles durable result without resending confirmation" : "uncommitted handoff retains authored observations through failed read reconciliation", async ({ page, frontendOrigin }, testInfo) => {
+  await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html${outcome === "normal" ? "" : `?state=${outcome}`}`);
   await page.getByRole("button", { name: "审阅完整素材", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "审阅完整素材" });
   const confirm = dialog.getByRole("button", { name: "确认素材，进入视频制作" });
@@ -79,7 +79,21 @@ test("whole review requires real observations and separate uncertain identity au
   await dialog.getByLabel("shot-1 hero 不确定原因").fill("此镜头有意使用背影，接受身份不确定性。");
   await dialog.getByLabel("shot-1 hero 制作授权").selectOption("hold"); await expect(confirm).toBeDisabled();
   await dialog.getByLabel("shot-1 hero 制作授权").selectOption("authorize"); await expect(confirm).toBeEnabled();
-  await confirm.click(); await expect(dialog).not.toBeVisible(); await expect(page.getByRole("button", { name: "进入手动视频制作" })).toBeVisible();
+  await confirm.click();
+  if (outcome === "handoff-uncommitted") {
+    await expect(confirm).toBeDisabled();
+    await expect(dialog.getByRole("alert")).toContainText("Disposable handoff not committed");
+    await expect(confirm).toBeEnabled();
+    await dialog.locator(".autopilot-frame").first().locator("summary").click();
+    await expect(dialog.getByRole("textbox", { name: "shot-1 画面意图", exact: true })).toHaveValue("清楚展示当前动作与环境关系。");
+    await expect(dialog.getByLabel("整包审阅意见")).toHaveValue("已检查全部故事路线与图片。");
+    await expect(page.getByRole("button", { name: "进入手动视频制作" })).toHaveCount(0);
+  } else { await expect(dialog).not.toBeVisible(); await expect(page.getByRole("button", { name: "进入手动视频制作" })).toBeVisible(); }
+  if (outcome === "handoff-unknown") {
+    await expect(page.getByRole("alert")).toContainText("Disposable handoff acknowledgment lost");
+    await expect(page.getByRole("button", { name: "审阅完整素材", exact: true })).toHaveCount(0);
+    await expect(page.getByText("已记录完整人工审阅", { exact: false })).toBeVisible();
+  }
   const writes = JSON.parse(await page.locator("#fixture-writes").textContent() || "[]") as Array<[string, Handoff]>;
   expect(writes).toHaveLength(1); expect(writes[0][0]).toBe("handoff");
   expect(writes[0][1].frames[0].comparisons[0].judgment).toBe("unassessable"); expect(writes[0][1].frames[0].comparisons[0].productionDecision).toBe("authorize");

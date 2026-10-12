@@ -182,7 +182,13 @@ old generated frames and eligibility, without rewriting historical receipts.
 
 Browser observation reconciles every command response, including an uncertain
 response, through a fresh durable read. Transient read failures retry observation
-only; they never replay Start or control commands. Missing or failed provenance
-is labelled unknown across accepted-stage headers and guidance. Exact adopted
+only; they never replay Start or control commands. An uncertain handoff response
+rereads the durable run; confirmation stays disabled until that read succeeds.
+Close a committed handoff form, retain authored inputs when it did not commit,
+and never replay confirmation automatically. Completed runs remain observed
+while their workspace is open: reference/frame changes can withdraw eligibility
+without changing Brief. Unreadable currentness hides the manual video entrance.
+Missing or failed provenance is labelled unknown across accepted-stage headers
+and guidance, including the accepted outline candidate header. Exact adopted
 revision/hash establishes AI origin; confirmed manual semantics require known
 current provenance. Read-only state reaches an already-open human review form.

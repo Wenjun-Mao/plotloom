@@ -86,22 +86,14 @@ source, excludes a mismatched original from completion, and preserves normal job
 settlement. Second incompatible output blocks. It does not promise a semantic
 quality pass or claim a new visual adjudication subsystem.
 
-## Remaining gates and precise next action
+## Historical P0 continuation boundary
 
-Current next action: the manager approved P0 and received P1 (`fd549395`). The
-existing registered source owner continues P2–P4 in the same checkout. P2
-deterministic full-chain faults precede P3 image integration; P4 adds compact UI
-and truthful human handoff. Add collected tests to
-native ownership and browser allocation with no reduction of current case union.
-
-Source owner will deliver the stable candidate and scoped quick/focused/module,
-browser/pixel, deterministic asset evidence in this same receipt. Manager owns
-independent final review, the single stable `uv run --locked --no-sync python
-scripts/verify.py full` qualification, packaging, real isolated native text/ImageGen
-proof, actual installation inventory/upgrade/cutback, main integration/push and
-quiet normal/Tailscale activation. Hosted CI remains excluded. No full suite,
-browser/pixel acceptance, real generation, valued schema transition or final
-human material handoff has been executed at P0.
+P0 delivery proposed P1–P4 source implementation and focused evidence, with native
+ownership/browser allocation preserved. The manager retained independent final
+review, one stable full gate, packaging, real isolated native text/ImageGen proof,
+valued upgrade/cutback, main integration/push and idle activation. P0 itself had
+no browser/pixel, real generation, valued transition or human-handoff evidence.
+Later executed checkpoints and remaining P5 gates are recorded below.
 
 ## Attended P0 approval · baseline evidence
 
@@ -478,3 +470,26 @@ failed/downstream affected checks and rechecks affected walkthrough paths before
 activation. Manager holds full/native/preservation/live work until this stable
 correction is re-reviewed. Actual generated bundles remain awaiting owner human
 review; labelled disposable protocol judgments do not grant creative acceptance.
+
+Further exact-`dfb544d9` reviews closed full reference/currentness, Start/control,
+storyboard and read-only findings, but found accepted-outline candidate and outer
+Characters guide labels, lost handoff acknowledgment, and completed-run material
+observation gaps. The bounded follow-up uses shared exact provenance, observes
+completed runs, hides video entrance when currentness is unreadable, and
+reconciles handoff by reads only. Committed results close the form; uncommitted
+results retain authored inputs through read-only reconciliation. Another client's
+receipt is observed without inventing this client's review or replaying its POST.
+Final focused UI: **40 passed** (three files, runner 1.032s); unfiltered frontend
+**152 files / 1,306 passed**, 6.30s, both types passed. Initial new browser attempt
+and its already-running repeat each had 7 passed/1 failed: completed-frame
+details were collapsed, so the value locator could not see the retained input.
+Reassessed the interaction, reopened that section and kept strict value/disabled/
+single-write assertions. Final affected browser result is recorded below.
+Native discovery remains 1,692 pytest/169 files; browser allocation is now
+91 specs/307 cases with no omissions/overlap. Two builds match seven files,
+SHA-256 tree `d158bad2a6c332f6ddc6c8abfc82183b9e65c813c6241a8240e235902d379746`.
+Backend evidence is reused because this follow-up changes only UI observation,
+labels/tests/static assets/docs; API payloads and persistence are unchanged.
+
+Final affected browser selection: **8 passed**, focused runner 32.711s, including
+committed/uncommitted handoff acknowledgment recovery and retained authored values.

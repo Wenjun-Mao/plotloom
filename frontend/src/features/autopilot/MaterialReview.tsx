@@ -6,7 +6,7 @@ import type { SamePersonComparison, SamePersonComparisonDraft } from "../../same
 import { autopilotApi } from "./api";
 import { completeFrame, type AutopilotRun, type FrameDraft, type ReviewFrame, type ReviewMaterial } from "./contracts";
 
-export function MaterialReview({ projectId, readOnly = false, onClose, onAccepted }: { projectId: string; readOnly?: boolean; onClose: () => void; onAccepted: (run: AutopilotRun) => Promise<void> }) {
+export function MaterialReview({ projectId, readOnly = false, onClose, onAccepted, onUncertain }: { projectId: string; readOnly?: boolean; onClose: () => void; onAccepted: (run: AutopilotRun) => Promise<void>; onUncertain: (message: string) => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [material, setMaterial] = useState<ReviewMaterial | null>(null); const [error, setError] = useState("");
   const [drafts, setDrafts] = useState<FrameDraft[]>([]); const [endorsed, setEndorsed] = useState<string[]>([]);
@@ -28,7 +28,10 @@ export function MaterialReview({ projectId, readOnly = false, onClose, onAccepte
         intent: { role: "shot_keyframe", compositionIntent: drafts[index].direction.trim(), sourceRefs: drafts[index].sources.split(/\n/).map(value => value.trim()).filter(Boolean) },
         compatibilityNote: drafts[index].compatibility.trim(), comparisons: drafts[index].comparisons as SamePersonComparison[] })) });
       if (active.current) await onAccepted(result);
-    } catch (failure) { if (active.current) setError(failure instanceof Error ? failure.message : String(failure)); }
+    } catch (failure) { if (active.current) {
+      const message = failure instanceof Error ? failure.message : String(failure);
+      setError(message); onUncertain(message);
+    } }
     finally { command.current = false; if (active.current) setBusy(false); }
   };
   return <dialog ref={dialog} className="autopilot-review-dialog" aria-labelledby="material-review-title" onCancel={event => { event.preventDefault(); if (!busy) onClose(); }}>

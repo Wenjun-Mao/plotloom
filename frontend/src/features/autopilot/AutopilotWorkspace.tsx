@@ -22,7 +22,7 @@ export function useAdoptionLabel() {
     return "已确认";
   };
 }
-const stateLabels: Record<AutopilotRun["state"], string> = { running: "正在准备", waiting: "等待助手交付", paused: "已暂停", blocked: "需要处理", cancelled: "已取消", stale: "素材已变化", taken_over: "已手动接管", awaiting_review: "等待你审阅", handed_off: "素材已由你审阅" };
+const stateLabels: Record<AutopilotRun["state"], string> = { running: "正在准备", waiting: "等待助手交付", paused: "已暂停", blocked: "需要处理", cancelled: "已取消", stale: "素材已变化", taken_over: "已手动接管", awaiting_review: "等待你审阅", handed_off: "素材已记录人工审阅" };
 const phaseLabels: Record<string, string> = { source: "故事来源", outline: "故事大纲", branches: "故事路线", characters: "角色设定", art: "美术方向", script: "完整剧本", storyboard: "分镜", "bridge-intent": "戏剧意图", "bridge-presentation": "画面呈现", references: "参考图片", "first-frames": "镜头首帧", "material-review": "完整素材审阅", "manual-video": "手动视频制作" };
 
 export function AutopilotWorkspace({ projectId, revision, readOnly, onChanged, onVideo, children }: {
@@ -49,7 +49,9 @@ export function AutopilotWorkspace({ projectId, revision, readOnly, onChanged, o
         const value = await autopilotApi.current(projectId, abort.signal);
         if (abort.signal.aborted) return;
         setRun(previous => value && previous?.id === value.id && previous.revision > value.revision ? previous : value); setReady(true); setError("");
-        if (value && ["running", "waiting", "paused", "blocked"].includes(value.state)) timer = setTimeout(refresh, 5000);
+        if (value?.state === "handed_off") setReview(false);
+        // Material commands can withdraw a completed run without changing Brief.
+        if (value) timer = setTimeout(refresh, 5000);
       } catch (failure) { if (!abort.signal.aborted) {
         setReady(false); setError(String(failure instanceof Error ? failure.message : failure));
         timer = setTimeout(refresh, 5000);
@@ -78,22 +80,24 @@ export function AutopilotWorkspace({ projectId, revision, readOnly, onChanged, o
   const textCount = run?.checkpoints.filter(item => ["outline", "branches", "characters", "art", "script", "storyboard", "bridge-intent", "bridge-presentation"].includes(item.operationKey) && item.state === "adopted").length || 0;
   return <Context.Provider value={owner}>
     {run && <section className="autopilot-status" aria-label="视频素材准备" role="region">
-      <div><strong>{stateLabels[run.state]}</strong><span>{phaseLabels[run.phase] || "制作规划"}</span>
-      <small>AI 初稿与暂选图片 · {run.handoff && run.state === "handed_off" ? "已记录完整人工审阅" : "尚未获得完整人工审阅"}</small></div>
+      <div><strong>{ready ? stateLabels[run.state] : "素材状态待核实"}</strong><span>{phaseLabels[run.phase] || "制作规划"}</span>
+      <small>AI 初稿与暂选图片 · {!ready ? "人工审阅状态待核实" : run.handoff && run.state === "handed_off" ? "已记录完整人工审阅" : "尚未获得完整人工审阅"}</small></div>
       <p>文字初稿 {textCount}/8 已采用 · {counts?.filter(item => item.state === "adopted" && item.evidence.result.geometryCompatible !== false).length || 0} 项图片已暂选{requiredImages !== null ? ` / ${requiredImages} 项必需素材` : ""} · 任务上限 {run.policy.maxJobs} · 图片上限 {run.policy.maxImages}</p>
       {run.blocker && <p role="status">{run.blocker.message}</p>}
       <div className="button-row">
         {controllable && ["running", "waiting"].includes(run.state) && <Button disabled={busy || readOnly} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "pause"))}>暂停</Button>}
         {controllable && ["paused", "blocked"].includes(run.state) && <Button disabled={busy || readOnly} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "resume"), true)}>继续原任务</Button>}
         {controllable && <><Button disabled={busy || readOnly} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "cancel"))}>取消自动准备</Button><Button disabled={busy || readOnly} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "takeover"), true)}>接管手动编辑</Button></>}
-        {["awaiting_review", "taken_over", "cancelled", "stale"].includes(run.state) && <Button variant="primary" disabled={busy || readOnly} onClick={() => setReview(true)}>审阅完整素材</Button>}
-        {run.state === "handed_off" && <Button variant="primary" onClick={onVideo}>进入手动视频制作</Button>}
+        {["awaiting_review", "taken_over", "cancelled", "stale"].includes(run.state) && <Button variant="primary" disabled={busy || readOnly || !ready} onClick={() => setReview(true)}>审阅完整素材</Button>}
+        {run.state === "handed_off" && ready && <Button variant="primary" onClick={onVideo}>进入手动视频制作</Button>}
       </div>
     </section>}
     {error && <p className="autopilot-error" role="alert">素材准备：{error}</p>}
     {commandError && <p className="autopilot-error" role="alert">上次操作反馈：{commandError}</p>}
     {children}
-    {review && run && <MaterialReview key={`${projectId}:${run.revision}`} projectId={projectId} readOnly={readOnly} onClose={() => setReview(false)} onAccepted={async value => { setRun(value); setReview(false); await onChanged(); }} />}
+    {review && run && <MaterialReview key={`${projectId}:${run.revision}`} projectId={projectId} readOnly={readOnly || !ready} onClose={() => setReview(false)}
+      onUncertain={message => { setCommandError(message); setReady(false); setReadEpoch(epoch => epoch + 1); }}
+      onAccepted={async value => { setRun(value); setReview(false); await onChanged(); }} />}
   </Context.Provider>;
 }
 

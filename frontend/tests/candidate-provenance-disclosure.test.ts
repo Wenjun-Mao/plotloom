@@ -5,6 +5,9 @@ import { plotloomApi } from "../src/api";
 import { CandidateCard } from "../src/features/media/assets/MediaCandidates";
 import { CharactersPage } from "../src/pages/CharactersPage";
 import type { ManagedAsset } from "../src/types";
+import { AutopilotWorkspace } from "../src/features/autopilot/AutopilotWorkspace";
+import { autopilotApi } from "../src/features/autopilot/api";
+import { fixtureRun } from "./autopilot-fixture";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let host: HTMLDivElement;
@@ -63,6 +66,18 @@ async function renderCharacters(projectId: string) {
   await act(async () => root.render(createElement(CharactersPage, { projectId, readOnly: false })));
   await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
 }
+it.each(["ai", "manual", "failed"])("enclosing Characters guide carries %s provenance", async kind => {
+  installGallery(null);
+  const read = vi.spyOn(autopilotApi, "current");
+  if (kind === "ai") read.mockResolvedValue({ ...fixtureRun, checkpoints: [{ operationKey: "characters", state: "adopted", evidence: { owner: "characters", result: { revision: 1, contentHash: "cast" } } }] });
+  else if (kind === "manual") read.mockResolvedValue(null);
+  else read.mockRejectedValue(new Error("unavailable provenance"));
+  await act(async () => root.render(createElement(AutopilotWorkspace, { projectId: "A", revision: 1, readOnly: false, onChanged: async () => undefined, onVideo: () => undefined,
+    children: createElement(CharactersPage, { projectId: "A", readOnly: false }) })));
+  const guide = host.querySelector('.characters-page > .stage-guide')!;
+  expect(guide.textContent).toContain(kind === "ai" ? "AI 已采用" : kind === "manual" ? "角色文字已确认" : "来源待核实");
+  if (kind !== "manual") expect(guide.textContent).not.toContain("角色文字已确认");
+});
 it.each(declarations)("native Character candidate displays %s declaration on the viewed asset, not another project", async (_, provenance) => {
   installGallery(provenance);
   await renderCharacters("A");
