@@ -107,7 +107,10 @@ def test_dispatch_and_lifecycle_use_project_before_registry_lock(tmp_path, monke
     rt.store.close()
     started, finish = Event(), Event()
     import subprocess
+    original_run = subprocess.run
     def queue(command, **kwargs):
+        if command[:2] != ["codex", "queue"]:
+            return original_run(command, **kwargs)
         started.set()
         assert finish.wait(10)
         return subprocess.CompletedProcess(command, 0, "offline")

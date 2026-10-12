@@ -10,7 +10,6 @@ from ..creative_commands import CREATIVE_METHODS, send_creative_candidate
 from ..creative_handoff_contracts import JOB_ID_PATTERN, CreativeHandoffError
 from ..specialist_settings import SpecialistRegistry, SpecialistSettings
 from .project_folder_image_terminal import register_image_terminal_routes
-from .project_folder_autopilot import register_autopilot_runtime
 
 Stage = Literal["outline", "branches", "characters", "art", "script", "storyboard"]
 # Existing stage repositories remain the sole owners of currentness and admission.
@@ -18,7 +17,6 @@ METHODS = CREATIVE_METHODS
 
 
 def register_specialist_routes(app: FastAPI, opened_project: Callable[[str], Any], registry: SpecialistRegistry):
-    register_autopilot_runtime(app, opened_project, registry)
     register_image_terminal_routes(app, opened_project, registry)
     @app.get("/api/v2/specialists")
     def settings():

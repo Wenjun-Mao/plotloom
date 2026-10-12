@@ -192,3 +192,19 @@ Missing or failed provenance is labelled unknown across accepted-stage headers
 and guidance, including the accepted outline candidate header. Exact adopted
 revision/hash establishes AI origin; confirmed manual semantics require known
 current provenance. Read-only state reaches an already-open human review form.
+
+### P5 startup admission correction
+
+Controller discovery and failure recording first inspect without creating locks
+or changing SQLite journal mode. Only open, active folders with an executable
+autopilot identity can acquire editing admission; recheck those facts under the
+opened handle before claiming or recording failure. Closed/manual-only folders
+remain observation-only, including startup. Catching closed admission after an
+editable open is too late because lease creation already changes the folder.
+
+Compose the application-owned controller/lifespan at the project-folder app root.
+Generic specialist route registration requires only its declared route owners;
+it does not implicitly require application storage or start a background service.
+Use native-queue-only transport mocks so real Git pin checks remain authoritative.
+These corrections preserve strict closed-folder, frozen-pin and lock-order tests;
+no tolerance, platform exception or cleanup bypass is introduced.

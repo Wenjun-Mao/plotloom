@@ -86,6 +86,48 @@ def test_unsafe_controller_lock_keeps_supervisor_alive_without_claim(tmp_path, m
         service.close()
 
 
+@pytest.mark.parametrize("closed,has_run", [(False, False), (True, False), (True, True)])
+def test_controller_inspects_idle_or_closed_folders_without_writing(tmp_path, monkeypatch, closed, has_run):
+    import sqlite3
+    from plotloom.autopilot_service import AutopilotService
+    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.project_storage import ProjectFolderStorage
+    from plotloom.specialist_settings import SpecialistRegistry
+
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    with closing(storage.projects.create(FIXED_CHINESE_BRIEF)) as store:
+        project_id, home, database = store.manifest.project_id, store.home, store.database_path
+    service = AutopilotService(storage, SpecialistRegistry(storage.application.root))
+    if has_run:
+        from tests.autopilot_controller_fixtures import PIN
+        from tests.test_specialist_settings import configured
+        registry, _settings = configured(storage.application.root)
+        service = AutopilotService(storage, registry)
+        from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+        monkeypatch.setattr(CreativeHandoffExchange, "_pinned_execution", staticmethod(lambda _: PIN))
+        view = service.launch(project_id, LaunchRequest(expected_brief_revision=1, render_style="realistic", art_render_style="realistic"))
+        service.control(project_id, RunControlRequest(expected_revision=view.revision, action="cancel"))
+    if closed:
+        storage.projects.close_project(project_id)
+    with sqlite3.connect(database) as connection:
+        assert connection.execute("PRAGMA journal_mode=DELETE").fetchone() == ("delete",)
+    lock_path = home / ".project-operation.lock"
+    lock_path.unlink()
+    original_bytes = database.read_bytes()
+    monkeypatch.setattr(storage.projects, "open", lambda *_: pytest.fail("idle/closed scan cannot acquire editing admission"))
+    try:
+        assert service.acquire_controller()
+        service.step(project_id)
+        service._record_failure(project_id, code="controller_failure", message="fixture failure")
+        assert database.read_bytes() == original_bytes
+        assert not lock_path.exists()
+        assert not database.with_name(database.name + "-wal").exists()
+        assert not database.with_name(database.name + "-shm").exists()
+        assert not service._unrecorded_failures
+    finally:
+        service.close()
+
+
 @pytest.mark.parametrize("foreign", [False, True])
 def test_crash_orphan_reclaims_only_original_static_bytes(tmp_path, foreign):
     package = tmp_path / "job" / "package"

@@ -27,10 +27,14 @@ def test_stage_dispatch_delivery_and_cancelled_observation(tmp_path, monkeypatch
     state = SimpleNamespace(candidate=candidate)
     delivered = []
     admitted = []
-    request = object()
+    request = SimpleNamespace(project_id="project")
 
     class Exchange:
-        def verified_package_paths(self, value, pin):
+        def current_execution_pin(self, requested_stage):
+            assert requested_stage == stage
+            return "pinned"
+
+        def write_package(self, value, pin):
             assert value is request and pin == "pinned"
             return {"packagePath": "/frozen/package", "deliveryPath": "/frozen/delivery"}
 
@@ -59,6 +63,7 @@ def test_stage_dispatch_delivery_and_cancelled_observation(tmp_path, monkeypatch
     app = FastAPI()
     register_project_folder_media_routes(app, opened, require_media_draft_scope=lambda *_args: None)
     register_specialist_routes(app, opened, registry)
+    assert not hasattr(app.state, "autopilot_service")
     url = f"/api/v2/projects/project/specialist-tasks/{stage}/{job}"
     with TestClient(app, raise_server_exceptions=False) as client:
         assert client.get(url).json()["configured"]

@@ -104,8 +104,13 @@ class AutopilotService:
     def _record_failure(self, project_id, *, code, message):
         self._unrecorded_failures[project_id] = {"code": code, "message": message}
         try:
+            with closing(self.storage.projects.inspect(project_id)) as inspection:
+                if not self._can_advance(inspection, project_id):
+                    self._unrecorded_failures.pop(project_id, None)
+                    return
             with closing(self.storage.projects.open(project_id)) as store:
-                store.repository.autopilot.blocker(project_id, code=code, message=message)
+                if self._can_advance(store, project_id):
+                    store.repository.autopilot.blocker(project_id, code=code, message=message)
         except Exception:
             # Keep this project quarantined until its failure can be recorded;
             # unrelated projects continue. SQL/paths may contain credentials.
@@ -113,12 +118,21 @@ class AutopilotService:
         else:
             self._unrecorded_failures.pop(project_id, None)
 
+    @staticmethod
+    def _can_advance(store, project_id):
+        state, _revision = store.repository.operational_state()
+        if state != "open" or store.project().lifecycle_status.value != "active":
+            return False
+        view = store.repository.autopilot.current(project_id)
+        return view is not None and view.state != "handed_off" and view.id not in store.repository.autopilot.recovered_run_ids()
+
     def _step(self, project_id):
-        with closing(self.storage.projects.open(project_id)) as store:
-            view = store.repository.autopilot.current(project_id)
-            if view is None or view.state == "handed_off" or view.id in store.repository.autopilot.recovered_run_ids():
+        # Discovery is observation: closed/manual folders must not gain locks or WAL.
+        with closing(self.storage.projects.inspect(project_id)) as inspection:
+            if not self._can_advance(inspection, project_id):
                 return
-            if store.project().lifecycle_status.value != "active":
+        with closing(self.storage.projects.open(project_id)) as store:
+            if not self._can_advance(store, project_id):
                 return
             store.repository.autopilot.claim(project_id, self.claim)
             view = store.repository.autopilot.current(project_id)

@@ -1,7 +1,7 @@
 # Pre-video autopilot · single evidence receipt
 
-Status: **P0–P4 source candidate locally checked; source bounded correction review
-closed, manager bounded UI review closed; P5 full/native/preservation/activation remaining**. No owner creative
+Status: **P5 full failed/interrupted at `b1d09fa3`; diagnosed source repairs in
+focused verification. Native/preservation/walkthrough/activation remain pending**. No owner creative
 acceptance, valued installation upgrade or live activation is claimed. Scope and stopping boundary are in the
 [approved plan](../roadmap/2026-10-12-pre-video-autopilot.md#p0-implementation-checkpoint)
 and [ADR 0162](../adr/0162-pre-video-autopilot-authority.md).
@@ -507,3 +507,50 @@ receipt documentation only; they are distinct Git revisions. Manager must bind
 P5 full qualification and any native execution pins to its actual chosen HEAD,
 without relabelling earlier evidence. Source/dependency/configuration writes
 are held for P5; same task/branch/Relay route remain available for diagnosed fixes.
+
+### P5 failed gate and bounded repairs
+
+Manager ran the full gate at exact `b1d09fa33aca95f89f8164ac4d8f66a96583c188`.
+It ended exit 1 after 816.967s: Python worker 2 reported **14 failed / 832 passed**
+in 420.76s. Manager deliberately SIGTERM'd unfinished worker 1 after the failures
+were known; its incomplete result is not qualification. Supervisor cleanup raised
+EPERM at `os.killpg(process.pid, 0)`. Manager confirmed no full/pytest workers
+remained. Runner removed temporary logs; failures remain in the tool transcript.
+No native generation occurred. Disposable QA server 9941 was stopped before edits.
+The write hold was released explicitly for these diagnosed corrections only.
+
+Closed startup failed because controller editing admission created a folder lock
+before checking lifecycle/run existence. Controller progress and failure recording
+now inspect read-only first and recheck under editing admission before writes.
+Twelve route fixtures exposed background-runtime registration inside generic
+specialist routes; composition now belongs to the application root. Route fixtures
+implement the current frozen-pin/publication seam. The lock-order fixture returned
+`offline` for Git pin checks as well as queueing; it now intercepts native queue
+only. Original closed bytes/lock, transport, currentness and lock-order assertions
+remain. Three added cases cover open manual, closed manual and closed run folders,
+including failure recording, with no editable open, lock or WAL/SHM creation.
+
+Driver source is unchanged. Root and source reaped-group diagnostics returned
+ESRCH, not EPERM. A tiny disposable actual two-file/two-worker suite completed
+normally, exit 0, in 0.264s, with both reports and cleanup. Nine runner regressions
+include SIGTERM during collection/worker execution and real descendant cleanup.
+This supports normal supervisor completion in the observed case; it does not
+explain the earlier EPERM or qualify the real full suite. Never interpret denied
+signal permission as absent processes or silently bypass cleanup.
+
+Initial narrow repair selection passed **26 tests**, focused runner 6.854s.
+An earlier local test insertion caused a collection SyntaxError and was restored
+without removing existing assertions; an expanded attempt used a nonexistent API
+selector and was refused before test bodies. The corrected affected selection is
+recorded below. No full, native/provider, live, valued-data, CI or main operation
+was performed by the source owner during repairs. Frontend/static/dependency
+inputs are unchanged; their scoped evidence remains applicable, while changed
+backend inputs require manager-owned requalification at the new stable revision.
+
+Final affected focused selection: the complete runtime-boundary, project-specialist
+ownership, specialist-route, controller-safety and Python-suite-runner files,
+plus `test_start_api_retains_one_policy_and_refuses_browser_authority_fields`:
+**72 passed**, runner 50.891s. Native owner discovery passed: **1,695 pytest cases /
+169 files**, no bodies executed by discovery. Ruff F and working/staged/commit
+diff checks pass; one existing Starlette/httpx warning remains. This is a repair
+checkpoint, not a passed full gate or completed P5 walkthrough.

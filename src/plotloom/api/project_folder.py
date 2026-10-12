@@ -74,6 +74,7 @@ from .project_folder_source_outline import register_project_folder_source_outlin
 from .project_folder_graph import register_project_folder_graph_routes
 from .project_folder_cast import register_project_folder_cast_routes
 from .project_folder_specialists import register_specialist_routes
+from .project_folder_autopilot import register_autopilot_runtime
 from ..specialist_settings import SpecialistRegistry, ImageSpecialist
 from .project_folder_art import register_project_folder_art_routes
 from .project_folder_script import register_project_folder_script_routes
@@ -748,6 +749,7 @@ def create_project_folder_authoring_app(
     native_presentation_service = NativeBridgePresentationService(storage, specialists)
     app.state.native_bridge_presentation_service = native_presentation_service
     register_specialist_routes(app, opened_project, specialists)
+    register_autopilot_runtime(app, opened_project, specialists)
     register_project_folder_image_job_routes(
         app,
         opened_project,
