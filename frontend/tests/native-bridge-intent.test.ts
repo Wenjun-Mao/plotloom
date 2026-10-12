@@ -89,6 +89,10 @@ it("lets the author save unchanged complete suggestions while installation stays
   vi.spyOn(plotloomApi, "admitReportRead").mockResolvedValue({ cancel: vi.fn(), complete: vi.fn() } as never);
   await render();
   expect(button("保存戏剧意图整包")?.disabled).toBe(false);
+  expect(host.querySelectorAll('.bridge-intent-save button')).toHaveLength(1);
+  expect(button("保存戏剧意图整包")?.classList.contains("primary")).toBe(true);
+  expect(host.querySelector(".bridge-intent-save")?.textContent).toContain("建议待审阅并保存");
+  expect(host.querySelector(".bridge-intent-save")?.textContent).toContain("保存全部条目；不会确认投产或生成媒体");
   expect(button("确认投产提案")?.disabled).toBe(true);
   expect(accept).not.toHaveBeenCalled();
   expect(host.querySelector("iframe")?.getAttribute("sandbox")).toBe("");
@@ -103,12 +107,21 @@ it.each(["ready", "accepted"] as const)("does not mislabel saved intents when pr
   saved.proposal!.revision = 4;
   saved.proposal!.intentPackage.provenance = { jobId: saved.intentJob!.id };
   saved.proposal!.intentPackage.reviewState = "author_saved";
+  saved.proposal!.intentPackage.entries[0].text = "作者已审阅的意图";
   vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(saved);
   vi.spyOn(plotloomApi, "admitReportRead").mockResolvedValue({ cancel: vi.fn(), complete: vi.fn() } as never);
   await render();
   expect(host.textContent).toContain("助手建议已交付；当前意图的确认状态请查看整包审阅区");
   expect(host.textContent).not.toContain("尚未由作者确认");
   expect(host.textContent).not.toContain("先前提案的已交付任务");
+  if (status === "ready") {
+    expect(host.querySelector(".bridge-intent-save")?.textContent).toContain("戏剧意图整包已保存");
+    expect(button("保存戏剧意图整包")?.disabled).toBe(true);
+    const field = host.querySelector<HTMLTextAreaElement>(".bridge-intent-field textarea")!;
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, ""); field.dispatchEvent(new Event("input", { bubbles: true })); });
+    expect(host.querySelector(".bridge-intent-save")?.textContent).toContain("有未保存修改；还有 1 项未填写");
+    expect(button("保存戏剧意图整包")?.disabled).toBe(true);
+  } else expect(host.querySelector(".bridge-intent-save")).toBeNull();
 });
 
 it.each([undefined, { jobId: "another-job" }])("labels a retained delivery separately when current provenance is %s", async provenance => {

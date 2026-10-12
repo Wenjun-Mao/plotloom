@@ -63,3 +63,17 @@ regressions own identity, currentness, cancelled late deliveries, restart/report
 reopening, unknown-send reservation preservation and explicit author review.
 The real UI-origin native job and same-project rebuild journey remain acceptance
 work after a clean committed software-qualified checkpoint.
+
+## Intent save discoverability (2026-10-11)
+
+A real 29-entry walkthrough placed the sole ordinary save button below the
+whole intent list, making the workflow's named next action difficult to find.
+Keep one save action in normal keyboard order after the fields, but present it
+in a prominent sticky-bottom bar scoped to the open intent review section.
+The bar shows the entire package's item count and current intent-only save
+state, not inferred review progress or presentation/production acceptance.
+Preserve all existing admission, revision/hash, completeness, dirty/conflict,
+busy and accepted-state guards. No global toolbar or duplicate save control.
+Desktop regressions guard visibility at the beginning, middle and end of the
+list, no sticky-header overlap, one exact complete payload and independent
+production confirmation. Valued author content remains untouched by UI checks.

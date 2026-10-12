@@ -1,5 +1,11 @@
 # Plotloom roadmap entrypoint
 
+The owner-approved [intent save discoverability refinement](2026-10-11-intent-save-discoverability.md)
+keeps the whole-package save action prominent during long reviews, preserving
+independent intent, presentation and production confirmation.
+The [receipt](../verification/2026-10-11-intent-save-discoverability.md) records
+scoped local frontend qualification, not hosted CI or owner acceptance.
+
 The owner-approved [Storyboard report reading refinement](2026-10-11-storyboard-report-reading.md)
 promotes the original report above structured details and adds a large read-only
 dialog without changing confirmation, production or archived report content.

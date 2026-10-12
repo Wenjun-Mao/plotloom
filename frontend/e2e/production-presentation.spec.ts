@@ -36,7 +36,7 @@ test("native readonly Shift-click selects an exact source fragment before splitt
   expect((await json(request.get(endpoint))).proposal).toEqual(before.proposal);
 });
 
-test("whole presentation review preserves source evidence and requires explicit complete UI review before installation", async ({ page, request, workbench }) => {
+test("whole presentation review preserves source evidence and requires explicit complete UI review before installation", async ({ page, request, workbench }, info) => {
   test.setTimeout(120_000);
   const id = execFileSync("uv", ["run", "python", "-m", "frontend.e2e.fixtures.bridge_handoff_project", "--outputs", workbench.outputsRoot, "--application", workbench.applicationDataRoot, "--pending"], { cwd: path.resolve(".."), encoding: "utf8" }).trim();
   const endpoint = `${workbench.apiOrigin}/api/v2/projects/${id}/production-bridge`;
@@ -66,7 +66,30 @@ test("whole presentation review preserves source evidence and requires explicit 
   await expect(presentation).toContainText("呈现方式审阅已保存；修改后请重新保存。实际媒体仍需单独审核并选用。");
   const textareas = panel.locator(".bridge-intent-field textarea");
   for (let index = 0; index < await textareas.count(); index++) await textareas.nth(index).fill(`明确的技术测试戏剧目的 ${index + 1}`);
-  await panel.getByRole("button", { name: "保存戏剧意图整包" }).click();
+  const saveBar = panel.getByRole("group", { name: "戏剧意图整包 · 保存", exact: true });
+  const saveIntent = saveBar.getByRole("button", { name: "保存戏剧意图整包", exact: true });
+  await expect(panel.getByRole("button", { name: "保存戏剧意图整包", exact: true })).toHaveCount(1);
+  await expect(saveBar).toContainText("有未保存的戏剧意图修改");
+  for (const { width, height } of [{ width: 1280, height: 460 }, { width: 1280, height: 768 }, { width: 1700, height: 900 }]) {
+    await page.setViewportSize({ width, height });
+    for (const index of [0, Math.floor(await textareas.count() / 2), await textareas.count() - 1]) {
+      await textareas.nth(index).scrollIntoViewIfNeeded();
+      await expect(saveIntent).toBeInViewport();
+      const bar = (await saveBar.boundingBox())!, header = await page.locator(".recommended-workflow-guide").boundingBox();
+      const field = (await textareas.nth(index).boundingBox())!;
+      expect(field.y).toBeGreaterThanOrEqual(header!.y + header!.height);
+      expect(field.y + field.height).toBeLessThanOrEqual(bar.y);
+      expect(bar.y).toBeGreaterThanOrEqual(header!.y + header!.height);
+      expect(bar.y + bar.height).toBeLessThanOrEqual(height);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+      await page.screenshot({ path: info.outputPath(`intent-save-${index}-${width}x${height}.png`) });
+    }
+  }
+  const intentResponse = page.waitForResponse(response => response.url().endsWith("/proposals/intent") && response.request().method() === "PUT");
+  await saveIntent.click();
+  expect((await intentResponse).request().postDataJSON().entries).toEqual(before.proposal.intentPackage.entries.map((entry: { id: string }, index: number) => ({ id: entry.id, text: `明确的技术测试戏剧目的 ${index + 1}` })));
+  await expect(saveBar).toContainText("戏剧意图整包已保存");
+  await expect(saveIntent).toBeDisabled();
   await expect(panel.getByRole("button", { name: "确认投产提案" })).toBeEnabled();
   let accepts = 0;
   page.on("request", request => {

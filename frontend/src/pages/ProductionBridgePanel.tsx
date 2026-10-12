@@ -3,6 +3,7 @@ import { Button, ErrorNotice, Spinner } from "../components";
 import { ProductionPresentationReview } from "./ProductionPresentationReview";
 import { InstalledProductionSummary } from "./InstalledProductionSummary";
 import { NativeBridgeIntentControls } from "./NativeBridgeIntentControls";
+import { ProductionIntentSaveBar } from "./ProductionIntentSaveBar";
 import { useExplicitReviewCloseGuard } from "../features/authoring/ReviewDraftContext";
 import { useProductionBridgeReview, type BridgeReviewBasis } from "./useProductionBridgeReview";
 import { useReportReviewWorkflowRead } from "../app/workspace/ReviewWorkflowReadContext";
@@ -35,6 +36,16 @@ export function ProductionBridgePanel({ projectId, reviewBasis, readOnly: ownerR
   const intentAvailable = state.intentGeneration.status === "available";
   const unresolvedJob = activeJob || job?.status === "outcome_unknown" || job?.transport === "codex_native" && job.status === "cancelled" && !job.responseHash && state.nativeIntentTask?.state !== "prepared";
   const localEdits = intentDirty || draftConflict || (presentationTouched && presentationDirty);
+  const emptyIntents = intentEntries.filter(entry => !entry.text.trim()).length;
+  const intentSaveStatus = busy ? "正在处理提案，请稍候。"
+    : draftConflict ? "提案已变化；本地编辑保留，先载入当前提案。"
+    : state.status === "stale" ? "来源已变化，暂不能保存。"
+    : readOnly ? "当前暂不能保存，请核对权限和提案状态。"
+    : emptyIntents ? `${intentDirty ? "有未保存修改；" : ""}还有 ${emptyIntents} 项未填写。`
+    : intentDirty ? "有未保存的戏剧意图修改。"
+    : proposal?.intentPackage.reviewState === "model_suggested" ? "建议待审阅并保存。"
+    : proposal?.intentPackage.reviewState === "author_saved" ? "戏剧意图整包已保存。"
+    : "填写或修改后保存整包。";
   const canPrepare = !proposal || state.status === "stale" || state.status === "accepted";
   const preparation = state.preparation;
   const openInstalledShot = onOpenShot ? (shotId: string) => {
@@ -80,7 +91,7 @@ export function ProductionBridgePanel({ projectId, reviewBasis, readOnly: ownerR
         {draftConflict && <div className="notice warning">服务器提案或审阅状态已变化；未保存的本地编辑仍在此保留。请复制所需文字后，明确载入当前提案。</div>}
         {draftConflict && <Button disabled={readOnly || busy} onClick={review.discard}>载入新提案并放弃本地编辑</Button>}
         {intentEntries.map((entry, index) => <label key={entry.id} className="bridge-intent-field"><span>{entry.targetKind === "scene_objective" ? "场次目标" : "节拍目的"} · 第 {index + 1} 项 <small>（第 {String(entry.sourceCoordinates.episode)} 结构条目 / 场次 {String(entry.sourceCoordinates.sceneIndex)}）</small></span><textarea disabled={readOnly || busy || state.status === "accepted" || state.status === "stale" || draftConflict} value={entry.text} onChange={event => setIntentEntries(current => current.map((item, itemIndex) => itemIndex === index ? { ...item, text: event.target.value } : item))} /><small>来源摘录：{entry.sourceExcerpt}</small>{entry.suggestedText !== null && <small>模型原始建议：{entry.suggestedText}</small>}</label>)}
-        {state.status !== "accepted" && <Button disabled={readOnly || busy || state.status === "stale" || (!intentDirty && proposal.intentPackage.reviewState !== "model_suggested") || draftConflict || intentEntries.some(entry => !entry.text.trim())} onClick={() => run(() => plotloomApi.updateProductionBridgeIntent(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash, entries: intentEntries.map(entry => ({ id: entry.id, text: entry.text })) }), true)}>保存戏剧意图整包</Button>}
+        {state.status !== "accepted" && <ProductionIntentSaveBar itemCount={intentEntries.length} status={intentSaveStatus} busy={busy} disabled={readOnly || busy || state.status === "stale" || (!intentDirty && proposal.intentPackage.reviewState !== "model_suggested") || draftConflict || intentEntries.some(entry => !entry.text.trim())} onSave={() => run(() => plotloomApi.updateProductionBridgeIntent(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash, entries: intentEntries.map(entry => ({ id: entry.id, text: entry.text })) }), true)} />}
         {state.status !== "accepted" && unsaved && <p><small>当前编辑未保存或提案已变化；保存并刷新前，不能确认投产提案。</small></p>}
       </details>
       <ProductionPresentationReview key={`${projectId}:${presentationEditorNonce}`} projectId={projectId} proposal={proposal} accepted={state.status === "accepted"} disabled={readOnly || busy || activeJob || state.status === "stale" || intentDirty || draftConflict} onSave={async entries => Boolean(await run(() => plotloomApi.updateProductionBridgePresentation(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash, sourceHash: proposal.presentation.sourceHash, reviewedComplete: true, entries }), true))} onDirty={review.setPresentationDirty} onEdited={review.presentationEdited} />
