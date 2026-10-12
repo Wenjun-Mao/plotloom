@@ -3,8 +3,10 @@
 Plan: [approved walkthrough polish](../roadmap/2026-10-11-pre-manual-walkthrough-polish.md).
 Baseline: `ea42dba1ab29749e4342b0efd14515860559d0d7` on retained `main`.
 Status: implementation, local verification, independent review, and the
-ownership-manifest follow-up are complete. This receipt does not claim owner
-product acceptance or hosted qualification.
+ownership-manifest follow-up are complete. The browser locator-contract repair
+has passed the manager's attended independent review with no remaining
+actionable findings and is ready to commit. This receipt does not claim owner
+product acceptance or exact-SHA hosted qualification for that repair.
 
 ## Root cause and bounded change
 
@@ -152,3 +154,49 @@ cases across 90 files. The unfiltered browser shard allocation guard
 `frontend/`) also passed with all 90 specs and 297 cases assigned once, zero
 overlap or missing cases, and shard case counts 84/71/71/71. These are
 collection results, not a browser runtime run or hosted qualification.
+
+## Browser locator-contract correction
+
+The original hosted run [38190104589](https://github.com/Wenjun-Mao/plotloom/actions/runs/38190104589)
+failed at exact SHA `7c2718b4969c9da9483eb9af0f9fbe2e84f15f25`. `verify` and
+browser shards 1 and 2 passed; browser shards 3 and 4 failed in the browser
+regression step. Browser 3 had four failures in
+`source-review-currentness.spec.ts`: two used a retired Script disclosure
+label, and two selected both an outer retained-draft region and its nested
+reader because the accessible-name match was not exact. Browser 4 had one
+failure in `creator-workbench-story.spec.ts`: a panel-wide occurrence count
+expected two selected-node scenes but included six scenes from both the
+selected-node and whole-Script readers.
+
+The local reproduction used
+`npm --prefix frontend run test:e2e -- --workers=1 e2e/source-review-currentness.spec.ts e2e/creator-workbench-story.spec.ts`
+and reproduced those locator-contract failures. The application behavior was
+correct: the reader now exposes an object-specific frozen-binding/raw-JSON
+disclosure and distinct nested regions. The repair targets the exact accepted
+reader and disclosure, makes the retained-draft accessible-name match exact,
+and scopes selected-node versus whole-Script occurrence counts separately.
+
+After those changes, the two complete specs passed: 17 cases total (14 in
+`source-review-currentness.spec.ts`, three in
+`creator-workbench-story.spec.ts`) in 63.321 seconds, exit code 0. The
+`test:e2e` command also completed its E2E TypeScript check. This full run was
+before the reviewer refinement below; its source-review spec and the two
+unchanged Creator cases remain applicable to the current diff.
+
+The attended reviewer found one remaining coverage gap: clicking each selected
+scene's first summary opened raw scene JSON, so subsequent text checks could
+pass without proving that readable action/dialogue text rendered. The test now
+leaves those disclosures closed and checks the exact ordered visible flow text
+inside each selected-node occurrence using `data-flow-order`, deriving the
+expected arrays from the accepted opening episode. It retains the original
+“One cable. Two places need it.” and cable-across-the-desk assertions at their
+specific scene and flow positions. The latest targeted run,
+`npm --prefix frontend run test:e2e -- --workers=1 e2e/creator-workbench-story.spec.ts --grep "node Story retains every scene"`,
+completed its E2E TypeScript check successfully before Playwright. Playwright's
+summary was `1 passed (4.7s)`; the full command exited 0 in 6.576 seconds. The
+latest Playwright `.last-run.json` records `status: passed`. The manager's
+attended independent follow-up review found no remaining actionable findings.
+
+The prior exact-SHA hosted run does not qualify the corrected test candidate.
+No hosted CI was dispatched. The reviewed test-only correction and this receipt
+are ready for the scoped checkpoint commit.

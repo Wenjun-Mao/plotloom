@@ -26,9 +26,12 @@ for (const width of [1280, 1700]) test(`expanded accepted Script JSON remains in
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#script`);
   const panel = page.getByTestId("script-review");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
-  await panel.getByText("查看当前已确认剧本", { exact: true }).click();
-  const raw = panel.locator(".script-json-disclosure[open] pre");
+  const acceptedReader = panel.getByRole("region", { name: "当前已确认剧本 r1", exact: true });
+  const rawDisclosure = acceptedReader.locator("details.script-json-disclosure").filter({ hasText: "查看此对象的冻结绑定与完整原始剧本 JSON" });
+  await rawDisclosure.locator("summary").click();
+  const raw = rawDisclosure.locator("pre").last();
   await expect(raw).toBeVisible();
+  await expect(raw).toContainText("ContinuousSourceToken");
   const geometry = await raw.evaluate(element => ({
     documentWidth: document.documentElement.scrollWidth,
     viewportWidth: document.documentElement.clientWidth,
@@ -159,7 +162,9 @@ for (const authority of ["head", "status"] as const) test(`dirty Script retains 
   else await changeArt(request, workbench.apiOrigin, id);
   await navigate(page, "美术参考");
   await navigate(page, "剧本");
-  const retained = panel.getByRole("region", { name: "保留的未保存章节" });
+  const retained = panel.getByRole("region", { name: "保留的未保存章节", exact: true });
+  const retainedReader = retained.getByRole("region", { name: "保留的未保存章节草稿 · 基于 r1", exact: true });
+  await expect(retainedReader).toBeVisible();
   await expect(retained).toContainText("剧本 r1");
   await expect(retained.getByRole("textbox")).toHaveValue(draft);
   await expect(retained.getByRole("button", { name: "保存此章节，不覆盖其他章节" })).toBeDisabled();

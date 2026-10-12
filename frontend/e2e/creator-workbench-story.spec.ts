@@ -16,12 +16,25 @@ test("node Story retains every scene and losslessly saves the original dirty sec
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`);
   await page.getByText("场景、动作与对白", { exact: true }).click();
   const panel = page.getByTestId("script-review");
-  const scenes = panel.locator("[data-script-occurrence]");
+  const selectedNodeReader = panel.getByRole("region", { name: "当前已确认剧本 r1 · 节点 opening", exact: true });
+  const wholeScriptReader = panel.getByRole("region", { name: "当前已确认剧本 r1", exact: true });
+  await expect(selectedNodeReader).toBeVisible();
+  await expect(wholeScriptReader).toBeVisible();
+  const scenes = selectedNodeReader.locator("[data-script-occurrence]");
   await expect(scenes).toHaveCount(2);
-  await scenes.nth(0).locator("summary").first().click();
-  await scenes.nth(1).locator("summary").first().click();
-  await expect(scenes.nth(0)).toContainText("One cable. Two places need it.");
-  await expect(scenes.nth(1)).toContainText("The unconnected cable rests across the desk");
+  const wholeScriptScenes = wholeScriptReader.locator("[data-script-occurrence]");
+  await expect(wholeScriptScenes).toHaveCount(retained.script.episodes.reduce((total: number, episode: { scenes: unknown[] }) => total + episode.scenes.length, 0));
+  const expectedFlowByScene = retained.script.episodes[0].scenes.map((scene: { flow: Array<{ action?: string; speaker?: string; line?: string; delivery?: string }> }) =>
+    scene.flow.map((item: { action?: string; speaker?: string; line?: string; delivery?: string }) => {
+      if (typeof item.action === "string") return item.action;
+      return `${item.speaker}：${item.line}${typeof item.delivery === "string" ? ` · ${item.delivery}` : ""}`;
+    })
+  );
+  for (const [sceneIndex, expectedFlow] of expectedFlowByScene.entries()) {
+    await expect(scenes.nth(sceneIndex).locator("[data-flow-order]")).toHaveText(expectedFlow);
+  }
+  await expect(scenes.nth(0).locator("[data-flow-order]").nth(2)).toContainText("One cable. Two places need it.");
+  await expect(scenes.nth(1).locator("[data-flow-order]").nth(9)).toContainText("The unconnected cable rests across the desk between both switches.");
   await page.screenshot({ path: info.outputPath("all-scene-occurrences.png"), fullPage: true });
   await panel.getByRole("button", { name: "重新打开剧本", exact: true }).click();
   const editor = panel.getByLabel("opening 章节剧本 JSON", { exact: true });
@@ -55,8 +68,11 @@ test("node Story retains every scene and losslessly saves the original dirty sec
   await panel.getByText("阅读原始剧本报告（只读）", { exact: true }).click();
   await expect(page.frameLocator('iframe[title="原始剧本交付报告（只读）"]').locator("body")).toContainText("does not describe the current accepted revision");
   await page.locator('[data-creator-node="power-choice"] .creator-node-select').click();
-  await expect(panel).toContainText("没有画面场次");
-  await expect(panel.locator("[data-script-occurrence]")).toHaveCount(0);
+  const routeOnlyReader = panel.getByRole("region", { name: "当前已确认剧本 r2 · 节点 power-choice", exact: true });
+  await expect(routeOnlyReader).toContainText("路线控制点，没有自己的画面场次");
+  await expect(routeOnlyReader.locator("[data-script-occurrence]")).toHaveCount(0);
+  const updatedWholeScriptReader = panel.getByRole("region", { name: "当前已确认剧本 r2", exact: true });
+  await expect(updatedWholeScriptReader.locator("[data-script-occurrence]")).toHaveCount(accepted.script.episodes.reduce((total: number, episode: { scenes: unknown[] }) => total + episode.scenes.length, 0));
   expect(errors).toEqual([]);
   expect((await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/runs`))).runs).toEqual([]);
 });
