@@ -260,6 +260,7 @@ def test_reference_reselection_withdraws_generated_frames_from_current_review(tm
             # lifecycle command. Ordinary reference edits correctly take over.
             with store.repository._write() as session:
                 asset = session.get(ManagedAssetRow, result.frames[0].asset_id)
+                original_created_at = asset.created_at
                 asset.created_at += timedelta(microseconds=1)
             with store.repository._read() as session:
                 run = store.repository.autopilot.row(session, view.project_id)
@@ -282,6 +283,14 @@ def test_reference_reselection_withdraws_generated_frames_from_current_review(tm
                 assert (run.revision, run.claim, run.updated_at) == before
                 assert session.get(AutopilotHandoffRow, result.handoff["receiptId"]).receipt == retained
         with closing(storage.projects.open(view.project_id)) as store:
+            # Restore only the injected metadata so the following ordinary
+            # reference-withdrawal assertions start from current eligibility.
+            with store.repository._write() as session:
+                session.get(ManagedAssetRow, result.frames[0].asset_id).created_at = original_created_at
+            assert store.repository.autopilot.current(view.project_id).state == "handed_off"
+            with store.repository._read() as session:
+                assert video_eligible(session, view.project_id)
+            assert review_material(store)["bundle"]["frames"]
             reference = next(item for item in store.media.list_character_reference_decisions(view.project_id)["decisions"] if item["current"])
             # Even the same bytes with a new decision ID withdraw frozen identity
             # applicability; a human binding alone cannot revive that image job.
