@@ -128,6 +128,35 @@ def test_controller_inspects_idle_or_closed_folders_without_writing(tmp_path, mo
         service.close()
 
 
+def test_controller_observes_normal_closed_wal_folder_with_retained_lock_without_mutation(tmp_path, monkeypatch):
+    import sqlite3
+    from plotloom.autopilot_service import AutopilotService
+    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.project_storage import ProjectFolderStorage
+    from plotloom.specialist_settings import SpecialistRegistry
+
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    with closing(storage.projects.create(FIXED_CHINESE_BRIEF)) as store:
+        project_id, home, database = store.manifest.project_id, store.home, store.database_path
+    storage.projects.close_project(project_id)
+    lock_path = home / ".project-operation.lock"
+    assert lock_path.is_file()
+    with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as connection:
+        assert connection.execute("PRAGMA journal_mode").fetchone() == ("wal",)
+    before = {path.relative_to(home): path.read_bytes() for path in home.rglob("*") if path.is_file()}
+    service = AutopilotService(storage, SpecialistRegistry(storage.application.root))
+    monkeypatch.setattr(storage.projects, "open", lambda *_: pytest.fail("closed observation cannot acquire editing admission"))
+    try:
+        assert service.acquire_controller()
+        assert len(storage.projects.discover(passive=True)) == 1
+        service.step(project_id)
+        service._record_failure(project_id, code="controller_failure", message="fixture failure")
+        assert {path.relative_to(home): path.read_bytes() for path in home.rglob("*") if path.is_file()} == before
+        assert not service._unrecorded_failures
+    finally:
+        service.close()
+
+
 @pytest.mark.parametrize("foreign", [False, True])
 def test_crash_orphan_reclaims_only_original_static_bytes(tmp_path, foreign):
     package = tmp_path / "job" / "package"

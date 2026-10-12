@@ -9,15 +9,17 @@ project files outside a database transaction.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import fcntl
 import os
 from pathlib import Path
 import stat
 from typing import Literal
+from threading import Lock
 
 from ..domain import TERMINAL_MEDIA_TASK_STATUSES, TERMINAL_RUN_STATUSES
 from .format import ProjectStorageConfinementError, ProjectStorageError
+from .observation_admission import ObservationAdmission, admit_project_observation
 
 
 class ProjectClosedError(ProjectStorageError):
@@ -34,6 +36,8 @@ class ProjectAccessLease:
 
     descriptor: int
     mode: Literal["shared", "exclusive"]
+    observation_admission: ObservationAdmission | None = None
+    _close_lock: Lock = field(default_factory=Lock, init=False, repr=False)
 
     @classmethod
     def acquire(
@@ -42,7 +46,20 @@ class ProjectAccessLease:
         *,
         mode: Literal["shared", "exclusive"],
         create: bool = True,
+        passive: bool = False,
     ) -> "ProjectAccessLease":
+        admission = admit_project_observation(project_home, transition=mode == "exclusive") if passive or mode == "exclusive" else None
+        try:
+            lease = cls._acquire_os_lease(project_home, mode=mode, create=create)
+            lease.observation_admission = admission
+            return lease
+        except BaseException:
+            if admission:
+                admission.close()
+            raise
+
+    @classmethod
+    def _acquire_os_lease(cls, project_home: Path, *, mode, create):
         lock_path = project_home / ".project-operation.lock"
         flags = os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
         if create:
@@ -70,20 +87,24 @@ class ProjectAccessLease:
         return cls(descriptor=descriptor, mode=mode)
 
     def close(self) -> None:
-        if self.descriptor < 0:
-            return
-        try:
-            fcntl.flock(self.descriptor, fcntl.LOCK_UN)
-        finally:
-            os.close(self.descriptor)
-            self.descriptor = -1
+        with self._close_lock:
+            try:
+                if self.descriptor >= 0:
+                    descriptor, self.descriptor = self.descriptor, -1
+                    try:
+                        fcntl.flock(descriptor, fcntl.LOCK_UN)
+                    finally:
+                        os.close(descriptor)
+            finally:
+                if self.observation_admission:
+                    self.observation_admission.close()
+                    self.observation_admission = None
 
 
 def close_blockers(store: object) -> list[str]:
     """Report durable work that cannot be copied or safely resumed by close."""
 
     repository = store.repository  # type: ignore[attr-defined]
-    media = store.media  # type: ignore[attr-defined]
     project_id = store.manifest.project_id  # type: ignore[attr-defined]
     blockers: list[str] = []
     terminal_runs = tuple(item.value for item in TERMINAL_RUN_STATUSES)

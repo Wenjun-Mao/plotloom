@@ -47,6 +47,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
   const saveGeneration = useRef(0);
   const activeGeneration = useRef<number | undefined>(undefined);
   const [projectSaving, setProjectSaving] = useState(false);
+  const [admissionObservation, setAdmissionObservation] = useState({ projectId: "", version: 0 });
   const [durableDraftStatus, setDurableDraftStatus] = useState<DurableDraftStatus>("idle");
   const [draftConflict, setDraftConflict] = useState<DraftConflictState | undefined>();
   const [restoredDraft, setRestoredDraft] = useState<{ scope: DraftScope; payload: unknown; source: "server" | "session" | "reconcile" } | undefined>();
@@ -182,6 +183,11 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
             if (receipt !== serverDraft.draftRevision) throw new Error("当前草稿在丢弃前已变化");
             source.session.serverDrafts.current.delete(authoringDraftKey(source.session.project.id, "brief"));
             setDurableDraftStatus("idle");
+            // Draft cleanup changes server admission without changing Brief.
+            // Publish only the validated receipt for the still-current project.
+            const projectId = source.session.project.id;
+            setAdmissionObservation(previous => ({ projectId,
+              version: previous.projectId === projectId ? previous.version + 1 : 1 }));
           } else if (!source.durableDraftsEnabled.current) {
             discardDraft(source.session.project, "brief");
           }
@@ -438,6 +444,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
   return {
     currentDraft,
     projectSaving,
+    admissionVersion: admissionObservation.projectId === input.session.project.id ? admissionObservation.version : 0,
     durableDraftStatus,
     draftConflict,
     setDraftConflict,

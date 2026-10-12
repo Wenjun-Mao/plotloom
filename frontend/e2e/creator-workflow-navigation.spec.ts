@@ -103,10 +103,18 @@ test("keeps missing and stale F5A review explanations at their source-bound owne
   await expect(page.getByRole("heading", { name: "分镜评审", exact: true })).toBeVisible();
 
   await acceptStoryboardReview(request, workbench.apiOrigin, projectId);
+  const frozen = (await json(request.get(endpoint(workbench.apiOrigin, projectId)))).acceptedReview;
   await changeScript(request, workbench.apiOrigin, projectId);
+  const currentScript = (await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/script`))).acceptedScript;
+  const retained = (await json(request.get(endpoint(workbench.apiOrigin, projectId)))).acceptedReview;
+  expect(retained.binding).toEqual(frozen.binding);
+  expect(retained.revision).toBe(frozen.revision);
+  expect(retained.contentHash).toBe(frozen.contentHash);
+  expect(currentScript.revision).not.toBe(frozen.binding.scriptRevision);
+  expect(currentScript.contentHash).not.toBe(frozen.binding.scriptHash);
   await page.reload();
   await expect(review).toContainText("上下文已过期");
-  await expect(review).toContainText("已确认剧本 r");
+  await expect(review).toContainText(`评审 r${frozen.revision} · 来源剧本 r${frozen.binding.scriptRevision} · hash ${frozen.contentHash.slice(0, 12)}`);
   await expect(review).not.toContainText("F4 script r");
   await expect(review).toContainText("确认方案不会自动建立镜头或生成媒体");
 });

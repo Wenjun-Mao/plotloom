@@ -175,7 +175,7 @@ class ProjectDirectoryRegistry:
                 lease.close()
             raise
 
-    def discover(self) -> list[ProjectHome]:
+    def discover(self, *, passive: bool = False) -> list[ProjectHome]:
         homes: list[ProjectHome] = []
         for candidate in sorted(
             self.outputs_root.iterdir(), key=lambda path: path.name
@@ -192,7 +192,7 @@ class ProjectDirectoryRegistry:
             try:
                 manifest = parse_project_manifest(_read_json(manifest_path))
                 lease = ProjectAccessLease.acquire(
-                    candidate, mode="shared", create=False
+                    candidate, mode="shared", create=False, passive=passive
                 )
                 try:
                     store = ProjectStore.open(
@@ -227,12 +227,12 @@ class ProjectDirectoryRegistry:
                 lease.close()
             raise
 
-    def inspect(self, project_id: str) -> ProjectStore:
+    def inspect(self, project_id: str, *, passive: bool = False) -> ProjectStore:
         """Open a shared read handle without changing closed-project admission."""
 
         home = self._project_home(project_id)
         lease = ProjectAccessLease.acquire(
-            home.path, mode="shared", create=False
+            home.path, mode="shared", create=False, passive=passive
         )
         try:
             return ProjectStore.open(

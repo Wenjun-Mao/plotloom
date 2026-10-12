@@ -221,3 +221,35 @@ Captured portable identity refusal precedes local completed-handoff refusal at
 the claim owner. Recovery's permanent no-resumption contract remains the dominant
 reason even when the captured run had completed human review. Both states still
 deny claims; the original portable diagnostic and regression remain unchanged.
+
+### P5 observation and runtime ownership
+
+An unchanged Brief save may delete its exact durable draft without changing the
+canonical Brief revision. The authoring persistence owner publishes a
+project-bound observation version only after validating that draft-consumption
+receipt and current workspace operation. Launch admission uses that version and
+the Brief revision to reread the server, aborting superseded reads. Dirty/saving
+timing, optimistic eligibility, revision bumps, editor remounts and command replay
+are rejected: admission belongs to the server and cleanup belongs to authoring.
+
+Serialize controller start/close and worker publication under a lifecycle lock;
+serialize exact descriptor acquisition/release separately. The worker's final
+release cannot need the lifecycle lock while close joins it. Overlapping app
+lifespans are runtime owners: the first starts the worker and the final owner
+stops it. Direct start/close and no-thread lease cleanup retain their semantics.
+Do not hide descriptor errors or substitute a timed join for owned shutdown.
+
+Passive controller discovery/inspection holds real shared project OS leases.
+Per-project in-process arbitration lets admitted passive observations finish
+before an explicit exclusive transition and blocks new passive admission while
+that transition is pending. Ordinary foreground handles and native durable work
+still refuse unsafe transitions through the existing OS/domain admission. This
+adds no retries, fixed sleeps, lockless SQLite reads, persistent files or weaker
+cross-process locks. Registry lookup stays manifest-only so transition admission
+does not recursively create another passive observation.
+
+Event-gated regressions prove worker publication, exact single descriptor close,
+overlapping lifespans, real discovery/inspection holders, late passive blocking
+and foreground refusal. Closed-WAL/retained-lock and DELETE/absent-lock byte
+preservation remain separate cases. Source-bound review text retains its frozen
+Script revision and review hash even after the current Script changes.

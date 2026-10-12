@@ -7,7 +7,7 @@ import type { AutopilotRun, Launch } from "./contracts";
 import { MaterialReview } from "./MaterialReview";
 import "./autopilot.css";
 
-type Owner = { projectId: string; run: AutopilotRun | null; ready: boolean; busy: boolean; error: string;
+type Owner = { projectId: string; admissionKey: string; run: AutopilotRun | null; ready: boolean; busy: boolean; error: string;
   start: (body: Omit<Launch, "expectedBriefRevision">) => Promise<void> };
 const Context = createContext<Owner | null>(null);
 export const useAutopilot = () => useContext(Context);
@@ -25,8 +25,8 @@ export function useAdoptionLabel() {
 const stateLabels: Record<AutopilotRun["state"], string> = { running: "正在准备", waiting: "等待助手交付", paused: "已暂停", blocked: "需要处理", cancelled: "已取消", stale: "素材已变化", taken_over: "已手动接管", awaiting_review: "等待你审阅", handed_off: "素材已记录人工审阅" };
 const phaseLabels: Record<string, string> = { source: "故事来源", outline: "故事大纲", branches: "故事路线", characters: "角色设定", art: "美术方向", script: "完整剧本", storyboard: "分镜", "bridge-intent": "戏剧意图", "bridge-presentation": "画面呈现", references: "参考图片", "first-frames": "镜头首帧", "material-review": "完整素材审阅", "manual-video": "手动视频制作" };
 
-export function AutopilotWorkspace({ projectId, revision, readOnly, onChanged, onVideo, children }: {
-  projectId: string; revision: number; readOnly: boolean; onChanged: () => Promise<void>; onVideo: () => void; children: ReactNode;
+export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, readOnly, onChanged, onVideo, children }: {
+  projectId: string; revision: number; admissionVersion?: number; readOnly: boolean; onChanged: () => Promise<void>; onVideo: () => void; children: ReactNode;
 }) {
   const [run, setRun] = useState<AutopilotRun | null>(null);
   const [ready, setReady] = useState(false);
@@ -72,7 +72,7 @@ export function AutopilotWorkspace({ projectId, revision, readOnly, onChanged, o
     } }
     finally { command.current = false; setBusy(false); }
   };
-  const owner: Owner = { projectId, run, ready, busy, error: error || commandError, start: body => execute(() => autopilotApi.start(projectId, { ...body, expectedBriefRevision: revision }), true) };
+  const owner: Owner = { projectId, admissionKey: `${projectId}:${revision}:${admissionVersion}`, run, ready, busy, error: error || commandError, start: body => execute(() => autopilotApi.start(projectId, { ...body, expectedBriefRevision: revision }), true) };
   const controllable = run && !["cancelled", "taken_over", "stale", "handed_off"].includes(run.state);
   const counts = run?.checkpoints.filter(item => ["image", "character-reference", "art-reference"].includes(item.evidence.owner));
   const inventory = run?.checkpoints.find(item => item.operationKey === "material.inventory")?.evidence.result.inventory as { subjects?: unknown[] } | undefined;
@@ -107,13 +107,14 @@ export function AutopilotLaunch({ saved, dirty, disabled }: { saved: boolean; di
   const [settings, setSettings] = useState<SpecialistSettings | null>(null); const [settingsError, setSettingsError] = useState("");
   const [style, setStyle] = useState<ArtRenderStyle>("live-action"); const [images, setImages] = useState(80); const [jobs, setJobs] = useState(96);
   const projectId = owner?.projectId || "";
+  const admissionKey = owner?.admissionKey || "";
   useEffect(() => {
     setEligible(false);
     if (!saved || !projectId) return;
     const abort = new AbortController();
     autopilotApi.launchContext(projectId, abort.signal).then(value => { if (!abort.signal.aborted) setEligible(value.eligible); }).catch(() => undefined);
     return () => abort.abort();
-  }, [saved, projectId]);
+  }, [saved, projectId, admissionKey]);
   useEffect(() => { if (!open) return; let active = true; specialistsApi.settings().then(value => { if (active) setSettings(value); }).catch(failure => { if (active) setSettingsError(String(failure)); }); return () => { active = false; }; }, [open]);
   if (!owner || !saved || owner.run || !owner.ready || !eligible) return null;
   const configured = Boolean(settings?.text.taskId && settings?.image.taskId && settings.text.taskId !== settings.image.taskId && !settings.busy);

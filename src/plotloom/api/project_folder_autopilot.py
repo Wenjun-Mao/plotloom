@@ -14,11 +14,8 @@ def register_autopilot_runtime(app, opened_project, registry):
     @asynccontextmanager
     async def lifespan(owned_app):
         async with base_lifespan(owned_app) as state:
-            service.start()
-            try:
+            with service.runtime_owner():
                 yield state
-            finally:
-                service.close()
     app.router.lifespan_context = lifespan
     register_autopilot_routes(app, opened_project, service)
 

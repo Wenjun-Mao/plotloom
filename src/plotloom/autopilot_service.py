@@ -1,10 +1,10 @@
 """Application-owned serial controller; browser presence is not execution."""
-from contextlib import closing
+from contextlib import closing, contextmanager
 import fcntl
 import os
 import stat
 import logging
-from threading import Event, Thread
+from threading import Event, Thread, RLock, Lock
 from uuid import uuid4
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -31,6 +31,9 @@ class AutopilotService:
         self._stop = Event()
         self._thread = None
         self._descriptor = None
+        self._lifecycle_lock = RLock()
+        self._descriptor_lock = Lock()
+        self._runtime_owners = 0
         self._unrecorded_failures = {}
         self.controller_blocker = None
 
@@ -63,6 +66,10 @@ class AutopilotService:
         return result
 
     def acquire_controller(self):
+        with self._descriptor_lock:
+            return self._acquire_controller()
+
+    def _acquire_controller(self):
         if self._descriptor is not None:
             return True
         path = self.storage.application.root / ".autopilot-controller.lock"
@@ -80,10 +87,13 @@ class AutopilotService:
         return True
 
     def release_controller(self):
-        if self._descriptor is not None:
-            fcntl.flock(self._descriptor, fcntl.LOCK_UN)
-            os.close(self._descriptor)
-            self._descriptor = None
+        with self._descriptor_lock:
+            if self._descriptor is not None:
+                descriptor, self._descriptor = self._descriptor, None
+                try:
+                    fcntl.flock(descriptor, fcntl.LOCK_UN)
+                finally:
+                    os.close(descriptor)
 
     def step(self, project_id):
         if self._descriptor is None:
@@ -104,7 +114,7 @@ class AutopilotService:
     def _record_failure(self, project_id, *, code, message):
         self._unrecorded_failures[project_id] = {"code": code, "message": message}
         try:
-            with closing(self.storage.projects.inspect(project_id)) as inspection:
+            with closing(self.storage.projects.inspect(project_id, passive=True)) as inspection:
                 if not self._can_advance(inspection, project_id):
                     self._unrecorded_failures.pop(project_id, None)
                     return
@@ -127,7 +137,7 @@ class AutopilotService:
 
     def _step(self, project_id):
         # Discovery is observation: closed/manual folders must not gain locks or WAL.
-        with closing(self.storage.projects.inspect(project_id)) as inspection:
+        with closing(self.storage.projects.inspect(project_id, passive=True)) as inspection:
             if not self._can_advance(inspection, project_id):
                 return
         with closing(self.storage.projects.open(project_id)) as store:
@@ -147,18 +157,38 @@ class AutopilotService:
                 store.repository.autopilot.blocker(project_id, code="contract_blocked", message=str(error))
 
     def start(self):
-        if self._thread is not None and self._thread.is_alive():
-            return
-        self._stop.clear()
-        self._thread = Thread(target=self._loop, name="plotloom-pre-video-controller", daemon=True)
-        self._thread.start()
+        with self._lifecycle_lock:
+            if self._thread is not None and self._thread.is_alive():
+                return
+            self._stop.clear()
+            self._thread = Thread(target=self._loop, name="plotloom-pre-video-controller", daemon=True)
+            try:
+                self._thread.start()
+            except BaseException:
+                self._thread = None
+                self._stop.set()
+                raise
+
+    @contextmanager
+    def runtime_owner(self):
+        with self._lifecycle_lock:
+            if self._runtime_owners == 0:
+                self.start()
+            self._runtime_owners += 1
+        try:
+            yield
+        finally:
+            with self._lifecycle_lock:
+                self._runtime_owners -= 1
+                if self._runtime_owners == 0:
+                    self.close()
 
     def _loop(self):
         try:
             while not self._stop.is_set():
                 self._wake.clear()
                 try:
-                    homes = self.storage.projects.discover() if self.acquire_controller() else []
+                    homes = self.storage.projects.discover(passive=True) if self.acquire_controller() else []
                     self.controller_blocker = None
                 except (OSError, SQLAlchemyError, ProjectStorageError, InvalidTransitionError):
                     self.controller_blocker = {"code": "controller_storage_unavailable", "message": "自动素材控制器无法安全访问存储。请检查应用存储和控制器锁；未取得新运行权限。"}
@@ -185,10 +215,12 @@ class AutopilotService:
             self.release_controller()
 
     def close(self):
-        self._stop.set()
-        self._wake.set()
-        if self._thread is not None:
-            self._thread.join()
-            self._thread = None
-        else:
-            self.release_controller()
+        # Worker finalization uses only the descriptor lock, never this lock.
+        with self._lifecycle_lock:
+            self._stop.set()
+            self._wake.set()
+            if self._thread is not None:
+                self._thread.join()
+                self._thread = None
+            else:
+                self.release_controller()

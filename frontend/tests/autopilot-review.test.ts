@@ -98,6 +98,32 @@ it("never offers Start for an existing manual project or unsaved Brief", async (
     children: createElement(AutopilotLaunch, { saved: true, dirty: false, disabled: false }) })));
   expect(host.textContent).not.toContain("一键准备视频素材");
 });
+it("refreshes admission after exact draft cleanup without changing Brief or replaying Start", async () => {
+  vi.spyOn(autopilotApi, "current").mockResolvedValue(null);
+  const read = vi.spyOn(autopilotApi, "launchContext").mockResolvedValueOnce({ eligible: false, briefRevision: 1 }).mockResolvedValue({ eligible: true, briefRevision: 1 });
+  const start = vi.spyOn(autopilotApi, "start");
+  const draw = async (admissionVersion: number) => act(async () => root.render(createElement(AutopilotWorkspace, {
+    projectId: "disposable", revision: 1, admissionVersion, readOnly: false, onChanged: async () => undefined, onVideo: () => undefined,
+    children: createElement(AutopilotLaunch, { saved: true, dirty: false, disabled: false }),
+  })));
+  await draw(0); expect(host.textContent).not.toContain("一键准备视频素材");
+  await draw(1); expect(host.textContent).toContain("一键准备视频素材");
+  expect(read).toHaveBeenCalledTimes(2); expect(start).not.toHaveBeenCalled();
+});
+it("aborts superseded admission reads and retains server refusal for manual material", async () => {
+  vi.spyOn(autopilotApi, "current").mockResolvedValue(null);
+  let release!: (value: { eligible: boolean; briefRevision: number }) => void;
+  const read = vi.spyOn(autopilotApi, "launchContext").mockImplementationOnce(() => new Promise(done => { release = done; }))
+    .mockResolvedValue({ eligible: false, briefRevision: 1 });
+  const draw = async (id: string, admissionVersion: number) => act(async () => root.render(createElement(AutopilotWorkspace, {
+    projectId: id, revision: 1, admissionVersion, readOnly: false, onChanged: async () => undefined, onVideo: () => undefined,
+    children: createElement(AutopilotLaunch, { saved: true, dirty: false, disabled: false }),
+  })));
+  await draw("previous", 0); const signal = read.mock.calls[0][1]!;
+  await draw("manual", 1); expect(signal.aborted).toBe(true);
+  await act(async () => release({ eligible: true, briefRevision: 1 }));
+  expect(host.textContent).not.toContain("一键准备视频素材"); expect(read).toHaveBeenCalledTimes(2);
+});
 it("author editing drops trusted Brief-origin authority without changing retained bytes", () => {
   const original = { kind: "synopsis" as const, title: "Saved title", text: "Saved synopsis", attribution: null, rightsDeclaration: null, adaptationIntent: "", inventedAdditions: null,
     briefOrigin: { kind: "saved_brief" as const, revision: 1, contentHash: "frozen" } };

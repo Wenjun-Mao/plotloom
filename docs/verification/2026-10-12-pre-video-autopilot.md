@@ -634,3 +634,93 @@ pytest cases / 170 files**. Ruff F and diff checks pass; existing Starlette warn
 remains. Frontend/static/dependency/schema/request inputs are unchanged. No source
 full/native/live/hosted CI/push occurred; full/native/walkthrough/activation remain
 manager-owned and pending against the next reviewed stable revision.
+
+### P5 concluded `17e62bc2` failure and combined repair
+
+Manager's full at `17e62bc23c5d288a6cffb45d78d390da3344918f` concluded exit 1
+after **1,392.272s**. Python **1,706 passed** with a new unhandled controller
+thread EBADF warning; that warning is a failure to qualify safe ownership.
+Frontend **1,306 passed**, both types/build parity/shard coverage passed, then
+browser **305 passed / 2 failed**, 501.769s. Wheel/smoke did not run. Authoritative
+output is manager-owned ignored `output/playwright/pre-video-p5/full-17e62bc2.log`,
+with browser evidence under `browser-failures-17e62bc2/` in the same QA root.
+The isolated QA server/browser stopped; source did not touch that QA project.
+
+The combined candidate repair addresses four demonstrated boundaries:
+
+- Edit/revert/restored Brief draft deletion correctly leaves Brief r1 unchanged,
+  but launch observation had no invalidation after draft cleanup. Authoring now
+  publishes a project-bound observation version only after validating the exact
+  consumed draft revision and current operation. Launch rereads the authoritative
+  server and aborts superseded reads. No dirty/saving dependency, revision bump,
+  Save remount/navigation, optimistic eligibility or Start replay.
+- Concurrent start publication before `Thread.start()` returns could produce two
+  workers while tracking only one. Concurrent descriptor release independently
+  reproduced EBADF. Separate lifecycle and descriptor locks establish one worker
+  and exact single release; overlapping lifespans retain it until the final owner
+  exits. The existing unbounded owned join remains; no EBADF suppression.
+- Controller discovery and `_step` inspection each acquire a real shared lease
+  on a normally closed retained-lock folder. Event-gated pre-fix captures proved
+  PID **7007**, thread **plotloom-pre-video-controller**, site **discover**, FD
+  **12**; and PID **7007**, thread **passive-inspect_0**, site **inspect**, FD **12**.
+  The controlled reopen failed at both sites. Per-project observation admission
+  now waits for admitted passive reads and prevents new passive reads while an
+  explicit exclusive transition is pending, retaining the actual OS leases and
+  genuine writer/native refusal. The original full Cast holder is not identified
+  by these controlled captures; no retrospective PID/site claim is made.
+- Creator review intentionally displays the frozen “来源剧本” provenance. Its
+  old wording assertion was stale. The repaired test retains the entire binding,
+  exact review revision/hash and frozen Script revision, proves current Script
+  revision/hash differ, and preserves stale/no-F4/no-auto-media assertions. The
+  trailing displayed hash belongs to the review, not its bound Script.
+
+Five event-gated pre-fix runtime cases failed; all five passed after the repair.
+Two added guards prove late passive blocking and genuine foreground shared-holder
+refusal. The normal closed-WAL/retained-lock whole file-byte tree remains unchanged
+through discovery, step and failure observation; old DELETE/absent-lock/no-sidecar
+assertions remain. Ignored `.local/p5-runtime-race-gated-before.log` and
+`.local/p5-passive-holder-evidence.log` retain controlled evidence.
+
+Executed source checks on this combined candidate, against `17e62bc2`:
+
+- Focused runtime/controller/original concurrent ingest/project-storage batch:
+  **43 passed**, runner 40.626s. Final runtime/observation guard batch: **29
+  passed**, runner 29.401s. Authority/recovery/native storyboard blocker/app
+  runtime-boundary batch: **46 passed**, runner 15.564s.
+- Original image-ingest concurrency case plus seven runtime cases: **8 passed**
+  with actual pytest `-W error::pytest.PytestUnhandledThreadExceptionWarning`,
+  1.62s. An earlier `PYTHONWARNINGS` module setting was rejected and supplied no
+  warning-enforcement evidence. Existing Starlette deprecation remains.
+- `quick`: **1,308 frontend tests / 152 files**, both type checks and required
+  quick checks passed, runner 13.014s. Focused admission/provenance unit owner
+  also passed before the unfiltered quick suite.
+- Both previously failing full browser specs passed all **14** cases in the
+  three-spec batch; that batch had 21 passes and one new test assertion failure.
+  The new no-op test first expected a query parameter instead of the actual
+  DELETE body/header. Its next attempt captured the older restoration GET. Trace
+  showed false GET, exact draft r2 DELETE 204, then true GET at Brief r1. After
+  reassessing the wait boundary, restoration observation is awaited before Save.
+  Final whole manual-creator spec: **8 passed**, runner 29.344s, including exact
+  body/header, unchanged canonical response and connected editor, fresh true GET,
+  no canonical/Start writes or run. No production workaround was added.
+- Affected autopilot-review/first-save browser specs: **12 passed**, runner
+  32.164s. All **34 distinct selected browser cases** now have passing evidence;
+  this is scoped evidence, not an unfiltered browser/full pass.
+- Two deterministic builds: identical **7-file** SHA-256 tree
+  `58f7a4f9b19e40a8fb08c77d393a585b191e701daee3da19e773beb0b20f9b56`.
+  Generated static assets refreshed. Desktop Brief screenshot inspected: CTA and
+  authoring fields are readable; retained at
+  `.local/p5-pixels/unchanged-brief-admission.png`.
+- Native ownership preflight: **1,714 pytest cases / 171 files**; new runtime
+  owner registered. Browser allocation: **91 specs / 308 cases**, shards
+  **84/72/71/81**, no missing/overlap. Ruff F and diff checks pass; a pre-existing
+  unused local `media` in the touched lifecycle module was removed, with no
+  admission behavior change.
+
+Both attended independent source/test/config reviews closed without actionable
+findings. ADR 0162 and the same touched-path map record the repaired ownership
+contracts and next walkthroughs. No source full/native/provider/live/valued-data,
+hosted CI/merge/push operation was run. After the reviewed clean checkpoint, all
+source/test/docs writes and source checks hold for manager's exact-revision review
+and fresh full qualification. Native capability proof, preservation/cutback,
+release/activation and owner creative acceptance remain separate pending gates.
