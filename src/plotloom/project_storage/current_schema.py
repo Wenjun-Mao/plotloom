@@ -52,7 +52,7 @@ def assert_current_schema(connection: sqlite3.Connection) -> None:
         )
 
 
-def assert_current_review_bindings(connection: sqlite3.Connection) -> None:
+def assert_current_review_bindings(connection: sqlite3.Connection, *, asset_home: Path | None = None) -> None:
     """Reject unsupported JSON contracts before a folder can be mutated.
 
     SQL layout alone cannot establish the version of a persisted review binding.
@@ -61,7 +61,7 @@ def assert_current_review_bindings(connection: sqlite3.Connection) -> None:
     """
     from .autopilot_validation import assert_autopilot_contracts
     if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_autopilot_runs'").fetchone():
-        assert_autopilot_contracts(connection)
+        assert_autopilot_contracts(connection, asset_home=asset_home)
     for table, model in (
         ("v2_script_candidates", ScriptBinding),
         ("v2_script_revisions", ScriptBinding),

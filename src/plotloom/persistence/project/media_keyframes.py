@@ -83,18 +83,8 @@ class ReviewedKeyframePersistence:
             asset = session.get(ManagedAssetRow, asset_id)
             if asset is None or asset.project_id != project_id:
                 raise NotFoundError(f"managed asset not found: {asset_id}")
-            generated_candidate = session.scalar(
-                select(ImageJobCandidateRow)
-                .where(ImageJobCandidateRow.asset_id == asset_id)
-                .order_by(ImageJobCandidateRow.created_at.desc())
-                .limit(1)
-            )
-            if generated_candidate is not None:
-                generated_job = session.get(ImageJobRow, generated_candidate.job_id)
-                if generated_job is None or not self._image_currentness.image_job_is_current_in_session(session, generated_job):
-                    raise InvalidTransitionError(
-                        "image-job candidate is no longer applicable and cannot be selected"
-                    )
+            from .image_source_lineage import current_source_in_session
+            current_source_in_session(session, project_id, asset_id, self._image_currentness, shot_id=shot_id)
             intent = session.get(VisualIntentRow, visual_intent_id)
             if (
                 intent is None or intent.project_id != project_id or intent.asset_id != asset_id

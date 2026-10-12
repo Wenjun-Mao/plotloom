@@ -31,6 +31,13 @@ def material_closure(session, project_id, *, tables=MATERIAL_TABLES, include_can
         values = [{key: value.isoformat() if isinstance(value, datetime) else value for key, value in row.items()} for row in rows]
         payload[name] = sorted(values, key=stable_hash)
     if include_cancellations:
+        checkpoint_table = Base.metadata.tables["v2_autopilot_checkpoints"]
+        preparations = session.execute(select(checkpoint_table.c.id, checkpoint_table.c.evidence).where(checkpoint_table.c.project_id == project_id,
+            checkpoint_table.c.evidence["geometryPreparation"].as_string().is_not(None))).all()
+        lineage = [{"checkpointId": identifier, "geometryPreparation": evidence["geometryPreparation"]}
+            for identifier, evidence in preparations if evidence.get("geometryPreparation") is not None]
+        if lineage:
+            payload["geometryPreparations"] = sorted(lineage, key=stable_hash)
         # Delivery/receipt progress is transport evidence, but a cancellation
         # explicitly withdraws the native owner's material applicability.
         payload["imageCancellations"] = {}

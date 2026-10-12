@@ -247,7 +247,7 @@ export interface ManagedAsset {
   height: number;
   createdAt: string;
   provenance: { origin: string; rights: "known" | "unknown"; rightsNote: string | null; declaredAdditions: string[];
-    limitations?: string[]; jobId?: string; proposalId?: string; deliveryId?: string; outputFilename?: string } | null;
+    preparationId?: string; limitations?: string[]; jobId?: string; proposalId?: string; deliveryId?: string; outputFilename?: string } | null;
 }
 
 export interface CharacterImportedAppearance {

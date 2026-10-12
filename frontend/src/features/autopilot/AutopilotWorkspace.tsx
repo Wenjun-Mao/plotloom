@@ -78,11 +78,13 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
   const inventory = run?.checkpoints.find(item => item.operationKey === "material.inventory")?.evidence.result.inventory as { subjects?: unknown[] } | undefined;
   const requiredImages = run?.bundle ? run.bundle.inventory.subjects.length : Array.isArray(inventory?.subjects) ? inventory.subjects.length : null;
   const textCount = run?.checkpoints.filter(item => ["outline", "branches", "characters", "art", "script", "storyboard", "bridge-intent", "bridge-presentation"].includes(item.operationKey) && item.state === "adopted").length || 0;
+  const selectedImages = counts?.filter(item => item.state === "adopted" && (run?.frames ? item.evidence.owner !== "image" : item.evidence.result.geometryCompatible !== false)).length || 0;
   return <Context.Provider value={owner}>
     {run && <section className="autopilot-status" aria-label="视频素材准备" role="region">
       <div><strong>{ready ? stateLabels[run.state] : "素材状态待核实"}</strong><span>{phaseLabels[run.phase] || "制作规划"}</span>
       <small>AI 初稿与暂选图片 · {!ready ? "人工审阅状态待核实" : run.handoff && run.state === "handed_off" ? "已记录完整人工审阅" : "尚未获得完整人工审阅"}</small></div>
-      <p>文字初稿 {textCount}/8 已采用 · {counts?.filter(item => item.state === "adopted" && item.evidence.result.geometryCompatible !== false).length || 0} 项图片已暂选{requiredImages !== null ? ` / ${requiredImages} 项必需素材` : ""} · 任务上限 {run.policy.maxJobs} · 图片上限 {run.policy.maxImages}</p>
+      <p>文字初稿 {textCount}/8 已采用 · {selectedImages + (run.frames?.length || 0)} 项图片已暂选{requiredImages !== null ? ` / ${requiredImages} 项必需素材` : ""} · 任务上限 {run.policy.maxJobs} · 图片上限 {run.policy.maxImages}</p>
+      {run.policy.version === "plotloom.pre-video.v2" && <p>首帧比例不符时，将保留原图并按冻结目标居中裁剪、缩放为独立素材；仍需你审阅。</p>}
       {run.blocker && <p role="status">{run.blocker.message}</p>}
       <div className="button-row">
         {controllable && ["running", "waiting"].includes(run.state) && <Button disabled={busy || readOnly} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "pause"))}>暂停</Button>}
@@ -121,6 +123,7 @@ export function AutopilotLaunch({ saved, dirty, disabled }: { saved: boolean; di
   return <Panel className="autopilot-launch"><Button variant="primary" disabled={disabled || dirty || owner.busy} onClick={() => setOpen(value => !value)}>一键准备视频素材</Button>
     {dirty && <p>先保存当前简报，再开始准备。</p>}
     {open && <div className="stack"><p>使用已保存简报，AI 自动采用故事初稿并暂选角色、场景与每个镜头的首帧。全部路线准备完成后，由你一次审阅。</p>
+      <p>首帧比例不符时，将保留原图，居中裁剪并缩放到简报目标尺寸，作为独立素材供你审阅。比例已匹配的原图保持原样。</p>
       <p>文字助手：{settings?.text.name || "未配置"} · 图片助手：{settings?.image.name || "未配置"}</p>
       <Field label="角色与美术图像风格"><select value={style} onChange={event => setStyle(event.target.value as ArtRenderStyle)}><option value="live-action">真人实拍</option><option value="realistic">写实</option><option value="ghibli">吉卜力风格</option></select></Field>
       <div className="field-grid two"><Field label="最多图片数"><input type="number" min={1} max={256} value={images} onChange={event => setImages(Number(event.target.value))} /></Field><Field label="最多任务数"><input type="number" min={9} max={288} value={jobs} onChange={event => setJobs(Number(event.target.value))} /></Field></div>

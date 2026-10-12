@@ -6,10 +6,11 @@ import { specialistsApi } from "../src/features/specialists/api";
 import { fixtureMaterial, fixtureRun } from "../tests/autopilot-fixture";
 import type { Handoff } from "../src/features/autopilot/contracts";
 import { plotloomApi } from "../src/api";
-import { evidenceReadsFixture } from "../tests/autopilot-delivery-fixture";
+import { evidenceReadsFixture, geometryReadsFixture } from "../tests/autopilot-delivery-fixture";
 import "../src/styles.css";
 const initial = new URLSearchParams(location.search).get("state");
-const evidence = evidenceReadsFixture();
+const localGeometry = geometryReadsFixture();
+const evidence = initial === "geometry" ? localGeometry.reads : evidenceReadsFixture();
 let evidenceFailed = false;
 plotloomApi.getManagedAssets = async () => {
   if (initial === "evidence-failure" && !evidenceFailed) { evidenceFailed = true; throw new Error("Disposable evidence read failure"); }
@@ -39,7 +40,11 @@ autopilotApi.current = async () => {
   return current;
 };
 autopilotApi.launchContext = async () => ({ eligible: current === null, briefRevision: 1 });
-autopilotApi.review = async () => ({ ...structuredClone(fixtureMaterial), runRevision: current?.revision ?? fixtureMaterial.runRevision });
+autopilotApi.review = async () => {
+  const result = { ...structuredClone(fixtureMaterial), runRevision: current?.revision ?? fixtureMaterial.runRevision };
+  if (initial === "geometry") result.bundle.frames[0].geometryPreparation = localGeometry.geometry;
+  return result;
+};
 autopilotApi.start = async (_id, body) => { record(["start", body]); current = { ...fixtureRun, state: "running" }; return current; };
 autopilotApi.control = async (_id, _revision, action) => { record(["control", action]); current = { ...fixtureRun, state: action === "pause" ? "paused" : action === "resume" ? "running" : action === "cancel" ? "cancelled" : "taken_over" }; return current; };
 autopilotApi.handoff = async (_id, body: Handoff) => { record(["handoff", body]);

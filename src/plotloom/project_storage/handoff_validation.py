@@ -6,7 +6,7 @@ from ..persistence.project.autopilot_inventory_validation import assert_inventor
 from ..canonical_schema import StoryboardV2, StoryGraphV2, SceneBeatPlanV2, StoryBibleV2
 
 
-def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw, digest):
+def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw, digest, *, asset_home=None):
     receipt = HumanHandoffReceipt.model_validate(raw)
     if stable_hash(raw) != digest or (receipt.id, receipt.run_id, receipt.project_id, receipt.approval_id) != (identifier, run_id, project_id, approval_id):
         raise ValueError("human handoff identity changed")
@@ -84,6 +84,10 @@ def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw,
         asset = connection.execute("SELECT project_id,original_hash,width,height FROM v2_managed_assets WHERE id=?", (frame.asset_id,)).fetchone()
         if source != (project_id, frame.shot_id, frame.asset_id) or asset != (project_id, frame.original_hash, frame.width, frame.height):
             raise ValueError("reviewed frame source bytes changed")
+        from ..persistence.project.image_source_lineage import resolve_image_source
+        lineage = resolve_image_source(connection, project_id, frame.asset_id, shot_id=frame.shot_id, asset_home=asset_home)
+        if (lineage.geometry if lineage else None) != frame.geometry_preparation:
+            raise ValueError("human handoff geometry lineage changed")
         binding = connection.execute("SELECT project_id,shot_id,scene_id,asset_id,visual_intent_id,approval_id,compatibility_note FROM v2_reviewed_shot_bindings WHERE id=?", (fact.get("bindingId"),)).fetchone()
         if binding != (project_id, frame.shot_id, frame.scene_id, frame.asset_id, fact.get("intentId"), approval_id, observation.compatibility_note) or fact.get("shotId") != frame.shot_id or fact.get("assetId") != frame.asset_id:
             raise ValueError("human handoff native binding changed")
@@ -104,6 +108,8 @@ def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw,
                 reference = connection.execute("SELECT project_id,character_id,reference_revision,asset_hashes FROM v2_character_reference_decisions WHERE id=?", (item.get("referenceDecisionId"),)).fetchone()
                 if endorsed is None or endorsed.decision_id != item.get("referenceDecisionId") or reference is None or reference[:3] != (project_id, item["characterId"], item.get("referenceRevision")) or item.get("assetHashes") != [value["originalHash"] for value in json.loads(reference[3])]:
                     raise ValueError("human comparison reference bytes changed")
+                if frame.geometry_preparation and (item.get("frameHash") != frame.original_hash or item.get("geometryPreparationHash") != frame.geometry_preparation.preparation_hash):
+                    raise ValueError("human derivative observation lineage changed")
                 if item.get("comparisonOrigin") is not None and (item["comparisonOrigin"] != "human_current_material" or item.get("frameHash") != frame.original_hash):
                     raise ValueError("manual comparison context changed")
         elif fact.get("samePersonReviewId") is not None or observation.comparisons:

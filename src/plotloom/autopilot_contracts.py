@@ -12,7 +12,10 @@ from .art_style import ArtRenderStyle
 from .cast_style import CastRenderStyle
 from .domain import CamelModel, contains_secret_setting, contains_secret_value
 
-POLICY_VERSION = "plotloom.pre-video.v1"
+from .geometry_preparation_contracts import GeometryPolicy, GeometryPreparation
+from .geometry_preparation import geometry_policy
+
+POLICY_VERSION = "plotloom.pre-video.v2"
 HASH = r"^[a-f0-9]{64}$"
 RunState = Literal["running", "waiting", "paused", "cancelled", "stale", "blocked", "awaiting_review", "handed_off", "taken_over"]
 
@@ -22,6 +25,7 @@ class OperationScope(str, Enum):
     TEXT = "text_adoption"
     INSTALL = "production_installation"
     IMAGE = "image_generation"
+    GEOMETRY = "geometry_preparation"
     SELECT = "provisional_selection"
     EVIDENCE = "receipt_reconciliation"
     HANDOFF = "human_handoff"
@@ -36,7 +40,8 @@ class CommandAuthority:
 
 
 class LaunchPolicy(CamelModel):
-    version: Literal[POLICY_VERSION] = POLICY_VERSION
+    version: Literal["plotloom.pre-video.v1", POLICY_VERSION] = POLICY_VERSION
+    geometry_preparation: GeometryPolicy | None = Field(default_factory=geometry_policy, exclude_if=lambda value: value is None)
     render_style: CastRenderStyle
     art_render_style: ArtRenderStyle
     max_images: int = Field(default=80, ge=1, le=256)
@@ -48,8 +53,17 @@ class LaunchPolicy(CamelModel):
     execution_pins: dict[str, dict[str, str]]
     brief: dict[str, Any]
 
+    @model_validator(mode="before")
+    @classmethod
+    def retained_policy(cls, value):
+        if isinstance(value, dict) and value.get("version") == "plotloom.pre-video.v1":
+            return {key: item for key, item in value.items() if key != "geometry_preparation"} | {"geometryPreparation": value.get("geometryPreparation", value.get("geometry_preparation"))}
+        return value
+
     @model_validator(mode="after")
     def validate_frozen_authority(self):
+        if (self.version == POLICY_VERSION) != (self.geometry_preparation is not None):
+            raise ValueError("geometry preparation permission belongs only to policy v2")
         if set(self.specialist_bindings) != {"text", "image"} or len(set(self.specialist_bindings.values())) != 2:
             raise ValueError("two distinct native specialist bindings are required")
         payload = self.model_dump(mode="json", by_alias=True)
@@ -67,6 +81,7 @@ class LaunchRequest(CamelModel):
 
 
 class CheckpointEvidence(CamelModel):
+    geometry_preparation: GeometryPreparation | None = Field(default=None, exclude_if=lambda value: value is None)
     owner: str
     subject_id: str
     job_id: str | None = None
@@ -94,6 +109,7 @@ class MachineDecision(CamelModel):
 
 
 class ProvisionalFrame(CamelModel):
+    geometry_preparation: GeometryPreparation | None = Field(default=None, exclude_if=lambda value: value is None)
     shot_id: str
     scene_id: str
     job_id: str

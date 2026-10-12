@@ -32,8 +32,18 @@ def _row(connection, sql, values):
     return dict(zip((column[0] for column in cursor.description), row, strict=True))
 
 
-def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id):
+def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id, asset_home=None):
     owner = evidence.owner
+    if owner == "geometry-preparation":
+        if evidence.job_id or evidence.request_hash or evidence.execution_pin or evidence.delivery_hash or evidence.geometry_preparation is None:
+            raise ValueError("local geometry cannot impersonate native evidence")
+        if evidence.subject_id != evidence.geometry_preparation.shot_id:
+            raise ValueError("local geometry shot identity changed")
+        from .image_source_lineage import assert_geometry
+        assert_geometry(connection, evidence.geometry_preparation, project_id=project_id, run_id=run_id, asset_home=asset_home)
+        return
+    if evidence.geometry_preparation is not None:
+        raise ValueError("geometry lineage belongs only to its typed local owner")
     terminal = state in {"delivered", "adopted"}
     if owner == "source":
         if evidence.job_id or evidence.request_hash or evidence.execution_pin or evidence.delivery_hash or evidence.subject_id != "source":
@@ -128,19 +138,25 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
         raise ValueError("terminal checkpoint lacks exact native delivery evidence")
 
 
-def assert_frame_binding(connection, run_id, project_id, decision_id, frame):
+def assert_frame_binding(connection, run_id, project_id, decision_id, frame, *, asset_home=None):
     job = _row(connection, "SELECT * FROM v2_image_jobs WHERE id=?", (frame.job_id,))
     unit = _row(connection, "SELECT * FROM v2_production_units WHERE id=?", (job["production_unit_id"],))
     asset = _row(connection, "SELECT * FROM v2_managed_assets WHERE id=?", (frame.asset_id,))
     decision = _row(connection, "SELECT * FROM v2_autopilot_decisions WHERE id=?", (decision_id,))
     revision = _row(connection, "SELECT * FROM v2_entity_revisions WHERE id=?", (unit["storyboard_entity_revision_id"],))
-    candidate = _row(connection, "SELECT * FROM v2_image_job_candidates WHERE job_id=? AND asset_id=?", (frame.job_id, frame.asset_id))
+    from .image_source_lineage import resolve_image_source
+    lineage = resolve_image_source(connection, project_id, frame.asset_id, shot_id=frame.shot_id, asset_home=asset_home)
+    if lineage is None or lineage.job_id != frame.job_id or lineage.geometry != frame.geometry_preparation:
+        raise ValueError("provisional frame source lineage changed")
+    candidate = _row(connection, "SELECT * FROM v2_image_job_candidates WHERE id=?", (lineage.candidate_id,))
     delivery = _row(connection, "SELECT * FROM v2_image_job_deliveries WHERE id=?", (candidate["delivery_id"],))
     selection = _row(connection, "SELECT run_id,project_id,evidence FROM v2_autopilot_checkpoints WHERE id=?", (decision["checkpoint_id"],))
     selected_job = json.loads(selection["evidence"])
     if (selection["run_id"] != run_id or selection["project_id"] != project_id
-            or selected_job.get("owner") != "image" or selected_job.get("jobId") != frame.job_id
-            or selected_job.get("subjectId") != frame.shot_id or selected_job.get("requestHash") != frame.request_hash):
+            or selected_job.get("owner") != ("geometry-preparation" if lineage.geometry else "image")
+            or (not lineage.geometry and selected_job.get("jobId") != frame.job_id)
+            or (lineage.geometry and selected_job.get("geometryPreparation") != lineage.geometry.model_dump(mode="json", by_alias=True))
+            or selected_job.get("subjectId") != frame.shot_id or (not lineage.geometry and selected_job.get("requestHash") != frame.request_hash)):
         raise ValueError("provisional frame differs from its exact selection checkpoint")
     snapshot = json.loads(unit["snapshot"])
     request = json.loads(job["request"])
@@ -178,7 +194,7 @@ def assert_frame_binding(connection, run_id, project_id, decision_id, frame):
             or frame.request_hash != job["request_hash"] or stable_hash(request) != job["request_hash"]
             or frame.shot_id != unit["shot_id"] or frame.scene_id != unit["scene_id"]
             or frame.storyboard_revision != unit["storyboard_revision"] or frame.storyboard_hash != revision["content_hash"]
-            or frame.original_hash != asset["original_hash"] or candidate["output_hash"] != asset["original_hash"]
+            or frame.original_hash != asset["original_hash"] or candidate["output_hash"] != lineage.source_hash
             or (frame.width, frame.height) != (asset["width"], asset["height"])
             or frame.character_identity != snapshot.get("characterIdentity", [])
             or request["frozenSnapshot"] != snapshot or stable_hash(snapshot) != unit["snapshot_hash"]

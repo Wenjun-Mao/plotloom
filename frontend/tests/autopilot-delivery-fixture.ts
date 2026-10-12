@@ -40,3 +40,22 @@ export function evidenceReadsFixture(projectId = "disposable"): EvidenceReads {
     characters: [proposal(primary, "hero-job"), proposal(side, "hero-side-job")] as CharacterReferenceProposal[],
     art: [artProposal] as ArtReferenceProposal[], images: [image(original, "original-job"), adaptation, image(empty, "empty-job")] };
 }
+
+export function geometryReadsFixture() {
+  const reads = evidenceReadsFixture(), asset = reads.assets.find(item => item.id === "frame-1")!;
+  asset.provenance = { origin: "plotloom_geometry_preparation", rights: "unknown", rightsNote: null,
+    declaredAdditions: [], preparationId: "9".repeat(64) };
+  reads.images = reads.images.filter(job => job.id !== "adaptation-job");
+  const geometry: import("../src/features/autopilot/geometryContracts").GeometryPreparation = {
+    version: "geometry-preparation.v1", preparationId: "9".repeat(64), preparationHash: "8".repeat(64),
+    projectId: "disposable", runId: "disposable-run", policyHash: "6".repeat(64), claim: "offline-fixture", shotId: "shot-1",
+    source: { asset: { assetId: "frame-original", originalHash: "d".repeat(64), width: 941, height: 1672 },
+      checkpointId: "native-original", decisionId: "original-selection", candidateId: "candidate-frame-original", jobId: "original-job",
+      requestHash: "f".repeat(64), deliveryRowId: "receipt-frame-original", deliveryId: "delivery-frame-original", manifestHash: "e".repeat(64), executionPin: {} },
+    recipe: { version: "center-cover-rgb-lanczos-png.v1", exifOrientation: 1, orientedWidth: 941, orientedHeight: 1672,
+      cropBox: [0.25, 0, 940.75, 1672], targetWidth: 720, targetHeight: 1280 }, recipeHash: "7".repeat(64),
+    runtime: { pillowVersion: "fixture", transformHash: "5".repeat(64) },
+    output: { assetId: asset.id, originalHash: asset.originalHash, width: asset.width, height: asset.height },
+  };
+  return { reads, geometry };
+}

@@ -246,10 +246,17 @@ def test_manual_multiview_reference_set_is_fully_displayed_and_endorsed(tmp_path
         service.close()
 
 
-def test_reference_reselection_withdraws_generated_frames_from_current_review(tmp_path, monkeypatch):
+@pytest.mark.parametrize("derived", [False, True])
+def test_reference_reselection_withdraws_generated_frames_from_current_review(tmp_path, monkeypatch, derived):
     from datetime import timedelta
     from plotloom.persistence.schema import AutopilotHandoffRow, ManagedAssetRow
-    storage, _registry, service, view, _calls, _text = image_environment(tmp_path, monkeypatch)
+    first = True
+    def geometry(*, context):
+        nonlocal first
+        if derived and first and "shot" in context["request"]["frozenSnapshot"]:
+            first = False; return 941, 1672
+        return None
+    storage, _registry, service, view, _calls, _text = image_environment(tmp_path, monkeypatch, geometry=geometry)
     try:
         run_pack(storage, service, view)
         with closing(storage.projects.open(view.project_id)) as store:

@@ -9,7 +9,7 @@ from .format import ProjectStorageCorruptionError
 STATES = {"running", "waiting", "paused", "cancelled", "stale", "blocked", "awaiting_review", "handed_off", "taken_over"}
 
 
-def assert_autopilot_contracts(connection):
+def assert_autopilot_contracts(connection, *, asset_home=None):
     try:
         runs = {}
         for identifier, project, policy, digest, brief_hash, state, bundle, bundle_hash, handoff in connection.execute(
@@ -28,7 +28,7 @@ def assert_autopilot_contracts(connection):
             runs[identifier] = (project, digest)
         for identifier, run_id, project, state, raw in connection.execute("SELECT id,run_id,project_id,state,evidence FROM v2_autopilot_checkpoints"):
             parsed = CheckpointEvidence.model_validate_json(raw)
-            assert_checkpoint_binding(connection, project, state, parsed, run_id=run_id)
+            assert_checkpoint_binding(connection, project, state, parsed, run_id=run_id, asset_home=asset_home)
             if run_id not in runs or runs[run_id][0] != project:
                 raise ValueError("checkpoint run identity changed")
         for run_id, project, scope, checkpoint, raw in connection.execute("SELECT run_id,project_id,scope,checkpoint_id,decision FROM v2_autopilot_decisions"):
@@ -39,17 +39,17 @@ def assert_autopilot_contracts(connection):
             if retained is None or retained[:2] != (run_id, project):
                 raise ValueError("decision checkpoint ownership changed")
             recorded = CheckpointEvidence.model_validate_json(retained[2])
-            for field in ("owner", "subject_id", "job_id", "request_hash", "execution_pin"):
+            for field in ("owner", "subject_id", "job_id", "request_hash", "execution_pin", "geometry_preparation"):
                 if getattr(parsed.evidence, field) != getattr(recorded, field):
                     raise ValueError("decision native owner differs from checkpoint")
             if parsed.evidence.delivery_hash not in {None, recorded.delivery_hash} or any(recorded.result.get(key) != value for key, value in parsed.evidence.result.items()):
                 raise ValueError("decision retained evidence differs from checkpoint")
-            assert_checkpoint_binding(connection, project, "delivered" if parsed.evidence.delivery_hash else "prepared", parsed.evidence, run_id=run_id)
+            assert_checkpoint_binding(connection, project, "delivered" if parsed.evidence.delivery_hash else "prepared", parsed.evidence, run_id=run_id, asset_home=asset_home)
         for run_id, project, shot, job, asset, decision, raw in connection.execute("SELECT run_id,project_id,shot_id,job_id,asset_id,decision_id,frame FROM v2_autopilot_frames"):
             parsed = ProvisionalFrame.model_validate_json(raw)
             if runs.get(run_id, (None,))[0] != project or (parsed.shot_id, parsed.job_id, parsed.asset_id) != (shot, job, asset):
                 raise ValueError("provisional frame identity changed")
-            assert_frame_binding(connection, run_id, project, decision, parsed)
+            assert_frame_binding(connection, run_id, project, decision, parsed, asset_home=asset_home)
         from .bridge_adoption_validation import assert_bridge_adoption_contracts
         assert_bridge_adoption_contracts(connection)
         from .handoff_validation import assert_handoff
@@ -57,7 +57,7 @@ def assert_autopilot_contracts(connection):
         for identifier, run_id, project, approval, raw, digest in connection.execute("SELECT id,run_id,project_id,approval_id,receipt,receipt_hash FROM v2_autopilot_handoffs"):
             if runs.get(run_id, (None,))[0] != project:
                 raise ValueError("human handoff run changed")
-            receipt = assert_handoff(connection, identifier, run_id, project, approval, json.loads(raw), digest)
+            receipt = assert_handoff(connection, identifier, run_id, project, approval, json.loads(raw), digest, asset_home=asset_home)
             receipts[identifier] = (run_id, digest, receipt.bundle_hash, receipt.material_closure)
         for run_id, pointer in connection.execute("SELECT id,handoff FROM v2_autopilot_runs WHERE handoff IS NOT NULL"):
             value = json.loads(pointer)

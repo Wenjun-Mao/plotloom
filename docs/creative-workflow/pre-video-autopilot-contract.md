@@ -86,18 +86,37 @@ subject/job/pin/hash, valid bytes, current dependencies and frozen role. Machine
 selection records these facts with AI labels; it performs no aesthetic/identity
 pass and creates no human VisualIntent.
 
-Geometry review item: originals need the Brief aspect before completed-pack
-admission. Current originals admit arbitrary valid dimensions; current adaptation
-requires a human reviewed source. Extend only that source contract to a tagged
-machine-provisional frame under image scope. A mismatched original may receive
-one existing adaptation job with launch-frozen image geometry and its own counted
-checkpoint/job. Settle a technically valid original's normal delivery/reservation
-with the existing owner, retain its bytes and mismatch evidence, but exclude it
-from required-frame completion. A second incompatible output remains a blocker.
-No implicit crop, H3 request/preview,
-provider preflight or speculative regeneration. If no capacity remains, or the
-adaptation is invalid, block with evidence and a manual next action. Real native
-geometry capability is unproven until the manager's isolated generation proof.
+Geometry policy v2: freeze centered-cover crop+resize recipe/runtime identity at
+Start, explicitly disclosed to the creator. Prepare only accepted raw first-frame
+originals whose observed aspect fails the exact Brief check. Reuse bounded decode
+and `center_crop_png` (EXIF transpose, RGB, LANCZOS PNG) to frozen 720×1280,
+1280×720 or 1024×1024. Matching-aspect originals stay unchanged. Retain raw bytes,
+native prompts/manifest/mismatch/limitations. No stretch/pad/quality heuristics,
+reroll, provider call, extra generation ceiling or synthetic native job.
+
+Typed local checkpoint evidence binds project/run/policy/claim/shot, native source
+candidate/job/request/delivery/execution, raw SHA/geometry, orientation/crop recipe/
+runtime hash, managed derivative SHA/geometry and immutable preparation hash.
+Geometry authority may publish this derivative; selection authority separately
+adopts it. Retry/restart reconciles the same checkpoint. One strict single-hop
+source resolver carries source v3 identity conditioning into every review,
+selection/currentness and video-admission consumer; genuine human observations
+bind the derivative bytes and lineage. Missing/tampered generated evidence refuses
+instead of using imported-human fallback. Whole material closure includes typed
+lineage, and final review shows original and derivative separately.
+
+Confined source/output bytes must remain available and SHA-identical. A staged
+snapshot database is first validated against the frozen source asset home; after
+copy, validate the destination's owned bytes. Preparation does not relax native
+refinement currentness: recursively validate frozen ancestor context/authority
+independently of old selection position, then admit only the exact currently
+selected output with current human intent/approval.
+
+Retained v1 packages/runs remain immutable and have no v2 permission. Their
+original one-generative-adaptation evidence and queued reservations remain honest;
+only original receipts reconcile after policy retirement. Ordinary manually
+requested ImageGen adaptation remains its separate explicit workflow. The manager
+owns fresh distinct native proof after final reviewed qualification.
 
 At one consolidated review, collect real per-frame intent/compatibility inputs
 and ordered per-character pass/fail/unassessable observations with attribution.

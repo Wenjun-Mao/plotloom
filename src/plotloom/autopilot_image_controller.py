@@ -1,4 +1,4 @@
-"""Serial native initial images, original receipts and one bounded adaptation."""
+"""Serial native initial images and separately authorized local geometry."""
 from sqlalchemy import select
 from .autopilot_contracts import CheckpointEvidence, CommandAuthority, OperationScope
 from .autopilot_launch import assert_frozen_execution, assert_frozen_pins, require_job_capacity
@@ -48,21 +48,17 @@ class AutopilotImageController:
             if checkpoint["state"] != "adopted":
                 self.native_step(store, view, claim, subject, inventory, checkpoint)
                 return
-            if subject.owner == "image" and not checkpoint["evidence"]["result"].get("geometryCompatible"):
-                key = subject.operation_key + ":adaptation"
-                adaptation = self.checkpoint(view, key)
-                if adaptation is None:
-                    self.prepare(store, view, claim, subject, inventory, key, source=checkpoint)
-                    return
-                if adaptation["state"] != "adopted":
-                    self.native_step(store, view, claim, subject, inventory, adaptation)
-                    return
-                if not adaptation["evidence"]["result"].get("geometryCompatible"):
-                    raise InvalidTransitionError("一次几何适配仍不兼容；保留两次证据，请接管检查。")
+            if subject.owner == "image" and not checkpoint["evidence"]["result"].get("geometryCompatible") and not any(frame.shot_id == subject.id for frame in view.frames):
+                from .autopilot_geometry_preparation import prepare_first_frame_geometry
+                prepare_first_frame_geometry(store, view, claim, subject, inventory, checkpoint)
+                # One bounded material operation per controller advance. A later
+                # step revalidates authority before preparing another native job.
+                return
+
         with self.command(store, view, claim, OperationScope.SELECT):
             publish_bundle(store, view, inventory)
 
-    def prepare(self, store, view, claim, subject, inventory, key, *, source=None):
+    def prepare(self, store, view, claim, subject, inventory, key):
         require_job_capacity(view)
         image_count = sum(item["evidence"]["owner"] in IMAGE_METHODS for item in view.checkpoints)
         if image_count >= view.policy.max_images:
@@ -82,18 +78,12 @@ class AutopilotImageController:
                     decision = store.repository.autopilot.decide(install, subject={"entityRevisionId": inventory.entity_revision_id,
                         "revision": inventory.storyboard_revision, "contentHash": inventory.storyboard_hash, "productionHash": inventory.production_hash},
                         rationale="通过当前规范门槛的安装仅授权首帧生成；不等同于人类分镜批准。")
-                    adaptation = None
-                    if source is not None:
-                        selected = session.scalar(select(AutopilotDecisionRow).where(AutopilotDecisionRow.checkpoint_id == source["id"],
-                            AutopilotDecisionRow.scope == OperationScope.SELECT.value))
-                        adaptation = {"targetProfile": {"id": "autopilot-brief-geometry", "width": view.policy.image_width, "height": view.policy.image_height},
-                            "machineProvisionalSource": {"decisionId": selected.id, "assetId": source["evidence"]["result"]["assetId"], "jobId": source["evidence"]["jobId"]}}
                 context = store.media.prepare_image_job(view.project_id, machine_decision_id=decision, shot_id=subject.id,
-                    storyboard_revision=inventory.storyboard_revision, keyframe_adaptation=adaptation,
+                    storyboard_revision=inventory.storyboard_revision,
                     presentation_change="按冻结镜头动作与构图生成一张首帧；" + store.project().brief.visual_direction, contract_version=3)["job"]
             evidence = CheckpointEvidence(owner=subject.owner, subject_id=subject.id, job_id=context["id"],
                 request_hash=context["requestHash"], execution_pin=context["request"]["specialistPreflight"],
-                result={"adaptedFrom": source["operationKey"]} if source else {})
+                result={})
             if evidence.execution_pin != view.policy.execution_pins["image"]:
                 raise InvalidTransitionError("prepared image execution differs from launch")
             store.repository.autopilot.checkpoint(key, state="prepared", evidence=evidence)

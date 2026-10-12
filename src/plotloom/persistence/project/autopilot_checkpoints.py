@@ -24,7 +24,7 @@ def assert_checkpoint_update(checkpoint, expected_revision, state, evidence):
     previous = CheckpointEvidence.model_validate(checkpoint.evidence)
     if state not in TRANSITIONS[checkpoint.state]:
         raise InvalidTransitionError("checkpoint cannot regress its dispatch state")
-    for field in ("owner", "subject_id", "job_id", "request_hash", "execution_pin"):
+    for field in ("owner", "subject_id", "job_id", "request_hash", "execution_pin", "geometry_preparation"):
         if getattr(previous, field) != getattr(evidence, field):
             raise InvalidTransitionError("checkpoint cannot replace its frozen owner/execution identity")
     if previous.delivery_hash is not None and previous.delivery_hash != evidence.delivery_hash:

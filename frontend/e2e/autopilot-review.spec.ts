@@ -144,3 +144,20 @@ test("closing and reloading review never fabricates completed judgments", async 
   await expect(page.getByRole("button", { name: "确认素材，进入视频制作" })).toBeDisabled();
   expect(await page.locator("#fixture-writes").textContent()).toBe("[]");
 });
+
+for (const height of [900, 600]) test(`local geometry keeps original evidence and genuine review at 1440x${height}`, async ({ page, frontendOrigin }, testInfo) => {
+  await page.setViewportSize({ width: 1440, height });
+  await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html?state=geometry`);
+  await page.getByRole("button", { name: "审阅完整素材", exact: true }).click();
+  const disclosure = page.getByRole("region", { name: "确定性几何处理说明" });
+  await expect(disclosure.getByText("当前所选几何处理图 · 720×1280", { exact: true })).toBeVisible();
+  await expect(disclosure.getByText("保留的原始生成输出 · 941×1672", { exact: true })).toBeVisible();
+  await expect(disclosure.getByText("原始输出为 941×1672，尺寸与冻结目标不符。", { exact: true })).toBeVisible();
+  await disclosure.getByText("查看裁剪与来源身份", { exact: true }).click();
+  await disclosure.scrollIntoViewIfNeeded();
+  await expect(disclosure.getByText("EXIF 方向：1 · 居中裁剪框：0.25, 0, 940.75, 1672", { exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath(`geometry-disclosure-${height}.png`), fullPage: true });
+  await expect(page.getByLabel("shot-1 hero 身份判断")).toHaveValue("");
+  await expect(page.getByRole("button", { name: "确认素材，进入视频制作" })).toBeDisabled();
+  expect(await page.locator("#fixture-writes").textContent()).toBe("[]");
+});

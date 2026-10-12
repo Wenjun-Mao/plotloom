@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ...domain import ProjectLifecycleStatus, StageName
@@ -66,6 +67,12 @@ class ImageJobCurrentness:
         return result
 
     def image_job_is_current_in_session(self, session: Session, job: ImageJobRow) -> bool:
+        return self._image_dependencies_current(session, job, ancestors=frozenset(), historical_source=False)
+
+    def _image_dependencies_current(self, session, job, *, ancestors, historical_source):
+        if job.id in ancestors:
+            return False
+        ancestors = ancestors | {job.id}
         if job.state == "cancelled":
             return False
         project = session.get(ProjectRow, job.project_id)
@@ -97,7 +104,7 @@ class ImageJobCurrentness:
             if (source is None or source.request.get("kind") != "original" or asset is None
                     or source.project_id != job.project_id or asset.project_id != job.project_id
                     or asset.original_hash != adaptation.get("sourceOriginalHash")
-                    or not self.image_job_is_current_in_session(session, source)):
+                    or not self._image_dependencies_current(session, source, ancestors=ancestors, historical_source=True)):
                 return False
 
         # V1 original jobs predate the reviewed-keyframe refinement binding and
@@ -124,9 +131,25 @@ class ImageJobCurrentness:
                 or binding.visual_intent_revision != reviewed_intent.get("visualIntentRevision")
             ):
                 return False
-            if not self._admission.reviewed_binding_admission_eligible_in_session(
-                session, job.project_id, binding, approval=approval
-            ):
+            if not self._admission.reviewed_binding_context_current_in_session(session, job.project_id, binding, approval=approval):
+                return False
+            # Before selection the frozen parent must remain selected. Once this
+            # delivered output is reviewed/selected, that new selection correctly
+            # supersedes its parent without erasing the immutable source context.
+            latest = session.scalar(select(ReviewedShotBindingRow).where(ReviewedShotBindingRow.project_id == job.project_id,
+                ReviewedShotBindingRow.shot_id == unit.shot_id).order_by(ReviewedShotBindingRow.selection_revision.desc()).limit(1))
+            from .image_source_lineage import source_in_session
+            try:
+                parent_source = source_in_session(session, job.project_id, binding.asset_id, shot_id=unit.shot_id)
+                selected_source = source_in_session(session, job.project_id, latest.asset_id, shot_id=unit.shot_id) if latest else None
+            except InvalidTransitionError:
+                return False
+            parent_job = session.get(ImageJobRow, parent_source.job_id) if parent_source else None
+            if parent_job is None or parent_job.id != job.parent_job_id or not self._image_dependencies_current(
+                    session, parent_job, ancestors=ancestors, historical_source=True):
+                return False
+            if not historical_source and (latest is None or (latest.id != binding.id and (job.state != "delivered" or selected_source is None
+                    or selected_source.job_id != job.id or not self._admission.reviewed_binding_context_current_in_session(session, job.project_id, latest, approval=approval)))):
                 return False
 
         # V3 freezes one explicit reference decision per visible character.

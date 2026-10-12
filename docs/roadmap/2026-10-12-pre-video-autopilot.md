@@ -380,3 +380,14 @@ new policy applies only to fresh runs. No weakening of aspect admission, fake
 native jobs, extra generation, provider/video/voice work or owner acceptance.
 Stop after a reviewed committed geometry checkpoint; the manager owns attended
 review and one fresh full gate, fresh isolated native proof and preservation.
+
+
+The geometry source checkpoint implements the approved v2 centered preparation
+under existing typed checkpoint/decision/frame owners without a SQL layout change.
+The single-hop derivative resolver, explicit snapshot source-root validation and
+recursive native refinement dependency contract carry currentness into human
+review and downstream admission. Source checks remain focused; old backend/full
+evidence cannot qualify these changed executable inputs. After the reviewed clean
+commit, hold source/dependency/config writes and test bodies for manager contract
+review and one fresh exact-candidate full. New isolated native proof uses distinct
+project/job/specialist identities; old paused 4817 data remains immutable.

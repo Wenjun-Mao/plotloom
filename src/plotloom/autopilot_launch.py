@@ -2,7 +2,7 @@
 from hashlib import sha256
 from pathlib import Path
 
-from .autopilot_contracts import LaunchPolicy
+from .autopilot_contracts import LaunchPolicy, POLICY_VERSION
 from .art_style import freeze_art_style
 from .cast_style import freeze_cast_style
 from .exceptions import InvalidTransitionError
@@ -48,6 +48,11 @@ def freeze_launch_policy(store, registry, request):
 
 
 def assert_frozen_execution(store, registry, policy):
+    if policy.version != POLICY_VERSION:
+        raise InvalidTransitionError("旧冻结策略只保留证据；请接管或创建新的自动素材运行。")
+    from .geometry_preparation import geometry_policy
+    if policy.geometry_preparation != geometry_policy():
+        raise InvalidTransitionError("冻结几何处理运行版本已变化；请接管已有素材。")
     if frozen_bindings(registry) != policy.specialist_bindings:
         raise InvalidTransitionError("生成助手配置已变化；冻结运行不会改用新的助手。")
     assert_frozen_pins(store, policy)

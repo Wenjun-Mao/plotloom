@@ -1,17 +1,19 @@
+import type { GeometryPreparation } from "./geometryContracts";
 import type { ArtRenderStyle, VisualIntent, ScriptBinding } from "../../types";
 import type { SamePersonComparison, SamePersonComparisonDraft } from "../../same-person-review-types";
 
 export type AutopilotRun = {
   id: string; projectId: string; revision: number;
   state: "running" | "waiting" | "paused" | "blocked" | "cancelled" | "stale" | "taken_over" | "awaiting_review" | "handed_off";
+  frames?: Array<{ shotId: string; geometryPreparation?: GeometryPreparation }>;
   phase: string; blocker: { code: string; message: string } | null;
-  policy: { renderStyle: ArtRenderStyle; artRenderStyle: ArtRenderStyle; maxImages: number; maxJobs: number };
+  policy: { version?: string; geometryPreparation?: { recipeVersion: string }; renderStyle: ArtRenderStyle; artRenderStyle: ArtRenderStyle; maxImages: number; maxJobs: number };
   checkpoints: Array<{ operationKey: string; state: string; evidence: { owner: string; jobId?: string; result: Record<string, unknown> } }>;
   bundle: { inventory: { subjects: Array<{ owner: string }> }; frames: unknown[]; references: unknown[] } | null;
   handoff: { receiptId: string } | null;
 };
 export type Launch = { expectedBriefRevision: number; renderStyle: ArtRenderStyle; artRenderStyle: ArtRenderStyle; maxImages: number; maxJobs: number };
-export type ReviewFrame = { shotId: string; sceneId: string; title: string; sceneName: string; direction: string; assetId: string; originalHash: string; description: string; characterIds: string[]; origin: string };
+export type ReviewFrame = { geometryPreparation?: GeometryPreparation; shotId: string; sceneId: string; title: string; sceneName: string; direction: string; assetId: string; originalHash: string; description: string; characterIds: string[]; origin: string };
 export type ReviewReference = { owner: string; subjectId: string; name: string; decisionId: string; assetId: string;
   assets: Array<{ assetId: string; originalHash: string; width: number; height: number }> };
 export type ReviewMaterial = { runRevision: number; bundleHash: string; bundle: {

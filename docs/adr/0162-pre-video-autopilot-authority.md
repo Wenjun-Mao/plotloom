@@ -1,6 +1,6 @@
 # 0162 — Pre-video autopilot decisions are machine-owned and scoped
 
-Status: accepted for implementation, 2026-10-12; not implemented. The owner selected automatic
+Status: accepted for implementation, 2026-10-12; source implementation present, release gates pending. The owner selected automatic
 first-pass adoption with one final human review, and existing-app rollout after
 isolated proof, then approved implementing the [plan](../roadmap/2026-10-12-pre-video-autopilot.md)
 through Relay Direct with scoped design discretion. Its operational gates and
@@ -298,3 +298,61 @@ empty declaration from unavailable evidence. Display adaptation and retained
 original independently without judging improvement. Abort obsolete project/bundle
 reads; retry only observation and preserve authored review inputs. These reads do
 not alter handoff payloads, admission, prompt/provider or geometry contracts.
+
+### P5 new-policy deterministic first-frame geometry · approved before code
+
+Real native proof at frozen 4817 produced 941×1672 twice for a 720×1280 target.
+The exact aspect gate correctly refused both. Semantic generation cannot promise
+pixel geometry; another generative retry would repeat the wrong mechanism. The
+owner explicitly approved centered crop+resize with raw originals retained and
+one final human review. This changes only fresh launch policy to pre-video.v2.
+Existing v1 evidence is readable/reconcilable but does not gain new preparation
+permission; no old job, reservation, pin, report or policy is rewritten.
+
+Freeze the deterministic recipe and runtime identity at Start. Only a technically
+accepted raw original failing exact Brief aspect is prepared, using the existing
+EXIF-transposed RGB centered-cover LANCZOS PNG transform at frozen dimensions.
+Matching-aspect originals remain original selections. No stretch, padding,
+face/quality heuristics, reroll, image provider or native ceiling increment.
+
+A typed geometry-preparation field on the existing immutable checkpoint owner
+records local authority/claim, project/run/policy/shot, exact native candidate/job/
+request/delivery/execution identity, raw SHA/geometry, EXIF orientation, crop box,
+recipe/runtime hashes and new managed output SHA/geometry. It is not a native
+job/candidate/manifest. Preparation and provisional selection have separate exact
+scopes and decisions. An adopted local checkpoint is idempotently selected after
+restart; transactions/unique checkpoint identity serialize competing attempts.
+Content-addressed publication retains originals even when a transaction fails.
+No new SQLite table/layout or historical schema transition is needed.
+
+One strict single-hop resolver binds native outputs and these managed derivatives
+through immutable typed checkpoint evidence. Generic provenance extras cannot
+establish derivative authority. Use the resolver for provisional/open/recovery,
+review bundle, human selection, SamePerson mapping and reviewed admission for all
+later video/preview consumers. Derivatives retain source v3 conditioning while
+human judgments bind derivative bytes and typed lineage. Generated or derivative
+sources with missing evidence must fail, never fall through to imported-human
+mapping. Material closure and review receipts bind the derivative lineage hash.
+Original/adapted UI evidence stays distinct, including dimensions, crop recipe,
+source identities and original limitations; preparation makes no quality claim.
+
+
+Geometry byte identity is checked through the confined content-addressed asset
+store on ordinary open and every shared lineage consumer. Snapshot stages its DB
+first: that initial validation receives the frozen source asset home explicitly;
+destination validation uses copied assets. Missing/changed source or output is a
+refusal, not a transient imported source. Canonical JSON hashing lives in a small
+dependency-free contract module (persistence reexports the identical function),
+so standalone transform imports cannot cycle through repository composition.
+
+Refinement currentness distinguishes immutable generated-source context from
+selection position. Before selection the frozen parent must remain selected;
+once that delivered job's exact output is genuinely selected, it supersedes the
+parent. Still validate every ancestor's authority, intent/presentation, references
+and cancellation with a cycle guard; historical ancestors need not remain selected.
+Current selected bindings independently require exact latest intent, presentation,
+approval and native/derivative lineage. Reject both the self-invalidating parent-
+selection rule and an immediate-parent-only state check. Ordinary raw earlier-
+schema HANDOFF comparisons remain explicitly human-current-material; strict source
+resolution precedes this classification, and derivatives/V3 missing mappings can
+never take that path.

@@ -64,7 +64,7 @@ def _database_strings(connection: sqlite3.Connection, table_names=PROJECT_TEXT_P
                     yield value
 
 
-def assert_database_contract(path: Path, manifest: ProjectManifest, *, allow_previous: bool = False) -> None:
+def assert_database_contract(path: Path, manifest: ProjectManifest, *, allow_previous: bool = False, asset_home: Path | None = None) -> None:
     """Validate integrity, exact schema, identity, and secret-free contents."""
 
     try:
@@ -76,7 +76,7 @@ def assert_database_contract(path: Path, manifest: ProjectManifest, *, allow_pre
                 assert_prior_database(connection, manifest.project_id)
             else:
                 assert_current_schema(connection)
-            assert_current_review_bindings(connection)
+            assert_current_review_bindings(connection, asset_home=asset_home)
             integrity = [row[0] for row in connection.execute("PRAGMA integrity_check")]
             foreign_keys = list(connection.execute("PRAGMA foreign_key_check"))
             project_rows = list(connection.execute("SELECT id FROM v2_projects"))

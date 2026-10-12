@@ -1,7 +1,7 @@
 """One durable admitted run; existing stage/media owners remain authoritative."""
 from sqlalchemy import select
 
-from ...autopilot_contracts import CheckpointEvidence, LaunchPolicy, MachineDecision, OperationScope, ProvisionalFrame, RunView
+from ...autopilot_contracts import CheckpointEvidence, LaunchPolicy, MachineDecision, OperationScope, ProvisionalFrame, RunView, POLICY_VERSION
 from ...domain import new_id, utc_now
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ..codec import stable_hash
@@ -21,6 +21,8 @@ class AutopilotPersistence:
         return session.scalar(select(AutopilotRunRow).where(AutopilotRunRow.project_id == project_id))
 
     def start(self, project_id, *, expected_brief_revision, policy: LaunchPolicy):
+        if policy.version != POLICY_VERSION:
+            raise InvalidTransitionError("new runs require the current frozen launch policy")
         with self.access.leases.lifecycle_write() as session:
             project = self.access.rows.project(session, project_id)
             self.access.guards.active(project)
@@ -76,6 +78,8 @@ class AutopilotPersistence:
             if row.revision != expected_revision:
                 raise RevisionConflictError("autopilot", expected_revision, row.revision)
             if action == "resume":
+                if row.policy.get("version") != POLICY_VERSION:
+                    raise InvalidTransitionError("retired frozen policies cannot resume automatic work")
                 if row.id in self.recovered_run_ids():
                     raise InvalidTransitionError("portable restored autopilot identities cannot resume native dispatch")
                 if row.state not in {"paused", "waiting", "blocked"} or row.expected_closure != material_closure(session, project_id):
@@ -122,7 +126,9 @@ class AutopilotPersistence:
             if (row.brief_revision != project.revision or row.lifecycle_revision != project.lifecycle_revision
                     or row.brief_hash != stable_hash(project.brief) or row.expected_closure != material_closure(session, row.project_id)):
                 raise InvalidTransitionError("autopilot frozen authority or dependency closure changed")
-        LaunchPolicy.model_validate(row.policy)
+        policy = LaunchPolicy.model_validate(row.policy)
+        if policy.version != POLICY_VERSION and authority.scope not in {OperationScope.EVIDENCE, OperationScope.HANDOFF}:
+            raise InvalidTransitionError("retired frozen policies admit only reconciliation or human handoff")
         if row.policy_hash != stable_hash(row.policy):
             raise InvalidTransitionError("autopilot policy hash changed")
         return row
@@ -131,9 +137,13 @@ class AutopilotPersistence:
         authority = self.access.authority()
         if authority is None:
             raise InvalidTransitionError("checkpoint requires a trusted run command")
+        if evidence.owner == "geometry-preparation" and (authority.scope != OperationScope.GEOMETRY or evidence.geometry_preparation is None
+                or evidence.geometry_preparation.claim != authority.claim or evidence.geometry_preparation.run_id != authority.run_id):
+            raise InvalidTransitionError("geometry checkpoint requires its exact preparation claim and scope")
         if state == "adopted":
             expected_scope = (OperationScope.SOURCE if evidence.owner == "source"
                 else OperationScope.INSTALL if evidence.owner in {"installation", "bridge-proposal", "bridge-intent", "bridge-presentation"}
+                else OperationScope.GEOMETRY if evidence.owner == "geometry-preparation"
                 else OperationScope.SELECT if evidence.owner in {"bundle", "image", "character-reference", "art-reference"}
                 else OperationScope.TEXT)
             if authority.scope != expected_scope:

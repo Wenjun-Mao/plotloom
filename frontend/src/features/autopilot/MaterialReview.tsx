@@ -16,8 +16,8 @@ export function MaterialReview({ projectId, readOnly = false, onClose, onAccepte
   const [reviewer, setReviewer] = useState(""); const [notes, setNotes] = useState(""); const [busy, setBusy] = useState(false);
   const command = useRef(false); const active = useRef(true);
   const deliveries = useDeliveryEvidence(projectId, material?.bundleHash);
-  const disclosure = (assetId: string, originalHash: string) => deliveries.state?.status === "ready"
-    ? deliveryDisclosure(projectId, { assetId, originalHash }, deliveries.state.value)
+  const disclosure = (assetId: string, originalHash: string, geometryPreparation?: import("./geometryContracts").GeometryPreparation) => deliveries.state?.status === "ready"
+    ? deliveryDisclosure(projectId, { assetId, originalHash, geometryPreparation }, deliveries.state.value)
     : { status: "unknown" as const, message: deliveries.state?.status === "failed" ? "原始交付读取失败；可重试读取。" : "正在读取原始交付说明。" };
   useEffect(() => { active.current = true; dialog.current?.showModal(); const abort = new AbortController();
     autopilotApi.review(projectId, abort.signal).then(value => { if (abort.signal.aborted) return; setMaterial(value);
@@ -67,7 +67,7 @@ export function MaterialReview({ projectId, readOnly = false, onClose, onAccepte
       {material.bundle.frames.map((frame, index) => <div key={frame.shotId}>
         {(index === 0 || material.bundle.frames[index - 1].sceneId !== frame.sceneId) && <h4>场景 · {frame.sceneName}</h4>}
         <FrameReview projectId={projectId} frame={frame} draft={drafts[index]} characters={material.bundle.story.characters} disabled={busy || readOnly} onChange={next => setDrafts(values => values.map((value, slot) => slot === index ? next : value))} />
-        <DeliveryDisclosure projectId={projectId} value={disclosure(frame.assetId, frame.originalHash)} />
+        <DeliveryDisclosure projectId={projectId} value={disclosure(frame.assetId, frame.originalHash, frame.geometryPreparation)} />
       </div>)}
       <div className="field-grid two"><Field required label="审阅人"><input value={reviewer} disabled={busy || readOnly} onChange={event => setReviewer(event.target.value)} /></Field><Field required label="整包审阅意见"><textarea value={notes} disabled={busy || readOnly} onChange={event => setNotes(event.target.value)} /></Field></div>
       <footer><p>确认将记录人工素材审阅，并返回手动视频制作。视频参数、时长与供应商能力仍在制作时检查。</p><Button variant="primary" busy={busy} disabled={busy || readOnly || !valid} onClick={() => void submit()}>确认素材，进入视频制作</Button></footer>

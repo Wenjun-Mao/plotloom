@@ -887,3 +887,131 @@ Owner approved centered crop+resize with retained originals and final human revi
 as a **new policy**; it is not implemented by this frontend checkpoint or permission
 to reinterpret old evidence. Next is that separately bounded geometry slice;
 manager full/native/preservation/release/activation and owner acceptance remain.
+
+
+## P5 attended frontend review and v2 geometry source checkpoint · parent 3e2833d3
+
+Manager attended review accepted exact frontend `3e2833d3bddaa5e0e2220f01c88ceb6134bc6056`
+against 4817 as scoped frontend evidence. Manager verified retained quick/types/41
+browser logs, committed wheel/static bytes, diff scope and all four desktop pixels;
+independent committed-object review found no concrete defect. No manager test bodies
+were rerun and this established no full/native/activation or creative acceptance.
+
+Owner approved centered crop+resize with originals retained. Real original and its
+one generative adaptation both produced941×1672 for720×1280: semantic generation
+was the wrong geometry mechanism; exact admission was correct. Before code, ADR0162
+and the accepted contract were amended. Fresh policy `plotloom.pre-video.v2` freezes
+recipe/runtime and discloses preparation at Start. Existing v1 remains immutable
+and readable/reconcilable without new start/resume/preparation authority. Ordinary
+manual ImageGen adaptation remains explicit and exact raw adaptation rejection
+remains covered. Old native jobs/receipts/counts/reservation are not reinterpreted.
+
+Only accepted raw first-frame originals failing exact Brief aspect get a bounded
+EXIF/RGB centered-cover LANCZOS PNG derivative at the frozen target. Matching aspect
+preserves original bytes/dimensions. Typed `GeometryPreparation` links existing
+checkpoint/decision/frame owners: project/run/policy/claim/shot, source native
+candidate/job/request/delivery/execution, raw SHA/geometry, orientation/crop recipe/
+runtime hashes and managed output SHA/geometry. Local preparation scope and exact
+selection scope are separate. There is no native derivative job/candidate/manifest,
+provider call, reservation or extra generation count, and no SQLite layout change.
+
+The strict single-hop resolver drives provisional/open/recovery/review/human
+selection/SamePerson/shared reviewed admission. Material closure and human receipts
+bind preparation hash. Source V3 conditioning survives; actual human observations
+bind derivative bytes and lineage. Unknown/tampered generated evidence cannot become
+an unrelated imported-human fallback. Genuine earlier-schema raw HANDOFF context
+remains a supported explicit boundary after native evidence resolution.
+
+Reviews found and closed an introduced shared-refinement regression: requiring the
+frozen parent to stay selected after adopting its output invalidated that output.
+Separate frozen intent/presentation/approval from current selection; recursively
+validate every generated ancestor's context, authority, references and cancellation,
+with a cycle guard. Before adoption require the current parent; afterward require
+this delivered job's exact selected output. Actual A→B→C selection/next-refinement
+cases retain eligibility, then withdraw after cancelling A or replacing A's intent.
+Both independent geometry source reviews and authority correction rechecks closed
+without remaining actionable findings; reviewers did not execute checks.
+
+Development diagnosis also closed two implementation gaps: a standalone contract
+hash import cycled through persistence composition, and missing geometry bytes were
+not detected by relational open validation. Canonical JSON hashing now has a small
+pure owner with unchanged serialization/reexport; geometry lineage checks confined
+content-addressed raw/output bytes. Snapshot stages DB first, so pre-copy validation
+uses the explicitly frozen source asset root; copied destination validation uses
+its own assets. A controller advance stops after one geometry operation before
+another native preparation. Crash fixtures preserve actual RuntimeError behavior
+and acquire the real process lease on restart; guards/assertions were not weakened.
+
+Final source-owner executed qualification:
+- **Focused54 Python cases**, exit0,291.950s runner /280.03s pytest:
+  `test_autopilot_geometry.py` (23), `test_image_source_lineage.py` (2),
+  `test_project_storage_image_workflow.py`, exact manual adaptation case in
+  `test_project_storage_image_delivery_contracts.py`,
+  `test_project_storage_image_identity_contracts.py`,
+  `test_same_person_review_contract.py`, `test_autopilot_image_safety.py`.
+  `.local/p5-geometry-source-final.log`. Includes three target sizes, EXIF,
+  matching aspect, no-dispatch/count, concurrency/idempotence, transaction/selection
+  interruption/restart, seven tamper/missing guards, stopped runs, portable partial
+  snapshot and genuine derivative handoff/eligibility withdrawal.
+- **Focused49 preservation/authority cases**, exit0,77.740s:
+  `test_autopilot_recovery.py`, `test_autopilot_schema_upgrade.py`,
+  `test_autopilot_authority.py`, exact manual-import replacement/handoff case.
+  `.local/p5-geometry-preservation-focused.log`. This is scoped regression evidence,
+  not manager valued-folder upgrade/cutback qualification.
+- Earlier focused5 lifecycle/reselection cases passed,143.084s:
+  transaction+selection restarts, portable snapshot, reference reselection for raw
+  and one derivative. Three also reran in final54. The later refinement correction
+  changes the reviewed-parent branch; the reference check over raw originals stays
+  unchanged. `.local/p5-geometry-lifecycle-final.log`.
+- Final retired-policy boundary refinement: repository resume and all six new
+  machine command scopes refuse v1; EVIDENCE/HANDOFF remain permitted. A new
+  disposable-v1 domain case plus `test_autopilot_authority.py` and
+  `test_autopilot_late_receipts.py` passed **25 cases**, exit0,20.309s;
+  `.local/p5-geometry-policy-boundary-final.log`. Geometry owner now has24 cases.
+  This last guard changes only v1 refusal; the v2 branch exercised by final54
+  stays unchanged, so its evidence is reused. Wheel was rebuilt after the guard.
+- **Quick1361 units /156 files**, both type checks, exit0,12.943s;
+  `.local/p5-geometry-quick.log`. Exact disclosure/review42 units and whole review
+  **13 browser cases**, exit0,34.986s; `.local/p5-geometry-ui-focused.log`.
+- **Four affected real-backend browser journeys**, exit0,31.029s:
+  `image-jobs`, `aspect-ratio-currentness`, `project-folder-still-image-workflow`,
+  `autopilot-guidance`; `.local/p5-geometry-browser-consumers.log`. Generation,
+  media/clip rows and provider behavior are deterministic test-owned fixtures;
+  there were no live/native provider operations. Two geometry desktop captures
+  inspected at1440×900/600 in `.local/p5-geometry-pixels/`, preserving authored inputs.
+- Native discovery only:1739 pytest /173 files,1361 units /156 files,
+  316 browser /92 specs. Shards84/72/71/89, zero overlap/missing cases.
+  `.local/p5-geometry-ownership-final.log`, `p5-geometry-shards.log`. New owners
+  registered; discovery ran no Python bodies and does not replace release gates.
+- Two serialized deterministic builds match seven static files; sorted manifest
+  SHA256 `4c5bd2da740221f2f8cf7f2e24fb0d65690be86182340d6587fb6d28c65da770`.
+  Final wheel SHA256 `316a661bb258fe8963241e2b419e8221deb89ed5fc997dcdc479f00a5325ba73`;
+  installed-wheel smoke passed. Seven static and all25 changed Python archive
+  members byte-match working sources. `.local/p5-geometry-wheel-smoke-final.log`.
+  Earlier wheel `0bb38a2850e6cba1eeab4d2b3577350925536eb0f14604355727a8d0b063682e`
+  predates the final v1 domain guard and is superseded, not qualified as current. Diff checks pass.
+
+Actual retained native-byte mechanical proof (no adoption/dispatch): copy from
+`ij_de3437cdc57a47e48715d8e5cadf8401`, candidate
+`80b4a0d6-4a40-4a03-aa3b-b7901d6e0b40`, raw941×1672 SHA256
+`30f3a733e973371a38f3fcd4fa4f47ef9081da240b7dbfe215cc70636a339be7`
+produced exact720×1280 SHA256
+`1f36e3318d68549ae96e70db10fd3c9bf4d6934673ac8a7023911fce36c5d1c8`.
+Recipe crop box `[0.25,0,940.75,1672]`; only ignored copies in
+`.local/p5-retained-native-original/` were written. Before/after old source and QA DB
+hashes were actually compared and stayed equal; the proof retained boolean DB
+preservation, not explicit DB digest values. No retrospective pre-hash is invented.
+An additional immutable read-only SQLite validation accepted existing v1 contracts
+at actual paused revision64 without changing DB bytes. Manager independently hashed
+copies/source, observed dimensions and viewed both. The near-aspect center trim
+showed no observed loss of person/hands/stone/plate in that mechanical inspection;
+this is not an identity/quality pass, new native delivery or whole-pack review.
+
+This cross-layer slice changes executable contract/currentness/recovery inputs:
+earlier backend/full evidence cannot qualify it. After the clean reviewed source
+commit, hold all source/dependency/config writes and test bodies for manager
+attended contract review and **one fresh exact-candidate full**, then distinct
+fresh native proof/preservation/release/activation gates. No source full, hosted
+CI, main merge/push, live activation or provider/video/voice generation occurred.
+Old4817 QA/project/run/package/policy/pins/blocker/queued reservation remain retained
+and **partial**; owner creative acceptance is still pending.

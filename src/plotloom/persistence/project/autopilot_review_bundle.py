@@ -53,12 +53,6 @@ def current_review_bundle(store, session, run):
         binding = next((item for item in bindings if item.shot_id == shot.id and
             repository._media.admission.reviewed_binding_admission_eligible_in_session(session, project_id, item)), None)
         if binding is not None:
-            candidate = session.scalar(select(ImageJobCandidateRow).where(ImageJobCandidateRow.asset_id == binding.asset_id)
-                .order_by(ImageJobCandidateRow.created_at.desc()).limit(1))
-            job = session.get(ImageJobRow, candidate.job_id) if candidate else None
-            if candidate and (job is None or not repository._media.image_currentness.image_job_is_current_in_session(session, job)):
-                binding = None
-        if binding is not None:
             asset = session.get(ManagedAssetRow, binding.asset_id)
             origin, source_id = "human_binding", binding.id
         else:
@@ -70,12 +64,18 @@ def current_review_bundle(store, session, run):
                     or not repository._media.image_currentness.image_job_is_current_in_session(session, job)):
                 raise InvalidTransitionError("every filmed shot requires current first-frame material; complete missing shots manually")
             asset = session.get(ManagedAssetRow, frame.asset_id)
+            from .image_source_lineage import current_source_in_session
+            source = current_source_in_session(session, project_id, frame.asset_id, repository._media.image_currentness, shot_id=shot.id)
+            if source is None or source.geometry != frame.geometry_preparation:
+                raise InvalidTransitionError("provisional frame lineage changed")
             if asset.original_hash != frame.original_hash:
                 raise InvalidTransitionError("provisional frame bytes changed")
             origin, source_id = "machine_provisional", retained.id
         if not has_matching_aspect(asset.width, asset.height, *ratio):
             raise InvalidTransitionError("current frame geometry does not match the current Brief")
-        frames.append(ReviewFrame(shot_id=shot.id, scene_id=shot.scene_id, asset_id=asset.id,
+        from .image_source_lineage import source_in_session
+        lineage = source_in_session(session, project_id, asset.id, shot_id=shot.id)
+        frames.append(ReviewFrame(geometry_preparation=lineage.geometry if lineage else None,shot_id=shot.id, scene_id=shot.scene_id, asset_id=asset.id,
             title=shot.title, scene_name=scene_names[shot.scene_id], direction=shot.visual_intent + " " + shot.composition,
             original_hash=asset.original_hash, width=asset.width, height=asset.height,
             character_ids=shot.character_ids, description=shot.action,

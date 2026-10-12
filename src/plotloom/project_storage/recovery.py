@@ -154,7 +154,7 @@ class ProjectRecoveryService:
                 copied.append(_copy_payload(store.home, temporary, PurePosixPath(PROJECT_MANIFEST_FILENAME)))
                 copied.append(_backup_database(store.database_path, temporary / PROJECT_DATABASE_RELATIVE_PATH))
                 database = temporary / PROJECT_DATABASE_RELATIVE_PATH
-                assert_database_contract(database, store.manifest)
+                assert_database_contract(database, store.manifest, asset_home=store.home)
                 for relative in payload_paths(store.home, database):
                     if relative in {
                         PurePosixPath(PROJECT_MANIFEST_FILENAME),

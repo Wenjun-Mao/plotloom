@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { deliveryDisclosure } from "../src/features/autopilot/deliveryEvidence";
-import { evidenceReadsFixture } from "./autopilot-delivery-fixture";
+import { evidenceReadsFixture, geometryReadsFixture } from "./autopilot-delivery-fixture";
 
 it("resolves primary, complementary and Art limitations from their exact retained receipts", () => {
   const reads = evidenceReadsFixture();
@@ -62,4 +62,19 @@ it.each(["character", "art"])("rejects a foreign %s proposal candidate owner eve
   const candidate = proposal.deliveries[0].candidates[0]; candidate.proposalId = "foreign";
   const asset = candidate.asset!;
   expect(deliveryDisclosure("disposable", { assetId: asset.id, originalHash: asset.originalHash }, reads).status).toBe("unknown");
+});
+
+it("links a local derivative to the original receipt without pretending it is a native output", () => {
+  const { reads, geometry } = geometryReadsFixture();
+  const value = deliveryDisclosure("disposable", { assetId: "frame-1", originalHash: "1".repeat(64), geometryPreparation: geometry }, reads);
+  expect(value.status).toBe("geometry");
+  if (value.status === "geometry") { expect(value.source.jobId).toBe("original-job"); expect(value.source.asset.id).toBe("frame-original"); expect(value.geometry.recipe.cropBox).toEqual([0.25, 0, 940.75, 1672]); }
+});
+it.each(["missing", "candidate", "hash", "foreign", "receipt"])("keeps derivative disclosure unknown for %s lineage", defect => {
+  const { reads, geometry } = geometryReadsFixture();
+  if (defect === "candidate") geometry.source.candidateId = "foreign";
+  if (defect === "hash") geometry.output.originalHash = "a".repeat(64);
+  if (defect === "foreign") geometry.projectId = "foreign";
+  if (defect === "receipt") geometry.source.deliveryId = "foreign";
+  expect(deliveryDisclosure("disposable", { assetId: "frame-1", originalHash: "1".repeat(64), geometryPreparation: defect === "missing" ? undefined : geometry }, reads).status).toBe("unknown");
 });

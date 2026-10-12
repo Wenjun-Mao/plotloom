@@ -41,7 +41,9 @@ class ProjectMediaPersistence:
         accounting: VideoPilotAccountingPort | None,
         bridge: object | None = None,
     ) -> None:
-        admission = KeyframeAdmission(access)
+        from .image_source_lineage import current_source_in_session
+        admission = KeyframeAdmission(access, generated_source_currentness=lambda session, project, asset, shot:
+            current_source_in_session(session, project, asset, image_currentness, shot_id=shot))
         presentations = ShotPresentations(access, canonical, admission)
         self.shot_presentations = presentations
         references = CharacterReferencePersistence(access, canonical, cast)

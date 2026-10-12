@@ -1,6 +1,7 @@
 """Human observations and exact current material review, never machine authority."""
 from typing import Literal
 from pydantic import Field, field_validator, model_validator
+from .geometry_preparation_contracts import GeometryPreparation
 from .domain import CamelModel, contains_secret_setting, contains_secret_value
 from .managed_media import VisualIntentInput
 from .same_person_review_contracts import SamePersonReviewItem
@@ -27,6 +28,7 @@ class ReviewReference(CamelModel):
 
 
 class ReviewFrame(CamelModel):
+    geometry_preparation: GeometryPreparation | None = Field(default=None, exclude_if=lambda value: value is None)
     shot_id: str
     scene_id: str
     title: str

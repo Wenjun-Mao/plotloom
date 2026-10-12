@@ -24,8 +24,9 @@ from .media_shot_presentations import ShotPresentations
 class KeyframeAdmission:
     """Own session-local reviewed-keyframe currentness and approval admission."""
 
-    def __init__(self, access: ProjectPersistenceAccess) -> None:
+    def __init__(self, access: ProjectPersistenceAccess, *, generated_source_currentness) -> None:
         self._access = access
+        self._generated_source_currentness = generated_source_currentness
 
     @staticmethod
     def latest_visual_intent_for_role_in_session(
@@ -66,7 +67,9 @@ class KeyframeAdmission:
 
         if binding.project_id != project_id:
             return False
-        if not ShotPresentations.binding_matches(session, binding):
+        try:
+            self._generated_source_currentness(session, project_id, binding.asset_id, binding.shot_id)
+        except (InvalidTransitionError, NotFoundError):
             return False
         latest_binding = session.scalar(
             select(ReviewedShotBindingRow)
@@ -78,6 +81,12 @@ class KeyframeAdmission:
             .limit(1)
         )
         if latest_binding is None or latest_binding.id != binding.id:
+            return False
+        return self.reviewed_binding_context_current_in_session(session, project_id, binding, approval=approval)
+
+    def reviewed_binding_context_current_in_session(self, session, project_id, binding, *, approval=None):
+        """Exact frozen intent/presentation/approval; selection position is separate."""
+        if binding.project_id != project_id or not ShotPresentations.binding_matches(session, binding):
             return False
         intent = session.get(VisualIntentRow, binding.visual_intent_id)
         if (

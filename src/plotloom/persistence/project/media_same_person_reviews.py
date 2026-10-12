@@ -66,14 +66,11 @@ class SamePersonReviewPersistence:
     def identity_mapping_for_binding_in_session(
         self, session: Session, binding: ReviewedShotBindingRow
     ) -> list[dict[str, Any]] | None:
-        candidate = session.scalar(
-            select(ImageJobCandidateRow)
-            .where(ImageJobCandidateRow.asset_id == binding.asset_id)
-            .order_by(ImageJobCandidateRow.created_at.desc()).limit(1)
-        )
-        if candidate is None:
+        from .image_source_lineage import source_in_session
+        source = source_in_session(session, binding.project_id, binding.asset_id, shot_id=binding.shot_id)
+        if source is None:
             return None
-        job = session.get(ImageJobRow, candidate.job_id)
+        job = session.get(ImageJobRow, source.job_id)
         if job is None or job.request.get("schemaVersion") != 3:
             return None
         snapshot = job.request.get("frozenSnapshot")
@@ -94,14 +91,23 @@ class SamePersonReviewPersistence:
             return False
         if not self._admission.reviewed_binding_admission_eligible_in_session(session, project_id, binding, approval=approval):
             return False
-        candidate = session.scalar(select(ImageJobCandidateRow).where(ImageJobCandidateRow.asset_id == binding.asset_id)
-                                   .order_by(ImageJobCandidateRow.created_at.desc()).limit(1))
+        from .image_source_lineage import source_in_session
+        try:
+            source = source_in_session(session, project_id, binding.asset_id, shot_id=binding.shot_id)
+            mapping = self.identity_mapping_for_binding_in_session(session, binding)
+        except InvalidTransitionError:
+            return False
         asset = session.get(ManagedAssetRow, binding.asset_id)
         human_context = bool(review.reference_bindings) and all(item.get("comparisonOrigin") == "human_current_material" for item in review.reference_bindings)
-        if asset is None or asset.project_id != project_id or (not human_context and (candidate is None or asset.original_hash != candidate.output_hash)):
+        if asset is None or asset.project_id != project_id or (not human_context and source is None):
             return False
-        mapping = self.identity_mapping_for_binding_in_session(session, binding)
+        if source and source.geometry:
+            if any(item.get("frameHash") != asset.original_hash or item.get("geometryPreparationHash") != source.geometry.preparation_hash for item in review.reference_bindings):
+                return False
         if human_context:
+            source_job = session.get(ImageJobRow, source.job_id) if source else None
+            if source and (source.geometry or source_job.request.get("schemaVersion", 1) not in {1, 2}):
+                return False
             from .human_comparison_mapping import human_mapping
             try:
                 mapping = human_mapping(session, binding, self._canonical, self._references)
@@ -183,9 +189,13 @@ class SamePersonReviewPersistence:
             binding = session.get(ReviewedShotBindingRow, binding_id)
             if binding is None or binding.project_id != project_id:
                 raise NotFoundError("reviewed keyframe binding not found")
+            from .image_source_lineage import source_in_session
+            source = source_in_session(session, project_id, binding.asset_id, shot_id=binding.shot_id)
             mapping = self.identity_mapping_for_binding_in_session(session, binding)
             human_context = False
-            if mapping is None:
+            source_job = session.get(ImageJobRow, source.job_id) if source else None
+            earlier_native = source is not None and source.geometry is None and source_job.request.get("schemaVersion", 1) in {1, 2}
+            if mapping is None and (source is None or earlier_native):
                 from ...autopilot_contracts import OperationScope
                 authority = self._access.authority()
                 if authority is not None and authority.scope == OperationScope.HANDOFF:
@@ -207,6 +217,8 @@ class SamePersonReviewPersistence:
                 "referenceRevision": item["referenceRevision"],
                 "assetHashes": [asset["originalHash"] for asset in item["assets"]],
             } for item in mapping]
+            if source and source.geometry:
+                reference_bindings = [item | {"frameHash": source.output_hash, "geometryPreparationHash": source.geometry.preparation_hash} for item in reference_bindings]
             if human_context:
                 asset = session.get(ManagedAssetRow, binding.asset_id)
                 reference_bindings = [item | {"comparisonOrigin": "human_current_material", "frameHash": asset.original_hash} for item in reference_bindings]

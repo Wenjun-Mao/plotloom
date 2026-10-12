@@ -1,10 +1,11 @@
+import type { GeometryPreparation } from "./geometryContracts";
 import type { ArtReferenceProposal, CharacterReferenceProposal, ImageJob, ManagedAsset } from "../../types";
 
 export type EvidenceReads = { assets: ManagedAsset[]; characters: CharacterReferenceProposal[]; art: ArtReferenceProposal[]; images: ImageJob[] };
-export type AssetIdentity = { assetId: string; originalHash: string };
-export type DeliveryEvidence = { asset: ManagedAsset; owner: string; jobId: string; requestHash: string; deliveryId: string; manifestHash: string;
+export type AssetIdentity = { assetId: string; originalHash: string; geometryPreparation?: GeometryPreparation };
+export type DeliveryEvidence = { asset: ManagedAsset; owner: string; candidateId: string; jobId: string; requestHash: string; deliveryId: string; manifestHash: string;
   outputFilename: string; limitations: string[]; source?: AssetIdentity; sourceJobId?: string };
-export type Disclosure = { status: "unknown"; message: string } | { status: "unlinked"; asset: ManagedAsset }
+export type Disclosure = { status: "geometry"; asset: ManagedAsset; geometry: GeometryPreparation; source: DeliveryEvidence } | { status: "unknown"; message: string } | { status: "unlinked"; asset: ManagedAsset }
   | { status: "delivered"; current: DeliveryEvidence; history: Array<{ asset: ManagedAsset; evidence?: DeliveryEvidence }>; historyUnknown: boolean };
 
 const generated = new Set(["codex_image_job", "character_reference_proposal", "art_reference_proposal"]);
@@ -17,7 +18,7 @@ export function deliveryDisclosure(projectId: string, identity: AssetIdentity, r
   if (!sha(identity.originalHash) || matches.length !== 1) return unknown();
   const asset = matches[0];
   if (!asset.provenance) return unknown("这张图片没有可核实的来源声明。");
-  if (!generated.has(asset.provenance.origin)) return { status: "unlinked", asset };
+  if (asset.provenance.origin !== "plotloom_geometry_preparation" && !generated.has(asset.provenance.origin)) return { status: "unlinked", asset };
   const find = (target: ManagedAsset, requireCurrent = false): DeliveryEvidence | undefined => {
     const evidence: DeliveryEvidence[] = [];
     const owners = [
@@ -47,12 +48,23 @@ export function deliveryDisclosure(projectId: string, identity: AssetIdentity, r
           || target.provenance?.outputFilename !== candidate.outputFilename
           || JSON.stringify(target.provenance?.limitations) !== JSON.stringify(declaration.limitations)
           || !Array.isArray(declaration.limitations) || !declaration.limitations.every(item => typeof item === "string" && item.trim() && item.length <= 2000)) continue;
-        evidence.push({ asset: target, owner, jobId: job.id, requestHash: job.requestHash, deliveryId: delivery.deliveryId,
+        evidence.push({ asset: target, owner, candidateId: candidate.id, jobId: job.id, requestHash: job.requestHash, deliveryId: delivery.deliveryId,
           manifestHash: delivery.manifestHash, outputFilename: candidate.outputFilename, limitations: declaration.limitations, source, sourceJobId });
       }
     }
     return evidence.length === 1 ? evidence[0] : undefined;
   };
+  if (asset.provenance.origin === "plotloom_geometry_preparation") {
+    const geometry = identity.geometryPreparation, sourceAssets = reads.assets.filter(item => geometry
+      && item.projectId === projectId && item.id === geometry.source.asset.assetId && item.originalHash === geometry.source.asset.originalHash);
+    if (!geometry || geometry.projectId !== projectId || geometry.output.assetId !== asset.id || geometry.output.originalHash !== asset.originalHash
+      || geometry.output.width !== asset.width || geometry.output.height !== asset.height || asset.provenance.preparationId !== geometry.preparationId
+      || !sha(geometry.preparationHash) || !sha(geometry.recipeHash) || sourceAssets.length !== 1) return unknown("确定性几何处理来源尚待核实。");
+    const source = find(sourceAssets[0], true);
+    if (!source || source.owner !== "image" || source.candidateId !== geometry.source.candidateId || source.jobId !== geometry.source.jobId
+      || source.requestHash !== geometry.source.requestHash || source.deliveryId !== geometry.source.deliveryId || source.manifestHash !== geometry.source.manifestHash) return unknown("几何处理的原始交付说明尚待核实。");
+    return { status: "geometry", asset, geometry, source };
+  }
   const current = find(asset, true);
   if (!current) return unknown();
   const history: Array<{ asset: ManagedAsset; evidence?: DeliveryEvidence }> = [], visited = new Set([asset.id]);
