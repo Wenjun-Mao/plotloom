@@ -1,3 +1,4 @@
+import { useAdoptionLabel } from "../features/autopilot/AutopilotWorkspace";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AcceptedEvidenceNotice } from "./AcceptedEvidenceNotice";
 import { plotloomApi } from "../api";
@@ -28,6 +29,7 @@ function authorityKey(authority: ArtDraftAuthority | null): string {
 
 /** F3A owns text review; the distinct F3B study surface owns reference bytes. */
 export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, refreshToken, onContinue }: { projectId: string; readOnly: boolean; active?: boolean; refreshToken?: unknown; onContinue?: () => void }) {
+  const adoptionLabel = useAdoptionLabel();
   const [state, setState] = useState<ArtReviewState>();
   const [studies, setStudies] = useState<ArtReferenceProposal[]>([]);
   const [referenceDecisions, setReferenceDecisions] = useState<ArtReferenceDecision[]>([]);
@@ -103,7 +105,7 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
   const { candidate, acceptedArt: accepted } = state;
   const editDraft = (next: string) => { draftDirty.current = next !== JSON.stringify(draftBase?.value.art, null, 2); setDraft(next); reviewDraft.changed(next); };
   const adoptCurrent = () => { draftDirty.current = false; setDraftBase(currentAuthority); setDraft(currentAuthority?.value.art ? JSON.stringify(currentAuthority.value.art, null, 2) : ""); void reviewDraft.clear(); };
-  const heading = checking ? "正在刷新" : failed ? "无法刷新" : state.status === "stale" ? "上下文已过期" : state.status === "reopened" ? "美术设定修订轮次已打开" : candidate?.status === "ready" ? "待审核美术设定" : candidate?.status === "prepared" ? "美术任务尚未交付" : accepted ? `已确认美术设定 r${accepted.revision}` : "尚无美术候选";
+  const heading = checking ? "正在刷新" : failed ? "无法刷新" : state.status === "stale" ? "上下文已过期" : state.status === "reopened" ? "美术设定修订轮次已打开" : candidate?.status === "ready" ? "待审核美术设定" : candidate?.status === "prepared" ? "美术任务尚未交付" : accepted ? `${adoptionLabel("art", accepted.revision, accepted.contentHash)}美术设定 r${accepted.revision}` : "尚无美术候选";
   const prepare = () => { if (!renderStyle) return; const session = activeProject.current; setBusy(true); setError(""); void plotloomApi.prepareArtCandidate(session.projectId, renderStyle).then(async result => { if (ownsProject(session)) { setAssignment(result.assignment); await recheck(); } }).catch(reason => { if (ownsProject(session)) setError(reviewContextFailure(reason, "准备美术任务失败。")); }).finally(() => { if (ownsProject(session)) setBusy(false); }); };
   const accept = () => {
     if (!draftMatches || draftBase?.kind !== "candidate" || state.status === "stale") return;

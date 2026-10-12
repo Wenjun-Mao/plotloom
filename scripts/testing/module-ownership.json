@@ -35,7 +35,8 @@
           "tests/test_autopilot_late_receipts.py",
           "tests/test_autopilot_images.py",
           "tests/test_autopilot_image_safety.py",
-          "tests/test_image_package_publication.py"
+          "tests/test_image_package_publication.py",
+          "tests/test_autopilot_handoff.py"
         ],
         "vitest": [
           "frontend/tests/authoring-autosave-admission.test.ts",
@@ -54,7 +55,8 @@
           "frontend/tests/section-map-panel-actions.test.ts",
           "frontend/tests/source-review-display.test.ts",
           "frontend/tests/source-structure-model.test.ts",
-          "frontend/tests/source-workflow-navigation.test.ts"
+          "frontend/tests/source-workflow-navigation.test.ts",
+          "frontend/tests/autopilot-review.test.ts"
         ],
         "playwright": [
           "frontend/e2e/branch-suggestion-recovery.spec.ts",
@@ -72,7 +74,8 @@
           "frontend/e2e/source-review-currentness.spec.ts",
           "frontend/e2e/story-prototype.spec.ts",
           "frontend/e2e/storyboard-source-review.spec.ts",
-          "frontend/e2e/synopsis-proposal.spec.ts"
+          "frontend/e2e/synopsis-proposal.spec.ts",
+          "frontend/e2e/autopilot-review.spec.ts"
         ]
       }
     },

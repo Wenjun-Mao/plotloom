@@ -327,6 +327,20 @@ partial-publication, restart and one adaptation boundaries are recorded in the
 same receipt. P4's consolidated genuine human review/UI remains required, followed
 by the manager-owned P5 stable full/native/preservation and activation proof.
 
+P4 source candidate adds an immutable human handoff owner, current-material
+takeover review and compact launch/progress/gallery/frame UI. Scoped source,
+browser, frontend, deterministic static and pixel evidence are recorded in the
+single receipt; these do not establish full/native/release or creative acceptance.
+
+The owner additionally requires a careful walkthrough of every touched feature
+path after implementation and before activation. This is a manager-owned P5 gate:
+use the [touched-path map](../verification/2026-10-12-pre-video-autopilot/touched-path-walkthrough.md)
+on disposable QA, label deterministic fault fixtures separately from real native
+transport, inspect readability/accessibility and persisted evidence, and preserve
+valued stories/settings. Voice/video preparation, preview, enqueue, dispatch and
+provider changes remain excluded. This deepens verification within the approved
+outcome and does not introduce another source writer or unrelated redesign.
+
 - Source/graph: `brief_contracts.py`, `source_outline_contracts.py`,
   `persistence/project/source_outline_mutations.py`, `source_graph_admission.py`.
 - Creative owners: `cast.py`, `art.py`, `script.py`, `storyboard_review.py`,

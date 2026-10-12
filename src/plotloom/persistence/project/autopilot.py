@@ -5,15 +5,10 @@ from ...autopilot_contracts import CheckpointEvidence, LaunchPolicy, MachineDeci
 from ...domain import new_id, utc_now
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ..codec import stable_hash
-from ..schema import AutopilotCheckpointRow, AutopilotDecisionRow, AutopilotFrameRow, AutopilotRunRow, Base, PROJECT_TEXT_PIPELINE_TABLE_NAMES
+from ..schema import AutopilotCheckpointRow, AutopilotDecisionRow, AutopilotFrameRow, AutopilotRunRow
 from .autopilot_closure import material_closure
 
-INITIAL_TABLES = {
-    "v2_projects", "v2_project_operational_states", "v2_stage_heads",
-    "v2_source_outline_heads", "v2_cast_heads", "v2_art_heads", "v2_script_heads",
-    "v2_source_outline_section_map_heads",
-    "v2_storyboard_review_heads", "v2_production_bridge_heads",
-}
+from .autopilot_freshness import assert_fresh
 
 
 class AutopilotPersistence:
@@ -36,14 +31,7 @@ class AutopilotPersistence:
                 raise RevisionConflictError("Brief", expected_brief_revision, project.revision)
             if policy.brief != project.brief:
                 raise InvalidTransitionError("launch policy must bind the exact saved Brief")
-            for name in PROJECT_TEXT_PIPELINE_TABLE_NAMES - INITIAL_TABLES:
-                table = Base.metadata.tables[name]
-                query = select(table)
-                if session.execute(query.limit(1)).first() is not None:
-                    raise InvalidTransitionError("autopilot starts only on a fresh saved Brief-only project")
-            heads = Base.metadata.tables["v2_stage_heads"]
-            if session.execute(select(heads).where(heads.c.project_id == project_id, heads.c.revision != 0)).first():
-                raise InvalidTransitionError("autopilot cannot replace existing canonical work")
+            assert_fresh(session, project_id)
             frozen = policy.model_dump(mode="json", by_alias=True)
             now = utc_now()
             row = AutopilotRunRow(id=new_id(), project_id=project_id, revision=1,
@@ -111,13 +99,16 @@ class AutopilotPersistence:
 
     def validate_command(self, session, authority):
         row = session.get(AutopilotRunRow, authority.run_id)
-        if row is None or row.claim != authority.claim:
+        if row is None or (authority.scope != OperationScope.HANDOFF and row.claim != authority.claim):
             raise InvalidTransitionError("autopilot command claim changed")
         if row.id in self.recovered_run_ids() and authority.scope not in {OperationScope.EVIDENCE, OperationScope.HANDOFF}:
             raise InvalidTransitionError("portable restored autopilot identities cannot dispatch")
         project = self.access.rows.project(session, row.project_id)
         self.access.guards.active(project)
-        if authority.scope != OperationScope.EVIDENCE:
+        if authority.scope == OperationScope.HANDOFF:
+            if row.state not in {"awaiting_review", "taken_over", "cancelled", "stale", "handed_off"}:
+                raise InvalidTransitionError("stop automatic work before reviewing current material")
+        elif authority.scope != OperationScope.EVIDENCE:
             if row.state not in {"running", "waiting"} and not (authority.scope == OperationScope.HANDOFF and row.state in {"awaiting_review", "taken_over"}):
                 raise InvalidTransitionError("run does not admit a new automatic operation")
             if (row.brief_revision != project.revision or row.lifecycle_revision != project.lifecycle_revision

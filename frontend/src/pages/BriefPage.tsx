@@ -7,6 +7,7 @@ import { StageGuide } from "../components/StageGuide";
 import { GraphWorkbenchContext } from "../features/graph/GraphWorkbenchContext";
 import { apiTextPipelineMessage } from "../app/workspace/apiTextPipeline";
 import { BriefTargetPreview, structureTargets } from "../features/graph/BriefTargetPreview";
+import { AutopilotLaunch } from "../features/autopilot/AutopilotWorkspace";
 
 type BriefPageProps = {
   apiTextPipeline?: boolean | null;
@@ -69,6 +70,7 @@ export function BriefPage({ apiTextPipeline = null, value, hasSavedProject, savi
       {hasSavedProject && onContinueToSource && <Button variant="quiet" disabled={saving} onClick={onContinueToSource}>返回来源与大纲</Button>}
     </div>} />
     <StageGuide title={hasSavedProject ? "修改当前项目的创作设置" : "从故事想法开始"}>{hasSavedProject ? "修改结构后，已保存的分支及后续内容需要重新检查；旧内容与媒体仍保留。新任务必须使用当前设置，不会自动重建或替换现有制作内容。故事来源正文独立保存，不会随简报梗概的修改而改变。" : "写清主角、处境和观众要做的选择。剧情结构与分镜设置可保留默认值，后续仍可调整。"}</StageGuide>
+    <AutopilotLaunch saved={hasSavedProject} dirty={JSON.stringify(canonicalDraft()) !== JSON.stringify(value)} disabled={readOnly || saving} />
     <div className="two-column wide-left brief-layout">
       <Panel className="form-card">
         <div className="section-title"><strong>故事想法</strong><p className="required-legend">* 为必填项；其他信息可稍后完善。</p></div>

@@ -23,7 +23,7 @@ def assert_autopilot_contracts(connection):
             if bundle is not None:
                 from .material_bundle_validation import assert_material_bundle
                 assert_material_bundle(connection, identifier, project, digest, parsed, json.loads(bundle))
-            if state == "handed_off" and (handoff is None or bundle is None):
+            if state == "handed_off" and handoff is None:
                 raise ValueError("handed-off run lacks immutable review evidence")
             runs[identifier] = (project, digest)
         for identifier, run_id, project, state, raw in connection.execute("SELECT id,run_id,project_id,state,evidence FROM v2_autopilot_checkpoints"):
@@ -52,5 +52,16 @@ def assert_autopilot_contracts(connection):
             assert_frame_binding(connection, run_id, project, decision, parsed)
         from .bridge_adoption_validation import assert_bridge_adoption_contracts
         assert_bridge_adoption_contracts(connection)
+        from .handoff_validation import assert_handoff
+        receipts = {}
+        for identifier, run_id, project, approval, raw, digest in connection.execute("SELECT id,run_id,project_id,approval_id,receipt,receipt_hash FROM v2_autopilot_handoffs"):
+            if runs.get(run_id, (None,))[0] != project:
+                raise ValueError("human handoff run changed")
+            receipt = assert_handoff(connection, identifier, run_id, project, approval, json.loads(raw), digest)
+            receipts[identifier] = (run_id, digest, receipt.bundle_hash, receipt.material_closure)
+        for run_id, pointer in connection.execute("SELECT id,handoff FROM v2_autopilot_runs WHERE handoff IS NOT NULL"):
+            value = json.loads(pointer)
+            if receipts.get(value.get("receiptId")) != (run_id, value.get("receiptHash"), value.get("bundleHash"), value.get("materialClosure")):
+                raise ValueError("current human handoff pointer changed")
     except (ValueError, TypeError, KeyError) as error:
         raise ProjectStorageCorruptionError("persisted autopilot authority is invalid") from error

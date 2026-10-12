@@ -1,3 +1,4 @@
+import { useAdoptionLabel } from "../features/autopilot/AutopilotWorkspace";
 import { StaticReportReader } from "../components/StaticReportReader";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AcceptedEvidenceNotice } from "./AcceptedEvidenceNotice";
@@ -19,6 +20,7 @@ type ProjectSession = { projectId: string; epoch: number };
 
 /** F4 reviews one upstream JSON authority and permits only bound episode replacement. */
 export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true, refreshToken, onContinue, contextSectionId }: { projectId: string; readOnly: boolean; active?: boolean; refreshToken?: unknown; onContinue?: () => void; contextSectionId?: string }) {
+  const adoptionLabel = useAdoptionLabel();
   const [state, setState] = useState<ScriptReviewState>();
   const [assignment, setAssignment] = useState("");
   const [error, setError] = useState<ReviewContextFailure>("");
@@ -123,7 +125,7 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
   const reportJobId = candidate?.status === "ready" ? candidate.jobId : accepted?.candidateJobId;
   return <article id="script" className="panel cast-panel" data-testid="script-review">
     {reviewDraft.notice}
-    <header><span>剧本</span><strong>{checking ? "正在刷新" : failed ? "无法刷新" : heading(state)}</strong></header>
+    <header><span>剧本</span><strong>{checking ? "正在刷新" : failed ? "无法刷新" : heading(state, adoptionLabel("script", state.acceptedScript?.revision, state.acceptedScript?.contentHash))}</strong></header>
     {failed && <Button variant="quiet" onClick={() => void recheck()}>重试加载剧本</Button>}
     <p>根据已确认的故事结构编写所有章节；每次完整播放依次经过选择、后续剧情与一个结局。</p>
     {contextSectionId && <><p>当前节点：{contextSectionId}。准备、发送、结果检查与确认使用影响整份剧本；章节保存仅替换所选稳定章节。</p>
@@ -204,11 +206,11 @@ function episodeForSection(accepted: AcceptedScriptRevision, sectionId: string):
   return JSON.stringify(sectionEpisode(accepted.script, accepted.binding, sectionId), null, 2);
 }
 
-function heading(state: ScriptReviewState): string {
+function heading(state: ScriptReviewState, label = "已确认"): string {
   if (state.status === "stale") return "上下文已过期";
   if (state.status === "reopened") return "剧本正在编辑";
   if (state.candidate?.status === "ready") return "待审阅";
   if (state.candidate?.status === "prepared") return "任务尚未交付";
-  if (state.acceptedScript) return `已确认 r${state.acceptedScript.revision}`;
+  if (state.acceptedScript) return `${label} r${state.acceptedScript.revision}`;
   return "尚无剧本候选";
 }

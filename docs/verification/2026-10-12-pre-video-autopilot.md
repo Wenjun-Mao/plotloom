@@ -1,8 +1,8 @@
 # Pre-video autopilot · single evidence receipt
 
-Status: **P1 committed at `fd549395`, preservation correction at `b3b01fb6`;
-P2 text orchestration verified, P3 image checkpoint locally verified, P4 required**. No human-handoff happy path, product acceptance, valued
-installation upgrade or live activation is claimed. Scope and stopping boundary are in the
+Status: **P0–P4 source candidate locally checked; P4 bounded independent review
+pending, P5 full/native/preservation/activation remaining**. No owner creative
+acceptance, valued installation upgrade or live activation is claimed. Scope and stopping boundary are in the
 [approved plan](../roadmap/2026-10-12-pre-video-autopilot.md#p0-implementation-checkpoint)
 and [ADR 0162](../adr/0162-pre-video-autopilot-authority.md).
 
@@ -324,6 +324,107 @@ corrected to satisfy the existing protocol/style gates; validators were not
 weakened. Development missing-import failures were diagnosed and corrected at
 the extracted/currentness modules; focused checks and Ruff F checks then passed.
 The attended P3 source review returned four concrete findings, all covered by
-the 19-case correction run; its bounded re-review remains pending. No real
-ImageGen output/geometry, human handoff/UI, browser/pixels, full/native/live
-qualification, main publication or owner acceptance is claimed.
+the 19-case correction run; its bounded re-review closed at exact `8b069d8d97b299b32d9f9e04f5fa22d66887c5da`:
+no concrete remaining defects in the four corrections, read-only, no test rerun.
+The manager's separate same-revision read-only image/material review found no
+blocking/high-risk issue and independently ran package publication, image pin
+and delivery contracts: **36 passed**, focused runner 15.012s. No native/product
+acceptance follows from either review. P4 evidence below is separate.
+
+
+## P4 source human handoff and compact UI candidate
+
+A fifth native append-only owner, `v2_autopilot_handoffs`, binds the exact current
+review bundle, actual human attribution/observations/reference endorsements,
+and native approval, intent, reviewed-binding and SamePerson IDs. The unshipped
+migration and exact named prior-layout transition include it; intermediate
+working layouts are not supported. Run pointers cannot substitute a JSON claim
+for native human evidence. Video eligibility validates the retained receipt and
+whole current closure before existing video owners may proceed; confirmation
+creates no video job/request or provider operation.
+
+Current review reads complete canonical routes, current Cast/Art references and
+current frames, including a manually imported replacement after takeover.
+Cast subject IDs resolve through their explicit consumer mappings. Existing
+human approval over the same canonical revision is reused with its original
+attribution and a distinct new receipt. Tagged human-current-material comparison
+context supports non-v3 imports without claiming generator conditioning or
+changing ordinary manual-only admission. Shared assets keep one current authored
+intent per role. Original machine references, units, intent/presentation flags
+and history remain machine-origin evidence.
+
+The Brief launch checks current fresh-data admission on entry, exact saved
+content, configured specialists, common Cast/Art style and finite ceilings.
+Both workbench views share app-owned progress, safe controls and the consolidated
+story/routes/Script/reports/reference/frame review. Frame intent/compatibility,
+identity/state observations, reviewer and notes start blank. Unassessable identity
+needs a separate authorize decision and reason; character-free frames contribute
+no fake pass. Exact adopted revision/hash gets an AI label; whole human review is
+separate. Manual source edits remove the trusted exact-Brief assertion from the
+new authored input, preserving the original revision.
+
+Executed source/fixture evidence:
+
+- Initial handoff/authority/named upgrade selections: **39 passed**, focused
+  runner 303.966s; initial exact handoff alone 1 passed, 42.653s.
+- Expanded handoff, authority, upgrade, recovery and SamePerson selections:
+  **72 passed**, focused runner 467.488s. These include five whole-pack negative
+  paths (missing frame, failed identity, held uncertainty, wrong asset and missing
+  reference) and current-contract preservation; later readback display binding
+  was strengthened and its downstream positive paths rerun as below.
+- Final API/current native handoff, explicit uncertainty after takeover,
+  imported-frame fresh handoff plus snapshot/restore/permanent non-resumption,
+  and injected mid-transaction rollback: **4 passed**, focused runner 212.155s.
+  Exact selectors are the four named positive/rollback cases in
+  `tests/test_autopilot_handoff.py`. The fixture verifies machine units retain
+  null human approval, old receipts remain unchanged and video rows stay zero.
+- SamePerson plus initial manual/rollback run had 16 passed and one manual
+  assertion failure (wrong assumed frame order). After correcting that fixture,
+  the existing approval owner exposed duplicate-approval rejection. The durable
+  `existing_human` reuse described above fixed it; corrected manual case passed
+  in 52.556s before the final portable case above.
+- Strengthened canonical display binding exposed stored Python names vs public
+  JSON aliases. Its nine-case attempt had 1 failed/4 passed and was interrupted
+  to avoid continuing against cached stale validator code (runner exit 2).
+  The exact retained failing receipt passed read-only through the corrected
+  typed normalization; the four affected positive/rollback cases then passed.
+  Receipt bytes, validators and release coverage were not bypassed or weakened.
+- Frontend unfiltered unit suite: **152 files / 1,288 tests passed** (final run
+  6.72s); both frontend and E2E type checks passed. Focused new UI units: 4 passed,
+  runner 0.910s. Late-project reads cannot display another project's run.
+- Explicit affected browser files: `autopilot-review.spec.ts`, `first-save.spec.ts`,
+  `manual-creator-entry.spec.ts`, `source-entry-settings.spec.ts`,
+  `navigation-shell.spec.ts`: **26 passed**, focused runner 34.001s. Final launch
+  admission/current manual-path and whole review refinements reran the affected
+  autopilot/manual-entry files: **11 passed**, runner 22.355s.
+- One initial browser field locator incorrectly matched the required marker in
+  raw label text. Its 3 passed/1 failed run was corrected to the exact textbox
+  accessible name; all four new browser cases passed (runner 4.609s), then the
+  broader/final selections above passed. No product assertion was removed.
+- Two final deterministic builds produced the same SHA-256 tree over **7 files**:
+  tree digest `961862f2a819404d5685c91074934b3c8c3d50f1a170ca9983cb2952ac437095`.
+  Generated assets are refreshed. Existing Vite large-chunk warning remains.
+- Native test-owner discovery passed (no test bodies executed); current browser
+  allocation passed: **91 specs / 303 cases**, no overlap/missing cases. New
+  pytest/Vitest/browser files are registered in story-authoring. Module selection
+  was expanded with `--show`; no module/full result is claimed from that plan.
+- Ruff F checks and working diff checks passed. One existing Starlette/httpx
+  deprecation warning accompanies Python checks.
+
+Desktop pixel inspection used a disposable UI owner and local SVG thumbnails,
+not ImageGen output: [whole story](2026-10-12-pre-video-autopilot/whole-review-desktop.png),
+[reference gallery](2026-10-12-pre-video-autopilot/reference-gallery-desktop.png),
+[frame observations](2026-10-12-pre-video-autopilot/frame-observations-desktop.png).
+The final pictures show readable labels, contained uncropped display images,
+scene/shot context, blank observations and separate identity decisions. They
+prove software presentation only. Test opinions are explicit fixtures, not owner
+creative acceptance. Tests ran in the isolated candidate working tree before its
+source commit; exact-revision full/native qualification remains the manager's P5.
+
+The additional owner-required careful walkthrough is a **P5 pre-activation gate**.
+Its [touched-path map and disposable entrypoints](2026-10-12-pre-video-autopilot/touched-path-walkthrough.md)
+cover the whole feature, ordinary manual flows, UI readability/accessibility and
+persisted evidence. Manager labels real-native and deterministic fault results
+separately. Source owner has not run full, contacted real native/media providers,
+operated live services, upgraded valued data, merged/pushed main or claimed hosted
+CI/product acceptance. The manager retains those scoped P5 responsibilities.

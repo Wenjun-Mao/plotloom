@@ -40,7 +40,7 @@ class MaterialInventory(CamelModel):
         return self
 
 
-def initial_inventory(store, policy):
+def initial_inventory(store, policy, *, enforce_limits=True):
     cast = store.cast_state().accepted_cast
     art = store.art_state().accepted_art
     if cast is None or art is None or store.production_bridge_state().installation.status != "current":
@@ -66,7 +66,7 @@ def initial_inventory(store, policy):
         inventory = MaterialInventory(entity_revision_id=head.entity_revision_id, storyboard_revision=head.revision,
             storyboard_hash=head.content_hash, production_hash=production_closure(session, store.manifest.project_id),
             cast_revision=cast.revision, art_revision=art.revision, subjects=subjects, route_count=len(routes))
-    if len(subjects) > policy.max_images or len(subjects) + 8 > policy.max_jobs:
+    if enforce_limits and (len(subjects) > policy.max_images or len(subjects) + 8 > policy.max_jobs):
         raise InvalidTransitionError("完整素材包超过冻结图片或任务上限；未发送图片，请接管检查范围。")
     return inventory
 

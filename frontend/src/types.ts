@@ -1225,6 +1225,7 @@ export interface TextProviderProfileProbe {
 export type SourceKind = "synopsis" | "imported_text" | "existing_work";
 
 export interface SourceMaterial {
+  briefOrigin?: { kind: "saved_brief"; revision: number; contentHash: string };
   kind: SourceKind;
   title: string;
   text: string;

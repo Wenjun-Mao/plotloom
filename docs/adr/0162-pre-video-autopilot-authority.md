@@ -145,3 +145,29 @@ Atomic exclusive lock-file creation followed by reopening the existing no-follow
 file closes the observed concurrent-creation refusal. This lock owns static
 publication, not native dispatch. Split package projection from the oversized
 delivery exchange and keep all executable publication owners in the native pin.
+
+### P4 human review owner
+
+The current automatic bundle is machine evidence and cannot grant video authority.
+A separate append-only `v2_autopilot_handoffs` owner retains the exact current
+review bundle, human attribution, explicit reference endorsements, authored
+frame intent/compatibility and ordered SamePerson observations, together with
+native approval, intent, binding and review IDs. One lifecycle transaction checks
+currentness and creates all facts, or rolls back. A run stores only the current
+receipt pointer; edits withdraw eligibility without changing historical receipts.
+The unshipped migration and exact named prior-layout transition include this
+owner; no intermediate development layout is supported or silently upgraded.
+
+After takeover, the review factory reads current canonical subjects/references
+and current manually reviewed bindings, rather than requiring the old automatic
+freeze. Imported or earlier-contract frames use an explicitly tagged human
+comparison mapping at the SamePerson owner under handoff authority; it makes no
+generator-conditioning claim and changes no ordinary manual-only admission.
+Original AI reference decisions and production-unit authority remain unchanged.
+No handoff operation calls video preparation, preview, freezing or dispatch.
+
+A later handoff over the same approved canonical revision reuses its exact active
+human approval, labelled `existing_human`, while creating a fresh material receipt
+and observations. Native approval forbids consecutive duplicate approvals; fake
+revocation/approval churn would misstate the author's decision history. Original
+approval attribution is retained, separate from the new handoff's reviewer.

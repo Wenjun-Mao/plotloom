@@ -1,3 +1,4 @@
+import { useAdoptionLabel } from "../features/autopilot/AutopilotWorkspace";
 import { ProjectReportFrame } from "../components/ProjectReportFrame";
 import { useEffect, useRef, useState } from "react";
 
@@ -22,6 +23,7 @@ type CastPanelProps = {
 };
 
 export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError, readStatus = loadError ? "failed" : state ? "ready" : "loading", refreshToken, onState, onRefresh, onInvalidate, onTransitionComplete }: CastPanelProps) {
+  const adoptionLabel = useAdoptionLabel();
   const ownerDisabled = ownerReadOnly || Boolean(loadError);
   const [assignment, setAssignment] = useState("");
   const [renderStyle, setRenderStyle] = useState<ArtRenderStyle | "">("");
@@ -81,7 +83,7 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
   </article>;
 
   const candidate = state.candidate; const accepted = state.acceptedCast;
-  const taskLabel = readStatus === "loading" ? "正在刷新角色设定" : loadError ? "无法刷新角色设定" : state.status === "stale" ? "角色设定需重新确认" : state.status === "reopened" ? "正在编辑角色设定" : candidate?.status === "ready" ? "待审核角色设定" : candidate?.status === "prepared" ? "角色任务尚未交付" : accepted ? `已确认角色设定 r${accepted.revision}` : "尚无角色提案";
+  const taskLabel = readStatus === "loading" ? "正在刷新角色设定" : loadError ? "无法刷新角色设定" : state.status === "stale" ? "角色设定需重新确认" : state.status === "reopened" ? "正在编辑角色设定" : candidate?.status === "ready" ? "待审核角色设定" : candidate?.status === "prepared" ? "角色任务尚未交付" : accepted ? `${adoptionLabel("characters", accepted.revision, accepted.contentHash)}角色设定 r${accepted.revision}` : "尚无角色提案";
   const updateDirection: CastDirectionChange = (index, group, key, value) => {
     const next = { ...editedCast, characters: charactersOf(editedCast).map((character, candidateIndex) => candidateIndex === index ? { ...character, [group]: { ...(group === "reviewNotes" ? { sourceNotes: "", performanceGuidance: "" } : {}), ...record(character[group]), [key]: value } } : character) };
     draftDirty.current = true; draftBasis.current = basis; setEditedCast(next); reviewDraft.changed(JSON.stringify(next));
@@ -93,7 +95,7 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
 
   return <article className="panel cast-panel" data-testid="cast-review">
     {reviewDraft.notice}
-    <header className="cast-panel-heading"><div><span className="eyebrow">角色设定</span><h2>{taskLabel}</h2></div><span className={`reference-state ${state.status === "stale" ? "historical" : state.status === "accepted" ? "selected" : "candidate"}`}>{loadError ? "无法刷新" : state.status === "stale" ? "需更新" : state.status === "accepted" ? "已确认" : state.status === "reopened" ? "编辑中" : candidate?.status === "ready" ? "待审核" : candidate?.status === "prepared" ? "任务未交付" : "待准备"}</span></header>
+    <header className="cast-panel-heading"><div><span className="eyebrow">角色设定</span><h2>{taskLabel}</h2></div><span className={`reference-state ${state.status === "stale" ? "historical" : state.status === "accepted" ? "selected" : "candidate"}`}>{loadError ? "无法刷新" : state.status === "stale" ? "需更新" : state.status === "accepted" ? adoptionLabel("characters", accepted?.revision, accepted?.contentHash) : state.status === "reopened" ? "编辑中" : candidate?.status === "ready" ? "待审核" : candidate?.status === "prepared" ? "任务未交付" : "待准备"}</span></header>
     <ReviewContextNotice projectId={projectId} diagnostics={state.staleReasons} />
     {state.candidate && <AcceptedEvidenceNotice projectId={projectId} state={state.acceptedReviewState} />}
     {accepted && <AcceptedCastSummary accepted={accepted} current={readStatus === "ready" && !loadError && state.acceptedReviewState.status === "current"} onEdit={() => act(() => plotloomApi.reopenCast(projectId, accepted.revision), undefined, true)} disabled={readOnly || busy || state.acceptedReviewState.status !== "current"} />}

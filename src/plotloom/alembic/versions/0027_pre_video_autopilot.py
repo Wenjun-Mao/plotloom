@@ -2,7 +2,7 @@
 from alembic import op
 import sqlalchemy as sa
 
-from plotloom.persistence.schema.project_autopilot import AutopilotRunRow, AutopilotCheckpointRow, AutopilotDecisionRow, AutopilotFrameRow
+from plotloom.persistence.schema.project_autopilot import AutopilotRunRow, AutopilotCheckpointRow, AutopilotDecisionRow, AutopilotFrameRow, AutopilotHandoffRow
 
 revision = "0027_pre_video_autopilot"
 down_revision = "0026_shot_production_presentation"
@@ -11,7 +11,7 @@ depends_on = None
 
 
 def upgrade():
-    for owner in (AutopilotRunRow, AutopilotCheckpointRow, AutopilotDecisionRow, AutopilotFrameRow):
+    for owner in (AutopilotRunRow, AutopilotCheckpointRow, AutopilotDecisionRow, AutopilotFrameRow, AutopilotHandoffRow):
         owner.__table__.create(op.get_bind())
     with op.batch_alter_table("v2_production_units") as batch:
         batch.alter_column("approval_id", existing_type=sa.String(36), nullable=True)
@@ -28,5 +28,5 @@ def downgrade():
         batch.drop_constraint("fk_unit_machine_decision", type_="foreignkey")
         batch.drop_column("machine_decision_id")
         batch.alter_column("approval_id", existing_type=sa.String(36), nullable=False)
-    for owner in (AutopilotFrameRow, AutopilotDecisionRow, AutopilotCheckpointRow, AutopilotRunRow):
+    for owner in (AutopilotHandoffRow, AutopilotFrameRow, AutopilotDecisionRow, AutopilotCheckpointRow, AutopilotRunRow):
         owner.__table__.drop(op.get_bind())

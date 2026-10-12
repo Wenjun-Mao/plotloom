@@ -4,7 +4,7 @@ from sqlalchemy import select
 from ...autopilot_contracts import MachineDecision, OperationScope
 from ...domain import StageName, StageStatus
 from ...exceptions import InvalidTransitionError
-from ..schema import AutopilotDecisionRow, AutopilotRunRow, EntityRevisionRow, GateResultRow
+from ..schema import AutopilotDecisionRow, AutopilotRunRow, AutopilotHandoffRow, EntityRevisionRow, GateResultRow
 from .autopilot_closure import material_closure, production_closure
 
 
@@ -67,9 +67,19 @@ def video_eligible(session, project_id):
     run = session.scalar(select(AutopilotRunRow).where(AutopilotRunRow.project_id == project_id))
     if run is None:
         return True
-    return (run.state == "handed_off" and isinstance(run.handoff, dict)
-            and run.handoff.get("materialClosure") == material_closure(session, project_id)
-            and run.handoff.get("bundleHash") == run.bundle_hash)
+    if run.state != "handed_off" or not isinstance(run.handoff, dict):
+        return False
+    retained = session.get(AutopilotHandoffRow, run.handoff.get("receiptId"))
+    if retained is None or retained.run_id != run.id or retained.project_id != project_id or retained.receipt_hash != run.handoff.get("receiptHash"):
+        return False
+    from ...project_storage.handoff_validation import assert_handoff
+    try:
+        receipt = assert_handoff(session.connection().connection.driver_connection, retained.id, run.id,
+            project_id, retained.approval_id, retained.receipt, retained.receipt_hash)
+    except (ValueError, TypeError, KeyError):
+        return False
+    return (receipt.bundle_hash == run.handoff.get("bundleHash") and receipt.material_closure == run.handoff.get("materialClosure")
+        and receipt.material_closure == material_closure(session, project_id))
 
 
 def require_video_authority(access, project_id):

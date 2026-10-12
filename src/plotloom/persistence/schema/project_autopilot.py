@@ -83,3 +83,19 @@ class AutopilotFrameRow(Base):
     decision_id: Mapped[str] = mapped_column(ForeignKey("v2_autopilot_decisions.id", ondelete="RESTRICT"), nullable=False)
     frame: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class AutopilotHandoffRow(Base):
+    """Append-only human handoffs; a run pointer never replaces review history."""
+    __tablename__ = "v2_autopilot_handoffs"
+    __table_args__ = (
+        ForeignKeyConstraint(["run_id", "project_id"], ["v2_autopilot_runs.id", "v2_autopilot_runs.project_id"], ondelete="CASCADE"),
+        UniqueConstraint("id", "project_id"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    run_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    project_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    approval_id: Mapped[str] = mapped_column(ForeignKey("v2_approval_decisions.id", ondelete="RESTRICT"), nullable=False)
+    receipt: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    receipt_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

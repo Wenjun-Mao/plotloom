@@ -97,9 +97,18 @@ class SamePersonReviewPersistence:
         candidate = session.scalar(select(ImageJobCandidateRow).where(ImageJobCandidateRow.asset_id == binding.asset_id)
                                    .order_by(ImageJobCandidateRow.created_at.desc()).limit(1))
         asset = session.get(ManagedAssetRow, binding.asset_id)
-        if candidate is None or asset is None or asset.project_id != project_id or asset.original_hash != candidate.output_hash:
+        human_context = bool(review.reference_bindings) and all(item.get("comparisonOrigin") == "human_current_material" for item in review.reference_bindings)
+        if asset is None or asset.project_id != project_id or (not human_context and (candidate is None or asset.original_hash != candidate.output_hash)):
             return False
         mapping = self.identity_mapping_for_binding_in_session(session, binding)
+        if human_context:
+            from .human_comparison_mapping import human_mapping
+            try:
+                mapping = human_mapping(session, binding, self._canonical, self._references)
+            except (InvalidTransitionError, NotFoundError, SchemaResetRequiredError):
+                return False
+            if any(item.get("frameHash") != asset.original_hash for item in review.reference_bindings):
+                return False
         if mapping is None:
             return False
         expected = {item.get("characterId"): item for item in mapping}
@@ -175,6 +184,14 @@ class SamePersonReviewPersistence:
             if binding is None or binding.project_id != project_id:
                 raise NotFoundError("reviewed keyframe binding not found")
             mapping = self.identity_mapping_for_binding_in_session(session, binding)
+            human_context = False
+            if mapping is None:
+                from ...autopilot_contracts import OperationScope
+                authority = self._access.authority()
+                if authority is not None and authority.scope == OperationScope.HANDOFF:
+                    from .human_comparison_mapping import human_mapping
+                    mapping = human_mapping(session, binding, self._canonical, self._references)
+                    human_context = True
             if mapping is None:
                 raise InvalidTransitionError("same-person review is only required for identity-aware generated keyframes")
             expected_ids = [item["characterId"] for item in mapping]
@@ -190,6 +207,9 @@ class SamePersonReviewPersistence:
                 "referenceRevision": item["referenceRevision"],
                 "assetHashes": [asset["originalHash"] for asset in item["assets"]],
             } for item in mapping]
+            if human_context:
+                asset = session.get(ManagedAssetRow, binding.asset_id)
+                reference_bindings = [item | {"comparisonOrigin": "human_current_material", "frameHash": asset.original_hash} for item in reference_bindings]
             state.revision += 1
             state.updated_at = now
             review = SamePersonReviewRow(
@@ -222,9 +242,6 @@ class SamePersonReviewPersistence:
     def current_same_person_review_for_binding(
         self, session: Session, project_id: str, binding: ReviewedShotBindingRow
     ) -> SamePersonReviewRow | None:
-        mapping = self.identity_mapping_for_binding_in_session(session, binding)
-        if mapping is None:
-            return None
         rows = session.scalars(
             select(SamePersonReviewRow)
             .where(SamePersonReviewRow.project_id == project_id, SamePersonReviewRow.binding_id == binding.id)

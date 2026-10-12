@@ -3,6 +3,8 @@ from fastapi import FastAPI, status
 from contextlib import asynccontextmanager
 from ..autopilot_contracts import LaunchRequest, RunControlRequest, RunView
 from ..autopilot_service import AutopilotService
+from ..autopilot_handoff_contracts import HumanHandoffRequest
+from ..persistence.project.autopilot_handoff import review_material, record_handoff
 
 
 def register_autopilot_runtime(app, opened_project, registry):
@@ -26,6 +28,20 @@ def register_autopilot_routes(app: FastAPI, opened_project, service):
     def controller_status():
         return {"blocker": service.controller_blocker}
 
+    @app.get("/api/v2/projects/{project_id}/autopilot/launch-context")
+    def launch_context(project_id: str):
+        from ..persistence.project.autopilot_freshness import assert_fresh
+        from ..exceptions import InvalidTransitionError
+        with opened_project(project_id) as store:
+            with store.repository._read() as session:
+                project = store.repository._project_access.rows.project(session, project_id)
+                eligible = project.archived_at is None
+                try:
+                    assert_fresh(session, project_id)
+                except InvalidTransitionError:
+                    eligible = False
+                return {"eligible": eligible, "briefRevision": project.revision}
+
     @app.get("/api/v2/projects/{project_id}/autopilot", response_model=RunView | None)
     def current(project_id: str):
         with opened_project(project_id) as store:
@@ -38,3 +54,13 @@ def register_autopilot_routes(app: FastAPI, opened_project, service):
     @app.post("/api/v2/projects/{project_id}/autopilot/control", response_model=RunView)
     def control(project_id: str, body: RunControlRequest):
         return service.control(project_id, body)
+
+    @app.get("/api/v2/projects/{project_id}/autopilot/review")
+    def review(project_id: str):
+        with opened_project(project_id) as store:
+            return review_material(store)
+
+    @app.post("/api/v2/projects/{project_id}/autopilot/handoff", response_model=RunView)
+    def handoff(project_id: str, body: HumanHandoffRequest):
+        with opened_project(project_id) as store:
+            return record_handoff(store, body)

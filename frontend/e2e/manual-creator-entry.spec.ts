@@ -1,5 +1,26 @@
 import { expect, test } from "./fixture";
 
+test("autopilot launch is admitted only for current saved Brief-only data", async ({ page, request, workbench }) => {
+  await page.goto(`${workbench.frontendOrigin}/v2/`);
+  await page.getByRole("button", { name: "创建空白项目" }).click();
+  await expect(page.getByRole("button", { name: "一键准备视频素材", exact: true })).toHaveCount(0);
+  await page.getByLabel("片名").fill("Fresh autopilot admission fixture");
+  await page.getByLabel("故事梗概").fill("A keeper considers two endings at the lighthouse.");
+  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
+  const id = new URL(page.url()).searchParams.get("project")!;
+  expect((await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/autopilot/launch-context`)).json()).eligible).toBe(true);
+  await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
+  await expect(page.getByRole("button", { name: "一键准备视频素材", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "返回来源与大纲" }).click();
+  await page.getByRole("button", { name: "确认改编内容" }).click();
+  await expect(page.getByText("改编内容 r1", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
+  await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "一键准备视频素材", exact: true })).toHaveCount(0);
+  expect((await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/autopilot`)).json())).toBeNull();
+});
+
 test("Brief save continues to an editable Source draft without starting the legacy proposal", async ({ page, request, workbench }) => {
   await page.goto(`${workbench.frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "创建空白项目" }).click();

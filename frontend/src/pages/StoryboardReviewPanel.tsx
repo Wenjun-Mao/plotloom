@@ -1,3 +1,4 @@
+import { useAdoptionLabel } from "../features/autopilot/AutopilotWorkspace";
 import { StaticReportReader } from "../components/StaticReportReader";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AcceptedEvidenceNotice } from "./AcceptedEvidenceNotice";
@@ -15,6 +16,7 @@ import { useReportReviewWorkflowRead } from "../app/workspace/ReviewWorkflowRead
 
 /** F5A preserves upstream review evidence; it deliberately cannot create product shots. */
 export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOpenShot, onInstalled, active: visible = true, refreshToken }: { projectId: string; readOnly: boolean; onOpenShot?: (shotId: string) => boolean | void; onInstalled: (projectId: string) => Promise<void>; active?: boolean; refreshToken?: unknown }) {
+  const adoptionLabel = useAdoptionLabel();
   const [state, setState] = useState<StoryboardReviewState>();
   const [assignment, setAssignment] = useState("");
   const [error, setError] = useState<ReviewContextFailure>("");
@@ -72,7 +74,7 @@ export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOp
     {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} stale={state.status === "stale"} busy={busy} run={run} />}
     {reportJobId && <StaticReportReader kind="storyboard" url={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, reportJobId)} expandable active={visible} />}
     {candidate?.status === "ready" && <StoryboardReviewInspection title="查看待审阅分镜" value={candidate.storyboard} />}
-    {acceptedReview && <section><small>已确认评审 r{acceptedReview.revision} · 已确认剧本 r{acceptedReview.binding.scriptRevision} · hash {acceptedReview.contentHash.slice(0, 12)}</small><StoryboardReviewInspection title={state.acceptedReviewState.status === "retained" ? "查看保留的已确认分镜" : "查看当前已确认分镜"} value={acceptedReview.storyboard} /></section>}
+    {acceptedReview && <section><small>{adoptionLabel("storyboard", acceptedReview.revision, acceptedReview.contentHash)}评审 r{acceptedReview.revision} · 已确认剧本 r{acceptedReview.binding.scriptRevision} · hash {acceptedReview.contentHash.slice(0, 12)}</small><StoryboardReviewInspection title={state.acceptedReviewState.status === "retained" ? "查看保留的已确认分镜" : "查看当前已确认分镜"} value={acceptedReview.storyboard} /></section>}
     {candidate?.status === "prepared" && <details><summary>查看任务说明（手动方式）</summary><Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.recoverStoryboardSourceReviewHandoff(projectId, candidate.jobId), result => setAssignment(result.assignment))}>恢复分镜任务</Button>{assignment && <ManualTaskAssignment key={`${projectId}:${candidate.jobId}:${assignment}`} assignment={assignment} taskName="分镜" />}</details>}
     {error && <ReviewContextErrorNotice error={error} projectId={projectId} />}
     {acceptedReview && <ProductionBridgePanel projectId={projectId} reviewBasis={{ revision: acceptedReview.revision, contentHash: acceptedReview.contentHash, status: state.acceptedReviewState.status }} refreshToken={state} readOnly={readOnly || state.acceptedReviewState.status !== "current"} onOpenShot={onOpenShot} onInstalled={onInstalled} />}

@@ -113,6 +113,23 @@ After takeover, manually completed current material may receive a new exact huma
 handoff through this same bundle owner; preserve the old receipt. There is no
 automatic regeneration, permanent manual lockout or silent reuse of stale review.
 
+The append-only native `v2_autopilot_handoffs` owner retains the review bundle and
+all human input/result IDs; the run points to its current receipt. The review
+factory resolves adopted Cast subjects through their explicit consumer identity
+mappings and binds displayed story, routes, script and shot directions to the
+historical typed owners. Stored Python field names and public JSON aliases are
+compared through those models, without weakening source binding.
+
+An already active genuine approval over the same canonical revision is reused
+as `existing_human`, preserving its original attribution; the new receipt and
+observations remain distinct. An imported/earlier-contract replacement frame
+uses tagged `human_current_material` reference comparisons under server-created
+handoff authority. It neither claims generator reference conditioning nor changes
+ordinary manual-only admission. Shared assets retain the existing one-current-
+intent-per-role contract: each occurrence must supply the same authored intent.
+Manual source edits drop the code-owned exact-Brief origin assertion while
+retaining the original source revision. New machine dispatch remains forbidden.
+
 ### Video guard inventory
 
 | Boundary | Required guard |
