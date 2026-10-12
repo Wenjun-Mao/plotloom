@@ -211,6 +211,22 @@ settles it without adopting suggestions. An unconfigured assistant remains an
 explicit unavailable capability; API inference, when configured independently,
 is a separate generation choice. See [ADR 0140](../../docs/adr/0140-native-bridge-intent-candidates.md).
 
+## Native presentation suggestions
+
+Presentation advice is a separate frozen task, not an extension of an existing
+dramatic-intent delivery. In 投产提案 select “准备呈现方式建议”, then explicitly
+“发送呈现方式任务”. “检查呈现方式交付” checks the same task without resending.
+The assistant suggests roles, faithful physical renderings and reasons against
+the exact current proposal; trusted code retains source identities and wording.
+Returned advice is labeled “助手建议” and is editable. Existing author edits
+are preserved unless the author explicitly replaces them with the advice.
+
+Read by scene, then select “确认并保存呈现方式”. Incomplete assignments still
+block saving. Saving presentation does not confirm production, choose assets
+or generate media. Old dramatic-intent reports remain unchanged. See
+[ADR 0161](../../docs/adr/0161-specialist-presentation-candidates.md) and the
+[task contract](../../docs/creative-workflow/native-bridge-presentation.md).
+
 ## Verification
 
 With no specialist work in flight, the bounded check deliberately terminates

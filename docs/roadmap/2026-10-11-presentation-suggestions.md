@@ -18,8 +18,11 @@ assets/pixels, then one stable-candidate local full gate. No hosted dispatch.
 Implementation and independent review are complete. The stable candidate's
 local software gates passed using unchanged-suite evidence reuse after a
 test-only exact API snapshot correction; see the single verification receipt.
-Backend activation and its valued-project preservation readback are the next
-approved checkpoint. Creator acceptance remains a separate owner action.
+Backend activation and its valued-project preservation readback also passed:
+the closed story's 70 files were unchanged, both endpoints serve the qualified
+build, and no generation was sent. Creator acceptance remains a separate owner
+action. The next manual step is to reopen the project, prepare presentation
+advice and explicitly send the new task; returned advice still needs saving.
 
 Exclusions: valued project writes, replacement of frozen intent evidence,
 creative approval, provider/credential changes, real specialist execution and

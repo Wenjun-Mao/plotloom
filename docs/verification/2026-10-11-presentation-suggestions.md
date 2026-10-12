@@ -116,7 +116,24 @@ Before activation, the live specialist registry was idle and retained media
 jobs in the two open projects were terminal. The valued project
 `160554c7-f021-40b0-b218-b9d53412b75c` (给今天的自己) was closed; all 70 files
 were hashed before the restart. Preserve that closed state and compare the
-exact files after activation. Activation readback is pending.
+exact files after activation.
+
+Activation completed on 2026-10-12 with the supported
+`uv run --locked --no-sync python services/creator_workbench/manage.py start`
+command, retaining the existing explicit H3 configuration. Docker recreated
+only the creator workbench; the host bridge is available and the workbench is
+healthy. Host publication remains `127.0.0.1:8841`. No Tailscale configuration,
+machine name, provider settings or credentials were changed.
+
+Local and trusted-certificate Tailscale HTTPS `/healthz` reads returned `ok`.
+Both endpoints serve the qualified `workbench.js` hash above. The live OpenAPI
+includes all five native presentation routes; an existing open project's
+read-only bridge response reports `nativePresentationGeneration: available`
+with no presentation job, candidate or task created. Specialists remain idle.
+The four catalog entries retained their prior open/closed states, including
+the valued closed story. Before/after hashes of all its 70 retained files match
+exactly. Its frozen evidence, SQLite bytes and assets were not rewritten.
+The owned fixture browser and isolated QA server were stopped after inspection.
 
 Hosted CI is manual and will not be dispatched. No browser reload, story save,
 creative approval, specialist task preparation/send or media generation is
