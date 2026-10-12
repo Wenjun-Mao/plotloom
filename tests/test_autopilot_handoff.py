@@ -179,3 +179,92 @@ def test_mid_handoff_failure_rolls_back_all_native_human_rows(tmp_path, monkeypa
             assert store.repository.autopilot.current(view.project_id).state == "awaiting_review"
     finally:
         service.close()
+
+
+def test_manual_multiview_reference_set_is_fully_displayed_and_endorsed(tmp_path, monkeypatch):
+    from hashlib import sha256
+    from io import BytesIO
+    from PIL import Image
+    from plotloom.validation import STORYBOARD_GATE_SET_VERSION
+    from plotloom.domain import StageName
+    from plotloom.persistence.schema import VisualSelectionStateRow, AutopilotHandoffRow
+    storage, _registry, service, view, calls, _text = image_environment(tmp_path, monkeypatch)
+    try:
+        for _ in range(12):
+            service.step(view.project_id)
+            with closing(storage.projects.open(view.project_id)) as store:
+                current = store.repository.autopilot.current(view.project_id)
+            refs = [item for item in current.checkpoints if item["evidence"]["owner"] in {"character-reference", "art-reference"}]
+            if len(refs) == 2 and all(item["state"] == "adopted" for item in refs): break
+        assert len(calls) == 2 and current.bundle is None
+        service.control(view.project_id, RunControlRequest(expected_revision=current.revision, action="takeover"))
+        with closing(storage.projects.open(view.project_id)) as store:
+            def imported(color):
+                buffer = BytesIO(); Image.new("RGB", (view.policy.image_width, view.policy.image_height), color).save(buffer, format="PNG")
+                data = buffer.getvalue(); digest = sha256(data).hexdigest(); uri = store.artifacts.put(data)
+                return store.media.record_managed_import(view.project_id, original_hash=digest, display_hash=digest,
+                    mime_type="image/png", byte_size=len(data), width=view.policy.image_width, height=view.policy.image_height,
+                    declaration={"origin": "manual", "rights": "unknown"}, publish=lambda: (uri, uri))
+            reference = next(item for item in store.media.list_character_reference_decisions(view.project_id)["decisions"] if item["current"])
+            complements = [imported("blue"), imported("green")]
+            selected = store.media.create_character_reference_decision(view.project_id, character_id=reference["characterId"],
+                primary_asset_id=reference["primaryAssetId"], complementary_asset_ids=[item["id"] for item in complements],
+                expected_reference_revision=reference["referenceRevision"], reviewer="Fixture human", notes="Actual multiview protocol fixture.", authority="story_bible")
+            frame_asset = imported("white")
+            authored = {"role": "shot_keyframe", "compositionIntent": "Shared fixture framing for all current shots.", "sourceRefs": ["Current complete Script"]}
+            intent = store.media.create_visual_intent(view.project_id, frame_asset["id"], authored)
+            with store.repository._read() as session:
+                head = store.repository._project_access.rows.stage(session, view.project_id, StageName.STORYBOARD)
+                board = store.repository._canonical._load_stage_payload(session, view.project_id, StageName.STORYBOARD)
+                revision, digest = head.revision, head.content_hash
+            approval = store.repository._approvals.decide_storyboard_approval(view.project_id, expected_revision=revision,
+                expected_content_hash=digest, decision="approve", reviewer="Fixture human", gate_set_version=STORYBOARD_GATE_SET_VERSION)
+            for shot in board.shots:
+                with store.repository._read() as session:
+                    state = session.get(VisualSelectionStateRow, view.project_id)
+                    presentation = store.repository._media.shot_presentations.current(session, view.project_id, shot.id)
+                    selection_revision = state.revision if state else 0
+                store.media.select_reviewed_keyframe(view.project_id, asset_id=frame_asset["id"], shot_id=shot.id, scene_id=shot.scene_id,
+                    expected_selection_revision=selection_revision, storyboard_revision=revision, approval_id=approval.id,
+                    compatibility_note="Manual shared fixture frame inspected.", visual_intent_id=intent["id"], visual_intent_revision=intent["revision"],
+                    expected_presentation_revision=presentation["revision"] if presentation else 0)
+            review = review_material(store)
+            gallery = next(item for item in review["bundle"]["references"] if item["owner"] == "character-reference")
+            assert gallery["decisionId"] == selected["id"]
+            assert [item["assetId"] for item in gallery["assets"]] == [reference["primaryAssetId"], *[item["id"] for item in complements]]
+            body = observation(review)
+            for item in body["frames"]: item["intent"] = authored
+            result = record_handoff(store, HumanHandoffRequest.model_validate(body))
+            with store.repository._read() as session:
+                assert video_eligible(session, view.project_id)
+                retained = session.get(AutopilotHandoffRow, result.handoff["receiptId"])
+                assert retained.receipt["observation"]["endorsedReferenceIds"].count(selected["id"]) == 1
+        with closing(storage.projects.open(view.project_id)):
+            pass
+        assert len(calls) == 2
+    finally:
+        service.close()
+
+
+def test_reference_reselection_withdraws_generated_frames_from_current_review(tmp_path, monkeypatch):
+    from plotloom.persistence.schema import AutopilotHandoffRow
+    storage, _registry, service, view, _calls, _text = image_environment(tmp_path, monkeypatch)
+    try:
+        run_pack(storage, service, view)
+        with closing(storage.projects.open(view.project_id)) as store:
+            result = record_handoff(store, HumanHandoffRequest.model_validate(observation(review_material(store))))
+            with store.repository._read() as session:
+                retained = session.get(AutopilotHandoffRow, result.handoff["receiptId"]).receipt
+            reference = next(item for item in store.media.list_character_reference_decisions(view.project_id)["decisions"] if item["current"])
+            # Even the same bytes with a new decision ID withdraw frozen identity
+            # applicability; a human binding alone cannot revive that image job.
+            store.media.create_character_reference_decision(view.project_id, character_id=reference["characterId"],
+                primary_asset_id=reference["primaryAssetId"], complementary_asset_ids=[], expected_reference_revision=reference["referenceRevision"],
+                reviewer="Fixture human", notes="Explicit manual reselection.", authority="story_bible")
+            with pytest.raises(InvalidTransitionError, match="current first-frame material"):
+                review_material(store)
+            with store.repository._read() as session:
+                assert not video_eligible(session, view.project_id)
+                assert session.get(AutopilotHandoffRow, result.handoff["receiptId"]).receipt == retained
+    finally:
+        service.close()

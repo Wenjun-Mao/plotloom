@@ -60,12 +60,17 @@ export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOp
     {error ? <><ReviewContextErrorNotice error={error} projectId={projectId} /><Button variant="quiet" onClick={() => void recheck()}>重试加载分镜评审</Button></> : <Spinner />}
   </article>;
   const { candidate, acceptedReview } = state;
+  const provenance = adoptionLabel("storyboard", acceptedReview?.revision, acceptedReview?.contentHash);
+  const acceptedGuide = provenance === "已确认"
+    ? "分镜评审已确认。请在下方审阅投产提案；确认投产后才能进入正式镜头的媒体制作。"
+    : provenance === "AI 已采用" ? "AI 已采用分镜评审；完整素材准备完毕后，从上方审阅整包素材。"
+    : "分镜方案已采用，采用来源尚待核实。请先恢复状态读取。";
   const reportJobId = candidate?.status === "ready" ? candidate.jobId : acceptedReview?.candidateJobId;
   return <article id="storyboard-review" className="panel cast-panel" data-testid="storyboard-review">
-    <header><span>分镜评审</span><strong>{checking ? "正在刷新" : failed ? "无法刷新" : reviewLabel(state)}</strong></header>
+    <header><span>分镜评审</span><strong>{checking ? "正在刷新" : failed ? "无法刷新" : reviewLabel(state, adoptionLabel("storyboard", acceptedReview?.revision, acceptedReview?.contentHash))}</strong></header>
     {failed && <Button variant="quiet" onClick={() => void recheck()}>重试加载分镜评审</Button>}
-    <StageGuide>{checking ? "正在核对当前分镜评审，请稍候。" : failed ? "读取失败，请先重试；暂时不能修改或投产。" : busy ? "正在处理分镜任务，请稍候。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "请按当前审核要求更新分镜评审后再投产；旧方案仍保留供参考。") : state.status === "accepted" && acceptedReview ? "分镜评审已确认。请在下方审阅投产提案；确认投产后才能进入正式镜头的媒体制作。" : candidate?.status === "ready" ? "审阅候选中每个镜头的动作、对白和预计时长，再确认使用。" : candidate?.status === "prepared" ? "分镜任务尚未交付；发送、等待和检查状态见任务区。" : "先确认剧本，再准备并发送分镜任务。这里不会自动生成图片或视频。"}</StageGuide>
-    <p className="action-prerequisite">本页保留与已确认剧本对应的原始分镜方案。确认分镜方案与建立正式镜头内容是两个独立步骤；确认方案不会自动建立镜头或生成媒体。</p>
+    <StageGuide>{checking ? "正在核对当前分镜评审，请稍候。" : failed ? "读取失败，请先重试；暂时不能修改或投产。" : busy ? "正在处理分镜任务，请稍候。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "请按当前审核要求更新分镜评审后再投产；旧方案仍保留供参考。") : state.status === "accepted" && acceptedReview ? acceptedGuide : candidate?.status === "ready" ? "审阅候选中每个镜头的动作、对白和预计时长，再确认使用。" : candidate?.status === "prepared" ? "分镜任务尚未交付；发送、等待和检查状态见任务区。" : "先确认剧本，再准备并发送分镜任务。这里不会自动生成图片或视频。"}</StageGuide>
+    <p className="action-prerequisite">本页保留与采用的剧本对应的原始分镜方案。确认分镜方案与建立正式镜头内容是两个独立步骤；确认方案不会自动建立镜头或生成媒体。</p>
     <ReviewContextNotice projectId={projectId} diagnostics={state.staleReasons} />
     {state.candidate && <AcceptedEvidenceNotice projectId={projectId} state={state.acceptedReviewState} />}
     {!candidate && <div className="button-row"><label>评审镜头上限（秒）<select value={maxCutSeconds} disabled={readOnly || busy} onChange={event => setMaxCutSeconds(Number(event.target.value))}>{[8, 10, 12, 15].map(seconds => <option key={seconds} value={seconds}>{seconds}</option>)}</select></label><Button variant="primary" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.prepareStoryboardSourceReviewCandidate(projectId, maxCutSeconds), result => setAssignment(result.assignment))}>准备分镜任务</Button></div>}
@@ -74,7 +79,7 @@ export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOp
     {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} stale={state.status === "stale"} busy={busy} run={run} />}
     {reportJobId && <StaticReportReader kind="storyboard" url={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, reportJobId)} expandable active={visible} />}
     {candidate?.status === "ready" && <StoryboardReviewInspection title="查看待审阅分镜" value={candidate.storyboard} />}
-    {acceptedReview && <section><small>{adoptionLabel("storyboard", acceptedReview.revision, acceptedReview.contentHash)}评审 r{acceptedReview.revision} · 已确认剧本 r{acceptedReview.binding.scriptRevision} · hash {acceptedReview.contentHash.slice(0, 12)}</small><StoryboardReviewInspection title={state.acceptedReviewState.status === "retained" ? "查看保留的已确认分镜" : "查看当前已确认分镜"} value={acceptedReview.storyboard} /></section>}
+    {acceptedReview && <section><small>{adoptionLabel("storyboard", acceptedReview.revision, acceptedReview.contentHash)}评审 r{acceptedReview.revision} · 来源剧本 r{acceptedReview.binding.scriptRevision} · hash {acceptedReview.contentHash.slice(0, 12)}</small><StoryboardReviewInspection title={state.acceptedReviewState.status === "retained" ? `查看保留的${adoptionLabel("storyboard", acceptedReview.revision, acceptedReview.contentHash)}分镜` : `查看当前${adoptionLabel("storyboard", acceptedReview.revision, acceptedReview.contentHash)}分镜`} value={acceptedReview.storyboard} /></section>}
     {candidate?.status === "prepared" && <details><summary>查看任务说明（手动方式）</summary><Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.recoverStoryboardSourceReviewHandoff(projectId, candidate.jobId), result => setAssignment(result.assignment))}>恢复分镜任务</Button>{assignment && <ManualTaskAssignment key={`${projectId}:${candidate.jobId}:${assignment}`} assignment={assignment} taskName="分镜" />}</details>}
     {error && <ReviewContextErrorNotice error={error} projectId={projectId} />}
     {acceptedReview && <ProductionBridgePanel projectId={projectId} reviewBasis={{ revision: acceptedReview.revision, contentHash: acceptedReview.contentHash, status: state.acceptedReviewState.status }} refreshToken={state} readOnly={readOnly || state.acceptedReviewState.status !== "current"} onOpenShot={onOpenShot} onInstalled={onInstalled} />}
@@ -87,10 +92,10 @@ function CandidateActions({ candidate, projectId, readOnly, stale, busy, run }: 
   return null;
 }
 
-function reviewLabel(state: StoryboardReviewState): string {
+function reviewLabel(state: StoryboardReviewState, label = "已确认"): string {
   if (state.status === "stale") return "上下文已过期";
   if (state.candidate?.status === "ready") return "待审阅";
   if (state.candidate?.status === "prepared") return "任务尚未交付";
-  if (state.acceptedReview) return `已确认评审 r${state.acceptedReview.revision}`;
+  if (state.acceptedReview) return `${label}评审 r${state.acceptedReview.revision}`;
   return "尚无评审";
 }

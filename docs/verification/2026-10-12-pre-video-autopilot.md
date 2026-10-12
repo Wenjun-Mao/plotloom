@@ -428,3 +428,53 @@ persisted evidence. Manager labels real-native and deterministic fault results
 separately. Source owner has not run full, contacted real native/media providers,
 operated live services, upgraded valued data, merged/pushed main or claimed hosted
 CI/product acceptance. The manager retains those scoped P5 responsibilities.
+
+### P4 bounded review corrections
+
+Initial P4 source checkpoint: `74d1dd857bf1be3753cb68cc63b7cebd9d4185b2`.
+The source authority reviewer found omitted complementary character-reference
+views and a false human-origin fallback. Manager-attended UI review additionally
+found fresh Start never restarted polling, transient GET failure stopped it, and
+dominant storyboard headings/guidance contradicted AI metadata. The manager's
+separate backend review found no scoped blocker; that code-only result did not
+qualify the changed complementary-view contract. Corrections require re-review.
+
+Root causes and final behavior: the bundle previously represented only primary
+assets while identity consumers used the complete decision. It now retains and
+displays every selected view with original IDs/hashes/dimensions and endorses
+the unchanged decision. Generated-frame applicability is rechecked against
+current references after takeover; reselection withdraws old frames/eligibility
+without altering receipts. Polling now explicitly reconciles command outcomes
+and retries failed reads without replaying writes. Loading/failed provenance
+remains unknown in headers, guides and metadata. Current manually imported frames
+are labelled manual. An already-open review obeys read-only admission.
+
+Executed correction evidence in the isolated working tree:
+
+- Exact current API handoff, imported replacement/portable receipt and early
+  takeover with primary plus two complementary views: **3 passed**, focused
+  runner 134.906s. Original decision IDs and existing genuine approval survive;
+  manually completed imported frames need no automatic bundle or extra dispatch.
+- Reference reselection withdraws generated frames and preserves old receipt:
+  **1 passed**, focused runner 47.393s.
+- Final new UI selection: **13 passed**, focused runner 0.769s; final unfiltered
+  frontend **152 files / 1,297 tests passed**, 6.45s. Both type checks passed.
+- Broader UI selection (`autopilot-review`, storyboard ownership/source review,
+  manual entry): 31 passed/1 fresh-progress fixture failure. Its fixture returned
+  revision 12 after revision 14; correction returns monotonic revision 15 and
+  preserves the client's stale-read guard. Final affected autopilot browser
+  file: **6 passed**, focused runner 29.390s. This includes fresh no-run Start
+  through review without navigation and transient read retry with one Start.
+- Native owner discovery: **1,692 pytest cases / 169 files**; no bodies executed.
+  Browser allocation: **91 specs / 305 cases**, zero missing/overlap cases.
+- Two deterministic builds: identical **7-file** SHA-256 tree,
+  `d66c553fc1252d9c3a7c8ae83b68d5e1649ece8f73d425f3592f0ab1390b56fd`.
+  Refreshed desktop pictures above were inspected: all selected reference views,
+  readable grouped labels/original links, current directions and blank judgments.
+  Ruff F and diff checks passed; existing Vite/Starlette warnings remain.
+
+Required continuation: same source owner handles diagnosed P5 issues, reruns
+failed/downstream affected checks and rechecks affected walkthrough paths before
+activation. Manager holds full/native/preservation/live work until this stable
+correction is re-reviewed. Actual generated bundles remain awaiting owner human
+review; labelled disposable protocol judgments do not grant creative acceptance.

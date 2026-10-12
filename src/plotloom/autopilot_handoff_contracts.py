@@ -7,6 +7,13 @@ from .same_person_review_contracts import SamePersonReviewItem
 from .autopilot_materials import MaterialInventory
 
 
+class ReviewAsset(CamelModel):
+    asset_id: str
+    original_hash: str
+    width: int = Field(ge=1)
+    height: int = Field(ge=1)
+
+
 class ReviewReference(CamelModel):
     owner: Literal["character-reference", "art-reference"]
     subject_id: str
@@ -16,6 +23,7 @@ class ReviewReference(CamelModel):
     asset_id: str
     original_hash: str
     name: str
+    assets: list[ReviewAsset] = Field(min_length=1, max_length=3)
 
 
 class ReviewFrame(CamelModel):

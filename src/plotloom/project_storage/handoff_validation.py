@@ -58,6 +58,17 @@ def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw,
         asset = connection.execute("SELECT project_id,original_hash FROM v2_managed_assets WHERE id=?", (reference.asset_id,)).fetchone()
         if asset != (project_id, reference.original_hash):
             raise ValueError("endorsed reference bytes changed")
+        expected_assets = [reference.asset_id]
+        if reference.owner == "character-reference":
+            expected_assets.extend(json.loads(decision["complementary_asset_ids"]))
+        if [item.asset_id for item in reference.assets] != expected_assets:
+            raise ValueError("displayed reference set omits or changes complementary assets")
+        for item in reference.assets:
+            asset = connection.execute("SELECT project_id,original_hash,width,height FROM v2_managed_assets WHERE id=?", (item.asset_id,)).fetchone()
+            if asset != (project_id, item.original_hash, item.width, item.height):
+                raise ValueError("displayed reference set bytes changed")
+        if reference.owner == "character-reference" and [{"assetId": item.asset_id, "originalHash": item.original_hash} for item in reference.assets] != json.loads(decision["asset_hashes"]):
+            raise ValueError("displayed reference set differs from the endorsed decision")
     frames = receipt.bundle.frames
     shots = [item for item in receipt.bundle.inventory.subjects if item.owner == "image"]
     if [item.shot_id for item in frames] != [item.id for item in shots] or len(receipt.bindings) != len(frames) or len(receipt.observation.frames) != len(frames):

@@ -341,6 +341,15 @@ valued stories/settings. Voice/video preparation, preview, enqueue, dispatch and
 provider changes remain excluded. This deepens verification within the approved
 outcome and does not introduce another source writer or unrelated redesign.
 
+Owner follow-up explicitly requires fixing every diagnosed in-scope walkthrough
+issue before activation. Keep the same source owner available: walkthrough →
+root-cause contract/source correction → failed and downstream affected checks →
+recheck affected walkthrough paths → preserving rollout/activation only after
+all required gates pass. Reuse unaffected qualification evidence; no assertion
+weakening, bypass or optional redesign. Real generated material remains awaiting
+the owner's actual human review; disposable protocol judgments are labelled
+software fixtures and cannot establish creative acceptance.
+
 - Source/graph: `brief_contracts.py`, `source_outline_contracts.py`,
   `persistence/project/source_outline_mutations.py`, `source_graph_admission.py`.
 - Creative owners: `cast.py`, `art.py`, `script.py`, `storyboard_review.py`,

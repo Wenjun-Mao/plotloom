@@ -2,13 +2,13 @@
 from sqlalchemy import select
 from ...autopilot_contracts import LaunchPolicy, ProvisionalFrame
 from ...autopilot_materials import initial_inventory
-from ...autopilot_handoff_contracts import CurrentReviewBundle, ReviewReference, ReviewFrame
+from ...autopilot_handoff_contracts import CurrentReviewBundle, ReviewReference, ReviewFrame, ReviewAsset
 from ...domain import StageName
 from ...exceptions import InvalidTransitionError
 from ...keyframe_preparation import has_matching_aspect
 from ...source_structures import complete_routes
 from ..codec import stable_hash
-from ..schema import AutopilotFrameRow, ManagedAssetRow, ImageJobRow, ReviewedShotBindingRow
+from ..schema import AutopilotFrameRow, ManagedAssetRow, ImageJobRow, ImageJobCandidateRow, ReviewedShotBindingRow
 from .autopilot_closure import material_closure
 
 
@@ -37,9 +37,11 @@ def current_review_bundle(store, session, run):
         if decision is None:
             raise InvalidTransitionError("every current Cast and Art subject requires a current selected reference")
         asset = session.get(ManagedAssetRow, decision.get("primaryAssetId", decision.get("assetId")))
+        assets = [asset, *(session.get(ManagedAssetRow, identifier) for identifier in decision.get("complementaryAssetIds", []))]
         references.append(ReviewReference(owner=subject.owner, subject_id=subject.id, character_id=character_id, subject_type=subject.subject_type,
             decision_id=decision["id"], asset_id=asset.id, original_hash=asset.original_hash,
-            name=names[(subject.owner, subject.subject_type, subject.id)]))
+            name=names[(subject.owner, subject.subject_type, subject.id)],
+            assets=[ReviewAsset(asset_id=item.id, original_hash=item.original_hash, width=item.width, height=item.height) for item in assets]))
     provisional = {row.shot_id: row for row in session.scalars(select(AutopilotFrameRow).where(AutopilotFrameRow.run_id == run.id))}
     bindings = session.scalars(select(ReviewedShotBindingRow).where(ReviewedShotBindingRow.project_id == project_id)
         .order_by(ReviewedShotBindingRow.selection_revision.desc())).all()
@@ -50,6 +52,12 @@ def current_review_bundle(store, session, run):
     for shot in board.shots:
         binding = next((item for item in bindings if item.shot_id == shot.id and
             repository._media.admission.reviewed_binding_admission_eligible_in_session(session, project_id, item)), None)
+        if binding is not None:
+            candidate = session.scalar(select(ImageJobCandidateRow).where(ImageJobCandidateRow.asset_id == binding.asset_id)
+                .order_by(ImageJobCandidateRow.created_at.desc()).limit(1))
+            job = session.get(ImageJobRow, candidate.job_id) if candidate else None
+            if candidate and (job is None or not repository._media.image_currentness.image_job_is_current_in_session(session, job)):
+                binding = None
         if binding is not None:
             asset = session.get(ManagedAssetRow, binding.asset_id)
             origin, source_id = "human_binding", binding.id

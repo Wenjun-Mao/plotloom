@@ -12,7 +12,8 @@ export type AutopilotRun = {
 };
 export type Launch = { expectedBriefRevision: number; renderStyle: ArtRenderStyle; artRenderStyle: ArtRenderStyle; maxImages: number; maxJobs: number };
 export type ReviewFrame = { shotId: string; sceneId: string; title: string; sceneName: string; direction: string; assetId: string; description: string; characterIds: string[]; origin: string };
-export type ReviewReference = { owner: string; subjectId: string; name: string; decisionId: string; assetId: string };
+export type ReviewReference = { owner: string; subjectId: string; name: string; decisionId: string; assetId: string;
+  assets: Array<{ assetId: string; originalHash: string; width: number; height: number }> };
 export type ReviewMaterial = { runRevision: number; bundleHash: string; bundle: {
   inventory: { routeCount: number }; references: ReviewReference[]; frames: ReviewFrame[];
   story: { characters: Record<string, string>; graph: { nodes: Array<{ id: string; title: string; summary: string }> }; routes?: string[][]; script: Record<string, unknown>; scriptBinding: ScriptBinding; reports?: Array<{ name: string; url: string }> };

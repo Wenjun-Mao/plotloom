@@ -11,11 +11,16 @@ type Owner = { projectId: string; run: AutopilotRun | null; ready: boolean; busy
   start: (body: Omit<Launch, "expectedBriefRevision">) => Promise<void> };
 const Context = createContext<Owner | null>(null);
 export const useAutopilot = () => useContext(Context);
+export const adoptionSentence = (label: string, subject: string) => label === "已确认" ? `${subject}已确认` : `${subject} · ${label}`;
 export function useAdoptionLabel() {
   const owner = useAutopilot();
-  return (operation: string, revision?: number, hash?: string) => owner?.run?.checkpoints.some(item =>
-    item.operationKey === operation && item.state === "adopted" && item.evidence.result.revision === revision && item.evidence.result.contentHash === hash)
-    ? "AI 已采用" : "已确认";
+  return (operation: string, revision?: number, hash?: string) => {
+    if (owner && !owner.ready) return "已采用 · 来源待核实";
+    if (owner?.run?.checkpoints.some(item => item.operationKey === operation && item.state === "adopted"
+      && item.evidence.result.revision === revision && item.evidence.result.contentHash === hash)) return "AI 已采用";
+    if (owner?.run && !["taken_over", "cancelled", "stale", "handed_off"].includes(owner.run.state)) return "已采用 · 来源待核实";
+    return "已确认";
+  };
 }
 const stateLabels: Record<AutopilotRun["state"], string> = { running: "正在准备", waiting: "等待助手交付", paused: "已暂停", blocked: "需要处理", cancelled: "已取消", stale: "素材已变化", taken_over: "已手动接管", awaiting_review: "等待你审阅", handed_off: "素材已由你审阅" };
 const phaseLabels: Record<string, string> = { source: "故事来源", outline: "故事大纲", branches: "故事路线", characters: "角色设定", art: "美术方向", script: "完整剧本", storyboard: "分镜", "bridge-intent": "戏剧意图", "bridge-presentation": "画面呈现", references: "参考图片", "first-frames": "镜头首帧", "material-review": "完整素材审阅", "manual-video": "手动视频制作" };
@@ -26,10 +31,17 @@ export function AutopilotWorkspace({ projectId, revision, readOnly, onChanged, o
   const [run, setRun] = useState<AutopilotRun | null>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [review, setReview] = useState(false);
+  const [commandError, setCommandError] = useState("");
   const identity = useRef(projectId); identity.current = projectId;
   const command = useRef(false);
+  const [readEpoch, setReadEpoch] = useState(0);
+  const readContext = useRef("");
   useEffect(() => {
-    setRun(null); setReady(false); setReview(false); setError("");
+    const context = `${projectId}:${revision}`;
+    if (readContext.current !== context) {
+      readContext.current = context;
+      setRun(null); setReady(false); setReview(false); setError(""); setCommandError("");
+    }
     if (!projectId) return;
     const abort = new AbortController(); let timer: ReturnType<typeof setTimeout>;
     const refresh = async () => {
@@ -38,19 +50,27 @@ export function AutopilotWorkspace({ projectId, revision, readOnly, onChanged, o
         if (abort.signal.aborted) return;
         setRun(previous => value && previous?.id === value.id && previous.revision > value.revision ? previous : value); setReady(true); setError("");
         if (value && ["running", "waiting", "paused", "blocked"].includes(value.state)) timer = setTimeout(refresh, 5000);
-      } catch (failure) { if (!abort.signal.aborted) { setReady(false); setError(String(failure instanceof Error ? failure.message : failure)); } }
+      } catch (failure) { if (!abort.signal.aborted) {
+        setReady(false); setError(String(failure instanceof Error ? failure.message : failure));
+        timer = setTimeout(refresh, 5000);
+      } }
     };
     void refresh(); return () => { abort.abort(); clearTimeout(timer); };
-  }, [projectId, revision]);
+  }, [projectId, revision, readEpoch]);
   const execute = async (operation: () => Promise<AutopilotRun>, refresh = false) => {
     if (command.current) return;
     command.current = true;
-    setBusy(true); setError("");
-    try { const value = await operation(); if (identity.current !== projectId) return; setRun(value); if (refresh) await onChanged(); }
-    catch (failure) { if (identity.current === projectId) setError(failure instanceof Error ? failure.message : String(failure)); }
+    setBusy(true); setCommandError("");
+    try { const value = await operation(); if (identity.current !== projectId) return; setRun(value); setReadEpoch(epoch => epoch + 1); if (refresh) await onChanged(); }
+    catch (failure) { if (identity.current === projectId) {
+      setCommandError(failure instanceof Error ? failure.message : String(failure));
+      // Reconcile an uncertain command response by reading the durable run;
+      // never replay the command just to recover browser observation.
+      setReadEpoch(epoch => epoch + 1);
+    } }
     finally { command.current = false; setBusy(false); }
   };
-  const owner: Owner = { projectId, run, ready, busy, error, start: body => execute(() => autopilotApi.start(projectId, { ...body, expectedBriefRevision: revision }), true) };
+  const owner: Owner = { projectId, run, ready, busy, error: error || commandError, start: body => execute(() => autopilotApi.start(projectId, { ...body, expectedBriefRevision: revision }), true) };
   const controllable = run && !["cancelled", "taken_over", "stale", "handed_off"].includes(run.state);
   const counts = run?.checkpoints.filter(item => ["image", "character-reference", "art-reference"].includes(item.evidence.owner));
   const inventory = run?.checkpoints.find(item => item.operationKey === "material.inventory")?.evidence.result.inventory as { subjects?: unknown[] } | undefined;
@@ -71,8 +91,9 @@ export function AutopilotWorkspace({ projectId, revision, readOnly, onChanged, o
       </div>
     </section>}
     {error && <p className="autopilot-error" role="alert">素材准备：{error}</p>}
+    {commandError && <p className="autopilot-error" role="alert">上次操作反馈：{commandError}</p>}
     {children}
-    {review && run && <MaterialReview key={`${projectId}:${run.revision}`} projectId={projectId} onClose={() => setReview(false)} onAccepted={async value => { setRun(value); setReview(false); await onChanged(); }} />}
+    {review && run && <MaterialReview key={`${projectId}:${run.revision}`} projectId={projectId} readOnly={readOnly} onClose={() => setReview(false)} onAccepted={async value => { setRun(value); setReview(false); await onChanged(); }} />}
   </Context.Provider>;
 }
 

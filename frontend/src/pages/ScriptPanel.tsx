@@ -1,4 +1,4 @@
-import { useAdoptionLabel } from "../features/autopilot/AutopilotWorkspace";
+import { useAdoptionLabel, adoptionSentence } from "../features/autopilot/AutopilotWorkspace";
 import { StaticReportReader } from "../components/StaticReportReader";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AcceptedEvidenceNotice } from "./AcceptedEvidenceNotice";
@@ -138,7 +138,7 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
     </>}
     {contextSectionId && draftDirty.current && sectionId !== contextSectionId && <p role="status">正在保留 {sectionId} 的未保存章节；切换节点不会将其保存到 {contextSectionId}。请先保存或舍弃当前章节修改。</p>}
     <StageGuide next={onContinue && <Button variant="quiet" disabled={checking || failed || busy || draftDirty.current || state.acceptedReviewState.status !== "current" || !accepted} onClick={onContinue}>继续：分镜评审</Button>}>
-      {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : busy ? "正在处理剧本任务，请稍候。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃章节修改，再继续分镜。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "请按当前审核要求重新准备并确认剧本。") : state.status === "accepted" && accepted ? "完整剧本已确认。下一步准备分镜评审；切换页面不会自动生成镜头或媒体。" : candidate?.status === "ready" ? "阅读候选剧本，确认开场、选择和结局表达，再确认使用。" : "准备剧本任务并发送给文字创作助手。返回的剧本须先审阅，再确认使用。"}
+      {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : busy ? "正在处理剧本任务，请稍候。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃章节修改，再继续分镜。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "请按当前审核要求重新准备并确认剧本。") : state.status === "accepted" && accepted ? `${adoptionSentence(adoptionLabel("script", accepted.revision, accepted.contentHash), "完整剧本")}。下一步准备分镜评审；切换页面不会自动生成镜头或媒体。` : candidate?.status === "ready" ? "阅读候选剧本，确认开场、选择和结局表达，再确认使用。" : "准备剧本任务并发送给文字创作助手。返回的剧本须先审阅，再确认使用。"}
     </StageGuide>
     <ReviewContextNotice projectId={projectId} diagnostics={state.staleReasons} />
     {state.candidate && <AcceptedEvidenceNotice projectId={projectId} state={state.acceptedReviewState} />}
@@ -178,10 +178,11 @@ function CandidateActions({ candidate, projectId, readOnly, stale, busy, run }: 
 }
 
 function AcceptedReview({ accepted, projectId, readOnly, busy, status, retained, draftDirty, sectionId, draft, onSelect, onDraft, onReopen, onSave }: { accepted: AcceptedScriptRevision; projectId: string; readOnly: boolean; busy: boolean; status: ScriptReviewState["acceptedReviewState"]["status"]; retained: boolean; draftDirty: boolean; sectionId: string; draft: string; onSelect: (sectionId: string) => void; onDraft: (draft: string) => void; onReopen: () => void; onSave: () => void }) {
+  const label = useAdoptionLabel()("script", accepted.revision, accepted.contentHash);
   const editing = status === "reopened";
-  const contentTitle = status === "retained" ? `保留的已确认剧本 r${accepted.revision}` : status === "reopened" ? `正在编辑的已确认剧本 r${accepted.revision} · 已保存版本` : `当前已确认剧本 r${accepted.revision}`;
+  const contentTitle = status === "retained" ? `保留的${label}剧本 r${accepted.revision}` : status === "reopened" ? `正在编辑的${label}剧本 r${accepted.revision} · 已保存版本` : `当前${label}剧本 r${accepted.revision}`;
   return <section>
-    <small>{status === "retained" ? "保留的已确认剧本" : "已确认剧本"} r{accepted.revision} · hash {accepted.contentHash.slice(0, 12)}。原始报告保留最初交付的版本，可能与后续修改不同。</small>
+    <small>{status === "retained" ? `保留的${label}剧本` : `${label}剧本`} r{accepted.revision} · hash {accepted.contentHash.slice(0, 12)}。原始报告保留最初交付的版本，可能与后续修改不同。</small>
     <ScriptContentReview title={contentTitle} statusDescription={status === "retained" ? "此版本是保留的历史证据；它不会因此恢复当前审核资格。" : undefined} script={accepted.script} binding={accepted.binding} />
     {!editing && <Button variant="quiet" disabled={readOnly || busy} onClick={onReopen}>重新打开剧本</Button>}
     {editing && !retained && <>

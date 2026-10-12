@@ -10,6 +10,9 @@
 .autopilot-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
 .autopilot-gallery img { width: 100%; height: 220px; object-fit: contain; background: #eff2f5; }
 .autopilot-gallery label { display: block; padding: 8px 0; }
+.autopilot-reference-set { display: flex; flex-wrap: wrap; gap: 8px; }
+.autopilot-reference-set figure { flex: 1 1 180px; margin: 0; }
+.autopilot-reference-set figcaption { color: var(--muted); font-size: 12px; }
 .autopilot-frame { margin: 14px 0; padding: 16px; border: 1px solid #ccd4dc; border-radius: 10px; }
 .autopilot-frame > summary { cursor: pointer; font-weight: 600; margin-bottom: 12px; }
 .autopilot-frame-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 24px; }

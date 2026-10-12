@@ -171,3 +171,18 @@ human approval, labelled `existing_human`, while creating a fresh material recei
 and observations. Native approval forbids consecutive duplicate approvals; fake
 revocation/approval churn would misstate the author's decision history. Original
 approval attribution is retained, separate from the new handoff's reviewer.
+
+The review receipt retains the complete ordered asset set of each selected
+character-reference decision: primary plus up to two complementary views, with
+original hashes and dimensions. One endorsement covers that exact original
+decision, matching the SamePerson consumer; displaying only its primary image
+would authorize unseen material. Current review also checks generated-frame
+applicability against current references after takeover. Reselection withdraws
+old generated frames and eligibility, without rewriting historical receipts.
+
+Browser observation reconciles every command response, including an uncertain
+response, through a fresh durable read. Transient read failures retry observation
+only; they never replay Start or control commands. Missing or failed provenance
+is labelled unknown across accepted-stage headers and guidance. Exact adopted
+revision/hash establishes AI origin; confirmed manual semantics require known
+current provenance. Read-only state reaches an already-open human review form.

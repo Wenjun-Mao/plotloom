@@ -7,12 +7,24 @@ import { fixtureMaterial, fixtureRun } from "../tests/autopilot-fixture";
 import type { Handoff } from "../src/features/autopilot/contracts";
 import "../src/styles.css";
 const initial = new URLSearchParams(location.search).get("state");
-let current = initial === "fresh" ? null : { ...fixtureRun, state: initial === "running" ? "running" as const : fixtureRun.state };
+let current = initial?.startsWith("fresh") ? null : { ...fixtureRun, state: initial?.startsWith("running") ? "running" as const : fixtureRun.state };
+let progressReads = 0;
 const writes: unknown[] = [];
 function record(value: unknown) { writes.push(value); document.getElementById("fixture-writes")!.textContent = JSON.stringify(writes); }
-autopilotApi.current = async () => current;
+autopilotApi.current = async () => {
+  if (initial === "fresh-progress" && current?.state === "running") {
+    progressReads += 1;
+    current = progressReads >= 3 ? { ...fixtureRun, revision: 15 } : { ...fixtureRun, state: "running", phase: progressReads === 1 ? "outline" : "references", revision: 12 + progressReads };
+  }
+  if (initial === "running-retry") {
+    progressReads += 1;
+    if (progressReads === 2) throw new Error("Disposable transient read failure");
+    if (progressReads >= 3) current = fixtureRun;
+  }
+  return current;
+};
 autopilotApi.launchContext = async () => ({ eligible: current === null, briefRevision: 1 });
-autopilotApi.review = async () => structuredClone(fixtureMaterial);
+autopilotApi.review = async () => ({ ...structuredClone(fixtureMaterial), runRevision: current?.revision ?? fixtureMaterial.runRevision });
 autopilotApi.start = async (_id, body) => { record(["start", body]); current = { ...fixtureRun, state: "running" }; return current; };
 autopilotApi.control = async (_id, _revision, action) => { record(["control", action]); current = { ...fixtureRun, state: action === "pause" ? "paused" : action === "resume" ? "running" : action === "cancel" ? "cancelled" : "taken_over" }; return current; };
 autopilotApi.handoff = async (_id, body: Handoff) => { record(["handoff", body]); current = { ...fixtureRun, state: "handed_off", handoff: { receiptId: "human-fixture" } }; return current; };

@@ -28,12 +28,37 @@ test("pause and resume use original run controls; takeover retains review entran
   expect(JSON.parse(await page.locator("#fixture-writes").textContent() || "[]")).toEqual([["control", "pause"], ["control", "resume"], ["control", "takeover"]]);
 });
 
+test("fresh Start observes same-project server progress through review without navigation", async ({ page, frontendOrigin }) => {
+  await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html?state=fresh-progress`);
+  const originalUrl = page.url();
+  await page.getByRole("button", { name: "一键准备视频素材", exact: true }).click();
+  await page.getByRole("button", { name: "开始准备已保存简报的素材" }).click();
+  await expect(page.getByText("故事大纲", { exact: true })).toBeVisible();
+  await expect(page.getByText("参考图片", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "审阅完整素材", exact: true })).toBeVisible();
+  expect(page.url()).toBe(originalUrl);
+  const writes = JSON.parse(await page.locator("#fixture-writes").textContent() || "[]");
+  expect(writes).toHaveLength(1); expect(writes[0][0]).toBe("start");
+});
+
+test("transient progress read failure retries original observation without dispatch", async ({ page, frontendOrigin }) => {
+  await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html?state=running-retry`);
+  await expect(page.getByText("Disposable transient read failure", { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: "审阅完整素材", exact: true })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  expect(await page.locator("#fixture-writes").textContent()).toBe("[]");
+});
+
 test("whole review requires real observations and separate uncertain identity authorization", async ({ page, frontendOrigin }, testInfo) => {
   await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html`);
   await page.getByRole("button", { name: "审阅完整素材", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "审阅完整素材" });
   const confirm = dialog.getByRole("button", { name: "确认素材，进入视频制作" });
   await expect(confirm).toBeDisabled(); await expect(dialog.getByLabel("shot-1 hero 身份判断")).toHaveValue("");
+  await expect(dialog.getByRole("heading", { name: "守塔人 · 2 张参考" })).toBeVisible();
+  await expect(dialog.getByRole("img", { name: "守塔人主参考", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("img", { name: "守塔人补充参考 1", exact: true })).toBeVisible();
+  await expect(dialog.locator('a[href$="/hero-side/original"]')).toHaveCount(1);
   await dialog.getByText("完整故事与全部路线", { exact: true }).click();
   await expect(dialog.getByText("灯塔 → 点亮", { exact: true })).toBeVisible(); await expect(dialog.getByText("灯塔 → 熄灭", { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("whole-review-desktop.png"), fullPage: true });

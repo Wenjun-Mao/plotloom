@@ -192,3 +192,18 @@ fake human facts before handoff. Final review must refuse every stale/missing/
 failed/held dependency and preserve uncertain authorization as uncertain.
 Record ownership and browser shard registration with new collected tests;
 broader full qualification stays manager-owned on the stable candidate.
+
+### Complete review and browser observation
+
+Review every selected character-reference view (primary and complementary),
+retaining the original decision ID and ordered asset IDs, hashes and dimensions.
+Endorsement must match the full set consumed by identity review. Current generated
+frames must remain applicable to current reference decisions even after takeover;
+changing a reference withdraws old generated frames and whole-pack eligibility.
+Imported current material remains explicitly manual in the gallery.
+
+After Start/control, read the durable run without relying on navigation or a
+Brief revision change. Retry transient reads without resending commands, including
+when command acknowledgment is uncertain. Unknown provenance must stay unknown
+in headings, guides and metadata; only exact adopted revision/hash is AI-labelled.
+Read-only admission disables review mutations even if its form is already open.

@@ -1,4 +1,4 @@
-import { useAdoptionLabel } from "../features/autopilot/AutopilotWorkspace";
+import { useAdoptionLabel, adoptionSentence } from "../features/autopilot/AutopilotWorkspace";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AcceptedEvidenceNotice } from "./AcceptedEvidenceNotice";
 import { plotloomApi } from "../api";
@@ -123,7 +123,7 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
     {failed && <Button variant="quiet" onClick={() => void recheck()}>重试加载美术参考</Button>}
     <p>先由文字创作助手整理地点和道具设定，供你审核。确认设定后，再为场景和道具制作参考图片。这一步不会生成图片。</p>
     <StageGuide next={onContinue && <Button variant="quiet" disabled={checking || failed || busy || draftDirty.current || state.acceptedReviewState.status !== "current" || !accepted} onClick={onContinue}>继续：剧本</Button>}>
-      {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : busy ? "正在处理美术任务，请稍候。" : retained ? "保留了基于旧版本的美术草稿。请在下方明确舍弃，或用当前版本替换草稿，再继续剧本。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃美术修改，再继续剧本。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "请按当前审核要求重新准备并确认美术设定。") : state.status === "accepted" && accepted ? "地点与道具设定已确认。可按需制作参考图，也可继续编写剧本；进入下一步不会自动生成图片。" : "选择美术风格，准备并发送文字任务，再审核返回的地点与道具设定。"}
+      {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : busy ? "正在处理美术任务，请稍候。" : retained ? "保留了基于旧版本的美术草稿。请在下方明确舍弃，或用当前版本替换草稿，再继续剧本。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃美术修改，再继续剧本。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "请按当前审核要求重新准备并确认美术设定。") : state.status === "accepted" && accepted ? `${adoptionSentence(adoptionLabel("art", accepted.revision, accepted.contentHash), "地点与道具设定")}。可按需制作参考图，也可继续编写剧本；进入下一步不会自动生成图片。` : "选择美术风格，准备并发送文字任务，再审核返回的地点与道具设定。"}
     </StageGuide>
     {(candidate?.binding.renderContract || accepted?.binding.renderContract) && <p>美术风格：{(candidate?.binding.renderContract || accepted?.binding.renderContract)?.preset.label}</p>}
     <ReviewContextNotice projectId={projectId} diagnostics={state.staleReasons} />
