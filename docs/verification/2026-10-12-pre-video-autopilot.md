@@ -1,8 +1,8 @@
 # Pre-video autopilot · single evidence receipt
 
-Status: **P0 contract checkpoint for attended manager review**. P1–P4 remain
-NOT IMPLEMENTED. No autopilot happy path, product acceptance, upgrade or live
-activation is claimed. Scope and stopping boundary are in the
+Status: **P1 authority/schema/recovery checkpoint committed at `fd549395`;
+P2–P4 in progress**. No full autopilot happy path, product acceptance, valued
+installation upgrade or live activation is claimed. Scope and stopping boundary are in the
 [approved plan](../roadmap/2026-10-12-pre-video-autopilot.md#p0-implementation-checkpoint)
 and [ADR 0162](../adr/0162-pre-video-autopilot-authority.md).
 
@@ -22,7 +22,7 @@ and [ADR 0162](../adr/0162-pre-video-autopilot-authority.md).
   `third_party/shuohao-skills` at `4f9b2128c82adf623f594ba714c97d0afcfc16a2`.
   No frontend builds, static changes, service operations or hosted dispatch.
 
-## Executed evidence
+## Historical P0 executed evidence
 
 All commands below ran from the isolation checkout. The focused native runner
 completed **76 passed**, one existing Starlette/httpx deprecation warning,
@@ -87,11 +87,10 @@ quality pass or claim a new visual adjudication subsystem.
 
 ## Remaining gates and precise next action
 
-Manager: review this P0 contract and authorize the existing registered source owner
-to continue P1–P4 in the same checkout. No replacement source writer is needed.
-P1 must first implement/test typed authority, transaction/CAS and synthetic known-
-layout preservation/recovery; P2 deterministic full-chain faults precede P3 real
-integration; P4 adds compact UI and truthful human handoff. Add collected tests to
+Current next action: the manager approved P0 and received P1 (`fd549395`). The
+existing registered source owner continues P2–P4 in the same checkout. P2
+deterministic full-chain faults precede P3 image integration; P4 adds compact UI
+and truthful human handoff. Add collected tests to
 native ownership and browser allocation with no reduction of current case union.
 
 Source owner will deliver the stable candidate and scoped quick/focused/module,
@@ -160,3 +159,23 @@ complete subject/all-route image pack and one counted adaptation, consolidated
 truthful human review/UI and exact final handoff. No frontend build/browser/pixel,
 full qualification, real native dispatch, live schema upgrade, service activation,
 CI, video operation, main merge or push is represented by this checkpoint.
+
+
+### Manager-attended P1 preserving-package correction
+
+The independent exact-`fd549395` manager review found that final delivery members
+were mandatory but frozen package members were only an allowlist. The shared
+retained-evidence inventory now requires `package/request.json`,
+`COPY_ASSIGNMENT.txt`, completion template and every declared input for completed
+jobs. Missing package directories and each member fail snapshot and schema-upgrade
+admission. Unexported requests and the explicitly recorded verified prior-snapshot
+whole-job omission remain distinct; no package bytes are reconstructed or rewritten.
+
+Focused upgrade/recovery selection: **31 passed**, runner
+`elapsed_seconds=8.864 exit_code=0`. Added completed branches-package portability
+regression: **1 passed**, runner `elapsed_seconds=1.701 exit_code=0`; original
+location-sensitive assignment bytes and all package hashes survive restore.
+This correction also removes four extra blank EOFs and makes the receipt's current
+status distinguish historical P0 evidence from committed P1 and ongoing P2–P4.
+Final staged and committed additions are checked with `git diff --cached --check`
+and `git show --check`; ordinary diff checks alone do not cover untracked additions.

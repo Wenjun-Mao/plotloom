@@ -194,4 +194,3 @@ class ProjectCreativeStages(ProjectCreativeHandoffs):
 
     def accept_production_bridge(self, request: ProductionBridgeAcceptRequest) -> ProductionBridgeState:
         return self.repository.production_bridge.accept(self.manifest.project_id, request)
-

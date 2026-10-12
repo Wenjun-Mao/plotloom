@@ -86,4 +86,3 @@ class ProjectCommandTransactions:
     def _is_sqlite_lock_contention(error: OperationalError) -> bool:
         message = str(error).lower()
         return "database is locked" in message or "database table is locked" in message
-

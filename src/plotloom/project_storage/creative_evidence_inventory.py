@@ -92,6 +92,11 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
                     observed.add(relative)
                     paths.append(PurePosixPath(child.relative_to(root).as_posix()))
         visit(job)
+        required_package = {name for name in expected if name.startswith("package/")}
+        if manifest_hash is not None and not required_package.issubset(observed):
+            # These are retained original-location bytes, not a freshly
+            # reprojected dispatch package at the recovery destination.
+            raise ProjectStorageCorruptionError("completed creative evidence omits frozen package members")
         package_request = job / "package" / "request.json"
         if package_request.exists():
             raw = json.loads(package_request.read_text(encoding="utf-8"))

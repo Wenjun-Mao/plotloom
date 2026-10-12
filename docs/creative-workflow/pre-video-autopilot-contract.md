@@ -175,4 +175,3 @@ fake human facts before handoff. Final review must refuse every stale/missing/
 failed/held dependency and preserve uncertain authorization as uncertain.
 Record ownership and browser shard registration with new collected tests;
 broader full qualification stays manager-owned on the stable candidate.
-

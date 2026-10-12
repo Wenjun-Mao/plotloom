@@ -47,7 +47,7 @@ def test_snapshot_and_closed_folder_restore_preserve_all_retained_creative_files
         assert sha256((restored_folder / name).read_bytes()).hexdigest() == digest
 
 
-@pytest.mark.parametrize("mutation", ["foreign", "secret", "ancestor_symlink", "missing_job", "missing_tree"])
+@pytest.mark.parametrize("mutation", ["foreign", "secret", "ancestor_symlink", "missing_job", "missing_tree", "missing_package", "missing_request", "missing_input", "missing_assignment", "missing_template"])
 def test_creative_evidence_inventory_remains_confined_and_secret_free(tmp_path, mutation):
     storage = storage_at(tmp_path / "source")
     project_id, home = accepted_outline(storage)
@@ -63,9 +63,13 @@ def test_creative_evidence_inventory_remains_confined_and_secret_free(tmp_path, 
         moved = tmp_path / "outside"
         shutil.move(home / "outputs", moved)
         (home / "outputs").symlink_to(moved, target_is_directory=True)
-    else:
+    elif mutation in {"missing_tree", "missing_job", "missing_package"}:
         import shutil
-        shutil.rmtree(job if mutation == "missing_job" else home / "outputs")
+        shutil.rmtree(job if mutation == "missing_job" else job / "package" if mutation == "missing_package" else home / "outputs")
+    else:
+        missing = {"missing_request": job / "package/request.json", "missing_assignment": job / "package/COPY_ASSIGNMENT.txt",
+            "missing_template": job / "package/completion-manifest.example.json", "missing_input": next((job / "package/inputs").iterdir())}
+        missing[mutation].unlink()
     with pytest.raises((ProjectStorageCorruptionError, ProjectStorageConfinementError)):
         storage.recovery.create_snapshot(project_id)
 
@@ -155,3 +159,28 @@ def test_prior_snapshot_package_omission_is_explicit_and_not_a_current_snapshot_
     restored.recovery.acknowledge_recovery(project_id)
     retained = restored.recovery.create_snapshot(project_id)
     assert any(item.relative_path == "schema-transition.json" for item in retained.manifest.files)
+
+
+def test_completed_branch_package_restores_original_location_sensitive_bytes(tmp_path):
+    from tests.test_creator_branch_suggestions import proposal
+    from tests.creative_delivery_fixtures import _deliver_stage
+    storage = storage_at(tmp_path / "source")
+    project_id, home = accepted_outline(storage)
+    with closing(storage.projects.open(project_id)) as store:
+        store.prepare_branch_candidate()
+        job = store.branch_state().candidate.job_id
+        request = store.branch_candidate_request(job)
+        store.admit_branch_delivery(_deliver_stage(store, request, "branches.json", proposal(request.source["topology"]), "portable-branch"))
+    original_package = home / "outputs/creative-handoff/jobs" / job / "package"
+    instructions = (original_package / "COPY_ASSIGNMENT.txt").read_bytes()
+    assert str(original_package).encode() in instructions
+    frozen = {path.relative_to(home).as_posix(): sha256(path.read_bytes()).hexdigest()
+        for path in original_package.rglob("*") if path.is_file()}
+    snapshot = storage.recovery.create_snapshot(project_id)
+    restored = storage_at(tmp_path / "destination")
+    destination = restored.recovery.restore(Path(snapshot.location))
+    for name, digest in frozen.items():
+        assert sha256((destination / name).read_bytes()).hexdigest() == digest
+    assert (destination / "outputs/creative-handoff/jobs" / job / "package/COPY_ASSIGNMENT.txt").read_bytes() == instructions
+    with closing(restored.projects.open(project_id)) as store:
+        assert store.branch_state().candidate.status == "ready"

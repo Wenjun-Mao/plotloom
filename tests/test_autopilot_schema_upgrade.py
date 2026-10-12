@@ -135,7 +135,7 @@ def test_upgrade_retains_valued_assets_and_native_package_bytes_even_on_rollback
         assert store.source_outline_state().accepted_outline is not None
 
 
-@pytest.mark.parametrize("mutation", ["asset", "package", "secret", "symlink"])
+@pytest.mark.parametrize("mutation", ["asset", "package", "secret", "symlink", "missing_package", "missing_request", "missing_input", "missing_assignment", "missing_template"])
 def test_upgrade_refuses_unsafe_or_corrupt_retained_files_before_ddl(tmp_path, mutation):
     storage, project_id, home = valued_prior_fixture(tmp_path)
     if mutation == "asset":
@@ -144,11 +144,20 @@ def test_upgrade_refuses_unsafe_or_corrupt_retained_files_before_ddl(tmp_path, m
         next((home / "outputs").rglob("report.html")).write_text("changed report")
     elif mutation == "secret":
         next((home / "outputs").rglob("COPY_ASSIGNMENT.txt")).write_text("Bearer sk-abcdefghijklmnopqrstuvwxyz123456")
-    else:
+    elif mutation == "symlink":
         import shutil
         outside = tmp_path / "outside"
         shutil.move(home / "outputs", outside)
         (home / "outputs").symlink_to(outside, target_is_directory=True)
+    else:
+        import shutil
+        job = next((home / "outputs/creative-handoff/jobs").iterdir())
+        if mutation == "missing_package":
+            shutil.rmtree(job / "package")
+        else:
+            missing = {"missing_request": job / "package/request.json", "missing_assignment": job / "package/COPY_ASSIGNMENT.txt",
+                "missing_template": job / "package/completion-manifest.example.json", "missing_input": next((job / "package/inputs").iterdir())}
+            missing[mutation].unlink()
     from plotloom.project_storage import ProjectStorageConfinementError
     with pytest.raises((ProjectStorageCorruptionError, ProjectStorageConfinementError)):
         upgrade_project(home, SpecialistRegistry(storage.application.root))
