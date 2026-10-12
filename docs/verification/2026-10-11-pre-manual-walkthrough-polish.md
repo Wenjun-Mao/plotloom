@@ -115,4 +115,5 @@ performed here. The portrait and landscape projects, settings, approvals,
 originals, and selected clips were not accessed or changed. The test-only
 project and synthetic media remain labelled at the local fixture path above.
 
-Checkpoint revision: pending commit.
+Implementation and generated-asset checkpoint: `ddec07ce16ae7937e51e21981273f3f164fed68a`.
+This receipt update is documentation-only; it does not change the qualified code.
