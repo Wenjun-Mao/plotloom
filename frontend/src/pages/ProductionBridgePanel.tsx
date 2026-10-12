@@ -3,6 +3,7 @@ import { Button, ErrorNotice, Spinner } from "../components";
 import { ProductionPresentationReview } from "./ProductionPresentationReview";
 import { InstalledProductionSummary } from "./InstalledProductionSummary";
 import { NativeBridgeIntentControls } from "./NativeBridgeIntentControls";
+import { NativeBridgePresentationControls } from "./NativeBridgePresentationControls";
 import { ProductionIntentSaveBar } from "./ProductionIntentSaveBar";
 import { useExplicitReviewCloseGuard } from "../features/authoring/ReviewDraftContext";
 import { useProductionBridgeReview, type BridgeReviewBasis } from "./useProductionBridgeReview";
@@ -32,9 +33,11 @@ export function ProductionBridgePanel({ projectId, reviewBasis, readOnly: ownerR
     {loadFailed ? <><ErrorNotice message={userFacingBridgeMessage(error)} /><Button onClick={retryLoad}>重试加载</Button></> : <Spinner />}
   </section>;
   const unsaved = intentDirty || draftConflict || presentationDirty;
-  const activeJob = job?.status === "queued" || job?.status === "dispatched";
+  const presentationJob = state.presentationJob;
+  const activeJob = [job, presentationJob].some(item => item?.status === "queued" || item?.status === "dispatched");
   const intentAvailable = state.intentGeneration.status === "available";
-  const unresolvedJob = activeJob || job?.status === "outcome_unknown" || job?.transport === "codex_native" && job.status === "cancelled" && !job.responseHash && state.nativeIntentTask?.state !== "prepared";
+  const unresolvedPresentation = presentationJob?.status === "outcome_unknown" || presentationJob?.status === "cancelled" && !presentationJob.responseHash && state.nativePresentationTask?.state !== "prepared";
+  const unresolvedJob = activeJob || unresolvedPresentation || job?.status === "outcome_unknown" || job?.transport === "codex_native" && job.status === "cancelled" && !job.responseHash && state.nativeIntentTask?.state !== "prepared";
   const localEdits = intentDirty || draftConflict || (presentationTouched && presentationDirty);
   const emptyIntents = intentEntries.filter(entry => !entry.text.trim()).length;
   const intentSaveStatus = busy ? "正在处理提案，请稍候。"
@@ -76,7 +79,7 @@ export function ProductionBridgePanel({ projectId, reviewBasis, readOnly: ownerR
       <details><summary>查看场次与镜头</summary><ul>{proposal.scenes.map((scene, index) => <li key={String(scene.sceneId ?? index)}>{String(scene.sectionId)} / 第 {String(scene.episode)} 结构条目 / 场次 {String(scene.sceneIndex)}：{String(scene.cutCount)} 个镜头</li>)}</ul><ul>{proposal.cuts.map((raw, index) => {
         return <li key={String(raw.shotId ?? index)}>{String(raw.shotId)} · {String(raw.seconds)} 秒</li>;
       })}</ul></details>
-      <NativeBridgeIntentControls projectId={projectId} state={state} disabled={readOnly || busy} localEdits={localEdits} run={operation => run(operation)} />
+      <NativeBridgeIntentControls projectId={projectId} state={state} disabled={readOnly || busy || !!unresolvedPresentation || !!presentationJob && ["queued", "dispatched"].includes(presentationJob.status)} localEdits={localEdits} run={operation => run(operation)} />
       {state.status !== "accepted" && (intentAvailable || job?.transport === "text_api" || state.nativeIntentGeneration.status === "unavailable") && <div className="bridge-intent-controls">
         {intentAvailable && <small>API 意图推断使用独立配置；请选择需要的生成方式。</small>}
         <Button variant="primary" disabled={readOnly || busy || activeJob || state.status === "stale" || !intentAvailable} onClick={() => { if (intentAvailable) run(() => plotloomApi.generateProductionBridgeIntent(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash })); }}>生成戏剧意图建议</Button>
@@ -84,9 +87,9 @@ export function ProductionBridgePanel({ projectId, reviewBasis, readOnly: ownerR
         {job && job.transport !== "codex_native" && <small className="bridge-intent-status">{job.status === "queued" ? "等待执行" : job.status === "dispatched" ? "模型处理中" : job.status === "ready" ? "建议已进入新提案" : job.status === "outcome_unknown" ? "结果不确定，不会自动重试" : job.status === "stale" ? "来源或提案已变化，结果未采用" : job.status === "cancelled" ? "已取消" : "推断失败"}</small>}
         {job?.errorMessage && <ErrorNotice message={job.errorMessage} />}
         {job?.transport === "text_api" && job.status === "queued" && <Button disabled={readOnly || busy || !intentAvailable} onClick={() => { if (intentAvailable) run(() => plotloomApi.resumeProductionBridgeIntent(projectId, job.id)); }}>继续排队任务</Button>}
-        {activeJob && job.transport === "text_api" && <Button disabled={readOnly || busy || !intentAvailable} onClick={() => { if (intentAvailable) run(() => plotloomApi.cancelProductionBridgeIntent(projectId, job.id)); }}>取消推断任务</Button>}
+        {job?.transport === "text_api" && ["queued", "dispatched"].includes(job.status) && <Button disabled={readOnly || busy || !intentAvailable} onClick={() => { if (intentAvailable) run(() => plotloomApi.cancelProductionBridgeIntent(projectId, job.id)); }}>取消推断任务</Button>}
       </div>}
-      <details open className="bridge-intent-review"><summary>戏剧意图整包审阅</summary>
+      <details open={proposal.intentPackage.reviewState !== "author_saved" || intentDirty || draftConflict} className="bridge-intent-review"><summary>戏剧意图整包审阅{proposal.intentPackage.reviewState === "author_saved" && !intentDirty && !draftConflict && <small> · 已保存，展开查看或修改</small>}</summary>
         <p><small>{proposal.intentPackage.suggestionOrigin !== "none" ? "模型建议仅供审阅，来源与目标由系统绑定。" : "来源摘录仅是证据，不是已完成的戏剧意图。"} 可逐项修改并保存整包；确认仅适用于当前提案。</small></p>
         {draftConflict && <div className="notice warning">服务器提案或审阅状态已变化；未保存的本地编辑仍在此保留。请复制所需文字后，明确载入当前提案。</div>}
         {draftConflict && <Button disabled={readOnly || busy} onClick={review.discard}>载入新提案并放弃本地编辑</Button>}
@@ -94,7 +97,8 @@ export function ProductionBridgePanel({ projectId, reviewBasis, readOnly: ownerR
         {state.status !== "accepted" && <ProductionIntentSaveBar itemCount={intentEntries.length} status={intentSaveStatus} busy={busy} disabled={readOnly || busy || state.status === "stale" || (!intentDirty && proposal.intentPackage.reviewState !== "model_suggested") || draftConflict || intentEntries.some(entry => !entry.text.trim())} onSave={() => run(() => plotloomApi.updateProductionBridgeIntent(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash, entries: intentEntries.map(entry => ({ id: entry.id, text: entry.text })) }), true)} />}
         {state.status !== "accepted" && unsaved && <p><small>当前编辑未保存或提案已变化；保存并刷新前，不能确认投产提案。</small></p>}
       </details>
-      <ProductionPresentationReview key={`${projectId}:${presentationEditorNonce}`} projectId={projectId} proposal={proposal} accepted={state.status === "accepted"} disabled={readOnly || busy || activeJob || state.status === "stale" || intentDirty || draftConflict} onSave={async entries => Boolean(await run(() => plotloomApi.updateProductionBridgePresentation(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash, sourceHash: proposal.presentation.sourceHash, reviewedComplete: true, entries }), true))} onDirty={review.setPresentationDirty} onEdited={review.presentationEdited} />
+      <NativeBridgePresentationControls projectId={projectId} state={state} disabled={readOnly || busy} localEdits={localEdits} occupied={!!unresolvedJob} run={operation => run(operation)} />
+      <ProductionPresentationReview key={`${projectId}:${presentationEditorNonce}`} projectId={projectId} proposal={proposal} candidate={state.presentationCandidate} accepted={state.status === "accepted"} disabled={readOnly || busy || !!unresolvedJob || state.status === "stale" || intentDirty || draftConflict} onSave={async entries => Boolean(await run(() => plotloomApi.updateProductionBridgePresentation(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash, sourceHash: proposal.presentation.sourceHash, reviewedComplete: true, entries }), true))} onDirty={review.setPresentationDirty} onEdited={review.presentationEdited} />
       <details><summary>技术详情（版本、来源与冻结输入）</summary><code>{proposal.contentHash}</code>{state.staleReasons.length > 0 && <><p>来源过期诊断（原文）</p><ul>{state.staleReasons.map((reason, index) => <li key={index}>{reason}</li>)}</ul></>}{job && <p><small>推断任务 {job.id} · {job.transport === "codex_native" ? "Codex 原生冻结任务" : `API 配置 ${job.profileId} r${job.profileVersion}`} · 提示 v{job.promptVersion}</small></p>}{proposal.intentPackage.provenance && <p><small>建议来源任务：{String(proposal.intentPackage.provenance.jobId ?? "")}</small></p>}</details>
       <p>{state.status === "accepted" ? "场景与镜头数据已建立；此次确认不会自动生成图片或视频。" : "确认投产后，会建立后续制作使用的场景与镜头数据；不会自动生成图片或视频。"}</p>
       {state.status !== "accepted" && <Button variant="primary" disabled={readOnly || busy || !proposal.installable || unsaved || state.status === "stale" || unresolvedJob} onClick={() => run(() => plotloomApi.acceptProductionBridge(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash }), false, false, true)}>确认投产提案</Button>}

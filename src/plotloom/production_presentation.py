@@ -47,6 +47,15 @@ class PresentationUpdate(CamelModel):
     spans: list[PresentationSpan]
 
 
+class PresentationCandidate(CamelModel):
+    job_id: str
+    proposal_revision: int
+    proposal_content_hash: str
+    source_hash: str
+    entries: list[PresentationUpdate]
+    provenance: dict[str, Any]
+
+
 class ProductionPresentationUpdateRequest(CamelModel):
     expected_proposal_revision: int = Field(ge=1)
     expected_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
@@ -86,8 +95,14 @@ def review_presentation(package: ProductionPresentation, request: ProductionPres
     """Validate exact span coverage, not the reviewer's semantic judgment."""
     if request.source_hash != package.source_hash:
         raise ValueError("presentation source hash changed")
-    updates = {item.id: item.spans for item in request.entries}
-    if len(updates) != len(request.entries) or set(updates) != {item.id for item in package.sources}:
+    sources = bind_presentation_spans(package, request.entries)
+    return package.model_copy(update={"reviewed": True, "sources": sources})
+
+
+def bind_presentation_spans(package: ProductionPresentation, entries: list[PresentationUpdate]) -> list[PresentationSource]:
+    """Structural completeness is shared by suggestions and explicit author review."""
+    updates = {item.id: item.spans for item in entries}
+    if len(updates) != len(entries) or set(updates) != {item.id for item in package.sources}:
         raise ValueError("presentation review must cover every exact source once")
     sources = []
     choice = package.runtime_choice
@@ -116,7 +131,7 @@ def review_presentation(package: ProductionPresentation, request: ProductionPres
     choices = choice["choices"]
     if any(not item.get("prompt") or len(item.get("outcomes", [])) < 2 for item in choices):
         raise ValueError("presentation requires every exact authored playback choice")
-    return package.model_copy(update={"reviewed": True, "sources": sources})
+    return sources
 
 
 def physical_text(source: PresentationSource) -> str:

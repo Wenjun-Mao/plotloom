@@ -16,9 +16,10 @@ from ..schema.project_production_bridge import (
 )
 from .access import ProjectPersistenceAccess
 from .production_bridge import ProductionBridgePersistence
+from .production_bridge_presentation_candidate import ProductionBridgePresentationCandidatePersistence
 
 
-class ProductionBridgeIntentPersistence:
+class ProductionBridgeIntentPersistence(ProductionBridgePresentationCandidatePersistence):
     """Jobs never write a canonical head; only a fresh review revision."""
 
     def __init__(self, access: ProjectPersistenceAccess, bridge: ProductionBridgePersistence) -> None:
@@ -115,14 +116,20 @@ class ProductionBridgeIntentPersistence:
             if active is not None:
                 raise InvalidTransitionError("one bridge inference job is already active")
             now, job_id = utc_now(), native_request.job_id if native_request else new_id()
+            expected_entries = [entry.model_dump(mode="json", by_alias=True) for entry in package.entries]
             if native_request is not None:
-                if (native_request.project_id != project_id or native_request.stage != "bridge-intent"
+                if native_request.stage == "bridge-presentation":
+                    expected_entries = row.proposal["presentation"]["sources"]
+                    if native_request.input_artifacts.get("presentation-source.json") != row.proposal["presentation"]:
+                        raise InvalidTransitionError("native presentation sources differ from project-owned evidence")
+                elif native_request.stage != "bridge-intent" or native_request.input_artifacts["targets.json"]["entries"] != expected_entries:
+                    raise InvalidTransitionError("native bridge targets differ from project-owned evidence")
+                if (native_request.project_id != project_id
                         or native_request.expected_stage_revision != row.revision
                         or native_request.source["proposal"] != {
                             "revision": row.revision, "contentHash": row.content_hash,
                             "inputs": row.inputs, "replacementTarget": row.proposal["replacementTarget"],
-                        }
-                        or native_request.input_artifacts["targets.json"]["entries"] != [entry.model_dump(mode="json", by_alias=True) for entry in package.entries]):
+                        }):
                     raise InvalidTransitionError("native bridge request differs from project-owned proposal")
                 native_request.assert_secret_free()
                 freeze_execution_pin(session, native_request, execution_pin)
@@ -134,7 +141,7 @@ class ProductionBridgeIntentPersistence:
                 inputs=row.inputs, profile_snapshot=profile_snapshot,
                 prompt_trace=prompt_trace, prompt_messages=prompt_messages,
                 response_schema=response_schema,
-                expected_entries=[entry.model_dump(mode="json", by_alias=True) for entry in package.entries],
+                expected_entries=expected_entries,
                 created_at=now, updated_at=now,
             ))
             return job_id

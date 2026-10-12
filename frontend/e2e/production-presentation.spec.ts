@@ -3,6 +3,62 @@ import path from "node:path";
 import { expect, test } from "./fixture";
 import { json } from "./f5a-fixture";
 
+test("current specialist advice is scene-grouped and needs one explicit save before separate production acceptance", async ({ page, request, workbench }, info) => {
+  const id = execFileSync("uv", ["run", "python", "-m", "frontend.e2e.fixtures.presentation_advice_project", "--outputs", workbench.outputsRoot, "--application", workbench.applicationDataRoot], { cwd: path.resolve(".."), encoding: "utf8" }).trim();
+  const endpoint = `${workbench.apiOrigin}/api/v2/projects/${id}/production-bridge`;
+  const before = await json(request.get(endpoint));
+  await page.setViewportSize({ width: 1700, height: 900 });
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
+  const presentation = page.getByTestId("production-presentation-review");
+  const save = presentation.getByRole("button", { name: "确认并保存呈现方式", exact: true });
+  await expect(presentation).toContainText("助手建议 · 已填入下方");
+  await expect(presentation.getByRole("checkbox")).toHaveCount(0);
+  await expect(save).toBeEnabled();
+  await expect(page.getByRole("button", { name: "确认投产提案", exact: true })).toBeDisabled();
+  await expect(presentation.locator(".presentation-raw[open]")).toHaveCount(0);
+  await expect(presentation.locator(".presentation-scene[open]")).toHaveCount(1);
+  for (const source of before.proposal.presentation.sources) {
+    const card = presentation.locator("[data-source-id]").filter({ has: page.locator(`textarea[aria-label="原始来源 ${source.id}"]`) });
+    expect((await card.locator("blockquote").allTextContents()).join("")).toBe(source.sourceText);
+  }
+  const expectedGroups = new Map<string, string[]>();
+  for (const source of before.proposal.presentation.sources) {
+    const key = JSON.stringify([source.coordinates.episode, source.coordinates.sceneIndex]);
+    expectedGroups.set(key, [...expectedGroups.get(key) ?? [], source.id]);
+  }
+  const actualGroups = await presentation.locator(".presentation-scene").evaluateAll(groups => groups.map(group =>
+    [...group.querySelectorAll("[data-source-id]")].map(source => source.getAttribute("data-source-id"))));
+  expect(actualGroups).toEqual([...expectedGroups.values()]);
+  for (const size of [{ width: 1280, height: 460 }, { width: 1280, height: 768 }, { width: 1700, height: 900 }]) {
+    await page.setViewportSize(size);
+    await presentation.locator(".presentation-scene").first().locator(":scope > summary").scrollIntoViewIfNeeded();
+    await expect(save).toBeInViewport();
+    const bar = (await presentation.locator(".presentation-save").boundingBox())!, guide = (await page.locator(".recommended-workflow-guide").boundingBox())!;
+    expect(bar.y).toBeGreaterThanOrEqual(guide.y + guide.height);
+    expect(bar.y + bar.height).toBeLessThanOrEqual(size.height);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(size.width);
+    await page.screenshot({ path: info.outputPath(`presentation-advice-${size.width}x${size.height}.png`) });
+  }
+  const saved = page.waitForResponse(response => response.url().endsWith("/proposals/presentation") && response.request().method() === "PUT");
+  await save.click();
+  const ack = await saved;
+  expect(ack.ok()).toBe(true);
+  expect(ack.request().postDataJSON().entries).toEqual(before.presentationCandidate.entries);
+  const after = await json(request.get(endpoint));
+  expect(after.proposal.presentation.reviewed).toBe(true);
+  expect(after.proposal.presentation.frozenEvidence).toEqual(before.proposal.presentation.frozenEvidence);
+  expect(after.proposal.intentPackage).toEqual(before.proposal.intentPackage);
+  expect(after.installation).toBeNull();
+  expect(after.presentationCandidate).toBeNull();
+  await expect(page.getByRole("button", { name: "确认投产提案", exact: true })).toBeEnabled();
+  await page.reload();
+  await expect(presentation).toContainText("呈现方式审阅已保存");
+  await expect(page.getByRole("button", { name: "确认投产提案", exact: true })).toBeEnabled();
+  const report = await request.get(`${endpoint}/native-presentation-jobs/${before.presentationJob.id}/report`);
+  expect(report.ok()).toBe(true);
+  expect(await report.text()).toContain("待作者确认");
+});
+
 test("native readonly Shift-click selects an exact source fragment before splitting", async ({ page, request, workbench }) => {
   const id = execFileSync("uv", ["run", "python", "-m", "frontend.e2e.fixtures.bridge_handoff_project", "--outputs", workbench.outputsRoot, "--application", workbench.applicationDataRoot, "--pending"], { cwd: path.resolve(".."), encoding: "utf8" }).trim();
   const endpoint = `${workbench.apiOrigin}/api/v2/projects/${id}/production-bridge`;
@@ -12,6 +68,8 @@ test("native readonly Shift-click selects an exact source fragment before splitt
   const source = before.proposal.presentation.sources[0];
   const field = page.getByTestId("production-presentation-review").locator("fieldset").first();
   const text = field.getByLabel(`原始来源 ${source.id}`, { exact: true });
+  await expect(field.locator(".presentation-raw")).not.toHaveAttribute("open");
+  await field.getByText("查看原文并拆分", { exact: true }).click();
   await text.scrollIntoViewIfNeeded();
   const points = await text.evaluate(element => {
     const input = element as HTMLTextAreaElement;
@@ -47,15 +105,16 @@ test("whole presentation review preserves source evidence and requires explicit 
   const presentation = panel.getByTestId("production-presentation-review");
   await expect(panel.getByRole("button", { name: "确认投产提案" })).toBeDisabled();
   await expect(presentation.locator(":scope > summary")).toHaveText("逐项审阅内容的呈现方式");
-  await expect(presentation.getByRole("button", { name: "保存呈现方式审阅" })).toBeDisabled();
+  await expect(presentation.getByRole("button", { name: "确认并保存呈现方式" })).toBeDisabled();
+  for (const scene of await presentation.locator(".presentation-scene").all()) if (await scene.getAttribute("open") === null) await scene.locator(":scope > summary").click();
   for (const source of before.proposal.presentation.sources) {
     await presentation.getByLabel(`归属 ${source.id} 1`, { exact: true }).selectOption(source.kind === "dialogue" ? "dialogue" : "physical");
     if (source.kind !== "dialogue") await presentation.getByLabel(`画面描述 ${source.id} 1`, { exact: true }).fill(source.sourceText);
   }
-  await expect(presentation.getByRole("button", { name: "保存呈现方式审阅" })).toBeDisabled();
-  await presentation.getByRole("checkbox").check();
+  await expect(presentation.getByRole("checkbox")).toHaveCount(0);
+  await expect(presentation.getByRole("button", { name: "确认并保存呈现方式" })).toBeEnabled();
   const saved = page.waitForResponse(response => response.url().endsWith("/proposals/presentation") && response.request().method() === "PUT");
-  await presentation.getByRole("button", { name: "保存呈现方式审阅" }).click();
+  await presentation.getByRole("button", { name: "确认并保存呈现方式" }).click();
   expect((await saved).ok()).toBe(true);
   const after = await json(request.get(endpoint));
   expect(after.proposal.presentation.reviewed).toBe(true);
@@ -88,6 +147,9 @@ test("whole presentation review preserves source evidence and requires explicit 
   const intentResponse = page.waitForResponse(response => response.url().endsWith("/proposals/intent") && response.request().method() === "PUT");
   await saveIntent.click();
   expect((await intentResponse).request().postDataJSON().entries).toEqual(before.proposal.intentPackage.entries.map((entry: { id: string }, index: number) => ({ id: entry.id, text: `明确的技术测试戏剧目的 ${index + 1}` })));
+  await expect(panel.locator(".bridge-intent-review")).not.toHaveAttribute("open");
+  await expect(panel.locator(".bridge-intent-review > summary")).toContainText("已保存，展开查看或修改");
+  await panel.locator(".bridge-intent-review > summary").click();
   await expect(saveBar).toContainText("戏剧意图整包已保存");
   await expect(saveIntent).toBeDisabled();
   await expect(panel.getByRole("button", { name: "确认投产提案" })).toBeEnabled();

@@ -24,7 +24,7 @@ function bridgeNextText(read?: BridgeWorkflowObservation): { text: string } {
   if (read.error) return { text: "投产提案操作未完成。先查看下方错误说明，再继续；不要重复发送任务。" };
   if (read.dirty) return { text: "投产提案有未保存编辑。完成「戏剧意图整包审阅」与「逐项审阅内容的呈现方式」，分别保存后再确认投产。" };
   if (read.blocked) return { text: "投产提案暂不可操作。请先核对本页分镜确认状态与提案来源提示。" };
-  const state = read.state, proposal = state.proposal, job = state.intentJob;
+  const state = read.state, proposal = state.proposal, job = state.intentJob, presentationJob = state.presentationJob;
   if (state.status === "accepted" && state.installation?.status === "current" && !state.installation.staleReasons.length) return { text: read.canonicalReady
     ? read.canOpenShot && state.installation.cuts.some(cut => bridgeCut(cut) !== undefined)
       ? "投产提案已确认，场景与镜头数据已建立。点击下方「继续：打开第一个镜头」；逐镜头批准、参考图、关键帧与影片仍需单独制作和审核。"
@@ -39,6 +39,11 @@ function bridgeNextText(read?: BridgeWorkflowObservation): { text: string } {
     ? "戏剧意图任务的提案来源已变化，不能发送旧任务。点击「取消 Codex 意图任务」，再按当前来源重新准备提案。"
     : state.nativeIntentGeneration.status === "available" ? "戏剧意图任务已冻结，尚未发送。点击「发送给 Codex 文字助手」；交付后仍需审阅并保存整包。"
       : "戏剧意图任务已冻结，但当前 Codex 文字助手不可用。打开「生成助手设置」核对助手配置；不要重复准备或发送。" };
+  if (presentationJob && (["dispatched", "outcome_unknown"].includes(presentationJob.status) || presentationJob.status === "cancelled" && !presentationJob.responseHash && state.nativePresentationTask?.state !== "prepared")) return { text: "呈现方式任务仍待核对。点击「检查呈现方式交付」，检查同一任务；不要重复发送。" };
+  if (presentationJob?.status === "queued") return { text: state.status === "stale"
+    ? "呈现方式任务来源已变化。点击「取消呈现方式任务」，再按当前来源重新准备。"
+    : state.nativePresentationGeneration?.status === "available" ? "呈现方式任务已准备。点击「发送呈现方式任务」；建议返回后仍需确认保存。"
+      : "呈现方式任务已准备，但文字助手当前不可用。点击「生成助手设置」核对配置。" };
   if (!proposal || state.status === "stale" || state.status === "accepted") {
     if (state.preparation.status === "unavailable") return { text: "分镜方案已确认，但当前不能准备投产提案。展开下方「提案准备诊断」，处理其中实际阻碍；已有内容和媒体保留。" };
     return { text: `分镜方案已确认。点击下方「${state.installation ? "准备重建提案" : proposal ? "重新准备投产提案" : "准备投产提案"}」；提案仍需独立审阅和确认，不会生成媒体。` };
@@ -47,7 +52,10 @@ function bridgeNextText(read?: BridgeWorkflowObservation): { text: string } {
     ? "戏剧意图建议已返回。审阅「戏剧意图整包审阅」中的全部条目后点击「保存戏剧意图整包」；保存建议不代表已投产。"
     : state.nativeIntentGeneration.status === "available" ? "投产提案已准备。点击「准备 Codex 戏剧意图任务」，再单独发送；也可在「戏剧意图整包审阅」填写并保存作者意图。"
       : "投产提案已准备。填写「戏剧意图整包审阅」的全部作者意图，再点击「保存戏剧意图整包」。" };
-  if (!proposal.presentation.reviewed) return { text: "戏剧意图已保存。完成「逐项审阅内容的呈现方式」，勾选已逐项审阅后点击「保存呈现方式审阅」。" };
+  if (!proposal.presentation.reviewed) return { text: state.presentationCandidate
+    ? "呈现方式助手建议已返回。按场次查看「逐项审阅内容的呈现方式」，可修改建议，再点击「确认并保存呈现方式」；不会确认投产或生成媒体。"
+    : state.nativePresentationGeneration?.status === "available" ? "戏剧意图已保存。点击「准备呈现方式建议」，再点击「发送呈现方式任务」；建议返回后按场次查看并确认保存。也可直接填写呈现方式。"
+      : "戏剧意图已保存。按场次填写「逐项审阅内容的呈现方式」，再点击「确认并保存呈现方式」。" };
   if (!proposal.installable) return { text: "意图与呈现方式已审阅。按投产提案区的具体冲突提示处理；暂不能点击「确认投产提案」。" };
   return { text: "投产提案已完成审阅。点击「确认投产提案」建立正式场景与镜头；不会自动批准镜头或生成图片、影片。" };
 }

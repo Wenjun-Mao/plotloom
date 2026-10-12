@@ -21,7 +21,10 @@ The reviewer partitions every source field into contiguous, exhaustive spans:
 physical direction, diegetic visible text, runtime choice, or review-only direction
 with a stated reason. The reviewer owns semantic faithfulness and rendering;
 mechanical coverage does not certify that all story facts were preserved.
-No regex or model silently classifies or deletes source prose.
+No regex or model silently classifies or deletes source prose. The explicit
+specialist-candidate extension in [ADR 0161](0161-specialist-presentation-candidates.md)
+can suggest exhaustive spans; labeled editable advice remains outside the
+proposal until the author explicitly confirms and saves presentation.
 
 Reviewed physical spans project canonical action/composition in source order.
 Dialogue remains cue-owned; a dialogue-only cut may have empty physical action.

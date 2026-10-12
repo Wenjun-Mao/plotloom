@@ -21,7 +21,6 @@ from ...production_bridge_contracts import (
     BridgePrepareUnavailable,
     ProductionBridgeAcceptRequest,
     ProductionBridgeConflict,
-    ProductionBridgeIntentJob,
     ProductionBridgeIntentPackage,
     ProductionBridgeIntentUpdateRequest,
     ProductionBridgePrepareRequest,
@@ -33,7 +32,6 @@ from ...storyboard_review_contracts import StoryboardReviewBinding
 from ...validation import DomainValidationError, validate_stage_payload
 from ..schema.project_production_bridge import (
     ProductionBridgeHeadRow,
-    ProductionBridgeIntentJobRow,
     ProductionBridgeRevisionRow,
 )
 from ..schema.project_storyboard_review import StoryboardReviewRevisionRow
@@ -43,6 +41,7 @@ from .production_bridge_installation import ProductionBridgeInstallation
 from .production_bridge_presentation import ProductionBridgePresentationPersistence
 from .production_bridge_projection import ProductionBridgeProjection
 from .production_rebuild_quiescence import assert_production_quiescent
+from .production_bridge_jobs import bridge_job_views
 from .storyboard_review import ProjectStoryboardReviewPersistence
 
 
@@ -155,9 +154,8 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
                 preparation = BridgePrepareAvailable(request=self._prepare_request(session, project_id, inputs))
             except InvalidTransitionError as error:
                 preparation = BridgePrepareUnavailable(reason=str(error))
-            job = session.scalar(select(ProductionBridgeIntentJobRow).where(ProductionBridgeIntentJobRow.project_id == project_id).order_by(ProductionBridgeIntentJobRow.created_at.desc(), ProductionBridgeIntentJobRow.id.desc()).limit(1))
-            job_view = ProductionBridgeIntentJob(id=job.id, transport=job.transport, status=job.status, proposal_revision=job.proposal_revision, proposal_content_hash=job.proposal_content_hash, profile_id=job.profile_snapshot.get("profileId"), profile_version=job.profile_snapshot.get("profileVersion"), prompt_version=job.prompt_trace["prompt_version"], created_at=job.created_at, updated_at=job.updated_at, error_code=job.error_code, error_message=job.error_message, result_proposal_revision=job.result_proposal_revision, provider_request_id=job.provider_request_id, response_hash=job.response_hash) if job else None
-            return ProductionBridgeState(proposal=proposal, status="stale" if stale else head.status, stale_reasons=stale, installation=installation, preparation=preparation, intent_job=job_view)
+            intent, presentation, candidate = bridge_job_views(session, project_id, proposal, head.status, stale)
+            return ProductionBridgeState(proposal=proposal, status="stale" if stale else head.status, stale_reasons=stale, installation=installation, preparation=preparation, intent_job=intent, presentation_job=presentation, presentation_candidate=candidate)
 
     def prepare(self, project_id: str, request: ProductionBridgePrepareRequest) -> ProductionBridgeState:
         with self._access.leases.lifecycle_write() as session:

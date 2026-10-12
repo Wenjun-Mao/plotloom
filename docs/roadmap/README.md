@@ -1,5 +1,12 @@
 # Plotloom roadmap entrypoint
 
+The owner-approved [presentation suggestions and readability refinement](2026-10-11-presentation-suggestions.md)
+adds a separate frozen specialist suggestion task, editable labeled defaults,
+scene-grouped source review and one explicit confirmation/save action. Saved
+dramatic intent and frozen reports remain separate. Its
+[receipt](../verification/2026-10-11-presentation-suggestions.md) distinguishes
+software qualification, backend activation and owner acceptance.
+
 The owner-approved [intent save discoverability refinement](2026-10-11-intent-save-discoverability.md)
 keeps the whole-package save action prominent during long reviews, preserving
 independent intent, presentation and production confirmation.

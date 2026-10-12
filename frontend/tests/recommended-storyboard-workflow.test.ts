@@ -77,7 +77,7 @@ it("names intent, presentation and installation as independent controls", () => 
   proposal.intentPackage.reviewState = "model_suggested";
   expect(next(accepted(), value)).toContain("保存戏剧意图整包");
   proposal.intentPackage.reviewState = "author_saved";
-  expect(next(accepted(), value)).toContain("保存呈现方式审阅");
+  expect(next(accepted(), value)).toContain("确认并保存呈现方式");
   proposal.presentation.reviewed = true;
   expect(next(accepted(), value)).toContain("具体冲突提示");
   proposal.installable = true;

@@ -7,7 +7,7 @@ from typing import Any, Literal
 from pydantic import Field, model_validator
 
 from .domain import CamelModel
-from .production_presentation import ProductionPresentation
+from .production_presentation import ProductionPresentation, PresentationCandidate
 
 ProductionBridgeStatus = Literal["missing", "ready", "accepted", "stale"]
 
@@ -127,6 +127,8 @@ class ProductionBridgeState(CamelModel):
     status: ProductionBridgeStatus
     stale_reasons: list[str] = Field(default_factory=list)
     intent_job: ProductionBridgeIntentJob | None = None
+    presentation_job: ProductionBridgeIntentJob | None = None
+    presentation_candidate: PresentationCandidate | None = None
     simulation_label: str | None = None
     installation: InstalledProduction | None
     preparation: BridgePrepareAvailable | BridgePrepareUnavailable

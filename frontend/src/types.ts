@@ -1328,7 +1328,7 @@ export interface StoryboardReviewState { acceptedReviewState: AcceptedReviewStat
 export type {
   CanonicalReplacementHead, ProductionBridgeReplacementTarget, ProductionBridgePrepareRequest,
   ProductionBridgeConflict, ProductionBridgeIntentEntry, ProductionBridgeIntentPackage,
-  PresentationSpan, PresentationSource, RuntimeChoice, RuntimeChoices, ProductionPresentation,
+  PresentationSpan, PresentationSource, RuntimeChoice, RuntimeChoices, ProductionPresentation, PresentationCandidate,
   ProductionSceneMapping, ProductionBridgeProposal, InstalledProduction,
   ProductionBridgeIntentJob, ProductionBridgeState,
 } from "./production-bridge-types";

@@ -118,7 +118,7 @@ it("preserves both actual presentation and intent text until explicit atomic ado
   expect(field('[aria-label="画面描述 source-1 1"]').value).toBe("unsaved physical detail");
   expect(field(".bridge-intent-field textarea").value).toBe("unsaved dramatic intent");
   expect(host.textContent).toContain("未保存的本地编辑仍在此保留");
-  expect(button("保存戏剧意图整包").disabled).toBe(true); expect(button("保存呈现方式审阅").disabled).toBe(true);
+  expect(button("保存戏剧意图整包").disabled).toBe(true); expect(button("确认并保存呈现方式").disabled).toBe(true);
   await act(async () => button("载入新提案并放弃本地编辑").click()); await settle();
   expect(field('[aria-label="画面描述 source-2 1"]').value).toBe("rendering-2");
   expect(field(".bridge-intent-field textarea").value).toBe("intent-2");
@@ -138,15 +138,28 @@ it("retains readable buffers on refresh failure and retries only the GET", async
   expect(field('[aria-label="画面描述 source-1 1"]').value).toBe("retained physical text");
 });
 
+it("expands saved intent recovery for a presentation-only conflict with a newer ready proposal", async () => {
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValueOnce(state()).mockResolvedValue(state(2));
+  await render();
+  expect(host.querySelector(".bridge-intent-review")!.hasAttribute("open")).toBe(false);
+  await fill(field('[aria-label="画面描述 source-1 1"]'), "presentation-only author draft");
+  await refresh();
+  expect(host.querySelector(".bridge-intent-review")!.hasAttribute("open")).toBe(true);
+  expect(field('[aria-label="画面描述 source-1 1"]').value).toBe("presentation-only author draft");
+  expect(button("确认并保存呈现方式").disabled).toBe(true);
+  expect(button("载入新提案并放弃本地编辑").disabled).toBe(false);
+  await act(async () => button("载入新提案并放弃本地编辑").click()); await settle();
+  expect(field('[aria-label="画面描述 source-2 1"]').value).toBe("rendering-2");
+  expect(host.querySelector(".bridge-intent-review")!.hasAttribute("open")).toBe(false);
+});
+
 it("settles presentation busy after its own save changes the editor proposal revision", async () => {
   vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(state());
   const saved = state(); saved.proposal!.revision = 2; saved.proposal!.contentHash = "c".repeat(64);
   saved.proposal!.presentation.sources[0].spans[0].rendering = "reviewed correction";
   vi.spyOn(plotloomApi, "updateProductionBridgePresentation").mockResolvedValue(saved);
   await render(); await fill(field('[aria-label="画面描述 source-1 1"]'), "reviewed correction");
-  const confirm = host.querySelector('[data-testid="production-presentation-review"] input[type="checkbox"]') as HTMLInputElement;
-  await act(async () => confirm.click());
-  await act(async () => button("保存呈现方式审阅").click()); await settle();
+  await act(async () => button("确认并保存呈现方式").click()); await settle();
   expect(host.textContent).toContain("提案 r2"); expect(button("确认投产提案").disabled).toBe(false);
 });
 
@@ -187,8 +200,7 @@ it("cannot adopt a child save from an obsolete basis or clear the newer mutation
   vi.spyOn(plotloomApi, "updateProductionBridgePresentation").mockReturnValue(oldSave.promise);
   vi.spyOn(plotloomApi, "prepareProductionBridge").mockReturnValue(newPrepare.promise);
   await render(); await fill(field('[aria-label="画面描述 source-1 1"]'), "saved old basis");
-  await act(async () => (host.querySelector('[data-testid="production-presentation-review"] input[type="checkbox"]') as HTMLInputElement).click());
-  await act(async () => button("保存呈现方式审阅").click());
+  await act(async () => button("确认并保存呈现方式").click());
   await render(basis(2));
   // The in-flight editor is retained, not rebased by the new acknowledgement.
   expect(button("载入新提案并放弃本地编辑").disabled).toBe(true);

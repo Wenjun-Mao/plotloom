@@ -66,13 +66,14 @@ test("same project recovers a stale rebuild target, requires fresh reviews and p
 
   await page.reload();
   const presentation = panel.getByTestId("production-presentation-review");
+  await expect(presentation.locator("[data-source-id]")).toHaveCount(fresh.proposal.presentation.sources.length);
+  for (const scene of await presentation.locator(".presentation-scene").all()) if (await scene.getAttribute("open") === null) await scene.locator(":scope > summary").click();
   for (const source of fresh.proposal.presentation.sources) {
     await presentation.getByLabel(`归属 ${source.id} 1`, { exact: true }).selectOption(source.kind === "dialogue" ? "dialogue" : "physical");
     if (source.kind !== "dialogue") await presentation.getByLabel(`画面描述 ${source.id} 1`, { exact: true }).fill(source.sourceText);
   }
-  await presentation.getByRole("checkbox").check();
   const presentationResponse = page.waitForResponse(response => response.url().endsWith("/proposals/presentation") && response.request().method() === "PUT");
-  await presentation.getByRole("button", { name: "保存呈现方式审阅", exact: true }).click();
+  await presentation.getByRole("button", { name: "确认并保存呈现方式", exact: true }).click();
   expect((await presentationResponse).ok()).toBe(true);
   const fields = panel.locator(".bridge-intent-field textarea");
   for (let index = 0; index < await fields.count(); index++) await fields.nth(index).fill(`重建审阅的场次与节拍目的 ${index + 1}`);

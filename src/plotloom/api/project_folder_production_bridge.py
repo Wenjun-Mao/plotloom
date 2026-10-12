@@ -16,6 +16,8 @@ from ..production_bridge_contracts import (
 )
 from ..production_bridge_intent_service import ProductionBridgeIntentService
 from ..native_bridge_intent_service import NativeBridgeIntentService
+from ..native_bridge_presentation_service import NativeBridgePresentationService
+from .project_folder_native_presentation import register_native_presentation_routes
 from ..image_job_contracts import ImageJobError
 from ..production_presentation import ProductionPresentationUpdateRequest
 from .production_bridge_state import (
@@ -33,15 +35,19 @@ def register_project_folder_production_bridge_routes(
     text_admission: TextAdmissionService | None = None,
     simulation_label: str | None = None,
     native_intent_service: NativeBridgeIntentService | None = None,
+    native_presentation_service: NativeBridgePresentationService | None = None,
 ) -> None:
     def response(state: ProductionBridgeState, project_id: str) -> ProductionBridgeRuntimeState:
         result = ProductionBridgeRuntimeState(**{
             **state.model_dump(), "simulation_label": simulation_label,
             "intent_generation": BridgeIntentAvailable() if intent_service is not None and text_admission is not None else BridgeIntentUnavailable(),
             "native_intent_generation": BridgeIntentAvailable() if native_intent_service is not None and native_intent_service.configured() else BridgeIntentUnavailable(),
+            "native_presentation_generation": BridgeIntentAvailable() if native_presentation_service is not None and native_presentation_service.configured() else BridgeIntentUnavailable(),
         })
         if state.intent_job is not None and state.intent_job.transport == "codex_native" and native_intent_service is not None:
             result.native_intent_task = native_intent_service.status(project_id, state.intent_job.id)
+        if state.presentation_job is not None and native_presentation_service is not None:
+            result.native_presentation_task = native_presentation_service.status(project_id, state.presentation_job.id)
         return result
 
     @app.exception_handler(BridgeIntentUnavailableError)
@@ -64,6 +70,9 @@ def register_project_folder_production_bridge_routes(
     def native_response(project_id: str) -> ProductionBridgeRuntimeState:
         with opened_project(project_id) as store:
             return response(store.production_bridge_state(), project_id)
+
+    if native_presentation_service is not None:
+        register_native_presentation_routes(app, native_presentation_service, native_response)
 
     @app.post("/api/v2/projects/{project_id}/production-bridge/native-intent-jobs", response_model=ProductionBridgeRuntimeState, status_code=status.HTTP_202_ACCEPTED)
     def prepare_native_intent(project_id: str, body: ProductionBridgeAcceptRequest):

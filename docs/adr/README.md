@@ -85,3 +85,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0158 Accepted-source seed for graph-command tests](0158-accepted-source-seed-for-graph-command-tests.md)
 - [0159 Four duration-balanced hosted browser shards](0159-four-duration-balanced-hosted-browser-shards.md)
 - [0160 Two-process Python full gate](0160-two-process-python-full-gate.md)
+- [0161 Specialist presentation candidates](0161-specialist-presentation-candidates.md)

@@ -24,6 +24,8 @@ class ProductionBridgeRuntimeState(ProductionBridgeState):
     intent_generation: Annotated[BridgeIntentAvailable | BridgeIntentUnavailable, Field(discriminator="status")]
     native_intent_generation: Annotated[BridgeIntentAvailable | BridgeIntentUnavailable, Field(discriminator="status")]
     native_intent_task: dict | None = None
+    native_presentation_generation: Annotated[BridgeIntentAvailable | BridgeIntentUnavailable, Field(discriminator="status")]
+    native_presentation_task: dict | None = None
 
 
 class BridgeIntentUnavailableError(Exception):

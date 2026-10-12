@@ -29,6 +29,7 @@ export interface PresentationSource { id: string; kind: "action" | "composition"
 export interface RuntimeChoice { choiceId: string; sectionId: string; prompt: string; outcomes: Array<{ outcomeId: string; label: string; endingSectionId: string; consequence: string }>; }
 export type RuntimeChoices = { choices: RuntimeChoice[] };
 export interface ProductionPresentation { version: 1; reviewed: boolean; sourceHash: string; sources: PresentationSource[]; runtimeChoice: RuntimeChoices; frozenEvidence: Record<string, unknown>; }
+export interface PresentationCandidate { jobId: string; proposalRevision: number; proposalContentHash: string; sourceHash: string; entries: Array<{ id: string; spans: PresentationSpan[] }>; provenance: Record<string, unknown>; }
 
 export interface ProductionSceneMapping {
   inputs: Record<string, unknown>;
@@ -64,6 +65,10 @@ export interface ProductionBridgeState {
   intentGeneration: { status: "available" } | { status: "unavailable"; reason: "not_configured" };
   nativeIntentGeneration: { status: "available" } | { status: "unavailable"; reason: "not_configured" };
   nativeIntentTask?: { state: "prepared" | "queued" | "outcome_unknown" | "completed"; candidateStatus: ProductionBridgeIntentJob["status"]; reportAvailable: boolean; limitations: string[]; taskId?: string } | null;
+  nativePresentationGeneration: ProductionBridgeState["nativeIntentGeneration"];
+  nativePresentationTask?: ProductionBridgeState["nativeIntentTask"];
+  presentationJob?: ProductionBridgeIntentJob | null;
+  presentationCandidate?: PresentationCandidate | null;
   proposal: ProductionBridgeProposal | null;
   status: "missing" | "ready" | "accepted" | "stale";
   staleReasons: string[];
