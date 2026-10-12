@@ -390,4 +390,7 @@ review and downstream admission. Source checks remain focused; old backend/full
 evidence cannot qualify these changed executable inputs. After the reviewed clean
 commit, hold source/dependency/config writes and test bodies for manager contract
 review and one fresh exact-candidate full. New isolated native proof uses distinct
-project/job/specialist identities; old paused 4817 data remains immutable.
+project/job/specialist identities; old paused 4817 data remains immutable. The
+manager's blocking publication review releases only the shared-owner crash repair:
+staged/fsynced native exclusive rename, strict preservation and Mac/Linux fault
+proof, one independent bounded review, then commit and hold for the same fresh gate.

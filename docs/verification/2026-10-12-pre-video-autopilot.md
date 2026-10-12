@@ -1015,3 +1015,107 @@ fresh native proof/preservation/release/activation gates. No source full, hosted
 CI, main merge/push, live activation or provider/video/voice generation occurred.
 Old4817 QA/project/run/package/policy/pins/blocker/queued reservation remain retained
 and **partial**; owner creative acceptance is still pending.
+
+## P5 blocking shared-publication repair · parent 421c7533
+
+Manager preserving review found a P2 crash gap before starting fresh full.
+The shared `_OwnedArtifactStore.put` used `_write_new_file` to create the final
+SHA path and then write in place. A disposable child killed by actual SIGKILL
+inside that primitive's partial write left17 of31000bytes at canonical SHA
+`58683f2e884a0edc2c60da9dba72425120250f2fc4c63e2b4b3aa4acafc9ce68`;
+actual SHA `eba5f936a815a72a8e6ff3571a08a43be20d13f16ea91ad0d1ef447d633d5a13`.
+Same-identity retry raised storage corruption and preserved those bytes. The
+ordinary exception handler cannot run after process death. Reproduction root
+`/var/folders/ys/g3nd6nfx2xd9wmw053lg109m0000gn/T/plotloom-publication-actual-before-ueni6vz_`
+and `.local/publication-repair/actual-before.json` remain disposable evidence.
+
+The manager approved the protocol after primary SDK/API review; ADR0162 was
+amended before code. `artifact_publication.py` now owns confined descriptor-relative
+staging and durability; `exclusive_rename.py` implements one no-overwrite contract
+using macOS renameatx_np/RENAME_EXCL and Linux renameat2/RENAME_NOREPLACE. No dependency
+change, replace fallback, link/unlink window or repair of corrupt canonical bytes.
+An admitted parent hosts a fresh0700 private sibling directory; full single-linked
+staged bytes are fsynced and verified before promotion. Existing/racing winners
+must pass regular/single-link/inode/size/SHA checks. Destination prefix, assets,
+project and outputs-parent directories are synced before the caller records metadata.
+Live cleanup removes only this invocation's identified file and exact empty
+directory; retained descriptors prevent inode-number reuse during cleanup. Altered,
+foreign or interrupted stages stay forensic outside portable payload and discovery.
+
+Runtime prerequisites are explicit: writable outputs parent, same filesystem and
+native exclusive rename. Permission, unsupported flags/API, real EXDEV or sync
+failure refuse; no parent chmod, alternate root or deployment/provider changes.
+Existing read-only inspection still writes nothing. `_write_new_file` remains under
+its other private package owners; the demonstrated content-addressed gap is fixed
+at the shared managed owner. Raw/derivative hashes and database layout stay unchanged.
+
+Verification on the final source inputs (ignored detailed logs under
+`.local/publication-repair/`, qualification input hashes retained there):
+
+- Shared25 cases passed in `resource-repair-final.log`: actual SIGKILL partial/before/after
+  promotion, same-identity retry, retained old stages, two-process native race,
+  single link, file/ancestor sync before metadata; unchanged valid/corrupt/foreign
+  files, hard links, symlinks, dangling links, directories/FIFOs, foreign parents,
+  altered staging and read-only/expected-hash refusal. Capability/permission/EXDEV
+  failure injection never selects a fallback. Final inspection demonstrated an
+  exception-only descriptor leak: actual test-owned entry disappearance raised
+  FileNotFoundError before handle construction and left the opened FD alive.
+  `descriptor-before.log` preserves the failed regression. Validation/writing
+  helpers now close descriptors in `finally` and use `closefd=False`; the original
+  staged FD stays stack-owned while only the writer uses a duplicate. Final fault
+  regression confirms closure. No relaxation of identity or byte checks.
+- True geometry-controller crash cases passed3/3 together with shared25 in27.75s,
+  `resource-repair-final.log`. SQLite import/checkpoint rollback, same output hash,
+  one eventual derivative/checkpoint/frame, unchanged native jobs/candidates/send
+  lists and raw bytes, prior stage preservation and snapshot after retry. Initial
+  uniform-frame fixtures reused an already-published reference hash and correctly
+  never reached I/O: failed diagnostic runs are retained, not counted as passes.
+  The corrected marked frame asserts its canonical identity is absent before fault.
+- The earlier stable artifact/geometry union passed51 in218.22s,
+  `artifact-geometry-final.log`, before the exception-only FD correction. After
+  that correction, refresh all25 shared and3 crash cases plus the six affected
+  geometry consumer cases: original preservation/no native increment, concurrent
+  preparation, transaction/selection restart, snapshot and full derivative human
+  handoff/withdrawal passed6 in93.39s (`geometry-consumers-final.log`). Unchanged recipe, v1 authority,
+  missing/tampered lineage, stopped-run and aspect branches retain their prior
+  scoped evidence; the correction only changes descriptor ownership on exceptions.
+- Shared/manual/refinement/recovery focused selection refreshed42 in7.92s;
+  `preservation-final.log`: exact storage-confinement/secret-profile case,
+  `backend_core/test_artifacts.py`, complete `test_project_storage_recovery.py`,
+  `test_autopilot_recovery.py`, `test_project_storage_image_workflow.py` and
+  `test_image_source_lineage.py`. No production provider operations.
+- Real Linux native probe passed on existing bookworm image20bf47acac0a in a fresh
+  disposable container, no network/build/install/mount or live-container operation.
+  Actual renameat2, partial/before/after SIGKILL retry, native competing winner,
+  single-link bytes, sync calls before metadata and six corrupt/foreign refusals.
+  `linux-native.json` binds all three final source hashes; no mocked Linux API.
+  Host macOS tests use actual renameatx_np. These establish process-death/native
+  protocol behavior, not a physical power-loss/filesystem recovery experiment.
+- One independent bounded stable publication review by the existing persistence
+  reviewer closed with no actionable findings. Read-only, no reviewer test execution;
+  platform result evidence remains source-owned. The same review reopened only for
+  the concrete FD-ownership finding and closed with no remaining issues. Effective
+  model unverified; no second broad independent review or coding delegation.
+- New tests registered to story-authoring/project-lifecycle. Complete native
+  ownership discovery passed1767 pytest/175files,1361 units/156files and316
+  browser/92specs; no test bodies. Module `--show` only prints its plan.
+  No full/module bodies or equivalent collection of release gates ran.
+- Final wheel SHA256
+  `38f8a7d8d6d00702d345683243e7adf1ce45be749b789688eadd25441d67cffe`;
+  installed-wheel smoke passed. Three changed Python and seven static members
+  byte-match sources. Static SHA256 remains
+  `4c5bd2da740221f2f8cf7f2e24fb0d65690be86182340d6587fb6d28c65da770`.
+  Prior1361-unit/type/browser/pixel/deterministic-static evidence is reused because
+  no frontend/static/request/provider/prompt inputs changed in this repair. The
+  previous wheel316a and interim publication wheel8f9190 are superseded. Targeted
+  Ruff and diff checks pass.
+
+Final-source focused selections passed **76 executed cases** (28 publication/crash,
+42 preservation and6 geometry consumers); earlier51 union remains recorded with
+its resource-correction boundary. Checks bind final source hashes in the local
+qualification inputs; the source commit is reported by the normal Relay final.
+Hold all source, dependency/config writes and test bodies again for manager attended review and
+one fresh exact-candidate full. Full/hosted CI, preservation/release/activation and
+distinct fresh native proof remain separate manager gates. This repair performs
+no old-QA operation, provider generation, main merge/push or live activation and
+does not establish owner creative acceptance.

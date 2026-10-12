@@ -105,6 +105,13 @@ bind the derivative bytes and lineage. Missing/tampered generated evidence refus
 instead of using imported-human fallback. Whole material closure includes typed
 lineage, and final review shows original and derivative separately.
 
+Managed content-addressed bytes use shared staged exclusive publication (ADR0162):
+canonical paths are absent or complete after process death. Retry keeps the same
+hash and validates any existing winner strictly. Private unpublished sibling stages
+remain forensic outside snapshots; cleanup never sweeps or repairs canonical bytes.
+New publication requires a writable same-filesystem outputs parent and supported
+native exclusive rename, with fail-closed capability/durability errors.
+
 Confined source/output bytes must remain available and SHA-identical. A staged
 snapshot database is first validated against the frozen source asset home; after
 copy, validate the destination's owned bytes. Preparation does not relax native

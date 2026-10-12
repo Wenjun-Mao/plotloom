@@ -356,3 +356,31 @@ selection rule and an immediate-parent-only state check. Ordinary raw earlier-
 schema HANDOFF comparisons remain explicitly human-current-material; strict source
 resolution precedes this classification, and derivatives/V3 missing mappings can
 never take that path.
+
+### Shared managed-blob publication · crash repair approved before code
+
+The existing O_EXCL write creates the canonical SHA path before writing its bytes.
+SIGKILL during that actual write leaves a truncated canonical blob; SQLite rollback
+cannot remove it, and strict same-identity retry correctly refuses it. Fix the
+shared artifact owner, not geometry retry or canonical corruption checks.
+
+Write and fsync a fresh single-linked file in a private0700 directory beside its
+admitted project, outside the portable project payload. Publish using one native
+atomic exclusive rename: macOS renameatx_np/RENAME_EXCL or Linux renameat2/
+RENAME_NOREPLACE. Never replace, link/unlink, repair a canonical blob, or fall back
+to weaker semantics. A racing existing destination must pass the same confined
+regular-file, single-link, size and SHA checks. Fsync the destination directory
+and its new ancestors before caller metadata commits. Retry after writer death
+uses the same content identity: the canonical path is absent or complete.
+
+This requires a writable outputs parent, same-filesystem staging and native
+exclusive-rename support. Fail closed on unsupported capability, EXDEV, permission
+or durability failures; do not change roots, permissions or deployment settings.
+Descriptor-relative operations reject symlink traversal and bind stage/canonical
+identities. Live cleanup may remove only this invocation's identified unpublished
+file and its exact empty private directory. Interrupted or altered stages remain
+forensic siblings: never sweep, adopt or put them into snapshots. This intentionally
+retains bounded crash debris rather than risking foreign-file deletion. Existing
+read-only inspections and valid/foreign/corrupt artifacts retain their contracts.
+Prove actual partial-write death, promotion boundaries, same-hash races and strict
+preservation on disposable data; native platform evidence remains separately scoped.

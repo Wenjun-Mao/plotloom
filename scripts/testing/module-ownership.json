@@ -38,7 +38,8 @@
           "tests/test_autopilot_image_safety.py",
           "tests/test_image_package_publication.py",
           "tests/test_autopilot_handoff.py",
-          "tests/test_autopilot_geometry.py"
+          "tests/test_autopilot_geometry.py",
+          "tests/test_autopilot_geometry_publication.py"
         ],
         "vitest": [
           "frontend/tests/authoring-autosave-admission.test.ts",
@@ -327,6 +328,7 @@
           "tests/test_production_project_folder_runtime_boundaries.py",
           "tests/test_project_folder_native_dispatch_safety.py",
           "tests/test_project_home_identity.py",
+          "tests/test_project_artifact_publication.py",
           "tests/test_project_review_drafts.py",
           "tests/test_project_specialist_ownership.py",
           "tests/test_project_storage.py",

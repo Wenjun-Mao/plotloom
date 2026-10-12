@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 
+from .artifact_publication import publish_blob
 from .format import (
     OwnedArtifact,
     ProjectStorageConfinementError,
@@ -12,7 +13,6 @@ from .format import (
     _relative_owned_path,
     _require_real_directory,
     _sha256,
-    _write_new_file,
 )
 
 
@@ -76,16 +76,9 @@ class _OwnedArtifactStore:
     def put(self, contents: bytes, *, media_type: str) -> OwnedArtifact:
         content_hash = _sha256(contents)
         relative_path = PurePosixPath("assets") / content_hash[:2] / content_hash
-        path = self._path_for(relative_path, final_must_exist=False)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        if path.exists():
-            existing = self._path_for(relative_path, final_must_exist=True)
-            if _sha256(existing.read_bytes()) != content_hash:
-                raise ProjectStorageCorruptionError(
-                    "owned artifact hash path has different bytes"
-                )
-        else:
-            _write_new_file(path, contents)
+        self._path_for(relative_path, final_must_exist=False)
+        publish_blob(self.project_home, content_hash, contents)
+        self._path_for(relative_path, final_must_exist=True)
         return OwnedArtifact(
             content_hash=content_hash,
             relative_path=relative_path.as_posix(),
