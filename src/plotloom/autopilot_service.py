@@ -10,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .autopilot_launch import freeze_launch_policy, assert_frozen_execution
 from .autopilot_text_controller import AutopilotTextController
+from .autopilot_image_controller import AutopilotImageController
 from .exceptions import InvalidTransitionError
 from .image_job_contracts import ImageJobError
 from .project_storage import ProjectStorageError, ProjectBusyError, ProjectClosedError
@@ -23,13 +24,14 @@ class AutopilotService:
     def __init__(self, storage, registry, *, interval_seconds=5):
         self.storage, self.registry = storage, registry
         self.controller = AutopilotTextController(storage, registry)
+        self.image_controller = AutopilotImageController(registry)
         self.claim = uuid4().hex
         self.interval_seconds = interval_seconds
         self._wake = Event()
         self._stop = Event()
         self._thread = None
         self._descriptor = None
-        self._unrecorded_failures = set()
+        self._unrecorded_failures = {}
         self.controller_blocker = None
 
     def launch(self, project_id, request):
@@ -55,6 +57,7 @@ class AutopilotService:
                     expected_revision=request.expected_revision, action=request.action)
                 if request.action in {"cancel", "takeover"}:
                     self.controller.cancel_pending(store, view)
+                    self.image_controller.cancel_pending(store, view)
             result = store.repository.autopilot.current(project_id)
         self._wake.set()
         return result
@@ -86,7 +89,7 @@ class AutopilotService:
         if self._descriptor is None:
             raise InvalidTransitionError("controller process lease is required before claiming a run")
         if project_id in self._unrecorded_failures:
-            self._record_storage_failure(project_id)
+            self._record_failure(project_id, **self._unrecorded_failures[project_id])
             return
         try:
             self._step(project_id)
@@ -96,16 +99,19 @@ class AutopilotService:
             self._record_storage_failure(project_id)
 
     def _record_storage_failure(self, project_id):
-        self._unrecorded_failures.add(project_id)
+        self._record_failure(project_id, code="storage_failure", message=STORAGE_FAILURE_MESSAGE)
+
+    def _record_failure(self, project_id, *, code, message):
+        self._unrecorded_failures[project_id] = {"code": code, "message": message}
         try:
             with closing(self.storage.projects.open(project_id)) as store:
-                store.repository.autopilot.blocker(project_id, code="storage_failure", message=STORAGE_FAILURE_MESSAGE)
-        except (OSError, SQLAlchemyError, ProjectStorageError, ProjectBusyError, ProjectClosedError):
+                store.repository.autopilot.blocker(project_id, code=code, message=message)
+        except Exception:
             # Keep this project quarantined until its failure can be recorded;
             # unrelated projects continue. SQL/paths may contain credentials.
             logger.error("Autopilot storage failure; pending safe project failure recording")
         else:
-            self._unrecorded_failures.discard(project_id)
+            self._unrecorded_failures.pop(project_id, None)
 
     def _step(self, project_id):
         with closing(self.storage.projects.open(project_id)) as store:
@@ -117,7 +123,10 @@ class AutopilotService:
             store.repository.autopilot.claim(project_id, self.claim)
             view = store.repository.autopilot.current(project_id)
             try:
-                self.controller.advance(store, view, self.claim)
+                if any(item["operationKey"] == "installation" for item in view.checkpoints):
+                    self.image_controller.advance(store, view, self.claim)
+                else:
+                    self.controller.advance(store, view, self.claim)
             except ImageJobError as error:
                 waiting = error.code in {"specialist_busy", "image_dispatch_busy", "image_dispatch_outcome_unknown", "specialist_already_sent"}
                 store.repository.autopilot.blocker(project_id, code=error.code, message=str(error), waiting=waiting)
@@ -151,6 +160,13 @@ class AutopilotService:
                         # Unsupported/closed homes cannot gain new dispatch;
                         # they stay available through ordinary operator reads.
                         continue
+                    except Exception as error:
+                        # Last supervisor boundary for unexpected owner failures.
+                        # Preserve the same job; logging only its exception type
+                        # avoids exposing arbitrary provider/SQL error values.
+                        logger.error("Autopilot owner failed: %s", type(error).__name__)
+                        self._record_failure(home.manifest.project_id, code="controller_failure",
+                            message="自动素材控制器遇到错误，原任务和证据已保留。请检查错误或接管；不要重复发送任务。")
                 self._wake.wait(self.interval_seconds)
         finally:
             self.release_controller()

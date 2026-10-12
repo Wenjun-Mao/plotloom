@@ -9,7 +9,6 @@ from sqlalchemy import select
 from ...domain import StageName, utc_now, new_id
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...image_job_contracts import ImageJobError
-from ...keyframe_preparation import has_matching_aspect
 from ..codec import stable_hash
 from ..schema import (
     ImageJobCandidateRow,
@@ -20,6 +19,8 @@ from ..schema import (
     VisualIntentRow,
 )
 from .access import ProjectPersistenceAccess
+from .image_preflight import image_preflight
+from .image_adaptation_source import prepare_adaptation_source
 from .canonical import ProjectCanonicalPersistence
 from .drafts import ProjectDraftPersistence
 from .media_admission import KeyframeAdmission
@@ -196,64 +197,9 @@ class ImageJobPreparationPersistence:
 
             adaptation_snapshot: dict[str, Any] | None = None
             if keyframe_adaptation is not None:
-                binding = session.scalar(
-                    select(ReviewedShotBindingRow)
-                    .where(
-                        ReviewedShotBindingRow.project_id == project_id,
-                        ReviewedShotBindingRow.shot_id == shot_id,
-                    )
-                    .order_by(ReviewedShotBindingRow.selection_revision.desc())
-                    .limit(1)
-                )
-                if binding is None or not self._admission.reviewed_binding_admission_eligible_in_session(
-                    session, project_id, binding, approval=approval
-                ):
-                    raise InvalidTransitionError(
-                        "keyframe adaptation needs the current reviewed selected keyframe"
-                    )
-                asset = session.get(ManagedAssetRow, binding.asset_id)
-                intent = session.get(VisualIntentRow, binding.visual_intent_id)
-                if (
-                    asset is None
-                    or asset.project_id != project_id
-                    or intent is None
-                    or intent.project_id != project_id
-                    or intent.asset_id != asset.id
-                    or intent.revision != binding.visual_intent_revision
-                ):
-                    raise InvalidTransitionError(
-                        "keyframe adaptation source is unavailable or no longer reviewable"
-                    )
-                target_width = int(keyframe_adaptation["targetProfile"]["width"])
-                target_height = int(keyframe_adaptation["targetProfile"]["height"])
-                if has_matching_aspect(asset.width, asset.height, target_width, target_height):
-                    raise InvalidTransitionError(
-                        "reviewed keyframe already matches the requested adaptation profile"
-                    )
-                references.append({
-                    "assetId": asset.id,
-                    "role": "source_keyframe",
-                    "required": True,
-                    "originalHash": asset.original_hash,
-                    "mimeType": asset.mime_type,
-                    "byteSize": asset.byte_size,
-                    "width": asset.width,
-                    "height": asset.height,
-                })
-                adaptation_snapshot = {
-                    "sourceBindingId": binding.id,
-                    "sourceSelectionRevision": binding.selection_revision,
-                    "sourceAssetId": asset.id,
-                    "sourceOriginalHash": asset.original_hash,
-                    "sourceVisualIntentId": intent.id,
-                    "sourceVisualIntentRevision": intent.revision,
-                    "targetProfile": dict(keyframe_adaptation["targetProfile"]),
-                    "outputContract": {
-                        "width": target_width,
-                        "height": target_height,
-                        "mimeTypes": ["image/jpeg", "image/png"],
-                    },
-                }
+                reference, adaptation_snapshot = prepare_adaptation_source(
+                    session, self._access, self._admission, self._currentness, project_id, shot_id, approval, keyframe_adaptation)
+                references.append(reference)
 
             if len(references) > 9:
                 raise ImageJobError(
@@ -299,6 +245,10 @@ class ImageJobPreparationPersistence:
                 snapshot.pop("approvalId")
                 snapshot["canonicalGateSetVersion"] = snapshot.pop("approvalGateSetVersion")
                 snapshot["authority"] = {"actor": "machine", "scope": "image_generation", "decisionId": approval.machine_decision_id}
+                from ..schema import AutopilotRunRow, AutopilotDecisionRow
+                decision = session.get(AutopilotDecisionRow, approval.machine_decision_id)
+                policy = session.get(AutopilotRunRow, decision.run_id).policy
+                snapshot["requestedGeometry"] = {"width": policy["imageWidth"], "height": policy["imageHeight"], "aspectRatio": policy["brief"]["aspect_ratio"]}
             if reviewed_visual_intent is not None:
                 snapshot["reviewedVisualIntent"] = reviewed_visual_intent
             if adaptation_snapshot is not None:
@@ -326,7 +276,7 @@ class ImageJobPreparationPersistence:
                 "visualProposal": visual_proposal, "frozenSnapshot": snapshot,
             }
             if contract_version == 3:
-                request["specialistPreflight"] = {"version": "p1.5-pin.v1", "skillVersion": "plotloom-image-specialist.v3", "executionContract": "codex_specialist.v2"}
+                request["specialistPreflight"] = image_preflight(self._access, session)
             job = ImageJobRow(
                 id=job_id, project_id=project_id, production_unit_id=unit.id,
                 parent_job_id=parent_job_id, parent_candidate_asset_id=parent_candidate_asset_id,

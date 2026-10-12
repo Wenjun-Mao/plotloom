@@ -444,32 +444,12 @@ def register_project_folder_image_job_routes(
                     "candidates": [],
                     "idempotent": False,
                 }
-            adaptation = (
-                context["request"].get("frozenSnapshot", {}).get("keyframeAdaptation")
-            )
-            if adaptation is not None:
-                contract = adaptation.get("outputContract")
-                if not isinstance(contract, dict):
-                    repository.record_image_job_delivery_rejection(
-                        project_id, job_id, "delivery_geometry_contract_invalid"
-                    )
-                    raise ImageJobError(
-                        "delivery_geometry_contract_invalid",
-                        "keyframe adaptation has no usable frozen output contract",
-                    )
-                expected = (contract.get("width"), contract.get("height"))
-                for output in delivery.outputs:
-                    if (
-                        output.role != "keyframe_adaptation"
-                        or (output.observed.width, output.observed.height) != expected
-                    ):
-                        repository.record_image_job_delivery_rejection(
-                            project_id, job_id, "delivery_geometry_mismatch"
-                        )
-                        raise ImageJobError(
-                            "delivery_geometry_mismatch",
-                            "keyframe adaptation delivery must use the frozen role and exact profile dimensions",
-                        )
+            from ..persistence.project.image_adaptation_source import validate_adaptation_outputs
+            try:
+                validate_adaptation_outputs(context["request"], delivery_outputs(delivery))
+            except ImageJobError as error:
+                repository.record_image_job_delivery_rejection(project_id, job_id, error.code)
+                raise
             result = repository.record_image_job_delivery(
                 project_id,
                 job_id,

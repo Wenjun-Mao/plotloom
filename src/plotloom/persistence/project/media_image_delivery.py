@@ -137,6 +137,8 @@ class ImageJobDeliveryPersistence:
             job = session.get(ImageJobRow, job_id)
             if job is None or job.project_id != project_id:
                 raise NotFoundError(f"image job not found: {job_id}")
+            from .image_adaptation_source import validate_adaptation_outputs
+            validate_adaptation_outputs(job.request, outputs)
             existing = session.scalar(
                 select(ImageJobDeliveryRow)
                 .where(ImageJobDeliveryRow.job_id == job_id, ImageJobDeliveryRow.delivery_id == delivery_id)

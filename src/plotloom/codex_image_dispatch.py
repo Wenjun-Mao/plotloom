@@ -60,6 +60,9 @@ class NativeCodexImageDispatcher:
             # Reserve first, then atomically export, then queue. A failed
             # precondition has not sent anything and can release this empty slot.
             try:
+                delivery = Path(delivery_path)
+                if delivery.exists() or delivery.is_symlink():
+                    raise ImageJobError("delivery_conflict", "已有交付或执行暂存；请检查原任务，不要重复发送。")
                 if before_send is not None:
                     before_send()
             except Exception:

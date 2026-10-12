@@ -8,6 +8,7 @@ import shutil
 from uuid import uuid4
 
 from .creative_handoff_contracts import CreativeHandoffError
+from .package_publication_lock import open_publication_lock
 
 
 def _assert_partial_owned(path, files):
@@ -71,8 +72,7 @@ PUBLICATION_LOCK = ".package-publication.lock"
 
 def publish_package(package: Path, *, digest, files, write_once):
     package.parent.mkdir(parents=True, exist_ok=True)
-    descriptor = os.open(package.parent / PUBLICATION_LOCK,
-        os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    descriptor = open_publication_lock(package.parent / PUBLICATION_LOCK)
     try:
         metadata = os.fstat(descriptor)
         if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1 or metadata.st_size != 0:

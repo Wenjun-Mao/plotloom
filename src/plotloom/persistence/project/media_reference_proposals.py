@@ -21,6 +21,7 @@ from ..schema import (
     ProjectRow,
 )
 from .access import ProjectPersistenceAccess
+from .image_preflight import image_preflight
 from .canonical import ProjectCanonicalPersistence
 from .media_assets import ManagedAssetPersistence
 from .media_character_references import CharacterReferencePersistence
@@ -134,7 +135,7 @@ class CharacterReferenceProposalPersistence:
             }
             request = {
                 "schemaVersion": 3, "jobId": job_id, "executionContract": "codex_specialist.v2",
-                "specialistPreflight": {"version": "p1.5-pin.v1", "skillVersion": "plotloom-image-specialist.v3", "executionContract": "codex_specialist.v2"},
+                "specialistPreflight": image_preflight(self._access, session),
                 "kind": "refinement" if parent_candidate_asset_id else "original",
                 "target": "character_reference_proposal", "frozenSnapshot": snapshot,
             }

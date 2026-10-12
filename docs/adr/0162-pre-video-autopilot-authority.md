@@ -119,3 +119,29 @@ through a fresh session, and continues unrelated projects. When failure recordin
 is unavailable, quarantine that project until the blocker is durable. Known
 controller lease/discovery refusals remain supervised and inspectable. A restart
 or Resume never interprets storage failure as proof that dispatch did not occur.
+
+### P3 material and execution admission
+
+Enumerate every adopted Cast/Art subject and unique reachable filmed shot before
+images; bind that inventory and the completed bundle to historical native owners.
+Freeze original requested geometry and exact image execution revision/skill in
+the request. One tagged machine-provisional source may receive one counted
+adaptation; no human intent/review fields are borrowed or fabricated.
+
+Receipt state is transport evidence. Explicit image/reference cancellation is
+an authority withdrawal and participates in the material closure independently
+of other job status changes. Receipt scope may retain stopped-job evidence, but
+selection and completed-bundle admission separately recheck current applicability.
+Run Cancel/Takeover preserves delivered proposals instead of invoking cancellation
+owners that only accept unfinished states. Existing partial delivery/execution
+publication blocks a new native send at its final admission boundary; lack of
+completion cannot establish lack of execution. Retained candidate asset/hash/
+filename/role must match the exact original manifest output.
+
+Image static packages use descriptor-confined private publication, fsync and one
+rename. Reclaim only named unpublished request-derived subsets/prefixes, after
+verifying their whole recipe; never repair published packages or deliveries.
+Atomic exclusive lock-file creation followed by reopening the existing no-follow
+file closes the observed concurrent-creation refusal. This lock owns static
+publication, not native dispatch. Split package projection from the oversized
+delivery exchange and keep all executable publication owners in the native pin.

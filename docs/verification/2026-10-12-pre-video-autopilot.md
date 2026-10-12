@@ -1,7 +1,7 @@
 # Pre-video autopilot · single evidence receipt
 
 Status: **P1 committed at `fd549395`, preservation correction at `b3b01fb6`;
-P2 text orchestration locally verified, P3–P4 required**. No full autopilot happy path, product acceptance, valued
+P2 text orchestration verified, P3 image checkpoint locally verified, P4 required**. No human-handoff happy path, product acceptance, valued
 installation upgrade or live activation is claimed. Scope and stopping boundary are in the
 [approved plan](../roadmap/2026-10-12-pre-video-autopilot.md#p0-implementation-checkpoint)
 and [ADR 0162](../adr/0162-pre-video-autopilot-authority.md).
@@ -255,3 +255,75 @@ Manager independently reran schema-upgrade/recovery at exact `aa677b67`:
 confined publication locks and original package bytes survive preservation. This
 is cross-phase recovery evidence; manager P2 acceptance remains open pending its
 bounded correction re-review. No runtime/native/full acceptance is inferred.
+
+Manager's same GPT-6.1 Sol / High reviewer closed both P2 late-receipt findings
+at exact `94c38931c1b2b4ff50e280695e3b8162f64613a0`; committed diff clean.
+This is read-only code/coverage review, not an independent 22-test runtime rerun.
+
+### P3 complete initial material checkpoint
+
+The application-owned image reconciler enumerates every adopted Cast character,
+every Art environment/prop and every unique reachable filmed shot over complete
+routes, with no route-only or duplicate-route jobs. The small complete fake run
+uses **29 image jobs: 27 first frames plus two references**, over two routes,
+then publishes a typed exact bundle in `awaiting_review`. It creates zero human
+approval/intent/binding/SamePerson/video rows. Unfilmed Cast and Art prop gallery
+coverage is separately verified. Image/job minima are checked before image jobs;
+each optional single geometry adaptation consumes its own frozen capacity.
+
+Image preparation freezes the launch revision/skill and original requested
+geometry. Existing native transport/package/delivery owners remain authoritative.
+Technically valid mismatched originals settle normally and retain their assets;
+one tagged `machine_provisional` source can receive an exact frozen-dimension
+adaptation. A second incompatible output blocks with its files/reservation retained.
+Extra outputs settle their valid technical receipt but block automatic selection;
+no competing choice, crop, aesthetic judgment or provider fallback is inferred.
+
+Typed inventory/bundle validation binds historical accepted subject and canonical
+owners, exact native manifest/pin/output filename/hash/role, candidate/asset IDs,
+reference decision IDs and provisional frame selection/generation decisions.
+Current selection and bundle admission separately recheck native applicability.
+Image/reference cancellation participates in the material closure as authority
+withdrawal; other receipt status changes remain transport evidence. Paused valid
+receipt import reconciles only a previously current closure; it cannot conceal
+manual drift. Cancel/Takeover preserves delivered proposal evidence, and native
+send refuses any existing delivery/execution staging at final reservation admission.
+
+Static image package publication is descriptor-confined, staged, fsynced and
+renamed once; interrupted prefixes matching only the named frozen recipe may be
+reclaimed. The oversized exchange is split into package and delivery owners,
+both retained in the native execution pin. The concurrent test first exposed an
+ancestor mkdir race, then a separate lock creation refusal: a finite local probe
+observed ENOENT on concurrent O_CREAT even while the live descriptor/lock existed.
+Atomic exclusive creation plus reopening the existing no-follow lock fixes that
+boundary for image and creative publication. Foreign bytes remain untouched.
+The background supervisor also records unexpected owner failures without replay
+and continues unaffected projects; logs contain exception type only.
+
+Executed source/fake-only evidence (one existing Starlette warning):
+- Initial complete image pack: **1 passed**, focused runner 39.024s.
+- Ten controller cases including complete pack, limits, late delivery, restart,
+  extra output and adaptation passed in the broader 88.534s run; its separate
+  concurrent publication case failed and was diagnosed as described above.
+- Cancellation/partial-publication/manifest-edge fixes plus dispatcher:
+  **19 passed**, focused runner 61.950s.
+- Final complete pack/adaptations plus manual delivery contract:
+  **13 passed**, focused runner 64.264s.
+- All-subject gallery including unfilmed Cast/Art prop: **1 passed**, runner 9.723s.
+- Final receipt/dispatch-boundary cases plus atomic publication:
+  **9 passed**, runner 25.863s.
+- Atomic publication plus creative orphan subset/foreign checks:
+  **6 passed**, runner 2.322s after the concurrency root fix.
+- Background storage/unexpected-failure isolation plus pin boundaries:
+  **25 passed**, runner 9.885s.
+- Shared image delivery/identity/pin/publication run: 36 passed with the one
+  concurrent failure; only failed/downstream cases were rerun after diagnosis.
+
+Initial fake-output directories and the added prop's render sentence were
+corrected to satisfy the existing protocol/style gates; validators were not
+weakened. Development missing-import failures were diagnosed and corrected at
+the extracted/currentness modules; focused checks and Ruff F checks then passed.
+The attended P3 source review returned four concrete findings, all covered by
+the 19-case correction run; its bounded re-review remains pending. No real
+ImageGen output/geometry, human handoff/UI, browser/pixels, full/native/live
+qualification, main publication or owner acceptance is claimed.

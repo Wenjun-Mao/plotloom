@@ -62,6 +62,9 @@ def modular_checkout(tmp_path: Path) -> tuple[Path, Path]:
         "src/plotloom/persistence/project/media_image_delivery.py": "# delivery owner\n",
         "src/plotloom/image_job_contracts.py": "# image contract owner\n",
         "src/plotloom/image_job_exchange.py": "# exchange owner\n",
+        "src/plotloom/image_exchange_packages.py": "# package owner\n",
+        "src/plotloom/image_package_publication.py": "# publication owner\n",
+        "src/plotloom/package_publication_lock.py": "# publication lock owner\n",
         "src/plotloom/image_job_package.py": "# frozen package projection owner\n",
         "src/plotloom/image_terminal_outcome.py": "# no-output terminal owner\n",
         "src/plotloom/specialist_settings.py": "# terminal reservation owner\n",
@@ -93,6 +96,19 @@ def _run_pin(repository: Path, package: Path) -> subprocess.CompletedProcess[str
         capture_output=True,
         text=True,
     )
+
+
+@pytest.mark.parametrize("field", ["codeRevision", "skillHash"])
+def test_pin_refuses_frozen_image_execution_drift_before_generation(modular_checkout, field):
+    repository, package = modular_checkout
+    request_path = package / "request.json"
+    request = json.loads(request_path.read_text())
+    request["specialistPreflight"][field] = "d" * (40 if field == "codeRevision" else 64)
+    request_path.write_text(json.dumps(request))
+    result = _run_pin(repository, package)
+    assert result.returncode != 0
+    assert "execution differs from the frozen image policy" in result.stderr
+    assert not (package.parent / "delivery" / "executor-pin.json").exists()
 
 
 @pytest.mark.parametrize("source", ["image_terminal_outcome.py", "specialist_settings.py", "codex_image_dispatch.py"])

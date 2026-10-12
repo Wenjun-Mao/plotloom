@@ -32,7 +32,10 @@
           "tests/test_autopilot_authority.py",
           "tests/test_autopilot_text_controller.py",
           "tests/test_autopilot_controller_safety.py",
-          "tests/test_autopilot_late_receipts.py"
+          "tests/test_autopilot_late_receipts.py",
+          "tests/test_autopilot_images.py",
+          "tests/test_autopilot_image_safety.py",
+          "tests/test_image_package_publication.py"
         ],
         "vitest": [
           "frontend/tests/authoring-autosave-admission.test.ts",

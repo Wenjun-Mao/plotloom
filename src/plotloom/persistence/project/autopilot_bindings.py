@@ -58,6 +58,9 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
         row = _row(connection, f'SELECT project_id, content_hash FROM "{table}" WHERE id=?', (evidence.subject_id,))
         if row["project_id"] != project_id or row["content_hash"] != evidence.result.get("contentHash"):
             raise ValueError("local adoption canonical owner changed")
+        if owner == "bundle" and "inventory" in evidence.result:
+            from .autopilot_inventory_validation import assert_inventory_binding
+            assert_inventory_binding(connection, project_id, evidence.result["inventory"])
         return
     if not evidence.job_id or not evidence.request_hash or not evidence.execution_pin:
         raise ValueError("native checkpoint requires its exact frozen execution identity")
@@ -79,6 +82,9 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
         table, delivery_table, foreign_key = IMAGE_OWNERS[owner]
         row = _row(connection, f'SELECT * FROM "{table}" WHERE id=?', (evidence.job_id,))
         request = json.loads(row["request"])
+        run = _row(connection, "SELECT project_id,policy FROM v2_autopilot_runs WHERE id=?", (run_id,))
+        if run["project_id"] != project_id or json.loads(run["policy"])["executionPins"].get("image") != evidence.execution_pin:
+            raise ValueError("image checkpoint execution differs from frozen launch policy")
         subject = request.get("frozenSnapshot", {})
         expected_subject = (subject.get("shot", {}).get("id") if owner == "image"
             else row.get("character_id") if owner == "character-reference" else row.get("subject_id"))
@@ -86,8 +92,36 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
                 or stable_hash(request) != evidence.request_hash or evidence.subject_id != expected_subject
                 or request.get("specialistPreflight") != evidence.execution_pin):
             raise ValueError("image checkpoint frozen owner binding changed")
-        proofs = list(connection.execute(f'SELECT manifest_hash FROM "{delivery_table}" WHERE "{foreign_key}"=? AND manifest_hash IS NOT NULL', (evidence.job_id,)))
-        proof = evidence.delivery_hash if any(item[0] == evidence.delivery_hash for item in proofs) else None
+        proofs = list(connection.execute(f'SELECT manifest_hash,manifest,id,state FROM "{delivery_table}" WHERE "{foreign_key}"=? AND manifest_hash IS NOT NULL', (evidence.job_id,)))
+        retained = next((item for item in proofs if item[0] == evidence.delivery_hash), None)
+        proof = evidence.delivery_hash if retained is not None else None
+        if retained is not None:
+            from ...image_job_contracts import ImageDeliveryManifest
+            manifest = ImageDeliveryManifest.model_validate_json(retained[1])
+            frozen_policy = json.loads(run["policy"])
+            provenance = manifest.executor_provenance
+            if (stable_hash(manifest.model_dump(mode="json", by_alias=True)) != proof
+                    or manifest.job_id != evidence.job_id or manifest.request_hash != evidence.request_hash
+                    or provenance is None or provenance.code_revision != evidence.execution_pin["codeRevision"]
+                    or provenance.skill_hash != evidence.execution_pin["skillHash"]
+                    or manifest.tool_evidence.task_id != frozen_policy["specialistBindings"]["image"]):
+                raise ValueError("retained image receipt differs from its frozen execution")
+            if "candidateAssetIds" in evidence.result:
+                candidate_table = delivery_table.replace("deliveries", "candidates")
+                candidates = list(connection.execute(f'SELECT candidate.asset_id,candidate.output_filename,candidate.output_hash,candidate.role,asset.project_id,asset.original_hash FROM "{candidate_table}" AS candidate JOIN v2_managed_assets AS asset ON asset.id=candidate.asset_id WHERE candidate."{foreign_key}"=? AND candidate.delivery_id=?', (evidence.job_id, retained[2])))
+                actual_assets = [item[0] for item in candidates]
+                declared_assets = evidence.result["candidateAssetIds"]
+                if len(set(declared_assets)) != len(declared_assets) or set(actual_assets) != set(declared_assets):
+                    raise ValueError("image checkpoint candidate set differs from its original native delivery")
+                expected_outputs = {(item.filename, item.sha256, item.role) for item in manifest.outputs}
+                if retained[3] == "accepted" and (len(candidates) != len(expected_outputs) or {item[1:4] for item in candidates} != expected_outputs):
+                    raise ValueError("native candidate bytes differ from exact manifest outputs")
+                if any(item[4] != project_id or item[2] != item[5] for item in candidates):
+                    raise ValueError("native candidate asset differs from its exact output bytes")
+                if evidence.result.get("deliveryState") != retained[3]:
+                    raise ValueError("native checkpoint acceptance differs from exact delivery")
+            if "outputRoles" in evidence.result and evidence.result["outputRoles"] != [item.role for item in manifest.outputs]:
+                raise ValueError("image checkpoint output roles differ from exact native delivery")
     else:
         raise ValueError("unknown checkpoint evidence owner")
     if (terminal and (not proof or evidence.delivery_hash != proof)) or (evidence.delivery_hash is not None and evidence.delivery_hash != proof):
@@ -102,8 +136,20 @@ def assert_frame_binding(connection, run_id, project_id, decision_id, frame):
     revision = _row(connection, "SELECT * FROM v2_entity_revisions WHERE id=?", (unit["storyboard_entity_revision_id"],))
     candidate = _row(connection, "SELECT * FROM v2_image_job_candidates WHERE job_id=? AND asset_id=?", (frame.job_id, frame.asset_id))
     delivery = _row(connection, "SELECT * FROM v2_image_job_deliveries WHERE id=?", (candidate["delivery_id"],))
+    selection = _row(connection, "SELECT run_id,project_id,evidence FROM v2_autopilot_checkpoints WHERE id=?", (decision["checkpoint_id"],))
+    selected_job = json.loads(selection["evidence"])
+    if (selection["run_id"] != run_id or selection["project_id"] != project_id
+            or selected_job.get("owner") != "image" or selected_job.get("jobId") != frame.job_id
+            or selected_job.get("subjectId") != frame.shot_id or selected_job.get("requestHash") != frame.request_hash):
+        raise ValueError("provisional frame differs from its exact selection checkpoint")
     snapshot = json.loads(unit["snapshot"])
     request = json.loads(job["request"])
+    generation = _row(connection, "SELECT run_id,project_id,scope,decision FROM v2_autopilot_decisions WHERE id=?", (unit["machine_decision_id"],))
+    source = json.loads(generation["decision"])["subject"]
+    if (generation["run_id"] != run_id or generation["project_id"] != project_id or generation["scope"] != "image_generation"
+            or source.get("entityRevisionId") != revision["id"] or source.get("revision") != revision["revision"]
+            or source.get("contentHash") != revision["content_hash"]):
+        raise ValueError("provisional frame lacks its exact machine image-generation authority")
     identities = snapshot.get("characterIdentity")
     visible = snapshot.get("visibleCharacterIds")
     if (request.get("schemaVersion") != 3 or snapshot.get("snapshotVersion") != 3

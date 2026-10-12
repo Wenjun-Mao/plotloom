@@ -21,7 +21,7 @@ MATERIAL_TABLES = (
 )
 
 
-def material_closure(session, project_id, *, tables=MATERIAL_TABLES):
+def material_closure(session, project_id, *, tables=MATERIAL_TABLES, include_cancellations=True):
     session.flush()
     payload = {}
     for name in tables:
@@ -30,6 +30,14 @@ def material_closure(session, project_id, *, tables=MATERIAL_TABLES):
                                else select(table).where(table.c.id == project_id)).mappings()
         values = [{key: value.isoformat() if isinstance(value, datetime) else value for key, value in row.items()} for row in rows]
         payload[name] = sorted(values, key=stable_hash)
+    if include_cancellations:
+        # Delivery/receipt progress is transport evidence, but a cancellation
+        # explicitly withdraws the native owner's material applicability.
+        payload["imageCancellations"] = {}
+        for name in ("v2_image_jobs", "v2_character_reference_proposals", "v2_art_reference_proposals"):
+            table = Base.metadata.tables[name]
+            payload["imageCancellations"][name] = sorted(session.scalars(select(table.c.id).where(
+                table.c.project_id == project_id, table.c.state == "cancelled")))
     return stable_hash(payload)
 
 
@@ -39,4 +47,4 @@ def production_closure(session, project_id):
         if name in {"v2_projects", "v2_stage_heads", "v2_gate_results", "v2_source_outline_heads",
             "v2_source_outline_section_map_heads", "v2_source_outline_graph_admissions", "v2_source_graph_identities",
             "v2_cast_heads", "v2_art_heads", "v2_script_heads", "v2_storyboard_review_heads",
-            "v2_production_bridge_heads", "v2_production_bridge_admissions"}))
+            "v2_production_bridge_heads", "v2_production_bridge_admissions"}), include_cancellations=False)

@@ -27,6 +27,7 @@ from ..schema import (
     ProjectRow,
 )
 from .access import ProjectPersistenceAccess
+from .image_preflight import image_preflight
 from .art import ProjectArtPersistence
 from .media_assets import ManagedAssetPersistence
 from .media_identifiers import new_image_job_id
@@ -116,10 +117,7 @@ class ArtReferenceProposalPersistence:
             request = {
                 "schemaVersion": 3, "jobId": job_id,
                 "executionContract": "codex_specialist.v2",
-                "specialistPreflight": {
-                    "version": "p1.5-pin.v1", "skillVersion": "plotloom-image-specialist.v3",
-                    "executionContract": "codex_specialist.v2",
-                },
+                "specialistPreflight": image_preflight(self._access, session),
                 "kind": "art_reference", "target": "art_reference_proposal", "frozenSnapshot": snapshot,
             }
             proposal = ArtReferenceProposalRow(

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from ...domain import ProjectLifecycleStatus, StageName
 from ...exceptions import InvalidTransitionError, NotFoundError, SchemaResetRequiredError
 from ..codec import _stored_utc
-from ..schema import ImageJobRow, ProductionUnitRow, ProjectRow, ReviewedShotBindingRow
+from ..schema import ImageJobRow, ProductionUnitRow, ProjectRow, ReviewedShotBindingRow, ManagedAssetRow
 from .access import ProjectPersistenceAccess
 from .canonical import ProjectCanonicalPersistence
 from .media_admission import KeyframeAdmission
@@ -89,6 +89,16 @@ class ImageJobCurrentness:
 
         if not self.presentations.matches(session, job.project_id, unit.shot_id, unit.snapshot.get("shotPresentation")):
             return False
+
+        adaptation = unit.snapshot.get("keyframeAdaptation", {})
+        if adaptation.get("sourceAuthority", {}).get("actor") == "machine_provisional":
+            source = session.get(ImageJobRow, adaptation.get("sourceJobId"))
+            asset = session.get(ManagedAssetRow, adaptation.get("sourceAssetId"))
+            if (source is None or source.request.get("kind") != "original" or asset is None
+                    or source.project_id != job.project_id or asset.project_id != job.project_id
+                    or asset.original_hash != adaptation.get("sourceOriginalHash")
+                    or not self.image_job_is_current_in_session(session, source)):
+                return False
 
         # V1 original jobs predate the reviewed-keyframe refinement binding and
         # intentionally retain their historical currentness rule.  V2

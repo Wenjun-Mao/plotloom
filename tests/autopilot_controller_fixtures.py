@@ -86,7 +86,7 @@ def deliver(store, request, value=None):
     (root / "completion.json").write_bytes(canonical_json(manifest))
 
 
-def environment(tmp_path, monkeypatch, *, auto_deliver=True, brief=None):
+def environment(tmp_path, monkeypatch, *, auto_deliver=True, brief=None, limits=None):
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     selected = brief or FIXED_CHINESE_BRIEF.model_copy(update={
         "decision_points_per_path": 1, "ending_count": 2, "desired_join_count": 0})
@@ -110,7 +110,7 @@ def environment(tmp_path, monkeypatch, *, auto_deliver=True, brief=None):
         return original_run(command, **kwargs)
     monkeypatch.setattr(subprocess, "run", queue)
     service = AutopilotService(storage, registry)
-    request = LaunchRequest(expected_brief_revision=1, render_style="realistic", art_render_style="realistic")
+    request = LaunchRequest(expected_brief_revision=1, render_style="realistic", art_render_style="realistic", **(limits or {}))
     view = service.launch(project_id, request)
     return storage, registry, service, view, calls
 

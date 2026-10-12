@@ -20,6 +20,9 @@ def assert_autopilot_contracts(connection):
                 raise ValueError("run policy or state changed")
             if bundle is not None and stable_hash(json.loads(bundle)) != bundle_hash:
                 raise ValueError("material bundle hash changed")
+            if bundle is not None:
+                from .material_bundle_validation import assert_material_bundle
+                assert_material_bundle(connection, identifier, project, digest, parsed, json.loads(bundle))
             if state == "handed_off" and (handoff is None or bundle is None):
                 raise ValueError("handed-off run lacks immutable review evidence")
             runs[identifier] = (project, digest)

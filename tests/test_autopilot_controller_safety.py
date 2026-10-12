@@ -107,7 +107,7 @@ def test_crash_orphan_reclaims_only_original_static_bytes(tmp_path, foreign):
         assert all((package / name).read_bytes() == content for name, content in files.items())
 
 
-@pytest.mark.parametrize("failure", [OSError("disk full"), SQLAlchemyError("database unavailable")])
+@pytest.mark.parametrize("failure", [OSError("disk full"), SQLAlchemyError("database unavailable"), RuntimeError("unexpected owner failure")])
 def test_background_storage_failure_preserves_job_and_other_project_progress(tmp_path, monkeypatch, failure):
     storage, _registry, service, view, calls = environment(tmp_path, monkeypatch, auto_deliver=False)
     second_progress = Event()
@@ -134,11 +134,11 @@ def test_background_storage_failure_preserves_job_and_other_project_progress(tmp
     monkeypatch.setattr(service.controller, "advance", advance)
     service.interval_seconds = 0.02
     blocked = Event()
-    original_record = service._record_storage_failure
-    def record(project_id):
-        original_record(project_id)
+    original_record = service._record_failure
+    def record(project_id, **kwargs):
+        original_record(project_id, **kwargs)
         blocked.set()
-    monkeypatch.setattr(service, "_record_storage_failure", record)
+    monkeypatch.setattr(service, "_record_failure", record)
     try:
         service.start()
         assert second_progress.wait(5)
@@ -149,7 +149,8 @@ def test_background_storage_failure_preserves_job_and_other_project_progress(tmp
         assert service._thread.is_alive()
         with closing(storage.projects.open(view.project_id)) as store:
             result = store.repository.autopilot.current(view.project_id)
-        assert result.state == "blocked" and result.blocker["code"] == "storage_failure"
+        expected = "controller_failure" if isinstance(failure, RuntimeError) else "storage_failure"
+        assert result.state == "blocked" and result.blocker["code"] == expected
         assert next(item for item in result.checkpoints if item["operationKey"] == "outline")["state"] == "prepared"
         with closing(storage.projects.open(other_id)) as store:
             assert store.source_outline_state().source is not None

@@ -32,6 +32,9 @@ PINNED_SOURCES = (
     # their package façades attest the route and delivery code beneath them.
     Path("src/plotloom/api"),
     Path("src/plotloom/image_job_exchange.py"),
+    Path("src/plotloom/image_exchange_packages.py"),
+    Path("src/plotloom/image_package_publication.py"),
+    Path("src/plotloom/package_publication_lock.py"),
     Path("src/plotloom/image_job_package.py"),
     Path("src/plotloom/image_job_contracts.py"),
     Path("src/plotloom/image_terminal_outcome.py"),
@@ -222,13 +225,17 @@ def main() -> int:
         raise SystemExit("Unsupported checkout: Plotloom image-specialist skill is missing.")
     revision = _command(repository, "rev-parse", "HEAD").decode().strip()
     _verify_pinned_sources(repository, revision)
+    actual_skill_hash = hashlib.sha256(skill.read_bytes()).hexdigest()
+    if ((preflight.get("codeRevision") is not None and preflight["codeRevision"] != revision)
+            or (preflight.get("skillHash") is not None and preflight["skillHash"] != actual_skill_hash)):
+        raise SystemExit("Unsupported checkout: execution differs from the frozen image policy; do not generate.")
     pin = {
         "jobId": request["jobId"],
         "requestHash": request["requestHash"],
         "executionContract": SUPPORTED_EXECUTION_CONTRACT,
         "skillVersion": skill_version,
         "codeRevision": revision,
-        "skillHash": hashlib.sha256(skill.read_bytes()).hexdigest(),
+        "skillHash": actual_skill_hash,
     }
     delivery = package.parent / "delivery"
     _private_directory(delivery, label="delivery")

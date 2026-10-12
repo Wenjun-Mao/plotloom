@@ -74,7 +74,8 @@ class ProjectCommandTransactions:
             run = self.autopilot.validate_command(session, authority)
             from .autopilot_closure import material_closure, MATERIAL_TABLES
             receipt_tables = tuple(name for name in MATERIAL_TABLES if name != "v2_managed_assets")
-            protected_before = material_closure(session, self.project_id, tables=receipt_tables)
+            protected_before = material_closure(session, self.project_id, tables=receipt_tables, include_cancellations=False)
+            closure_was_current = run.expected_closure == material_closure(session, self.project_id)
             connection = session.connection().connection.driver_connection
             changes_before = connection.total_changes
             session.info["autopilot_run_id"] = run.id
@@ -82,11 +83,11 @@ class ProjectCommandTransactions:
             try:
                 yield session
                 from .autopilot_closure import material_closure
-                if authority.scope.value == "receipt_reconciliation" and protected_before != material_closure(session, self.project_id, tables=receipt_tables):
+                if authority.scope.value == "receipt_reconciliation" and protected_before != material_closure(session, self.project_id, tables=receipt_tables, include_cancellations=False):
                     raise InvalidTransitionError("receipt reconciliation cannot change creative or human authority")
                 closure = material_closure(session, self.project_id)
                 if connection.total_changes != changes_before:
-                    if authority.scope.value != "receipt_reconciliation" or run.state in {"running", "waiting"}:
+                    if authority.scope.value != "receipt_reconciliation" or closure_was_current:
                         run.expected_closure = closure
                     run.revision += 1
                     run.updated_at = utc_now()
