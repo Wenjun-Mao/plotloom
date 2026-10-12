@@ -230,3 +230,28 @@ dependency versions, lockfiles or build policy were changed.
 Existing Starlette/httpx deprecation warning remains. Ownership includes the new
 text/safety cases. P3/P4, deterministic frontend assets/browser/pixels and manager
 P5 full/native/preservation/activation qualification remain outstanding.
+
+### Manager P2 late-receipt corrections
+
+Manager-attended review at `aa677b6768c68f6fb90fcee19b9f948dd2d58c26`
+found two concrete gaps. Shared bridge response retention ignored the real
+`outcome_unknown` send state; it now retains exact response evidence without
+advancing proposal heads, allowing normal native settlement during pause/hold.
+Every text receipt/adoption path now uses one frozen-code-revision gate, including
+inactive reconciliation and resumed/restarted adoption of already retained rows.
+Foreign receipts remain on disk without adoption/checkpoint-completion authority.
+
+Focused late-receipt/text selection: **22 passed**, runner 26.616s. Four bridge
+intent/presentation unknown-ack pause/blocked cases settle without proposal/human
+edits, then resume the same job without a send. Running, paused, blocked and
+retained-receipt restart cases all refuse foreign code revisions. Initial repair
+checks exposed two owner-read constraints (receipt-only request scope, and branch
+request getter restricted to prepared candidates); the final gate reads exact
+retained requests under EVIDENCE before separately revalidating adoption authority.
+Evidence logs remain under ignored `.local/`; no owner guard was weakened.
+
+Manager independently reran schema-upgrade/recovery at exact `aa677b67`:
+**32 passed**, focused runner 8.408s, clean before/after and committed diff. Empty
+confined publication locks and original package bytes survive preservation. This
+is cross-phase recovery evidence; manager P2 acceptance remains open pending its
+bounded correction re-review. No runtime/native/full acceptance is inferred.

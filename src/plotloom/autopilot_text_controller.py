@@ -120,11 +120,9 @@ class AutopilotTextController:
             # Exact durable preparation and absent native attempt permit only
             # the original request's atomic initial publication.
             store.creative_handoff_exchange().write_package(request, evidence.execution_pin)
-        delivery = service._delivery(store, request) if bridge else read_creative_delivery(store, request)
+        delivery = self.validated_delivery(store, view, stage, request)
         if delivery is not None:
             self.registry.assert_creative_task_identity(evidence.job_id, project_id=view.project_id, stage=stage)
-            if delivery.manifest.executor_provenance.code_revision != view.policy.code_revision:
-                raise InvalidTransitionError("native delivery code revision differs from launch")
             with self.command(store, view, claim, OperationScope.INSTALL if bridge else OperationScope.EVIDENCE):
                 if bridge:
                     service._admit(store, request, delivery)
@@ -166,14 +164,17 @@ class AutopilotTextController:
 
     def adopt_delivered(self, store, view, claim, stage, checkpoint, evidence):
         bridge = stage in self.bridge_services
+        with self.command(store, view, claim, OperationScope.EVIDENCE):
+            request = (self.bridge_services[stage]._request(store, view.project_id, evidence.job_id)[0] if bridge else
+                store.repository.creative_terminal.run_request(view.project_id, stage, evidence.job_id))
+        delivery = self.validated_delivery(store, view, stage, request, expected_hash=evidence.delivery_hash)
+        if delivery is None:
+            raise InvalidTransitionError("retained native delivery is unavailable")
         with self.command(store, view, claim, OperationScope.INSTALL if bridge else OperationScope.TEXT):
             if bridge:
                 service = self.bridge_services[stage]
                 request, data = service._request(store, view.project_id, evidence.job_id)
                 if data["status"] != "ready":
-                    delivery = service._delivery(store, request)
-                    if delivery is None:
-                        raise InvalidTransitionError("retained bridge delivery is unavailable")
                     service._admit(store, request, delivery)
                 proposal = store.production_bridge_state().proposal
                 with store.repository._read() as session:
@@ -190,10 +191,6 @@ class AutopilotTextController:
                 if candidate is None or candidate.job_id != evidence.job_id:
                     raise InvalidTransitionError("retained native candidate is no longer current")
                 if candidate.status == "prepared":
-                    request = getattr(store, CREATIVE_METHODS[stage][1])(evidence.job_id)
-                    delivery = read_creative_delivery(store, request)
-                    if delivery is None or delivery.manifest_hash != evidence.delivery_hash:
-                        raise InvalidTransitionError("retained paused receipt differs from exact native evidence")
                     getattr(store, CREATIVE_METHODS[stage][2])(delivery)
                 result_facts = adopt_text(store, stage, evidence.job_id)
             recorded = store.repository.autopilot.checkpoint(stage, state="adopted", expected_revision=checkpoint["revision"],
@@ -234,7 +231,7 @@ class AutopilotTextController:
                 service = self.bridge_services.get(evidence.owner)
                 request = (service._request(store, view.project_id, evidence.job_id)[0] if service else
                     store.repository.creative_terminal.run_request(view.project_id, evidence.owner, evidence.job_id))
-                delivery = service._delivery(store, request) if service else read_creative_delivery(store, request)
+                delivery = self.validated_delivery(store, view, evidence.owner, request)
                 if delivery is None:
                     continue
                 self.registry.assert_creative_task_identity(evidence.job_id, project_id=view.project_id, stage=evidence.owner)
@@ -254,3 +251,14 @@ class AutopilotTextController:
                 store.repository.autopilot.checkpoint(checkpoint["operationKey"], state="delivered", expected_revision=checkpoint["revision"],
                     evidence=evidence.model_copy(update={"delivery_hash": delivery.manifest_hash}))
             self.registry.complete_creative_task(evidence.job_id, project_id=view.project_id, stage=evidence.owner)
+
+    def validated_delivery(self, store, view, stage, request, *, expected_hash=None):
+        """All receipt/adoption states share the launch execution boundary."""
+        service = self.bridge_services.get(stage)
+        delivery = service._delivery(store, request) if service else read_creative_delivery(store, request)
+        if delivery is not None:
+            if delivery.manifest.executor_provenance.code_revision != view.policy.code_revision:
+                raise InvalidTransitionError("native delivery code revision differs from launch")
+            if expected_hash is not None and delivery.manifest_hash != expected_hash:
+                raise InvalidTransitionError("retained native receipt differs from checkpoint evidence")
+        return delivery

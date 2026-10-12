@@ -249,7 +249,7 @@ class ProductionBridgeIntentPersistence(ProductionBridgePresentationCandidatePer
 
         with self._access.leases.lifecycle_write() as session:
             job = self._job(session, project_id, job_id)
-            if job.status not in {"dispatched", "cancelled"}:
+            if job.status not in {"dispatched", "cancelled", "outcome_unknown"}:
                 return
             job.response_evidence = response_evidence
             job.response_hash = response_hash
