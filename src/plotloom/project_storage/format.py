@@ -13,9 +13,8 @@ from pydantic import Field, field_validator
 
 from ..domain import CamelModel
 
-# F5A persists source-bound storyboard-review rows. Older folders are deliberately refused at
-# manifest admission: there is no migration/fallback layer that could leave a
-# partially-open folder to fail later on a missing-table query.
+# Manifest admission remains exact. The separately invoked immediate-prior
+# schema transition never runs through ordinary folder reads or opens.
 PROJECT_STORAGE_FORMAT_VERSION = 11
 PROJECT_DATABASE_RELATIVE_PATH = "project.sqlite3"
 PROJECT_MANIFEST_FILENAME = "project.json"

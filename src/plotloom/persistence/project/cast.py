@@ -4,6 +4,7 @@ from __future__ import annotations
 from hashlib import sha256
 from typing import Any
 
+from .autopilot_authority import receipt_only
 from sqlalchemy import select
 
 from ...cast_contracts import (
@@ -293,10 +294,14 @@ class ProjectCastPersistence:
             validate_cast_notes(delivery.candidate, required=CONTRACT_FILENAME in request.input_artifacts)
             validate_cast_style(delivery.candidate, CastBinding.model_validate(row.binding).render_contract)
             row.status, row.delivery_id, row.manifest_hash, row.cast, row.report_html, row.delivered_at = "ready", delivery.manifest.delivery_id, delivery.manifest_hash, delivery.candidate, delivery.report.decode("utf-8"), utc_now()
-            head.status, head.updated_at = "candidate_ready", row.delivered_at
+            if not receipt_only(self._access):
+                head.status, head.updated_at = "candidate_ready", row.delivered_at
             return self._candidate(row)
 
     def accept_candidate(self, project_id: str, request: CastAcceptRequest) -> CastReviewState:
+        from ...autopilot_contracts import OperationScope
+        from .autopilot_authority import allow_manual_or_machine
+        allow_manual_or_machine(self._access, OperationScope.TEXT)
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             head, row = self._head(session, project_id), session.get(CastCandidateRow, request.job_id)

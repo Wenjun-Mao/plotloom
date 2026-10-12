@@ -74,79 +74,19 @@ remain visible in the final human review. Required frame/identity semantics,
 typed scope propagation, schema transition and lifecycle recovery must be settled
 in plan P0 before dependent implementation; no broad bypasses are permitted.
 
-## P0 implementation contract · 2026-10-12 review checkpoint
+## P0 implementation contract · approved 2026-10-12
 
-The [P0 checkpoint](../roadmap/2026-10-12-pre-video-autopilot.md#p0-implementation-checkpoint)
-and [receipt](../verification/2026-10-12-pre-video-autopilot.md) settle the
-following design, pending the manager's attended review before dependent writes.
-This is contract design and baseline seam evidence, not implemented authority.
+Attended manager review approved the [implementation contract](../creative-workflow/pre-video-autopilot-contract.md), informed by independent authority/preservation reviews and disposable baseline probes in the [single receipt](../verification/2026-10-12-pre-video-autopilot.md). Detailed ownership and guard invariants live there; ordered delivery remains in the roadmap.
 
-- A project retains one MVP run, with typed checkpoints, immutable decisions and
-  provisional frame bindings. Machine decisions never enter the human approval
-  ledger, `ReviewedShotBinding` or `SamePersonReview`. Text-stage adoption retains
-  each current owner and appends machine provenance in the same transaction.
-- A production unit has exactly one authority: a human approval FK or a machine
-  decision FK. Its snapshot records the actual tagged authority, never a machine
-  ID disguised as `approvalId`. Machine admission is explicit and image-only;
-  currentness and dispatch permission are separate queries. Installed machine
-  material can remain inspectable/current when automatic dispatch has stopped.
-- Intent adds `ai_adopted`; presentation adds a typed machine-adoption reference
-  while `reviewed` remains false. Human review and machine adoption are mutually
-  exclusive. The structural span binder and canonical gates are shared, without
-  claiming human semantic or visual fidelity. Final bundle review endorses the
-  retained machine records instead of rewriting their original provenance.
-- Trusted orchestration commands carry a typed run/lifecycle/claim and exact
-  closure. A repository-bound command transaction reuses one session for owner
-  reads and writes, so adoption and its decision/checkpoint commit together.
-  Public manual mutations have no machine context and pause/take over the run;
-  no browser body or reviewer string can manufacture controller authority.
-- Human handoff records actual per-frame VisualIntent, compatibility and identity
-  inputs through existing owners, and endorses the original reference decision
-  IDs. Re-selecting identical reference bytes would invalidate frozen identity
-  mappings. The material hash is separate from the human approval/binding/review
-  IDs appended by handoff, preventing self-invalidation.
-  Manual takeover can later produce a fresh exact handoff from manually completed
-  current material, preserving the old receipt without automatic regeneration.
-- Video guards apply to preview, preparation/freezing, enqueue and dispatch,
-  before provider preflight or application accounting reservation. They validate
-  the whole material/handoff closure, including unrelated adopted subjects and
-  other shots. Receipt/history reads, safe known-ID reconciliation and cancellation
-  retain their evidence-preserving behavior after eligibility is withdrawn.
-- Keep the existing nine-attachment and eight-character-review limits. A shot
-  that cannot satisfy both is a disclosed capacity blocker before image dispatch,
-  never a reason to omit a visible character or fabricate a review.
-- Exact Brief projection needs typed Brief-derived origin and preservation of the
-  saved title/synopsis bytes; ordinary SourceMaterial normalization currently
-  trims them. No attribution or rights declaration is inferred.
+Machine authority remains separate from human approvals/review facts. Production units use an exclusive authority union, and provisional frames retain immutable provenance. The human handoff endorses original reference IDs and records genuine per-frame judgments atomically, without video operations. Manual takeover can later create a fresh human handoff from completed current material.
 
-The preceding layout has 75 project tables and canonical `schema_objects` hash
-`ea9facef83198e8b5abdd8693923f51add1376c0b416041dbfa245b92011b825`
-at `731cfdbf`. Freeze the complete tuple as upgrade authority before source
-metadata changes; this baseline is not an actual-installation inventory. The
-explicit transition must rebuild the production-unit authority constraint as
-well as add autopilot tables, preserving every old row/ID and operational state.
-Normal reads still refuse prior/unknown layouts. Verified immediate-prior
-snapshots upgrade only their private restore destination; captured native run
-identities remain permanently non-dispatchable after portable acknowledgement.
+P0 reproduced three contract gaps: source trimming conflicts with exact saved-Brief projection; reviewed-only adaptation sources cannot support machine-provisional geometry; and snapshot inventory omits retained native creative packages/reports. Resolve these at their source, image-authority and evidence-inventory owners. Permit one counted adaptation, preserving a mismatched original as evidence; incompatible second output blocks. Do not fake review, implicitly crop or infer native geometry capability.
 
-P0 reproduced a pre-existing snapshot defect: eight retained native creative
-package/delivery files were omitted, and direct closed-folder restore rejected
-their directory. Extend the confined inventory from typed retained job/request/
-pin identities; do not recursively accept arbitrary `outputs/`. Include archival
-packages, reports and incomplete/invalid evidence with honest publication state,
-bounded safe paths, hashes and secret scanning. Such evidence cannot settle a
-native lease or grant selection. Ordinary discovery hides unsupported folders,
-so the upgrader needs independent manifest/raw-layout inventory.
+Freeze the immediately prior 75-table exact layout (canonical hash `ea9facef83198e8b5abdd8693923f51add1376c0b416041dbfa245b92011b825`) in the installed project-storage package before metadata changes. Actual targets require independent raw-layout inventory; catalog discovery is insufficient. Preserve prior rows and original snapshot bytes; portable captured native identities never regain dispatch authority through acknowledgement.
 
-First-frame originals must satisfy the saved Brief aspect before completed-pack
-admission. A mismatched original may use at most one separately counted existing
-image-adaptation job, with a tagged machine-provisional source replacing the
-current human-only source requirement. Settle the technically valid original job
-through its normal owner, preserve the mismatched original as evidence and
-exclude it from required-frame completion. A second incompatible output blocks.
-Freeze image target geometry at launch,
-without video preview or provider calls; retain original bytes and both jobs.
-Capacity exhaustion or invalid adaptation blocks completion. No implicit crop,
-hidden retry or guarantee of native ImageGen geometry is introduced. This source
-union and geometry refinement require attended P0 review before implementation;
-the real isolated proof remains the manager's later gate.
+This decision is approved implementation authority, not delivered behavior, real generation proof or preserving-upgrade qualification.
+
+Receipt reconciliation uses the existing candidate owners but leaves creative
+head projections unchanged. It may retain exact job/manifest/output evidence;
+accepted revisions, reference selections and human facts require their distinct
+command scopes. Checkpoint updates use CAS and monotonic dispatch transitions.

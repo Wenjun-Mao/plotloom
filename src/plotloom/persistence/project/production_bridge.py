@@ -5,6 +5,7 @@ from hashlib import sha256
 from typing import Any
 
 from pydantic import ValidationError
+from .autopilot_authority import require_human_command
 from sqlalchemy import select
 
 from ...canonical_schema import (
@@ -179,6 +180,7 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
     def update_intent_package(self, project_id: str, request: ProductionBridgeIntentUpdateRequest) -> ProductionBridgeState:
         """Create one new review binding; client text cannot alter provenance."""
 
+        require_human_command(self._access)
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id)); head = self._head(session, project_id)
             if head.status == "accepted":

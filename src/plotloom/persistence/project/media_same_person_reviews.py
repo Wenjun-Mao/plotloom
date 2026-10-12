@@ -159,6 +159,8 @@ class SamePersonReviewPersistence:
         notes: str,
     ) -> dict[str, Any]:
         """Persist an explicit human judgment about a v3 generated keyframe."""
+        from .autopilot_authority import require_human_command
+        require_human_command(self._access)
         try:
             request = SamePersonReviewRequest(
                 binding_id=binding_id, expected_review_revision=expected_review_revision,

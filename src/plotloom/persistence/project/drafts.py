@@ -32,6 +32,7 @@ from ..schema import (
     ProjectCreationIdempotencyRow, ProjectDuplicateIdempotencyRow, ProjectRow,
     StageHeadRow,
 )
+from .autopilot_authority import require_manual_command
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
 from .access import ProjectPersistenceAccess
 
@@ -88,6 +89,7 @@ class ProjectDraftPersistence:
                 head.updated_at = now
 
     def update_project(self, project_id: str, expected_revision: int, brief: ProjectBrief) -> Project:
+        require_manual_command(self._access)
         with self._access.leases.lifecycle_write() as session:
             row = self._access.rows.project(session, project_id)
             self._access.guards.active(row)
@@ -161,6 +163,7 @@ class ProjectDraftPersistence:
         """Atomically save a brief and consume the exact acknowledged draft."""
 
         canonical_payload = brief.model_dump(mode="json", by_alias=True)
+        require_manual_command(self._access)
         with self._access.leases.lifecycle_write() as session:
             row = self._access.rows.project(session, project_id)
             self._access.guards.active(row)

@@ -81,6 +81,8 @@ class VideoEndFrames:
     def choose(self, project_id: str, shot_id: str, *, asset_id: str | None,
                approval_id: str, storyboard_revision: int, expected_revision: int,
                aspect_policy: str | None) -> dict[str, Any]:
+        from .autopilot_authority import require_video_authority
+        require_video_authority(self._access, project_id)
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             approval = self._admission.approval_is_active_in_session(session, approval_id)

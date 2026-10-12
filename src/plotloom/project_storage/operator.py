@@ -26,11 +26,12 @@ def restore_command(arguments: Sequence[str]) -> int:
     )
     parser.add_argument("--source", required=True, type=Path, help="Closed project folder or Plotloom snapshot directory")
     parser.add_argument("--outputs-dir", required=True, type=Path, help="Destination installation outputs directory")
+    parser.add_argument("--upgrade-previous-layout", action="store_true", help="Explicitly upgrade only the verified immediate-prior restore destination")
     parsed = parser.parse_args(arguments)
     registry = ProjectDirectoryRegistry(parsed.outputs_dir)
     recovery = ProjectRecoveryService(registry.outputs_root, registry)
     try:
-        restored = recovery.restore(parsed.source)
+        restored = recovery.restore(parsed.source, upgrade_previous=parsed.upgrade_previous_layout)
     except ProjectStorageError as error:
         parser.exit(2, f"plotloom restore: {error}\n")
     print(json.dumps({"status": "restored", "location": str(restored)}, sort_keys=True))

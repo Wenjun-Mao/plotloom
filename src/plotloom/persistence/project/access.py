@@ -57,3 +57,4 @@ class ProjectPersistenceAccess:
     rows: ProjectRows
     codecs: ProjectCodecs
     guards: ProjectGuards
+    authority: Callable[[], Any] = lambda: None

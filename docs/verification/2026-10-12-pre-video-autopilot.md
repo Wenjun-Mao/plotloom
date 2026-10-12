@@ -102,3 +102,61 @@ proof, actual installation inventory/upgrade/cutback, main integration/push and
 quiet normal/Tailscale activation. Hosted CI remains excluded. No full suite,
 browser/pixel acceptance, real generation, valued schema transition or final
 human material handoff has been executed at P0.
+
+## Attended P0 approval · baseline evidence
+
+The manager approved continuation at checkpoint `72b85537a30f17b7430b89495a480e1cb0ea7e33`. Independent rerun: the same five focused pytest files passed **76 tests**, `VERIFY_SUMMARY focused elapsed_seconds=14.064 exit_code=0`; P0 probe reproduced the source/geometry/capacity/route and recovery facts; `git show --check` clean; production source/tests/frontend/services/dependencies unchanged from `731cfdbf`. A manager-attended GPT-6.1 Sol / High read-only review reported no blocking contract finding. These are baseline/contract evidence, not implementation acceptance.
+
+Required follow-ups: use `ProjectVideoRepository.assert_submit_allowed` (called by `ProjectVideoService.submit`), move cohesive details from the near-limit roadmap to the linked implementation contract, and ship the frozen prior layout inside the actual installed package owner. The manager's initial live inventory is independently held evidence and is not a source-owner upgrade qualification or final quiescence snapshot.
+
+
+## P1 authority / schema / preserving recovery checkpoint
+
+Implemented only in the named isolated source worktree after P0 approval. New
+native project tables own one run, CAS/monotonic checkpoints, immutable machine
+decisions and provisional frames. Existing owner commands share one repository
+transaction; machine image units have an exclusive human/machine FK union.
+Human intent/presentation/Brief and frame-review owners reject machine commands;
+video prepare/preview/claim/submit guard before any provider or reservation.
+Exact saved-Brief source provenance retains raw title/synopsis bytes. Native
+checkpoint/frame facts resolve real project-owned request/pin/delivery/assets;
+receipt-only ingestion retains candidate evidence without creative-head adoption.
+
+The packaged frozen prior layout supports an explicit idle transactional upgrade;
+old-column fingerprints, integrity/FKs and confined retained-file hashes are
+verified before commit. Ordinary reads remain exact. Snapshots retain all eight
+creative fixture files; missing completed trees fail closed. A separately
+verified prior-snapshot omission is recorded explicitly on the upgraded private
+destination. Original snapshot bytes remain unchanged. Captured portable run
+identities cannot resume or reclaim dispatch after recovery acknowledgement.
+
+Root-cause fixes from attended review: prevent dispatch-state regression with CAS
+and a monotonic transition graph; bind evidence to native owners rather than JSON
+shape; keep human-only owners outside machine scope; distinguish unexported/prior
+omitted trees from lost current final evidence; validate retained filesystem
+bytes before schema mutation and after its final hook. Exact historical source
+binding and explicit v3 character mappings are additionally validated. The same
+attended GPT-6.1 Sol / High reviewer found no remaining defects in the final
+bounded corrections; effective host model settings remain unverified. This is
+not independent final product/release review.
+
+Executed final P1 focused selection (no full gate):
+`tests/test_autopilot_authority.py`, `tests/test_autopilot_schema_upgrade.py`,
+`tests/test_autopilot_recovery.py`, `tests/test_project_storage_current_schema.py`,
+`tests/test_project_storage_source_outline.py`,
+`tests/test_project_storage_image_workflow.py`,
+`tests/test_project_storage_video_submission.py`,
+`tests/test_project_storage_recovery.py`, `tests/test_project_storage_cast.py`,
+`tests/test_project_storage_art.py`, `tests/test_project_storage_script.py`,
+`tests/test_project_storage_storyboard_review.py`.
+**133 passed**, one existing Starlette/httpx deprecation warning; focused runner
+`elapsed_seconds=34.642 exit_code=0`. New tests are in native module ownership.
+Unused-import check on new authority/recovery modules/tests and `git diff --check`
+passed. Disposable Alembic head upgrade succeeded. `uv build --wheel` succeeded;
+the wheel includes `plotloom/project_storage/schema_layouts/pre_autopilot.json`.
+
+P2–P4 remain required: durable full-chain controller/native-role integration,
+complete subject/all-route image pack and one counted adaptation, consolidated
+truthful human review/UI and exact final handoff. No frontend build/browser/pixel,
+full qualification, real native dispatch, live schema upgrade, service activation,
+CI, video operation, main merge or push is represented by this checkpoint.

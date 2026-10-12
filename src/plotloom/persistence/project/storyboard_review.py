@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 from typing import Any
 
+from .autopilot_authority import receipt_only
 from sqlalchemy import select
 
 from ...authored_route_timing import validate_route_seconds
@@ -150,10 +151,14 @@ class ProjectStoryboardReviewPersistence:
             current, script, outline, cast, _art = self._context(session, project_id, max_cut_seconds=binding.review_max_cut_seconds)
             self._validate(delivery.candidate, current, script, outline, cast)
             row.status, row.delivery_id, row.manifest_hash, row.storyboard, row.report_html, row.delivered_at = "ready", delivery.manifest.delivery_id, delivery.manifest_hash, delivery.candidate, delivery.report.decode("utf-8"), utc_now()
-            head.status, head.updated_at = "candidate_ready", row.delivered_at
+            if not receipt_only(self._access):
+                head.status, head.updated_at = "candidate_ready", row.delivered_at
             return self._candidate(row)
 
     def accept_candidate(self, project_id: str, request: StoryboardReviewAcceptRequest) -> StoryboardReviewState:
+        from ...autopilot_contracts import OperationScope
+        from .autopilot_authority import allow_manual_or_machine
+        allow_manual_or_machine(self._access, OperationScope.TEXT)
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id)); head, row = self._head(session, project_id), session.get(StoryboardReviewCandidateRow, request.job_id)
             if head.revision != request.expected_review_revision:

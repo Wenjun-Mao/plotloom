@@ -1,4 +1,5 @@
 """Whole-package presentation review persisted through the bridge CAS owner."""
+from .autopilot_authority import require_human_command
 from sqlalchemy import select
 from ...production_presentation import ProductionPresentation, ProductionPresentationUpdateRequest, review_presentation, project_presentation
 from ...production_bridge_contracts import ProductionBridgeConflict
@@ -9,6 +10,7 @@ from ..schema.project_production_bridge import ProductionBridgeRevisionRow
 
 class ProductionBridgePresentationPersistence:
     def update_presentation(self, project_id: str, request: ProductionPresentationUpdateRequest):
+        require_human_command(self._access)
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             head = self._head(session, project_id)

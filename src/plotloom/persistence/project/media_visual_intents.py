@@ -28,6 +28,8 @@ class VisualIntentPersistence:
         *,
         consumed_draft: tuple[str, int, dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
+        from .autopilot_authority import require_human_command
+        require_human_command(self._access)
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
             self._access.guards.active(project)

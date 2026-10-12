@@ -272,14 +272,14 @@ class ProjectMediaRepository:
         return self._same_person.list_same_person_reviews(project_id)
 
     def prepare_image_job(
-        self, project_id: str, *, approval_id: str, shot_id: str,
+        self, project_id: str, *, approval_id: str | None = None, machine_decision_id: str | None = None, shot_id: str,
         storyboard_revision: int, presentation_change: str,
         parent_candidate_asset_id: str | None = None,
         keyframe_adaptation: JsonObject | None = None, contract_version: int = 2,
         consumed_draft: tuple[str, int, JsonObject] | None = None,
     ) -> JsonObject:
         return self._image_preparation.prepare_image_job(
-            project_id, approval_id=approval_id, shot_id=shot_id,
+            project_id, approval_id=approval_id, machine_decision_id=machine_decision_id, shot_id=shot_id,
             storyboard_revision=storyboard_revision,
             parent_candidate_asset_id=parent_candidate_asset_id,
             keyframe_adaptation=keyframe_adaptation,

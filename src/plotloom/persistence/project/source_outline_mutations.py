@@ -5,6 +5,7 @@ from __future__ import annotations
 from hashlib import sha256
 from typing import TYPE_CHECKING
 
+from .autopilot_authority import receipt_only
 from sqlalchemy import select
 
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
@@ -43,11 +44,21 @@ class SourceOutlineMutations:
         self, project_id: str, *, expected_source_revision: int, material: SourceMaterial
     ) -> SourceOutlineReviewState:
         material.assert_safe()
+        if self._access.authority() is not None and material.brief_origin is None:
+            raise InvalidTransitionError("machine source adoption requires exact Brief origin")
         payload = material.model_dump(mode="json", by_alias=True)
         digest = sha256(canonical_json(payload)).hexdigest()
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
             self._access.guards.active(project)
+            if material.brief_origin is not None:
+                from ...autopilot_contracts import OperationScope
+                from .autopilot_authority import require_machine_scope
+                require_machine_scope(self._access, OperationScope.SOURCE)
+                if (material.brief_origin.revision != project.revision
+                        or material.brief_origin.content_hash != sha256(canonical_json(project.brief)).hexdigest()
+                        or material.title != project.brief["title"] or material.text != project.brief["synopsis"]):
+                    raise InvalidTransitionError("Brief-derived source must preserve the exact saved Brief")
             head = self._owner._head(session, project_id, create=True)
             if head.source_revision != expected_source_revision:
                 raise RevisionConflictError("source-outline source", expected_source_revision, head.source_revision)
@@ -152,11 +163,15 @@ class SourceOutlineMutations:
             candidate.outline = delivery.candidate
             candidate.report_html = delivery.report.decode("utf-8")
             candidate.delivered_at = utc_now()
-            head.outline_status = "candidate_ready"
-            head.updated_at = candidate.delivered_at
+            if not receipt_only(self._access):
+                head.outline_status = "candidate_ready"
+                head.updated_at = candidate.delivered_at
             return self._owner._candidate(candidate)
 
     def accept_candidate(self, project_id: str, request: OutlineAcceptRequest) -> SourceOutlineReviewState:
+        from ...autopilot_contracts import OperationScope
+        from .autopilot_authority import allow_manual_or_machine
+        allow_manual_or_machine(self._access, OperationScope.TEXT)
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
             self._access.guards.active(project)

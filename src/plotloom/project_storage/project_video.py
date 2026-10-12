@@ -63,6 +63,7 @@ class ProjectVideoRepository:
         preview_only: bool = False,
     ) -> dict[str, Any]:
         self._assert_project(project_id)
+        self.assert_video_authority(project_id)
         self.store.require_recovery_acknowledged()
         values = {
             "production_contract": production_contract,
@@ -88,6 +89,7 @@ class ProjectVideoRepository:
 
     def claim_video_dispatch(self, project_id: str, video_job_id: str) -> dict[str, Any]:
         self._assert_project(project_id)
+        self.assert_video_authority(project_id)
         job = self._job(video_job_id)
         if job.state != "prepared":
             raise InvalidTransitionError(
@@ -110,6 +112,9 @@ class ProjectVideoRepository:
             requires_accounting=False,
         )
         with self._dispatch.lifecycle_write() as session:
+            from ..persistence.project.autopilot_authority import video_eligible
+            if not video_eligible(session, project_id):
+                raise InvalidTransitionError("human material handoff changed before video claim")
             current = session.get(VideoJobRow, video_job_id)
             if current is None or current.project_id != project_id:
                 raise NotFoundError("video job not found")
@@ -315,11 +320,16 @@ class ProjectVideoRepository:
     def assert_submit_allowed(
         self, video_job_id: str, *, backend_binding: VideoBackendBinding
     ) -> None:
+        self.assert_video_authority(self.project_id)
         if self.recovery_provider_state(video_job_id) is not None:
             raise InvalidTransitionError(
                 "restored video jobs cannot submit or replay a historical request"
             )
         self.assert_backend_binding(video_job_id, backend_binding=backend_binding)
+
+    def assert_video_authority(self, project_id):
+        self._assert_project(project_id)
+        self._video.assert_video_authority(project_id)
 
     def assert_backend_binding(
         self, video_job_id: str, *, backend_binding: VideoBackendBinding

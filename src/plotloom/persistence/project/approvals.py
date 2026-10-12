@@ -79,6 +79,8 @@ class ProjectApprovalPersistence:
         subject_id: str = "storyboard",
     ) -> ApprovalDecision:
         """Append (never update) an approval or revocation over an exact board."""
+        from .autopilot_authority import require_human_command
+        require_human_command(self._access)
 
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
@@ -110,6 +112,8 @@ class ProjectApprovalPersistence:
         note: str | None = None,
     ) -> ApprovalDecision:
         """Append a decision only if the exact current storyboard still matches."""
+        from .autopilot_authority import require_human_command
+        require_human_command(self._access)
 
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)

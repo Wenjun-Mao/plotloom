@@ -28,7 +28,8 @@
           "tests/test_project_storage_source_outline.py",
           "tests/test_project_storage_source_outline_api.py",
           "tests/test_project_storage_work_unit_contracts.py",
-          "tests/test_v2_authoring_domain.py"
+          "tests/test_v2_authoring_domain.py",
+          "tests/test_autopilot_authority.py"
         ],
         "vitest": [
           "frontend/tests/authoring-autosave-admission.test.ts",
@@ -325,7 +326,9 @@
           "tests/test_project_storage_recovery.py",
           "tests/test_project_storage_route_contracts.py",
           "tests/test_project_storage_script.py",
-          "tests/test_project_storage_storyboard_review.py"
+          "tests/test_project_storage_storyboard_review.py",
+          "tests/test_autopilot_schema_upgrade.py",
+          "tests/test_autopilot_recovery.py"
         ],
         "vitest": [
           "frontend/tests/app-state-navigation.test.ts",

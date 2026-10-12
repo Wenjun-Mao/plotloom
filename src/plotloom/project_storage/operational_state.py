@@ -89,6 +89,7 @@ def close_blockers(store: object) -> list[str]:
     terminal_runs = tuple(item.value for item in TERMINAL_RUN_STATUSES)
     terminal_tasks = tuple(item.value for item in TERMINAL_MEDIA_TASK_STATUSES)
     with repository.engine.connect() as connection:
+        active_autopilot = connection.exec_driver_sql("SELECT 1 FROM v2_autopilot_runs WHERE project_id=? AND state IN ('running','waiting') LIMIT 1", (project_id,)).first()
         active_run = connection.exec_driver_sql(
             "SELECT 1 FROM v2_generation_runs WHERE project_id = ? AND status NOT IN (?, ?, ?, ?) LIMIT 1",
             (project_id, *terminal_runs),
@@ -104,6 +105,8 @@ def close_blockers(store: object) -> list[str]:
         ).first()
     if active_run is not None:
         blockers.append("nonterminal_text_run")
+    if active_autopilot is not None:
+        blockers.append("active_autopilot_run")
     if active_task is not None:
         blockers.append("nonterminal_media_task")
     if active_video is not None:

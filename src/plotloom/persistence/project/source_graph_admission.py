@@ -45,6 +45,9 @@ class SourceGraphAdmission:
         """Accept one author-reviewed structure bound to the exact outline revision."""
 
         request.mapping.validate_links()
+        from ...autopilot_contracts import OperationScope
+        from .autopilot_authority import allow_manual_or_machine
+        allow_manual_or_machine(self._access, OperationScope.TEXT)
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
             self._access.guards.active(project)
@@ -104,6 +107,9 @@ class SourceGraphAdmission:
     ) -> SourceOutlineReviewState:
         """Atomically compile the current map into the sole routing authority."""
 
+        from ...autopilot_contracts import OperationScope
+        from .autopilot_authority import allow_manual_or_machine
+        allow_manual_or_machine(self._access, OperationScope.TEXT)
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
             self._access.guards.active(project)

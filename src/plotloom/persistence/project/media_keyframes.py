@@ -64,6 +64,8 @@ class ReviewedKeyframePersistence:
         expected_presentation_revision: int = 0,
     ) -> dict[str, Any]:
         """Append an immutable reviewed binding under one lifecycle writer lease."""
+        from .autopilot_authority import require_human_command
+        require_human_command(self._access)
 
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)

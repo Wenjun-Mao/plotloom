@@ -54,12 +54,16 @@ class ImageJobCurrentness:
 
     @staticmethod
     def production_unit_dict(row: ProductionUnitRow) -> dict[str, Any]:
-        return {
+        result = {
             "id": row.id, "projectId": row.project_id, "approvalId": row.approval_id,
             "shotId": row.shot_id, "sceneId": row.scene_id,
             "storyboardRevision": row.storyboard_revision, "snapshot": row.snapshot,
             "snapshotHash": row.snapshot_hash, "createdAt": _stored_utc(row.created_at).isoformat(),
         }
+        if row.machine_decision_id is not None:
+            result.pop("approvalId")
+            result["authority"] = {"actor": "machine", "scope": "image_generation", "decisionId": row.machine_decision_id}
+        return result
 
     def image_job_is_current_in_session(self, session: Session, job: ImageJobRow) -> bool:
         if job.state == "cancelled":
@@ -71,7 +75,9 @@ class ImageJobCurrentness:
         if unit is None or unit.project_id != job.project_id:
             return False
         try:
-            approval = self._admission.approval_is_active_in_session(session, unit.approval_id)
+            from .image_authority import resolve_image_authority
+            approval = resolve_image_authority(session, self._access, self._admission, job.project_id,
+                approval_id=unit.approval_id, machine_decision_id=unit.machine_decision_id)
         except (InvalidTransitionError, NotFoundError):
             return False
         if not (

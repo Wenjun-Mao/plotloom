@@ -59,6 +59,9 @@ def assert_current_review_bindings(connection: sqlite3.Connection) -> None:
     Validate retained revisions as well as candidates: history/report reads also
     consume these contracts. Never infer new authority from obsolete fields.
     """
+    from .autopilot_validation import assert_autopilot_contracts
+    if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_autopilot_runs'").fetchone():
+        assert_autopilot_contracts(connection)
     for table, model in (
         ("v2_script_candidates", ScriptBinding),
         ("v2_script_revisions", ScriptBinding),

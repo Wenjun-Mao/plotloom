@@ -50,7 +50,8 @@ class ImageJobPreparationPersistence:
         self,
         project_id: str,
         *,
-        approval_id: str,
+        approval_id: str | None = None,
+        machine_decision_id: str | None = None,
         shot_id: str,
         storyboard_revision: int,
         parent_candidate_asset_id: str | None = None,
@@ -64,7 +65,9 @@ class ImageJobPreparationPersistence:
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
             self._access.guards.active(project)
-            approval = self._admission.approval_is_active_in_session(session, approval_id)
+            from .image_authority import resolve_image_authority
+            approval = resolve_image_authority(session, self._access, self._admission, project_id,
+                approval_id=approval_id, machine_decision_id=machine_decision_id, preparing=True)
             if approval.project_id != project_id or approval.subject_revision != storyboard_revision:
                 raise InvalidTransitionError("image job approval does not match the requested storyboard revision")
             storyboard = self._canonical._load_stage_payload(session, project_id, StageName.STORYBOARD)
@@ -274,7 +277,7 @@ class ImageJobPreparationPersistence:
             snapshot = {
                 "snapshotVersion": contract_version, "compilerVersion": f"plotloom.codex-image-job.v{contract_version}-presentation.v1",
                 "presentationContract": "physical-visible-runtime.v1",
-                "projectId": project_id, "approvalId": approval.id,
+                "projectId": project_id, "approvalId": approval.approval_id,
                 "approvalGateSetVersion": approval.gate_set_version,
                 "storyboardEntityRevisionId": approval.entity_revision_id,
                 "storyboardRevision": storyboard_revision,
@@ -292,6 +295,10 @@ class ImageJobPreparationPersistence:
             if contract_version == 3:
                 snapshot["visibleCharacterIds"] = list(shot.character_ids)
                 snapshot["characterIdentity"] = identity_mappings
+            if approval.machine_decision_id is not None:
+                snapshot.pop("approvalId")
+                snapshot["canonicalGateSetVersion"] = snapshot.pop("approvalGateSetVersion")
+                snapshot["authority"] = {"actor": "machine", "scope": "image_generation", "decisionId": approval.machine_decision_id}
             if reviewed_visual_intent is not None:
                 snapshot["reviewedVisualIntent"] = reviewed_visual_intent
             if adaptation_snapshot is not None:
@@ -299,7 +306,7 @@ class ImageJobPreparationPersistence:
             snapshot_hash = stable_hash(snapshot)
             now = utc_now()
             unit = ProductionUnitRow(
-                id=new_id(), project_id=project_id, approval_id=approval.id,
+                id=new_id(), project_id=project_id, approval_id=approval.approval_id, machine_decision_id=approval.machine_decision_id,
                 storyboard_entity_revision_id=approval.entity_revision_id, shot_id=shot.id,
                 scene_id=shot.scene_id, storyboard_revision=storyboard_revision,
                 snapshot=snapshot, snapshot_hash=snapshot_hash, created_at=now,

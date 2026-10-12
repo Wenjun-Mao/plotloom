@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, ValidationInfo, field_validator, model_serializer, model_validator
 
 from .canonical_schema import StoryGraphV2
 from .generation.story_graph_topology import StoryGraphTopology
@@ -20,9 +20,16 @@ OutlineReviewStatus = Literal["missing", "candidate_ready", "accepted", "reopene
 SectionMapStatus = Literal["missing", "current", "stale"]
 
 
+class BriefSourceOrigin(CamelModel):
+    kind: Literal["saved_brief"] = "saved_brief"
+    revision: int = Field(ge=1)
+    content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
 class SourceMaterial(CamelModel):
     """Accepted source content; optional metadata never establishes clearance."""
 
+    brief_origin: BriefSourceOrigin | None = None
     kind: SourceKind
     title: str = Field(min_length=1, max_length=300)
     text: str = Field(min_length=1, max_length=1_000_000)
@@ -33,11 +40,18 @@ class SourceMaterial(CamelModel):
 
     @field_validator("title", "text")
     @classmethod
-    def require_nonblank(cls, value: str) -> str:
-        value = value.strip()
-        if not value:
+    def require_nonblank(cls, value: str, info: ValidationInfo) -> str:
+        if not value.strip():
             raise ValueError("source fields must not be blank")
-        return value
+        return value if info.data.get("brief_origin") else value.strip()
+
+    @model_serializer(mode="wrap")
+    def serialize_source(self, handler):
+        result = handler(self)
+        if self.brief_origin is None:
+            result.pop("briefOrigin", None)
+            result.pop("brief_origin", None)
+        return result
 
     @field_validator("adaptation_intent")
     @classmethod
@@ -46,6 +60,8 @@ class SourceMaterial(CamelModel):
 
     @model_validator(mode="after")
     def require_imported_adaptation_goal(self) -> "SourceMaterial":
+        if self.brief_origin is not None and (self.kind != "synopsis" or self.attribution is not None or self.rights_declaration is not None or self.adaptation_intent or self.invented_additions is not None):
+            raise ValueError("Brief-derived source contains only the exact synopsis and origin")
         if self.kind != "synopsis" and not self.adaptation_intent:
             raise ValueError("imported stories require an explicit adaptation goal")
         return self

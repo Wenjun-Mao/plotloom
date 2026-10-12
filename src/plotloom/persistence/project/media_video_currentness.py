@@ -104,6 +104,9 @@ class VideoJobCurrentness:
         return "current" if self._inputs_match_in_session(session, row) else "stale"
 
     def _inputs_match_in_session(self, session: Session, row: VideoJobRow) -> bool:
+        from .autopilot_authority import video_eligible
+        if not video_eligible(session, row.project_id):
+            return False
         snapshot = row.snapshot
         frozen_shot = snapshot.get("shot") if isinstance(snapshot, dict) else None
         if not isinstance(frozen_shot, dict) or not isinstance(frozen_shot.get("id"), str) or not self.presentations.matches(

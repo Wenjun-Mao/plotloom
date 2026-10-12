@@ -309,6 +309,11 @@ def assert_lifecycle_revision(row: ProjectRow, expected_revision: int) -> None:
 
 def project_is_busy_in_session(session: Session, project_id: str) -> bool:
     """Preserve lifecycle admission across durable and external work."""
+    from ..schema import AutopilotRunRow
+    active_autopilot = session.scalar(select(AutopilotRunRow.id).where(
+        AutopilotRunRow.project_id == project_id, AutopilotRunRow.state.in_(("running", "waiting")),
+        AutopilotRunRow.id != session.info.get("autopilot_run_id", ""),
+    ).limit(1))
 
     nonterminal_run = session.scalar(
         select(GenerationRunRow.id).where(
@@ -350,5 +355,6 @@ def project_is_busy_in_session(session: Session, project_id: str) -> bool:
             nonterminal_run, nonterminal_media, nonterminal_work_unit,
             prepared_outline_publication,
             prepared_art_publication,
+            active_autopilot,
         )
     )

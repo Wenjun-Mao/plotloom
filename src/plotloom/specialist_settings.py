@@ -87,6 +87,18 @@ class SpecialistRegistry:
                     active.append(lease | data.get("jobs", {}).get(lease["jobId"], {}))
             return data["settings"] | {"busy": bool(active), "activeTasks": active}
 
+    @contextmanager
+    def idle_guard(self):
+        """Hold native admission idle for an explicit preserving operation."""
+        with self.lock():
+            data = self._read()
+            if any((Path(root) / "inflight.json").exists() or (Path(root) / "inflight.json").is_symlink() for root in data["roots"].values()):
+                raise ImageJobError("specialist_busy", "原生任务尚未结束，不能升级项目。")
+            for job_id in data.get("jobs", {}):
+                if self._status(data, job_id)["state"] not in {"prepared", "completed"}:
+                    raise ImageJobError("specialist_busy", "保留的发送结果未确定，不能升级项目。")
+            yield
+
     def save(self, settings: SpecialistSettings):
         with self.lock():
             data = self._read()

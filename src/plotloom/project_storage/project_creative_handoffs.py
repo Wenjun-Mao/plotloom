@@ -4,7 +4,9 @@ from ..creative_handoff_contracts import (
     CreativeHandoffRequest,
     CreativeStage,
 )
-from .format import _require_real_directory
+from datetime import datetime
+from typing import Any
+from .format import _require_real_directory, _utc_folder_timestamp, ProjectStorageConfinementError, ProjectStorageCorruptionError
 
 
 class ProjectCreativeHandoffs:
@@ -53,3 +55,34 @@ class ProjectCreativeHandoffs:
 
     def return_to_accepted_outline(self, request):
         return self.repository.source_outline._mutations.return_to_accepted(self.manifest.project_id, request)
+
+    def image_exchange_for(self, job: dict[str, Any]):
+        """Return the one project-run-local handoff exchange for an image unit."""
+        from ..image_job_exchange import ImageJobExchange
+        from ..managed_media import DEFAULT_MANAGED_MEDIA_LIMITS
+
+        job_id = str(job.get("id", ""))
+        created_at = job.get("createdAt")
+        if not job_id or any(
+            character not in "abcdefghijklmnopqrstuvwxyz0123456789_-"
+            for character in job_id
+        ):
+            raise ProjectStorageConfinementError(
+                "image handoff identity is not path-safe"
+            )
+        try:
+            timestamp = _utc_folder_timestamp(datetime.fromisoformat(str(created_at)))
+        except ValueError as error:
+            raise ProjectStorageCorruptionError(
+                "image handoff has no valid creation timestamp"
+            ) from error
+        runs = _require_real_directory(self.home / "runs", label="project runs root")
+        run_home = runs / f"{timestamp}__{job_id}"
+        # Manual image/reference proposals are durable database records before
+        # their external package exists.  The package owner, not a caller or
+        # specialist, creates this one confined run home on first Copy.
+        # Without it, normal API handoffs depended on a test-only directory
+        # setup and could never reach the exchange's no-follow writer.
+        run_home.mkdir(mode=0o700, exist_ok=True)
+        _require_real_directory(run_home, label="project image handoff run")
+        return ImageJobExchange(run_home, limits=DEFAULT_MANAGED_MEDIA_LIMITS)

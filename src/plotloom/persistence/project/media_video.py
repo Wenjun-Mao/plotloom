@@ -86,9 +86,14 @@ class VideoJobPersistence(VideoJobPreparation):
             )
         return self._accounting.budget()
 
+    def assert_video_authority(self, project_id):
+        from .autopilot_authority import require_video_authority
+        require_video_authority(self._access, project_id)
+
 
     def claim_video_dispatch(self, project_id: str, video_job_id: str) -> dict[str, Any]:
         """Cross the durable dispatch boundary before any POST; never retry it."""
+        self.assert_video_authority(project_id)
         with self._access.leases.lifecycle_write() as session:
             job = session.get(VideoJobRow, video_job_id)
             if job is None or job.project_id != project_id:

@@ -68,6 +68,7 @@ class VideoJobService:
         preview_only: bool = False,
     ) -> dict[str, Any]:
         """Freeze the adapter-owned request before any durable dispatch claim."""
+        self.repository.assert_video_authority(project_id)
 
         contract = self.adapter.production_contract(
             requested_seconds=requested_seconds,
@@ -182,6 +183,7 @@ class VideoJobService:
         return None, None, None
 
     def submit(self, project_id: str, video_job_id: str) -> dict[str, Any]:
+        self.repository.assert_video_authority(project_id)
         preflight = getattr(self.provider, "preflight", None)
         if callable(preflight) and not self.claim_before_provider_calls:
             try:

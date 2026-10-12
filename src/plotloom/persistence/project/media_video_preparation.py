@@ -38,6 +38,7 @@ class VideoJobPreparation:
         preview_only: bool = False,
     ) -> dict[str, Any]:
         """Freeze current audiovisual lineage and atomically reserve the shared cap."""
+        self.assert_video_authority(project_id)
         if production_contract is None:
             if requested_seconds != 5 or resolution != "720p" or audio is not True:
                 raise InvalidTransitionError("P2 only admits Wan 5-second 720p native-audio requests")
@@ -73,6 +74,9 @@ class VideoJobPreparation:
                     )
                 provider_snapshot["backendBinding"] = backend_binding.snapshot()
         with self._access.leases.lifecycle_write() as session:
+            from .autopilot_authority import video_eligible
+            if not video_eligible(session, project_id):
+                raise InvalidTransitionError("human material handoff changed before video preparation")
             now = utc_now()
             self._access.guards.active(self._access.rows.project(session, project_id))
             approval = self._admission.approval_is_active_in_session(session, approval_id)

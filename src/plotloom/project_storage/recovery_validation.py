@@ -54,23 +54,28 @@ def database_connection(path: Path) -> sqlite3.Connection:
     return connection
 
 
-def _database_strings(connection: sqlite3.Connection) -> Iterable[str]:
+def _database_strings(connection: sqlite3.Connection, table_names=PROJECT_TEXT_PIPELINE_TABLE_NAMES) -> Iterable[str]:
     """Read only known, prevalidated tables; names never come from imported SQL."""
 
-    for table in sorted(PROJECT_TEXT_PIPELINE_TABLE_NAMES):
+    for table in sorted(table_names):
         for row in connection.execute(f'SELECT * FROM "{table}"'):
             for value in row:
                 if isinstance(value, str):
                     yield value
 
 
-def assert_database_contract(path: Path, manifest: ProjectManifest) -> None:
+def assert_database_contract(path: Path, manifest: ProjectManifest, *, allow_previous: bool = False) -> None:
     """Validate integrity, exact schema, identity, and secret-free contents."""
 
     try:
         connection = database_connection(path)
         try:
-            assert_current_schema(connection)
+            from .schema_upgrade import classify_layout, prior_schema_objects, assert_prior_database
+            previous = allow_previous and classify_layout(connection) == "prior"
+            if previous:
+                assert_prior_database(connection, manifest.project_id)
+            else:
+                assert_current_schema(connection)
             assert_current_review_bindings(connection)
             integrity = [row[0] for row in connection.execute("PRAGMA integrity_check")]
             foreign_keys = list(connection.execute("PRAGMA foreign_key_check"))
@@ -81,7 +86,8 @@ def assert_database_contract(path: Path, manifest: ProjectManifest) -> None:
                     (manifest.project_id,),
                 )
             )
-            values = list(_database_strings(connection))
+            table_names = {name for kind, name, _, _ in prior_schema_objects() if kind == "table"} if previous else PROJECT_TEXT_PIPELINE_TABLE_NAMES
+            values = list(_database_strings(connection, table_names))
         finally:
             connection.close()
     except sqlite3.Error as error:
@@ -257,16 +263,22 @@ def published_run_directories(database: Path) -> set[str]:
     return result
 
 
-def payload_paths(root: Path, database: Path) -> list[PurePosixPath]:
+def payload_paths(root: Path, database: Path, *, prior_snapshot_omissions=None) -> list[PurePosixPath]:
     paths = {
         PurePosixPath(PROJECT_MANIFEST_FILENAME),
         PurePosixPath(PROJECT_DATABASE_RELATIVE_PATH),
     }
     paths.update(referenced_asset_paths(database))
+    from .creative_evidence_inventory import creative_evidence_paths
+    paths.update(creative_evidence_paths(root, database, prior_snapshot_omissions=prior_snapshot_omissions))
     for run_name in published_run_directories(database):
         paths.update(_published_files(root, run_name))
     if (root / RECOVERY_CONTROL_FILENAME).exists() or (root / RECOVERY_CONTROL_FILENAME).is_symlink():
         paths.add(PurePosixPath(RECOVERY_CONTROL_FILENAME))
+    from .schema_transition import schema_transition_path
+    transition = schema_transition_path(root)
+    if transition is not None:
+        paths.add(transition)
     return sorted(paths, key=lambda item: item.as_posix())
 
 
@@ -287,7 +299,7 @@ def assert_payload_inventory(
         )
 
 
-def validate_snapshot_payloads(root: Path, manifest: ProjectSnapshotManifest) -> None:
+def validate_snapshot_payloads(root: Path, manifest: ProjectSnapshotManifest, *, allow_previous: bool = False) -> None:
     declared = {PurePosixPath(item.relative_path): item for item in manifest.files}
     required = {
         PurePosixPath(PROJECT_MANIFEST_FILENAME),
@@ -318,7 +330,7 @@ def validate_snapshot_payloads(root: Path, manifest: ProjectSnapshotManifest) ->
         raise ProjectStorageCorruptionError(
             "snapshot database hash does not match its manifest"
         )
-    assert_database_contract(database, manifest.project_manifest)
+    assert_database_contract(database, manifest.project_manifest, allow_previous=allow_previous)
     validate_recovery_control(
         root,
         database,
@@ -326,7 +338,14 @@ def validate_snapshot_payloads(root: Path, manifest: ProjectSnapshotManifest) ->
         required=True,
         snapshot=True,
     )
-    if set(declared) != set(payload_paths(root, database)):
+    omissions = None
+    if allow_previous:
+        from .schema_upgrade import classify_layout
+        with database_connection(database) as connection:
+            if classify_layout(connection) == "prior":
+                from .creative_evidence_inventory import missing_completed_jobs
+                omissions = missing_completed_jobs(root, database)
+    if set(declared) != set(payload_paths(root, database, prior_snapshot_omissions=omissions)):
         raise ProjectStorageCorruptionError(
             "snapshot manifest does not exactly cover retained project bytes"
         )

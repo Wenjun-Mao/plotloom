@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator, Sequence
-from contextlib import contextmanager
+from collections.abc import Callable, Sequence
+from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any, ContextManager
 
 from sqlalchemy import select
-from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from ...domain import (
@@ -30,13 +29,7 @@ from ..schema import (
     ProjectRow,
     StageHeadRow,
 )
-from ..transactions import (
-    bootstrap_lease,
-    lifecycle_lease,
-    read_lease,
-    work_unit_claim_lease,
-    write_lease,
-)
+from .command_transactions import ProjectCommandTransactions
 from .access import (
     ProjectCodecs,
     ProjectGuards,
@@ -121,7 +114,7 @@ class ProjectVideoDispatchAccess:
     lifecycle_write: Callable[[], ContextManager[Session]]
 
 
-class ProjectSQLiteRepository:
+class ProjectSQLiteRepository(ProjectCommandTransactions):
     """Project-only composition with no legacy or application-control dependency."""
 
     def __init__(
@@ -153,8 +146,10 @@ class ProjectSQLiteRepository:
             self._database.engine, self._database.sessions, self._database.write_lock
         )
         self._generation_admission = ProjectGenerationAdmission()
+        self._command_context = ContextVar(f"autopilot-command-{id(self)}", default=None)
 
         self._project_access = ProjectPersistenceAccess(
+            authority=lambda: self._command_context.get()[1] if self._command_context.get() else None,
             leases=ProjectLeases(
                 read=self._read, write=self._write, bootstrap_write=self._bootstrap_write,
                 lifecycle_write=self._lifecycle_write,
@@ -175,6 +170,8 @@ class ProjectSQLiteRepository:
                 busy=project_is_busy_in_session,
             ),
         )
+        from .autopilot import AutopilotPersistence
+        self.autopilot = AutopilotPersistence(self._project_access)
         self._catalog = ProjectCatalogPersistence(self._project_access)
         self._lifecycle = ProjectLifecyclePersistence(self._project_access)
         self._gates = ProjectGatePersistence(self._project_access, self._catalog)
@@ -398,36 +395,6 @@ class ProjectSQLiteRepository:
             if row.state != state:
                 row.state, row.revision, row.changed_at = state, row.revision + 1, utc_now()
             return row.state, row.revision
-
-    @contextmanager
-    def _read(self) -> Iterator[Session]:
-        with read_lease(self._sessions) as session:
-            yield session
-
-    @contextmanager
-    def _write(self) -> Iterator[Session]:
-        with write_lease(self._sessions, self._write_lock) as session:
-            yield session
-
-    @contextmanager
-    def _bootstrap_write(self) -> Iterator[Session]:
-        with bootstrap_lease(self._sessions, self._write_lock, retry_after_seconds=self._bootstrap_retry_after_seconds, is_contention=self._is_sqlite_lock_contention) as session:
-            yield session
-
-    @contextmanager
-    def _lifecycle_write(self) -> Iterator[Session]:
-        with lifecycle_lease(self._sessions, self._write_lock, dialect_name=self.engine.dialect.name, retry_after_seconds=self._bootstrap_retry_after_seconds, is_contention=self._is_sqlite_lock_contention) as session:
-            yield session
-
-    @contextmanager
-    def _work_unit_claim_write(self) -> Iterator[Session]:
-        with work_unit_claim_lease(self._sessions, self._write_lock, is_contention=self._is_sqlite_lock_contention) as session:
-            yield session
-
-    @staticmethod
-    def _is_sqlite_lock_contention(error: OperationalError) -> bool:
-        message = str(error).lower()
-        return "database is locked" in message or "database table is locked" in message
 
     def _project_row(self, session: Session, project_id: str) -> ProjectRow:
         if project_id != self.project_id:
