@@ -10,7 +10,7 @@ export function storyboardWorkflowNextText(read?: StoryboardWorkflowObservation,
   if (read.error) return { text: reviewWorkflowFailureText(read.error) };
   const state = read.state;
   if (state.status === "stale") return { text: "分镜评审依据已变化。按本页来源提示处理；旧方案保留，不代表当前确认。" };
-  if (state.candidate?.status === "ready") return { text: "分镜候选已返回。点击「查看待审阅分镜」，审阅动作、镜头与时长后点击「确认此分镜评审方案」；不会自动建立正式镜头或生成媒体。" };
+  if (state.candidate?.status === "ready") return { text: "分镜候选已返回。展开「阅读原始分镜报告（只读）」，可点击「放大阅读报告」；核对动作、镜头与时长后关闭报告，点击「确认此分镜评审方案」。「查看待审阅分镜」保留结构化细节；确认不会自动建立正式镜头或生成媒体。" };
   if (state.candidate?.status === "prepared") return { text: "分镜任务已准备，尚未交付。按任务区发送状态继续发送或等待结果，再检查交付；收到分镜后才能审阅并确认。" };
   if (state.acceptedReviewState.status === "retained") return { text: "已确认分镜仅作为保留证据。先按本页来源提示处理，再准备并审阅当前方案。" };
   if (state.acceptedReviewState.status === "current" && state.acceptedReview) return bridgeNextText(bridge);

@@ -16,7 +16,8 @@ test("Storyboard guide follows current native review and independent production 
   await expect(guide).toContainText("分镜任务已准备，尚未交付");
   await writeDelivery(prepared);
   await panel.getByRole("button", { name: "立即检查", exact: true }).click();
-  await expect(guide).toContainText("点击「查看待审阅分镜」");
+  await expect(guide).toContainText("展开「阅读原始分镜报告（只读）」");
+  await expect(guide).toContainText("点击「放大阅读报告」");
   await expect(guide).toContainText("点击「确认此分镜评审方案」");
   for (const size of [{ width: 1280, height: 768 }, { width: 1280, height: 460 }, { width: 1700, height: 900 }]) {
     await page.setViewportSize(size);

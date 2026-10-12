@@ -21,8 +21,12 @@ it.each(["prepared", "ready"] as const)("names the actual %s candidate, not reta
   const state = accepted().state!;
   state.candidate = { status } as never;
   state.acceptedReviewState.status = "retained";
-  expect(next(read(state))).toContain(status === "ready" ? "查看待审阅分镜" : "尚未交付");
-  if (status === "ready") expect(next(read(state))).toContain("确认此分镜评审方案");
+  expect(next(read(state))).toContain(status === "ready" ? "阅读原始分镜报告（只读）" : "尚未交付");
+  if (status === "ready") {
+    expect(next(read(state))).toContain("放大阅读报告");
+    expect(next(read(state))).toContain("查看待审阅分镜");
+    expect(next(read(state))).toContain("确认此分镜评审方案");
+  }
   state.status = "stale";
   expect(next(read(state))).toContain("依据已变化");
   expect(next(read(state))).not.toContain("确认此分镜评审方案");

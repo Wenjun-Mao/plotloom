@@ -77,6 +77,23 @@ disclosure close/reopen remain usable. Current structured review/acceptance is
 unchanged. Genuine pinned long-segment/prompt/image-branch regressions remain
 separate from live provider evidence and test archived hashes/security.
 
+### Host-owned Storyboard enlargement (2026-10-11)
+
+The owner found the rich original Storyboard report more useful than the
+structured disclosure, and its generic 320px iframe too small. Put the original
+report first, retain structured review beneath it, and offer the same large
+native reading dialog as Art. The expandable static reader uses a 72dvh inline
+preview and the existing 94dvh dialog; Script's existing inline reader is
+unchanged. Guidance names the report and its actual enlargement control first.
+
+Both views admit the same frozen static report URL through `ProjectReportFrame`,
+with empty sandbox and no referrer. They do not grant archive scripts, navigate
+to an unrestricted standalone report, alter stored bytes or accept a candidate.
+Close/Escape restore focus; changing the frozen report or leaving its workflow
+closes the dialog without restoring focus into a hidden workflow. Guard placement,
+desktop geometry, long-content reading, no writes, archive hashes and isolation
+in the existing report regressions.
+
 ## Demonstrated Cast report instance
 
 Actual F2 Copy, Expand and Search actions were inert under the same empty
