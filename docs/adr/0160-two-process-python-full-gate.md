@@ -96,10 +96,21 @@ only its own leader as a zombie. SIG0 returned EPERM. Reaping that owned child
 then probing again returned ESRCH; metadata confirmed no remaining group members.
 This differs from probing an already-reaped empty group, which returned ESRCH.
 
-On a denied group probe, poll/reap the exact owned child and retry only when its
-exit is known. Treat only ESRCH as absence. A live/unknown child or persistent
-permission denial remains exceptional; it cannot authorize foreign signals or
-skip descendant cleanup. Keep the existing TERM/grace/KILL sequence and platform
-scope. Tests cover reap→absence, reap→living descendants, live/persistent denial,
-two actual running groups and a surviving descendant. This bounded correction is
-not a new full-gate pass; the manager requalifies the exact stable candidate.
+The first bounded correction used one nonblocking poll before retry. Full
+qualification at `ec2f00c6` still failed at the first probe: exit was not yet
+observable through that poll. The final `Popen` representation was captured after
+test cleanup, so it did not establish the child's state at the denied probe.
+
+Keep standalone group observation strict. The shutdown coordinator alone owns
+successful TERM admission and one existing deadline. On a denied probe after
+successful TERM, wait/reap the exact owned child within the remaining shared
+grace, then reprobe the kernel. Only ESRCH establishes absence; a successful probe
+means descendants may remain. Child timeout, persistent denial or initial TERM
+denial stays exceptional without KILL of an unresolved denied group. Do not add a
+fresh deadline, fixed sleep, platform exception or foreign process scan.
+
+Tests cover delayed exit after a still-running poll, surviving descendants,
+timeout/persistent/initial denial, vanished TERM groups and shared two-group
+deadline exhaustion. Existing actual two-worker and descendant integrations
+remain intact in a cohesive cleanup test owner. This is scoped evidence, not a
+full-gate pass or an absolute guarantee against PGID reuse.

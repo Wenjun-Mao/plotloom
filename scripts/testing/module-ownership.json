@@ -507,6 +507,7 @@
           "tests/test_ci_browser_contract.py",
           "tests/test_dependency_boundary.py",
           "tests/test_extraction_contract.py",
+          "tests/test_python_suite_cleanup.py",
           "tests/test_python_suite_runner.py",
           "tests/test_retained_runtime_coverage_inventory.py",
           "tests/test_shared_runtime_retirement.py",

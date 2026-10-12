@@ -95,10 +95,10 @@ class AutopilotPersistence:
             row = self.row(session, project_id)
             if row is None:
                 raise InvalidTransitionError("cannot claim a missing autopilot run")
-            if row.state == "handed_off":
-                raise InvalidTransitionError("completed human handoff cannot acquire a controller claim")
             if row.id in self.recovered_run_ids():
                 raise InvalidTransitionError("portable restored autopilot run cannot acquire a native controller claim")
+            if row.state == "handed_off":
+                raise InvalidTransitionError("completed human handoff cannot acquire a controller claim")
             if row.claim != claim:
                 row.claim = claim
                 row.revision += 1

@@ -597,3 +597,40 @@ driver contract selection: **46 passed**, focused runner 25.738s. This retains
 inactive receipt-only and portable exclusion coverage. Existing Starlette/httpx
 warning remains. Review closure is reported against the exact committed source,
 without a subsequent receipt-only write during manager qualification.
+
+### P5 concluded `ec2f00c6` failure and deadline-owned repair
+
+Manager's full at `ec2f00c6dc635cbaa6badabe934a680f9a91a723` concluded exit 1 after
+971.842s. Worker 1: **849 passed / 1 failed**, 944.71s; worker 2: **849 passed /
+1 failed**, 369.93s. Frontend 1,306 tests/types passed; downstream full stages did
+not run. Authoritative full output remains in ignored manager QA output
+`output/playwright/pre-video-p5/full-ec2f00c6.log`. Isolated QA server 11093 and
+browser stopped; native sends remained zero and valued/main data unchanged.
+
+The real paired-worker test raised the first-probe EPERM while the helper's
+nonblocking poll still returned running; its displayed return code was rendered
+after test cleanup. Exact kernel membership at that failure remains unobserved.
+Root's independent read-only review agreed with the branch diagnosis and the
+bounded coordinator contract. Standalone `_process_group_exists` is strict again.
+Only the shutdown coordinator, after successful TERM, waits for the exact owned
+child within the remaining original deadline and reprobes. Timeout/persistent or
+initial denial still fails, with no escalation of an unresolved denied group.
+No blanket ignore, fixed sleep, new grace period, platform branch or process scan.
+
+The portable-restored handoff test failed because the newly added local completion
+guard hid the existing portable refusal. Portable identity now takes precedence;
+every original eligibility, receipt, no-resumption and diagnostic assertion stays.
+The unchanged affected handoff case and initial runner selection passed **20
+tests**, focused runner 59.149s. Final downstream runner/cleanup, verify driver,
+module ownership, recovery and authority selection passed **80 tests**, 12.876s.
+
+Cleanup cases now live in `test_python_suite_cleanup.py`, sharing one runner loader
+with the collection/coordinator tests. Original real pair/descendant assertions
+are rehomed unchanged; obsolete standalone recovery cases are replaced by strict
+observation and coordinator-specific regressions. Coverage includes delayed exit,
+survivors, child timeout, persistent/initial denial, missing original groups and
+two-group shared deadline exhaustion. Native ownership preflight passed **1,706
+pytest cases / 170 files**. Ruff F and diff checks pass; existing Starlette warning
+remains. Frontend/static/dependency/schema/request inputs are unchanged. No source
+full/native/live/hosted CI/push occurred; full/native/walkthrough/activation remain
+manager-owned and pending against the next reviewed stable revision.

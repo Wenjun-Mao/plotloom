@@ -216,3 +216,8 @@ owner also refuses it. Paused, cancelled and taken-over runs retain existing
 receipt-only reconciliation. Ordinary human reference/frame edits already persist
 takeover; the independent closure-drift regression is an explicitly injected
 fault over a real completed fixture pack, not evidence of UI redispatch.
+
+Captured portable identity refusal precedes local completed-handoff refusal at
+the claim owner. Recovery's permanent no-resumption contract remains the dominant
+reason even when the captured run had completed human review. Both states still
+deny claims; the original portable diagnostic and regression remain unchanged.

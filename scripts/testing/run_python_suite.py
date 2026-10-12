@@ -99,16 +99,6 @@ def _process_group_exists(process: subprocess.Popen[str]) -> bool:
         os.killpg(process.pid, 0)
     except ProcessLookupError:
         return False
-    except PermissionError:
-        # The owned leader can exit after poll(), leaving a zombie-only group
-        # that refuses SIG0. Reap it, then ask the kernel again; denied signal
-        # permission alone never proves absence or authorizes another signal.
-        if process.poll() is None:
-            raise
-        try:
-            os.killpg(process.pid, 0)
-        except ProcessLookupError:
-            return False
     return True
 
 
@@ -117,19 +107,38 @@ def _stop_processes(processes: Sequence[subprocess.Popen[str]]) -> None:
         return
 
     if os.name == "posix":
+        terminated_groups = set()
         for process in processes:
             try:
                 os.killpg(process.pid, signal.SIGTERM)
             except ProcessLookupError:
                 pass
+            else:
+                terminated_groups.add(process.pid)
 
         deadline = time.monotonic() + WORKER_SHUTDOWN_GRACE_SECONDS
+
+        def group_remains(process):
+            try:
+                return _process_group_exists(process)
+            except PermissionError as denied:
+                if process.pid not in terminated_groups:
+                    raise
+                # TERM can begin exit before WNOHANG observes it. Only this
+                # coordinator knows the owned child and remaining grace budget.
+                try:
+                    process.wait(timeout=max(0, deadline - time.monotonic()))
+                except subprocess.TimeoutExpired as timeout:
+                    raise denied from timeout
+                # Known leader exit does not prove that descendants are gone.
+                return _process_group_exists(process)
+
         remaining_groups = list(processes)
         while remaining_groups and time.monotonic() < deadline:
             for process in processes:
                 process.poll()
             remaining_groups = [
-                process for process in processes if _process_group_exists(process)
+                process for process in processes if group_remains(process)
             ]
             if remaining_groups:
                 time.sleep(min(0.05, max(0, deadline - time.monotonic())))

@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import importlib.util
 import os
 import signal
 import subprocess
-import sys
-import time
 from collections import Counter
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -13,13 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
-RUNNER_PATH = ROOT / "scripts" / "testing" / "run_python_suite.py"
-SPEC = importlib.util.spec_from_file_location("plotloom_python_suite", RUNNER_PATH)
-assert SPEC is not None and SPEC.loader is not None
-RUNNER = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = RUNNER
-SPEC.loader.exec_module(RUNNER)
+from tests.python_suite_runner_support import RUNNER
 
 
 def test_collector_accepts_native_rows_and_rejects_duplicate_or_unsafe_cases(tmp_path):
@@ -89,44 +80,6 @@ def test_runner_refuses_ambient_pytest_selection_before_collecting(capsys):
             == 2
         )
     assert "refuses ambient PYTEST_ADDOPTS" in capsys.readouterr().err
-
-
-@pytest.mark.parametrize("descendant_remains", [False, True])
-def test_group_probe_reaps_owned_zombie_then_rechecks_kernel(monkeypatch, descendant_remains):
-    calls = []
-    class ExitedLeader:
-        pid = 123
-        returncode = None
-        def poll(self):
-            calls.append("reap-owned")
-            self.returncode = -signal.SIGTERM
-            return self.returncode
-    def probe(pid, sig):
-        assert (pid, sig) == (123, 0)
-        calls.append("probe")
-        if calls == ["probe"]:
-            raise PermissionError(1, "zombie-only group")
-        if not descendant_remains:
-            raise ProcessLookupError(3, "group gone after reap")
-    monkeypatch.setattr(RUNNER.os, "killpg", probe)
-    assert RUNNER._process_group_exists(ExitedLeader()) is descendant_remains
-    assert calls == ["probe", "reap-owned", "probe"]
-
-
-@pytest.mark.parametrize("leader_exited", [False, True])
-def test_group_probe_never_treats_denied_permission_as_absence(monkeypatch, leader_exited):
-    class Leader:
-        pid = 123
-        def poll(self):
-            return 0 if leader_exited else None
-    calls = []
-    def denied(pid, sig):
-        calls.append((pid, sig))
-        raise PermissionError(1, "unknown signal authority")
-    monkeypatch.setattr(RUNNER.os, "killpg", denied)
-    with pytest.raises(PermissionError, match="unknown signal authority"):
-        RUNNER._process_group_exists(Leader())
-    assert calls == [(123, 0)] * (2 if leader_exited else 1)
 
 
 def test_runner_reports_each_worker_and_fails_if_either_worker_fails(
@@ -336,99 +289,3 @@ def test_sigterm_during_collection_stops_and_reaps_collector(
     else:
         assert process_state["terminated"]
     assert "TERMINATED signal=15" in capsys.readouterr().out
-
-
-@pytest.mark.skipif(os.name != "posix", reason="requires POSIX process groups")
-def test_stop_processes_reaps_two_running_owned_groups():
-    workers = []
-    try:
-        for _ in range(2):
-            process = subprocess.Popen([sys.executable, "-c", "import time; print('ready', flush=True); time.sleep(30)"],
-                stdout=subprocess.PIPE, text=True, start_new_session=True)
-            workers.append(process)
-            assert process.stdout is not None
-            assert process.stdout.readline().strip() == "ready"
-            assert process.poll() is None
-        RUNNER._stop_processes(workers)
-        assert all(process.returncode is not None for process in workers)
-        assert all(not RUNNER._process_group_exists(process) for process in workers)
-    finally:
-        for process in workers:
-            if process.poll() is None:
-                process.kill()
-                process.wait(timeout=3)
-            if process.stdout is not None:
-                process.stdout.close()
-
-
-@pytest.mark.skipif(os.name != "posix", reason="requires POSIX process groups")
-def test_stop_processes_kills_descendant_after_worker_leader_exits(
-    tmp_path, monkeypatch
-):
-    ready_path = tmp_path / "child-ready"
-    child_script = (
-        "import pathlib, signal, sys, time\n"
-        "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
-        "pathlib.Path(sys.argv[1]).write_text('ready', encoding='utf-8')\n"
-        "time.sleep(30)\n"
-    )
-    leader_script = (
-        "import pathlib, subprocess, sys, time\n"
-        "ready = pathlib.Path(sys.argv[1])\n"
-        "child = subprocess.Popen(\n"
-        "    [sys.executable, '-c', sys.argv[2], str(ready)],\n"
-        "    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,\n"
-        ")\n"
-        "deadline = time.monotonic() + 5\n"
-        "while not ready.exists() and time.monotonic() < deadline:\n"
-        "    time.sleep(0.01)\n"
-        "if not ready.exists():\n"
-        "    raise SystemExit('child did not become ready')\n"
-        "print(child.pid, flush=True)\n"
-        "time.sleep(30)\n"
-    )
-    monkeypatch.setattr(RUNNER, "WORKER_SHUTDOWN_GRACE_SECONDS", 0.15)
-    leader = subprocess.Popen(
-        [sys.executable, "-c", leader_script, str(ready_path), child_script],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-        text=True,
-        start_new_session=True,
-    )
-    child_pid: int | None = None
-
-    def process_state(pid: int) -> str:
-        result = subprocess.run(
-            ["ps", "-o", "stat=", "-p", str(pid)],
-            capture_output=True,
-            check=False,
-            text=True,
-        )
-        return result.stdout.strip()
-
-    try:
-        assert leader.stdout is not None
-        child_pid_text = leader.stdout.readline().strip()
-        assert child_pid_text.isdecimal()
-        child_pid = int(child_pid_text)
-        assert ready_path.read_text(encoding="utf-8") == "ready"
-        state = process_state(child_pid)
-        assert state and not state.startswith("Z")
-        RUNNER._stop_processes([leader])
-        assert leader.poll() is not None
-
-        deadline = time.monotonic() + 3
-        state = process_state(child_pid)
-        while state and not state.startswith("Z") and time.monotonic() < deadline:
-            time.sleep(0.05)
-            state = process_state(child_pid)
-        assert not state or state.startswith("Z")
-    finally:
-        try:
-            os.killpg(leader.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-        if leader.poll() is None:
-            leader.wait(timeout=3)
-        if leader.stdout is not None:
-            leader.stdout.close()
