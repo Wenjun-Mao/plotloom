@@ -1,4 +1,5 @@
 import { useAdoptionLabel, adoptionSentence } from "../features/autopilot/AutopilotWorkspace";
+import { useAutomaticGuidance } from "../features/autopilot/guidance";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AcceptedEvidenceNotice } from "./AcceptedEvidenceNotice";
 import { plotloomApi } from "../api";
@@ -30,6 +31,7 @@ function authorityKey(authority: ArtDraftAuthority | null): string {
 /** F3A owns text review; the distinct F3B study surface owns reference bytes. */
 export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, refreshToken, onContinue }: { projectId: string; readOnly: boolean; active?: boolean; refreshToken?: unknown; onContinue?: () => void }) {
   const adoptionLabel = useAdoptionLabel();
+  const automatic = useAutomaticGuidance();
   const [state, setState] = useState<ArtReviewState>();
   const [studies, setStudies] = useState<ArtReferenceProposal[]>([]);
   const [referenceDecisions, setReferenceDecisions] = useState<ArtReferenceDecision[]>([]);
@@ -123,13 +125,13 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
     {failed && <Button variant="quiet" onClick={() => void recheck()}>重试加载美术参考</Button>}
     <p>先由文字创作助手整理地点和道具设定，供你审核。确认设定后，再为场景和道具制作参考图片。这一步不会生成图片。</p>
     <StageGuide next={onContinue && <Button variant="quiet" disabled={checking || failed || busy || draftDirty.current || state.acceptedReviewState.status !== "current" || !accepted} onClick={onContinue}>继续：剧本</Button>}>
-      {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : busy ? "正在处理美术任务，请稍候。" : retained ? "保留了基于旧版本的美术草稿。请在下方明确舍弃，或用当前版本替换草稿，再继续剧本。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃美术修改，再继续剧本。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "请按当前审核要求重新准备并确认美术设定。") : state.status === "accepted" && accepted ? `${adoptionSentence(adoptionLabel("art", accepted.revision, accepted.contentHash), "地点与道具设定")}。可按需制作参考图，也可继续编写剧本；进入下一步不会自动生成图片。` : "选择美术风格，准备并发送文字任务，再审核返回的地点与道具设定。"}
+      {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : automatic ? (state.status === "accepted" && accepted ? `${adoptionSentence(adoptionLabel("art", accepted.revision, accepted.contentHash), "地点与道具设定")}。${automatic}` : automatic) : busy ? "正在处理美术任务，请稍候。" : retained ? "保留了基于旧版本的美术草稿。请在下方明确舍弃，或用当前版本替换草稿，再继续剧本。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃美术修改，再继续剧本。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "请按当前审核要求重新准备并确认美术设定。") : state.status === "accepted" && accepted ? `${adoptionSentence(adoptionLabel("art", accepted.revision, accepted.contentHash), "地点与道具设定")}。可按需制作参考图，也可继续编写剧本；进入下一步不会自动生成图片。` : "选择美术风格，准备并发送文字任务，再审核返回的地点与道具设定。"}
     </StageGuide>
     {(candidate?.binding.renderContract || accepted?.binding.renderContract) && <p>美术风格：{(candidate?.binding.renderContract || accepted?.binding.renderContract)?.preset.label}</p>}
     <ReviewContextNotice projectId={projectId} diagnostics={state.staleReasons} />
     {state.candidate && <AcceptedEvidenceNotice projectId={projectId} state={state.acceptedReviewState} />}
     {!candidate && state.status !== "reopened" && <section aria-label="准备美术设定候选">
-      {accepted && <><h3>{state.status === "stale" ? "重新准备并确认美术设定" : "准备新的美术候选（可选）"}</h3><p>已确认的美术设定 r{accepted.revision} 仍保留在下方。新候选需要单独审核并确认，不会自动替换已有设定。</p></>}
+      {accepted && <><h3>{state.status === "stale" ? "重新准备并确认美术设定" : "准备新的美术候选（可选）"}</h3><p>{adoptionLabel("art", accepted.revision, accepted.contentHash)}的美术设定 r{accepted.revision} 仍保留在下方。新候选需要单独审核并确认，不会自动替换已有设定。</p></>}
       <label>美术风格 *<select aria-label="美术风格" required value={renderStyle} disabled={readOnly || busy} onChange={event => setRenderStyle(event.target.value as ArtRenderStyle | "")}><option value="">请选择风格</option><option value="live-action">真人写实</option><option value="realistic">半写实厚涂</option><option value="ghibli">吉卜力动画</option></select></label><p>此选择用于新的美术任务，不会修改已确认的角色设定或图片。</p><Button variant="primary" disabled={readOnly || busy || !renderStyle} onClick={prepare}>准备美术设定任务</Button>
     </section>}
     {candidate?.status === "prepared" && state.status !== "stale" && <SpecialistTaskActions projectId={projectId} stage="art" jobId={candidate.jobId} disabled={readOnly || busy} onDelivered={recheck} />}

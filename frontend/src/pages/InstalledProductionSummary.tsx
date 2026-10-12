@@ -3,6 +3,7 @@ import { StageGuide } from "../components/StageGuide";
 import { bridgeCut } from "../production-bridge-handoff";
 import type { InstalledProduction } from "../types";
 import type { BridgeReviewBasis } from "./useProductionBridgeReview";
+import { useAutomaticGuidance, useBridgeAdoptionLabel } from "../features/autopilot/guidance";
 
 /** Shot navigation is owned by the installed receipt, never the latest candidate. */
 export function InstalledProductionSummary({ installation, reviewAcknowledged, reviewBasisStatus, disabled, canonicalReady, onOpenShot, onReread }: {
@@ -10,6 +11,8 @@ export function InstalledProductionSummary({ installation, reviewAcknowledged, r
   reviewAcknowledged: boolean; reviewBasisStatus: BridgeReviewBasis["status"];
   onOpenShot?: (shotId: string) => void; onReread: () => void;
 }) {
+  const automatic = useAutomaticGuidance();
+  const label = useBridgeAdoptionLabel()(installation.proposalRevision, installation.proposalContentHash);
   const basisCurrent = reviewBasisStatus === "current";
   const current = reviewAcknowledged && basisCurrent && installation.status === "current" && installation.staleReasons.length === 0;
   const status = !reviewAcknowledged ? "制作依据尚未核实" : !basisCurrent ? "分镜评审待确认" : current ? "当前有效" : "需要重建";
@@ -21,7 +24,7 @@ export function InstalledProductionSummary({ installation, reviewAcknowledged, r
       : !basisCurrent
       ? "当前分镜评审尚未确认，已有制作内容和媒体仍保留。请先完成分镜评审；若只是尚未确认的替换任务，可取消后重新核对。这里的镜头直达暂时停用。"
       : current
-      ? "此处展示已确认的制作内容。新的待审提案不会替换它；是否可播放仍取决于当前审核和选用的视频片段。"
+      ? `此处展示${label}的制作内容。新的待审提案不会替换它；是否可播放仍取决于当前审核和选用的视频片段。`
       : "故事或制作版本已变化。旧内容与媒体仍保留，故事播放暂停；请核对当前内容，准备重建提案并重新审核。这里的镜头直达已暂停。"}</p>
     <details><summary>已建立的场次与镜头</summary><ul>{installation.cuts.map((raw, index) => {
       const cut = bridgeCut(raw);
@@ -30,7 +33,7 @@ export function InstalledProductionSummary({ installation, reviewAcknowledged, r
       </li>;
     })}</ul></details>
     {current && <StageGuide next={firstCut && onOpenShot && <Button variant="primary" disabled={disabled || !canonicalReady} onClick={() => onOpenShot(firstCut.shotId)}>继续：打开第一个镜头</Button>}>
-      打开镜头后，依次完成分镜审核、参考选择、关键帧审核与视频片段审核。也可展开“已建立的场次与镜头”选择其他镜头。
+      {automatic || "打开镜头后，依次完成分镜审核、参考选择、关键帧审核与视频片段审核。也可展开“已建立的场次与镜头”选择其他镜头。"}
     </StageGuide>}
     {current && !canonicalReady && <Button disabled={disabled} onClick={onReread}>重新读取投产镜头</Button>}
     <details><summary>已建立内容的来源详情</summary><p>提案 r{installation.proposalRevision} · {installation.admissionId}</p><code>{installation.proposalContentHash}</code>

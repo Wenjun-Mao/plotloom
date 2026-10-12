@@ -364,3 +364,19 @@ software fixtures and cannot establish creative acceptance.
   components, workspace routes/types/API and recommended-workflow guidance.
 - Evidence: extend the existing creator lifecycle acceptance playbook for this
   scope and keep one dated receipt; do not create competing acceptance ledgers.
+
+
+## Ordered P5 continuation · owner-approved geometry release
+
+First commit the independently reviewed frontend action-ownership and delivery
+disclosure checkpoint with scoped frontend qualification in the single receipt.
+Then the same source owner proceeds directly to the separately approved geometry
+slice: freeze a new centered crop-and-resize policy at Start, retain original
+bytes and native evidence, record typed local derivative lineage and carry that
+lineage through every material/currentness/human/video-admission consumer.
+Amend ADR 0162 and the accepted contract before implementation. The old frozen
+4817 native run and its one attempted generative adaptation remain untouched;
+new policy applies only to fresh runs. No weakening of aspect admission, fake
+native jobs, extra generation, provider/video/voice work or owner acceptance.
+Stop after a reviewed committed geometry checkpoint; the manager owns attended
+review and one fresh full gate, fresh isolated native proof and preservation.

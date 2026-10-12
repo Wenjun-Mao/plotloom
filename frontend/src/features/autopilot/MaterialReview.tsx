@@ -5,6 +5,9 @@ import { ScriptContentReview } from "../graph/ScriptContentReview";
 import type { SamePersonComparison, SamePersonComparisonDraft } from "../../same-person-review-types";
 import { autopilotApi } from "./api";
 import { completeFrame, type AutopilotRun, type FrameDraft, type ReviewFrame, type ReviewMaterial } from "./contracts";
+import { deliveryDisclosure } from "./deliveryEvidence";
+import { useDeliveryEvidence } from "./useDeliveryEvidence";
+import { DeliveryDisclosure } from "./DeliveryDisclosure";
 
 export function MaterialReview({ projectId, readOnly = false, onClose, onAccepted, onUncertain }: { projectId: string; readOnly?: boolean; onClose: () => void; onAccepted: (run: AutopilotRun) => Promise<void>; onUncertain: (message: string) => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -12,6 +15,10 @@ export function MaterialReview({ projectId, readOnly = false, onClose, onAccepte
   const [drafts, setDrafts] = useState<FrameDraft[]>([]); const [endorsed, setEndorsed] = useState<string[]>([]);
   const [reviewer, setReviewer] = useState(""); const [notes, setNotes] = useState(""); const [busy, setBusy] = useState(false);
   const command = useRef(false); const active = useRef(true);
+  const deliveries = useDeliveryEvidence(projectId, material?.bundleHash);
+  const disclosure = (assetId: string, originalHash: string) => deliveries.state?.status === "ready"
+    ? deliveryDisclosure(projectId, { assetId, originalHash }, deliveries.state.value)
+    : { status: "unknown" as const, message: deliveries.state?.status === "failed" ? "原始交付读取失败；可重试读取。" : "正在读取原始交付说明。" };
   useEffect(() => { active.current = true; dialog.current?.showModal(); const abort = new AbortController();
     autopilotApi.review(projectId, abort.signal).then(value => { if (abort.signal.aborted) return; setMaterial(value);
       setDrafts(value.bundle.frames.map(frame => ({ direction: "", sources: "", compatibility: "", comparisons: frame.characterIds.map(characterId => ({ characterId, judgment: "", identityNotes: "", stateNotes: "" })) })));
@@ -39,6 +46,7 @@ export function MaterialReview({ projectId, readOnly = false, onClose, onAccepte
     {!material && !error && <Spinner label="读取当前完整素材" />}
     {error && <p role="alert">{error}</p>}
     {material && <><p>{material.bundle.inventory.routeCount} 条完整路线 · {material.bundle.references.length} 项参考（{material.bundle.references.reduce((count, item) => count + item.assets.length, 0)} 张图片） · {material.bundle.frames.length} 个镜头首帧</p>
+      {deliveries.state?.status === "failed" && <p role="status">图片交付说明读取失败，已填写观察仍保留。<Button variant="quiet" disabled={busy} onClick={deliveries.retry}>重试读取图片交付说明</Button></p>}
       <details><summary>完整故事与全部路线</summary>
         {material.bundle.story.graph.nodes.map(node => <article key={node.id}><h3>{node.title}</h3><p>{node.summary}</p></article>)}
         <ol>{material.bundle.story.routes?.map((route, index) => <li key={index}>{route.map(id => material.bundle.story.graph.nodes.find(node => node.id === id)?.title || id).join(" → ")}</li>)}</ol>
@@ -51,6 +59,7 @@ export function MaterialReview({ projectId, readOnly = false, onClose, onAccepte
         <div className="autopilot-reference-set">{reference.assets.map((asset, index) => <figure key={asset.assetId}>
           <a href={plotloomApi.managedAssetUrl(projectId, asset.assetId, "original")} target="_blank" rel="noreferrer"><img loading="lazy" src={plotloomApi.managedAssetUrl(projectId, asset.assetId)} alt={`${reference.name}${index ? `补充参考 ${index}` : "主参考"}`} /></a>
           <figcaption>{index ? `补充参考 ${index}` : "主参考"}</figcaption>
+          <DeliveryDisclosure projectId={projectId} value={disclosure(asset.assetId, asset.originalHash)} />
         </figure>)}</div>
         <label><input type="checkbox" disabled={busy || readOnly} checked={endorsed.includes(reference.decisionId)} onChange={event => setEndorsed(value => event.target.checked ? [...value, reference.decisionId] : value.filter(id => id !== reference.decisionId))} />我已检查并采用 {reference.name}</label>
       </article>)}</div>
@@ -58,6 +67,7 @@ export function MaterialReview({ projectId, readOnly = false, onClose, onAccepte
       {material.bundle.frames.map((frame, index) => <div key={frame.shotId}>
         {(index === 0 || material.bundle.frames[index - 1].sceneId !== frame.sceneId) && <h4>场景 · {frame.sceneName}</h4>}
         <FrameReview projectId={projectId} frame={frame} draft={drafts[index]} characters={material.bundle.story.characters} disabled={busy || readOnly} onChange={next => setDrafts(values => values.map((value, slot) => slot === index ? next : value))} />
+        <DeliveryDisclosure projectId={projectId} value={disclosure(frame.assetId, frame.originalHash)} />
       </div>)}
       <div className="field-grid two"><Field required label="审阅人"><input value={reviewer} disabled={busy || readOnly} onChange={event => setReviewer(event.target.value)} /></Field><Field required label="整包审阅意见"><textarea value={notes} disabled={busy || readOnly} onChange={event => setNotes(event.target.value)} /></Field></div>
       <footer><p>确认将记录人工素材审阅，并返回手动视频制作。视频参数、时长与供应商能力仍在制作时检查。</p><Button variant="primary" busy={busy} disabled={busy || readOnly || !valid} onClick={() => void submit()}>确认素材，进入视频制作</Button></footer>

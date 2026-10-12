@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button, ErrorNotice } from "../components";
+import { useAutomaticGuidance, useKnownAutomaticRun } from "../features/autopilot/guidance";
+import { useAdoptionLabel } from "../features/autopilot/AutopilotWorkspace";
 import type { PresentationSpan, ProductionBridgeProposal, PresentationSource, PresentationCandidate } from "../types";
 
 const initial = (source: PresentationSource): PresentationSpan[] => source.spans.length ? source.spans : [{ start: 0, end: [...source.sourceText].length, role: "unassigned", rendering: "", reason: "" }];
@@ -21,6 +23,9 @@ export function ProductionPresentationReview({ projectId, proposal, candidate, d
   onSave: (entries: Array<{ id: string; spans: PresentationSpan[] }>) => Promise<boolean>;
   onDirty: (dirty: boolean) => void; onEdited?: () => void;
 }) {
+  const automatic = useAutomaticGuidance();
+  const knownAutomatic = useKnownAutomaticRun();
+  const adoption = useAdoptionLabel()("bridge-presentation", proposal.revision, proposal.contentHash);
   const pkg = proposal.presentation;
   const currentCandidate = candidate?.proposalRevision === proposal.revision
     && candidate.proposalContentHash === proposal.contentHash && candidate.sourceHash === pkg.sourceHash ? candidate : undefined;
@@ -65,7 +70,7 @@ export function ProductionPresentationReview({ projectId, proposal, candidate, d
     groups.get(key)!.sources.push(source);
   });
   return <details open className="presentation-review" data-testid="production-presentation-review"><summary>逐项审阅内容的呈现方式</summary>
-    <p>按场次查看，修改呈现方式后确认保存。原始剧本与分镜保持不变。</p>
+    <p>{knownAutomatic ? `${adoption}的呈现方案仍待整包人工审阅；手动保存修改将接管自动运行。` : automatic || "按场次查看，修改呈现方式后确认保存。原始剧本与分镜保持不变。"}</p>
     <details><summary>呈现方式说明</summary><p>实体动作与限制须完整保留；画面文字保留原文且不发声。选择问题与按钮由播放器呈现。混合描述可展开原文并拆分；实际媒体仍需单独审核。</p></details>
     {currentCandidate && <div className="notice" role="status">{appliedJob === currentCandidate.jobId ? "助手建议 · 已填入下方，可逐项修改；尚未确认保存。" : "助手建议已返回；你的本地编辑保留，未被覆盖。"}
       {appliedJob !== currentCandidate.jobId && <Button disabled={disabled || busy} onClick={() => { edited.current = true; onEdited?.(); apply(); }}>使用助手建议替换本地呈现编辑</Button>}

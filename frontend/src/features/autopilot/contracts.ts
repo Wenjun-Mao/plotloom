@@ -11,7 +11,7 @@ export type AutopilotRun = {
   handoff: { receiptId: string } | null;
 };
 export type Launch = { expectedBriefRevision: number; renderStyle: ArtRenderStyle; artRenderStyle: ArtRenderStyle; maxImages: number; maxJobs: number };
-export type ReviewFrame = { shotId: string; sceneId: string; title: string; sceneName: string; direction: string; assetId: string; description: string; characterIds: string[]; origin: string };
+export type ReviewFrame = { shotId: string; sceneId: string; title: string; sceneName: string; direction: string; assetId: string; originalHash: string; description: string; characterIds: string[]; origin: string };
 export type ReviewReference = { owner: string; subjectId: string; name: string; decisionId: string; assetId: string;
   assets: Array<{ assetId: string; originalHash: string; width: number; height: number }> };
 export type ReviewMaterial = { runRevision: number; bundleHash: string; bundle: {

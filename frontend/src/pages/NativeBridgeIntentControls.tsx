@@ -1,5 +1,6 @@
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice } from "../components";
+import { useAutomaticGuidance } from "../features/autopilot/guidance";
 import { ProjectReportFrame } from "../components/ProjectReportFrame";
 import type { ProductionBridgeState } from "../types";
 
@@ -7,6 +8,7 @@ export function NativeBridgeIntentControls({ projectId, state, disabled, localEd
   projectId: string; state: ProductionBridgeState; disabled: boolean; localEdits: boolean;
   run: (operation: () => Promise<ProductionBridgeState>) => void;
 }) {
+  const automatic = useAutomaticGuidance();
   const job = state.intentJob?.transport === "codex_native" ? state.intentJob : undefined;
   const available = state.nativeIntentGeneration.status === "available";
   const proposal = state.proposal;
@@ -34,7 +36,7 @@ export function NativeBridgeIntentControls({ projectId, state, disabled, localEd
       {job.errorMessage && ["outcome_unknown", "failed"].includes(job.status) && <ErrorNotice message={job.errorMessage} />}
       {!!state.nativeIntentTask?.limitations.length && <details open><summary>助手交付的限制说明</summary><ul>{state.nativeIntentTask.limitations.map((text, index) => <li key={index}>{text}</li>)}</ul></details>}
       {job.responseHash && <details className="bridge-intent-report"><summary>阅读 Codex 戏剧意图原始报告（只读）</summary>
-        <p>报告保留冻结来源；阅读不代表当前提案已确认。请核对当前提案，并单独保存戏剧意图整包。</p>
+        <p>{automatic || "报告保留冻结来源；阅读不代表当前提案已确认。请核对当前提案，并单独保存戏剧意图整包。"}</p>
         <ProjectReportFrame sandbox="" referrerPolicy="no-referrer" title="Codex 戏剧意图原始报告（只读）" className="source-outline-report" url={plotloomApi.nativeBridgeIntentReportUrl(projectId, job.id)} />
       </details>}
     </>}

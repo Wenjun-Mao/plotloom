@@ -826,3 +826,64 @@ all writes/test bodies hold for manager review and repeat actual-path inspection
 No source full/native/live/valued-data/hosted CI/merge/push occurred. Native
 capability proof, preservation reuse decision, release/activation and owner
 creative acceptance remain manager-owned separate gates.
+
+
+## P5 frontend guidance / delivery disclosure checkpoint · parent 4817e741
+
+Root cause: source/characters showed manual preparation instructions while a known
+run owned automation, and the final review omitted immutable declared limitations.
+Shared guidance now states actual phase, one whole human review and manual-save
+takeover without changing action ownership. Exact operation/revision/hash labels
+cover outline, current admitted branches, Cast/Art/Script/Storyboard and bridge;
+report reads stay enabled and non-mutating. Unknown run reads do not assert an
+automatic producer; intent-only adoption never labels presentation adopted.
+
+Four existing read-only GETs bind every displayed generated asset to its exact
+project/hash, owner kind/ID, candidate role, accepted delivery and manifest.
+Limitations stay verbatim. Explicit empty declarations, unavailable evidence and
+unlinked provenance remain distinct. Retained original and adapted outputs show
+separate dimensions/declarations/identities without an improvement claim.
+Cancellation/project/bundle guards and explicit retry preserve authored inputs;
+no extra polling or mutations were introduced. Two independent source reviews
+closed the concrete unknown/adoption/candidate-owner findings; neither ran checks.
+
+Risk scope reviewed against parent `4817e741c959a968994469ce889d86d81e27b4de`:
+backend source outside generated static is unchanged; client request URLs,
+payloads, server schemas, persistence, admission/auth, prompts/providers, geometry,
+dependencies and build/package code are unchanged. The client only adds AbortSignal
+to existing asset GET and describes fields already returned by the server. Test
+ownership/shard manifests register new coverage; they do not filter required gates.
+Earlier efee445c full/preservation evidence stays historical with unchanged backend
+inputs; the manager decides reuse. No full gate at this frontend checkpoint.
+
+Executed source-owner evidence:
+- `verify.py quick`: 156 files / **1355 units**, both type checks, exit 0,
+  16.909s; `.local/p5-frontend-quick-final.log`. Initial quick caught a new role
+  union typing error after all units passed; typed comparison corrected, no
+  assertions weakened. Focused provenance tests preceded the unfiltered quick.
+- `verify.py focused`: **41 browser cases**, 65.102s exit 0 across exact specs
+  `autopilot-guidance`, `autopilot-review`, `creator-workflow-navigation`,
+  `source-entry-settings`, `recommended-{cast,art,script,storyboard}-workflow`,
+  `production-presentation`, `production-bridge-review-refresh`.
+  `.local/p5-frontend-browser-final.log`; no native generation or provider calls.
+- Native ownership discovery only: 1714 pytest/171 files, 1355 units/156 files,
+  314 browser/92 files; no Python test bodies. Shards **84/72/71/87**, no overlap
+  or missing cases. `.local/p5-frontend-ownership-final.log`, `p5-frontend-shards.log`.
+- Four 1440×900/600 disclosure screenshots inspected: readable declarations,
+  wrapped identity hashes, distinct original/adaptation and intact review inputs;
+  `.local/p5-disclosure-pixels/`. Scroll access remains intact at 600px height.
+- Two serialized deterministic builds match all seven static files; sorted manifest
+  SHA256 `f2f15c5225bd475ed890043dd8119c37c7f789a9240f46ac339540ae46cdd992`.
+
+- Wheel SHA256 `b9381b5341e5befb4eaca659915b56b89701d59a1bcbe7a95539c7777cb0977c`;
+  installed-wheel smoke passed, all seven archive static members byte-match the
+  working tree. `.local/p5-frontend-wheel-smoke.log`. Diff checks pass.
+
+Manager-owned old native proof remains **partial**, paused at revision 64 after
+both 941×1672 original and its one native adaptation missed frozen 720×1280.
+No completion or creative acceptance is implied. The existing run/package/policy,
+originals/blocker/reservation/pins and upstream report bytes were untouched.
+Owner approved centered crop+resize with retained originals and final human review
+as a **new policy**; it is not implemented by this frontend checkpoint or permission
+to reinterpret old evidence. Next is that separately bounded geometry slice;
+manager full/native/preservation/release/activation and owner acceptance remain.

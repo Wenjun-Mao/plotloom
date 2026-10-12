@@ -41,7 +41,7 @@ function state(status: string, reportAvailable: boolean): BranchTaskState {
 async function render(value: BranchTaskState) {
   vi.spyOn(plotloomApi, "getBranchSuggestions").mockResolvedValue(value);
   await act(async () => root.render(branchOperationView(branchOperationFixture(), createElement(BranchSuggestionPanel, {
-    projectId: "project", basis: "outline:1", disabled: false, cancelDisabled: false, dirty: false,
+    projectId: "project", basis: "outline:1", outline: { revision: 1, contentHash: "manual-outline" }, disabled: false, cancelDisabled: false, dirty: false,
     onAdopt: vi.fn(), onPlan: vi.fn(),
   }))));
   await act(async () => new Promise(resolve => setTimeout(resolve, 0)));

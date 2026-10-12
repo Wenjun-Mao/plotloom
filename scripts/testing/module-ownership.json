@@ -58,7 +58,10 @@
           "frontend/tests/source-review-display.test.ts",
           "frontend/tests/source-structure-model.test.ts",
           "frontend/tests/source-workflow-navigation.test.ts",
-          "frontend/tests/autopilot-review.test.ts"
+          "frontend/tests/autopilot-review.test.ts",
+          "frontend/tests/autopilot-delivery-evidence.test.ts",
+          "frontend/tests/autopilot-delivery-reader.test.ts",
+          "frontend/tests/autopilot-presentation.test.ts"
         ],
         "playwright": [
           "frontend/e2e/branch-suggestion-recovery.spec.ts",
@@ -77,7 +80,8 @@
           "frontend/e2e/story-prototype.spec.ts",
           "frontend/e2e/storyboard-source-review.spec.ts",
           "frontend/e2e/synopsis-proposal.spec.ts",
-          "frontend/e2e/autopilot-review.spec.ts"
+          "frontend/e2e/autopilot-review.spec.ts",
+          "frontend/e2e/autopilot-guidance.spec.ts"
         ]
       }
     },
@@ -1323,6 +1327,22 @@
         "shared-provider-dispatch",
         "story-authoring",
         "verification-tooling"
+      ]
+    },
+    {
+      "suite": "vitest",
+      "path": "frontend/tests/autopilot-delivery-fixture.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "playwright",
+      "path": "frontend/tests/autopilot-delivery-fixture.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "story-authoring"
       ]
     }
   ]

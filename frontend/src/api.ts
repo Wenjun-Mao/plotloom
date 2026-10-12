@@ -368,8 +368,8 @@ export class PlotloomApiClient {
     return this.request(`/projects/${encodeURIComponent(projectId)}/managed-assets`, { method: "POST", body: form });
   }
 
-  getManagedAssets(projectId: string): Promise<{ assets: ManagedAsset[] }> {
-    return this.request(`/projects/${encodeURIComponent(projectId)}/managed-assets`);
+  getManagedAssets(projectId: string, signal?: AbortSignal): Promise<{ assets: ManagedAsset[] }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/managed-assets`, { signal });
   }
 
   getVideoEndFrame(projectId: string, shotId: string): Promise<VideoEndFrameDecision> {

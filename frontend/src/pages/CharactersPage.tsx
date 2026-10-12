@@ -8,10 +8,12 @@ import { Button } from "../components";
 import { StageGuide } from "../components/StageGuide";
 import { reviewContextNextStep } from "./ReviewContextNotice";
 import { useAdoptionLabel, adoptionSentence } from "../features/autopilot/AutopilotWorkspace";
+import { useAutomaticGuidance } from "../features/autopilot/guidance";
 
 /** One creator task: settle cast text, then establish appearance for future shots. */
 export function CharactersPage({ projectId, readOnly, refreshToken, onContinue }: { projectId: string; readOnly: boolean; refreshToken?: unknown; onContinue?: () => void }) {
   const adoptionLabel = useAdoptionLabel();
+  const automatic = useAutomaticGuidance();
   const [castState, setCastState] = useState<CastReviewState>();
   const [castError, setCastError] = useState("");
   const [castSessionEpoch, setCastSessionEpoch] = useState(0);
@@ -67,7 +69,7 @@ export function CharactersPage({ projectId, readOnly, refreshToken, onContinue }
   return <section className="page characters-page" data-testid="characters-stage">
     <header className="page-header"><div><h1>角色</h1><p>完善角色文字，再审阅和选择可复用的外观参考。</p></div></header>
     <StageGuide next={onContinue && <Button variant="quiet" disabled={castReadStatus !== "ready" || Boolean(castError) || !castState?.acceptedCast || castState.status !== "accepted" || castTransitionPending} onClick={onContinue}>继续：美术参考</Button>}>
-      {castReadStatus === "loading" ? "正在读取角色设定，请稍候。" : castError ? "角色设定读取失败，请在下方重试。" : !castState ? "正在读取角色设定，请稍候。" : readOnly ? "此项目为只读。可查看已保留的角色设定与外观参考，不能编辑、选用图片或准备新任务。" : castState.status === "reopened" ? "先保存或取消角色修改，再继续。已保留的旧版本不代表本次编辑已确认。" : castState.status === "stale" ? reviewContextNextStep(castState.staleReasons[0], "上游故事已变化，请先更新并确认角色设定。") : castState.status === "accepted" && castState.acceptedCast ? `${adoptionSentence(adoptionLabel("characters", castState.acceptedCast.revision, castState.acceptedCast.contentHash), "角色文字")}。可在下方制作和选择外观参考，也可继续整理地点与道具；继续不会自动生成图片。` : "准备角色任务并发送给文字创作助手，审核结果后确认使用。外观参考图片在文字确认后单独制作。"}
+      {castReadStatus === "loading" ? "正在读取角色设定，请稍候。" : castError ? "角色设定读取失败，请在下方重试。" : !castState ? "正在读取角色设定，请稍候。" : readOnly ? "此项目为只读。可查看已保留的角色设定与外观参考，不能编辑、选用图片或准备新任务。" : automatic ? (castState.status === "accepted" && castState.acceptedCast ? `${adoptionSentence(adoptionLabel("characters", castState.acceptedCast.revision, castState.acceptedCast.contentHash), "角色文字")}。${automatic}` : automatic) : castState.status === "reopened" ? "先保存或取消角色修改，再继续。已保留的旧版本不代表本次编辑已确认。" : castState.status === "stale" ? reviewContextNextStep(castState.staleReasons[0], "上游故事已变化，请先更新并确认角色设定。") : castState.status === "accepted" && castState.acceptedCast ? `${adoptionSentence(adoptionLabel("characters", castState.acceptedCast.revision, castState.acceptedCast.contentHash), "角色文字")}。可在下方制作和选择外观参考，也可继续整理地点与道具；继续不会自动生成图片。` : "准备角色任务并发送给文字创作助手，审核结果后确认使用。外观参考图片在文字确认后单独制作。"}
     </StageGuide>
     <CastPanel projectId={projectId} readOnly={castReadOnly} readStatus={castReadStatus} refreshToken={refreshToken} state={castState} loadError={castError} onState={setCastState} onRefresh={refreshCast} onInvalidate={invalidateCastSession} onTransitionComplete={() => setCastTransitionPending(false)} />
     {!castError && <CharacterReferenceReviewPanel projectId={projectId} readOnly={castReadOnly} castState={castState} castSession={castSession} castSessionOwner={castSessionOwner} castTransitionPending={castTransitionPending || castReadStatus !== "ready"} />}

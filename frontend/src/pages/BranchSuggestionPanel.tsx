@@ -6,8 +6,10 @@ import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskAct
 import type { SectionMap, SourceTopology } from "../types";
 import { useBranchSuggestions } from "../features/branches/useBranchSuggestions";
 import type { BranchTaskReadObservation } from "../app/workspace/recommendedWorkflow";
+import { useAdoptionLabel } from "../features/autopilot/AutopilotWorkspace";
 
-export function BranchSuggestionPanel({ projectId, basis, disabled, cancelDisabled, dirty, onAdopt, onPlan, onTaskRead }: { projectId: string; basis: string; disabled: boolean; cancelDisabled: boolean; dirty: boolean; onAdopt: (draft: SectionMap) => void; onPlan: (topology: SourceTopology) => void; onTaskRead?: (projectId: string, observation: BranchTaskReadObservation) => void }) {
+export function BranchSuggestionPanel({ projectId, basis, outline, disabled, cancelDisabled, dirty, onAdopt, onPlan, onTaskRead }: { projectId: string; basis: string; outline: { revision: number; contentHash: string }; disabled: boolean; cancelDisabled: boolean; dirty: boolean; onAdopt: (draft: SectionMap) => void; onPlan: (topology: SourceTopology) => void; onTaskRead?: (projectId: string, observation: BranchTaskReadObservation) => void }) {
+  const outlineLabel = useAdoptionLabel()("outline", outline.revision, outline.contentHash);
   const { state, busy, mutationPending, error, refresh, adopt, mutate, retryDisabled } = useBranchSuggestions(projectId, basis, dirty, onAdopt);
   useEffect(() => { if (state?.plannedTopology) onPlan(state.plannedTopology); }, [state?.plannedTopology?.topologyHash]);
   useEffect(() => {
@@ -20,7 +22,7 @@ export function BranchSuggestionPanel({ projectId, basis, disabled, cancelDisabl
   const suggestion = candidate?.suggestion;
   const stale = Boolean(state?.staleReasons.length);
   return <section className="branch-suggestion" aria-label="助手剧情分支建议">
-    <h3>从已确认大纲准备完整建议</h3><p>助手按简报规划的结构填入所有剧情节点、播放问题、选项、后续剧情和汇合衔接。你可以审阅、调整，再明确确认。</p>
+    <h3>从{outlineLabel}大纲准备完整建议</h3><p>助手按简报规划的结构填入所有剧情节点、播放问题、选项、后续剧情和汇合衔接。你可以审阅、调整，再明确确认。</p>
     {state?.plannedTopology && <p className="action-prerequisite">已规划 {state.plannedTopology.nodes.length} 个剧情节点 · {state.plannedTopology.nodes.filter(node => node.kind === "decision").length} 个选择点 · {state.plannedTopology.nodes.filter(node => node.kind === "ending").length} 个不同结局 · {state.plannedTopology.nodes.filter(node => node.kind === "join").length} 个汇合节点</p>}
     {state?.infeasibleReason && <ErrorNotice message={state.infeasibleReason} />}
     {mutationPending && <p role="status">正在更新建议任务，请稍候。切换页面不会再次发送。</p>}
@@ -46,7 +48,7 @@ export function BranchSuggestionPanel({ projectId, basis, disabled, cancelDisabl
       <p className="action-prerequisite">带入只更新本地草稿；随后需确认保存并应用到故事路线。</p>
     </div>}
     {candidate && candidate.status !== "cancelled" && <><Button variant="quiet" disabled={cancelDisabled || busy} onClick={() => void mutate(() => plotloomApi.cancelBranchSuggestions(projectId, candidate.jobId))}>放弃此建议任务</Button><p className="action-prerequisite">放弃仅取消这份建议，不修改故事或草稿，也不会解除助手占用。</p></>}
-    {disabled && <p className="action-prerequisite">请先确认当前大纲、保存来源修改，并确保项目可编辑。</p>}
+    {disabled && <p className="action-prerequisite">请先核对当前大纲、保存来源修改，并确保项目可编辑。</p>}
     {error && <><ErrorNotice message={error} /><Button variant="quiet" disabled={retryDisabled} onClick={refresh}>重试读取建议</Button></>}
   </section>;
 }

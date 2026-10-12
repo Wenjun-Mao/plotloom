@@ -51,7 +51,7 @@ it("retains the exact accepted revision as escaped read-only content when its HT
   const outline = { source: "保留版本", episodes: [{ synopsis: "<script>保留的正文</script>", unknown: "保留的未知字段" }] };
   const before = JSON.stringify(outline);
   try {
-    await act(async () => root.render(createElement(OutlineReport, { url: "/api/v2/projects/p/source-outline/candidates/accepted/report", outline, acceptedRevision: 3 })));
+    await act(async () => root.render(createElement(OutlineReport, { url: "/api/v2/projects/p/source-outline/candidates/accepted/report", outline, accepted: { revision: 3, contentHash: "manual-outline" } })));
     expect(host.querySelector("button")!.textContent).toBe("阅读已确认大纲");
     await act(async () => host.querySelector("button")!.click());
     expect(fetch.mock.calls[0][0]).toBe("/api/v2/projects/p/source-outline/candidates/accepted/report");

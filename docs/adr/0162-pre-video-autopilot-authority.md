@@ -278,3 +278,23 @@ currentness. Preserve the mounted form, authored settings and unchanged canonica
 revision through withdrawal and exact no-op cleanup. No polling or command replay
 is added. This frontend observation correction leaves server admission, mutation
 requests and persistence contracts unchanged.
+
+### P5 automatic guidance and immutable delivery disclosure
+
+The actual source/characters walkthrough showed dominant manual Next instructions
+alongside an active automatic owner; delivery limitations were retained but absent
+from the consolidated review. Present the observed automatic phase and one final
+human review through shared guidance, while keeping manual actions/read-only
+report controls under their existing owners. Unknown observation is not proof of
+an automatic run. Adoption wording requires the exact operation/revision/hash;
+intent adoption cannot establish presentation adoption. Branch provenance follows
+the current admitted section-map-to-graph link because its checkpoint records the
+installed graph, not the map. Unresolved provenance stays explicit.
+
+Read delivery declarations from existing managed asset and native owner GETs.
+Bind project, asset/original hash, owner kind/ID, role, accepted receipt and
+manifest identities; preserve limitations verbatim and distinguish an explicit
+empty declaration from unavailable evidence. Display adaptation and retained
+original independently without judging improvement. Abort obsolete project/bundle
+reads; retry only observation and preserve authored review inputs. These reads do
+not alter handoff payloads, admission, prompt/provider or geometry contracts.

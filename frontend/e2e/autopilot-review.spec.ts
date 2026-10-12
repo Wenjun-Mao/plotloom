@@ -1,6 +1,40 @@
 import { test, expect } from "./vite-only-fixture";
 import type { Handoff } from "../src/features/autopilot/contracts";
 
+for (const height of [900, 600]) {
+  test(`complete review displays source-bound limitations and separate adaptation history at 1440x${height}`, async ({ page, frontendOrigin }, info) => {
+    await page.setViewportSize({ width: 1440, height });
+    await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html`);
+    await page.getByRole("button", { name: "审阅完整素材", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "审阅完整素材" });
+    for (const text of ["主参考：服装细节仍须人工核查。", "补充参考：侧脸仍须人工核查。", "额外椅子、花瓶与植物偏离冻结要求。",
+      "原始输出为 941×1672，尺寸与冻结目标不符。", "适配输出仍需实际检查手部与构图；不代表质量改善。"]) await expect(dialog.getByText(text, { exact: true })).toBeVisible();
+    const history = dialog.getByRole("img", { name: /适配来源原图 1/ });
+    await expect(history).toBeVisible(); await expect(history.locator("..")).toHaveAttribute("href", /frame-original\/original$/);
+    const declarations = dialog.locator(".autopilot-delivery-disclosure");
+    await declarations.first().locator("summary").click();
+    await expect(declarations.first()).toContainText("hero-job"); await expect(declarations.first()).toContainText("e".repeat(64));
+    await declarations.first().scrollIntoViewIfNeeded(); await page.screenshot({ path: info.outputPath(`reference-disclosures-${height}.png`) });
+    await history.scrollIntoViewIfNeeded(); await page.screenshot({ path: info.outputPath(`original-adaptation-disclosures-${height}.png`) });
+    await expect(dialog.getByRole("button", { name: "确认素材，进入视频制作" })).toBeDisabled();
+    expect(await page.locator("#fixture-writes").textContent()).toBe("[]");
+  });
+}
+
+test("failed disclosure reads remain unknown and retry preserves authored observations", async ({ page, frontendOrigin }) => {
+  await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html?state=evidence-failure`);
+  await page.getByRole("button", { name: "审阅完整素材", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "审阅完整素材" });
+  await expect(dialog.getByText("图片交付说明读取失败", { exact: false })).toBeVisible();
+  await expect(dialog).not.toContainText("未声明局限");
+  const observation = page.getByRole("textbox", { name: "shot-1 画面意图", exact: true });
+  await observation.fill("保留作者在读取失败期间填写的观察。");
+  await page.getByRole("button", { name: "重试读取图片交付说明" }).click();
+  await expect(dialog.getByText("额外椅子、花瓶与植物偏离冻结要求。", { exact: true })).toBeVisible();
+  await expect(observation).toHaveValue("保留作者在读取失败期间填写的观察。");
+  expect(await page.locator("#fixture-writes").textContent()).toBe("[]");
+});
+
 test.beforeEach(async ({ page }) => {
   // Local thumbnail fixture. No retained installation or native specialist.
   await page.route("**/managed-assets/**", route => route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><rect width="640" height="360" fill="#1d344c"/><path d="M290 330V90h60v240M275 90h90L320 50z" fill="#f5cb82"/><circle cx="320" cy="130" r="14" fill="#fff"/></svg>' }));

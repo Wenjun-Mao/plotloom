@@ -246,7 +246,8 @@ export interface ManagedAsset {
   width: number;
   height: number;
   createdAt: string;
-  provenance: { origin: string; rights: "known" | "unknown"; rightsNote: string | null; declaredAdditions: string[] } | null;
+  provenance: { origin: string; rights: "known" | "unknown"; rightsNote: string | null; declaredAdditions: string[];
+    limitations?: string[]; jobId?: string; proposalId?: string; deliveryId?: string; outputFilename?: string } | null;
 }
 
 export interface CharacterImportedAppearance {
@@ -601,8 +602,10 @@ export interface ImageJob {
         assets: Array<{ assetId: string; originalHash: string }>;
       }>;
       keyframeAdaptation?: {
-        sourceBindingId: string;
+        sourceBindingId?: string;
+        sourceJobId?: string;
         sourceAssetId: string;
+        sourceOriginalHash?: string;
         targetProfile: { id: string; width: number; height: number };
       };
     };

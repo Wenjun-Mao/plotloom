@@ -1,5 +1,6 @@
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice } from "../components";
+import { useAutomaticGuidance } from "../features/autopilot/guidance";
 import { ProjectReportFrame } from "../components/ProjectReportFrame";
 import type { ProductionBridgeState } from "../types";
 
@@ -7,6 +8,7 @@ export function NativeBridgePresentationControls({ projectId, state, disabled, l
   projectId: string; state: ProductionBridgeState; disabled: boolean; localEdits: boolean; occupied: boolean;
   run: (operation: () => Promise<ProductionBridgeState>) => void;
 }) {
+  const automatic = useAutomaticGuidance();
   const job = state.presentationJob, proposal = state.proposal;
   const available = state.nativePresentationGeneration?.status === "available";
   const action = (kind: "send" | "check" | "cancel") => {
@@ -14,7 +16,7 @@ export function NativeBridgePresentationControls({ projectId, state, disabled, l
   };
   return <section className="bridge-intent-controls" aria-label="Codex 呈现方式任务">
     {state.status !== "accepted" && <>
-      <p>让文字助手建议每段内容的呈现方式与忠实画面描述。建议可修改，确认保存后才会采用。</p>
+      <p>{automatic || "让文字助手建议每段内容的呈现方式与忠实画面描述。建议可修改，确认保存后才会采用。"}</p>
       <Button variant="primary" disabled={disabled || localEdits || occupied || !available || !proposal || state.status === "stale"} onClick={() => {
         if (proposal) run(() => plotloomApi.prepareNativeBridgePresentation(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash }));
       }}>准备呈现方式建议</Button>

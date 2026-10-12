@@ -19,4 +19,8 @@
 .autopilot-frame-layout img { width: 100%; max-height: 440px; object-fit: contain; background: #eff2f5; }
 .autopilot-frame textarea { width: 100%; min-height: 64px; }
 .autopilot-frame fieldset { margin: 16px 0; border: 1px solid #ccd4dc; padding: 12px; }
+.autopilot-delivery-disclosure { min-width: 0; margin: 12px 0; }
+.autopilot-delivery-disclosure code, .autopilot-delivery-disclosure li { overflow-wrap: anywhere; }
+.autopilot-delivery-disclosure li { white-space: pre-wrap; }
+.autopilot-delivery-disclosure .autopilot-evidence-original { display: block; width: 100%; max-height: 160px; object-fit: contain; }
 @media (max-width: 700px) { .autopilot-frame-layout { grid-template-columns: 1fr; } .autopilot-status { margin: 8px; } .autopilot-review-dialog { padding: 14px; } }

@@ -386,3 +386,12 @@ describe("recommended creative workflow", () => {
     expect(archived.action).toBeUndefined();
   });
 });
+
+ it("binds branch adoption to the current admitted graph, never the section-map hash", () => {
+  const input = appliedGraphInput();
+  expect(buildRecommendedWorkflow(input)!.steps.find(step => step.id === "branches")!.adoptedArtifact)
+    .toEqual({ operation: "branches", revision: 8, contentHash: "graph-hash" });
+  input.sourceReview!.graphAdmission = null;
+  const step = buildRecommendedWorkflow(input)!.steps.find(step => step.id === "branches")!;
+  expect(step.adoptedArtifact).toBeUndefined(); expect(step.adoptionUnknown).toBe(true);
+});

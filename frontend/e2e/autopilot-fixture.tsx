@@ -5,8 +5,19 @@ import { autopilotApi } from "../src/features/autopilot/api";
 import { specialistsApi } from "../src/features/specialists/api";
 import { fixtureMaterial, fixtureRun } from "../tests/autopilot-fixture";
 import type { Handoff } from "../src/features/autopilot/contracts";
+import { plotloomApi } from "../src/api";
+import { evidenceReadsFixture } from "../tests/autopilot-delivery-fixture";
 import "../src/styles.css";
 const initial = new URLSearchParams(location.search).get("state");
+const evidence = evidenceReadsFixture();
+let evidenceFailed = false;
+plotloomApi.getManagedAssets = async () => {
+  if (initial === "evidence-failure" && !evidenceFailed) { evidenceFailed = true; throw new Error("Disposable evidence read failure"); }
+  return { assets: evidence.assets };
+};
+plotloomApi.getCharacterReferenceProposals = async () => ({ configured: true, proposals: evidence.characters });
+plotloomApi.getArtReferenceProposals = async () => ({ configured: true, proposals: evidence.art });
+plotloomApi.getImageJobs = async () => ({ configured: true, jobs: evidence.images });
 let current = initial?.startsWith("fresh") ? null : { ...fixtureRun, state: initial?.startsWith("running") ? "running" as const : fixtureRun.state };
 let progressReads = 0;
 let handoffReadFailed = false;

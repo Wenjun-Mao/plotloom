@@ -1,4 +1,5 @@
 import { useAdoptionLabel, adoptionSentence } from "../features/autopilot/AutopilotWorkspace";
+import { useAutomaticGuidance } from "../features/autopilot/guidance";
 import { StaticReportReader } from "../components/StaticReportReader";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AcceptedEvidenceNotice } from "./AcceptedEvidenceNotice";
@@ -21,6 +22,7 @@ type ProjectSession = { projectId: string; epoch: number };
 /** F4 reviews one upstream JSON authority and permits only bound episode replacement. */
 export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true, refreshToken, onContinue, contextSectionId }: { projectId: string; readOnly: boolean; active?: boolean; refreshToken?: unknown; onContinue?: () => void; contextSectionId?: string }) {
   const adoptionLabel = useAdoptionLabel();
+  const automatic = useAutomaticGuidance();
   const [state, setState] = useState<ScriptReviewState>();
   const [assignment, setAssignment] = useState("");
   const [error, setError] = useState<ReviewContextFailure>("");
@@ -138,7 +140,7 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
     </>}
     {contextSectionId && draftDirty.current && sectionId !== contextSectionId && <p role="status">正在保留 {sectionId} 的未保存章节；切换节点不会将其保存到 {contextSectionId}。请先保存或舍弃当前章节修改。</p>}
     <StageGuide next={onContinue && <Button variant="quiet" disabled={checking || failed || busy || draftDirty.current || state.acceptedReviewState.status !== "current" || !accepted} onClick={onContinue}>继续：分镜评审</Button>}>
-      {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : busy ? "正在处理剧本任务，请稍候。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃章节修改，再继续分镜。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "请按当前审核要求重新准备并确认剧本。") : state.status === "accepted" && accepted ? `${adoptionSentence(adoptionLabel("script", accepted.revision, accepted.contentHash), "完整剧本")}。下一步准备分镜评审；切换页面不会自动生成镜头或媒体。` : candidate?.status === "ready" ? "阅读候选剧本，确认开场、选择和结局表达，再确认使用。" : "准备剧本任务并发送给文字创作助手。返回的剧本须先审阅，再确认使用。"}
+      {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : automatic ? (state.status === "accepted" && accepted ? `${adoptionSentence(adoptionLabel("script", accepted.revision, accepted.contentHash), "完整剧本")}。${automatic}` : automatic) : busy ? "正在处理剧本任务，请稍候。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃章节修改，再继续分镜。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "请按当前审核要求重新准备并确认剧本。") : state.status === "accepted" && accepted ? `${adoptionSentence(adoptionLabel("script", accepted.revision, accepted.contentHash), "完整剧本")}。下一步准备分镜评审；切换页面不会自动生成镜头或媒体。` : candidate?.status === "ready" ? "阅读候选剧本，确认开场、选择和结局表达，再确认使用。" : "准备剧本任务并发送给文字创作助手。返回的剧本须先审阅，再确认使用。"}
     </StageGuide>
     <ReviewContextNotice projectId={projectId} diagnostics={state.staleReasons} />
     {state.candidate && <AcceptedEvidenceNotice projectId={projectId} state={state.acceptedReviewState} />}
@@ -187,7 +189,7 @@ function AcceptedReview({ accepted, projectId, readOnly, busy, status, retained,
     {!editing && <Button variant="quiet" disabled={readOnly || busy} onClick={onReopen}>重新打开剧本</Button>}
     {editing && !retained && <>
       <SectionEditor accepted={accepted} disabled={readOnly || busy} sectionId={sectionId} draft={draft} onSelect={onSelect} onDraft={onDraft} onSave={onSave} />
-      {draftDirty && sectionId && <ScriptDraftEpisodeReview title={`未保存的章节草稿 · 基于已确认 r${accepted.revision}`} text={draft} binding={accepted.binding} sectionId={sectionId} />}
+      {draftDirty && sectionId && <ScriptDraftEpisodeReview title={`未保存的章节草稿 · 基于${label} r${accepted.revision}`} text={draft} binding={accepted.binding} sectionId={sectionId} />}
     </>}
   </section>;
 }

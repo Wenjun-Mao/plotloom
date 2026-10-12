@@ -51,6 +51,8 @@ export interface RecommendedWorkflowStep {
   id: RecommendedWorkflowStepId;
   label: string;
   status: string;
+  adoptionUnknown?: boolean;
+  adoptedArtifact?: { operation: string; revision: number; contentHash: string };
 }
 
 export interface RecommendedWorkflowModel {
@@ -317,7 +319,14 @@ export function buildRecommendedWorkflow(input: RecommendedWorkflowInput): Recom
     currentStep,
     currentStepLabel: steps.find(step => step.id === currentStep)!.label,
     currentViewLabel: input.activePage === "creator" ? "创作视图" : input.activePage === "graph" ? "专业视图" : undefined,
-    steps: steps.map(step => ({ ...step, status: statusFor(input, step.id, currentStep) })),
+    steps: steps.map(step => {
+      const admission = step.id === "branches" && currentGraphAdmission(input) ? input.sourceReview?.graphAdmission : null;
+      const adopted = step.id === "source" && acceptedOutlineIsCurrent(input.sourceReview) ? input.sourceReview?.acceptedOutline : null;
+      return { ...step, status: statusFor(input, step.id, currentStep), ...(adopted ? { adoptedArtifact: {
+        operation: "outline", revision: adopted.revision, contentHash: adopted.contentHash,
+      } } : admission ? { adoptedArtifact: { operation: "branches", revision: admission.graphRevision, contentHash: admission.graphContentHash } }
+        : step.id === "branches" && currentSectionMap(input.sourceReview) ? { adoptionUnknown: true } : {}) };
+    }),
     statusText: recommendation.statusText,
     nextText: recommendation.text,
     action: recommendation.action,

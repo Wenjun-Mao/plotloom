@@ -1,4 +1,5 @@
 import { useAdoptionLabel } from "../features/autopilot/AutopilotWorkspace";
+import { useAutomaticGuidance } from "../features/autopilot/guidance";
 import { StaticReportReader } from "../components/StaticReportReader";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AcceptedEvidenceNotice } from "./AcceptedEvidenceNotice";
@@ -17,6 +18,7 @@ import { useReportReviewWorkflowRead } from "../app/workspace/ReviewWorkflowRead
 /** F5A preserves upstream review evidence; it deliberately cannot create product shots. */
 export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOpenShot, onInstalled, active: visible = true, refreshToken }: { projectId: string; readOnly: boolean; onOpenShot?: (shotId: string) => boolean | void; onInstalled: (projectId: string) => Promise<void>; active?: boolean; refreshToken?: unknown }) {
   const adoptionLabel = useAdoptionLabel();
+  const automatic = useAutomaticGuidance();
   const [state, setState] = useState<StoryboardReviewState>();
   const [assignment, setAssignment] = useState("");
   const [error, setError] = useState<ReviewContextFailure>("");
@@ -69,7 +71,7 @@ export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOp
   return <article id="storyboard-review" className="panel cast-panel" data-testid="storyboard-review">
     <header><span>分镜评审</span><strong>{checking ? "正在刷新" : failed ? "无法刷新" : reviewLabel(state, adoptionLabel("storyboard", acceptedReview?.revision, acceptedReview?.contentHash))}</strong></header>
     {failed && <Button variant="quiet" onClick={() => void recheck()}>重试加载分镜评审</Button>}
-    <StageGuide>{checking ? "正在核对当前分镜评审，请稍候。" : failed ? "读取失败，请先重试；暂时不能修改或投产。" : busy ? "正在处理分镜任务，请稍候。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "请按当前审核要求更新分镜评审后再投产；旧方案仍保留供参考。") : state.status === "accepted" && acceptedReview ? acceptedGuide : candidate?.status === "ready" ? "审阅候选中每个镜头的动作、对白和预计时长，再确认使用。" : candidate?.status === "prepared" ? "分镜任务尚未交付；发送、等待和检查状态见任务区。" : "先确认剧本，再准备并发送分镜任务。这里不会自动生成图片或视频。"}</StageGuide>
+    <StageGuide>{checking ? "正在核对当前分镜评审，请稍候。" : failed ? "读取失败，请先重试；暂时不能修改或投产。" : automatic ? (state.status === "accepted" && acceptedReview ? `${provenance}分镜评审。${automatic}` : automatic) : busy ? "正在处理分镜任务，请稍候。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "请按当前审核要求更新分镜评审后再投产；旧方案仍保留供参考。") : state.status === "accepted" && acceptedReview ? acceptedGuide : candidate?.status === "ready" ? "审阅候选中每个镜头的动作、对白和预计时长，再确认使用。" : candidate?.status === "prepared" ? "分镜任务尚未交付；发送、等待和检查状态见任务区。" : "先确认剧本，再准备并发送分镜任务。这里不会自动生成图片或视频。"}</StageGuide>
     <p className="action-prerequisite">本页保留与采用的剧本对应的原始分镜方案。确认分镜方案与建立正式镜头内容是两个独立步骤；确认方案不会自动建立镜头或生成媒体。</p>
     <ReviewContextNotice projectId={projectId} diagnostics={state.staleReasons} />
     {state.candidate && <AcceptedEvidenceNotice projectId={projectId} state={state.acceptedReviewState} />}

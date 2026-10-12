@@ -1,11 +1,16 @@
 import { Button } from "../../components";
 import type { RecommendedWorkflowModel, RecommendedWorkflowRoute } from "./recommendedWorkflow";
+import { useAutomaticGuidance } from "../../features/autopilot/guidance";
+import { useAdoptionLabel, useAutopilot } from "../../features/autopilot/AutopilotWorkspace";
 
 export function RecommendedWorkflowGuide({ model, actionDisabled, onNavigate }: {
   model: RecommendedWorkflowModel | null;
   actionDisabled: boolean;
   onNavigate: (route: RecommendedWorkflowRoute) => void;
 }) {
+  const automatic = useAutomaticGuidance();
+  const owner = useAutopilot();
+  const adoptionLabel = useAdoptionLabel();
   if (!model) return null;
   const currentIndex = model.steps.findIndex(step => step.id === model.currentStep) + 1;
   const action = model.action;
@@ -25,7 +30,8 @@ export function RecommendedWorkflowGuide({ model, actionDisabled, onNavigate }: 
         <div className="recommended-workflow-expanded">
           <ol aria-label="推荐流程步骤">
             {model.steps.map(step => <li key={step.id} aria-current={step.id === model.currentStep ? "step" : undefined}>
-              <strong>{step.label}</strong><span>{step.status}</span>
+              <strong>{step.label}</strong><span>{step.adoptedArtifact && owner && (owner.run || !owner.ready)
+                ? `${adoptionLabel(step.adoptedArtifact.operation, step.adoptedArtifact.revision, step.adoptedArtifact.contentHash)} r${step.adoptedArtifact.revision}` : step.adoptionUnknown && owner && (owner.run || !owner.ready) ? "已采用 · 来源待核实" : step.status}</span>
             </li>)}
           </ol>
           <p>推荐顺序：{model.steps.map(step => step.label).join(" → ")}。序号表示当前工作步骤，不是完成比例；创作与专业视图同属剧情图编辑，切换不会退回前一步。可返回前序工作或直接手工编辑；保存、确认与应用仍由现有页面负责。</p>
@@ -33,10 +39,10 @@ export function RecommendedWorkflowGuide({ model, actionDisabled, onNavigate }: 
         </div>
       </details>
     </div>
-    {model.statusText && <p className="recommended-workflow-status" role="status"><strong>当前状态：</strong>{model.statusText}</p>}
+    {!automatic && model.statusText && <p className="recommended-workflow-status" role="status"><strong>当前状态：</strong>{model.statusText}</p>}
     <div className="recommended-workflow-next">
-      <p><strong>下一步建议：</strong>{model.nextText}</p>
-      {action?.kind === "navigate" && <Button variant="quiet" disabled={actionDisabled} onClick={() => onNavigate(action.route)}>{action.label}</Button>}
+      <p><strong>下一步建议：</strong>{automatic || model.nextText}</p>
+      {action?.kind === "navigate" && <Button variant="quiet" disabled={actionDisabled} onClick={() => onNavigate(action.route)}>{automatic ? "查看对应工作区" : action.label}</Button>}
       {action?.kind === "play" && <a className="button quiet" href={action.href} target="_blank" rel="noreferrer">{action.label}</a>}
     </div>
   </section>;
