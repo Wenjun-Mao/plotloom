@@ -63,11 +63,61 @@ now automatically opens it. A regression proves buffer retention, disabled save,
 visible recovery and explicit adoption. GPT-6.1 Sol / Medium confirmed the fix;
 no remaining actionable findings were reported.
 
-## Remaining qualification / activation
+## Stable-candidate local qualification
 
-Full local qualification and deterministic generated assets are pending on the
-stable isolated candidate. Hosted CI is manual and will not be dispatched.
+Qualification used the isolated checkout at
+`/tmp/plotloom-presentation-qualification.yjjySh/plotloom`, keeping the live
+checkout and its served frontend unchanged until activation. Implementation:
+`6279b2a9`; generated assets: `d6618d21c88194d771a603b652d646344ace5903`;
+final test-only API snapshot correction: `9039f850`.
+
+The first full attempt stopped at the archived prompt reader's missing `jsdom`
+dependency in the fresh checkout. Its established prerequisite,
+`npm --prefix docs/prompt-pipeline-lab ci`, resolved that setup failure.
+The subsequent full command passed the lock, FFmpeg/ffprobe, API-F401 lint,
+archived reader, 151 frontend files / 1,284 tests and TypeScript checks. The
+Python workers reported 782 passed and 780 passed / one failed; that command
+correctly exited 1 after 236.385s and is not claimed as an uninterrupted pass.
+
+The sole failure was an exact API snapshot in
+`test_f5a_uses_a_distinct_source_review_api_not_the_canonical_storyboard_review`:
+its expected intent-only response omitted the four new presentation fields.
+The correction adds their exact values, without relaxing assertions or changing
+product code. Independent review confirmed that scope. The complete failed
+file then passed 7/7 in 4.59s pytest / 6.293s runner. Per the repository evidence
+reuse policy, the unchanged passed suites were retained and every downstream
+full gate ran without filtering:
+
+- Deterministic production build and checked-in static parity passed.
+- Browser shard coverage: 90 specs / 298 cases, shards 84/72/71/71; no gaps or
+  overlap. The unfiltered browser suite passed all 298 cases in 7.5 minutes.
+- Wheel build and installed-wheel smoke passed.
+- Native ownership collection independently covered 1,563 pytest, 1,284 Vitest
+  and 298 Playwright cases. Collection is not test execution.
+- Two serialized deterministic builds matched across all seven static files.
+  Compiled `workbench.js` SHA-256:
+  `218bc138887f388e3060cb77b51235a2727c4faa63ddbab4563b6c8dc57f7954`.
+- Compiled fixture pixels were inspected at 1280×460, 1280×768 and 1700×900;
+  the owned browser reported zero console errors and warnings. Captures are
+  retained in `output/playwright/presentation-compiled-*-20261012.png`.
+
+This combined evidence completes the local software gates for unchanged
+product/dependency inputs; it does not claim a fresh uninterrupted full command
+at `9039f850`, hosted exact-SHA qualification or creator acceptance.
+The unchanged pinned frontend development dependency tree reports one high
+`source-map-js` advisory (GHSA-68fv-2mgg-jv7q, via PostCSS/Vite). No dependency
+autofix was applied; separate dependency maintenance and exposure assessment
+remain outside this feature. The existing bundle-size warning also remains.
+
+## Activation checkpoint
+
 The owner explicitly approved a brief backend activation after checks pass.
-Activation requires idle specialist/task readback and unchanged valued-project
-content; no browser reload, story save, creative approval or real generation is
+Before activation, the live specialist registry was idle and retained media
+jobs in the two open projects were terminal. The valued project
+`160554c7-f021-40b0-b218-b9d53412b75c` (给今天的自己) was closed; all 70 files
+were hashed before the restart. Preserve that closed state and compare the
+exact files after activation. Activation readback is pending.
+
+Hosted CI is manual and will not be dispatched. No browser reload, story save,
+creative approval, specialist task preparation/send or media generation is
 authorized by this implementation. Product acceptance remains owner-led.

@@ -15,6 +15,12 @@ and concrete workflow guidance. Independent review precedes final qualification.
 Evidence: focused Python/UI/browser contracts, quick checks, deterministic
 assets/pixels, then one stable-candidate local full gate. No hosted dispatch.
 
+Implementation and independent review are complete. The stable candidate's
+local software gates passed using unchanged-suite evidence reuse after a
+test-only exact API snapshot correction; see the single verification receipt.
+Backend activation and its valued-project preservation readback are the next
+approved checkpoint. Creator acceptance remains a separate owner action.
+
 Exclusions: valued project writes, replacement of frozen intent evidence,
 creative approval, provider/credential changes, real specialist execution and
 media generation. The owner approved a brief backend activation after checks
