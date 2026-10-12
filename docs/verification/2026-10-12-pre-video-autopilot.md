@@ -1,7 +1,7 @@
 # Pre-video autopilot · single evidence receipt
 
-Status: **P0–P4 source candidate locally checked; P4 bounded independent review
-pending, P5 full/native/preservation/activation remaining**. No owner creative
+Status: **P0–P4 source candidate locally checked; source bounded correction review
+closed, manager review/P5 full/native/preservation/activation remaining**. No owner creative
 acceptance, valued installation upgrade or live activation is claimed. Scope and stopping boundary are in the
 [approved plan](../roadmap/2026-10-12-pre-video-autopilot.md#p0-implementation-checkpoint)
 and [ADR 0162](../adr/0162-pre-video-autopilot-authority.md).
@@ -493,3 +493,8 @@ labels/tests/static assets/docs; API payloads and persistence are unchanged.
 
 Final affected browser selection: **8 passed**, focused runner 32.711s, including
 committed/uncommitted handoff acknowledgment recovery and retained authored values.
+
+Same source authority reviewer closed both residuals and the additional lifecycle/
+Characters findings at exact `a80428b1dffc3fafae7fa3a060ea19860529feb0`: no remaining
+concrete defect in its bounded read-only diff review. No independent runtime run
+or P5/creative acceptance is inferred. This final receipt update changes docs only.
