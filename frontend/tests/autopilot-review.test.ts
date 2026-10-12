@@ -124,6 +124,20 @@ it("aborts superseded admission reads and retains server refusal for manual mate
   await act(async () => release({ eligible: true, briefRevision: 1 }));
   expect(host.textContent).not.toContain("一键准备视频素材"); expect(read).toHaveBeenCalledTimes(2);
 });
+it("withdraws a previously eligible launch while a newer mutation observation is pending", async () => {
+  vi.spyOn(autopilotApi, "current").mockResolvedValue(null);
+  let release!: (value: { eligible: boolean; briefRevision: number }) => void;
+  vi.spyOn(autopilotApi, "launchContext").mockResolvedValueOnce({ eligible: true, briefRevision: 1 })
+    .mockImplementationOnce(() => new Promise(done => { release = done; }));
+  const draw = async (admissionVersion: number) => act(async () => root.render(createElement(AutopilotWorkspace, {
+    projectId: "disposable", revision: 1, admissionVersion, readOnly: false, onChanged: async () => undefined, onVideo: () => undefined,
+    children: createElement(AutopilotLaunch, { saved: true, dirty: false, disabled: false }),
+  })));
+  await draw(0); expect(host.textContent).toContain("一键准备视频素材");
+  await draw(1); expect(host.textContent).not.toContain("一键准备视频素材");
+  await act(async () => release({ eligible: false, briefRevision: 1 }));
+  expect(host.textContent).not.toContain("一键准备视频素材");
+});
 it("author editing drops trusted Brief-origin authority without changing retained bytes", () => {
   const original = { kind: "synopsis" as const, title: "Saved title", text: "Saved synopsis", attribution: null, rightsDeclaration: null, adaptationIntent: "", inventedAdditions: null,
     briefOrigin: { kind: "saved_brief" as const, revision: 1, contentHash: "frozen" } };

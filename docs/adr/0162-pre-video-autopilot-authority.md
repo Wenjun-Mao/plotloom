@@ -253,3 +253,28 @@ overlapping lifespans, real discovery/inspection holders, late passive blocking
 and foreground refusal. Closed-WAL/retained-lock and DELETE/absent-lock byte
 preservation remain separate cases. Source-bound review text retains its frozen
 Script revision and review hash even after the current Script changes.
+
+### P5 acknowledged draft mutations invalidate admission observation
+
+Actual walkthrough after passing full qualification showed a remaining owner
+gap: an edit/revert could leave a durable Brief draft while payload equality
+cleared `dirty`, re-enabling a launch backed by an older eligible GET. A successful
+PUT receipt changes admission even when canonical Brief and local payload match.
+
+Use the shared project/operation-bound authoring observation callback for owned
+durable PUT acknowledgments, exact canonical consumption, recovery and close-time
+discard, and graph recovery performed by this authoring owner. Publish only for
+the current operation and matching receipt identity; failed, mismatched and
+superseded receipts do not advance the current workspace observation. Local-only
+discard and server-buffer restoration have no mutation event; restoration that
+schedules a PUT uses the normal acknowledgment owner. Creating a different project
+already changes read identity.
+
+Launch displays eligibility only from a server response bound to its current
+project/Brief/observation key. A newer mutation makes the older result unknown
+immediately while the fresh GET is pending; aborted superseded GETs cannot restore
+it. Dirty/saving fields retain editor/action semantics but cannot establish read
+currentness. Preserve the mounted form, authored settings and unchanged canonical
+revision through withdrawal and exact no-op cleanup. No polling or command replay
+is added. This frontend observation correction leaves server admission, mutation
+requests and persistence contracts unchanged.

@@ -14,25 +14,28 @@ afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); sessionStorage.clear
 
 async function harness(initiallyAllowed = true) {
   let project = { ...demoProject, id: "a" }, allowed = initiallyAllowed, graphAllowed = true;
+  let epoch = 1;
   const serverAuthoringDrafts = { current: new Map<string, AuthoringDraft>() };
   const onConflict = vi.fn();
+  const onMutationAcknowledged = vi.fn();
   let autosave!: ReturnType<typeof useAuthoringDraftAutosave>;
   function Harness() {
     autosave = useAuthoringDraftAutosave({ project, writesAllowed: allowed,
       scopeWritesAllowed: scope => scope !== "story_graph" || graphAllowed,
       durableDraftsEnabledRef: { current: true }, serverAuthoringDrafts,
-      captureWorkspaceOperation: (): WorkspaceOperation => ({ projectId: project.id, epoch: 1, stage: "brief" }),
-      isWorkspaceOperationCurrent: operation => operation.projectId === project.id,
-      setDurableDraftStatus: vi.fn(), setError: vi.fn(), onConflict });
+      captureWorkspaceOperation: (): WorkspaceOperation => ({ projectId: project.id, epoch, stage: "brief" }),
+      isWorkspaceOperationCurrent: operation => operation.projectId === project.id && operation.epoch === epoch,
+      setDurableDraftStatus: vi.fn(), setError: vi.fn(), onConflict, onMutationAcknowledged });
     return null;
   }
   const root = createRoot(document.createElement("div"));
   const render = () => act(async () => root.render(createElement(Harness)));
   await render();
-  return { get autosave() { return autosave; }, get project() { return project; }, onConflict,
+  return { get autosave() { return autosave; }, get project() { return project; }, onConflict, onMutationAcknowledged,
     setAllowed: async (value: boolean) => { allowed = value; await render(); },
     setGraphAllowed: (value: boolean) => { graphAllowed = value; },
     replaceProject: async () => { project = { ...project, id: "b" }; await render(); },
+    replaceOperation: async () => { epoch++; await render(); },
     unmount: () => act(async () => root.unmount()) };
 }
 
@@ -45,6 +48,36 @@ it("halts timer and explicit flush writes while project authority is unverified"
     await vi.advanceTimersByTimeAsync(1000);
     await expect(state.autosave.flushAuthoringDraft("brief")).resolves.toBe(false);
     expect(write).not.toHaveBeenCalled(); expect(getDraft(state.project, "brief")).toEqual(retained);
+  } finally { await state.unmount(); }
+});
+
+it("observes a successful current draft PUT only after its owned receipt arrives", async () => {
+  const state = await harness();
+  let resolve!: (value: AuthoringDraft) => void;
+  vi.spyOn(plotloomApi, "saveAuthoringDraft").mockReturnValue(new Promise(done => { resolve = done; }));
+  const local = putDraft(state.project, "brief", { ...state.project.brief });
+  const pending = state.autosave.flushAuthoringDraft("brief");
+  try {
+    expect(state.onMutationAcknowledged).not.toHaveBeenCalled();
+    resolve({ projectId: "a", editorScope: "brief", entityId: "root", baseCanonicalRevision: local.baseRevision,
+      draftRevision: 1, payload: local.payload as Record<string, unknown>, updatedAt: "2026-10-12" });
+    await expect(pending).resolves.toBe(true);
+    expect(state.onMutationAcknowledged).toHaveBeenCalledExactlyOnceWith({ projectId: "a", epoch: 1, stage: "brief" });
+  } finally { await state.unmount(); }
+});
+
+it.each(["project", "operation"])("retains an admitted late PUT receipt without publishing it into a newer %s", async kind => {
+  const state = await harness();
+  let resolve!: (value: AuthoringDraft) => void;
+  vi.spyOn(plotloomApi, "saveAuthoringDraft").mockReturnValue(new Promise(done => { resolve = done; }));
+  const local = putDraft(state.project, "brief", { title: "old admitted input" });
+  const pending = state.autosave.flushAuthoringDraft("brief");
+  try {
+    if (kind === "project") await state.replaceProject(); else await state.replaceOperation();
+    resolve({ projectId: "a", editorScope: "brief", entityId: "root", baseCanonicalRevision: local.baseRevision,
+      draftRevision: 1, payload: local.payload as Record<string, unknown>, updatedAt: "2026-10-12" });
+    await pending;
+    expect(state.onMutationAcknowledged).not.toHaveBeenCalled();
   } finally { await state.unmount(); }
 });
 

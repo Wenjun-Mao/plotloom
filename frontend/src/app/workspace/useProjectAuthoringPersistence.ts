@@ -52,6 +52,14 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
   const [draftConflict, setDraftConflict] = useState<DraftConflictState | undefined>();
   const [restoredDraft, setRestoredDraft] = useState<{ scope: DraftScope; payload: unknown; source: "server" | "session" | "reconcile" } | undefined>();
 
+  const observeAuthoringMutation = useCallback((operation: WorkspaceOperation) => {
+    const session = current.current.session;
+    if (!operation.projectId || session.project.id !== operation.projectId || !session.isCurrent(operation)) return;
+    const projectId = operation.projectId;
+    setAdmissionObservation(previous => ({ projectId,
+      version: previous.projectId === projectId ? previous.version + 1 : 1 }));
+  }, []);
+
   const { flushAuthoringDraft, scheduleAuthoringDraftAutosave, discardUnsentProjectDrafts, suspendProjectDraftWrites } = useAuthoringDraftAutosave({
     project: input.session.project,
     writesAllowed: input.session.connection === "connected" && !draftConflict,
@@ -63,6 +71,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     setDurableDraftStatus,
     setError: input.feedback.setError,
     onConflict: (scope, record, workspace) => setDraftConflict({ scope, record, workspace, serverReloaded: false }),
+    onMutationAcknowledged: observeAuthoringMutation,
   });
   const flushProjectAuthoringDrafts = useCallback(async () => {
     for (const scope of ["brief", "story_bible", "story_graph", "scene_beats", "storyboard"] as DraftScope[]) {
@@ -183,11 +192,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
             if (receipt !== serverDraft.draftRevision) throw new Error("当前草稿在丢弃前已变化");
             source.session.serverDrafts.current.delete(authoringDraftKey(source.session.project.id, "brief"));
             setDurableDraftStatus("idle");
-            // Draft cleanup changes server admission without changing Brief.
-            // Publish only the validated receipt for the still-current project.
-            const projectId = source.session.project.id;
-            setAdmissionObservation(previous => ({ projectId,
-              version: previous.projectId === projectId ? previous.version + 1 : 1 }));
+            observeAuthoringMutation(operation);
           } else if (!source.durableDraftsEnabled.current) {
             discardDraft(source.session.project, "brief");
           }
@@ -210,6 +215,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
           refreshStaleAcceptedProject(source.session.project.id);
           return;
         }
+        if (consumed && saved.consumedDraftRevision === consumed.draftRevision) observeAuthoringMutation(operation);
         // The project contract invalidates every canonical stage when its Brief
         // changes. ProjectResource intentionally carries no stage envelopes,
         // so retain the existing heads but immediately project that server
@@ -233,7 +239,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     } finally {
       finishSave(operation, generation);
     }
-  }, [beginSave, createProjectFrom, finishSave, flushAuthoringDraft, refreshStaleAcceptedProject]);
+  }, [beginSave, createProjectFrom, finishSave, flushAuthoringDraft, observeAuthoringMutation, refreshStaleAcceptedProject]);
 
   const commitStage = useCallback(async <T,>(stage: ServerStageName, content: T) => {
     if (stage === "story_graph") {
@@ -272,6 +278,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
         refreshStaleAcceptedProject(source.session.project.id);
         return;
       }
+      if (consumed && saved.consumedDraftRevision === consumed.draftRevision) observeAuthoringMutation(operation);
       const accepted = markDownstreamStale({
         ...source.session.project,
         [key]: content,
@@ -301,7 +308,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     } finally {
       finishSave(operation, generation);
     }
-  }, [beginSave, createProjectFrom, finishSave, flushAuthoringDraft, refreshStaleAcceptedProject]);
+  }, [beginSave, createProjectFrom, finishSave, flushAuthoringDraft, observeAuthoringMutation, refreshStaleAcceptedProject]);
 
   const rememberDraft = useCallback((scope: DraftScope, payload: unknown) => {
     const source = current.current;
@@ -342,6 +349,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
           expectedBindingHash: state.bindingHash, payload: readGraphDraft(conflict.record.payload) });
         if (!source.session.isCurrent(operation)) return false;
         source.session.serverDrafts.current.set(authoringDraftKey(projectId, "story_graph"), saved);
+        observeAuthoringMutation(operation);
         discardDraftRecord(conflict.record);
         currentDraft.current = { scope: "story_graph", payload: saved.payload };
         setRestoredDraft({ scope: "story_graph", payload: saved.payload, source: "server" });
@@ -385,7 +393,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     } finally {
       finishSave(operation, generation);
     }
-  }, [beginSave, conflictReload, createProjectFrom, draftConflict, finishSave]);
+  }, [beginSave, conflictReload, createProjectFrom, draftConflict, finishSave, observeAuthoringMutation]);
 
   const discardDraftConflict = useCallback(() => {
     if (!draftConflict || conflictReload.isPending()) return false;
@@ -403,6 +411,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
   const discardCurrentAuthoringDraft = useCallback(async (scope: DraftScope): Promise<boolean> => {
     const source = current.current;
     const project = source.session.project;
+    const operation = source.session.capture();
     const draft = currentDraft.current;
     if (!draft || draft.scope !== scope) return false;
     if (!project.id || !source.durableDraftsEnabled.current) {
@@ -430,21 +439,24 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
         throw new Error("当前草稿在丢弃前已变化");
       }
       source.session.serverDrafts.current.delete(key);
+      if (!source.session.isCurrent(operation)) return false;
+      observeAuthoringMutation(operation);
       discardDraft(project, scope);
       currentDraft.current = undefined;
       setRestoredDraft(undefined);
       setDurableDraftStatus("idle");
       return true;
     } catch (error) {
-      source.feedback.setError(`草稿未丢弃：${messageFrom(error)}`);
+      if (source.session.isCurrent(operation)) source.feedback.setError(`草稿未丢弃：${messageFrom(error)}`);
       return false;
     }
-  }, [flushAuthoringDraft]);
+  }, [flushAuthoringDraft, observeAuthoringMutation]);
 
   return {
     currentDraft,
     projectSaving,
     admissionVersion: admissionObservation.projectId === input.session.project.id ? admissionObservation.version : 0,
+    observeAuthoringMutation,
     durableDraftStatus,
     draftConflict,
     setDraftConflict,

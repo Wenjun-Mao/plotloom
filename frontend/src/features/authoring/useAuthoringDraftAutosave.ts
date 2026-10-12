@@ -32,6 +32,7 @@ export function useAuthoringDraftAutosave({
   setDurableDraftStatus,
   setError,
   onConflict,
+  onMutationAcknowledged,
 }: {
   project: WorkspaceProject;
   writesAllowed: boolean;
@@ -43,6 +44,7 @@ export function useAuthoringDraftAutosave({
   setDurableDraftStatus: Dispatch<SetStateAction<DurableDraftStatus>>;
   setError: Dispatch<SetStateAction<string>>;
   onConflict: (scope: DraftScope, record: DraftRecord, workspace: WorkspaceProject) => void;
+  onMutationAcknowledged: (operation: WorkspaceOperation) => void;
 }) {
   const writeAuthority = useRef({ projectId: project.id, allowed: writesAllowed });
   const scopeAuthority = useRef(scopeWritesAllowed); scopeAuthority.current = scopeWritesAllowed;
@@ -88,7 +90,10 @@ export function useAuthoringDraftAutosave({
           });
           serverAuthoringDrafts.current.set(key, saved);
           acknowledgeDraft(project, scope, local.localRevision, saved.draftRevision);
-          if (isWorkspaceOperationCurrent(operation)) setDurableDraftStatus("saved");
+          if (isWorkspaceOperationCurrent(operation)) {
+            setDurableDraftStatus("saved");
+            if (saved.projectId === operation.projectId && saved.editorScope === scope && saved.entityId === "root") onMutationAcknowledged(operation);
+          }
           return true;
         } catch (draftError) {
           if (isWorkspaceOperationCurrent(operation)) {
@@ -111,7 +116,7 @@ export function useAuthoringDraftAutosave({
       const newer = getDraft(project, scope);
       if (!newer || newer.localRevision === local.localRevision) return true;
     }
-  }, [project]);
+  }, [project, onMutationAcknowledged]);
 
   const scheduleAuthoringDraftAutosave = useCallback((scope: DraftScope) => {
     if (!durableDraftsEnabledRef.current || !project.id) return;

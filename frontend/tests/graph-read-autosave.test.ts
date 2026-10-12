@@ -23,7 +23,7 @@ function Harness() {
   autosave = useAuthoringDraftAutosave({ project, writesAllowed: true, scopeWritesAllowed: scope => scope !== "story_graph" || authority.current,
     durableDraftsEnabledRef: useRef(true), serverAuthoringDrafts: serverDrafts,
     captureWorkspaceOperation: () => ({ projectId: project.id, epoch: 0, stage: "creator" }), isWorkspaceOperationCurrent: () => true,
-    setDurableDraftStatus: vi.fn(), setError: vi.fn(), onConflict: vi.fn() });
+    setDurableDraftStatus: vi.fn(), setError: vi.fn(), onConflict: vi.fn(), onMutationAcknowledged: vi.fn() });
   return createElement(GraphWorkbenchProvider, { project, enabled: true, readOnly: false, restoredNonce: 0, serverDrafts,
     readAdmission: (_projectId, allowed) => { authority.current = allowed; },
     remember: payload => { putDraft(project, "story_graph", payload); autosave.scheduleAuthoringDraftAutosave("story_graph"); },

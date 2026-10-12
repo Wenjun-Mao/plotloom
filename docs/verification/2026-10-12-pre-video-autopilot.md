@@ -724,3 +724,105 @@ hosted CI/merge/push operation was run. After the reviewed clean checkpoint, all
 source/test/docs writes and source checks hold for manager's exact-revision review
 and fresh full qualification. Native capability proof, preservation/cutback,
 release/activation and owner creative acceptance remain separate pending gates.
+
+### P5 passed `efee445c` full and positive-draft observation repair
+
+Manager reports full qualification at
+`efee445c181f2b5361e065d4ab17832418ee5762` **passed**, exit 0, **1,365.207s**:
+**1,714 Python** (two workers of 857; only existing Starlette deprecation, no
+unhandled controller warning), **1,308 frontend**, **308 browser**, both type
+checks, deterministic static/parity, allocation, wheel and installed smoke. Full
+log: manager-owned `output/playwright/pre-video-p5/full-efee445c.log`.
+Previously failing Cast/Creator cases passed. Disposable current-efee preserving
+upgrade/rollback/idempotence/forward portable/actual old-731-runtime committed
+backup cutback also passed with **11 retained files**; evidence is manager-owned
+`preservation-efee445c.json`, root `/tmp/plotloom-p5-preservation-efee-9B3mxU`.
+The first helper invocation failed solely for missing PYTHONPATH before fixture
+creation; its separate import-failed log remains historical failed evidence.
+These were manager operations, not source executions.
+
+Passing full did not authorize activation: the actual manager walkthrough found
+cached Start enabled after exact title edit/revert and two acknowledged durable
+draft PUTs. Server eligibility was correctly false at Brief r1, but no new launch
+GET followed requests 49/50. Autosave owned successful receipts without notifying
+admission observation; payload equality only cleared the editor's dirty flag.
+The earlier exact no-op cleanup path had independently passed. No Start/native
+send or canonical write occurred. Manager evidence: traces
+`.playwright-cli/traces/trace-1791837735733.{trace,network}` and
+`edit-revert-stale-start-efee-{1440x900,scrolled}.png` under the same ignored QA
+root. Manager cleaned the exact second draft through ordinary Save: drafts empty,
+run null, canonical response SHA-256 unchanged
+`549ecd9863fd8f8851609752b6b3940ca10d2265220628e7e92341bf8689d979`.
+QA browser closed and server session 72610/PID 33509 shut down gracefully, exit 0.
+Source did not touch that QA project or preservation root.
+
+The bounded frontend correction shares `observeAuthoringMutation` at the authoring
+owner. Matching current-operation durable PUT acknowledgments and validated
+consumption/discard receipts advance its project-bound observation version;
+recovery and close-time discard and same-owner graph recovery use that callback.
+Local-only operations do not manufacture server mutations. Existing late source
+acknowledgments retain their evidence but cannot refresh a newer project/operation.
+Recovery mismatches/failures remain unconfirmed. Launch visibility requires an
+authoritative response for the current project/Brief/observation key, withdrawing
+older eligibility while a new GET is pending and ignoring aborted old responses.
+No dirty/saving dependency, canonical revision bump, polling, Save remount/reload/
+navigation, optimistic eligibility or Start replay.
+
+Risk-scoped qualification reviewed the actual diff against trusted `efee445c`,
+including the added unit file: frontend observer/hooks, launch presentation,
+tests, their ownership metadata, generated `workbench.js` and these documents.
+Backend executable source, API/response schemas and request payloads, database
+persistence/operational admission/auth, generation/provider/prompt contracts,
+dependencies/lockfiles, build tooling and package code/configuration are unchanged.
+Existing requests keep their endpoints and bodies; new behavior publishes owned
+receipt observations and reads eligibility. The static package payload changes,
+so it is rebuilt and checked below. Passed efee backend/preservation evidence has
+unchanged code/dependency/configuration inputs; manager decides reuse. This is
+frontend qualification, not a new exact-SHA full pass or native/product acceptance.
+
+Executed source qualification for this bounded repair:
+
+- Minimal autosave/graph-read/autopilot unit owners: **36 passed**, runner 0.865s;
+  separate exact recovery/close receipt owner: **6 passed**. Checks cover pending
+  receipts, late project/operation ACKs, mismatch/failure/superseded discard and
+  immediate withdrawal of previously eligible launch during a fresh read.
+- Final `quick`: **1,318 frontend tests / 153 files**, both type checks and quick
+  gates passed, runner 13.023s. The first quick attempt passed units but rejected
+  partial typed session casts in the new test harness; complete typed stubs now
+  fail explicitly if an excluded canonical command is invoked. No production
+  contract was weakened to fix that fixture.
+- Whole manual-creator spec: **10 passed**, runner 32.749s. At 1440×900 and
+  1440×600, fresh true → each actual PUT200/false GET → edit/revert still false →
+  exact r2 DELETE204/header2 → true GET at unchanged Brief r1. Same URL/editor,
+  canonical response unchanged, run null; exactly two PUTs and one DELETE, no
+  Start/send/canonical writes. Only specialist availability metadata is mocked.
+  Existing restored-draft/no-op/manual-material assertions remain. Its first
+  run had 9 passes/one wait failure from an older restoration GET; each prior
+  observation is now drained before the cleanup read, without a production
+  workaround. Final additional action-scroll captures: whole spec **10 passed**,
+  runner 33.744s.
+- Affected whole browser specs `autopilot-review`, `project-folder-authoring-drafts`,
+  `project-read-close`, `project-save-force-close`, `draft-recovery-presentation`
+  and `navigation-shell`: **32 passed**, runner 79.062s. Together with manual
+  entry, **42 distinct selected cases** have passing evidence. This is scoped
+  browser evidence; no source full gate ran.
+- Desktop and short-viewport withdrawal/restoration/Start screenshots inspected
+  at 1440×900 and 1440×600. Start remains reachable by scrolling and text/actions
+  are readable. Six captures retained in `.local/p5-positive-draft-pixels/`.
+- Two serialized deterministic builds: identical **7-file** SHA-256 tree
+  `55814d2f388bdf21e5973cbd96bdfcf993a05645e2df7094ca3395129e2ac215`.
+  All seven packaged static members match those source hashes. New wheel SHA-256:
+  `e64fa2ef994129a2ec8684328de9eca33aead69caeec48d1ab1fca02f603741e`;
+  `uv build --wheel` and `scripts/smoke_installed_wheel.py` passed in disposable
+  package/environment roots, without a source fallback or provider/native work.
+- Native ownership discovery passed without test bodies; Python union unchanged
+  at **1,714 cases / 171 files**. New unit owner registered; browser allocation
+  **91 specs / 310 cases**, shards **84/72/71/83**, no missing/overlap. Diff checks
+  pass. No dependencies, model defaults or active task settings changed.
+
+Both bounded source reviews closed without actionable findings; final additions
+remain in the same ADR, receipt and walkthrough. After the clean reviewed commit,
+all writes/test bodies hold for manager review and repeat actual-path inspection.
+No source full/native/live/valued-data/hosted CI/merge/push occurred. Native
+capability proof, preservation reuse decision, release/activation and owner
+creative acceptance remain manager-owned separate gates.

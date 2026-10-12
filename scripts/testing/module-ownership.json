@@ -41,6 +41,7 @@
         ],
         "vitest": [
           "frontend/tests/authoring-autosave-admission.test.ts",
+          "frontend/tests/authoring-mutation-receipts.test.ts",
           "frontend/tests/bible-editor.test.ts",
           "frontend/tests/branch-operation-owner.test.ts",
           "frontend/tests/branch-read-binding.test.ts",

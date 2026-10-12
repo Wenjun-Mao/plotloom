@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { discardDraft, discardDraftRecord, findProjectDrafts, findRevisionConflict, getDraft, retainDraftRecord, type DraftRecord, type DraftScope } from "../../draft-registry";
 import { ApiError, plotloomApi } from "../../api";
 import type { WorkspaceProject } from "../../types";
-import { authoringDraftKey, messageFrom, sameDraftPayload, stageForPage, type DraftRecoverySource } from "./contracts";
+import { authoringDraftKey, messageFrom, sameDraftPayload, stageForPage, type DraftRecoverySource, type WorkspaceOperation } from "./contracts";
 import type { DraftConflictState } from "./useProjectAuthoringPersistence";
 import type { WorkspaceSession } from "./useWorkspaceSession";
 
@@ -30,6 +30,7 @@ export function useAuthoringDraftRecovery({
   reloadDraftConflict,
   copyDraftConflict,
   discardDraftConflict,
+  onMutationAcknowledged,
 }: {
   session: DraftRecoverySession;
   durableEnabled: boolean;
@@ -43,6 +44,7 @@ export function useAuthoringDraftRecovery({
   reloadDraftConflict: () => Promise<boolean>;
   copyDraftConflict: () => Promise<boolean>;
   discardDraftConflict: () => boolean;
+  onMutationAcknowledged: (operation: WorkspaceOperation) => void;
 }) {
   const [recovery, setRecovery] = useState<RecoveryPrompt | undefined>();
   const [editorNonce, setEditorNonce] = useState(0);
@@ -119,14 +121,20 @@ export function useAuthoringDraftRecovery({
   };
   const discard = () => {
     if (!recovery) return;
+    const operation = session.capture();
+    const scope = recovery.scope;
+    const projectId = project.id;
     discardDraft(project, recovery.scope);
     const serverDraft = project.id && serverDrafts.current.get(authoringDraftKey(project.id, recovery.scope));
     if (serverDraft && project.id) {
       void plotloomApi.discardAuthoringDraft(project.id, { editorScope: recovery.scope, entityId: "root", expectedDraftRevision: serverDraft.draftRevision })
         .then((receipt) => {
-          if (receipt === serverDraft.draftRevision) serverDrafts.current.delete(authoringDraftKey(project.id!, recovery.scope));
+          if (!session.isCurrent(operation)) return;
+          if (receipt !== serverDraft.draftRevision) throw new Error("当前草稿在丢弃前已变化");
+          serverDrafts.current.delete(authoringDraftKey(projectId!, scope));
+          onMutationAcknowledged(operation);
         })
-        .catch((error) => setError(`草稿未丢弃：${messageFrom(error)}`));
+        .catch((error) => { if (session.isCurrent(operation)) setError(`草稿未丢弃：${messageFrom(error)}`); });
     }
     currentDraft.current = undefined;
     setRecovery(undefined);

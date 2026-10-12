@@ -103,20 +103,20 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
 
 export function AutopilotLaunch({ saved, dirty, disabled }: { saved: boolean; dirty: boolean; disabled: boolean }) {
   const owner = useAutopilot(); const [open, setOpen] = useState(false);
-  const [eligible, setEligible] = useState(false);
+  const [admission, setAdmission] = useState<{ key: string; eligible: boolean } | null>(null);
   const [settings, setSettings] = useState<SpecialistSettings | null>(null); const [settingsError, setSettingsError] = useState("");
   const [style, setStyle] = useState<ArtRenderStyle>("live-action"); const [images, setImages] = useState(80); const [jobs, setJobs] = useState(96);
   const projectId = owner?.projectId || "";
   const admissionKey = owner?.admissionKey || "";
   useEffect(() => {
-    setEligible(false);
+    setAdmission(null);
     if (!saved || !projectId) return;
     const abort = new AbortController();
-    autopilotApi.launchContext(projectId, abort.signal).then(value => { if (!abort.signal.aborted) setEligible(value.eligible); }).catch(() => undefined);
+    autopilotApi.launchContext(projectId, abort.signal).then(value => { if (!abort.signal.aborted) setAdmission({ key: admissionKey, eligible: value.eligible }); }).catch(() => undefined);
     return () => abort.abort();
   }, [saved, projectId, admissionKey]);
   useEffect(() => { if (!open) return; let active = true; specialistsApi.settings().then(value => { if (active) setSettings(value); }).catch(failure => { if (active) setSettingsError(String(failure)); }); return () => { active = false; }; }, [open]);
-  if (!owner || !saved || owner.run || !owner.ready || !eligible) return null;
+  if (!owner || !saved || owner.run || !owner.ready || admission?.key !== admissionKey || !admission.eligible) return null;
   const configured = Boolean(settings?.text.taskId && settings?.image.taskId && settings.text.taskId !== settings.image.taskId && !settings.busy);
   return <Panel className="autopilot-launch"><Button variant="primary" disabled={disabled || dirty || owner.busy} onClick={() => setOpen(value => !value)}>一键准备视频素材</Button>
     {dirty && <p>先保存当前简报，再开始准备。</p>}

@@ -1,6 +1,62 @@
 import { expect, test } from "./fixture";
 import { demoProject } from "../src/demo";
 
+for (const height of [900, 600]) {
+  test(`durable Brief writes withdraw launch until exact no-op cleanup at 1440x${height}`, async ({ page, request, workbench }, info) => {
+    await page.setViewportSize({ width: 1440, height });
+    // Availability metadata only; every draft/admission response uses the real
+    // project-folder API, and this test never invokes Start or specialist send.
+    await page.route("**/api/v2/specialists", route => route.request().method() === "GET"
+      ? route.fulfill({ json: { text: { name: "Text availability fixture", taskId: "text-fixture" }, image: { name: "Image availability fixture", taskId: "image-fixture" }, busy: false } })
+      : route.continue());
+    const created = await (await request.post(`${workbench.apiOrigin}/api/v2/projects`, {
+      data: { brief: { ...demoProject.brief, title: "Positive draft admission" }, initialStages: [] },
+    })).json();
+    const id = created.id, root = `${workbench.apiOrigin}/api/v2/projects/${id}`;
+    const canonical = await (await request.get(root)).json();
+    const writes: string[] = [];
+    page.on("request", req => { if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method())) writes.push(`${req.method()} ${new URL(req.url()).pathname}`); });
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=brief`);
+    const launch = page.getByRole("button", { name: "一键准备视频素材", exact: true });
+    await expect(launch).toBeVisible(); await launch.click();
+    await expect(page.getByRole("button", { name: "开始准备已保存简报的素材", exact: true })).toBeEnabled();
+    const before = page.url(), editor = await page.getByLabel("片名", { exact: true }).elementHandle();
+    for (const title of ["Temporary title edit", canonical.brief.title]) {
+      const saved = page.waitForResponse(r => r.request().method() === "PUT" && r.url().endsWith(`/${id}/authoring-drafts`));
+      const admission = page.waitForResponse(r => r.request().method() === "GET" && r.url().endsWith(`/${id}/autopilot/launch-context`));
+      await page.getByLabel("片名", { exact: true }).fill(title);
+      expect((await saved).status()).toBe(200);
+      expect(await (await admission).json()).toEqual({ eligible: false, briefRevision: canonical.revision });
+      await expect(launch).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "开始准备已保存简报的素材", exact: true })).toHaveCount(0);
+    }
+    await page.getByLabel("片名", { exact: true }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: info.outputPath(`draft-admission-withdrawn-${height}.png`) });
+    const drafts = await (await request.get(`${root}/authoring-drafts`)).json();
+    const draft = drafts.find((item: any) => item.editorScope === "brief");
+    expect(draft).toMatchObject({ draftRevision: 2, baseCanonicalRevision: canonical.revision, payload: canonical.brief });
+    const removed = page.waitForResponse(r => r.request().method() === "DELETE" && r.url().endsWith(`/${id}/authoring-drafts`));
+    const admitted = page.waitForResponse(r => r.request().method() === "GET" && r.url().endsWith(`/${id}/autopilot/launch-context`));
+    await page.getByRole("button", { name: "保存修改", exact: true }).click();
+    const receipt = await removed;
+    expect(receipt.status()).toBe(204);
+    expect(receipt.request().postDataJSON()).toEqual({ editorScope: "brief", entityId: "root", expectedDraftRevision: 2 });
+    expect(receipt.headers()["x-plotloom-draft-consumed-revision"]).toBe("2");
+    expect(await (await admitted).json()).toEqual({ eligible: true, briefRevision: canonical.revision });
+    await expect(launch).toBeVisible();
+    await expect(page.getByRole("button", { name: "开始准备已保存简报的素材", exact: true })).toBeEnabled();
+    expect(page.url()).toBe(before); expect(await editor!.evaluate(node => node.isConnected)).toBe(true);
+    expect(await (await request.get(root)).json()).toEqual(canonical);
+    expect(await (await request.get(`${root}/authoring-drafts`)).json()).toEqual([]);
+    expect(await (await request.get(`${root}/autopilot`)).json()).toBeNull();
+    expect(writes).toEqual([`PUT /api/v2/projects/${id}/authoring-drafts`, `PUT /api/v2/projects/${id}/authoring-drafts`, `DELETE /api/v2/projects/${id}/authoring-drafts`]);
+    await launch.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: info.outputPath(`draft-admission-restored-${height}.png`) });
+    await page.getByRole("button", { name: "开始准备已保存简报的素材", exact: true }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: info.outputPath(`draft-admission-start-${height}.png`) });
+  });
+}
+
 test("unchanged restored Brief save refreshes launch admission in place after exact draft cleanup", async ({ page, request, workbench }, info) => {
   const created = await (await request.post(`${workbench.apiOrigin}/api/v2/projects`, {
     data: { brief: { ...demoProject.brief, title: "Unchanged Brief admission" }, initialStages: [] },
@@ -12,14 +68,18 @@ test("unchanged restored Brief save refreshes launch admission in place after ex
   await expect(page.getByRole("button", { name: "一键准备视频素材", exact: true })).toBeVisible();
   for (const title of ["Temporary title edit", canonical.brief.title]) {
     const saved = page.waitForResponse(r => r.request().method() === "PUT" && r.url().endsWith(`/${id}/authoring-drafts`));
+    const admission = page.waitForResponse(r => r.request().method() === "GET" && r.url().endsWith(`/${id}/autopilot/launch-context`));
     await page.getByLabel("片名", { exact: true }).fill(title);
     expect((await saved).ok()).toBe(true);
+    expect((await (await admission).json()).eligible).toBe(false);
   }
   const drafts = await (await request.get(`${root}/authoring-drafts`)).json();
   const draft = drafts.find((item: any) => item.editorScope === "brief");
   expect(draft.payload).toEqual(canonical.brief);
   expect((await (await request.get(`${root}/autopilot/launch-context`)).json()).eligible).toBe(false);
+  const reloadAdmission = page.waitForResponse(r => r.request().method() === "GET" && r.url().endsWith(`/${id}/autopilot/launch-context`));
   await page.reload();
+  expect((await (await reloadAdmission).json()).eligible).toBe(false);
   const recovery = page.getByRole("dialog", { name: "发现可恢复草稿", exact: true });
   await expect(recovery).toBeVisible();
   const restoredAdmission = page.waitForResponse(r => r.request().method() === "GET" && r.url().endsWith(`/${id}/autopilot/launch-context`));

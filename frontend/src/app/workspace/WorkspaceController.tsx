@@ -132,6 +132,7 @@ export default function WorkspaceController() {
     reloadDraftConflict: authoring.reloadDraftConflict,
     copyDraftConflict: authoring.copyDraftConflict,
     discardDraftConflict: authoring.discardDraftConflict,
+    onMutationAcknowledged: authoring.observeAuthoringMutation,
   });
   const workspaceNavigation = useWorkspaceNavigation({
     session,
