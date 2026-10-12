@@ -115,6 +115,10 @@ def test_f5a_uses_a_distinct_source_review_api_not_the_canonical_storyboard_revi
         "intentGeneration": {"status": "unavailable", "reason": "not_configured"},
         "nativeIntentGeneration": {"status": "unavailable", "reason": "not_configured"},
         "nativeIntentTask": None,
+        "presentationJob": None,
+        "presentationCandidate": None,
+        "nativePresentationGeneration": {"status": "unavailable", "reason": "not_configured"},
+        "nativePresentationTask": None,
     }
 
 
