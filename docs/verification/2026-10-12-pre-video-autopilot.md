@@ -1,7 +1,7 @@
 # Pre-video autopilot · single evidence receipt
 
 Status: **P0–P4 source candidate locally checked; source bounded correction review
-closed, manager review/P5 full/native/preservation/activation remaining**. No owner creative
+closed, manager bounded UI review closed; P5 full/native/preservation/activation remaining**. No owner creative
 acceptance, valued installation upgrade or live activation is claimed. Scope and stopping boundary are in the
 [approved plan](../roadmap/2026-10-12-pre-video-autopilot.md#p0-implementation-checkpoint)
 and [ADR 0162](../adr/0162-pre-video-autopilot-authority.md).
@@ -498,3 +498,12 @@ Same source authority reviewer closed both residuals and the additional lifecycl
 Characters findings at exact `a80428b1dffc3fafae7fa3a060ea19860529feb0`: no remaining
 concrete defect in its bounded read-only diff review. No independent runtime run
 or P5/creative acceptance is inferred. This final receipt update changes docs only.
+
+Manager's same UI reviewer also closed all four residuals at exact `a80428b1`;
+prior bounded backend review remains applicable to unchanged backend inputs.
+The reviewed executable-source checkpoint is `a80428b1dffc3fafae7fa3a060ea19860529feb0`.
+`dfbe1d1d42d6f9b3045afd07c792532aa9b63039` and this subsequent checkpoint change
+receipt documentation only; they are distinct Git revisions. Manager must bind
+P5 full qualification and any native execution pins to its actual chosen HEAD,
+without relabelling earlier evidence. Source/dependency/configuration writes
+are held for P5; same task/branch/Relay route remain available for diagnosed fixes.
