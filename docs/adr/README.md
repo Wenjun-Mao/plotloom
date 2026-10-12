@@ -86,3 +86,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0159 Four duration-balanced hosted browser shards](0159-four-duration-balanced-hosted-browser-shards.md)
 - [0160 Two-process Python full gate](0160-two-process-python-full-gate.md)
 - [0161 Specialist presentation candidates](0161-specialist-presentation-candidates.md)
+- [0162 Pre-video autopilot authority](0162-pre-video-autopilot-authority.md)

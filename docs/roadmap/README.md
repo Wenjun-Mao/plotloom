@@ -1,5 +1,13 @@
 # Plotloom roadmap entrypoint
 
+The owner approved implementing [pre-video autopilot](2026-10-12-pre-video-autopilot.md):
+automatic first-pass text adoption and initial image/reference selections, then
+one human review before video work. Existing-app rollout follows isolated proof
+and a preservation-qualified schema transition. [ADR 0162](../adr/0162-pre-video-autopilot-authority.md)
+is accepted for implementation, not yet delivered. Relay Direct authorizes the
+scoped isolated proof, preserving upgrade and quiet activation; voice casting,
+video operations, new providers and destructive valued-data changes are excluded.
+
 The owner-approved [presentation suggestions and readability refinement](2026-10-11-presentation-suggestions.md)
 adds a separate frozen specialist suggestion task, editable labeled defaults,
 scene-grouped source review and one explicit confirmation/save action. Saved
