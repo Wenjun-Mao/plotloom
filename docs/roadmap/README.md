@@ -1,5 +1,12 @@
 # Plotloom roadmap entrypoint
 
+The owner-approved [dedicated Plotloom tailnet name](2026-10-11-plotloom-tailnet-name.md)
+provides the existing workbench through a separate private Tailscale node,
+preserving the Mac's name, both existing endpoints and valued-project runtime.
+Its [operational receipt](../verification/2026-10-11-plotloom-tailnet-name.md)
+records owner login, trusted HTTPS, real browser/API access and recreation
+persistence; it does not claim hosted CI or colleague-device acceptance.
+
 The owner agreed to the direction of a bounded
 [pre-manual walkthrough polish plan](2026-10-11-pre-manual-walkthrough-polish.md):
 readable Script review, shared shooting-checkbox presentation and one isolated

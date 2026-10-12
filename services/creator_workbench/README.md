@@ -38,6 +38,11 @@ for a quiet dispatch checkpoint before activating a changed backend.
 
 ## Private colleague access over Tailscale
 
+For the requested app-specific name `plotloom.tail6040ad.ts.net`, use the
+[dedicated private node](tailnet/README.md). It has a separate identity and
+does not rename this Mac or change either existing Mac Serve endpoint. The
+port-based endpoint below remains an independently configured fallback.
+
 On the owner's Mac, the separately configured workbench URL is
 **https://wenjuns-macbook-pro.tail6040ad.ts.net:8443/v2/**.
 Colleagues must be connected to Tailscale and allowed by the tailnet's policy

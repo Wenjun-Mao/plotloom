@@ -111,6 +111,34 @@ port preserves both contracts. Qualification checks config preservation,
 absence of Funnel, TLS, frontend/API reachability and loopback publication;
 same-machine success does not prove another client's policy or connectivity.
 
+### Separate Plotloom tailnet identity (2026-10-11)
+
+The owner subsequently requested `plotloom.tail6040ad.ts.net` without renaming
+the Mac or changing its other endpoint. A named Tailscale Service requires a
+tag-owned host; retagging this user-owned Mac changes its access identity and
+does not satisfy that preservation requirement. Create a separate persistent,
+user-authenticated Docker Tailscale node instead, using the same installation.
+
+The [optional node deployment](../../services/creator_workbench/tailnet/README.md)
+owns one userspace container, its own Docker network and private state volume.
+It publishes no host ports and uses Serve HTTPS 443 with no Funnel. Its
+upstream is `http://host.docker.internal:8841`, which preserves the workbench's
+loopback-only host publication, Compose network and namespace. Do not attach
+the proxy to the workbench network or share its namespace: those alternatives
+couple service removal/recreation to the proxy. Do not replace the workbench
+with a new authenticated instance or copy valued project data.
+
+Pin the official available Docker release and digest, validate its non-loopback
+HTTP target support against released source and the actual gateway route, and
+mount the Serve configuration directory as required by containerboot. Keep
+interactive owner authentication separate from repository configuration;
+never persist auth keys or the login URL in source or verification documents.
+Retain node state across recreation. Accept only the intended tailnet and exact
+assigned hostname, then qualify TLS, frontend/assets/API, restart persistence
+and preservation of both original Mac endpoints. A staged or authenticated node
+alone is not proof that colleagues can reach the application. Existing shared
+admin trust, user-owned node expiry and Mac-awake requirements still apply.
+
 ### Wake-up boundary clarification (2026-10-01)
 
 The later [ADR 0096](0096-native-specialist-deep-link-wake.md) qualifies the
