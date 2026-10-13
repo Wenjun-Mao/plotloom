@@ -1,7 +1,7 @@
 # Pre-video autopilot · single evidence receipt
 
-Status: **Implemented, locally qualified, walked through and activated on the
-existing installation on 2026-10-12 (Toronto), executable source b6f0525d.**
+Original October 12 baseline: **Implemented, locally qualified, walked through
+and activated on the existing installation (Toronto), executable b6f0525d.**
 The exact927 full plus b6 scoped frontend qualification, real native97 proof,
 final b6 retained-pack recheck and actual-valued preserving rollout are recorded
 below. Hosted CI was not dispatched; owner creative acceptance remains separate
@@ -10,9 +10,14 @@ current release status. Scope and stopping boundary are in the
 [approved plan](../roadmap/2026-10-12-pre-video-autopilot.md#p0-implementation-checkpoint)
 and [ADR 0162](../adr/0162-pre-video-autopilot-authority.md).
 
-The owner-approved UX/Brief-style follow-up is separately qualified below at
-`477e7df9`; its final preserving activation is still pending. The original
-completed valued run remains on frozen `c771cdd6`, awaiting genuine human review.
+The owner-approved UX/Brief-style and creator-confirmation follow-up is now
+technically closed out on executable source `ee7ec8de` and activated on the
+existing installation. Combined local software qualification, real frozen-package
+delivery and preserving activation are recorded in the final manager section.
+Publication is the next manager operation. Hosted CI and owner creative acceptance
+remain separate and unconfirmed. The original completed valued run retains its
+frozen `c771cdd6` policy and jobs, awaiting genuine human review; it was not
+converted to the new executor.
 
 ## Revision and authority
 
@@ -2101,3 +2106,153 @@ qualification, wheel, native/preservation proof and hosted CI belong to the
 manager. The worker holds after commit; no full rerun, real generation, live/QA
 operation, activation, merge or push occurred. Checkout and Relay route remain
 retained.
+
+## Manager technical closeout · UX, Brief style and creator confirmation
+
+Qualified executable source: `ee7ec8de845fdb96c28ad46bd1dfef9158c551ab`,
+tree `58b0c53b1facaf3b0751a51bc5a185bbea7d4796`. The last executable delta is
+test-only `fb20881e`; `ee7ec8de` adds its receipt. The pinned submodule remains
+`4f9b2128c82adf623f594ba714c97d0afcfc16a2`. First-pass Python scheduling
+`e9e67847` and corrected documentation `31c6a209` are ancestors of this candidate.
+The optional 85-percent stretch candidate is not integrated or a predecessor.
+
+### Combined local software qualification
+
+The original `02bb91d9` full run remains **failed**, with its one diagnosed
+browser response-ownership failure and wheel not reached. Its unchanged-input
+passing evidence is reused: **1,855 Python / 1,377 Vitest tests**, both type
+checks, deterministic frontend build/parity and the complete browser inventory.
+Python used two whole-file case-count workers and took **941.756 seconds**;
+this is not a matched speed comparison to earlier suites.
+
+After the reviewed `fb20881e` test-only repair, the manager reran the failed and
+downstream gates without filters: **318 browser cases passed**, E2E typecheck,
+93-spec allocation and wheel build/installed-wheel smoke passed. The continuation
+exited zero in **489.009 seconds**; browser execution took **481.506 seconds**.
+No product, dependency or configuration input to the reused passes changed.
+The combined local candidate is qualified; no original failed run is relabelled.
+
+Evidence in `/tmp/plotloom-final-qualification.AByRor`:
+
+- `full-gate-result.json`: SHA-256
+  `fa410dd1efa5c99052e86252fca0eb3bdf35e8df0dee178c630b7b46b1504c2c`.
+- `continuation-result.json`: SHA-256
+  `cbc58fb5cfb4124d54557efbea44092f9b021c47174ac05d70e03dec668960aa`.
+- `continuation.log`: SHA-256
+  `18ed18133b77b142ef469babf4896e7023ad127b08d8fe4b942b6e3f59bf9a9a`.
+
+### Actual native delivery and visual boundaries
+
+Disposable project `0a3b23ee-1ba8-486a-b648-1502450654a9` used the production
+adapter and exact frozen packages: **8 real text jobs and 5 real ImageGen jobs**
+were delivered and adopted. Complete readback passed for four code-owned nodes,
+three filmed scenes, two routes, two references and three unique required frames,
+with exact currentness, pins, delivery inventory, hashes and derivative lineage.
+All six human/video fact tables remained empty. Final state was awaiting review.
+
+The original operator proof remains **failed**: its four-filmed-scene assertion
+conflicted with the already-frozen three-footage/one-route-only topology. Separate
+complete frozen-contract readback passed; the four-filmed prose requirement was
+not satisfied and is not promoted into semantic or creative acceptance.
+
+Five attempt-owned typed native ImageGen completion events matched native PNG
+bytes, declared output hashes and distinct native-task/execution identities.
+CLI stdout was not treated as provenance. A separately retained manual inspection
+of exact calls and reference bindings found both reference jobs unconditioned and
+the three frame calls conditioned on the canonical Cast reference. Typed events
+did not independently establish reference-argument ingestion or character identity.
+The first image needed same-job, non-generating metadata recovery after the worker
+discarded its successful ImageGen return shape; no duplicate generation occurred.
+Consequently this proof is not a wholly unattended executor claim.
+
+Manager pixel inspection of all five original PNGs found the Brief's pale
+watercolor/pencil/paper direction, rather than the old live-photo preset. Frames
+are opening pauses, not proof of the later scripted actions. Exploratory Art
+geometry limitations remain disclosed. No aesthetic reroll, video or voice was
+generated, and no creator endorsement or image-identity approval was invented.
+
+Evidence in `/tmp/plotloom-final-native.H4hd05`:
+
+- Failed `native-full-proof.json`: SHA-256
+  `80952ce65b42604d205fb5bfc42225e4b745dc48580192b5b1ca83946fe825e2`.
+- `completed-native-readback.json`: SHA-256
+  `f98cb67b16c21b61acbd52e9a7d144d3649da911860141127b84222048e1a3c3`.
+- `typed-native-image-proof.json`: SHA-256
+  `6abb69a7d93a3fb55db5723b743440ea0d9e7caf551609d07f49f6a2732f91eb`.
+- `manual-reference-argument-reconciliation.json`: SHA-256
+  `b354c0fc715edb60817c918b75b4e7631b4ee42c0fc2b910229c1d34582cfda2`.
+- `manager-pixel-observations.md`: SHA-256
+  `edc87a39d0eda3902620cbfa619446aaa04216b668e2cc3c6b38f40923af23ca`.
+
+### Preserving actual activation
+
+The Moon run `568f2b11-5552-44f8-aa86-7008c37ab2c7` had finished generation
+before the safe-idle operation. The two normal service owners were stopped only
+after exclusive project leases, registry idle and unchanged logical/payload state
+were checked. The owner-only recovery directory
+`/Users/wjmao/Library/Application Support/Plotloom/recovery/autopilot-ux-c771-20261013`
+retains **2,246 raw entries**, all **13 verified committed database copies**, source
+and pinned-submodule archives and verified Git bundles, protected controls and the
+old Docker image. Its manifest SHA-256 is
+`2558e274b04ca656310ee67e7ba005e311eb272f9602b94a0d1976640caaa12b`.
+Manual cutback preserves newer data separately; no SQL downgrade or deletion is
+authorized. No second capture, migration or restart was used to repair evidence.
+
+The clean live checkout was switched detached to `ee7ec8de`; the established
+`uv run --locked --no-sync python services/creator_workbench/manage.py start`
+completed successfully. The normal Docker/LaunchAgent path is healthy. Readback
+confirmed exact runtime receiving contracts, all seven shipped static hashes,
+mounts and matching loopback/Tailscale project/run/review APIs.
+
+The original literal database-immutability verification remains **failed**.
+The existing controller reacquired its process ownership claim on startup,
+changing exactly `claim`, `revision` **229 → 230**, and `updated_at` on the one
+Moon run. A separately reviewed read-only reconciliation passed: all schema and
+79 other Moon tables match, the other 12 databases match, and all other run cells,
+frozen policy, jobs, human facts and payloads match. The new UUIDv4 claim and UTC
+timestamp fall within the 90-second container-start window. API differences are
+only that revision/timestamp and the review's matching `runRevision`.
+This is a real CAS revision change, not whole-database or full-run immutability.
+
+The Moon story remains awaiting review with unchanged bundle SHA-256
+`d12d5388e23bcfd3fad83360fe834292f5e7e6832fad4de5a8721db7af2cd62a`.
+Its 28 frames, five references, 437 payloads and all 98 existing registry jobs
+were preserved, with zero new dispatches or human facts. Credentials, settings
+and controls match. Nothing was cancelled, replayed, regenerated or rebound.
+
+Private evidence retains the failed copied-helper physical-equality check (its
+comparison locals were not saved), the separate existing-copy logical/payload
+compatibility pass, two failed preflight observations, and the failed literal
+activation check. None is silently waived or relabelled. Named historical idle
+profiles were restricted to four exact already-unavailable IDs, exact old schema
+and empty intent/attempt/work-unit tables; historical accepted/ready creative
+candidates remain present. Unknown layouts/statuses still refuse admission.
+
+The one new verify-only execution exited zero. `ux-activation-proof.json` SHA-256
+is `893033954ff9d63cffd77187fbf2d0ad900d2dc7576bab52b0f12e560cff3ec1`;
+`activation-v4-verify-execution.jsonl` SHA-256 is
+`be382b6464962771776429fcaae04663b423fd79d3e0515a341a08fdf260c506`.
+Independent read-only review closed the narrow claim reconciliation, including
+eight synthetic guards and stored-naive-UTC normalization. Requested reviewer
+settings were Sol/High; effective settings remain unverified.
+
+### Release and next assignment boundary
+
+This records technical closeout and releases the preceding source/heavy-check
+windows for the approved separate CLI assignment. Publication follows the fresh
+remote-divergence check. No hosted CI was manually dispatched; exact-SHA hosted
+qualification remains unconfirmed. Genuine creator review remains pending and
+does not indefinitely block isolated CLI implementation. Future CLI activation
+requires its own qualification and safe-idle gate; the Moon run must not convert.
+
+Optional Python speed candidate `ce8bebdc` remains isolated and unintegrated.
+Twelve valid, unprofiled fresh-child samples in three paired AB/BA/AB rounds used
+two unchanged full-scale cases (27 frames / 29 images). Median external wall
+seconds were **20.3597 → 16.7391 (17.783%)** for handoff and
+**48.8861 → 37.8970 (22.479%)** for complete images. All pairs are retained under
+`/tmp/plotloom-python85-phase1.qDMEYA/matched-unprofiled-g2obdbim`;
+results SHA-256 `a448942676f603bc6b455c5a0eae394d587fb340a6d2da3472fe89be0d365af0`,
+raw pairs SHA-256 `534f10fbc3c75341c44556f4f071907fd0588b01c7ecb64305d95ef9664a2438`.
+The rejected pre-collection serialization attempt is excluded, not a timing
+sample. These are subset measurements with host/cache/order limits, not a
+whole-suite or 85-percent result. Full qualification and integration remain open.
