@@ -2027,3 +2027,77 @@ The valued Moon story and retained c771 installation were left aside without
 close/delete/cancel/replay/rebind operations. The source checkout and Relay route
 remain retained; after the committed receipt closeout the worker holds all edits
 and checks for the next explicit brief.
+
+### Brief browser admission response ownership · 2026-10-13
+
+Test-only implementation revision
+`fb20881e98e83d852f5c71b07db81f7350150627`, parent
+`02bb91d95c76607410ddbe5ac5a94a61e78d8c01`, repairs the existing
+`manual-creator-entry.spec.ts` unchanged-restored-Brief journey. Product code,
+API contracts, generated assets and valued project state are unchanged.
+
+The manager's full gate on `02bb91d9` passed 1,855 Python tests, 1,377 frontend
+tests, type checks, build and browser allocation, then failed one browser case:
+317 passed / 1 failed. The wheel step was not reached. Preserved evidence:
+
+- `/tmp/plotloom-final-qualification.AByRor/full-gate.log`, SHA-256
+  `efaccbaaa10380d775d33ac1642718f744a8ee64158822c9a3e37fffb79a63cb`.
+- `/tmp/plotloom-final-qualification.AByRor/browser-failure-02bb91d9.tar.gz`,
+  SHA-256 `325dbe90a5ef6a7850d4d79b8445314c50a82d0cd52611f52ef826d2a6a3b5fb`.
+- The failed case's archived `trace.zip`, SHA-256
+  `939eb9f36def30452fa9128474b75a004bd1862e834ea1bfc164e7c1fe7c9372`.
+
+Root cause: visibility did not establish initial admission readiness. In the
+original trace, visibility completed at monotonic time `201469.634` while the
+initial GET, started at `201386.495`, remained pending. The first mutation
+waiter armed at `201470.444` consumed that initial eligible response at
+`201481.948`, before the title fill completed at `201494.525` and the PUT at
+`202238.527`. The actual post-mutation GET at `202258.404` returned ineligible,
+and the product disabled its control correctly. The defect belongs in browser
+test response ownership; no product admission defect was demonstrated.
+
+The test now arms the initial GET before navigation, asserts its eligible state
+and canonical revision, and waits for the enabled control before arming the
+first mutation waiter. Each edit asserts the exact PUT payload, revision and
+receipt, then consumes a generic GET and requires ineligibility and disabled UI
+before the next edit. It does not filter responses by the desired eligibility.
+Reload, restored draft, exact DELETE body and consumed-revision header,
+unchanged canonical data and revision, connected editor, stable URL and absence
+of autopilot launch remain checked. The request ledger covers both PUTs and the
+DELETE from initial navigation. No sleeps, retries, timeout increase or product
+stub was introduced.
+
+Executed verification against the committed test source:
+
+- Smallest case: `npm --prefix frontend run test:e2e --
+  e2e/manual-creator-entry.spec.ts --grep "unchanged restored Brief save
+  refreshes launch admission in place after exact draft cleanup"
+  --output=/tmp/plotloom-brief-admission-repair.GLm2w4/failed-case`:
+  **1 passed**, including wrapper E2E typecheck.
+- Focused tier: `uv run --locked --no-sync python scripts/verify.py focused
+  --playwright e2e/manual-creator-entry.spec.ts`: **10 passed**, including
+  wrapper E2E typecheck.
+- `BROWSER_GREP='.*' node frontend/scripts/check_browser_shard_manifest.mjs`:
+  **93 specs / 318 cases**, shard counts **84 / 72 / 72 / 90**, zero missing
+  cases or overlap. This is inventory evidence, not execution of all cases.
+- `git diff --check`: passed.
+- Independent read-only review requested GPT-6 Luna / Max: no actionable
+  findings. Effective host model and effort settings remain unverified.
+
+Logs are under `/tmp/plotloom-brief-admission-repair.GLm2w4`:
+`failed-case.log` SHA-256
+`a9abf97c16cdfb1b8295d48851483a483b4e6a97eebabac90803c0b44f5ee0e2`;
+`manual-creator-entry.log` SHA-256
+`d71722eae8ce913f09ceda904f7c57578c293bf2384cc187361ea1b286fcbb32`;
+`allocation.log` SHA-256
+`c683931031d65593106d3a62689fde8e54cd8e58e36ec94e39460f157515d2a5`.
+The focused runner refused a line-number selector before executing any check;
+the smallest case therefore used the established npm wrapper and name selector,
+followed by the supported whole-file focused selector.
+
+The original full gate remains failed on its original source. This scoped pass
+does not establish full release qualification or product acceptance. Remaining
+qualification, wheel, native/preservation proof and hosted CI belong to the
+manager. The worker holds after commit; no full rerun, real generation, live/QA
+operation, activation, merge or push occurred. Checkout and Relay route remain
+retained.
