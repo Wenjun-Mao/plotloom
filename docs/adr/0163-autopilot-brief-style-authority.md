@@ -51,7 +51,7 @@ The installed novel-characters and novel-art skills contain mandatory preset
 selection and preset-specific validator/render entrypoints. Those instructions
 conflict with `saved_brief`, even when the request's authority opener says the
 Brief owns visual direction. New saved-Brief Cast and Art requests therefore
-carry the named `plotloom.autopilot.saved-brief-receiving-contract.v1` override
+carry the named `plotloom.autopilot.saved-brief-receiving-contract.v2` override
 from the Brief style contract owner. It explicitly supersedes only preset
 selection/defaults, preset bundles and matching, style-specific negative-word
 rules, and preset-specific commands. Upstream stage guidance and unrelated
@@ -62,3 +62,10 @@ adapters. Manual preset requests keep their existing instructions and
 adapters. New saved-Brief contracts name the receiving-contract version and
 hash this instruction owner; existing requests, policy hashes and specialist
 pins are never rewritten. Installed skill bytes and hashes remain unchanged.
+
+Before release, a review of the first instruction draft found that its Cast
+Markdown command created an unsupported extra delivery file and its shared
+ownership sentence prohibited editing the assigned Cast candidate. The v2
+contract removes the extra output command and states input/output ownership
+per stage: Cast authors `cast.json`; Art authors `art.json` and treats the
+accepted Cast as read-only. Delivery inventory remains exact.

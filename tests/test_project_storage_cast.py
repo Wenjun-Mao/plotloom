@@ -17,12 +17,14 @@ from plotloom.cast_contracts import (
     CastSaveRequest,
 )
 from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.autopilot_brief_style import BRIEF_STYLE, BRIEF_STYLE_LABEL
 from plotloom.cast_style import freeze_cast_style
 from plotloom.creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import canonical_json
 from plotloom.domain import utc_now
 from tests.source_graph_fixtures import letter_section_map
 from tests.cast_style_fixtures import style_fixture
+from tests.creative_delivery_fixtures import run_brief_instruction_delivery
 from plotloom.exceptions import InvalidTransitionError, NotFoundError
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.project_storage.operational_state import close_blockers, specialist_publication_blockers
@@ -62,6 +64,25 @@ def test_saved_brief_cast_request_overrides_pinned_preset_routing(tmp_path: Path
         application_data_root=tmp_path / "application",
     ).projects.create(FIXED_CHINESE_BRIEF)
     context = _context()
+    fixture_root = Path(__file__).parent / "../third_party/shuohao-skills/skills/novel-characters/examples"
+    cast = json.loads((fixture_root / "渡口-cast.json").read_text(encoding="utf-8"))
+    source_quotes = [
+        quote
+        for character in cast["characters"]
+        for quote in character.get("persona", {}).get("evidence", [])
+    ]
+    source_text = "\n".join(source_quotes)
+    source = context.source
+    context = context.model_copy(
+        update={
+            "source": source.model_copy(
+                update={
+                    "content_hash": sha256(source_text.encode("utf-8")).hexdigest(),
+                    "material": source.material.model_copy(update={"text": source_text}),
+                }
+            )
+        }
+    )
 
     def bound_context(_session: object, _project_id: str):
         assert context.source and context.accepted_outline and context.accepted_section_map
@@ -97,6 +118,16 @@ def test_saved_brief_cast_request_overrides_pinned_preset_routing(tmp_path: Path
         assert "node scripts/brief-cast-style.mjs render" in instructions
         assert "node scripts/novel-characters.mjs" not in instructions
         assert "do not add preset fields" in instructions
+        cast["style"] = BRIEF_STYLE
+        for index, character in enumerate(cast["characters"], start=1):
+            character["id"] = f"C{index:02d}"
+            character["image"]["style"] = BRIEF_STYLE_LABEL
+        commands, outputs = run_brief_instruction_delivery(store, request, cast)
+        assert commands == [
+            'node scripts/brief-cast-style.mjs validate "$DELIVERY_ROOT/cast.json" --request "$PACKAGE_ROOT/request.json"',
+            'node scripts/brief-cast-style.mjs render "$DELIVERY_ROOT/cast.json" --request "$PACKAGE_ROOT/request.json" > "$DELIVERY_ROOT/report.html"',
+        ]
+        assert outputs == {"cast.json", "report.html", "completion.json"}
     finally:
         store.close()
 

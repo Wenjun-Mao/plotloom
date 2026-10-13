@@ -1433,3 +1433,34 @@ were left untouched. This candidate remained based on the verified
 `c771cdd67eb8fd0925cdfe772c46ed85eeb51657`. The owner run resumed from r86 to
 r87 without resending its job; no Python-speedup files or changes were brought
 into this candidate.
+
+### Frozen Brief instruction repair (2026-10-13)
+
+A read-only review of the first saved-Brief receiving instructions found two
+contract defects: Cast was told to emit a Markdown file outside the exact
+candidate/report/completion inventory accepted by `CreativeHandoffExchange`,
+and a shared ownership sentence prohibited Cast from authoring its assigned
+candidate. The root cause was the instruction layer combining both stages'
+ownership and render outputs; downstream exchange validation correctly
+rejected the extra artifact. The v2 receiving contract now emits only the
+supported HTML report, names Cast and Art ownership separately, and explicitly
+keeps Art's accepted Cast input read-only. It still overrides only preset
+selection/defaults, preset bundles and preset-specific commands; pinned skill
+files and unrelated validator gates are unchanged.
+
+Focused validation passed 14 cases covering frozen commands, stage ownership,
+real upstream Cast/Art candidates, execution of the generated commands, exact
+three-file exchange inventory and `read_delivery` acceptance. Ruff checks for
+the changed Python modules passed. The isolated wheel build and installed-wheel
+smoke passed. Frontend, browser, static assets and full qualification were not
+rerun because this repair changes only Python instruction generation, tests and
+the ADR; their prior evidence above remains scoped to the unchanged inputs.
+`git diff --check` passed. An independent read-only review of this repair delta
+found no issues. The scoped repair delta is committed on the isolated candidate; see the task report for its revision.
+
+Retained visual evidence from the prior UX qualification is available at
+`/tmp/plotloom-final-visual-review/autopilot-review-long-bloc-f659e--narrow-and-short-viewports/long-blocker-1440x900.png`,
+`/tmp/plotloom-final-visual-review/autopilot-review-long-bloc-f659e--narrow-and-short-viewports/long-blocker-390x600.png`,
+and `frontend/test-results/recommended-workflow-guide-a5382-draft-navigation-protection/`
+(including the 1280x460, 1280x768, 1700x900 and 390x844 collapsed/expanded
+captures). Those artifacts are review evidence, not product-owner acceptance.

@@ -9,7 +9,7 @@ from typing import Any, Literal
 BRIEF_STYLE = "saved-brief"
 BRIEF_STYLE_LABEL = "Saved Brief direction"
 EMPTY_DIRECTION = "尊重故事设定，由专业助手结合内容判断视觉表达；不默认真人实拍或其他预设。"
-BRIEF_STAGE_INSTRUCTION_CONTRACT = "plotloom.autopilot.saved-brief-receiving-contract.v1"
+BRIEF_STAGE_INSTRUCTION_CONTRACT = "plotloom.autopilot.saved-brief-receiving-contract.v2"
 
 
 def brief_stage_instructions(stage: Literal["cast", "art"]) -> str:
@@ -28,14 +28,15 @@ def brief_stage_instructions(stage: Literal["cast", "art"]) -> str:
             'node scripts/brief-cast-style.mjs render "$DELIVERY_ROOT/cast.json" '
             '--request "$PACKAGE_ROOT/request.json" > "$DELIVERY_ROOT/report.html"'
         )
-        markdown = (
-            'node scripts/brief-cast-style.mjs render "$DELIVERY_ROOT/cast.json" '
-            '--request "$PACKAGE_ROOT/request.json" --md > "$DELIVERY_ROOT/cast.md"'
-        )
         skill_route = "novel-characters"
         contract_file = "inputs/cast-style-contract.json"
         fields = "image.prompt, image.sheet, image.negativePrompt, and image.tags"
         marker = "cast.style"
+        ownership = (
+            "The supplied request.json and all package inputs are read-only. "
+            "The assigned DELIVERY_ROOT/cast.json is the candidate you author; "
+            "preserve source facts while proposing the shared character designs."
+        )
     elif stage == "art":
         validate = (
             'node scripts/brief-art-style.mjs validate "$DELIVERY_ROOT/art.json" '
@@ -45,17 +46,20 @@ def brief_stage_instructions(stage: Literal["cast", "art"]) -> str:
             'node scripts/brief-art-style.mjs render "$DELIVERY_ROOT/art.json" '
             '--cast "$PACKAGE_ROOT/inputs/cast.json" > "$DELIVERY_ROOT/report.html"'
         )
-        markdown = None
         skill_route = "novel-art"
         contract_file = "inputs/art-style-contract.json"
         fields = "scene and prop image prompts, sheets, lighting/state prompts, negative prompts and tags"
         marker = "art.style"
+        ownership = (
+            "The supplied request.json, package inputs, and especially the accepted cast at "
+            "PACKAGE_ROOT/inputs/cast.json are read-only. The assigned DELIVERY_ROOT/art.json "
+            "is the candidate you author; preserve source facts and accepted character descriptions. "
+            "Do not edit the supplied cast."
+        )
     else:  # pragma: no cover - Literal callers are statically constrained.
         raise ValueError(f"unknown saved-Brief specialist stage: {stage}")
 
     commands = [validate, render]
-    if markdown:
-        commands.append(markdown)
     return (
         f" EXPLICIT SAVED-BRIEF RECEIVING-CONTRACT OVERRIDE ({BRIEF_STAGE_INSTRUCTION_CONTRACT}): "
         f"The frozen {contract_file} and this request identify `saved_brief` and take precedence over conflicting "
@@ -68,11 +72,12 @@ def brief_stage_instructions(stage: Literal["cast", "art"]) -> str:
         f"faithfully in English in {fields}. Set {marker} to `saved-brief` and each image.style to the English "
         "marker `Saved Brief direction`. Do not copy non-English direction text into machine fields or add unrelated "
         "photographic/Ghibli defaults. For an empty direction, use story-informed discretion without a preset and "
-        "do not copy emptyDirectionRule into machine fields. Preserve source facts and accepted character "
-        "descriptions; do not edit the cast. Semantic visual fidelity remains subject to human review. "
+        "do not copy emptyDirectionRule into machine fields. "
+        f"{ownership} Semantic visual fidelity remains subject to human review. "
         "Resolve PACKAGE_ROOT as the absolute task-package directory containing request.json and inputs/, and "
         "DELIVERY_ROOT as the absolute assigned delivery directory. From the Plotloom repository root, run exactly:\n"
         + "\n".join(commands)
+        + "\n"
     )
 
 

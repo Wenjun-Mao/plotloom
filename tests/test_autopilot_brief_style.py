@@ -74,21 +74,23 @@ def test_empty_brief_direction_is_explicit_and_does_not_inject_a_preset():
 
 
 @pytest.mark.parametrize(
-    ("stage", "validate", "render"),
+    ("stage", "validate", "render", "ownership"),
     [
         (
             "cast",
             'node scripts/brief-cast-style.mjs validate "$DELIVERY_ROOT/cast.json" --request "$PACKAGE_ROOT/request.json"',
             'node scripts/brief-cast-style.mjs render "$DELIVERY_ROOT/cast.json" --request "$PACKAGE_ROOT/request.json" > "$DELIVERY_ROOT/report.html"',
+            "The assigned DELIVERY_ROOT/cast.json is the candidate you author",
         ),
         (
             "art",
             'node scripts/brief-art-style.mjs validate "$DELIVERY_ROOT/art.json" --cast "$PACKAGE_ROOT/inputs/cast.json"',
             'node scripts/brief-art-style.mjs render "$DELIVERY_ROOT/art.json" --cast "$PACKAGE_ROOT/inputs/cast.json" > "$DELIVERY_ROOT/report.html"',
+            "accepted cast at PACKAGE_ROOT/inputs/cast.json are read-only",
         ),
     ],
 )
-def test_saved_brief_instruction_contract_overrides_only_preset_routing(stage, validate, render):
+def test_saved_brief_instruction_contract_overrides_only_preset_routing(stage, validate, render, ownership):
     instructions = brief_stage_instructions(stage)
     assert "EXPLICIT SAVED-BRIEF RECEIVING-CONTRACT OVERRIDE" in instructions
     assert BRIEF_STAGE_INSTRUCTION_CONTRACT in instructions
@@ -98,7 +100,12 @@ def test_saved_brief_instruction_contract_overrides_only_preset_routing(stage, v
     assert "upstream stage guidance, schema/structure, source/evidence, language" in instructions
     assert "do not add preset fields" in instructions
     assert "Resolve PACKAGE_ROOT as the absolute task-package directory" in instructions
+    assert ownership in instructions
     assert validate in instructions and render in instructions
+    command_block = instructions.split("From the Plotloom repository root, run exactly:\n", 1)[1]
+    commands = [line for line in command_block.splitlines() if line.startswith("node scripts/")]
+    assert commands == [validate, render]
+    assert "--md" not in command_block and "cast.md" not in command_block
     contract = freeze_brief_style("watercolor collage")
     assert contract["stageInstructionContract"] == BRIEF_STAGE_INSTRUCTION_CONTRACT
 

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 from hashlib import sha256
 from pathlib import Path
 
@@ -83,6 +85,67 @@ def _deliver_stage(
     result = exchange.read_delivery(request, pin)
     assert result is not None
     return result
+
+
+def run_brief_instruction_delivery(
+    store: object, request: CreativeHandoffRequest, candidate: dict[str, object]
+) -> tuple[list[str], set[str]]:
+    """Run frozen Brief commands on a disposable exchange package/delivery."""
+    exchange = store.creative_handoff_exchange()  # type: ignore[attr-defined]
+    pin = store.creative_handoff_execution_pin(request)  # type: ignore[attr-defined]
+    paths = exchange.write_package(request, pin)
+    package = Path(paths["packagePath"])
+    delivery = Path(paths["deliveryPath"])
+    delivery.mkdir()
+    candidate_filename = {"characters": "cast.json", "art": "art.json"}[request.stage]
+    candidate_bytes = canonical_json(candidate)
+    (delivery / candidate_filename).write_bytes(candidate_bytes)
+
+    command_marker = "From the Plotloom repository root, run exactly:\n"
+    command_block = request.creative_brief.split(command_marker, 1)[1]
+    commands = [line for line in command_block.splitlines() if line.startswith("node scripts/")]
+    assert len(commands) == 2
+    environment = os.environ.copy()
+    environment.update({"PACKAGE_ROOT": str(package), "DELIVERY_ROOT": str(delivery)})
+    for command in commands:
+        subprocess.run(
+            ["bash", "-e", "-c", command],
+            cwd=Path(__file__).parents[1],
+            env=environment,
+            check=True,
+        )
+
+    names = {path.name for path in delivery.iterdir()}
+    assert names == {candidate_filename, "report.html"}
+    report_bytes = (delivery / "report.html").read_bytes()
+    package_request = json.loads((package / "request.json").read_text(encoding="utf-8"))
+    execution_pin = package_request["executionPin"]
+    (delivery / "completion.json").write_text(
+        json.dumps(
+            {
+                "schemaVersion": 1,
+                "jobId": request.job_id,
+                "requestHash": package_request["requestHash"],
+                "deliveryId": "brief-instruction-fixture",
+                "stage": request.stage,
+                "candidate": {"filename": candidate_filename, "sha256": sha256(candidate_bytes).hexdigest()},
+                "report": {"filename": "report.html", "sha256": sha256(report_bytes).hexdigest()},
+                "executorProvenance": {
+                    "codeRevision": "abcdef0",
+                    "skillVersion": "fixture",
+                    "skillHash": execution_pin["specialistSkillHash"],
+                    "upstreamRevision": execution_pin["upstreamRevision"],
+                    "upstreamSkillHash": execution_pin["upstreamSkillHash"],
+                    "model": "fixture",
+                    "reasoningEffort": "high",
+                },
+                "limitations": ["fixture"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert exchange.read_delivery(request, pin) is not None
+    return commands, names | {"completion.json"}
 
 
 def _prepare_accepted_f4_cast_context(store: object, structure_factory=None) -> None:
