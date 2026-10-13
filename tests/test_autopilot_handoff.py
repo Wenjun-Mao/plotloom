@@ -1,13 +1,22 @@
 """Atomic genuine-human facts and video authority; deterministic media only."""
 from contextlib import closing
 from copy import deepcopy
+
 import pytest
-from plotloom.autopilot_handoff_contracts import HumanHandoffRequest
+
 from plotloom.autopilot_contracts import RunControlRequest, RunView
+from plotloom.autopilot_handoff_contracts import HumanHandoffRequest
 from plotloom.exceptions import InvalidTransitionError
-from plotloom.persistence.project.autopilot_handoff import review_material, record_handoff
 from plotloom.persistence.project.autopilot_authority import video_eligible
-from tests.autopilot_image_fixtures import image_environment, run_pack
+from plotloom.persistence.project.autopilot_handoff import (
+    record_handoff,
+    review_material,
+)
+from tests.autopilot_image_fixtures import (
+    assert_compact_handoff_pack,
+    handoff_image_environment,
+    run_pack,
+)
 
 
 def observation(review):
@@ -24,10 +33,12 @@ def observation(review):
 
 def test_exact_human_handoff_preserves_machine_origin_and_withdraws_after_edit(tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
+
     from plotloom.api import create_project_folder_authoring_app
-    storage, _registry, service, view, calls, text = image_environment(tmp_path, monkeypatch)
+    storage, _registry, service, view, calls, text = handoff_image_environment(tmp_path, monkeypatch)
     try:
         complete = run_pack(storage, service, view)
+        assert_compact_handoff_pack(storage, view, complete, calls)
         with closing(storage.projects.open(view.project_id)) as store:
             review = review_material(store)
             with store.repository._read() as session:
@@ -60,16 +71,17 @@ def test_exact_human_handoff_preserves_machine_origin_and_withdraws_after_edit(t
                 assert connection.exec_driver_sql("SELECT receipt FROM v2_autopilot_handoffs").scalar() == original
         with closing(storage.projects.open(view.project_id)):
             pass  # Ordinary raw admission validates retained history after an edit.
-        assert len(calls) == 29 and len(text) == 8
+        assert len(calls) == len(complete.frames) + 2 and len(text) == 8
     finally:
         service.close()
 
 
 @pytest.mark.parametrize("defect", ["missing", "fail", "hold", "asset", "references"])
 def test_invalid_whole_handoff_creates_no_partial_human_authority(tmp_path, monkeypatch, defect):
-    storage, _registry, service, view, _calls, _text = image_environment(tmp_path, monkeypatch)
+    storage, _registry, service, view, calls, _text = handoff_image_environment(tmp_path, monkeypatch)
     try:
-        run_pack(storage, service, view)
+        complete = run_pack(storage, service, view)
+        assert_compact_handoff_pack(storage, view, complete, calls)
         with closing(storage.projects.open(view.project_id)) as store:
             review = review_material(store)
             body = deepcopy(observation(review))
@@ -79,6 +91,7 @@ def test_invalid_whole_handoff_creates_no_partial_human_authority(tmp_path, monk
             elif defect == "asset": body["frames"][0]["assetId"] = "another-asset"
             else: body["endorsedReferenceIds"].pop()
             with pytest.raises(InvalidTransitionError): record_handoff(store, HumanHandoffRequest.model_validate(body))
+            assert len(calls) == len(complete.frames) + 2
             with store.repository.engine.connect() as connection:
                 for table in ("v2_approval_decisions", "v2_visual_intents", "v2_reviewed_shot_bindings", "v2_same_person_reviews", "v2_autopilot_handoffs", "v2_video_jobs"):
                     assert connection.exec_driver_sql(f'SELECT count(*) FROM "{table}"').scalar() == 0
@@ -87,9 +100,10 @@ def test_invalid_whole_handoff_creates_no_partial_human_authority(tmp_path, monk
 
 
 def test_takeover_accepts_current_bundle_and_explicit_unassessable_authorization(tmp_path, monkeypatch):
-    storage, _registry, service, view, calls, _text = image_environment(tmp_path, monkeypatch)
+    storage, _registry, service, view, calls, _text = handoff_image_environment(tmp_path, monkeypatch)
     try:
         complete = run_pack(storage, service, view)
+        assert_compact_handoff_pack(storage, view, complete, calls)
         service.control(view.project_id, RunControlRequest(expected_revision=complete.revision, action="takeover"))
         with closing(storage.projects.open(view.project_id)) as store:
             body = observation(review_material(store))
@@ -97,7 +111,7 @@ def test_takeover_accepts_current_bundle_and_explicit_unassessable_authorization
             assert record_handoff(store, HumanHandoffRequest.model_validate(body)).state == "handed_off"
         with closing(storage.projects.open(view.project_id)) as store:
             with store.repository._read() as session: assert video_eligible(session, view.project_id)
-        assert len(calls) == 29
+        assert len(calls) == len(complete.frames) + 2
     finally:
         service.close()
 
@@ -105,12 +119,19 @@ def test_takeover_accepts_current_bundle_and_explicit_unassessable_authorization
 def test_manual_import_replaces_one_frame_and_can_receive_fresh_human_handoff(tmp_path, monkeypatch):
     from hashlib import sha256
     from io import BytesIO
+
     from PIL import Image
-    from plotloom.persistence.schema import VisualSelectionStateRow, AutopilotHandoffRow, SamePersonReviewRow
     from sqlalchemy import select
-    storage, _registry, service, view, calls, _text = image_environment(tmp_path, monkeypatch)
+
+    from plotloom.persistence.schema import (
+        AutopilotHandoffRow,
+        SamePersonReviewRow,
+        VisualSelectionStateRow,
+    )
+    storage, _registry, service, view, calls, _text = handoff_image_environment(tmp_path, monkeypatch)
     try:
-        run_pack(storage, service, view)
+        complete = run_pack(storage, service, view)
+        assert_compact_handoff_pack(storage, view, complete, calls)
         with closing(storage.projects.open(view.project_id)) as store:
             initial = record_handoff(store, HumanHandoffRequest.model_validate(observation(review_material(store))))
             frame = initial.frames[0]
@@ -143,6 +164,7 @@ def test_manual_import_replaces_one_frame_and_can_receive_fresh_human_handoff(tm
         with closing(storage.projects.open(view.project_id)):
             pass
         from pathlib import Path
+
         from tests.test_autopilot_recovery import storage_at
         snapshot = storage.recovery.create_snapshot(view.project_id)
         restored = storage_at(tmp_path / "handoff-restored")
@@ -154,15 +176,16 @@ def test_manual_import_replaces_one_frame_and_can_receive_fresh_human_handoff(tm
                 assert len(session.scalars(select(AutopilotHandoffRow)).all()) == 2
             with pytest.raises(InvalidTransitionError, match="portable"):
                 store.repository.autopilot.claim(view.project_id, "destination-controller")
-        assert len(calls) == 29
+        assert len(calls) == len(complete.frames) + 2
     finally:
         service.close()
 
 
 def test_mid_handoff_failure_rolls_back_all_native_human_rows(tmp_path, monkeypatch):
-    storage, _registry, service, view, _calls, _text = image_environment(tmp_path, monkeypatch)
+    storage, _registry, service, view, calls, _text = handoff_image_environment(tmp_path, monkeypatch)
     try:
-        run_pack(storage, service, view)
+        complete = run_pack(storage, service, view)
+        assert_compact_handoff_pack(storage, view, complete, calls)
         with closing(storage.projects.open(view.project_id)) as store:
             request = HumanHandoffRequest.model_validate(observation(review_material(store)))
             original = store.repository._media.keyframes.select_reviewed_keyframe
@@ -184,11 +207,13 @@ def test_mid_handoff_failure_rolls_back_all_native_human_rows(tmp_path, monkeypa
 def test_manual_multiview_reference_set_is_fully_displayed_and_endorsed(tmp_path, monkeypatch):
     from hashlib import sha256
     from io import BytesIO
+
     from PIL import Image
-    from plotloom.validation import STORYBOARD_GATE_SET_VERSION
+
     from plotloom.domain import StageName
-    from plotloom.persistence.schema import VisualSelectionStateRow, AutopilotHandoffRow
-    storage, _registry, service, view, calls, _text = image_environment(tmp_path, monkeypatch)
+    from plotloom.persistence.schema import AutopilotHandoffRow, VisualSelectionStateRow
+    from plotloom.validation import STORYBOARD_GATE_SET_VERSION
+    storage, _registry, service, view, calls, _text = handoff_image_environment(tmp_path, monkeypatch)
     try:
         for _ in range(12):
             service.step(view.project_id)
@@ -249,6 +274,7 @@ def test_manual_multiview_reference_set_is_fully_displayed_and_endorsed(tmp_path
 @pytest.mark.parametrize("derived", [False, True])
 def test_reference_reselection_withdraws_generated_frames_from_current_review(tmp_path, monkeypatch, derived):
     from datetime import timedelta
+
     from plotloom.persistence.schema import AutopilotHandoffRow, ManagedAssetRow
     first = True
     def geometry(*, context):
@@ -256,9 +282,10 @@ def test_reference_reselection_withdraws_generated_frames_from_current_review(tm
         if derived and first and "shot" in context["request"]["frozenSnapshot"]:
             first = False; return 941, 1672
         return None
-    storage, _registry, service, view, _calls, _text = image_environment(tmp_path, monkeypatch, geometry=geometry)
+    storage, _registry, service, view, calls, _text = handoff_image_environment(tmp_path, monkeypatch, geometry=geometry)
     try:
-        run_pack(storage, service, view)
+        complete = run_pack(storage, service, view)
+        assert_compact_handoff_pack(storage, view, complete, calls)
         with closing(storage.projects.open(view.project_id)) as store:
             result = record_handoff(store, HumanHandoffRequest.model_validate(observation(review_material(store))))
             with store.repository._read() as session:
@@ -278,12 +305,12 @@ def test_reference_reselection_withdraws_generated_frames_from_current_review(tm
             assert not store.repository.autopilot.controller_execution_eligible(view.project_id)
             with pytest.raises(InvalidTransitionError, match="completed human handoff"):
                 store.repository.autopilot.claim(view.project_id, "new-controller")
-        calls_before = list(_calls), list(_text)
+        calls_before = list(calls), list(_text)
         with monkeypatch.context() as held:
             held.setattr(storage.projects, "open", lambda *_: pytest.fail("completed handoff cannot acquire editable admission"))
             service.step(view.project_id)
             service._record_failure(view.project_id, code="controller_failure", message="fixture failure")
-        assert (list(_calls), list(_text)) == calls_before
+        assert (list(calls), list(_text)) == calls_before
         with closing(storage.projects.inspect(view.project_id)) as store:
             with store.repository._read() as session:
                 run = store.repository.autopilot.row(session, view.project_id)

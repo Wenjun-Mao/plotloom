@@ -88,6 +88,31 @@ so Windows cancellation safety for this full-gate runner remains unqualified.
 Add and verify Windows process-tree containment before treating it as a
 supported full-gate target.
 
+## Duration-aware whole-file allocation
+
+The full runner may use a checked-in duration manifest only when it covers the
+exact native case fingerprint and every collected test file and parameter row,
+and its source, configuration, fixture, Python and host fingerprints match the
+current run. Complete rows record setup, call and teardown durations. The
+timing plugin emits rows only for a successful complete worker run; failed or
+interrupted runs produce an incomplete run marker and cannot be promoted as
+timing evidence.
+
+Manifest rows are validated before workers start. Duplicate keys or paths,
+unsafe paths, missing or extra files, mismatched row counts, negative or
+nonfinite phase totals, and out-of-range numbers are rejected. A well-formed
+but stale or incomplete manifest uses deterministic whole-suite case-count
+allocation with an explicit fallback reason. Native collection remains the
+sole selection authority, and exact union/disjointness, two workers, isolated
+temporary roots, ambient-filter refusal, failure propagation and process
+cleanup remain unchanged. Timing capture itself does not write the manifest or
+other repository files; reviewed weights are promoted separately.
+
+The host fingerprint includes the machine name, platform, architecture,
+processor and Python implementation/version. The input fingerprint hashes
+Python and non-Python files under the source, testing support and test trees,
+root Python configuration and the initialized Shuohao submodule working tree.
+
 ## Owned-leader zombie race correction
 
 On 2026-10-12, two running owned workers reproduced a cleanup race: after

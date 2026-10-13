@@ -365,8 +365,13 @@ deterministic bundle and parity check; wheel build and installed-wheel smoke.
 It refuses ambient diagnostic grep, shard, or pytest filter settings. The
 browser suite is local and unsharded; hosted CI runs four duration-balanced
 whole-spec shards with one worker per runner. The Python full step discovers
-the native case set, assigns whole test files across two processes by case
-count, and gives each process a separate temporary root. It refuses ambient
+the native case set and assigns whole test files across two processes using a
+complete, current timing manifest when eligible; otherwise it uses the
+deterministic case-count fallback and prints the reason. Timings include setup,
+call and teardown for every collected parameter row. Eligibility binds native
+case IDs, source/configuration/fixture inputs, Python toolchain and host. The
+timing plugin emits eligible rows only after a successful complete worker run.
+The runner gives each process a separate temporary root, refuses ambient
 pytest options and fails if collection is empty, duplicated, unsafe, or either
 worker fails. SIGTERM and interruption clean up both worker process groups
 before the runner exits. Full verification records each command's elapsed time

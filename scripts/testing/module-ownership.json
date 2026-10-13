@@ -564,6 +564,24 @@
   },
   "support_dependencies": [
     {
+      "suite": "pytest",
+      "path": "tests/autopilot_image_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["story-authoring"]
+    },
+    {
+      "suite": "pytest",
+      "path": "scripts/testing/python_suite_schedule.py",
+      "kind": "runner-support",
+      "consumers": ["verification-tooling"]
+    },
+    {
+      "suite": "pytest",
+      "path": "scripts/testing/python_suite_timing_plugin.py",
+      "kind": "runner-support",
+      "consumers": ["verification-tooling"]
+    },
+    {
       "suite": "playwright",
       "path": ".github/workflows/ci.yml",
       "kind": "runner-configuration",

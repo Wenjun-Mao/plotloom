@@ -1,12 +1,14 @@
 """Deterministic geometry is local authority, never another native generation."""
 from contextlib import closing
 from io import BytesIO
+
 import pytest
 from PIL import Image
+
+from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.geometry_preparation import prepare_geometry
 from plotloom.geometry_preparation_contracts import GeometryRecipe
 from plotloom.persistence.project.image_source_lineage import source_in_session
-from plotloom.conformance import FIXED_CHINESE_BRIEF
 from tests.autopilot_image_fixtures import image_environment
 from tests.test_autopilot_images import current
 
@@ -85,6 +87,7 @@ def geometry_context(store, view, original):
 
 def test_concurrent_local_preparation_is_idempotent_and_does_not_dispatch(tmp_path, monkeypatch):
     from concurrent.futures import ThreadPoolExecutor
+
     from plotloom.autopilot_geometry_preparation import prepare_first_frame_geometry
     storage, _registry, service, view, calls, _ = image_environment(tmp_path, monkeypatch, geometry=mismatch)
     try:
@@ -154,8 +157,12 @@ def test_failure_then_restart_reuses_local_identity_without_regeneration(tmp_pat
 def test_tampered_or_missing_lineage_refuses_ordinary_open(tmp_path, monkeypatch, defect):
     from copy import deepcopy
     from pathlib import Path
-    from plotloom.project_storage import ProjectStorageCorruptionError, ProjectStorageConfinementError
+
     from plotloom.persistence.schema import AutopilotCheckpointRow, ManagedAssetRow
+    from plotloom.project_storage import (
+        ProjectStorageConfinementError,
+        ProjectStorageCorruptionError,
+    )
     storage, _registry, service, view, _calls, _ = image_environment(tmp_path, monkeypatch, geometry=mismatch)
     try:
         result = first_geometry_frame(storage, service, view); frame = result.frames[0]; record = frame.geometry_preparation
@@ -166,6 +173,7 @@ def test_tampered_or_missing_lineage_refuses_ordinary_open(tmp_path, monkeypatch
                     (store.home / asset.original_uri.removeprefix("project-file:")).unlink()
                 elif defect == "missing-decision":
                     from sqlalchemy import delete
+
                     from plotloom.persistence.schema import AutopilotDecisionRow
                     session.execute(delete(AutopilotDecisionRow).where(AutopilotDecisionRow.scope == "geometry_preparation"))
                 else:
@@ -203,9 +211,10 @@ def test_stopped_run_cannot_create_geometry(tmp_path, monkeypatch, action):
 
 def test_partial_derivative_snapshot_preserves_lineage_and_never_resumes_native(tmp_path, monkeypatch):
     from pathlib import Path
-    from plotloom.project_storage import ProjectFolderStorage
+
     from plotloom.autopilot_contracts import RunControlRequest
     from plotloom.exceptions import InvalidTransitionError
+    from plotloom.project_storage import ProjectFolderStorage
     storage, _registry, service, view, _calls, _ = image_environment(tmp_path, monkeypatch, geometry=mismatch)
     try:
         result = first_geometry_frame(storage, service, view); frame = result.frames[0]
@@ -224,22 +233,30 @@ def test_partial_derivative_snapshot_preserves_lineage_and_never_resumes_native(
 
 def test_human_handoff_binds_derivative_bytes_and_source_v3_identity_then_withdraws(tmp_path, monkeypatch):
     from plotloom.autopilot_handoff_contracts import HumanHandoffRequest
-    from plotloom.persistence.project.autopilot_handoff import review_material, record_handoff
     from plotloom.persistence.project.autopilot_authority import video_eligible
+    from plotloom.persistence.project.autopilot_handoff import (
+        record_handoff,
+        review_material,
+    )
     from plotloom.persistence.schema import ImageJobRow, SamePersonReviewRow
+    from tests.autopilot_image_fixtures import (
+        assert_compact_handoff_pack,
+        handoff_image_environment,
+        run_pack,
+    )
     from tests.test_autopilot_handoff import observation
-    from tests.autopilot_image_fixtures import run_pack
     first = True
     def geometry(*, context):
         nonlocal first
         if "shot" in context["request"]["frozenSnapshot"] and first:
             first = False; return 941, 1672
         return None
-    storage, _registry, service, view, calls, _ = image_environment(tmp_path, monkeypatch, geometry=geometry, limits={"max_images": 29})
+    storage, _registry, service, view, calls, _ = handoff_image_environment(tmp_path, monkeypatch, geometry=geometry)
     try:
         result = run_pack(storage, service, view)
+        assert_compact_handoff_pack(storage, view, result, calls)
         frame = next(frame for frame in result.frames if frame.geometry_preparation)
-        assert len(calls) == 29 and len([f for f in result.frames if f.geometry_preparation]) == 1
+        assert len([f for f in result.frames if f.geometry_preparation]) == 1
         with closing(storage.projects.open(view.project_id)) as store:
             review = review_material(store)
             assert next(item for item in review["bundle"]["frames"] if item["assetId"] == frame.asset_id)["geometryPreparation"]["preparationHash"] == frame.geometry_preparation.preparation_hash
@@ -291,7 +308,9 @@ def test_matching_aspect_keeps_raw_candidate_bytes_and_dimensions(tmp_path, monk
 
 
 def test_standalone_geometry_import_has_no_persistence_cycle_and_hashes_are_canonical():
-    import subprocess, sys
+    import subprocess
+    import sys
+
     from plotloom.contract_hash import stable_hash
     from plotloom.persistence.codec import stable_hash as persisted_hash
     assert stable_hash({"说明": [1, 0.25, {"x": None}]}) == persisted_hash({"说明": [1, 0.25, {"x": None}]})
@@ -313,11 +332,11 @@ def test_retained_v1_policy_does_not_acquire_geometry_permission():
 
 def test_retired_policy_is_refused_at_domain_resume_and_machine_command_boundary(tmp_path):
     from plotloom.autopilot_contracts import OperationScope
+    from plotloom.contract_hash import stable_hash
     from plotloom.exceptions import InvalidTransitionError
     from plotloom.persistence.schema import AutopilotRunRow
     from plotloom.project_storage import ProjectFolderStorage
-    from plotloom.contract_hash import stable_hash
-    from tests.autopilot_fixtures import start_run, authority
+    from tests.autopilot_fixtures import authority, start_run
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     with closing(storage.projects.create(FIXED_CHINESE_BRIEF)) as store:
         run = start_run(store)

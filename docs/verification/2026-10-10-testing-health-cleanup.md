@@ -1414,3 +1414,93 @@ suite or hosted run was started, as directed. The prior local full on d53a99f
 and hosted run 38113104300 predate these UI updates and do not qualify
 df333a1. Final combined qualification and main publication remain
 manager-owned.
+
+## Python bottleneck follow-up M6–M9 — 2026-10-13
+
+### Baseline, candidate and result
+
+The approved starting revision was `c771cdd67eb8fd0925cdfe772c46ed85eeb51657`
+on Apple M5 Pro / macOS 27.0.1 arm64, Python 3.12.13, uv 0.12.19 and Node
+24.18.0. The passing exact-base Python baseline at
+`/tmp/plotloom-m6-baseline-c771-retry.log` completed 1,779 cases in
+1,011.553s externally with two workers and fresh roots. The older manager run
+at `927d6d81` measured 972.198s but predates two commits, so it is context,
+not the matched denominator.
+
+The final candidate `verify.py full` passed in 1,199.826s. Its Python step
+passed all 1,779 native cases in 670.775s (890/889 cases; worker elapsed
+614.730s / 664.995s), frontend Vitest passed 1,368 cases, the unfiltered
+browser suite passed 316 cases, and wheel build/install smoke passed. Relative
+to the exact-base Python baseline, the candidate reduced external Python wall
+time by 33.7%; the 85% stretch target remains unmet. A first attempt stopped
+before tests because the isolated checkout lacked the locked prompt-reader
+`jsdom`; `npm ci` from its existing lockfile resolved the prerequisite, and
+the single final full gate then passed. No lockfile changed.
+
+The baseline's five-case representative/unaffected samples passed in
+111.62s, 114.84s and 120.43s. The same cases passed after the fixture change
+in 60.47s, 56.45s and 61.44s (median 114.84s to 60.47s, a 47.3% reduction).
+The two handoff cases' median call times fell from 48.51s to 20.59s and from
+44.61s to 19.76s. Geometry stayed level (9.01s to 9.08s); unaffected image
+safety changed from 6.80s to 7.06s, below the 10% slowdown trigger; recovery
+stayed passing and improved from 0.50s to 0.22s. Every sample used a fresh
+`--basetemp` and the same serial command shape.
+
+The native Python inventory stayed at 1,779 cases / 177 files with the same
+sorted case-ID digest, `ac9c22b7c22c481cc1eeaf41c1476b095bdacfa90a6165952c075027abf0c2b5`.
+The final successful workers emitted complete timing records for all 177
+files. Each marker recorded exit status 0 and exact collected/reported case
+ID equality; file and parameter-row counts reconcile against a fresh native
+collection. The checked-in `scripts/testing/python_suite_timings.json` binds
+those rows to input fingerprint
+`62184ee427385adb59b3db23bc7110514b2fce7bfdc8427fb8757b0fbdae3a47`, host
+fingerprint `e157fcd2c8db7127845d443a20785aff48490f424fcbfe1eb56ec31bb040db92`,
+and the same native case digest. An eligibility readback accepted all rows
+and produced two deterministic duration assignments of 88 and 89 files,
+estimated at 628.18s of phase work each. Timing promotion was explicit after
+the successful full gate; collection never wrote the manifest.
+
+The largest measured indivisible file was `tests/test_autopilot_handoff.py`
+at 261.63s; all setup/call/teardown rows sum to 1,256.35s. The 85% target
+would require at most 151.73s. Whole-file allocation alone cannot reach it,
+and further work reduction would require changing the measured behavior itself.
+Within this approved scope, retain the coverage and record the safe partial
+result. A next optimization should begin with a new owner-level behavior map
+and fresh profiling of handoff/geometry setup costs; it should not shrink
+current assertions or increase worker count by implication.
+
+### Contracts and scoped qualification
+
+The handoff-focused tests now use a compact package built by the real Brief,
+Source, Script and Storyboard owners. It preserves two complete routes, every
+unique shot, image/reference delivery, rollback and owner-validation checks.
+The retained 27-frame/all-route, geometry, inventory ceiling, pin, filesystem,
+currentness, restart and recovery owners remain in the exact native inventory.
+The same owner inventory before/after retains all case IDs and parameter rows.
+
+The full runner now selects deterministic whole-file duration packing only
+for a fully current manifest. It hashes source, runner, test, configuration
+and consumed F5A fixture files, toolchain and host identity; excludes its own
+advisory manifest from the executable-input fingerprint; rejects duplicate,
+unsafe, overflowing and nonfinite data before workers; and prints an explicit
+case-count fallback reason for stale or missing weights. Timing rows are
+emitted only when a worker exits successfully and reports every collected
+node ID. Two workers, separate roots, exact native collection and disjoint
+whole-file coverage, failure propagation, ambient-filter refusal and POSIX
+cleanup remain intact. Focused and module execution paths are unchanged.
+Support ownership now includes the compact image fixture and timing helpers.
+
+The focused runner/ownership selection passed 15 cases. The
+`verification-tooling` complete profile passed twice during implementation;
+the final pass took 34.849s and included native ownership, 76 Python tests,
+3 Vitest cases, 6 browser cases, both type checks, lock validation,
+deterministic bundle parity and wheel/package smoke. Ruff passed. The
+independent read-only M6–M8 review found six concrete gaps; each was fixed,
+and re-review confirmed no blocking findings. The reviewer ran no tests.
+
+This is a local software qualification only. Hosted CI and final merge/push
+remain separate; publication is held for the authorized autopilot integration
+checkpoint. Worktree branch: `codex/plotloom-python-speedup-m6-m9`, based on
+`c771cdd`. Full-gate console log is retained at
+`/tmp/plotloom-m9-candidate-full-20261013.log`; representative sample logs
+are `/tmp/plotloom-m9-sample-1.log` through `-3.log`.

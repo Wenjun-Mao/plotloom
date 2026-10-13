@@ -812,3 +812,212 @@ checkout rather than repeat the ambiguous queued operation or manually delete
 it. Windows process-tree containment remains outside the qualified POSIX
 guarantee. These final checkpoint edits are documentation-only and do not
 change the tested runtime inputs.
+
+## Python bottleneck follow-up — proposed M6–M9, October 12
+
+### Outcome, evidence and recommendation
+
+Aim for an **85% reduction in complete Python verification wall time** against
+a matched baseline, without weaker assertions, missing parameter rows, shared
+mutable projects or changes to production behavior. This is the owner's stretch
+objective, not a demonstrated result or a promised delivery time. Keep this
+follow-up in the existing testing-health plan and extend its existing receipt
+during implementation; do not create another benchmark service or test registry.
+
+The retained autopilot `97e6eeb0` full run passed in 1389.775s. Its externally
+timed Python step took 902.676s for 1,767 cases; its workers had 884/883 cases but
+took 897.302/570.400s. Browser verification took 469.897s and is outside this
+follow-up. Eleven slow handoff cases accounted for 573.3s of one worker's call
+time. These are revision-specific observations, not a quiet matched benchmark
+of the next candidate. Evidence: `output/playwright/pre-video-p5/full-97e6eeb0.log`.
+
+The subsequent manager full gate at `927d6d81` passed in 1513.238s, including
+972.198s for 1,779 Python cases. Against that observation, 85% less Python wall
+time means about **145.830s (2m26s), or 6.67 times the throughput** for the same
+work. The actual target is 0.15 times the frozen M6 baseline; neither historical
+run substitutes for comparable timing conditions. This target covers Python,
+not the whole verification pipeline: holding all other steps unchanged would
+put the latter near 686.870s (11m27s), about 54.6% shorter. Evidence:
+`output/playwright/pre-video-p5/full-927d6d81.log`.
+
+Static inspection establishes repeated prerequisites: `image_environment()`
+runs all eight text stages, and most handoff scenarios then run the complete
+29-image/27-frame pack. Pytest records this construction inside call time;
+the exact dominant operation and any nonlinear admission cost remain unproved.
+The runner's whole-file partition is balanced by case count, not duration.
+
+Recommend profiling the suite's cost, compact valid fixtures, then
+duration-balanced allocation with **two workers retained** in the first pass.
+These are initial hypotheses, not an assumption that they can deliver 85%.
+Use the measured remaining cost to choose subsequent work; reaching the former
+20–30% targets does not by itself complete the stretch objective.
+Four workers could shorten elapsed time but add
+resource-contention and isolation questions; exclude that probe from this first
+pass. Prepared-folder reuse could amortize setup, but frozen packages contain
+location-sensitive evidence and portable restore changes controller eligibility;
+do not assume the accepted-source seed is safe for complete autopilot packs.
+
+### Coordination and authority
+
+- Planning authorizes this document and bounded read-only review only: no
+  implementation, benchmark, new native task, service operation or CI dispatch.
+- After explicit implementation approval, use one source owner in a separate
+  performance worktree based on the manager-reviewed stable autopilot checkpoint.
+  `927d6d81` passed the manager's full gate, but its actual-path recheck found a
+  remaining presentation correction and rollout gates remain. Freeze the actual
+  base only after its outstanding gates close.
+- Autopilot correctness, actual-path recheck, preservation and activation keep
+  priority and their own evidence. Read-only planning can overlap; heavy tests,
+  profiling and benchmarks cannot overlap its qualification/native work.
+- Performance does not block autopilot delivery. If fixes move the shared base,
+  stop performance writes, reconcile the dependency change, and invalidate only
+  affected measurements. Do not cherry-pick speculative optimizations into P5.
+- Implementation approval would cover scoped tests/fixtures/runner/docs, locked
+  dependencies, disposable roots, bounded local verification and ordinary scoped
+  publication after review. No production source changes, live restart, owner
+  data access, native media generation, new dependencies, CI workflow changes or
+  hosted dispatch are included. Required hosted qualification remains separately
+  pending until an authorized exact-SHA unfiltered run passes.
+
+### Ordered deliverables
+
+Relevant owners: `tests/autopilot_controller_fixtures.py`,
+`tests/autopilot_image_fixtures.py` and `tests/test_autopilot_handoff.py` for
+fixture cost; `tests/test_autopilot_images.py` and the geometry/recovery families
+for retained full-path protection; `scripts/testing/run_python_suite.py`,
+`tests/test_python_suite_runner.py` and `tests/test_python_suite_cleanup.py` for
+allocation, failure and shutdown; `scripts/testing/module-ownership.json` and
+its native guard for coverage; ADR 0160 and `docs/development.md` for the
+execution contract. The Python step remains owned by `scripts/verify.py`.
+
+**M6 — Freeze and attribute the cost before editing.** Record base SHA, host,
+toolchain, dependency/configuration fingerprints, native case IDs/parameters and
+a behavior-to-owner map. Reuse the manager's quiet exact-base full log as the
+whole-Python baseline when its inputs and timing conditions match; 97 remains
+historical if inputs differ. Preselect at most three slow representatives
+(invalid handoff, late rollback and geometry/currentness) and a small unaffected
+controller/refusal/recovery family. Measure three serial warm-dependency samples
+with fresh case roots. Profile one separate slow sample by environment/text
+installation/image pack/admission/review/handoff/recovery/teardown; profile
+overhead is not an elapsed-time benchmark. Name the measured owning costs before
+choosing a fixture or scheduler change.
+
+Build a cost budget for the 85% objective: distinguish repeated fixture work,
+the behavior each case must exercise, serial collection/startup/shutdown,
+allocation imbalance and other measured costs across the suite. Estimate the
+best possible benefit of each proposed change without adding overlapping
+savings twice. Use aggregate worker work and the longest indivisible file to
+bound what two-worker scheduling can save; scheduling alone cannot remove
+underlying work. If the initial handoff family cannot explain enough cost,
+identify the next largest measured fixture/setup family before editing it.
+Additional profiling stays serial and bounded to one representative per newly
+identified owning cost, with a fresh-root behavior map before any optimization.
+
+**M7 — Compact prerequisites without reducing behavioral coverage.** Build a
+coherent small Brief/Source/Script/Storyboard fixture family through the real
+owners: two complete routes, all unique filmed shots, a visible character and
+reference, multiple frames for missing-frame and second-frame rollback, and a
+real derivative where that contract is tested. Change only handoff-focused
+tests whose coverage map establishes that pack size is not their subject.
+Retain explicit full-chain, 27-frame/all-route inventory, scale/ceilings, pin,
+filesystem, currentness, restart, recovery and geometry coverage. Reconcile
+fixed 8/29 assertions deliberately with retained full-size owners rather than
+mechanically substituting smaller counts. Keep function-scoped mutable storage,
+registry, locks and monkeypatches; no raw seed copies or validation bypasses.
+Use cohesive fixture helpers and register their actual module consumers.
+
+**M8 — Duration-balanced whole-file scheduling, if still warranted.** Use
+complete per-file setup/call/teardown timings, not only the top-20 report. Timing
+evidence must come from successful complete whole-file runs and identify
+source/dependency/toolchain/host conditions, every native
+parameter row, and affected shared-fixture inputs. It can combine compatible
+unchanged evidence with fresh whole-file runs of changed/new files. Permit one
+bounded whole-Python timing refresh if compatible complete evidence cannot be
+assembled; do not run additional full release gates for discovery.
+
+Treat weights as advisory. A complete eligible timing set uses deterministic
+whole-file duration packing; any missing/new/stale coverage or incompatible
+inputs uses the existing **whole-suite case-count fallback**, with a visible
+reason. Never mix raw seconds and case counts. Refuse malformed, duplicate,
+unsafe or nonfinite timing rows before starting workers. Native collection and
+exact union/disjointness remain the sole test-selection authority. Timing
+collection must not silently modify checked-in weights or repository files.
+Preserve two workers, isolated roots, ambient-filter refusal, failure propagation
+and the existing strict POSIX descendant cleanup. Leave focused/module behavior
+unchanged. Update ADR 0160 and development guidance with the reviewed contract;
+extract cohesive allocation/report helpers rather than growing the runner past
+its responsibility boundary.
+
+**M9 — Review, retime, qualify and publish the isolated candidate.** Have an
+independent read-only reviewer inspect the fixture behavior map, unchanged
+assertions, timing eligibility/fallback and failure/cleanup paths. Repeat M6's
+three representative and unaffected samples with the same conditions. Exercise
+isolated roots and order independence; preserve every prior node ID/parameter
+row or record its explicit move to a retained owner. Run affected focused checks,
+native ownership reconciliation and the verification-tooling complete profile.
+One stable final local full gate owns release qualification and the final
+whole-Python timing. Do not run an extra equivalent candidate gate merely to
+produce another timing number. Publish non-destructively only after autopilot
+integration is stable and scoped implementation/review gates pass; preserve
+remote divergence and unrelated changes. Hosted status remains separate.
+
+Before the final qualification, compare measured residual costs with M6's
+budget. If 85% still appears attainable within the approved test/fixture/runner
+scope, select the next evidence-backed optimization and repeat focused checks.
+Do not stop solely because the earlier 20% milestone was reached. If the
+remaining cost cannot be removed safely in this scope, record the measured
+limit, uncertainty and concrete next design options. Broader concurrency,
+dependencies or production changes remain separate scope decisions. A safe
+partial improvement may be delivered, with the 85% objective explicitly unmet.
+
+### Acceptance, measurement and rollback
+
+- Primary stretch target: **at least 85% less whole-Python wall time** on the
+  same host/resource budget and equivalent native test inventory. Calculate
+  `(baseline - candidate) / baseline`; an 85% reduction means 6.67x execution
+  speed for the same work, not merely 85% greater throughput. Use 20%, 50% and
+  70% reductions as progress checkpoints, not automatic stopping points.
+- Track the preselected slow-family median to verify the cause of the gain;
+  the former 30% family target is an intermediate diagnostic milestone. Replace
+  the former 10-minute stretch goal with 0.15 times the matched M6 baseline.
+  Confirm feasibility from measured cost before expanding implementation.
+  Targets are not timeouts, permission to weaken coverage or claims of success
+  when a safely delivered improvement falls short.
+- Whole-Python wall means externally measured command elapsed time, including
+  interpreter startup, collection, workers, reporting and cleanup. The runner's
+  post-collection summary is not that boundary. Report worker times separately.
+  The observed target passes when the comparable final Python step is at most
+  0.15 times M6's frozen baseline. A single matched full-suite pair is reported
+  as a pair, not a median or proof of repeatability across every run. The three
+  representative samples establish local variance, not whole-suite variance.
+- Preserve fresh mutable project roots and equivalent dependency-cache conditions.
+  Do not count skipped work, reused successful results, a smaller full-suite
+  selection or undisclosed additional compute as an 85% optimization. Disclose
+  variance and inventory differences; repeat an expensive measurement only if
+  contention, a borderline result or another concrete concern prevents a sound
+  comparison. Do not infer the same reduction for browser or end-to-end time.
+- Preselect the unaffected family before edits. A median slowdown above 10%
+  triggers one bounded confirmatory comparison and diagnosis; unresolved
+  regression is not accepted. Disclose host contention and variance.
+- All applicable correctness, transaction/currentness, preservation, coverage,
+  isolation and process-cleanup checks must pass. Faster runtime or unchanged
+  counts alone do not establish equivalence. After two failed attempts at the
+  same acceptance criterion, preserve evidence and reassess the method.
+- If an optimization is unsafe or ineffective, revert only its scoped fixture
+  or allocation change non-destructively, retaining new correctness guards and
+  evidence. Keep function-scoped original fixtures and case-count allocation
+  available as fallbacks. Never downgrade product validation or erase failures.
+
+Planning review: one bounded GPT-6.1 Sol / Medium read-only review identified
+whole-step timing, complete eligible weights and explicit unaffected-family
+guards; these are incorporated above. No benchmarks, implementation, native
+dispatch, live operations or hosted checks were performed for this plan.
+
+Owner revision: the stretch objective is now 85% less Python wall time; previous
+20–30% targets are intermediate milestones. This changes the proposed ambition
+and feasibility work, not the implementation or operational authority.
+A bounded GPT-6 Luna / Max read-only review checked the arithmetic and measurement
+claims; the explicit observed target, baseline and variance limits above address
+its measurement concern. No performance implementation or benchmark was started.
+
+Implementation approval: the owner authorized M6–M9 on October 12, 2026, to proceed in parallel with the completed pre-video autopilot. Stable starting base verified in the isolated implementation worktree: `c771cdd67eb8fd0925cdfe772c46ed85eeb51657`.

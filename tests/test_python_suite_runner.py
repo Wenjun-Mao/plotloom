@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import json
 import os
 import signal
 import subprocess
 from collections import Counter
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
 
+from scripts.testing import python_suite_timing_plugin
 from tests.python_suite_runner_support import RUNNER
 
 
@@ -30,7 +33,7 @@ def test_collector_accepts_native_rows_and_rejects_duplicate_or_unsafe_cases(tmp
         RUNNER.parse_collected_cases("tests/../outside.py::test_one\n", root=tmp_path)
 
 
-def test_partition_assigns_whole_files_once_and_balances_case_counts():
+def test_partition_assigns_whole_files_once_and_balances_case_counts(tmp_path):
     cases = [
         "tests/test_a.py::test_1",
         "tests/test_a.py::test_2",
@@ -50,16 +53,98 @@ def test_partition_assigns_whole_files_once_and_balances_case_counts():
         sum(case_counts[path] for path in assignment) for assignment in assignments
     ]
     assert abs(shard_totals[0] - shard_totals[1]) <= 1
+    rows = {
+        "tests/test_a.py": (1.0, 89.0, 0.0),
+        "tests/test_b.py": (1.0, 79.0, 0.0),
+        "tests/test_c.py": (0.5, 9.5, 0.0),
+        "tests/test_d.py": (0.5, 9.5, 0.0),
+    }
+    manifest = json.dumps(_timing_manifest(tmp_path, cases, rows))
+    schedule = RUNNER.python_suite_schedule.schedule_from_timing_text(
+        manifest, cases=cases, root=tmp_path
+    )
+    assert schedule.basis == "duration"
+    assert schedule.fallback_reason is None
+    assert schedule.assignments == (
+        ("tests/test_a.py", "tests/test_d.py"),
+        ("tests/test_b.py", "tests/test_c.py"),
+    )
 
 
-def test_partition_refuses_duplicate_or_empty_collections():
+def test_partition_refuses_duplicate_or_empty_collections(tmp_path):
     with pytest.raises(RUNNER.SuiteError, match="empty"):
         RUNNER.partition_test_files([])
     with pytest.raises(RUNNER.SuiteError, match="duplicate"):
         RUNNER.partition_test_files(["tests/test_a.py::test_one"] * 2)
+    cases = [
+        "tests/test_a.py::test_1",
+        "tests/test_a.py::test_2",
+        "tests/test_b.py::test_1",
+        "tests/test_c.py::test_1",
+    ]
+    rows = {
+        "tests/test_a.py": (1.0, 89.0, 0.0),
+        "tests/test_b.py": (1.0, 79.0, 0.0),
+    }
+    incomplete = json.dumps(_timing_manifest(tmp_path, cases, rows))
+    schedule = RUNNER.python_suite_schedule.schedule_from_timing_text(
+        incomplete, cases=cases, root=tmp_path
+    )
+    assert schedule.basis == "case-count"
+    assert schedule.fallback_reason == "timing-file-coverage-changed"
+    assert schedule.assignments == RUNNER.partition_test_files(cases)
+
+    complete_rows = {**rows, "tests/test_c.py": (0.5, 0.5, 0.0)}
+    stale = _timing_manifest(tmp_path, cases, complete_rows)
+    stale["host_fingerprint"] = "f" * 64
+    schedule = RUNNER.python_suite_schedule.schedule_from_timing_text(
+        json.dumps(stale), cases=cases, root=tmp_path
+    )
+    assert schedule.fallback_reason == "host-or-python-changed"
+
+    stale = _timing_manifest(tmp_path, cases, complete_rows)
+    stale["input_fingerprint"] = "e" * 64
+    schedule = RUNNER.python_suite_schedule.schedule_from_timing_text(
+        json.dumps(stale), cases=cases, root=tmp_path
+    )
+    assert schedule.fallback_reason == "executable-inputs-changed"
+
+    wrong_count = _timing_manifest(tmp_path, cases, complete_rows)
+    wrong_count["files"][0]["case_count"] += 1
+    schedule = RUNNER.python_suite_schedule.schedule_from_timing_text(
+        json.dumps(wrong_count), cases=cases, root=tmp_path
+    )
+    assert schedule.fallback_reason == "timing-case-counts-changed"
+
+    valid_rows = {path: (1.0, 1.0, 0.0) for path in ("tests/test_a.py", "tests/test_b.py")}
+    valid = _timing_manifest(tmp_path, ["tests/test_a.py::test_1", "tests/test_b.py::test_1"], valid_rows)
+    malformed = []
+    unsafe = json.loads(json.dumps(valid))
+    unsafe["files"][0]["path"] = "tests/../outside.py"
+    malformed.append(unsafe)
+    duplicate = json.loads(json.dumps(valid))
+    duplicate["files"].append(dict(duplicate["files"][0]))
+    malformed.append(duplicate)
+    nonfinite = json.loads(json.dumps(valid))
+    nonfinite["files"][0]["call_seconds"] = float("inf")
+    malformed.append(nonfinite)
+    aggregate = json.loads(json.dumps(valid))
+    aggregate["files"][0]["setup_seconds"] = 1e308
+    aggregate["files"][0]["call_seconds"] = 1e308
+    malformed.append(aggregate)
+    huge_integer = json.loads(json.dumps(valid))
+    huge_integer["files"][0]["setup_seconds"] = 10**1000
+    malformed.append(huge_integer)
+    for value in malformed:
+        with pytest.raises(RUNNER.python_suite_schedule.TimingManifestError):
+            RUNNER.python_suite_schedule.schedule_from_timing_text(
+                json.dumps(value, allow_nan=True),
+                cases=["tests/test_a.py::test_1", "tests/test_b.py::test_1"],
+                root=tmp_path,
+            )
 
 
-def test_worker_command_keeps_results_isolated_and_durations_visible():
+def test_worker_command_keeps_results_isolated_and_durations_visible(capsys):
     with TemporaryDirectory() as directory:
         basetemp = Path(directory) / "worker-1"
         command = RUNNER._command(["tests/test_a.py"], basetemp)
@@ -67,6 +152,49 @@ def test_worker_command_keeps_results_isolated_and_durations_visible():
     assert "-p" in command and "no:cacheprovider" in command
     assert f"--basetemp={basetemp}" in command
     assert command[-1] == "tests/test_a.py"
+    assert "scripts.testing.python_suite_timing_plugin" in command
+
+    plugin = python_suite_timing_plugin.FilePhaseTotals()
+    item = SimpleNamespace(nodeid="tests/test_a.py::test_one")
+    plugin.pytest_collection_finish(SimpleNamespace(items=[item]))
+    plugin.pytest_runtest_logreport(
+        SimpleNamespace(nodeid=item.nodeid, when="call", duration=0.25)
+    )
+    plugin.pytest_sessionfinish(SimpleNamespace(), 0)
+    output = capsys.readouterr().out
+    assert 'PYTHON_SUITE_TIMING_RUN {"complete":true' in output
+    assert '"case_count":1' in output
+
+    failed = python_suite_timing_plugin.FilePhaseTotals()
+    failed.pytest_collection_finish(SimpleNamespace(items=[item]))
+    failed.pytest_runtest_logreport(
+        SimpleNamespace(nodeid=item.nodeid, when="call", duration=0.25)
+    )
+    failed.pytest_sessionfinish(SimpleNamespace(), 1)
+    output = capsys.readouterr().out
+    assert 'PYTHON_SUITE_TIMING_RUN {"complete":false' in output
+    assert "PYTHON_SUITE_FILE_TIMING" not in output
+
+
+def _timing_manifest(root, cases, weights):
+    schedule = RUNNER.python_suite_schedule
+    case_counts = Counter(case.split("::", 1)[0] for case in cases)
+    return {
+        "schema_version": 1,
+        "native_case_ids_sha256": schedule.native_case_fingerprint(cases),
+        "input_fingerprint": schedule.input_fingerprint(root),
+        "host_fingerprint": schedule.host_fingerprint(),
+        "files": [
+            {
+                "path": path,
+                "case_count": case_counts[path],
+                "setup_seconds": values[0],
+                "call_seconds": values[1],
+                "teardown_seconds": values[2],
+            }
+            for path, values in weights.items()
+        ],
+    }
 
 
 def test_runner_refuses_ambient_pytest_selection_before_collecting(capsys):
@@ -135,6 +263,7 @@ def test_runner_reports_each_worker_and_fails_if_either_worker_fails(
     assert output.count("captured worker report") == 2
     assert "worker=1" in output and "worker=2" in output
     assert "SUMMARY elapsed_seconds=" in output and "exit_code=1" in output
+    assert "schedule=case-count fallback=timing-manifest-missing" in output
     assert len(commands) == 2
     assert commands[0][-1] == "tests/test_a.py"
     assert commands[1][-1] == "tests/test_b.py"

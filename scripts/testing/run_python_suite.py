@@ -15,8 +15,13 @@ from pathlib import Path
 from typing import TextIO
 
 ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from scripts.testing import python_suite_schedule
+
 WORKER_COUNT = 2
 WORKER_SHUTDOWN_GRACE_SECONDS = 5.0
+TIMING_MANIFEST = ROOT / "scripts/testing/python_suite_timings.json"
 
 
 class SuiteError(ValueError):
@@ -89,6 +94,8 @@ def _command(files: Sequence[str], basetemp: Path) -> list[str]:
         "--durations=20",
         "-p",
         "no:cacheprovider",
+        "-p",
+        "scripts.testing.python_suite_timing_plugin",
         f"--basetemp={basetemp}",
         *files,
     ]
@@ -255,10 +262,22 @@ def run_python_suite(
             return collector_process.returncode
         try:
             cases = parse_collected_cases(collector_stdout, root=root)
-            assignments = partition_test_files(cases)
-        except SuiteError as error:
+            manifest_path = root / TIMING_MANIFEST.relative_to(ROOT)
+            timing_text = (
+                manifest_path.read_text(encoding="utf-8")
+                if manifest_path.exists()
+                else None
+            )
+            schedule = python_suite_schedule.schedule_from_timing_text(
+                timing_text,
+                cases=cases,
+                root=root,
+                worker_count=WORKER_COUNT,
+            )
+            assignments = schedule.assignments
+        except (OSError, SuiteError, python_suite_schedule.TimingManifestError) as error:
             print(
-                f"Python suite refused collection: {error}",
+                f"Python suite refused collection or timing manifest: {error}",
                 file=sys.stderr,
                 flush=True,
             )
@@ -271,9 +290,23 @@ def run_python_suite(
         print(
             f"[python-suite] native_cases={len(cases)} files={len(file_case_counts)} "
             f"workers={WORKER_COUNT} shard_cases={'/'.join(map(str, shard_case_counts))} "
-            f"shard_files={'/'.join(str(len(shard)) for shard in assignments)}",
+            f"shard_files={'/'.join(str(len(shard)) for shard in assignments)} "
+            f"schedule={schedule.basis}"
+            f"{f' fallback={schedule.fallback_reason}' if schedule.fallback_reason else ''}",
             flush=True,
         )
+        flattened = [path for assignment in assignments for path in assignment]
+        if (
+            len(flattened) != len(set(flattened))
+            or set(flattened) != set(file_case_counts)
+            or any(not assignment for assignment in assignments)
+        ):
+            print(
+                "Python suite refused non-exact whole-file assignment",
+                file=sys.stderr,
+                flush=True,
+            )
+            return 2
 
         with tempfile.TemporaryDirectory(prefix="plotloom-python-suite-") as directory:
             temporary_root = Path(directory)
