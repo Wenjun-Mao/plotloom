@@ -40,6 +40,7 @@
           "tests/test_autopilot_review_readiness.py",
           "tests/test_image_package_publication.py",
           "tests/test_autopilot_handoff.py",
+          "tests/test_autopilot_creator_confirmation.py",
           "tests/test_autopilot_geometry.py",
           "tests/test_autopilot_geometry_publication.py",
           "tests/test_autopilot_brief_style.py"
@@ -191,6 +192,7 @@
           "frontend/tests/review-activation.test.ts",
           "frontend/tests/review-context-notice.test.ts",
           "frontend/tests/same-person-presentation.test.ts",
+          "frontend/tests/human-review-attribution.test.ts",
           "frontend/tests/script-panel-ownership.test.ts",
           "frontend/tests/script-projection.test.ts",
           "frontend/tests/script-content-review.test.ts",

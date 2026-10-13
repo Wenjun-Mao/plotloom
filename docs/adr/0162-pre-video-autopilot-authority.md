@@ -148,6 +148,33 @@ delivery exchange and keep all executable publication owners in the native pin.
 
 ### P4 human review owner
 
+#### Owner-approved creator confirmation refinement · 2026-10-13
+
+The mandatory typed name and whole-pack essay duplicated the actual reference,
+frame and character decisions. A typed name is not authentication. The owner
+approved removing the name and making the overall comment optional. A new
+`pre-video.handoff.v2` receipt records explicit `unnamed_creator` attribution,
+the exact material bundle and individual decisions; it never invents a person
+or a positive review statement. Blank/omitted comments are absent; nonblank
+comments retain their authored bytes. No authenticated actor is currently known.
+
+Shared approval and SamePerson writers accept a typed unnamed-confirmation
+value only under trusted HANDOFF scope. The existing non-null reviewer columns
+encode this as the empty string (absence of a name, never a placeholder person).
+Read projections explicitly label `unnamed_creator`; ordinary-open/recovery
+requires those unnamed facts to belong to a validated v2 handoff receipt.
+Manual review requests still require their existing nonblank reviewer strings.
+This avoids SQL layout changes and a preserving upgrade unrelated to the outcome.
+Nulling columns, inserting a guessed name, and weakening shared manual validation
+are rejected. Existing named approval attribution is retained when reused.
+
+Retained `pre-video.handoff.v1` receipts have a separate read-only typed parser;
+their observations, rows, packages and hashes are never rewritten. New requests
+cannot submit a reviewer or machine authority. Exact endorsements, actual frame
+and character observations, uncertainty decisions, currentness/CAS, atomicity
+and video denial remain required. Confirmation saves choices and enables later
+manual video work; closing the dialog does not navigate or dispatch a video.
+
 The current automatic bundle is machine evidence and cannot grant video authority.
 A separate append-only `v2_autopilot_handoffs` owner retains the exact current
 review bundle, human attribution, explicit reference endorsements, authored
@@ -170,7 +197,7 @@ A later handoff over the same approved canonical revision reuses its exact activ
 human approval, labelled `existing_human`, while creating a fresh material receipt
 and observations. Native approval forbids consecutive duplicate approvals; fake
 revocation/approval churn would misstate the author's decision history. Original
-approval attribution is retained, separate from the new handoff's reviewer.
+approval attribution is retained, separate from the new handoff's unnamed creator confirmation.
 
 The review receipt retains the complete ordered asset set of each selected
 character-reference decision: primary plus up to two complementary views, with

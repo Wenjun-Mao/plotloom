@@ -89,7 +89,6 @@ def test_early_review_and_handoff_refuse_across_real_text_stages_without_mutatio
             body = {
                 "expectedRunRevision": current.revision,
                 "bundleHash": "a" * 64,
-                "reviewer": "Fixture human",
                 "notes": "Incomplete material must refuse.",
                 "endorsedReferenceIds": [],
                 "frames": [],

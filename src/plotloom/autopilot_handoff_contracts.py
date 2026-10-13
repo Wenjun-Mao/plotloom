@@ -1,11 +1,14 @@
 """Human observations and exact current material review, never machine authority."""
-from typing import Literal
-from pydantic import Field, field_validator, model_validator
-from .geometry_preparation_contracts import GeometryPreparation
+from typing import Annotated, Literal
+
+from pydantic import Field, TypeAdapter, field_validator, model_validator
+
+from .autopilot_materials import MaterialInventory
 from .domain import CamelModel, contains_secret_setting, contains_secret_value
+from .geometry_preparation_contracts import GeometryPreparation
+from .human_confirmation_contracts import UnnamedCreatorConfirmation
 from .managed_media import VisualIntentInput
 from .same_person_review_contracts import SamePersonReviewItem
-from .autopilot_materials import MaterialInventory
 
 
 class ReviewAsset(CamelModel):
@@ -78,7 +81,8 @@ class FrameObservation(CamelModel):
         return self
 
 
-class HumanHandoffRequest(CamelModel):
+class LegacyHumanHandoffRequest(CamelModel):
+    """Retained v1 observations only; no current endpoint accepts this model."""
     expected_run_revision: int = Field(ge=1)
     bundle_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     reviewer: str = Field(min_length=1, max_length=160)
@@ -101,15 +105,59 @@ class HumanHandoffRequest(CamelModel):
         return self
 
 
-class HumanHandoffReceipt(CamelModel):
-    version: Literal["pre-video.handoff.v1"] = "pre-video.handoff.v1"
+class HumanHandoffRequest(CamelModel):
+    expected_run_revision: int = Field(ge=1)
+    bundle_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    notes: str | None = Field(default=None, max_length=2000, exclude_if=lambda value: value is None)
+    endorsed_reference_ids: list[str]
+    frames: list[FrameObservation]
+
+    @field_validator("notes")
+    @classmethod
+    def optional_comment(cls, value):
+        return value if value is not None and value.strip() else None
+
+    @model_validator(mode="after")
+    def protect_credentials(self):
+        raw = self.model_dump(mode="json", by_alias=True)
+        if contains_secret_setting(raw) or contains_secret_value(raw):
+            raise ValueError("human review must not contain credentials")
+        return self
+
+
+class HandoffReceiptFacts(CamelModel):
     id: str
     run_id: str
     project_id: str
     bundle_hash: str
     bundle: CurrentReviewBundle
-    observation: HumanHandoffRequest
     approval_id: str
     approval_origin: Literal["created", "existing_human"]
     bindings: list[dict[str, str]]
     material_closure: str
+
+
+class HumanHandoffReceipt(HandoffReceiptFacts):
+    version: Literal["pre-video.handoff.v2"] = "pre-video.handoff.v2"
+    attribution: UnnamedCreatorConfirmation
+    observation: HumanHandoffRequest
+
+    @property
+    def stored_reviewer(self) -> str:
+        return ""
+
+
+class LegacyHumanHandoffReceipt(HandoffReceiptFacts):
+    version: Literal["pre-video.handoff.v1"] = "pre-video.handoff.v1"
+    observation: LegacyHumanHandoffRequest
+
+    @property
+    def stored_reviewer(self) -> str:
+        return self.observation.reviewer
+
+
+_receipt_reader = TypeAdapter(Annotated[HumanHandoffReceipt | LegacyHumanHandoffReceipt, Field(discriminator="version")])
+
+
+def parse_handoff_receipt(raw) -> HumanHandoffReceipt | LegacyHumanHandoffReceipt:
+    return _receipt_reader.validate_python(raw)

@@ -10,7 +10,20 @@ Accepted after attended P0 review, 2026-10-12. Authority: [ADR 0162](../adr/0162
 | Checkpoint | Unique `(run, operation key)`; typed owner/stage/subject; exact original job/request/package/pin; prepared/sent/unknown/delivered/adopted status, dispatch/evidence hashes and CAS revision. References existing native owners, never another queue. |
 | Decision | Immutable tagged actor/scope; run/policy/checkpoint; exact subject revision/hash and upstream closure; delivery/receipt evidence; selected asset IDs/hashes and rationale. Machine scope names source/text adoption, production installation, image generation or provisional selection; it contains no video scope. |
 | Provisional frame | Exact shot/scene, canonical installation/revision/hash, v3 job/unit/request/delivery, one asset/hash/geometry and frozen character-reference mapping. No human VisualIntent or review judgment. |
-| Human handoff | Immutable original material hash plus genuine reviewer/notes, per-frame intent/compatibility decisions, exact reference endorsement and resulting human approval/binding/SamePersonReview IDs. Distinct from machine material identity. |
+| Human handoff | Immutable exact material hash, explicit unnamed creator confirmation, optional unchanged comment, per-frame intent/compatibility decisions, exact reference endorsement and resulting human approval/binding/SamePersonReview IDs. No compulsory name or whole-pack prose. Retained v1 named receipts stay byte-verifiable evidence. |
+
+Owner-approved 2026-10-13: current handoff v2 has no reviewer input. Blank or
+omitted overall comments are absent. Shared human-fact writers admit the typed
+`unnamed_creator` attribution only under HANDOFF authority, encode no name as
+an empty reviewer string in the unchanged SQL layout, and expose explicit
+attribution in readback. Ordinary-open/recovery requires matching validated v2
+receipt links; manual workflows retain their named-review requirements. See
+ADR0162 for the precise storage and retained-v1 evidence contract.
+
+Creator wording uses short ordinary Chinese that explains the action. Protocol,
+hash and attribution terminology belongs in optional technical details. Generator
+limitations remain source-bound original text. Confirmation saves the creator's
+choices; a separate workspace action opens later manual video work.
 
 All records are project-owned, registered in the native project-table inventory
 and validated as current typed contracts on ordinary open/recovery. Same-project

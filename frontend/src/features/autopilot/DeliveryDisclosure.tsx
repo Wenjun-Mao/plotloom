@@ -31,7 +31,7 @@ function Evidence({ projectId, value, label, original = false }: { projectId: st
     {original && <a href={plotloomApi.managedAssetUrl(projectId, value.asset.id, "original")} target="_blank" rel="noreferrer"><img className="autopilot-evidence-original" src={plotloomApi.managedAssetUrl(projectId, value.asset.id)} alt={`${label} · ${value.asset.id}`} /></a>}
     <p>助手声明的交付局限（原文）</p>
     {value.limitations.length ? <ul>{value.limitations.map((item, index) => <li key={index}>{item}</li>)}</ul> : <p>这份已核实交付未声明局限；这不代表质量通过。</p>}
-    <details><summary>查看原始交付身份</summary><p>{value.owner} · <code>{value.jobId}</code> · <code>{value.deliveryId}</code></p>
+    <details><summary>查看生成信息</summary><p>{value.owner} · <code>{value.jobId}</code> · <code>{value.deliveryId}</code></p>
       <p>原始图片 SHA-256：<code>{value.asset.originalHash}</code></p><p>请求 SHA-256：<code>{value.requestHash}</code></p>
       <p>交付声明 SHA-256：<code>{value.manifestHash}</code></p><p>输出文件：<code>{value.outputFilename}</code></p>
     </details>

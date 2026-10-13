@@ -446,6 +446,7 @@ class SamePersonReviewRow(Base):
     review_revision: Mapped[int] = mapped_column(Integer, nullable=False)
     reference_bindings: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
     comparisons: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
+    # Empty only for a receipt-bound unnamed creator confirmation (ADR0162).
     reviewer: Mapped[str] = mapped_column(String(160), nullable=False)
     notes: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

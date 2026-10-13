@@ -11,7 +11,9 @@ from pydantic import ValidationError
 
 from ...domain import StageName, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError, SchemaResetRequiredError
-from ...same_person_review_contracts import SamePersonReviewRequest
+from ...same_person_review_contracts import SamePersonReviewObservations, SamePersonReviewRequest
+from ...human_confirmation_contracts import UnnamedCreatorConfirmation
+from .human_attribution import attribution_readback, stored_reviewer
 from ..codec import _stored_utc
 from ..schema import (
     ImageJobCandidateRow,
@@ -61,7 +63,7 @@ class SamePersonReviewPersistence:
             "current": current, "latest": latest,
             "productionEligible": current and latest and self.comparisons_authorize_production(row.comparisons),
             "createdAt": _stored_utc(row.created_at).isoformat(),
-        }
+        } | attribution_readback(row.reviewer)
 
     def identity_mapping_for_binding_in_session(
         self, session: Session, binding: ReviewedShotBindingRow
@@ -169,7 +171,7 @@ class SamePersonReviewPersistence:
         *,
         binding_id: str,
         expected_review_revision: int,
-        reviewer: str,
+        reviewer: str | UnnamedCreatorConfirmation,
         comparisons: list[dict[str, Any]],
         notes: str,
     ) -> dict[str, Any]:
@@ -177,11 +179,11 @@ class SamePersonReviewPersistence:
         from .autopilot_authority import require_human_command
         require_human_command(self._access)
         try:
-            request = SamePersonReviewRequest(
-                binding_id=binding_id, expected_review_revision=expected_review_revision,
-                reviewer=reviewer, comparisons=comparisons, notes=notes,
-            )
-        except ValidationError as error:
+            normalized_reviewer = stored_reviewer(self._access, reviewer)
+            fields = dict(binding_id=binding_id, expected_review_revision=expected_review_revision, comparisons=comparisons, notes=notes)
+            request = (SamePersonReviewObservations(**fields) if isinstance(reviewer, UnnamedCreatorConfirmation)
+                else SamePersonReviewRequest(**fields, reviewer=reviewer))
+        except (ValidationError, ValueError) as error:
             raise InvalidTransitionError("same-person review requires complete explicit judgments and uncertainty decisions") from error
         comparisons = [item.model_dump(mode="json", by_alias=True, exclude_none=True) for item in request.comparisons]
         with self._access.leases.lifecycle_write() as session:
@@ -226,7 +228,7 @@ class SamePersonReviewPersistence:
             state.updated_at = now
             review = SamePersonReviewRow(
                 id=new_id(), project_id=project_id, binding_id=binding_id, review_revision=state.revision,
-                reference_bindings=reference_bindings, comparisons=comparisons, reviewer=reviewer.strip(),
+                reference_bindings=reference_bindings, comparisons=comparisons, reviewer=normalized_reviewer,
                 notes=notes.strip(), created_at=now,
             )
             session.add(review)

@@ -174,6 +174,7 @@ class ApprovalDecisionRow(Base):
     canonical_input_revisions: Mapped[dict[str, int]] = mapped_column(JSON, nullable=False)
     gate_set_version: Mapped[str] = mapped_column(String(128), nullable=False)
     decision: Mapped[str] = mapped_column(String(16), nullable=False)
+    # Empty only for a receipt-bound unnamed creator confirmation (ADR0162).
     reviewer: Mapped[str] = mapped_column(String(256), nullable=False)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

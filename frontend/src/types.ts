@@ -821,6 +821,7 @@ export interface ApprovalDecision {
   gateSetVersion: string;
   decision: "approve" | "revoke";
   reviewer: string;
+  attribution?: import("./human-review-attribution").HumanReviewAttribution;
   note: string | null;
   createdAt: string;
 }

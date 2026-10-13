@@ -7,6 +7,7 @@ import type {
 } from "../../../types";
 import { ManagedAssetViewer } from "./ManagedAssetViewer";
 import { Button, Field } from "../../../components";
+import { humanReviewLabel } from "../../../human-review-attribution";
 import type { SamePersonComparisonDraft } from "../../../same-person-review-types";
 import { completeSamePersonComparisons, samePersonReviewSummary } from "./same-person-draft";
 
@@ -259,7 +260,7 @@ export function SamePersonReviewPanel({
             )
             .map((item) => (
               <small className="notice" key={item.id}>
-                {item.current ? "已被较新决定取代的复核" : "已过期的复核"} {item.id.slice(0, 8)} · 审阅者 {item.reviewer}{" "}
+                {item.current ? "已被较新决定取代的复核" : "已过期的复核"} {item.id.slice(0, 8)} · {item.attribution?.kind === "unnamed_creator" ? humanReviewLabel(item) : `审阅者 ${humanReviewLabel(item)}`}{" "}
                 · {samePersonReviewSummary(item)} · 仍可在上方查看任务冻结的参考图。
               </small>
             ))}

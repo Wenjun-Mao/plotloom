@@ -1,9 +1,17 @@
 """Validate persisted machine provenance without reinterpreting human history."""
 import json
 
-from ..autopilot_contracts import CheckpointEvidence, LaunchPolicy, MachineDecision, ProvisionalFrame
+from ..autopilot_contracts import (
+    CheckpointEvidence,
+    LaunchPolicy,
+    MachineDecision,
+    ProvisionalFrame,
+)
 from ..persistence.codec import stable_hash
-from ..persistence.project.autopilot_bindings import assert_checkpoint_binding, assert_frame_binding
+from ..persistence.project.autopilot_bindings import (
+    assert_checkpoint_binding,
+    assert_frame_binding,
+)
 from .format import ProjectStorageCorruptionError
 
 STATES = {"running", "waiting", "paused", "cancelled", "stale", "blocked", "awaiting_review", "handed_off", "taken_over"}
@@ -54,11 +62,22 @@ def assert_autopilot_contracts(connection, *, asset_home=None):
         assert_bridge_adoption_contracts(connection)
         from .handoff_validation import assert_handoff
         receipts = {}
+        unnamed_approvals, unnamed_reviews = set(), set()
         for identifier, run_id, project, approval, raw, digest in connection.execute("SELECT id,run_id,project_id,approval_id,receipt,receipt_hash FROM v2_autopilot_handoffs"):
             if runs.get(run_id, (None,))[0] != project:
                 raise ValueError("human handoff run changed")
             receipt = assert_handoff(connection, identifier, run_id, project, approval, json.loads(raw), digest, asset_home=asset_home)
             receipts[identifier] = (run_id, digest, receipt.bundle_hash, receipt.material_closure)
+            if receipt.version == "pre-video.handoff.v2":
+                if receipt.approval_origin == "created":
+                    unnamed_approvals.add(receipt.approval_id)
+                unnamed_reviews.update(fact["samePersonReviewId"] for fact in receipt.bindings if "samePersonReviewId" in fact)
+        # An empty reviewer is an explicit no-name encoding only for validated
+        # creator confirmation facts; it cannot legitimize an orphan/manual row.
+        for table, admitted in (("v2_approval_decisions", unnamed_approvals), ("v2_same_person_reviews", unnamed_reviews)):
+            for identifier, reviewer in connection.execute(f'SELECT id,reviewer FROM "{table}" WHERE trim(reviewer)=\'\''):
+                if reviewer != "" or identifier not in admitted:
+                    raise ValueError("unnamed human fact lacks exact creator confirmation evidence")
         for run_id, pointer in connection.execute("SELECT id,handoff FROM v2_autopilot_runs WHERE handoff IS NOT NULL"):
             value = json.loads(pointer)
             if receipts.get(value.get("receiptId")) != (run_id, value.get("receiptHash"), value.get("bundleHash"), value.get("materialClosure")):

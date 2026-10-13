@@ -14,6 +14,7 @@ import type {
   ValidationIssue,
 } from "../types";
 import { plotloomApi } from "../api";
+import { humanReviewLabel } from "../human-review-attribution";
 import type { ProjectDraftQuiescence } from "../features/authoring/projectDraftQuiescence";
 import { deriveRoutes, groupStoryboard } from "../model";
 import { shotLabel } from "../shot-label";
@@ -474,8 +475,8 @@ export function StoryboardPage({
         <div className="section-title"><span>覆盖检查与分镜批准</span><strong>{review?.activeApproval ? "已批准" : "等待批准"}</strong></div>
         {reviewError && <div className="notice warning" role="alert">{reviewError}</div>}
         {!review?.gateEvaluation && <div className="notice"><strong>尚无检查结果</strong><span>保存有效分镜后，会生成检查结果。</span></div>}
-        {review?.activeApproval && <div className="notice"><strong>当前批准：{review.activeApproval.reviewer}</strong><span>版本 {review.activeApproval.subjectRevision} · {review.activeApproval.createdAt}</span></div>}
-        {review?.decisions.length ? <details><summary>批准记录 · {review.decisions.length}</summary>{review.decisions.map((closure) => <div className="approval-history" key={closure.decision.id}><strong>{closure.decision.decision === "approve" ? "批准" : "撤销批准"} · {closure.decision.reviewer}</strong><small>{closure.active ? "当前生效" : closure.staleReasons.join("；")}</small></div>)}</details> : null}
+        {review?.activeApproval && <div className="notice"><strong>当前批准：{humanReviewLabel(review.activeApproval)}</strong><span>版本 {review.activeApproval.subjectRevision} · {review.activeApproval.createdAt}</span></div>}
+        {review?.decisions.length ? <details><summary>批准记录 · {review.decisions.length}</summary>{review.decisions.map((closure) => <div className="approval-history" key={closure.decision.id}><strong>{closure.decision.decision === "approve" ? "批准" : "撤销批准"} · {humanReviewLabel(closure.decision)}</strong><small>{closure.active ? "当前生效" : closure.staleReasons.join("；")}</small></div>)}</details> : null}
         <details className="approval-actions" ref={approvalActions}><summary>批准或撤销分镜 · 需填写本地审核人标签</summary>
           <small>这是对当前分镜版本的独立批准决定，不是播放片段的可选审核记录。</small>
           <Field label="审核人标签" hint="此标签用于批准记录，必须填写；它不是已认证身份。"><input value={reviewer} onChange={(event) => setReviewer(event.target.value)} /></Field>

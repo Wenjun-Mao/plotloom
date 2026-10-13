@@ -22,7 +22,6 @@ from tests.autopilot_image_fixtures import (
 def observation(review):
     bundle = review["bundle"]
     return {"expectedRunRevision": review["runRevision"], "bundleHash": review["bundleHash"],
-        "reviewer": "Fixture human", "notes": "Fixture observations; not owner product acceptance.",
         "endorsedReferenceIds": [item["decisionId"] for item in bundle["references"]],
         "frames": [{"shotId": frame["shotId"], "assetId": frame["assetId"],
             "intent": {"role": "shot_keyframe", "compositionIntent": "Keep the visible action and framing readable.", "sourceRefs": [frame["shotId"]]},

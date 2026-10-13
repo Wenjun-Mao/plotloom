@@ -274,6 +274,21 @@ it("a review already open becomes read-only with its workspace and keeps close a
   expect(host.querySelector<HTMLButtonElement>("button")!.disabled).toBe(false);
   expect(submit).not.toHaveBeenCalled();
 });
+it("offers no reviewer input and an optional comment while waiting for genuine material choices", async () => {
+  vi.spyOn(autopilotApi, "review").mockResolvedValue(fixtureMaterial);
+  const submit = vi.spyOn(autopilotApi, "handoff");
+  await act(async () => root.render(createElement(MaterialReview, { projectId: "disposable", onClose: () => undefined, onAccepted: async () => undefined, onUncertain: () => undefined })));
+  expect(host.textContent).not.toContain("审阅人");
+  expect(host.textContent).not.toContain("整包审阅意见");
+  const label = [...host.querySelectorAll("label")].find(item => item.textContent?.includes("备注（可选）"))!;
+  const comment = label.control as HTMLTextAreaElement;
+  expect(comment.required).toBe(false);
+  expect(comment.value).toBe("");
+  const confirm = [...host.querySelectorAll<HTMLButtonElement>("button")].find(item => item.textContent === "确认使用这些素材")!;
+  expect(confirm.disabled).toBe(true);
+  expect(host.textContent).toContain("之后可从工作台打开手动视频制作");
+  expect(submit).not.toHaveBeenCalled();
+});
 it.each(["ai", "manual", "failed"])("storyboard header, guide and reader carry %s provenance consistently", async kind => {
   const accepted: AcceptedStoryboardReviewRevision = { revision: 1, candidateJobId: "fixture-board", contentHash: "board-hash",
     binding: { scriptRevision: 1 } as AcceptedStoryboardReviewRevision["binding"], storyboard: { episodes: [] }, acceptedAt: "2026-10-12T00:00:00Z" };

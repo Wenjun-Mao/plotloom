@@ -15,6 +15,7 @@ export interface SamePersonReview {
   referenceBindings: Array<{ characterId: string; referenceDecisionId: string; referenceRevision: number; assetHashes: string[] }>;
   comparisons: SamePersonComparison[];
   reviewer: string;
+  attribution?: import("./human-review-attribution").HumanReviewAttribution;
   notes: string;
   current: boolean;
   latest: boolean;

@@ -2,6 +2,20 @@
 
 ## Owner-approved UX correction follow-up · 2026-10-12
 
+### Approved creator-confirmation checkpoint · 2026-10-13
+
+The owner approved removing the final material-review name input and making the
+overall comment optional. The shared handoff/approval/SamePerson contract records
+truthful unnamed creator confirmation, with no fabricated actor or note. Required
+reference, frame and character decisions and all authority/currentness checks
+remain. Retained named receipts and all valued story/package/media bytes remain
+evidence. ADR0162 and the accepted contract define the unchanged-layout design.
+Use ordinary creator-facing Chinese and retain raw limitations in technical
+details. Deliver focused backend/frontend/browser, deterministic assets and
+desktop pixel evidence, one independent read-only review, then a clean scoped
+commit and hold. Manager owns full qualification, native/live work, integration,
+activation and hosted CI. No valued-project operation is in this checkpoint.
+
 Approved scope: (1) after the canonical first Brief save, offer the visible
 choice between preparing materials and continuing manually, with neither save
 nor navigation dispatching; make Brief-only saved projects easy to relaunch;
@@ -122,8 +136,9 @@ relax Brief topology, language, aspect ratio, route-time or shot-count contracts
    character/reference thumbnails, scene-grouped shot frames, AI choices,
    counts and disclosed quality/feature limitations. Detail and manual editing
    remain available; this is not another long raw-text checklist.
-6. A single `确认素材，进入视频制作` action records one human handoff against
-   the exact completed bundle and returns to the existing manual video controls.
+6. A single `确认使用这些素材` action records one human handoff against
+   the exact completed bundle, closes the review and enables the separate
+   workspace action for the existing manual video controls.
    It does not prepare, preview, freeze, enqueue or send a video. Actual human
    frame/identity judgments must be recorded through a deliberately compatible
    owner: do not equate a whole-pack button with synthetic SamePersonReview facts.

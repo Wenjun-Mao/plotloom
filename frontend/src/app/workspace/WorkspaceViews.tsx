@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { formatUiTimestamp } from "../../ui-time";
+import { humanReviewLabel } from "../../human-review-attribution";
 import { Badge, Button, ErrorNotice } from "../../components";
 import { stageLabels } from "../../model";
 import { canRequestRunCancellation, runCancellationLabel, runKindLabels, runStatusLabels, workUnitStatusLabels } from "../../run-presentation";
@@ -44,7 +45,7 @@ export function WorkspaceInspector({ currentLabel, project, routeEntity, stageOv
       return <div className="inspector-unit" key={unit.workUnitId}><strong>{stageLabels[unit.stage]} · #{unit.sequence}</strong><small>{workUnitStatusLabels[unit.status]} · {unit.sealed ? "已封存" : "未封存"}</small><small>执行次数 {attempt ? `${attempt.attemptNumber}/${unit.maxAttempts}` : `—/${unit.maxAttempts}`} · {formatDuration(attempt?.durationMs)} · 令牌用量 {attempt?.inputTokens ?? "—"}/{attempt?.outputTokens ?? "—"}</small>{attempt?.outcomeCode && <small>{attempt.outcomeCode}</small>}{unit.repairEligible && quarantine && <Button variant="quiet" disabled={readOnly} onClick={() => void onRepair(quarantine)}>单独修复此子任务</Button>}</div>;
     })}</details>}
     {apiTextPipeline === true && progress && <div className="inspector-actions"><span className="eyebrow">当前可用操作</span>{progress.actions.canResume && <Button variant="quiet" disabled={readOnly} onClick={() => void onResume()}>继续运行</Button>}{progress.actions.canCancel && <Button variant="danger" disabled={readOnly || !canRequestRunCancellation(run)} onClick={() => void onCancel()}>{runCancellationLabel(run)}</Button>}{progress.actions.canRebuildStage && <Button variant="quiet" disabled={readOnly || !progress.failedStage} onClick={() => progress.failedStage && onRebuild(progress.failedStage)}>从失败阶段完整重建</Button>}</div>}
-    <div className="inspector-review"><span className="eyebrow">校验与批准</span>{review?.gateEvaluation ? <><strong>{failedRequiredGates.length ? `${failedRequiredGates.length} 个必需校验项未通过` : `${requiredGates.length} 个必需校验项已通过`}</strong><small>{review.gateEvaluation.gateSetVersion}</small></> : <small>尚无校验记录</small>}{review?.activeApproval ? <><Badge tone="ok">已批准</Badge><small>{review.activeApproval.reviewer} · r{review.activeApproval.subjectRevision}</small></> : <Badge tone={failedRequiredGates.length ? "danger" : "neutral"}>未批准</Badge>}</div>
+    <div className="inspector-review"><span className="eyebrow">校验与批准</span>{review?.gateEvaluation ? <><strong>{failedRequiredGates.length ? `${failedRequiredGates.length} 个必需校验项未通过` : `${requiredGates.length} 个必需校验项已通过`}</strong><small>{review.gateEvaluation.gateSetVersion}</small></> : <small>尚无校验记录</small>}{review?.activeApproval ? <><Badge tone="ok">已批准</Badge><small>{humanReviewLabel(review.activeApproval)} · r{review.activeApproval.subjectRevision}</small></> : <Badge tone={failedRequiredGates.length ? "danger" : "neutral"}>未批准</Badge>}</div>
     {readOnly && <p>归档项目不可编辑或运行。请在项目目录中恢复后继续。</p>}
   </aside>;
 }

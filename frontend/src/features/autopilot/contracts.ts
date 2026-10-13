@@ -21,7 +21,7 @@ export type ReviewMaterial = { runRevision: number; bundleHash: string; bundle: 
   story: { characters: Record<string, string>; graph: { nodes: Array<{ id: string; title: string; summary: string }> }; routes?: string[][]; script: Record<string, unknown>; scriptBinding: ScriptBinding; reports?: Array<{ name: string; url: string }> };
 } };
 export type FrameDraft = { direction: string; sources: string; compatibility: string; comparisons: SamePersonComparisonDraft[] };
-export type Handoff = { expectedRunRevision: number; bundleHash: string; reviewer: string; notes: string; endorsedReferenceIds: string[];
+export type Handoff = { expectedRunRevision: number; bundleHash: string; notes?: string; endorsedReferenceIds: string[];
   frames: Array<{ shotId: string; assetId: string; intent: Omit<VisualIntent, "id" | "assetId" | "revision">["intent"]; compatibilityNote: string; comparisons: SamePersonComparison[] }> };
 
 export function completeFrame(draft: FrameDraft) {

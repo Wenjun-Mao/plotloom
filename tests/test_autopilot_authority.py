@@ -101,6 +101,11 @@ def test_machine_scope_cannot_create_human_review_or_touch_video_transport(tmp_p
                 pytest.fail("pre-video command compiled a video request")
         service = VideoJobService(repository, store.artifacts, NoTransport(), adapter=NoAdapter())
         with store.repository.autopilot_command(authority(run, scope)):
+            from plotloom.autopilot_handoff_contracts import HumanHandoffRequest
+            from plotloom.persistence.project.autopilot_handoff import record_handoff
+            with pytest.raises(InvalidTransitionError, match="cannot nest"):
+                record_handoff(store, HumanHandoffRequest(expected_run_revision=run.revision,
+                    bundle_hash="a" * 64, endorsed_reference_ids=[], frames=[]))
             with pytest.raises(InvalidTransitionError, match="pre-video"):
                 service.submit(store.manifest.project_id, "unknown-video-job")
             with pytest.raises(InvalidTransitionError, match="pre-video"):

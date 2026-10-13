@@ -31,6 +31,8 @@ from ..schema import (
 )
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
 from .access import ProjectPersistenceAccess
+from ...human_confirmation_contracts import UnnamedCreatorConfirmation
+from .human_attribution import stored_reviewer
 
 @dataclass(frozen=True)
 class ApprovalDecision:
@@ -107,7 +109,7 @@ class ProjectApprovalPersistence:
         expected_revision: int,
         expected_content_hash: str,
         decision: str,
-        reviewer: str,
+        reviewer: str | UnnamedCreatorConfirmation,
         gate_set_version: str,
         note: str | None = None,
     ) -> ApprovalDecision:
@@ -159,19 +161,19 @@ class ProjectApprovalPersistence:
         revision: EntityRevisionRow,
         *,
         decision: str,
-        reviewer: str,
+        reviewer: str | UnnamedCreatorConfirmation,
         gate_set_version: str,
         note: str | None,
         subject_type: str,
         subject_id: str,
     ) -> ApprovalDecision:
         normalized_decision = decision.strip().lower()
-        normalized_reviewer = reviewer.strip()
+        normalized_reviewer = stored_reviewer(self._access, reviewer)
         normalized_gate_set_version = gate_set_version.strip()
         if normalized_decision not in {"approve", "revoke"}:
             raise ValueError("approval decision must be approve or revoke")
-        if not normalized_reviewer or not normalized_gate_set_version:
-            raise ValueError("reviewer and gate_set_version must not be blank")
+        if not normalized_gate_set_version:
+            raise ValueError("gate_set_version must not be blank")
         if normalized_gate_set_version != STORYBOARD_GATE_SET_VERSION:
             raise InvalidTransitionError(
                 "approval requires the current canonical storyboard gate set"

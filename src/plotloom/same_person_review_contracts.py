@@ -32,14 +32,13 @@ class SamePersonReviewItem(CamelModel):
         return self
 
 
-class SamePersonReviewRequest(CamelModel):
+class SamePersonReviewObservations(CamelModel):
     binding_id: str = Field(min_length=1, max_length=36)
     expected_review_revision: int = Field(ge=0)
-    reviewer: str = Field(min_length=1, max_length=160)
     comparisons: list[SamePersonReviewItem] = Field(min_length=1, max_length=8)
     notes: str = Field(min_length=1, max_length=2_000)
 
-    @field_validator("reviewer", "notes")
+    @field_validator("notes")
     @classmethod
     def explicit_attribution(cls, value: str) -> str:
         if not value.strip():
@@ -47,8 +46,19 @@ class SamePersonReviewRequest(CamelModel):
         return value.strip()
 
     @model_validator(mode="after")
-    def character_reviews_are_distinct(self) -> "SamePersonReviewRequest":
+    def character_reviews_are_distinct(self) -> "SamePersonReviewObservations":
         character_ids = [item.character_id for item in self.comparisons]
         if len(character_ids) != len(set(character_ids)):
             raise ValueError("same-person comparisons must name each character once")
         return self
+
+
+class SamePersonReviewRequest(SamePersonReviewObservations):
+    reviewer: str = Field(min_length=1, max_length=160)
+
+    @field_validator("reviewer")
+    @classmethod
+    def named_manual_review(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("manual review attribution must be nonblank")
+        return value.strip()

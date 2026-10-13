@@ -13,7 +13,7 @@ export function MaterialReview({ projectId, readOnly = false, onClose, onAccepte
   const dialog = useRef<HTMLDialogElement>(null);
   const [material, setMaterial] = useState<ReviewMaterial | null>(null); const [error, setError] = useState("");
   const [drafts, setDrafts] = useState<FrameDraft[]>([]); const [endorsed, setEndorsed] = useState<string[]>([]);
-  const [reviewer, setReviewer] = useState(""); const [notes, setNotes] = useState(""); const [busy, setBusy] = useState(false);
+  const [notes, setNotes] = useState(""); const [busy, setBusy] = useState(false);
   const command = useRef(false); const active = useRef(true);
   const deliveries = useDeliveryEvidence(projectId, material?.bundleHash);
   const disclosure = (assetId: string, originalHash: string, geometryPreparation?: import("./geometryContracts").GeometryPreparation) => deliveries.state?.status === "ready"
@@ -25,12 +25,12 @@ export function MaterialReview({ projectId, readOnly = false, onClose, onAccepte
     }).catch(failure => { if (!abort.signal.aborted) setError(failure instanceof Error ? failure.message : String(failure)); });
     return () => { active.current = false; abort.abort(); };
   }, [projectId]);
-  const valid = material && reviewer.trim() && notes.trim() && material.bundle.references.every(item => endorsed.includes(item.decisionId)) && drafts.length === material.bundle.frames.length && drafts.every(completeFrame);
+  const valid = material && material.bundle.references.every(item => endorsed.includes(item.decisionId)) && drafts.length === material.bundle.frames.length && drafts.every(completeFrame);
   const submit = async () => {
     if (!material || !valid || command.current || readOnly) return;
     command.current = true;
     setBusy(true); setError("");
-    try { const result = await autopilotApi.handoff(projectId, { expectedRunRevision: material.runRevision, bundleHash: material.bundleHash, reviewer, notes, endorsedReferenceIds: endorsed,
+    try { const result = await autopilotApi.handoff(projectId, { expectedRunRevision: material.runRevision, bundleHash: material.bundleHash, ...(notes.trim() ? { notes } : {}), endorsedReferenceIds: endorsed,
       frames: material.bundle.frames.map((frame, index) => ({ shotId: frame.shotId, assetId: frame.assetId,
         intent: { role: "shot_keyframe", compositionIntent: drafts[index].direction.trim(), sourceRefs: drafts[index].sources.split(/\n/).map(value => value.trim()).filter(Boolean) },
         compatibilityNote: drafts[index].compatibility.trim(), comparisons: drafts[index].comparisons as SamePersonComparison[] })) });
@@ -42,7 +42,7 @@ export function MaterialReview({ projectId, readOnly = false, onClose, onAccepte
     finally { command.current = false; if (active.current) setBusy(false); }
   };
   return <dialog ref={dialog} className="autopilot-review-dialog" aria-labelledby="material-review-title" onCancel={event => { event.preventDefault(); if (!busy) onClose(); }}>
-    <header><div><h2 id="material-review-title">审阅完整素材</h2><p>检查当前故事、全部参考与所选首帧，写下实际观察。自动结果仍为 AI 初稿。</p></div><Button disabled={busy} onClick={onClose}>关闭审阅</Button></header>
+    <header><div><h2 id="material-review-title">审阅完整素材</h2><p>看看当前故事、参考图和每个镜头首帧，填写你实际看到的情况。自动准备的素材仍是 AI 初稿。</p></div><Button disabled={busy} onClick={onClose}>关闭审阅</Button></header>
     {!material && !error && <Spinner label="读取当前完整素材" />}
     {error && <p role="alert">{error}</p>}
     {material && <><p>{material.bundle.inventory.routeCount} 条完整路线 · {material.bundle.references.length} 项参考（{material.bundle.references.reduce((count, item) => count + item.assets.length, 0)} 张图片） · {material.bundle.frames.length} 个镜头首帧</p>
@@ -61,7 +61,7 @@ export function MaterialReview({ projectId, readOnly = false, onClose, onAccepte
           <figcaption>{index ? `补充参考 ${index}` : "主参考"}</figcaption>
           <DeliveryDisclosure projectId={projectId} value={disclosure(asset.assetId, asset.originalHash)} />
         </figure>)}</div>
-        <label><input type="checkbox" disabled={busy || readOnly} checked={endorsed.includes(reference.decisionId)} onChange={event => setEndorsed(value => event.target.checked ? [...value, reference.decisionId] : value.filter(id => id !== reference.decisionId))} />我已检查并采用 {reference.name}</label>
+        <label><input type="checkbox" disabled={busy || readOnly} checked={endorsed.includes(reference.decisionId)} onChange={event => setEndorsed(value => event.target.checked ? [...value, reference.decisionId] : value.filter(id => id !== reference.decisionId))} />我看过了，确认使用这些参考图 · {reference.name}</label>
       </article>)}</div>
       <h3>按场景审阅全部首帧</h3><p>人物不可辨认时，请记录原因并单独选择是否授权。失败或保留意见会阻止进入视频制作；无人镜头不需要身份通过记录。</p>
       {material.bundle.frames.map((frame, index) => <div key={frame.shotId}>
@@ -69,8 +69,8 @@ export function MaterialReview({ projectId, readOnly = false, onClose, onAccepte
         <FrameReview projectId={projectId} frame={frame} draft={drafts[index]} characters={material.bundle.story.characters} disabled={busy || readOnly} onChange={next => setDrafts(values => values.map((value, slot) => slot === index ? next : value))} />
         <DeliveryDisclosure projectId={projectId} value={disclosure(frame.assetId, frame.originalHash, frame.geometryPreparation)} />
       </div>)}
-      <div className="field-grid two"><Field required label="审阅人"><input value={reviewer} disabled={busy || readOnly} onChange={event => setReviewer(event.target.value)} /></Field><Field required label="整包审阅意见"><textarea value={notes} disabled={busy || readOnly} onChange={event => setNotes(event.target.value)} /></Field></div>
-      <footer><p>确认将记录人工素材审阅，并返回手动视频制作。视频参数、时长与供应商能力仍在制作时检查。</p><Button variant="primary" busy={busy} disabled={busy || readOnly || !valid} onClick={() => void submit()}>确认素材，进入视频制作</Button></footer>
+      <Field label="备注（可选）"><textarea value={notes} disabled={busy || readOnly} onChange={event => setNotes(event.target.value)} /></Field>
+      <footer><p>确认后会保存你的素材选择。之后可从工作台打开手动视频制作，设置参数并开始制作。</p><Button variant="primary" busy={busy} disabled={busy || readOnly || !valid} onClick={() => void submit()}>确认使用这些素材</Button></footer>
     </>}
   </dialog>;
 }

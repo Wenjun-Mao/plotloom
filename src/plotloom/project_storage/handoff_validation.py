@@ -1,13 +1,16 @@
 """Historical exact human evidence binding; current eligibility is a separate check."""
 import json
-from ..autopilot_handoff_contracts import HumanHandoffReceipt
+
+from ..autopilot_handoff_contracts import parse_handoff_receipt
+from ..canonical_schema import SceneBeatPlanV2, StoryBibleV2, StoryboardV2, StoryGraphV2
 from ..persistence.codec import stable_hash
-from ..persistence.project.autopilot_inventory_validation import assert_inventory_binding
-from ..canonical_schema import StoryboardV2, StoryGraphV2, SceneBeatPlanV2, StoryBibleV2
+from ..persistence.project.autopilot_inventory_validation import (
+    assert_inventory_binding,
+)
 
 
 def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw, digest, *, asset_home=None):
-    receipt = HumanHandoffReceipt.model_validate(raw)
+    receipt = parse_handoff_receipt(raw)
     if stable_hash(raw) != digest or (receipt.id, receipt.run_id, receipt.project_id, receipt.approval_id) != (identifier, run_id, project_id, approval_id):
         raise ValueError("human handoff identity changed")
     bundle = receipt.bundle.model_dump(mode="json", by_alias=True)
@@ -35,7 +38,7 @@ def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw,
     approval = connection.execute("SELECT project_id,entity_revision_id,decision,reviewer,note FROM v2_approval_decisions WHERE id=?", (approval_id,)).fetchone()
     if approval is None or approval[:3] != (project_id, receipt.bundle.inventory.entity_revision_id, "approve"):
         raise ValueError("human handoff approval changed")
-    if receipt.approval_origin == "created" and approval[3:] != (receipt.observation.reviewer, receipt.observation.notes):
+    if receipt.approval_origin == "created" and approval[3:] != (receipt.stored_reviewer, receipt.observation.notes):
         raise ValueError("new human approval attribution changed")
     references = receipt.bundle.references
     cast = connection.execute("SELECT consumer_mappings FROM v2_cast_revisions WHERE project_id=? AND revision=?", (project_id, receipt.bundle.inventory.cast_revision)).fetchone()
@@ -97,8 +100,10 @@ def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw,
         if frame.character_ids:
             review = connection.execute("SELECT project_id,binding_id,reviewer,notes,comparisons,reference_bindings FROM v2_same_person_reviews WHERE id=?", (fact.get("samePersonReviewId"),)).fetchone()
             comparisons = [item.model_dump(mode="json", by_alias=True, exclude_none=True) for item in observation.comparisons]
-            from ..persistence.project.media_same_person_reviews import SamePersonReviewPersistence
-            if review is None or review[:4] != (project_id, fact["bindingId"], receipt.observation.reviewer, observation.compatibility_note) or json.loads(review[4]) != comparisons or not SamePersonReviewPersistence.comparisons_authorize_production(comparisons):
+            from ..persistence.project.media_same_person_reviews import (
+                SamePersonReviewPersistence,
+            )
+            if review is None or review[:4] != (project_id, fact["bindingId"], receipt.stored_reviewer, observation.compatibility_note) or json.loads(review[4]) != comparisons or not SamePersonReviewPersistence.comparisons_authorize_production(comparisons):
                 raise ValueError("human identity observations changed")
             mapping = json.loads(review[5])
             if [item.get("characterId") for item in mapping] != frame.character_ids:

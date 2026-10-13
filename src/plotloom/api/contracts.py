@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import Field, field_validator, model_validator
+from ..human_confirmation_contracts import UnnamedCreatorConfirmation
 
 from ..domain import (
     STAGE_ORDER,
@@ -182,6 +183,7 @@ class ApprovalDecisionView(CamelModel):
     gate_set_version: str
     decision: Literal["approve", "revoke"]
     reviewer: str
+    attribution: UnnamedCreatorConfirmation | None = Field(default=None, exclude_if=lambda value: value is None)
     note: str | None
     created_at: datetime
 

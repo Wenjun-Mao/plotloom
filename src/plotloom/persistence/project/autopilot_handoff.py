@@ -1,12 +1,25 @@
 """One atomic human handoff using existing approval, intent and review owners."""
 from sqlalchemy import select
+
 from ...autopilot_contracts import CommandAuthority, OperationScope
-from ...autopilot_handoff_contracts import HumanHandoffRequest, HumanHandoffReceipt
+from ...autopilot_handoff_contracts import (
+    HumanHandoffReceipt,
+    HumanHandoffRequest,
+    parse_handoff_receipt,
+)
 from ...domain import new_id, utc_now
 from ...exceptions import InvalidTransitionError, RevisionConflictError
+from ...human_confirmation_contracts import UnnamedCreatorConfirmation
 from ...validation import STORYBOARD_GATE_SET_VERSION
 from ..codec import stable_hash
-from ..schema import AutopilotHandoffRow, VisualSelectionStateRow, SamePersonReviewStateRow, ReviewedShotBindingRow, SamePersonReviewRow, ApprovalDecisionRow
+from ..schema import (
+    ApprovalDecisionRow,
+    AutopilotHandoffRow,
+    ReviewedShotBindingRow,
+    SamePersonReviewRow,
+    SamePersonReviewStateRow,
+    VisualSelectionStateRow,
+)
 from .autopilot_closure import material_closure
 from .autopilot_review_bundle import current_review_bundle
 
@@ -21,6 +34,7 @@ def review_material(store):
 
 def record_handoff(store, request: HumanHandoffRequest):
     repository, project_id = store.repository, store.manifest.project_id
+    attribution = UnnamedCreatorConfirmation()
     # This authority is constructed only by this human endpoint; it never admits
     # machine scopes or relies on an expired controller claim after takeover.
     run = repository.autopilot.current(project_id)
@@ -64,7 +78,7 @@ def record_handoff(store, request: HumanHandoffRequest):
         else:
             approval = repository._approvals.decide_storyboard_approval(project_id,
                 expected_revision=inventory["storyboardRevision"], expected_content_hash=inventory["storyboardHash"],
-                decision="approve", reviewer=request.reviewer, gate_set_version=STORYBOARD_GATE_SET_VERSION, note=request.notes)
+                decision="approve", reviewer=attribution, gate_set_version=STORYBOARD_GATE_SET_VERSION, note=request.notes)
         facts = []
         intents = {}
         for observation, frame in zip(request.frames, expected, strict=True):
@@ -82,7 +96,7 @@ def record_handoff(store, request: HumanHandoffRequest):
             if observation.comparisons:
                 state = session.get(SamePersonReviewStateRow, project_id)
                 review = repository._media.same_person.record_same_person_review(project_id, binding_id=binding["id"],
-                    expected_review_revision=state.revision if state else 0, reviewer=request.reviewer,
+                    expected_review_revision=state.revision if state else 0, reviewer=attribution,
                     comparisons=[item.model_dump(mode="json", by_alias=True, exclude_none=True) for item in observation.comparisons],
                     notes=observation.compatibility_note)
                 if not review["productionEligible"]:
@@ -92,7 +106,7 @@ def record_handoff(store, request: HumanHandoffRequest):
         identifier = new_id()
         closure = material_closure(session, project_id)
         receipt = HumanHandoffReceipt(id=identifier, run_id=row.id, project_id=project_id, bundle_hash=request.bundle_hash,
-            bundle=bundle, observation=request, approval_id=approval.id, approval_origin=approval_origin, bindings=facts, material_closure=closure)
+            bundle=bundle, attribution=attribution, observation=request, approval_id=approval.id, approval_origin=approval_origin, bindings=facts, material_closure=closure)
         raw = receipt.model_dump(mode="json", by_alias=True)
         session.add(AutopilotHandoffRow(id=identifier, run_id=row.id, project_id=project_id, approval_id=approval.id,
             receipt=raw, receipt_hash=stable_hash(raw), created_at=utc_now()))
@@ -112,7 +126,7 @@ def handoff_is_current(session, repository, run):
     if (retained is None or retained.project_id != run.project_id or retained.run_id != run.id
             or retained.receipt_hash != stable_hash(retained.receipt) or retained.receipt_hash != pointer.get("receiptHash")):
         return False
-    receipt = HumanHandoffReceipt.model_validate(retained.receipt)
+    receipt = parse_handoff_receipt(retained.receipt)
     if receipt.material_closure != pointer.get("materialClosure") or receipt.material_closure != material_closure(session, run.project_id):
         return False
     for fact, frame in zip(receipt.bindings, receipt.bundle.frames, strict=True):
