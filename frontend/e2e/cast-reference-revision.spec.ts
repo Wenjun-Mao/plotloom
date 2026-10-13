@@ -16,7 +16,7 @@ test("revises a character using a retained image without reviving its old propos
   await gallery.getByLabel("想法").fill("Original hair design");
   const original = await prepareProposalFromBrowser(page, gallery, projectId, request, workbench.apiOrigin);
   const originalPackage = await sendProposalFromBrowser(page, projectId, original.id);
-  await writeProposalDelivery(originalPackage.deliveryPath, original, "original-revision-fixture", "original");
+  await writeProposalDelivery(originalPackage, original, "original-revision-fixture", "original");
   await getJson(request.post(`${endpoint}/character-reference-proposals/${original.id}/refresh`));
   await page.reload();
   await gallery.getByRole("button", { name: "选用当前图片" }).click();
@@ -70,7 +70,7 @@ test("revises a character using a retained image without reviving its old propos
   const frozenRequest = JSON.parse(await readFile(path.join(frozen.packagePath, "request.json"), "utf8"));
   expect(frozenRequest.frozenSnapshot.acceptedCast.revision).toBe(2);
   expect(frozenRequest.frozenSnapshot.characterContext.appearance).toContain("Compact low bun");
-  await writeProposalDelivery(frozen.deliveryPath, refinement, "refinement-revision-fixture", "refinement");
+  await writeProposalDelivery(frozen, refinement, "refinement-revision-fixture", "refinement");
   await getJson(request.post(`${endpoint}/character-reference-proposals/${refinement.id}/refresh`));
   await page.reload();
   expect((await proposal(request, workbench.apiOrigin, projectId, refinement.id)).current).toBe(true);

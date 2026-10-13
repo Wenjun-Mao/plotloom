@@ -40,7 +40,7 @@ test.describe("Characters delivery observation", () => {
         page.off("request", observePending);
       }
 
-      await writeProposalDelivery(packagePaths.deliveryPath, prepared, "f2b-partial-final", "original");
+      await writeProposalDelivery(packagePaths, prepared, "f2b-partial-final", "original");
       const admitted = await waitForAutomaticRefresh(page, projectId, prepared.id);
       expect(admitted.status()).toBe(200);
       expect(await admitted.json()).toMatchObject({ state: "accepted" });
@@ -62,7 +62,7 @@ test.describe("Characters delivery observation", () => {
     let terminallyReleased = false;
     try {
       const packagePaths = await sendProposalFromBrowser(page, projectId, prepared.id);
-      await writeProposalDelivery(packagePaths.deliveryPath, prepared, "f2b-final-invalid", "original");
+      await writeProposalDelivery(packagePaths, prepared, "f2b-final-invalid", "original");
       await makeProposalManifestInvalid(packagePaths.deliveryPath);
 
       const invalid = await waitForAutomaticRefresh(page, projectId, prepared.id);
@@ -85,7 +85,7 @@ test.describe("Characters delivery observation", () => {
         data: { reason: "Release the test-only native-dispatch lease after final-invalid evidence." },
       });
       expect(cancelled.ok(), await cancelled.text()).toBeTruthy();
-      await writeProposalDelivery(packagePaths.deliveryPath, prepared, "f2b-final-invalid-cleanup", "original");
+      await writeProposalDelivery(packagePaths, prepared, "f2b-final-invalid-cleanup", "original");
       const cleanup = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/character-reference-proposals/${prepared.id}/refresh`);
       expect(cleanup.ok(), await cleanup.text()).toBeTruthy();
       expect(await cleanup.json()).toMatchObject({ state: "inapplicable", candidates: [] });
@@ -105,7 +105,7 @@ test.describe("Characters delivery observation", () => {
     let terminallyReleased = false;
     try {
       const packagePaths = await sendProposalFromBrowser(page, projectId, prepared.id);
-      await writeProposalDelivery(packagePaths.deliveryPath, prepared, "f2b-final-partial", "original");
+      await writeProposalDelivery(packagePaths, prepared, "f2b-final-partial", "original");
       await makeProposalOutputSetPartial(packagePaths.deliveryPath);
 
       const invalid = await waitForAutomaticRefresh(page, projectId, prepared.id);
@@ -124,7 +124,7 @@ test.describe("Characters delivery observation", () => {
         data: { reason: "Release the test-only native-dispatch lease after final output-set evidence." },
       });
       expect(cancelled.ok(), await cancelled.text()).toBeTruthy();
-      await writeProposalDelivery(packagePaths.deliveryPath, prepared, "f2b-final-partial-cleanup", "original");
+      await writeProposalDelivery(packagePaths, prepared, "f2b-final-partial-cleanup", "original");
       const cleanup = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/character-reference-proposals/${prepared.id}/refresh`);
       expect(cleanup.ok(), await cleanup.text()).toBeTruthy();
       terminallyReleased = true;

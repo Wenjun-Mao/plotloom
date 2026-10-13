@@ -5,6 +5,7 @@ import path from "node:path";
 import { deflateSync } from "node:zlib";
 import { demoProject } from "../src/demo";
 import { styledCastFixture } from "./fixtures/cast-style";
+import { writeImageDeliveryFromPackage } from "./fixtures/image-delivery";
 import { expect } from "@playwright/test";
 
 export type Api = import("@playwright/test").APIRequestContext;
@@ -70,19 +71,17 @@ export async function createAcceptedArtProject(request: Api, apiOrigin: string, 
 export async function writeArtReferenceDelivery(response: import("@playwright/test").Response): Promise<void> {
   expect(response.ok(), await response.text()).toBeTruthy();
   const copied = await response.json() as { proposal: { id: string; requestHash: string }; packagePath: string; deliveryPath: string };
-  const request = JSON.parse(await readFile(path.join(copied.packagePath, "request.json"), "utf8"));
   const content = fixturePng();
-  const provenance = { codeRevision: "a".repeat(40), skillVersion: "plotloom-image-specialist.v3", skillHash: "b".repeat(64) };
-  await mkdir(path.join(copied.deliveryPath, "outputs"), { recursive: true });
-  await writeFile(path.join(copied.deliveryPath, "outputs", "study.png"), content);
-  await writeFile(path.join(copied.deliveryPath, "executor-pin.json"), JSON.stringify({ jobId: copied.proposal.id, requestHash: request.requestHash, executionContract: "codex_specialist.v2", ...provenance }));
-  await writeFile(path.join(copied.deliveryPath, "completion.json"), JSON.stringify({
-    schemaVersion: 2, jobId: copied.proposal.id, requestHash: request.requestHash, deliveryId: "f3b-browser-study",
-    actualPrompt: "Cinematic realism beacon room reference study, no people and no hands.",
-    outputs: [{ filename: "study.png", sha256: hash(content), role: "art_reference" }],
-    toolEvidence: { tool: "codex_imagegen", taskId: "f3b-browser-fixture", available: true }, executorProvenance: provenance,
-    limitations: ["Browser fixture; no creative approval."],
-  }));
+  await writeImageDeliveryFromPackage({
+    packagePath: copied.packagePath,
+    deliveryPath: copied.deliveryPath,
+    jobId: copied.proposal.id,
+    requestHash: copied.proposal.requestHash,
+    deliveryId: "f3b-browser-study",
+    actualPrompt: "Offline fixture only; no ImageGen prompt was submitted.",
+    outputs: [{ filename: "study.png", content, role: "art_reference" }],
+    limitations: ["Retained browser fixture; no ImageGen call or creative approval."],
+  });
 }
 
 export async function prepareFromBrowser(page: import("@playwright/test").Page, panel: import("@playwright/test").Locator, projectId: string): Promise<ArtPreparation> {

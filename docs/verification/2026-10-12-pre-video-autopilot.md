@@ -1826,6 +1826,72 @@ provider action, activation, merge, or push was performed for this repair. The
 failed full gate and its downstream release qualification remain with the
 manager; this receipt records only the bounded fixture/coverage repair evidence.
 
+### Browser delivery fixture identity repair (2026-10-13)
+
+The manager's qualification of source commit `d721bc682e8287163c11ac766b00111b71c52504`
+is preserved as failed: log
+`/tmp/plotloom-d721-qualification.pEznDx/qualification.log` (SHA-256
+`1259331147372bdb7a786684a18b901ad97dadd60b3702c58a2978ee959eb278`), exit 1.
+It reported 104 affected Python/ownership checks passed, deterministic build and
+checked parity passed, the unfiltered guard found 93 specs/318 cases, and E2E
+typecheck passed. The unfiltered browser run had **308 passed and 10 failed** in
+475.852 seconds. Wheel/package build-smoke was not reached. The manager's
+copied valued-readback evidence at
+`/tmp/plotloom-d721-qualification.pEznDx/copied-valued-readback.json` passed
+with 437 files, 28 frames, 5 references, revision 229, bundle and database
+readback; the original `c771` project remained unchanged. This is manager-owned
+evidence, not a reproduction or live operation in this source repair.
+
+The ten browser failures shared a stale test-writer contract. Current copied
+packages are v6 and freeze `p1.5-pin.v2` / `codex_specialist.v3` / specialist
+skill v4. Several Art, Cast and image-job writers still emitted old executor
+pins, skill v3 and schema-v2 `toolEvidence.taskId`; a package-version assertion
+also expected v5. The receiver correctly rejected those fixtures before the
+journey assertions. This affected Art F3B reference delivery, Cast revision,
+three Characters delivery-observation cases, three Cast reference-study cases,
+the main image-jobs journey, and expanded reference-gallery directions.
+
+The shared test-only writer in `frontend/e2e/fixtures/image-delivery.ts` now
+reads each frozen package request, checks package version, request identity,
+preflight and binding, uses the configured task UUID or a deterministic
+current-task fixture UUID, and writes a matching executor pin plus a schema-v3
+manifest with a distinct ImageGen execution ID. Retained image bytes and
+limitations are explicitly identified as offline fixtures with no ImageGen
+call. Art and Cast fixtures pass the exact returned package path; the duplicate
+Cast-studies writer now uses the shared Cast fixture. The image-job fixture uses
+the new writer for package v6 and keeps its pre-v6 offline projection intact.
+The package-version assertion now expects v6. Existing partial, invalid,
+cancellation, restart, reference-use and no-generation assertions were retained.
+The shared helper and its consumers are registered in native ownership.
+
+Scoped verification on the repaired candidate:
+
+- `npm --prefix frontend run typecheck:e2e` passed; the focused Playwright runner
+  also performed this check before its test bodies.
+- `uv run --locked --no-sync python scripts/verify.py focused --playwright`
+  with selectors `e2e/art-review.spec.ts`,
+  `e2e/cast-reference-revision.spec.ts`,
+  `e2e/cast-reference-delivery-observation.spec.ts`,
+  `e2e/cast-reference-studies.spec.ts`, `e2e/image-jobs.spec.ts`, and
+  `e2e/reference-gallery-layout.spec.ts` passed **26 tests** in 65.616 seconds.
+- `BROWSER_GREP='.*' node frontend/scripts/check_browser_shard_manifest.mjs`
+  verified 93 specs and 318 cases across shards 84/72/72/90, with zero overlap
+  or missing cases.
+- Focused module-ownership and retained-coverage inventory selectors passed
+  **8 tests**. Module browser planning for `media-lifecycle` and
+  `creative-production` included all six specs and the new shared helper;
+  planning did not run extra browser bodies. `git diff --check` passed.
+- Independent read-only review at requested GPT-6 Luna / Max found no
+  actionable issue. The review checked source and diff only; it ran no tests or
+  builds, inspected no UI/live/QA state, and could not verify effective
+  host settings.
+
+No product admission code, pins, skills, dependency, provider, live/QA artifact,
+or prior run state was changed. No full or equivalent broad qualification,
+deterministic build, wheel/package smoke, native operation, activation, merge or
+push was performed. The manager owns all subsequent release qualification and
+native/preservation work.
+
 ### Legacy image receipt reconciliation follow-up (2026-10-13)
 
 Manager review of the source checkpoint found that autopilot's late-receipt

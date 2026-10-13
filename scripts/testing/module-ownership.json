@@ -685,6 +685,17 @@
     },
     {
       "suite": "playwright",
+      "path": "frontend/e2e/fixtures/image-delivery.ts",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "story-authoring"
+      ]
+    },
+    {
+      "suite": "playwright",
       "path": "frontend/e2e/fixtures/creator-graph.ts",
       "kind": "shared-fixture-or-helper",
       "consumers": [

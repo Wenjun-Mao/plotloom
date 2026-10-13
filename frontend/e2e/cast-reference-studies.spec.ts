@@ -8,10 +8,9 @@ import { demoProject } from "../src/demo";
 import { expect, test } from "./fixture";
 import { expectInlineRequiredMark } from "./inline-required-mark";
 import { inspectLongProvenanceLayout } from "./provenance-layout";
-import { writeCastDelivery } from "./fixtures/cast-reference";
+import { writeCastDelivery, writeProposalDelivery } from "./fixtures/cast-reference";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const retainedStill = path.join(repositoryRoot, "docs/verification/supporting/p0-generated/01-arrival.png");
 // Persistent, repository-owned technical fixture: five distinct existing
 // screenshots, admitted only through the ordinary proposal/delivery flow.
 const comparisonFixtureStills = [
@@ -118,7 +117,7 @@ test.describe("F2B cast-owned reference studies", () => {
     await panel.getByLabel("想法").fill("Three-quarter study at the storm beacon window.");
     const original = await prepareProposalFromBrowser(page, panel, projectId, request, workbench.apiOrigin);
     const originalPackage = await copyProposalFromBrowser(page, projectId, original.id);
-    await writeProposalDelivery(originalPackage.deliveryPath, original, "f2b-original-browser", "original");
+    await writeProposalDelivery(originalPackage, original, "f2b-original-browser", "original");
     // Characters owns delivery observation. The fixture writes a complete
     // native-shaped delivery and the browser admits it without a manual
     // refresh or a selection side effect.
@@ -147,7 +146,7 @@ test.describe("F2B cast-owned reference studies", () => {
     const refinement = await prepareProposalFromBrowser(page, panel, projectId, request, workbench.apiOrigin);
     expect(refinement.parentCandidateAssetId).toBe(originalCandidate);
     const refinementPackage = await copyProposalFromBrowser(page, projectId, refinement.id);
-    await writeProposalDelivery(refinementPackage.deliveryPath, refinement, "f2b-refinement-browser", "refinement");
+    await writeProposalDelivery(refinementPackage, refinement, "f2b-refinement-browser", "refinement");
     await refreshProposalFromBrowser(page, projectId, refinement.id);
     await panel.getByRole("button", { name: /方案 · Keep the viewed identity.*缩略图/ }).click();
     await panel.getByRole("button", { name: "选用当前图片" }).click();
@@ -237,7 +236,7 @@ test.describe("F2B cast-owned reference studies", () => {
       await gallery.getByLabel("想法").fill(labels[index]!);
       const prepared = await prepareProposalFromBrowser(page, gallery, projectId, request, workbench.apiOrigin);
       const packagePaths = await copyProposalFromBrowser(page, projectId, prepared.id);
-      await writeProposalDelivery(packagePaths.deliveryPath, prepared, `comparison-five-${index}`, "original", comparisonFixtureStills[index]!);
+      await writeProposalDelivery(packagePaths, prepared, `comparison-five-${index}`, "original", comparisonFixtureStills[index]!);
       await refreshProposalFromBrowser(page, projectId, prepared.id);
     }
     await expect(gallery.getByLabel("已有图片").getByRole("button")).toHaveCount(5);
@@ -362,7 +361,7 @@ test.describe("F2B cast-owned reference studies", () => {
     await expect.poll(async () => (await proposal(request, workbench.apiOrigin, projectId, exported.id)).state).toBe("exported");
     await panel.getByRole("button", { name: "取消提案" }).first().click();
     await expect.poll(async () => (await proposal(request, workbench.apiOrigin, projectId, exported.id)).state).toBe("cancelled");
-    await writeProposalDelivery(exportedPackage.deliveryPath, exported, "f2b-cancelled-late", "original");
+    await writeProposalDelivery(exportedPackage, exported, "f2b-cancelled-late", "original");
     await getJson(request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/character-reference-proposals/${exported.id}/refresh`));
     const late = await proposal(request, workbench.apiOrigin, projectId, exported.id);
     expect(late.current).toBeFalsy();
@@ -676,22 +675,6 @@ async function proposal(request: Api, apiOrigin: string, projectId: string, prop
   const found = proposals.proposals.find((item) => item.id === proposalId);
   expect(found).toBeDefined();
   return found!;
-}
-
-async function writeProposalDelivery(deliveryPath: string, proposal: Proposal, deliveryId: string, role: "original" | "refinement", stillPath = retainedStill): Promise<void> {
-  const content = await readFile(stillPath);
-  await mkdir(path.join(deliveryPath, "outputs"), { recursive: true });
-  await writeFile(path.join(deliveryPath, "outputs", "candidate.png"), content);
-  const provenance = { codeRevision: "a".repeat(40), skillVersion: "plotloom-image-specialist.v3", skillHash: "b".repeat(64) };
-  await writeFile(path.join(deliveryPath, "executor-pin.json"), JSON.stringify({ jobId: proposal.id, requestHash: proposal.requestHash, executionContract: "codex_specialist.v2", ...provenance }));
-  await writeFile(path.join(deliveryPath, "completion.json"), JSON.stringify({
-    schemaVersion: 2, jobId: proposal.id, requestHash: proposal.requestHash, deliveryId,
-    actualPrompt: "Retained P0 image fixture for F2B browser regression; no ImageGen call was made.",
-    outputs: [{ filename: "candidate.png", sha256: hash(content), role }],
-    toolEvidence: { tool: "codex_imagegen", taskId: "f2b-retained-fixture", available: true },
-    executorProvenance: provenance,
-    limitations: ["Retained test-only raster fixture; no image was generated."],
-  }));
 }
 
 async function expectOnlySourceMapGraph(request: Api, apiOrigin: string, projectId: string): Promise<void> {

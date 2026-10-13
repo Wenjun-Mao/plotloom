@@ -76,7 +76,7 @@ test("keeps expanded frozen image directions inside the desktop gallery", async 
   await gallery.getByLabel("想法").fill(direction);
   const prepared = await prepareProposalFromBrowser(page, gallery, projectId, request, workbench.apiOrigin);
   const paths = await sendProposalFromBrowser(page, projectId, prepared.id);
-  await writeProposalDelivery(paths.deliveryPath, prepared, "long-frozen-direction-fixture", "original");
+  await writeProposalDelivery(paths, prepared, "long-frozen-direction-fixture", "original");
   await refreshProposalFromBrowser(page, projectId, prepared.id);
   const viewer = gallery.getByTestId("appearance-viewer");
   const details = viewer.locator("details");

@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { demoProject } from "../../src/demo";
 import { styledCastFixture } from "./cast-style";
+import { writeImageDeliveryFromPackage } from "./image-delivery";
 import { expect } from "../fixture";
 
 const repositoryRoot = path.resolve(
@@ -167,24 +168,22 @@ export async function proposal(
 }
 
 export async function writeProposalDelivery(
-  deliveryPath: string,
+  packagePaths: PackagePaths,
   proposal: Proposal,
   deliveryId: string,
   role: "original" | "refinement",
+  stillPath = retainedStill,
 ): Promise<void> {
-  const content = await readFile(retainedStill);
-  await mkdir(path.join(deliveryPath, "outputs"), { recursive: true });
-  await writeFile(path.join(deliveryPath, "outputs", "candidate.png"), content);
-  const provenance = { codeRevision: "a".repeat(40), skillVersion: "plotloom-image-specialist.v3", skillHash: "b".repeat(64) };
-  await writeFile(path.join(deliveryPath, "executor-pin.json"), JSON.stringify({ jobId: proposal.id, requestHash: proposal.requestHash, executionContract: "codex_specialist.v2", ...provenance }));
-  await writeFile(path.join(deliveryPath, "completion.json"), JSON.stringify({
-    schemaVersion: 2, jobId: proposal.id, requestHash: proposal.requestHash, deliveryId,
-    actualPrompt: "Retained P0 image fixture for F2B browser regression; no ImageGen call was made.",
-    outputs: [{ filename: "candidate.png", sha256: hash(content), role }],
-    toolEvidence: { tool: "codex_imagegen", taskId: "f2b-retained-fixture", available: true },
-    executorProvenance: provenance,
-    limitations: ["Retained test-only raster fixture; no image was generated."],
-  }));
+  const content = await readFile(stillPath);
+  await writeImageDeliveryFromPackage({
+    ...packagePaths,
+    jobId: proposal.id,
+    requestHash: proposal.requestHash,
+    deliveryId,
+    actualPrompt: "Offline retained fixture only; no ImageGen prompt was submitted.",
+    outputs: [{ filename: "candidate.png", content, role }],
+    limitations: ["Retained test-only raster fixture; no ImageGen call was made."],
+  });
 }
 
 export async function writeProposalPartialDelivery(deliveryPath: string): Promise<void> {

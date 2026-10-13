@@ -2,7 +2,9 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
 import { demoProject } from "../../src/demo";
+import { writeImageDeliveryFromPackage } from "../fixtures/image-delivery";
 import { expect } from "../fixture";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -160,6 +162,26 @@ export async function writeDelivery(
     .map((reference: { sha256: string }) => reference.sha256);
   const identityAware =
     packageRequest.packageVersion >= 3 && identityReferenceHashes.length > 0;
+  if (packageRequest.packageVersion >= 6) {
+    await writeImageDeliveryFromPackage({
+      packagePath,
+      deliveryPath,
+      jobId: job.id,
+      requestHash: job.requestHash,
+      deliveryId,
+      actualPrompt:
+        "Offline retained fixture only; no ImageGen prompt was submitted.",
+      outputs: [{ filename: "candidate.png", content, role }],
+      limitations: [
+        "Retained asset regression only; no ImageGen call was made.",
+      ],
+    });
+    return;
+  }
+
+  // Keep the historical fixture projection available for explicit package-v2
+  // through v5 offline cases. Current package-v6 deliveries use the frozen
+  // native binding and schema-v3 execution identity above.
   await mkdir(outputRoot, { recursive: true });
   await writeFile(path.join(outputRoot, "candidate.png"), content);
   await writeFile(
