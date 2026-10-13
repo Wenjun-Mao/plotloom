@@ -1,5 +1,13 @@
 # Plotloom roadmap entrypoint
 
+The owner approved and queued [parallel CLI workers for pre-video autopilot](2026-10-13-autopilot-cli-workers.md)
+through Relay Brainstorm and Plan, followed by Direct after the current UX
+repair, combined qualification/actual-path release work and first-pass Python
+speedup integration finish. This changes only future launches: durable CLI
+attempts, bounded within-domain concurrency and early dependency-ready
+references. The current valued run keeps its original executor. Implementation
+has not started; the queue must not bypass the preceding technical gates.
+
 The owner approved implementing [pre-video autopilot](2026-10-12-pre-video-autopilot.md):
 automatic first-pass text adoption and initial image/reference selections, then
 one human review before video work. Existing-app rollout follows isolated proof
