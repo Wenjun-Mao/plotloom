@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from ..art_contracts import ArtAcceptRequest, ArtCandidate, ArtReopenRequest, ArtReviewState, ArtSaveRequest
-from ..art_style import ArtRenderStyle
-from ..cast_style import CastRenderStyle
+from ..art_style import CandidateArtRenderStyle
+from ..cast_style import CandidateCastRenderStyle
 from ..cast_contracts import CastAcceptRequest, CastCancelReopenRequest, CastCandidate, CastReopenRequest, CastReviewState, CastSaveRequest
 from ..creative_handoff_contracts import CreativeHandoffRequest
 from ..creative_handoff_exchange import ValidatedCreativeDelivery
@@ -71,7 +71,7 @@ class ProjectCreativeStages(ProjectCreativeHandoffs):
     def cast_state(self) -> CastReviewState:
         return self.repository.cast.get_state(self.manifest.project_id)
 
-    def prepare_cast_candidate(self, job_id: str, *, render_style: CastRenderStyle) -> tuple[CastCandidate, CreativeHandoffRequest]:
+    def prepare_cast_candidate(self, job_id: str, *, render_style: CandidateCastRenderStyle) -> tuple[CastCandidate, CreativeHandoffRequest]:
         pin = self.creative_handoff_exchange().current_execution_pin("characters")
         return self.repository.cast.prepare_candidate(self.manifest.project_id, job_id, render_style=render_style, execution_pin=pin)
 
@@ -105,7 +105,7 @@ class ProjectCreativeStages(ProjectCreativeHandoffs):
     def art_state(self) -> ArtReviewState:
         return self.repository.art.get_state(self.manifest.project_id)
 
-    def prepare_art_candidate(self, job_id: str, *, render_style: ArtRenderStyle) -> tuple[ArtCandidate, CreativeHandoffRequest]:
+    def prepare_art_candidate(self, job_id: str, *, render_style: CandidateArtRenderStyle) -> tuple[ArtCandidate, CreativeHandoffRequest]:
         pin = self.creative_handoff_exchange().current_execution_pin("art")
         return self.repository.art.prepare_candidate(self.manifest.project_id, job_id, render_style=render_style, execution_pin=pin)
 

@@ -1388,3 +1388,79 @@ approval. Fresh saved Brief-only projects can start `一键准备视频素材`; 
 manual stories remain manual. Native97 stays an isolated review candidate. The
 separate85-percent Python-performance roadmap edit remains unstaged and outside
 this release; performance implementation has not started.
+
+# Owner-approved UX correction follow-up (implementation in isolated worktree)
+
+Approved outcomes: a post-save visible choice with zero implicit dispatch;
+Brief-authoritative visual direction for autopilot only; and compact, truthful
+run status that stays discoverable during navigation. Root causes and
+preservation boundary are recorded in the [roadmap](../roadmap/2026-10-12-pre-video-autopilot.md#owner-approved-ux-correction-follow-up--2026-10-12).
+
+Completed isolated evidence (2026-10-13):
+
+- `story-authoring` module contract: ownership preflight passed; 251 pytest and
+  268 Vitest cases passed; frontend typecheck passed. The broader unfiltered
+  frontend suite passed 1,374 tests, and both frontend and E2E typechecks
+  passed.
+- Focused Playwright runs passed 18 workflow/autopilot cases and two checked
+  static-bundle cases. Visual inspection covered 390x844 collapsed/expanded,
+  1280x460 compact, and 1700x900 expanded views. The global graph stylesheet
+  had imposed `min-width:1280px` on every route; removing that shell-wide rule
+  fixed the mobile Brief overflow. Mobile toolbar actions now scroll in one
+  row, while the workflow guide stays compact and exposes its next-step detail
+  inside the expanded guide.
+- Two deterministic builds produced matching sorted SHA-256 manifests, and
+  the generated bundle is included in this candidate. `git diff --check`
+  passed. The independent read-only review's P2 finding on stale selected
+  image counts after cancel/takeover was fixed and re-reviewed with no further
+  findings.
+- After that review, focused verification passed four geometry cases (retained
+  v2/current v3 policy assertion, current v3 derivative creation, and v3
+  geometry through review), 25 autopilot Vitest cases and all 18 relevant
+  browser cases. The unfiltered frontend suite was rerun: 1,374 tests passed;
+  frontend and E2E typechecks passed. Two fresh deterministic builds again
+  matched; checked-static smoke passed both cases. The isolated wheel build and
+  installed-wheel smoke also passed.
+- The scoped Python run emitted one non-failing Starlette `httpx` deprecation
+  warning. The Story-authoring module run took 20 minutes; this is module-scoped
+  evidence, not the full release gate. Hosted CI, full qualification, product
+  acceptance and activation remain manager-owned and are not claimed.
+
+Preservation incident: while this isolated work was in progress, the separate
+Python-speedup worker's `e9e67847` became `main` and `origin/main`. The
+production checkout was restored to detached `c771cdd6`; its HEAD and files
+were left untouched. This candidate remained based on the verified
+`c771cdd67eb8fd0925cdfe772c46ed85eeb51657`. The owner run resumed from r86 to
+r87 without resending its job; no Python-speedup files or changes were brought
+into this candidate.
+
+### Frozen Brief instruction repair (2026-10-13)
+
+A read-only review of the first saved-Brief receiving instructions found two
+contract defects: Cast was told to emit a Markdown file outside the exact
+candidate/report/completion inventory accepted by `CreativeHandoffExchange`,
+and a shared ownership sentence prohibited Cast from authoring its assigned
+candidate. The root cause was the instruction layer combining both stages'
+ownership and render outputs; downstream exchange validation correctly
+rejected the extra artifact. The v2 receiving contract now emits only the
+supported HTML report, names Cast and Art ownership separately, and explicitly
+keeps Art's accepted Cast input read-only. It still overrides only preset
+selection/defaults, preset bundles and preset-specific commands; pinned skill
+files and unrelated validator gates are unchanged.
+
+Focused validation passed 14 cases covering frozen commands, stage ownership,
+real upstream Cast/Art candidates, execution of the generated commands, exact
+three-file exchange inventory and `read_delivery` acceptance. Ruff checks for
+the changed Python modules passed. The isolated wheel build and installed-wheel
+smoke passed. Frontend, browser, static assets and full qualification were not
+rerun because this repair changes only Python instruction generation, tests and
+the ADR; their prior evidence above remains scoped to the unchanged inputs.
+`git diff --check` passed. An independent read-only review of this repair delta
+found no issues. The scoped repair delta is committed on the isolated candidate; see the task report for its revision.
+
+Retained visual evidence from the prior UX qualification is available at
+`/tmp/plotloom-final-visual-review/autopilot-review-long-bloc-f659e--narrow-and-short-viewports/long-blocker-1440x900.png`,
+`/tmp/plotloom-final-visual-review/autopilot-review-long-bloc-f659e--narrow-and-short-viewports/long-blocker-390x600.png`,
+and `frontend/test-results/recommended-workflow-guide-a5382-draft-navigation-protection/`
+(including the 1280x460, 1280x768, 1700x900 and 390x844 collapsed/expanded
+captures). Those artifacts are review evidence, not product-owner acceptance.

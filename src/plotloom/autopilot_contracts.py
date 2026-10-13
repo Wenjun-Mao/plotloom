@@ -15,7 +15,8 @@ from .domain import CamelModel, contains_secret_setting, contains_secret_value
 from .geometry_preparation_contracts import GeometryPolicy, GeometryPreparation
 from .geometry_preparation import geometry_policy
 
-POLICY_VERSION = "plotloom.pre-video.v2"
+POLICY_VERSION = "plotloom.pre-video.v3"
+PREVIOUS_POLICY_VERSION = "plotloom.pre-video.v2"
 HASH = r"^[a-f0-9]{64}$"
 RunState = Literal["running", "waiting", "paused", "cancelled", "stale", "blocked", "awaiting_review", "handed_off", "taken_over"]
 
@@ -40,10 +41,13 @@ class CommandAuthority:
 
 
 class LaunchPolicy(CamelModel):
-    version: Literal["plotloom.pre-video.v1", POLICY_VERSION] = POLICY_VERSION
+    version: Literal["plotloom.pre-video.v1", PREVIOUS_POLICY_VERSION, POLICY_VERSION] = POLICY_VERSION
     geometry_preparation: GeometryPolicy | None = Field(default_factory=geometry_policy, exclude_if=lambda value: value is None)
-    render_style: CastRenderStyle
-    art_render_style: ArtRenderStyle
+    # Older retained policies had no style-authority member. Keep omission
+    # stable when those rows are decoded and re-encoded.
+    style_authority: Literal["preset", "brief"] | None = Field(default="preset", exclude_if=lambda value: value is None)
+    render_style: CastRenderStyle | None = None
+    art_render_style: ArtRenderStyle | None = None
     max_images: int = Field(default=80, ge=1, le=256)
     max_jobs: int = Field(default=96, ge=9, le=288)
     image_width: int = Field(ge=64, le=4096)
@@ -56,14 +60,30 @@ class LaunchPolicy(CamelModel):
     @model_validator(mode="before")
     @classmethod
     def retained_policy(cls, value):
-        if isinstance(value, dict) and value.get("version") == "plotloom.pre-video.v1":
-            return {key: item for key, item in value.items() if key != "geometry_preparation"} | {"geometryPreparation": value.get("geometryPreparation", value.get("geometry_preparation"))}
+        if isinstance(value, dict):
+            value = dict(value)
+            if value.get("version") == POLICY_VERSION and "styleAuthority" not in value and "style_authority" not in value:
+                value["styleAuthority"] = "preset"
+            elif value.get("version") in {"plotloom.pre-video.v1", PREVIOUS_POLICY_VERSION} and "styleAuthority" not in value and "style_authority" not in value:
+                value["styleAuthority"] = None
+            if value.get("version") == "plotloom.pre-video.v1":
+                return {key: item for key, item in value.items() if key != "geometry_preparation"} | {"geometryPreparation": value.get("geometryPreparation", value.get("geometry_preparation"))}
         return value
+
+    @property
+    def effective_style_authority(self):
+        return self.style_authority or "preset"
 
     @model_validator(mode="after")
     def validate_frozen_authority(self):
-        if (self.version == POLICY_VERSION) != (self.geometry_preparation is not None):
-            raise ValueError("geometry preparation permission belongs only to policy v2")
+        if (self.version in {PREVIOUS_POLICY_VERSION, POLICY_VERSION}) != (self.geometry_preparation is not None):
+            raise ValueError("geometry preparation permission belongs only to policy v2 or v3")
+        if self.version != POLICY_VERSION and self.effective_style_authority != "preset":
+            raise ValueError("retained autopilot policies must keep their original preset authority")
+        if self.effective_style_authority == "brief" and (self.render_style is not None or self.art_render_style is not None):
+            raise ValueError("Brief style authority cannot carry independent render presets")
+        if self.effective_style_authority == "preset" and (self.render_style is None or self.art_render_style is None):
+            raise ValueError("preset style authority requires both frozen render styles")
         if set(self.specialist_bindings) != {"text", "image"} or len(set(self.specialist_bindings.values())) != 2:
             raise ValueError("two distinct native specialist bindings are required")
         payload = self.model_dump(mode="json", by_alias=True)
@@ -74,8 +94,9 @@ class LaunchPolicy(CamelModel):
 
 class LaunchRequest(CamelModel):
     expected_brief_revision: int = Field(ge=1)
-    render_style: CastRenderStyle
-    art_render_style: ArtRenderStyle
+    style_authority: Literal["preset", "brief"] = "preset"
+    render_style: CastRenderStyle | None = None
+    art_render_style: ArtRenderStyle | None = None
     max_images: int = Field(default=80, ge=1, le=256)
     max_jobs: int = Field(default=96, ge=9, le=288)
 

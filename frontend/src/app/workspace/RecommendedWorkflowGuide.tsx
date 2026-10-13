@@ -1,7 +1,7 @@
 import { Button } from "../../components";
 import type { RecommendedWorkflowModel, RecommendedWorkflowRoute } from "./recommendedWorkflow";
 import { useAutomaticGuidance } from "../../features/autopilot/guidance";
-import { useAdoptionLabel, useAutopilot } from "../../features/autopilot/AutopilotWorkspace";
+import { AutopilotProgress, useAdoptionLabel, useAutopilot } from "../../features/autopilot/AutopilotWorkspace";
 
 export function RecommendedWorkflowGuide({ model, actionDisabled, onNavigate }: {
   model: RecommendedWorkflowModel | null;
@@ -11,10 +11,11 @@ export function RecommendedWorkflowGuide({ model, actionDisabled, onNavigate }: 
   const automatic = useAutomaticGuidance();
   const owner = useAutopilot();
   const adoptionLabel = useAdoptionLabel();
-  if (!model) return null;
+  if (!model) return owner?.run || owner?.busy || owner?.error ? <section className="recommended-workflow-guide" aria-label="自动素材进度"><AutopilotProgress /></section> : null;
   const currentIndex = model.steps.findIndex(step => step.id === model.currentStep) + 1;
   const action = model.action;
   return <section className="recommended-workflow-guide" aria-label="推荐创作流程" data-testid="recommended-workflow">
+    <AutopilotProgress />
     <div className="recommended-workflow-compact">
       <div className="recommended-workflow-current">
         <strong><span className="recommended-workflow-mark" aria-hidden="true">
@@ -36,6 +37,7 @@ export function RecommendedWorkflowGuide({ model, actionDisabled, onNavigate }: 
           </ol>
           <p>推荐顺序：{model.steps.map(step => step.label).join(" → ")}。序号表示当前工作步骤，不是完成比例；创作与专业视图同属剧情图编辑，切换不会退回前一步。可返回前序工作或直接手工编辑；保存、确认与应用仍由现有页面负责。</p>
           <p>播放会在路线分歧处等待选择；静态报告只供阅读，不构成交互式播放。</p>
+          <p className="recommended-workflow-expanded-next"><strong>下一步建议：</strong>{automatic || model.nextText}</p>
         </div>
       </details>
     </div>

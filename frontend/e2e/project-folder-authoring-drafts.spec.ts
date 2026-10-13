@@ -1,11 +1,11 @@
-import { expect, test } from "./fixture";
+import { expect, saveBriefAndContinue, test } from "./fixture";
 import type { Page, Request, Response } from "@playwright/test";
 
 test.describe("project-folder authoring drafts", () => {
   test("autosaves project.sqlite3 drafts, preserves stale-tab conflict, explicitly saves canon, and recovers after restart", async ({ page, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开示例项目" }).click();
-    await page.getByRole("button", { name: "保存并继续到来源" }).click();
+    await saveBriefAndContinue(page);
     await expect(page).toHaveURL(/[?&]project=/);
     const savedProjectId = new URL(page.url()).searchParams.get("project")!;
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${savedProjectId}&stage=brief`);

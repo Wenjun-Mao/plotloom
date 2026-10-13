@@ -16,7 +16,6 @@ type BriefPageProps = {
   saving: boolean;
   readOnly?: boolean;
   onSave: (brief: ProjectBrief) => Promise<unknown>;
-  onSaveAndContinue: (brief: ProjectBrief) => Promise<void>;
   onContinueToSource?: () => void;
   onDraftChange?: (brief: ProjectBrief) => void;
   bible?: StoryBible;
@@ -36,7 +35,7 @@ const defaultWorkingTitle = "未命名故事";
  * The brief remains the canonical input. This page only composes its first two
  * canonical downstream stages into a review; it does not own proposal state.
  */
-export function BriefPage({ apiTextPipeline = null, value, hasSavedProject, saving, readOnly = false, onSave, onSaveAndContinue, onContinueToSource, onDraftChange, bible, graph, proposalRunning = false, proposalReady = true, storyboardRunning = false, onGenerateProposal, onGenerateStoryboard, onReviewStage, onContinueToPlanning }: BriefPageProps) {
+export function BriefPage({ apiTextPipeline = null, value, hasSavedProject, saving, readOnly = false, onSave, onContinueToSource, onDraftChange, bible, graph, proposalRunning = false, proposalReady = true, storyboardRunning = false, onGenerateProposal, onGenerateStoryboard, onReviewStage, onContinueToPlanning }: BriefPageProps) {
   const [draft, setDraft] = useState(value);
   const graphOwner = useContext(GraphWorkbenchContext);
   const [targetPreview, setTargetPreview] = useState<ProjectBrief | null>(null);
@@ -51,9 +50,10 @@ export function BriefPage({ apiTextPipeline = null, value, hasSavedProject, savi
   });
   const numeric = <K extends keyof ProjectBrief>(key: K, raw: string) => set(key, Number(raw) as ProjectBrief[K]);
   const canonicalDraft = (): ProjectBrief => ({ ...draft, title: draft.title.trim() || defaultWorkingTitle });
+  const savedVisualDirection = [...(value.visualStyleSelections || []).map(item => item.value), ...(value.visualStyle ? [value.visualStyle] : [])].join("；") || null;
   const validDuration = Number.isInteger(draft.targetPlaythroughSeconds) && draft.targetPlaythroughSeconds >= 3;
   const canSave = !readOnly && !saving && Boolean(draft.synopsis.trim()) && validDuration;
-  const saveHint = readOnly ? "项目当前只读，无法保存修改。" : saving ? "正在保存，请稍候。" : !draft.synopsis.trim() ? "填写故事梗概后即可保存；片名可稍后补充。" : !validDuration ? "目标游玩时长需填写至少 3 秒的整数。" : hasSavedProject ? "保存修改不会覆盖已确认的来源内容。" : "保存后进入来源与大纲，继续完善故事内容。";
+  const saveHint = readOnly ? "项目当前只读，无法保存修改。" : saving ? "正在保存，请稍候。" : !draft.synopsis.trim() ? "填写故事梗概后即可保存；片名可稍后补充。" : !validDuration ? "目标游玩时长需填写至少 3 秒的整数。" : hasSavedProject ? "保存修改不会覆盖已确认的来源内容。" : "保存后可选择自动准备素材，或继续手动创作；保存本身不会启动任务。";
   const hasProposal = Boolean(bible?.logline && graph?.nodes.length);
   const decisions = graph?.nodes.filter((node) => node.kind === "decision") || [];
   const endings = graph?.nodes.filter((node) => node.kind === "ending") || [];
@@ -65,12 +65,13 @@ export function BriefPage({ apiTextPipeline = null, value, hasSavedProject, savi
     <PageHeader title="项目简报" description={hasSavedProject ? "修改项目的创作目标；保存后留在本页，已有来源不会被覆盖。" : "先写一个梗概，再进入来源与大纲。保存不会自动生成或确认故事内容。"} actions={<div className="page-action-group">
       {hasSavedProject
         ? <Button variant="primary" busy={saving} disabled={!canSave} aria-describedby="brief-save-hint" onClick={requestSave}>{saving ? "保存中…" : "保存修改"}</Button>
-        : <Button variant="primary" busy={saving} disabled={!canSave} aria-describedby="brief-save-hint" onClick={() => void onSaveAndContinue(canonicalDraft())}>{saving ? "保存中…" : "保存并继续到来源"}</Button>}
+        : <Button variant="primary" busy={saving} disabled={!canSave} aria-describedby="brief-save-hint" onClick={requestSave}>{saving ? "保存中…" : "保存项目简报"}</Button>}
       <p id="brief-save-hint" className="action-prerequisite">{saveHint}</p>
       {hasSavedProject && onContinueToSource && <Button variant="quiet" disabled={saving} onClick={onContinueToSource}>返回来源与大纲</Button>}
     </div>} />
     <StageGuide title={hasSavedProject ? "修改当前项目的创作设置" : "从故事想法开始"}>{hasSavedProject ? "修改结构后，已保存的分支及后续内容需要重新检查；旧内容与媒体仍保留。新任务必须使用当前设置，不会自动重建或替换现有制作内容。故事来源正文独立保存，不会随简报梗概的修改而改变。" : "写清主角、处境和观众要做的选择。剧情结构与分镜设置可保留默认值，后续仍可调整。"}</StageGuide>
-    <AutopilotLaunch saved={hasSavedProject} dirty={JSON.stringify(canonicalDraft()) !== JSON.stringify(value)} disabled={readOnly || saving} />
+    <AutopilotLaunch saved={hasSavedProject} dirty={JSON.stringify(canonicalDraft()) !== JSON.stringify(value)} disabled={readOnly || saving}
+      visualDirection={savedVisualDirection} onContinueManually={onContinueToSource} />
     <div className="two-column wide-left brief-layout">
       <Panel className="form-card">
         <div className="section-title"><strong>故事想法</strong><p className="required-legend">* 为必填项；其他信息可稍后完善。</p></div>
@@ -107,7 +108,7 @@ export function BriefPage({ apiTextPipeline = null, value, hasSavedProject, savi
       </div>
     </div>
     {apiTextPipeline !== true && <p role="note">{apiTextPipelineMessage(apiTextPipeline)}</p>}
-    {apiTextPipeline === true && onGenerateProposal && <Panel className="brief-alternate-workflow"><details><summary>其他工作流：旧版故事提案</summary><p>{hasSavedProject ? "直接从简报生成故事设定与分支图。通常请从左侧“来源与大纲”开始，逐步审阅并确认。" : "直接从简报生成故事设定与分支图。通常请先使用上方“保存并继续到来源”，逐步审阅并确认。"}</p><Button variant="quiet" busy={proposalRunning} disabled={!canSave || proposalRunning} onClick={() => void onGenerateProposal(canonicalDraft())}>{proposalRunning ? "正在生成提案…" : "生成故事提案"}</Button>{!canSave && <p className="action-prerequisite">{saveHint}</p>}</details></Panel>}
+    {apiTextPipeline === true && onGenerateProposal && <Panel className="brief-alternate-workflow"><details><summary>其他工作流：旧版故事提案</summary><p>{hasSavedProject ? "直接从简报生成故事设定与分支图。通常请从左侧“来源与大纲”开始，逐步审阅并确认。" : "直接从简报生成故事设定与分支图。建议先保存简报，再选择继续手动创作，逐步审阅并确认。"}</p><Button variant="quiet" busy={proposalRunning} disabled={!canSave || proposalRunning} onClick={() => void onGenerateProposal(canonicalDraft())}>{proposalRunning ? "正在生成提案…" : "生成故事提案"}</Button>{!canSave && <p className="action-prerequisite">{saveHint}</p>}</details></Panel>}
     {hasProposal && bible && graph && <div className="stack proposal-review" data-testid="story-proposal-review">
       <Panel>
         <div className="section-title"><span>故事设定与分支图</span><strong>{bible.logline}</strong></div>

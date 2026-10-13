@@ -1,4 +1,3 @@
-.app-shell { min-width: 1280px; }
 .sidebar { overflow-y: auto; scrollbar-width: thin; }
 .sidebar > * { flex-shrink: 0; }
 .sidebar .creator-workflow-navigation { flex: 1 0 auto; min-height: 190px; overflow: visible; }

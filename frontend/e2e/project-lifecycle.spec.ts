@@ -2,7 +2,7 @@ import type { Locator, Page, Route, TestInfo } from "@playwright/test";
 import path from "node:path";
 import { readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { expect, test } from "./fixture";
+import { expect, saveBriefAndContinue, test } from "./fixture";
 import { navigateToSecondaryTool, openMediaPreparation } from "./workbench-controls";
 
 const retainedStill = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../docs/verification/supporting/p0-generated/01-arrival.png");
@@ -331,7 +331,7 @@ async function saveBrief(page: Page): Promise<string> {
     const request = response.request();
     return request.method() === "POST" && new URL(request.url()).pathname === "/api/v2/projects";
   });
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   expect((await creation).ok()).toBeTruthy();
   await expect.poll(() => projectIdFromPage(page)).not.toBe("");
   await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();

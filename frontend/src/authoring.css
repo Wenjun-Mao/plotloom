@@ -193,6 +193,8 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
   .sidebar nav button { flex: 0 0 150px; }
   .project-switcher, .sidebar-footer { display: none; }
   .topbar { top: 0; padding-inline: 12px; }
+  .topbar-actions { flex-wrap: nowrap; justify-content: flex-start; max-width: 100%; overflow-x: auto; }
+  .topbar-actions > * { flex: 0 0 auto; }
   .page { padding: 18px 12px 34px; }
   .page-header { display: block; }
   .workspace-technical-details { margin-inline: 12px; }

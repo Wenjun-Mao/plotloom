@@ -70,6 +70,7 @@
 .recommended-workflow-expanded li strong { font-size: 11px; }
 .recommended-workflow-expanded li[aria-current="step"] strong { color: var(--accent-2); }
 .recommended-workflow-expanded p { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.recommended-workflow-expanded-next { display: none; }
 .recommended-workflow-next { align-items: center; margin-top: 4px; }
 .recommended-workflow-status { margin: 4px 0 0; color: var(--text); font-size: 12px; line-height: 1.45; }
 .recommended-workflow-status strong { color: var(--accent-2); }
@@ -82,7 +83,16 @@
 }
 
 @media (max-width: 640px) {
-  .recommended-workflow-guide { padding-inline: 12px; }
+  .recommended-workflow-guide { top: 61px; }
+  .recommended-workflow-guide { padding: 4px 8px; }
+  .recommended-workflow-compact { gap: 6px; }
+  .recommended-workflow-current > strong { gap: 4px; font-size: 10px; }
+  .recommended-workflow-mark { width: 20px; height: 20px; }
+  .recommended-workflow-stage { padding-inline: 5px; font-size: 10px; }
+  .recommended-workflow-details > summary { min-height: 26px; padding: 3px 6px; font-size: 11px; }
   .recommended-workflow-next { align-items: flex-start; flex-wrap: wrap; }
+  .recommended-workflow-next p { display: none; }
+  .recommended-workflow-expanded-next { display: block; }
+  .recommended-workflow-next .button { min-height: 26px; padding: 3px 6px; font-size: 11px; }
   .recommended-workflow-expanded ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

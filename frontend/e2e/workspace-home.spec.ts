@@ -1,4 +1,4 @@
-import { expect, test } from "./fixture";
+import { expect, saveBriefAndContinue, test } from "./fixture";
 import type { ProjectListResponse } from "../src/types";
 
 for (const start of ["创建空白项目", "打开示例项目"]) {
@@ -37,7 +37,7 @@ test("Home protects an unsaved blank Brief with Cancel and explicit Save", async
 test("Home retains durable Brief drafts, lifecycle and saved-project history", async ({ page, request, workbench }) => {
   await page.goto(`${workbench.frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "打开示例项目", exact: true }).click();
-  await page.getByRole("button", { name: "保存并继续到来源", exact: true }).click();
+  await saveBriefAndContinue(page);
   await expect(page).toHaveURL(/[?&]project=/);
   const id = new URL(page.url()).searchParams.get("project")!;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=brief`);
@@ -66,7 +66,7 @@ test("Home retains durable Brief drafts, lifecycle and saved-project history", a
 test("Home retains unconfirmed source input for explicit recovery", async ({ page, request, workbench }) => {
   await page.goto(`${workbench.frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "打开示例项目", exact: true }).click();
-  await page.getByRole("button", { name: "保存并继续到来源", exact: true }).click();
+  await saveBriefAndContinue(page);
   await expect(page.getByLabel("故事内容")).toBeEditable();
   const id = new URL(page.url()).searchParams.get("project")!;
   await page.getByLabel("故事内容").fill("尚未确认的故事内容，先回首页，稍后继续。");

@@ -41,9 +41,36 @@ def mismatch(*, context):
     return (941, 1672) if "shot" in context["request"]["frozenSnapshot"] else None
 
 
+@pytest.mark.parametrize("version", ["plotloom.pre-video.v2", "plotloom.pre-video.v3"])
+def test_geometry_policy_assertion_accepts_retained_v2_and_current_v3(version):
+    from types import SimpleNamespace
+    from plotloom.geometry_preparation import geometry_policy
+    from plotloom.persistence.codec import stable_hash
+    from plotloom.persistence.project.image_source_lineage import geometry_policy_matches
+
+    geometry = geometry_policy()
+    policy = {"version": version, "geometryPreparation": geometry.model_dump(mode="json", by_alias=True),
+        "imageWidth": 720, "imageHeight": 1280}
+    if version == "plotloom.pre-video.v2":
+        policy.update(renderStyle="realistic", artRenderStyle="realistic")
+    else:
+        policy["styleAuthority"] = "brief"
+    frozen_bytes = dict(policy)
+    policy_hash = stable_hash(policy)
+    record = SimpleNamespace(policy_hash=policy_hash,
+        recipe=SimpleNamespace(version=geometry.recipe_version, target_width=720, target_height=1280),
+        runtime=geometry.runtime)
+
+    assert geometry_policy_matches(policy, record, policy_hash)
+    assert policy == frozen_bytes
+    policy["imageWidth"] = 1024
+    assert not geometry_policy_matches(policy, record, policy_hash)
+
+
 def test_geometry_derivative_retains_original_and_no_native_job_increment(tmp_path, monkeypatch):
     storage, registry, service, view, calls, _ = image_environment(tmp_path, monkeypatch, geometry=mismatch, brief=FIXED_CHINESE_BRIEF.model_copy(update={"aspect_ratio": "9:16", "decision_points_per_path": 1, "ending_count": 2, "desired_join_count": 0}))
     try:
+        assert view.policy.version == "plotloom.pre-video.v3"
         result = first_geometry_frame(storage, service, view)
         frame = result.frames[0]; record = frame.geometry_preparation
         assert record and (frame.width, frame.height) == (720, 1280)

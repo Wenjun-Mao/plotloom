@@ -8,6 +8,11 @@ attempts, bounded within-domain concurrency and early dependency-ready
 references. The current valued run keeps its original executor. Implementation
 has not started; the queue must not bypass the preceding technical gates.
 
+The owner-approved [autopilot UX correction follow-up](2026-10-12-pre-video-autopilot.md#owner-approved-ux-correction-follow-up--2026-10-12)
+adds a deliberate post-save choice, Brief-authoritative autopilot style and
+persistent truthful run progress. Its source and release evidence is tracked in
+the existing [autopilot receipt](../verification/2026-10-12-pre-video-autopilot.md).
+
 The owner approved implementing [pre-video autopilot](2026-10-12-pre-video-autopilot.md):
 automatic first-pass text adoption and initial image/reference selections, then
 one human review before video work. Existing-app rollout follows isolated proof

@@ -1,4 +1,4 @@
-import { expect, test } from "./fixture";
+import { expect, saveBriefAndContinue, test } from "./fixture";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -6,7 +6,7 @@ test("first cancelled outline explicitly prepares again with unchanged source an
   await page.goto(`${workbench.frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "创建空白项目" }).click();
   await page.getByLabel("故事梗概").fill("Offline fixture: keep or release a paper plane.");
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   await page.getByRole("button", { name: "确认改编内容" }).click();
   await expect(page.getByText("改编内容 r1", { exact: true })).toBeVisible();
   const id = new URL(page.url()).searchParams.get("project")!;
@@ -32,7 +32,7 @@ test("first cancelled outline explicitly prepares again with unchanged source an
 test("temporary draft authority failure allows read-only export, retry and exact restore", async ({ page, request, workbench }) => {
   await page.goto(`${workbench.frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "打开示例项目" }).click();
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   await expect(page).toHaveURL(/[?&]project=/);
   const id = new URL(page.url()).searchParams.get("project")!;
   const authority = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}`)).json();
@@ -65,7 +65,7 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1280, height: 768
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开示例项目" }).click();
     await page.getByLabel("片名", { exact: true }).fill("Disposable conflict visual audit");
-    await page.getByRole("button", { name: "保存并继续到来源" }).click();
+    await saveBriefAndContinue(page);
     await expect(page).toHaveURL(/[?&]project=/);
     const id = new URL(page.url()).searchParams.get("project")!;
     const url = `${workbench.frontendOrigin}/v2/?project=${id}&stage=brief`;
@@ -146,7 +146,7 @@ test("unsafe conflict discard removes only the selected retained input without r
   await page.setViewportSize({ width: 1280, height: 460 });
   await page.goto(`${workbench.frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "打开示例项目" }).click();
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   await expect(page).toHaveURL(/[?&]project=/);
   const id = new URL(page.url()).searchParams.get("project")!;
   const endpoint = `${workbench.apiOrigin}/api/v2/projects/${id}`;

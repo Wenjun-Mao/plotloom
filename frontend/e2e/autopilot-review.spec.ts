@@ -42,14 +42,14 @@ test.beforeEach(async ({ page }) => {
 
 test("one saved-Brief Start freezes explicit styles and ceilings without videos", async ({ page, frontendOrigin }) => {
   await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html?state=fresh`);
-  await page.getByRole("button", { name: "一键准备视频素材", exact: true }).click();
+  await page.getByRole("button", { name: "自动准备素材", exact: true }).click();
   await expect(page.getByText("文字助手：文字测试助手", { exact: false })).toBeVisible();
-  await page.getByLabel("角色与美术图像风格").selectOption("realistic");
+  await expect(page.getByText("2D 动画；水彩；低饱和", { exact: true })).toBeVisible();
   await page.getByLabel("最多图片数").fill("40"); await page.getByLabel("最多任务数").fill("56");
   await page.getByRole("button", { name: "开始准备已保存简报的素材" }).click();
   await expect(page.getByRole("button", { name: "暂停", exact: true })).toBeVisible();
   const writes = JSON.parse(await page.locator("#fixture-writes").textContent() || "[]");
-  expect(writes).toEqual([["start", { renderStyle: "realistic", artRenderStyle: "realistic", maxImages: 40, maxJobs: 56, expectedBriefRevision: 1 }]]);
+  expect(writes).toEqual([["start", { styleAuthority: "brief", maxImages: 40, maxJobs: 56, expectedBriefRevision: 1 }]]);
 });
 
 test("pause and resume use original run controls; takeover retains review entrance", async ({ page, frontendOrigin }) => {
@@ -65,7 +65,7 @@ test("pause and resume use original run controls; takeover retains review entran
 test("fresh Start observes same-project server progress through review without navigation", async ({ page, frontendOrigin }) => {
   await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html?state=fresh-progress`);
   const originalUrl = page.url();
-  await page.getByRole("button", { name: "一键准备视频素材", exact: true }).click();
+  await page.getByRole("button", { name: "自动准备素材", exact: true }).click();
   await page.getByRole("button", { name: "开始准备已保存简报的素材" }).click();
   await expect(page.getByText("故事大纲", { exact: true })).toBeVisible();
   await expect(page.getByText("参考图片", { exact: true })).toBeVisible();
@@ -77,10 +77,32 @@ test("fresh Start observes same-project server progress through review without n
 
 test("transient progress read failure retries original observation without dispatch", async ({ page, frontendOrigin }) => {
   await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html?state=running-retry`);
+  const status = page.locator(".autopilot-progress");
+  await expect(status).toContainText("文字 1/8");
   await expect(page.getByText("Disposable transient read failure", { exact: false })).toBeVisible();
+  await expect(status).not.toContainText("文字 1/8");
+  await expect(status).not.toContainText("图片 0/2");
   await expect(page.getByRole("button", { name: "审阅完整素材", exact: true })).toBeVisible();
   await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(status).toContainText("文字 1/8", { timeout: 7000 });
   expect(await page.locator("#fixture-writes").textContent()).toBe("[]");
+});
+
+test("long blocker remains readable at desktop, narrow and short viewports", async ({ page, frontendOrigin }, info) => {
+  for (const size of [{ width: 1440, height: 900 }, { width: 390, height: 844 }, { width: 390, height: 600 }]) {
+    await page.setViewportSize(size);
+    await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html?state=blocked-long`);
+    const status = page.locator(".autopilot-progress");
+    await expect(status).toContainText("需要处理");
+    await expect(status).toContainText("active workflow revision");
+    const layout = await page.evaluate(() => ({ viewportWidth: innerWidth, documentWidth: document.documentElement.scrollWidth,
+      statusWidth: document.querySelector(".autopilot-progress")!.getBoundingClientRect().width,
+      statusHeight: document.querySelector(".autopilot-progress")!.getBoundingClientRect().height }));
+    expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+    expect(layout.statusWidth).toBeLessThanOrEqual(layout.viewportWidth);
+    expect(layout.statusHeight).toBeGreaterThan(45);
+    await page.screenshot({ path: info.outputPath(`long-blocker-${size.width}x${size.height}.png`) });
+  }
 });
 
 for (const outcome of ["normal", "handoff-unknown", "handoff-uncommitted"]) test(outcome === "normal" ? "whole review requires real observations and separate uncertain identity authorization" : outcome === "handoff-unknown" ? "lost handoff acknowledgment reconciles durable result without resending confirmation" : "uncommitted handoff retains authored observations through failed read reconciliation", async ({ page, frontendOrigin }, testInfo) => {

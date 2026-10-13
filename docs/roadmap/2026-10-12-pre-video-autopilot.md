@@ -1,5 +1,32 @@
 # Pre-video autopilot · implementation plan
 
+## Owner-approved UX correction follow-up · 2026-10-12
+
+Approved scope: (1) after the canonical first Brief save, offer the visible
+choice between preparing materials and continuing manually, with neither save
+nor navigation dispatching; make Brief-only saved projects easy to relaunch;
+(2) make the exact saved Brief visual selections and free text authoritative
+for autopilot Cast, Art and image directions, while retaining the existing
+manual three-preset contract; (3) show truthful, compact execution progress
+at the launch viewport and while navigating, without interrupting a run.
+
+Root causes: first-save navigates to Source before the launch component can be
+used; autopilot requires an unrelated three-choice image style and downstream
+contracts may contradict Brief; run status is rendered before the sticky guide
+and scrolls out of view. This follow-up changes owner/save navigation,
+autopilot launch/policy and new style authority. It must not change frozen
+manual adapters or skill bytes because existing candidate currentness and run
+execution pins bind them. New Brief-specific adapter and pin identity are the
+working design; old runs/policies/artifacts remain byte-verifiable evidence.
+
+Evidence: owner-approved task brief in the implementation thread; inspected
+baseline is `c771cdd67eb8fd0925cdfe772c46ed85eeb51657`, identical to the
+required deployed base. Exclusions: valued project/service/browser/runtime
+operations, dispatch, generation, activation, merge/push, and the separate
+Python-speedup worker's files or qualification. Stop at a reviewed isolated
+commit and report exact scoped evidence; manager owns final full qualification
+and any later activation.
+
 Status: implemented, locally qualified and activated in the existing app on
 2026-10-12 (Toronto), executable checkpoint `b6f0525d`. P0–P5 technical delivery
 is complete; owner creative acceptance remains separate and hosted CI was not

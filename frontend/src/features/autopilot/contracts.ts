@@ -7,12 +7,12 @@ export type AutopilotRun = {
   state: "running" | "waiting" | "paused" | "blocked" | "cancelled" | "stale" | "taken_over" | "awaiting_review" | "handed_off";
   frames?: Array<{ shotId: string; geometryPreparation?: GeometryPreparation }>;
   phase: string; blocker: { code: string; message: string } | null;
-  policy: { version?: string; geometryPreparation?: { recipeVersion: string }; renderStyle: ArtRenderStyle; artRenderStyle: ArtRenderStyle; maxImages: number; maxJobs: number };
+  policy: { version?: string; geometryPreparation?: { recipeVersion: string }; styleAuthority?: "preset" | "brief"; renderStyle?: ArtRenderStyle | null; artRenderStyle?: ArtRenderStyle | null; maxImages: number; maxJobs: number };
   checkpoints: Array<{ operationKey: string; state: string; evidence: { owner: string; jobId?: string; result: Record<string, unknown> } }>;
-  bundle: { inventory: { subjects: Array<{ owner: string }> }; frames: unknown[]; references: unknown[] } | null;
+  bundle: { inventory: { subjects: Array<{ owner: string; id: string; subjectType?: "scene" | "prop" | null }> }; frames: unknown[]; references: unknown[] } | null;
   handoff: { receiptId: string } | null;
 };
-export type Launch = { expectedBriefRevision: number; renderStyle: ArtRenderStyle; artRenderStyle: ArtRenderStyle; maxImages: number; maxJobs: number };
+export type Launch = { expectedBriefRevision: number; styleAuthority: "brief" | "preset"; renderStyle?: ArtRenderStyle; artRenderStyle?: ArtRenderStyle; maxImages: number; maxJobs: number };
 export type ReviewFrame = { geometryPreparation?: GeometryPreparation; shotId: string; sceneId: string; title: string; sceneName: string; direction: string; assetId: string; originalHash: string; description: string; characterIds: string[]; origin: string };
 export type ReviewReference = { owner: string; subjectId: string; name: string; decisionId: string; assetId: string;
   assets: Array<{ assetId: string; originalHash: string; width: number; height: number }> };

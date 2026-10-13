@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
+from plotloom.autopilot_brief_style import BRIEF_STYLE, BRIEF_STYLE_LABEL
 from plotloom.art_contracts import (
     ArtAcceptRequest,
     ArtReopenRequest,
@@ -25,6 +26,7 @@ from tests.art_delivery_fixtures import (
 )
 from tests.creative_delivery_fixtures import (
     _prepare_art_context,
+    run_brief_instruction_delivery,
 )
 
 
@@ -48,6 +50,9 @@ def test_art_accept_reopen_cancel_and_currentness(tmp_path: Path) -> None:
             "art-style-contract.json",
         }
         assert "F3B" in request.creative_brief
+        assert "EXPLICIT SAVED-BRIEF RECEIVING-CONTRACT OVERRIDE" not in request.creative_brief
+        assert "The author-selected art-style-contract.json owns render style" in request.creative_brief
+        assert "scripts/art-style.mjs" in request.creative_brief
         assert "art_publication_active" in close_blockers(store)
         client = TestClient(create_project_folder_authoring_app(storage))
         recovered = client.get(
@@ -85,6 +90,44 @@ def test_art_accept_reopen_cancel_and_currentness(tmp_path: Path) -> None:
         with pytest.raises(NotFoundError, match="unavailable"):
             store.art_candidate_request(prepared.job_id)
         assert store.art_state().status == "accepted"
+    finally:
+        store.close()
+
+
+def test_saved_brief_art_request_overrides_pinned_preset_routing(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    try:
+        _prepare_art_context(store)
+        candidate, request = store.prepare_art_candidate(
+            "ch_" + "m" * 32, render_style="brief"
+        )
+        instructions = request.creative_brief
+        assert candidate.binding.render_contract["authority"] == "saved_brief"
+        assert "EXPLICIT SAVED-BRIEF RECEIVING-CONTRACT OVERRIDE" in instructions
+        assert "take precedence over conflicting preset-specific requirements" in instructions
+        assert "node scripts/brief-art-style.mjs validate" in instructions
+        assert "node scripts/brief-art-style.mjs render" in instructions
+        assert "node scripts/novel-art.mjs" not in instructions
+        assert "do not add preset fields" in instructions
+        examples = Path(__file__).parents[1] / "third_party/shuohao-skills/skills"
+        art = json.loads(
+            (examples / "novel-art/examples/渡口-art.json").read_text(encoding="utf-8")
+        )
+        art["style"] = BRIEF_STYLE
+        for collection in ("scenes", "props"):
+            for subject in art.get(collection, []):
+                if isinstance(subject.get("image"), dict):
+                    subject["image"]["style"] = BRIEF_STYLE_LABEL
+        commands, outputs = run_brief_instruction_delivery(store, request, art)
+        assert commands == [
+            'node scripts/brief-art-style.mjs validate "$DELIVERY_ROOT/art.json" --cast "$PACKAGE_ROOT/inputs/cast.json"',
+            'node scripts/brief-art-style.mjs render "$DELIVERY_ROOT/art.json" --cast "$PACKAGE_ROOT/inputs/cast.json" > "$DELIVERY_ROOT/report.html"',
+        ]
+        assert outputs == {"art.json", "report.html", "completion.json"}
     finally:
         store.close()
 

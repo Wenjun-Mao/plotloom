@@ -137,8 +137,7 @@ it("does not interpret a recorded task's empty event list as no task or success"
 it("states that Brief edits retain production and leave the separate source unchanged", async () => {
   await act(async () => root.render(createElement(BriefPage, { apiTextPipeline: true,
     value: demoProject.brief, hasSavedProject: true, saving: false,
-    onSave: vi.fn(async () => {}), onSaveAndContinue: vi.fn(async () => {}),
-  })));
+    onSave: vi.fn(async () => {}),   })));
   expect(host.textContent).toContain("不会自动重建或替换现有制作内容");
   expect(host.textContent).toContain("故事来源正文独立保存，不会随简报梗概的修改而改变");
   expect(host.textContent).not.toContain("已安装投产");
@@ -156,7 +155,7 @@ it("Brief distinguishes one decision from its two options without inventing edit
   graph.nodes = graph.nodes.filter(node => node.kind !== "decision").concat(demoProject.storyGraph.nodes.filter(node => node.kind === "decision").slice(0, 1));
   graph.edges = graph.edges.filter(edge => edge.kind === "choice").slice(0, 2);
   await act(async () => root.render(createElement(BriefPage, { apiTextPipeline: false, value: demoProject.brief, hasSavedProject: true, saving: false,
-    bible: demoProject.storyBible, graph, proposalReady: true, onSave: vi.fn(async () => {}), onSaveAndContinue: vi.fn(async () => {}) })));
+    bible: demoProject.storyBible, graph, proposalReady: true, onSave: vi.fn(async () => {}) })));
   expect(host.textContent).toContain("故事设定与分支图"); expect(host.textContent).toContain("1 个选择点");
   expect(host.textContent).toContain("2 个选项"); expect(host.textContent).toContain("每次完整播放约");
   expect(host.textContent).not.toContain("待审阅的故事提案"); expect(host.textContent).not.toContain("2 个选择、");
@@ -166,8 +165,7 @@ it("keeps both legacy generation controls disabled when a ready Brief is read-on
   const onGenerateProposal = vi.fn(async () => {});
   const onGenerateStoryboard = vi.fn(async () => {});
   const briefProps = { apiTextPipeline: true, value: demoProject.brief, hasSavedProject: true, saving: false, readOnly: true,
-    onSave: vi.fn(async () => {}), onSaveAndContinue: vi.fn(async () => {}),
-    bible: demoProject.storyBible, graph: demoProject.storyGraph, proposalReady: true,
+    onSave: vi.fn(async () => {}),     bible: demoProject.storyBible, graph: demoProject.storyGraph, proposalReady: true,
     onGenerateProposal, onGenerateStoryboard };
   await act(async () => root.render(createElement(BriefPage, briefProps)));
   const proposal = [...host.querySelectorAll("button")].find(button => button.textContent === "生成故事提案")!;
@@ -186,8 +184,7 @@ it("opens Brief structure and shots by default without changing retained setting
   const value = { ...demoProject.brief, decisionPointsPerPath: 3, endingCount: 4, nodeBudget: 16,
     maxOutDegree: 4, desiredJoinCount: 2, shotsPerSceneMin: 2, shotsPerSceneMax: 5, shotCountPolicy: "strict" as const };
   const briefProps = { apiTextPipeline: true, value, hasSavedProject: true, saving: false,
-    onSave: vi.fn(async () => {}), onSaveAndContinue: vi.fn(async () => {}),
-    onDraftChange: vi.fn(), onGenerateProposal: vi.fn(async () => {}) };
+    onSave: vi.fn(async () => {}),     onDraftChange: vi.fn(), onGenerateProposal: vi.fn(async () => {}) };
   await act(async () => root.render(createElement(BriefPage, briefProps)));
   const structure = host.querySelector<HTMLDetailsElement>(".brief-settings details")!;
   expect(structure.querySelector("summary")?.textContent).toBe("剧情结构与分镜");
@@ -202,7 +199,6 @@ it("opens Brief structure and shots by default without changing retained setting
   expect(structure.querySelector("select")?.value).toBe("strict");
   expect(briefProps.onDraftChange).not.toHaveBeenCalled();
   expect(briefProps.onSave).not.toHaveBeenCalled();
-  expect(briefProps.onSaveAndContinue).not.toHaveBeenCalled();
   expect(briefProps.onGenerateProposal).not.toHaveBeenCalled();
 });
 

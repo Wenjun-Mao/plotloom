@@ -1,4 +1,4 @@
-import { expect, test } from "./fixture";
+import { expect, saveBriefAndContinue, test } from "./fixture";
 import { json, writeDelivery, type Preparation } from "./f5a-fixture";
 import path from "node:path";
 import type { SourceTopology } from "../src/types";
@@ -97,8 +97,8 @@ test("structural help reserves normal-flow space without intercepting required f
     }
     await page.getByRole("button", { name: `说明：${labels[0]}`, exact: true }).click();
     await page.screenshot({ path: info.outputPath(`help-flow-${size.width}-${size.height}.png`), fullPage: true });
-    await page.getByRole("button", { name: "保存并继续到来源" }).scrollIntoViewIfNeeded();
-    await expect(page.getByRole("button", { name: "保存并继续到来源" })).toBeVisible();
+    await page.getByRole("button", { name: "保存项目简报" }).scrollIntoViewIfNeeded();
+    await expect(page.getByRole("button", { name: "保存项目简报" })).toBeVisible();
     await page.getByRole("button", { name: `说明：${labels[0]}`, exact: true }).focus();
     await page.keyboard.press("Escape");
     await page.mouse.move(0, 0);
@@ -116,7 +116,7 @@ test("returns to the current Brief and rejects a branch proposal frozen before s
   await page.getByLabel("不同结局的数量", { exact: true }).fill("3");
   await page.getByLabel("每次选择的最多选项数", { exact: true }).fill("3");
   await page.getByLabel("分支汇合次数", { exact: true }).fill("1");
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   await expect(page).toHaveURL(/[?&]project=/);
   const id = new URL(page.url()).searchParams.get("project")!;
   const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;

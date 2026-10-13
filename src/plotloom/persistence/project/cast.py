@@ -19,7 +19,7 @@ from ...cast_contracts import (
     CastSaveRequest,
 )
 from ...cast_design_validation import validate_cast_design
-from ...cast_style import CastRenderStyle, cast_style_current, freeze_cast_style, validate_cast_style
+from ...cast_style import CandidateCastRenderStyle, cast_style_current, freeze_cast_style, validate_cast_style
 from ...cast_writing_contract import (
     CONTRACT_FILENAME,
     cast_writing_contract,
@@ -250,7 +250,7 @@ class ProjectCastPersistence:
             accepted_state = accepted_review_state(exists=accepted is not None, candidate_active=candidate is not None, head_status=head.status, stale_reasons=accepted_stale)
             return CastReviewState(accepted_review_state=accepted_state, candidate=self._candidate(candidate) if candidate else None, accepted_cast=self._accepted(accepted, delivery) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
 
-    def prepare_candidate(self, project_id: str, job_id: str, *, render_style: CastRenderStyle, execution_pin: dict[str, str]) -> tuple[CastCandidate, CreativeHandoffRequest]:
+    def prepare_candidate(self, project_id: str, job_id: str, *, render_style: CandidateCastRenderStyle, execution_pin: dict[str, str]) -> tuple[CastCandidate, CreativeHandoffRequest]:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             head = self._head(session, project_id)
@@ -264,7 +264,11 @@ class ProjectCastPersistence:
             request.input_artifacts[CONTRACT_FILENAME] = cast_writing_contract()
             request.input_artifacts["cast-style-contract.json"] = contract
             request.creative_brief += " Follow cast-writing-contract.json: separate descriptions, source notes and performance guidance."
-            request.creative_brief += " The author-selected cast-style-contract.json owns render style and overrides upstream presets/defaults and inherited outline style. Use its exact style, label and complete preset; apply authorDirection without changing source facts. Validate and render with scripts/cast-style.mjs using --request request.json --contract inputs/cast-style-contract.json. Never defer a style conflict to image generation."
+            if render_style == "brief":
+                from ...autopilot_brief_style import brief_stage_instructions
+                request.creative_brief += brief_stage_instructions("cast")
+            else:
+                request.creative_brief += " The author-selected cast-style-contract.json owns render style and overrides upstream presets/defaults and inherited outline style. Use its exact style, label and complete preset; apply authorDirection without changing source facts. Validate and render with scripts/cast-style.mjs using --request request.json --contract inputs/cast-style-contract.json. Never defer a style conflict to image generation."
             request.assert_secret_free()
             freeze_execution_pin(session, request, execution_pin)
             now = utc_now()
@@ -292,7 +296,7 @@ class ProjectCastPersistence:
                 raise CreativeHandoffError("delivery_stale", "cast candidate context is stale")
             _validate_cast(delivery.candidate)
             validate_cast_notes(delivery.candidate, required=CONTRACT_FILENAME in request.input_artifacts)
-            validate_cast_style(delivery.candidate, CastBinding.model_validate(row.binding).render_contract)
+            validate_cast_style(delivery.candidate, CastBinding.model_validate(row.binding).render_contract, request.model_dump(mode="json", by_alias=True))
             row.status, row.delivery_id, row.manifest_hash, row.cast, row.report_html, row.delivered_at = "ready", delivery.manifest.delivery_id, delivery.manifest_hash, delivery.candidate, delivery.report.decode("utf-8"), utc_now()
             if not receipt_only(self._access):
                 head.status, head.updated_at = "candidate_ready", row.delivered_at
@@ -315,7 +319,7 @@ class ProjectCastPersistence:
             cast = request.cast or row.cast
             _validate_cast(cast)
             validate_cast_design(cast)
-            validate_cast_style(cast, binding.render_contract)
+            validate_cast_style(cast, binding.render_contract, row.request)
             validate_cast_notes(cast, required=CONTRACT_FILENAME in row.request.get("inputArtifacts", {}), previous=row.cast)
             ids = _cast_ids(row.cast)
             if _cast_ids(cast) != ids:
@@ -360,9 +364,13 @@ class ProjectCastPersistence:
             binding = CastBinding.model_validate(previous.binding)
             if binding != request.binding or self._stale(session, project_id, binding):
                 raise CreativeHandoffError("delivery_stale", "accepted cast context changed before saving edits")
+            delivery = session.get(CastCandidateRow, previous.candidate_job_id)
+            source_request = delivery.request if delivery is not None and delivery.project_id == project_id else None
+            if binding.render_contract.get("authority") == "saved_brief" and source_request is None:
+                raise NotFoundError("original Brief source-validation request is unavailable")
             _validate_cast(request.cast)
             validate_cast_design(request.cast)
-            validate_cast_style(request.cast, binding.render_contract)
+            validate_cast_style(request.cast, binding.render_contract, source_request)
             validate_cast_notes(request.cast, previous=previous.cast)
             ids = _cast_ids(previous.cast)
             if _cast_ids(request.cast) != ids:

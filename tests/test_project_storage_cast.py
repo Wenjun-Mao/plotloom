@@ -17,12 +17,14 @@ from plotloom.cast_contracts import (
     CastSaveRequest,
 )
 from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.autopilot_brief_style import BRIEF_STYLE, BRIEF_STYLE_LABEL
 from plotloom.cast_style import freeze_cast_style
 from plotloom.creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import canonical_json
 from plotloom.domain import utc_now
 from tests.source_graph_fixtures import letter_section_map
 from tests.cast_style_fixtures import style_fixture
+from tests.creative_delivery_fixtures import run_brief_instruction_delivery
 from plotloom.exceptions import InvalidTransitionError, NotFoundError
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.project_storage.operational_state import close_blockers, specialist_publication_blockers
@@ -56,6 +58,80 @@ def _deliver(store: object, request: CreativeHandoffRequest) -> object:
     return result
 
 
+def test_saved_brief_cast_request_overrides_pinned_preset_routing(tmp_path: Path) -> None:
+    store = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    ).projects.create(FIXED_CHINESE_BRIEF)
+    context = _context()
+    fixture_root = Path(__file__).parent / "../third_party/shuohao-skills/skills/novel-characters/examples"
+    cast = json.loads((fixture_root / "渡口-cast.json").read_text(encoding="utf-8"))
+    source_quotes = [
+        quote
+        for character in cast["characters"]
+        for quote in character.get("persona", {}).get("evidence", [])
+    ]
+    source_text = "\n".join(source_quotes)
+    source = context.source
+    context = context.model_copy(
+        update={
+            "source": source.model_copy(
+                update={
+                    "content_hash": sha256(source_text.encode("utf-8")).hexdigest(),
+                    "material": source.material.model_copy(update={"text": source_text}),
+                }
+            )
+        }
+    )
+
+    def bound_context(_session: object, _project_id: str):
+        assert context.source and context.accepted_outline and context.accepted_section_map
+        binding = CastBinding(
+            render_contract=freeze_cast_style("brief", FIXED_CHINESE_BRIEF.visual_direction),
+            source_revision=context.source.revision,
+            source_content_hash=context.source.content_hash,
+            outline_revision=context.accepted_outline.revision,
+            outline_content_hash=context.accepted_outline.content_hash,
+            section_map_revision=context.accepted_section_map.revision,
+            section_map_content_hash=context.accepted_section_map.content_hash,
+            graph_revision=1,
+            graph_content_hash="d" * 64,
+            section_ids=["opening", "choose", "ending-a", "ending-b"],
+        )
+        return (
+            binding,
+            context.source.material.model_dump(mode="json", by_alias=True),
+            context.accepted_outline.outline,
+            context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True),
+        )
+
+    store.repository.cast._context = bound_context  # type: ignore[method-assign]
+    try:
+        candidate, request = store.prepare_cast_candidate(
+            "ch_" + "e" * 32, render_style="brief"
+        )
+        instructions = request.creative_brief
+        assert candidate.binding.render_contract["authority"] == "saved_brief"
+        assert "EXPLICIT SAVED-BRIEF RECEIVING-CONTRACT OVERRIDE" in instructions
+        assert "take precedence over conflicting preset-specific requirements" in instructions
+        assert "node scripts/brief-cast-style.mjs validate" in instructions
+        assert "node scripts/brief-cast-style.mjs render" in instructions
+        assert "node scripts/novel-characters.mjs" not in instructions
+        assert "do not add preset fields" in instructions
+        cast["style"] = BRIEF_STYLE
+        for index, character in enumerate(cast["characters"], start=1):
+            character["id"] = f"C{index:02d}"
+            character["image"]["style"] = BRIEF_STYLE_LABEL
+        commands, outputs = run_brief_instruction_delivery(store, request, cast)
+        assert commands == [
+            'node scripts/brief-cast-style.mjs validate "$DELIVERY_ROOT/cast.json" --request "$PACKAGE_ROOT/request.json"',
+            'node scripts/brief-cast-style.mjs render "$DELIVERY_ROOT/cast.json" --request "$PACKAGE_ROOT/request.json" > "$DELIVERY_ROOT/report.html"',
+        ]
+        assert outputs == {"cast.json", "report.html", "completion.json"}
+    finally:
+        store.close()
+
+
 def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_path: Path) -> None:
     store = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application").projects.create(FIXED_CHINESE_BRIEF)
     context = _context()
@@ -70,6 +146,9 @@ def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_p
         binding, *_ = bound_context(None, store.manifest.project_id)
         _candidate, request = store.prepare_cast_candidate("ch_" + "b" * 32, render_style="realistic")
         assert "characters[].id values" in request.creative_brief
+        assert "EXPLICIT SAVED-BRIEF RECEIVING-CONTRACT OVERRIDE" not in request.creative_brief
+        assert "The author-selected cast-style-contract.json owns render style" in request.creative_brief
+        assert "scripts/cast-style.mjs" in request.creative_brief
         assert request.input_artifacts["cast-writing-contract.json"]["version"] == 1
         assert request.input_artifacts["cast-style-contract.json"] == _candidate.binding.render_contract
         assert _candidate.binding.render_contract["authorDirection"] == FIXED_CHINESE_BRIEF.visual_direction
@@ -180,7 +259,17 @@ def test_cancel_reopened_cast_restores_only_current_accepted_authority(tmp_path:
         store.close()
 
 
-def test_accepted_cast_report_keeps_delivery_and_tracks_current_divergence(tmp_path: Path) -> None:
+def test_accepted_cast_report_keeps_delivery_and_tracks_current_divergence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from plotloom.persistence.project import cast as cast_persistence
+
+    original_style_validator = cast_persistence.validate_cast_style
+    validation_requests = []
+
+    def observe_style_validation(cast, contract, request=None):
+        validation_requests.append(request)
+        return original_style_validator(cast, contract, request)
+
+    monkeypatch.setattr(cast_persistence, "validate_cast_style", observe_style_validation)
     store = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application").projects.create(FIXED_CHINESE_BRIEF)
     context = _context()
 
@@ -220,6 +309,7 @@ def test_accepted_cast_report_keeps_delivery_and_tracks_current_divergence(tmp_p
         assert saved.accepted_cast.revision == 2
         assert saved.accepted_cast.report_available is True
         assert saved.accepted_cast.differs_from_delivery is True
+        assert validation_requests[-1]["source"]["text"] == context.source.material.text
         assert store.cast_candidate_report(request.job_id) == original_report
 
         with store.repository._write() as session:  # type: ignore[attr-defined]

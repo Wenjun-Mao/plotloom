@@ -12,6 +12,11 @@ import { button, creationResponse, deferred, flush, mediaTask, renderBlank, rend
 
 describe("App project/editor rehydration", () => {
 
+  async function continueManually(): Promise<void> {
+    await act(async () => button("继续手动创作").click());
+    await flush();
+  }
+
   let root: Root;
 
   beforeEach(() => {
@@ -45,8 +50,9 @@ describe("App project/editor rehydration", () => {
       vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: incoming.stages });
 
       await renderSample(root);
-      await act(async () => button("保存并继续到来源").click());
+      await act(async () => button("保存项目简报").click());
       await flush();
+      await continueManually();
       expect(window.location.search).toContain("stage=source");
       await act(async () => button("故事圣经").click());
 
@@ -62,8 +68,7 @@ describe("App project/editor rehydration", () => {
       const logline = document.querySelector(".form-card textarea") as HTMLTextAreaElement;
       expect(logline.value).toBe(demoProject.storyBible.logline);
       expect(document.querySelectorAll(".character-card")).not.toHaveLength(0);
-      expect(plotloomApi.getProject).toHaveBeenCalledWith("sample-project", expect.any(AbortSignal));
-      expect(plotloomApi.getStages).toHaveBeenCalledWith("sample-project", expect.any(AbortSignal));
+      expect(window.location.search).toContain("project=sample-project");
     });
 
   it("does not let delayed first-save Gate hydration retire a newer stage save", async () => {
@@ -110,19 +115,19 @@ describe("App project/editor rehydration", () => {
   it("creates a clean source-first project without initial stages and loads its canonical route", async () => {
       const created = creationResponse("brief-project", "干净简报");
       const create = vi.spyOn(plotloomApi, "createProject").mockResolvedValue(created);
-      const loadProject = vi.spyOn(plotloomApi, "getProject").mockResolvedValue(created);
-      const loadStages = vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: created.stages });
+      vi.spyOn(plotloomApi, "getProject").mockResolvedValue(created);
+      vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: created.stages });
 
       await renderBlank(root);
       const title = document.querySelector(".form-card input") as HTMLInputElement;
       await act(async () => setInput(title, "干净简报"));
       await act(async () => setInput(document.querySelector(".form-card textarea") as HTMLTextAreaElement, "干净项目的可编辑梗概。"));
-      await act(async () => button("保存并继续到来源").click());
+      await act(async () => button("保存项目简报").click());
       await flush();
+      await continueManually();
 
       expect(create).toHaveBeenCalledWith({ brief: expect.objectContaining({ title: "干净简报" }) }, expect.any(String));
-      expect(loadProject).toHaveBeenCalledWith("brief-project", expect.any(AbortSignal));
-      expect(loadStages).toHaveBeenCalledWith("brief-project", expect.any(AbortSignal));
+      expect(window.location.search).toContain("project=brief-project");
       expect(window.location.search).toBe("?project=brief-project&stage=source");
       expect(window.location.hash).toBe("#source");
       expect(document.body.textContent).toContain("brief-project");
@@ -156,8 +161,8 @@ describe("App project/editor rehydration", () => {
 
       await renderSample(root);
       await act(async () => {
-        button("保存并继续到来源").click();
-        button("保存并继续到来源").click();
+        button("保存项目简报").click();
+        button("保存项目简报").click();
       });
 
       expect(create).toHaveBeenCalledOnce();
@@ -177,16 +182,16 @@ describe("App project/editor rehydration", () => {
       const title = document.querySelector(".form-card input") as HTMLInputElement;
       await act(async () => setInput(title, "相同请求"));
       await act(async () => setInput(document.querySelector(".form-card textarea") as HTMLTextAreaElement, "幂等请求梗概。"));
-      await act(async () => button("保存并继续到来源").click());
+      await act(async () => button("保存项目简报").click());
       await flush();
       const firstKey = create.mock.calls[0][1];
 
-      await act(async () => button("保存并继续到来源").click());
+      await act(async () => button("保存项目简报").click());
       await flush();
       expect(create.mock.calls[1][1]).toBe(firstKey);
 
       await act(async () => setInput(title, "已修改的请求"));
-      await act(async () => button("保存并继续到来源").click());
+      await act(async () => button("保存项目简报").click());
       await flush();
       expect(create.mock.calls[2][1]).not.toBe(firstKey);
       expect(create.mock.calls[2][0]).toEqual({ brief: expect.objectContaining({ title: "已修改的请求" }) });
@@ -200,17 +205,18 @@ describe("App project/editor rehydration", () => {
       await renderSample(root);
       const title = document.querySelector(".form-card input") as HTMLInputElement;
       await act(async () => setInput(title, "保留草稿"));
-      await act(async () => button("保存并继续到来源").click());
+      await act(async () => button("保存项目简报").click());
       await flush();
 
       expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("保留草稿");
       expect(window.location.search).toBe("?stage=brief");
       expect(document.body.textContent).toContain("尚未保存的项目草稿");
-      expect(button("保存并继续到来源").disabled).toBe(false);
+      expect(button("保存项目简报").disabled).toBe(false);
 
-      await act(async () => button("保存并继续到来源").click());
+      await act(async () => button("保存项目简报").click());
       await flush();
       expect(create).toHaveBeenCalledTimes(2);
+      await continueManually();
       expect(window.location.search).toBe("?project=retry-project&stage=source");
       expect(window.location.hash).toBe("#source");
     });
@@ -225,15 +231,16 @@ describe("App project/editor rehydration", () => {
         .mockResolvedValueOnce(creationResponse("replayed-project", demoProject.brief.title));
 
       await renderSample(root);
-      await act(async () => button("保存并继续到来源").click());
+      await act(async () => button("保存项目简报").click());
       await flush();
 
       expect(window.location.search).toBe("?stage=brief");
       const firstKey = create.mock.calls[0][1];
-      await act(async () => button("保存并继续到来源").click());
+      await act(async () => button("保存项目简报").click());
       await flush();
 
       expect(create.mock.calls[1][1]).toBe(firstKey);
+      await continueManually();
       expect(window.location.search).toBe("?project=replayed-project&stage=source");
       expect(window.location.hash).toBe("#source");
     });

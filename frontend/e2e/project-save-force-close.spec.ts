@@ -1,4 +1,4 @@
-import { expect, test } from "./fixture";
+import { expect, saveBriefAndContinue, test } from "./fixture";
 import { demoProject } from "../src/demo";
 import type { Page } from "@playwright/test";
 import { createScriptProject, json } from "./f5a-fixture";
@@ -6,7 +6,7 @@ import { createScriptProject, json } from "./f5a-fixture";
 async function newSourceProject(page: Page, origin: string) {
   await page.goto(`${origin}/v2/`);
   await page.getByRole("button", { name: "打开示例项目" }).click();
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   await expect(page.getByLabel("故事内容")).toBeEditable();
   return new URL(page.url()).searchParams.get("project")!;
 }

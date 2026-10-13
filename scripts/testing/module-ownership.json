@@ -41,7 +41,8 @@
           "tests/test_image_package_publication.py",
           "tests/test_autopilot_handoff.py",
           "tests/test_autopilot_geometry.py",
-          "tests/test_autopilot_geometry_publication.py"
+          "tests/test_autopilot_geometry_publication.py",
+          "tests/test_autopilot_brief_style.py"
         ],
         "vitest": [
           "frontend/tests/authoring-autosave-admission.test.ts",

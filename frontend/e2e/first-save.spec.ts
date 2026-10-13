@@ -58,11 +58,18 @@ test.describe("first-save project bootstrap", () => {
     await page.getByLabel("片名").fill(title);
     await expect(page.locator(".page-header .button")).toHaveCount(1);
     await expect(page.getByRole("button", { name: "保存修改" })).toHaveCount(0);
+    let autopilotStarts = 0;
+    page.on("request", request => {
+      if (request.method() === "POST" && new URL(request.url()).pathname.endsWith("/autopilot/start")) autopilotStarts += 1;
+    });
     const created = captureProjectCreate(page);
-    await page.getByRole("button", { name: "保存并继续到来源" }).click();
+    await page.getByRole("button", { name: "保存项目简报" }).click();
     const createRequest = await created;
     await expect(page).toHaveURL(/[?&]project=/);
-    await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "自动准备素材" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "继续手动创作" })).toBeVisible();
+    expect(autopilotStarts).toBe(0);
     const projectId = currentProjectId(page);
     const creationBody = createRequest.postDataJSON() as ProjectCreateBody;
     expect(creationBody.initialStages.map((stage) => stage.stage)).toEqual([
@@ -77,6 +84,10 @@ test.describe("first-save project bootstrap", () => {
         creationBody.initialStages.find((candidate) => candidate.stage === stage)!.payload,
       );
     }
+
+    await page.getByRole("button", { name: "继续手动创作" }).click();
+    await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
+    expect(autopilotStarts).toBe(0);
 
     await navigateToSecondaryTool(page, "故事圣经");
     const logline = "E2E：先保存简报，再保存故事圣经。";
