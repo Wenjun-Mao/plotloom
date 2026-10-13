@@ -1464,3 +1464,24 @@ Retained visual evidence from the prior UX qualification is available at
 and `frontend/test-results/recommended-workflow-guide-a5382-draft-navigation-protection/`
 (including the 1280x460, 1280x768, 1700x900 and 390x844 collapsed/expanded
 captures). Those artifacts are review evidence, not product-owner acceptance.
+
+### Creator Brief first-save navigation assertion repair (2026-10-13)
+
+The three failures in `creator-ui-polish.spec.ts` came from an obsolete test
+assumption: first-save now intentionally keeps the user on the saved Brief and
+presents automatic/manual choices, while the test still expected immediate
+navigation to Source. The product flow is correct; this is a stale navigation
+assertion, not a product regression. The test retains the direct Save click and
+expanded diagnostics, checks the saved Brief and both choices at 1440, 1920 and
+1280 px, verifies no autopilot, legacy pipeline, rebuild or specialist-send
+POST occurs, explicitly chooses `继续手动创作`, checks dispatch remains absent,
+and then runs all existing Source accessibility/layout assertions.
+
+Focused `verify.py focused --playwright e2e/creator-ui-polish.spec.ts` passed all
+three width cases and its E2E typecheck. A standalone
+`npm --prefix frontend run typecheck:e2e` also passed. `git diff --check` passed.
+This test-only delta leaves generated frontend assets unchanged. Manager-owned
+unfiltered browser requalification remains pending. The first independent review
+found that two dispatch endpoint families were missing from the guard. The
+listener now includes generic specialist-task and image-job sends; the three
+focused cases and E2E typecheck passed again. Independent re-review found no further issues.
