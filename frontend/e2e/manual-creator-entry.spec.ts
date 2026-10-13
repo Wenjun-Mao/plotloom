@@ -64,18 +64,33 @@ test("unchanged restored Brief save refreshes launch admission in place after ex
   const id = created.id;
   const root = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   const canonical = await (await request.get(root)).json();
+  const writes: string[] = [];
+  page.on("request", req => { if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method())) writes.push(`${req.method()} ${new URL(req.url()).pathname}`); });
+  const initialAdmission = page.waitForResponse(r => r.request().method() === "GET" && r.url().endsWith(`/${id}/autopilot/launch-context`));
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=brief`);
-  await expect(page.getByRole("button", { name: "自动准备素材", exact: true })).toBeVisible();
-  for (const title of ["Temporary title edit", canonical.brief.title]) {
+  expect(await (await initialAdmission).json()).toEqual({ eligible: true, briefRevision: canonical.revision });
+  const launch = page.getByRole("button", { name: "自动准备素材", exact: true });
+  // A visible control can still own the initial admission read. Settle its
+  // current eligible state before a mutation waiter may claim the next GET.
+  await expect(launch).toBeEnabled();
+  for (const [expectedDraftRevision, title] of ["Temporary title edit", canonical.brief.title].entries()) {
     const saved = page.waitForResponse(r => r.request().method() === "PUT" && r.url().endsWith(`/${id}/authoring-drafts`));
     const admission = page.waitForResponse(r => r.request().method() === "GET" && r.url().endsWith(`/${id}/autopilot/launch-context`));
     await page.getByLabel("片名", { exact: true }).fill(title);
-    expect((await saved).ok()).toBe(true);
-    expect((await (await admission).json()).eligible).toBe(false);
+    const receipt = await saved;
+    const payload = { ...canonical.brief, title };
+    expect(receipt.status()).toBe(200);
+    expect(receipt.request().postDataJSON()).toEqual({ editorScope: "brief", entityId: "root",
+      baseCanonicalRevision: canonical.revision, expectedDraftRevision, payload });
+    expect(await receipt.json()).toMatchObject({ projectId: id, editorScope: "brief", entityId: "root",
+      baseCanonicalRevision: canonical.revision, draftRevision: expectedDraftRevision + 1, payload });
+    expect(await (await admission).json()).toEqual({ eligible: false, briefRevision: canonical.revision });
+    await expect(launch).toBeDisabled();
+    await expect(page.getByRole("status").filter({ hasText: "此项目当前不符合自动准备条件" })).toBeVisible();
   }
   const drafts = await (await request.get(`${root}/authoring-drafts`)).json();
   const draft = drafts.find((item: any) => item.editorScope === "brief");
-  expect(draft.payload).toEqual(canonical.brief);
+  expect(draft).toMatchObject({ draftRevision: 2, baseCanonicalRevision: canonical.revision, payload: canonical.brief });
   expect((await (await request.get(`${root}/autopilot/launch-context`)).json()).eligible).toBe(false);
   const reloadAdmission = page.waitForResponse(r => r.request().method() === "GET" && r.url().endsWith(`/${id}/autopilot/launch-context`));
   await page.reload();
@@ -90,8 +105,6 @@ test("unchanged restored Brief save refreshes launch admission in place after ex
   await expect(page.getByRole("button", { name: "自动准备素材", exact: true })).toBeDisabled();
   const before = page.url();
   const editor = await page.getByLabel("片名", { exact: true }).elementHandle();
-  const writes: string[] = [];
-  page.on("request", req => { if (["POST", "PUT", "PATCH"].includes(req.method())) writes.push(`${req.method()} ${new URL(req.url()).pathname}`); });
   const removed = page.waitForResponse(r => r.request().method() === "DELETE" && r.url().includes(`/${id}/authoring-drafts`));
   const admission = page.waitForResponse(r => r.request().method() === "GET" && r.url().endsWith(`/${id}/autopilot/launch-context`));
   await page.getByRole("button", { name: "保存修改", exact: true }).click();
@@ -100,13 +113,13 @@ test("unchanged restored Brief save refreshes launch admission in place after ex
   expect(receipt.request().postDataJSON()).toEqual({ editorScope: "brief", entityId: "root", expectedDraftRevision: draft.draftRevision });
   expect(receipt.headers()["x-plotloom-draft-consumed-revision"]).toBe(String(draft.draftRevision));
   expect((await (await admission).json()).eligible).toBe(true);
-  await expect(page.getByRole("button", { name: "自动准备素材", exact: true })).toBeVisible();
+  await expect(launch).toBeEnabled();
   expect(page.url()).toBe(before);
   expect(await editor!.evaluate(node => node.isConnected)).toBe(true);
   expect(await (await request.get(root)).json()).toEqual(canonical);
   expect(await (await request.get(`${root}/authoring-drafts`)).json()).toEqual([]);
   expect(await (await request.get(`${root}/autopilot`)).json()).toBeNull();
-  expect(writes).toEqual([]);
+  expect(writes).toEqual([`PUT /api/v2/projects/${id}/authoring-drafts`, `PUT /api/v2/projects/${id}/authoring-drafts`, `DELETE /api/v2/projects/${id}/authoring-drafts`]);
   await page.screenshot({ path: info.outputPath("unchanged-brief-admission.png"), fullPage: true });
 });
 
