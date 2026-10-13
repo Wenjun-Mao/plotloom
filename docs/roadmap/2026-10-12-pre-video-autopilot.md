@@ -27,6 +27,15 @@ Python-speedup worker's files or qualification. Stop at a reviewed isolated
 commit and report exact scoped evidence; manager owns final full qualification
 and any later activation.
 
+Follow-up checkpoint on2026-10-13: reviewed source/receiving-contract repair
+`bab49f54` and test-only navigation repair `2a7cfe4a` are integrated with the
+completed Python speedup in manager candidate `477e7df9`. Combined local
+qualification, disposable responsive browser walkthrough and four-job real
+native Brief-style text proof passed; source/data preservation readbacks are
+recorded in the single receipt. Final all-project safe-idle/recovery and
+activation readback remain pending. The valued Moon run is completed and still
+awaiting genuine human review; no old executor, package or media was rewritten.
+
 Status: implemented, locally qualified and activated in the existing app on
 2026-10-12 (Toronto), executable checkpoint `b6f0525d`. P0–P5 technical delivery
 is complete; owner creative acceptance remains separate and hosted CI was not
@@ -397,6 +406,15 @@ software fixtures and cannot establish creative acceptance.
 
 
 ## Ordered P5 continuation · owner-approved geometry release
+
+The later launch/progress UX follow-up is locally qualified through combined
+evidence at477, but activation is held for a demonstrated F5A saved-Brief
+contract mismatch. The same source owner must extend Brief style authority
+through Storyboard receiving/admission without mutating pinned/manual preset
+behavior, then deliver focused regressions and independent review. Manager
+qualification and actual-path proof remain required. The CLI pool stays queued
+until this predecessor reaches its technical closeout; the single receipt
+records the diagnostic and preserved original run.
 
 First commit the independently reviewed frontend action-ownership and delivery
 disclosure checkpoint with scoped frontend qualification in the single receipt.

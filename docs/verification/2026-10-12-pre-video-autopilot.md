@@ -10,6 +10,10 @@ current release status. Scope and stopping boundary are in the
 [approved plan](../roadmap/2026-10-12-pre-video-autopilot.md#p0-implementation-checkpoint)
 and [ADR 0162](../adr/0162-pre-video-autopilot-authority.md).
 
+The owner-approved UX/Brief-style follow-up is separately qualified below at
+`477e7df9`; its final preserving activation is still pending. The original
+completed valued run remains on frozen `c771cdd6`, awaiting genuine human review.
+
 ## Revision and authority
 
 - Production source/test baseline: `731cfdbfb0d9139254e30c34c2a8e7669a98ddba`.
@@ -1485,3 +1489,124 @@ unfiltered browser requalification remains pending. The first independent review
 found that two dispatch endpoint families were missing from the guard. The
 listener now includes generic specialist-task and image-job sends; the three
 focused cases and E2E typecheck passed again. Independent re-review found no further issues.
+
+### Manager combined qualification and actual-path follow-up · 2026-10-13
+
+The manager integrated the reviewed UX and receiving-contract candidate
+`bab49f54` with the already qualified Python speedup `e9e67847`, corrected
+documentation `31c6a209`, and the separately approved queued CLI-worker plan.
+The only merge conflict was roadmap-index text; both entries were retained.
+This produced clean `7954069ac3f375299d039b2ae846c38cc5e9dc27`.
+Manual specialist skill/adapter bytes and the pinned submodule remained unchanged.
+
+The initial full invocation failed in preflight because this new checkout lacked
+the archived prompt-reader's locked `jsdom` prerequisite. No product tests ran.
+After installing that existing locked dependency tree, the full invocation at
+795 passed lock/tools/import checks, archived reader, 1,374 frontend tests,
+frontend typecheck, 1,793 Python cases, deterministic bundle/parity and complete
+browser allocation. Python used two workers and **case-count fallback** because
+the native inventory changed; its step took 653.935 seconds. This is not a
+duration-packing measurement or a matched speedup benchmark.
+
+The browser step passed 314 of 317 cases and failed only the three obsolete
+first-save navigation expectations documented above. Full returned exit1 at
+1,171.282 seconds; that failed run is retained, not relabelled a pass. Reviewed
+test-only repair `2a7cfe4a` was integrated as
+`477e7df9b97687cadaa78fa0e5e17cc4864c24e7`, with product, dependency, config and
+generated asset inputs unchanged. The manager reused those passed inputs and
+ran the exact failed/downstream full steps: unfiltered browser allocation,
+**all317 browser cases**, wheel build and fresh installed-wheel smoke passed.
+That continuation returned exit0 in 505.989 seconds. This closes the combined
+local gate through documented evidence reuse; it is not a new full invocation
+with a zero exit at477. Both frontend and E2E type contracts are qualified.
+
+Logs remain under private `/tmp/plotloom-ux-release-gates.cILc2m/`:
+`full-7954069a.log`, `full-7954069a-retry.log` and
+`browser-and-package-477e7df9.log`. The locked frontend installation reported one
+existing high-severity dependency advisory; no dependency upgrade or security
+qualification is claimed by this UX work.
+
+#### Disposable browser walkthrough
+
+A real isolated project-folder runtime created and saved a fresh Brief. Save
+stayed on Brief and offered automatic/manual choices without generation. The
+expanded launch showed the exact 2D animation, watercolor, low-saturation and
+free-text direction, without an independent preset. Retained captures are in
+the receipt's [UX evidence folder](2026-10-12-pre-video-autopilot/ux-release/).
+
+The progress portion used controlled browser-only responses, not generation.
+The first interceptor incorrectly omitted `/start`; that request reached only
+the unconfigured disposable backend and received409, producing no run or send.
+An exact-route correction returned the simulated201. One Start was intercepted,
+zero control/send requests occurred, and the transient starting/duplicate-submit
+guard was observed. After route navigation and long scroll, the progress strip
+remained visible at1440x900,390x844 and390x600 with no page-level horizontal
+overflow. The mobile toolbar intentionally scrolls horizontally. Reduced-motion
+emulation disabled spinner animation. The manager inspected the saved-choice,
+Brief-style and scrolled desktop/mobile captures. The owned browser/runtime
+were stopped; no owner browser or normal service was touched.
+
+#### Real native receiving-contract proof
+
+At frozen477, a separate installation and newly created disposable identities
+ran the real registry → shim → authenticated host bridge → native queue path.
+The production controller was stepped explicitly without an application
+lifespan/background worker and stopped immediately after Art adoption. Exactly
+four unique native text jobs—outline, branches, Cast and Art—were AI-adopted.
+The canary's owned native `turn_context` confirms GPT-6.1 Sol / Medium; original
+model-self-reported manifest fields remain untouched. No Plotloom image/video
+dispatch or human approval was made, and the QA run remains paused at r20.
+
+Both Cast and Art retained the exact author direction and emitted English
+2D-watercolor/low-saturation machine prompts with the saved-Brief markers. They
+used the v2 override and exact three-file delivery inventory; immutable request,
+output/report/manifest hashes, pins and all four completed native receipts were
+checked. This demonstrates actual instruction following and technical adoption,
+not image fidelity, identity, rights, voice casting or creative acceptance.
+
+After successful Art adoption, the first evidence collector wrongly called the
+current waiting-delivery branch getter. Its refusal was correct. The service
+had already paused, and unconditional cleanup released only the private runtime.
+Read-only recovery used the retained terminal-request owner and verified package
+paths, checked unchanged private database state and completed receipts, and
+dispatched nothing. No job was repeated or receipt rewritten.
+
+Before and after this proof, the actual owner run remained r229 awaiting_review,
+with the same complete review response/bundle hash
+`d12d5388e23bcfd3fad83360fe834292f5e7e6832fad4de5a8721db7af2cd62a`.
+The earlier copied valued-project proof at795 also preserved all437 payload
+files and logical database rows, returning identical28 frames/5 references.
+Original production source stayed detachedc771 and clean throughout.
+
+Final all-project idle admission, durable recovery/cutback capture, safe-idle
+activation and post-activation source/static/state readback remain manager-owned
+pending gates. No hosted CI was dispatched. The CLI pool remains queued behind
+this technical closeout; owner visual/creative acceptance is not fabricated.
+
+#### Downstream saved-Brief contract finding · activation held
+
+Before activation, manager source tracing and an independent read-only review
+found that F5A Storyboard still instructs and directly invokes the unchanged
+pinned preset validator. At477, the receiving request has no saved-Brief style
+override. Both delivery admission and acceptance invoke the pinned entrypoint.
+A read-only call to its real `gateReport` with the upstream example cloned in
+memory rejects `style=saved-brief`; omitting style selects `realistic` and its
+`cinematic film still` phrase. No file, project, receipt or dispatch was changed
+by that diagnostic.
+
+This is an actual receiving/admission mismatch, not an aesthetic quality claim:
+the forced frame direction is copied into canonical composition and the frozen
+first-frame image request. The four-stage native proof above intentionally ended
+after Art and therefore does not close this downstream path. Script has no
+separate preset gate in the inspected path, and image preparation carries the
+Brief direction, but neither resolves a conflicting Storyboard frame phrase.
+
+The bounded correction belongs at Plotloom's F5A saved-Brief receiving contract:
+freeze the inherited authoritative direction and adapter identity, use matching
+validate/render instructions and server admission, preserve non-style upstream
+gates and the manual preset path, and test downstream composition/image inputs.
+Amend ADR0163 and qualify the changed contracts before activation. The same UX
+source owner receives this repair; no competing writer or CLI pool starts.
+Production remains clean detachedc771; the valued r229 run and its review bundle
+remain unchanged. Activation/recovery execution and later-stage native proof are
+still pending.
