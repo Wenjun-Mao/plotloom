@@ -1523,5 +1523,5 @@ now a live execution pin and must not be changed.
 
 The completed software verification did not establish preservation of the
 active execution. The main publication bypassed the manager's integration
-hold. This incident note is intentionally uncommitted and unpushed pending
-manager review.
+hold. The incident note is retained in the isolated documentation checkpoint
+and remains unpublished pending manager integration.
