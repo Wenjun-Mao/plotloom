@@ -68,10 +68,13 @@ def _deliver(store: object, request: CreativeHandoffRequest) -> object:
     delivery = Path(paths["deliveryPath"])
     delivery.mkdir()
     render = "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth"
+    brief_style = request.input_artifacts["art-style-contract.json"].get("authority") == "saved_brief"
+    if brief_style:
+        render = "Muted watercolor collage environment study"
     art = canonical_json(
         {
             "source": "Tide Light",
-            "style": "realistic",
+            "style": "saved-brief" if brief_style else "realistic",
             "scenes": [
                 {
                     "id": "S01",
@@ -87,6 +90,7 @@ def _deliver(store: object, request: CreativeHandoffRequest) -> object:
                         {"state": "dawn", "prompt": "cold dawn through a window"}
                     ],
                     "image": {
+                        **({"style": "Saved Brief direction"} if brief_style else {}),
                         "prompt": render + ", empty beacon room",
                         "negativePrompt": "people, human figures",
                         "sheet": render,

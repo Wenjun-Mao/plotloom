@@ -25,10 +25,12 @@ it.each([
   [source, "来源与大纲", "?project=project&stage=source#source"],
   [characters, "角色", "?project=project&stage=characters"],
   [{ code: "art_render_contract_changed", owner: "art", technicalMessage: "unchanged style evidence", field: null }, "美术参考", "?project=project&stage=source#art"],
+  [{ code: "binding_value_changed", owner: "storyboard-review", technicalMessage: "storyboard render contract changed", field: "storyboard_render_contract" }, "分镜评审", "?project=project&stage=source#storyboard-review"],
 ] as const)("shows typed %s guidance with a separate protected owner link", async (diagnostic, owner, href) => {
   await act(async () => root.render(createElement(ReviewContextNotice, { projectId: "project", diagnostics: [diagnostic] })));
   const notice = host.querySelector(".review-context-notice")!;
   expect(notice.querySelector("ul")?.textContent).toBe(reviewContextMessage(diagnostic));
+  if (diagnostic.field === "storyboard_render_contract") expect(notice.querySelector("ul")?.textContent).toBe("分镜视觉方向与审核要求已变化，需要重新检查这份内容。");
   const link = notice.querySelector("a")!;
   expect(link.textContent).toBe(`在新页打开${owner}`);
   expect(link.getAttribute("href")).toBe(href);

@@ -31,6 +31,7 @@ const fieldLabels: Record<ReviewContextField, string> = {
   route_only_section_ids: "无需画面的路线控制节点", section_ids: "故事章节",
   render_contract: "风格、视觉方向与渲染要求", review_min_cut_seconds: "评审镜头最短时长",
   review_max_cut_seconds: "评审镜头最长时长", review_max_segment_seconds: "评审分段时长上限",
+  storyboard_render_contract: "分镜视觉方向与审核要求",
 };
 const ownerLabels = { source: "来源与大纲", characters: "角色", art: "美术参考", script: "剧本", brief: "项目简报", "storyboard-review": "分镜评审" } as const;
 

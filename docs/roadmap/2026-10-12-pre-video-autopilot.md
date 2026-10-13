@@ -416,6 +416,13 @@ qualification and actual-path proof remain required. The CLI pool stays queued
 until this predecessor reaches its technical closeout; the single receipt
 records the diagnostic and preserved original run.
 
+F5A source checkpoint: inherited Brief authority now has a frozen binding/request,
+neutral receiving/admission adapter and matching ordinary currentness/bridge
+consumers. Scoped regressions, frontend/static qualification and independent
+review are recorded in the [single receipt](../verification/2026-10-12-pre-video-autopilot.md#f5a-saved-brief-receivingadmission-checkpoint-2026-10-13).
+Source work stops at this checkpoint; fresh manager full qualification,
+distinct native actual-path proof, preservation and activation are pending.
+
 First commit the independently reviewed frontend action-ownership and delivery
 disclosure checkpoint with scoped frontend qualification in the single receipt.
 Then the same source owner proceeds directly to the separately approved geometry

@@ -76,9 +76,7 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
         binding = StoryboardReviewBinding.model_validate(accepted.binding)
         if self._review._stale(session, project_id, binding):
             raise InvalidTransitionError("the accepted F5 storyboard review is stale")
-        current, script, _outline, cast, art = self._review._context(
-            session, project_id, max_cut_seconds=binding.review_max_cut_seconds,
-        )
+        current, script, _outline, cast, art = self._review.context_for_binding(session, project_id, binding)
         if current != binding:
             raise InvalidTransitionError("the accepted F5 storyboard review binding differs from current source")
         _, _, _, mapping, _, _ = self._review._script._context(session, project_id)

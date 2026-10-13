@@ -6,7 +6,6 @@ from typing import Any, Literal
 from .domain import CamelModel
 from .exceptions import InvalidTransitionError
 
-
 ReviewContextCode = Literal[
     "source_context_not_ready", "installed_graph_not_current",
     "installed_graph_context_mismatch", "accepted_cast_not_current",
@@ -23,7 +22,7 @@ ReviewContextField = Literal[
     "target_playthrough_seconds", "route_budget_hash", "section_bindings",
     "complete_route_section_ids", "route_only_section_ids", "section_ids",
     "render_contract", "review_min_cut_seconds", "review_max_cut_seconds",
-    "review_max_segment_seconds",
+    "review_max_segment_seconds", "storyboard_render_contract",
 ]
 
 

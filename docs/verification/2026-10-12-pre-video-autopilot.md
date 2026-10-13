@@ -1610,3 +1610,73 @@ source owner receives this repair; no competing writer or CLI pool starts.
 Production remains clean detachedc771; the valued r229 run and its review bundle
 remain unchanged. Activation/recovery execution and later-stage native proof are
 still pending.
+
+### F5A saved-Brief receiving/admission checkpoint (2026-10-13)
+
+The released source owner fast-forwarded the clean `2a7cfe4a` isolated checkout
+onto `362eab5f`, preserving its history and the existing Relay route. The F5A
+root cause above is addressed in a new Plotloom-owned receiving contract and
+neutral adapter. Code freezes the exact accepted Art contract/direction and
+adapter/upstream identities into the F5A binding and immutable request; the
+model authors English frames/H3 descriptions with neutral authority markers.
+The same generated command pair and server admission call the new adapter.
+All unrelated pinned upstream gates remain active. Its markers establish
+membership, while semantic fidelity remains human-reviewed. Manual preset
+requests and historical bindings keep their prior path and serialized absence
+of the new field. No database migration or retained evidence rewrite occurs.
+
+An installation regression exposed a currentness consumer mismatch: the bridge
+had compared the new binding against a base F4 context with no F5A field. F5A
+now owns current-context resolution in the frozen binding's mode, and both
+currentness and the bridge use it. The required diagnostic field is assigned
+an explicit owner and a localized frontend label; its optional binding type is
+mirrored in TypeScript. Generated assets were refreshed for this label change.
+
+Executed scoped evidence:
+
+- Focused F5A/contract, timing, typed diagnostics and bridge checks: 55 pytest
+  cases passed. These include real upstream example validate/render command
+  execution and exact candidate/report/completion exchange inventory for a
+  non-preset Chinese direction and empty direction; server admission/acceptance;
+  ordinary reopen, late/superseded currentness, historical binding preservation;
+  and an actual disposable installation-to-image-request snapshot trace retaining
+  the supplied frame exactly, with no injected preset phrase.
+- Focused existing Cast/Art/F4 and Brief-style checks: 27 pytest cases passed.
+  The existing minimal Cast fixture was completed only for its new Brief-mode
+  use; no upstream gate was relaxed. The real upstream storyboard example is
+  paired with its exact E01 script scope, rather than claiming coverage of the
+  six-episode script example. One initial disposable completion template still
+  contained its placeholder code revision; fixture provenance was corrected.
+- Focused review UI tests: 26 Vitest cases passed. The unfiltered frontend
+  suite passed 1,375 cases across 157 files, and both typechecks passed. Two
+  deterministic builds had identical sorted SHA-256 trees. Their manifests are
+  `/tmp/plotloom-f5-brief-static-first.sha256` and
+  `/tmp/plotloom-f5-brief-static-second.sha256`.
+- The new diagnostic browser case passed at 1440x900 and 390x600; both
+  checked-static bundle cases passed. The browser test checks default collapsed
+  technical detail, then preserves its expanded state while resizing; same-URL
+  navigation had initially retained the disclosure, invalidating the test's
+  reset assumption. Pixel inspection confirmed readable label/detail and no
+  horizontal overflow. Retained captures are
+  [desktop](2026-10-12-pre-video-autopilot/ux-release/f5-brief-diagnostic-1440x900.png)
+  and [narrow](2026-10-12-pre-video-autopilot/ux-release/f5-brief-diagnostic-390x600.png).
+- The locked-dependency check, native module ownership preflight, Ruff checks
+  for the new Python modules/fixtures and affected owner imports, final wheel
+  build and installed-wheel smoke passed. The new tests are registered to the
+  existing project-lifecycle owner. The wheel at
+  `/tmp/plotloom-f5-brief-final-wheel-20261013` proves packaging/runtime startup;
+  it does not exercise F5A specialist execution, which uses repository-local
+  adapters and pinned files as do the existing specialist paths.
+- A stable independent read-only review (requested GPT-6.1 Sol/Medium;
+  effective host setting unverified) found no actionable issues. It ran no
+  checks independently. The Python checks retained the existing non-failing
+  Starlette `httpx` deprecation warning; builds retained the non-failing chunk
+  size advisory.
+
+This is a committed implementation checkpoint once its revision is reported
+through Relay. Worker source/dependency/configuration/test bodies then remain
+held. The manager owns fresh exact-candidate full qualification, a new distinct
+actual-path native proof, preservation and activation. No worker native, live,
+CI, main integration, push, CLI-pool work or owner-story mutation was performed.
+The original valued r229 run, detached c771 source and private477 QA were not
+opened, rebound, rewritten or resumed by this worker.

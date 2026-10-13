@@ -97,7 +97,7 @@ def run_brief_instruction_delivery(
     package = Path(paths["packagePath"])
     delivery = Path(paths["deliveryPath"])
     delivery.mkdir()
-    candidate_filename = {"characters": "cast.json", "art": "art.json"}[request.stage]
+    candidate_filename = {"characters": "cast.json", "art": "art.json", "storyboard": "storyboard.json"}[request.stage]
     candidate_bytes = canonical_json(candidate)
     (delivery / candidate_filename).write_bytes(candidate_bytes)
 
@@ -148,7 +148,7 @@ def run_brief_instruction_delivery(
     return commands, names | {"completion.json"}
 
 
-def _prepare_accepted_f4_cast_context(store: object, structure_factory=None) -> None:
+def _prepare_accepted_f4_cast_context(store: object, structure_factory=None, *, render_style="realistic") -> None:
     project = store.project()
     if structure_factory is None:
         store.update_brief(
@@ -310,7 +310,7 @@ def _prepare_accepted_f4_cast_context(store: object, structure_factory=None) -> 
         )
     )  # type: ignore[attr-defined]
     _candidate, cast_request = store.prepare_cast_candidate(
-        "ch_" + "c" * 32, render_style="realistic"
+        "ch_" + "c" * 32, render_style=render_style
     )  # type: ignore[attr-defined]
     cast = style_fixture(
         {
@@ -399,10 +399,10 @@ def _pilot_script() -> dict[str, object]:
     }
 
 
-def _accepted_f4_script(store: object, structure_factory=None) -> None:
-    _prepare_accepted_f4_cast_context(store, structure_factory)
+def _accepted_f4_script(store: object, structure_factory=None, *, render_style="realistic") -> None:
+    _prepare_accepted_f4_cast_context(store, structure_factory, render_style=render_style)
     art_candidate, art_request = store.prepare_art_candidate(
-        "ch_" + "k" * 32, render_style="realistic"
+        "ch_" + "k" * 32, render_style=render_style
     )  # type: ignore[attr-defined]
     binding = art_candidate.binding
     art_ready = store.admit_art_delivery(_deliver(store, art_request))  # type: ignore[attr-defined]

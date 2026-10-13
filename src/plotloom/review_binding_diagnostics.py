@@ -5,7 +5,6 @@ from typing import Any
 
 from .review_context_diagnostics import ReviewContextDiagnostic, ReviewContextField
 
-
 # Explicit membership makes a new binding field require a diagnostic decision.
 # These comparisons describe currentness; they do not repair or translate data.
 FIELD_OWNERS = {
@@ -23,6 +22,7 @@ FIELD_OWNERS = {
     "review_min_cut_seconds": "storyboard-review",
     "review_max_cut_seconds": "storyboard-review",
     "review_max_segment_seconds": "storyboard-review",
+    "storyboard_render_contract": "storyboard-review",
 }
 
 

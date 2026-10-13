@@ -69,3 +69,33 @@ ownership sentence prohibited editing the assigned Cast candidate. The v2
 contract removes the extra output command and states input/output ownership
 per stage: Cast authors `cast.json`; Art authors `art.json` and treats the
 accepted Cast as read-only. Delivery inventory remains exact.
+
+## F5A receiving and admission authority
+
+The downstream trace found an unclosed seam: F5A still used the pinned
+storyboard preset gate, which defaults omitted style to `cinematic film still`
+and rejects `saved-brief`. Its frame text is later copied into canonical shot
+composition and the image request. Appending Brief direction downstream cannot
+repair an already contradictory source frame.
+
+For new F5A requests inheriting saved-Brief Art, code freezes a distinct
+storyboard render contract in the binding and request. It contains the exact
+inherited Art contract/direction and identities of the local instruction owner,
+neutral adapter and pinned upstream validator. The author owns direction; the
+model owns faithful English frame/H3 interpretation and the required
+`saved-brief`/`Saved Brief direction` markers; code owns authority, identity,
+currentness and admission. The model cannot supply or change the frozen contract.
+Generated validate/render commands and server admission use the same adapter.
+Every unrelated upstream structure, coverage, timing, source/name, language,
+recipe and H3 gate remains active; style markers prove authority membership,
+not semantic fidelity. The report is still upstream-derived HTML, and exact
+candidate/report/completion inventory forbids extra outputs or media.
+
+The new F5A identity does not modify the hashed Cast/Art owner, pinned skills,
+manual preset path or stored historical bindings. Historical absence of the
+F5A contract stays absent on serialization and follows its frozen request;
+only newly prepared saved-Brief work receives the new contract. Reopening F4
+retains inherited Art authority, while superseded inputs or changed adapter
+identity make the new F5A binding stale. Regression evidence must include real
+upstream command execution, admission/acceptance and ordinary reopen/currentness,
+preserved non-style gates, and source frame propagation into image requests.

@@ -1,34 +1,48 @@
 """F5A owner for upstream storyboard review revisions, not production shots."""
 from __future__ import annotations
 
-from hashlib import sha256
 import json
-from pathlib import Path
 import subprocess
 import tempfile
+from hashlib import sha256
+from pathlib import Path
 from typing import Any
 
-from .autopilot_authority import receipt_only
 from sqlalchemy import select
 
+from ...accepted_review_state import accepted_review_state
 from ...authored_route_timing import validate_route_seconds
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
-from ...accepted_review_state import accepted_review_state
 from ...domain import contains_secret_setting, contains_secret_value, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
-from ...script_contracts import AcceptedScriptRevision, ScriptBinding
-from ...review_context_diagnostics import ReviewContextDiagnostic, ReviewContextError
 from ...review_binding_diagnostics import review_binding_diagnostics
-from ...storyboard_review_contracts import (
-    AcceptedStoryboardReviewRevision, StoryboardReviewAcceptRequest,
-    StoryboardReviewBinding, StoryboardReviewCandidate, StoryboardReviewState,
+from ...review_context_diagnostics import ReviewContextDiagnostic, ReviewContextError
+from ...script_contracts import AcceptedScriptRevision, ScriptBinding
+from ...storyboard_brief_style import (
+    ADAPTER as BRIEF_ADAPTER,
 )
-from ..schema.project_storyboard_review import (
-    StoryboardReviewCandidateRow, StoryboardReviewHeadRow, StoryboardReviewRevisionRow,
+from ...storyboard_brief_style import (
+    CONTRACT_FILENAME,
+    freeze_storyboard_brief_style,
+    storyboard_brief_instructions,
+    validate_storyboard_brief_authority,
+)
+from ...storyboard_review_contracts import (
+    AcceptedStoryboardReviewRevision,
+    StoryboardReviewAcceptRequest,
+    StoryboardReviewBinding,
+    StoryboardReviewCandidate,
+    StoryboardReviewState,
 )
 from ..schema.project_script import ScriptRevisionRow
+from ..schema.project_storyboard_review import (
+    StoryboardReviewCandidateRow,
+    StoryboardReviewHeadRow,
+    StoryboardReviewRevisionRow,
+)
 from .access import ProjectPersistenceAccess
+from .autopilot_authority import receipt_only
 from .creative_execution_pins import freeze_execution_pin
 from .script import ProjectScriptPersistence, _upstream_script_outline
 
@@ -82,13 +96,23 @@ class ProjectStoryboardReviewPersistence:
             review_max_segment_seconds=15,
         ), script.script, _upstream_script_outline(outline, mapping, cast, inherited), cast, art
 
+    def context_for_binding(self, session: Any, project_id: str, binding: StoryboardReviewBinding) -> tuple[StoryboardReviewBinding, dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
+        """Resolve the current identity in the frozen F5A mode, including history."""
+        current, *inputs = self._context(session, project_id, max_cut_seconds=binding.review_max_cut_seconds)
+        if binding.storyboard_render_contract is not None:
+            try:
+                contract = freeze_storyboard_brief_style(current.render_contract)
+            except (ValueError, OSError) as error:
+                raise ReviewContextError(ReviewContextDiagnostic(code="binding_value_changed", owner="storyboard-review", field="storyboard_render_contract", technical_message="storyboard render contract is unavailable or changed")) from error
+            current = current.model_copy(update={"storyboard_render_contract": contract})
+        return current, *inputs
+
     def _stale(self, session: Any, project_id: str, binding: StoryboardReviewBinding) -> list[ReviewContextDiagnostic]:
         try:
-            current, *_ = self._context(session, project_id, max_cut_seconds=binding.review_max_cut_seconds)
+            current, *_ = self.context_for_binding(session, project_id, binding)
         except ReviewContextError as error:
             return [error.diagnostic]
-        fields = tuple(StoryboardReviewBinding.model_fields)
-        return review_binding_diagnostics(current, binding, fields)
+        return review_binding_diagnostics(current, binding, tuple(StoryboardReviewBinding.model_fields))
 
     def get_state(self, project_id: str) -> StoryboardReviewState:
         with self._access.leases.read() as session:
@@ -111,6 +135,10 @@ class ProjectStoryboardReviewPersistence:
             ).limit(1)):
                 raise InvalidTransitionError("explicitly accept or cancel the current storyboard review candidate before preparing another")
             binding, script, outline, cast, art = self._context(session, project_id, max_cut_seconds=max_cut_seconds)
+            style_contract = None
+            if binding.render_contract and binding.render_contract.get("authority") == "saved_brief":
+                style_contract = freeze_storyboard_brief_style(binding.render_contract)
+                binding = binding.model_copy(update={"storyboard_render_contract": style_contract})
             admission = {
                 "scriptRevision": binding.script_revision,
                 "scriptContentHash": binding.script_content_hash,
@@ -125,7 +153,12 @@ class ProjectStoryboardReviewPersistence:
                     "maxSegmentSeconds": binding.review_max_segment_seconds,
                 },
             }
-            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="pilot-storyboard", stage="storyboard", expected_stage_revision=head.revision, source={"acceptedScriptRevision": binding.script_revision, "acceptedScriptContentHash": binding.script_content_hash}, input_artifacts={"script.json": script, "outline.json": outline, "cast.json": cast, "art.json": art, "storyboard-admission.json": admission}, creative_brief=f"Create one raw upstream-shaped storyboard.json for the current accepted F4 script only. storyboard-admission.json freezes the exact accepted script revision/hash, ordered stable section-to-episode mapping, the complete-route maximum and budget hash, and review timing. Preserve unequal authored section lengths; sum actual cuts along each complete route, not across mutually exclusive endings. Retain every mapped episode exactly once and in that order. Set storyboard.params exactly to minCutSeconds {binding.review_min_cut_seconds}, maxCutSeconds {binding.review_max_cut_seconds}, and maxSegmentSeconds {binding.review_max_segment_seconds}; every cut must be {binding.review_min_cut_seconds}–{binding.review_max_cut_seconds} seconds. The script owns dialogue and story facts. Preserve upstream storyboard segments, cuts, frames and H3 prompt text as review direction only. Run the pinned novel-storyboard validate and render commands, and derive report.html unchanged. This is review evidence, not canonical Plotloom shots, a SceneBeats/Bible projection, selected reference, media prompt, player content, dispatch request, or approval. Do not generate media or infer deployed H3 duration support.")
+            artifacts = {"script.json": script, "outline.json": outline, "cast.json": cast, "art.json": art, "storyboard-admission.json": admission}
+            receiving = " Run the pinned novel-storyboard validate and render commands, and derive report.html unchanged."
+            if style_contract is not None:
+                artifacts[CONTRACT_FILENAME] = style_contract
+                receiving = storyboard_brief_instructions()
+            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="pilot-storyboard", stage="storyboard", expected_stage_revision=head.revision, source={"acceptedScriptRevision": binding.script_revision, "acceptedScriptContentHash": binding.script_content_hash}, input_artifacts=artifacts, creative_brief=f"Create one raw upstream-shaped storyboard.json for the current accepted F4 script only. storyboard-admission.json freezes the exact accepted script revision/hash, ordered stable section-to-episode mapping, the complete-route maximum and budget hash, and review timing. Preserve unequal authored section lengths; sum actual cuts along each complete route, not across mutually exclusive endings. Retain every mapped episode exactly once and in that order. Set storyboard.params exactly to minCutSeconds {binding.review_min_cut_seconds}, maxCutSeconds {binding.review_max_cut_seconds}, and maxSegmentSeconds {binding.review_max_segment_seconds}; every cut must be {binding.review_min_cut_seconds}–{binding.review_max_cut_seconds} seconds. The script owns dialogue and story facts. Preserve upstream storyboard segments, cuts, frames and H3 prompt text as review direction only. This is review evidence, not canonical Plotloom shots, a SceneBeats/Bible projection, selected reference, media prompt, player content, dispatch request, or approval. Do not generate media or infer deployed H3 duration support." + receiving)
             request.assert_secret_free(); freeze_execution_pin(session, request, execution_pin); now = utc_now()
             row = StoryboardReviewCandidateRow(job_id=job_id, project_id=project_id, expected_review_revision=head.revision, binding=binding.model_dump(mode="json", by_alias=True), request=request.model_dump(mode="json", by_alias=True), status="prepared", delivery_id=None, manifest_hash=None, storyboard=None, report_html=None, created_at=now, delivered_at=None)
             session.add(row); head.candidate_job_id, head.status, head.updated_at = job_id, "prepared", now
@@ -148,8 +181,8 @@ class ProjectStoryboardReviewPersistence:
                 if row.manifest_hash != delivery.manifest_hash:
                     raise CreativeHandoffError("delivery_conflict", "different delivery already occupies storyboard review candidate")
                 return self._candidate(row)
-            current, script, outline, cast, _art = self._context(session, project_id, max_cut_seconds=binding.review_max_cut_seconds)
-            self._validate(delivery.candidate, current, script, outline, cast)
+            _current, script, outline, cast, _art = self._context(session, project_id, max_cut_seconds=binding.review_max_cut_seconds)
+            self._validate(delivery.candidate, binding, script, outline, cast, request)
             row.status, row.delivery_id, row.manifest_hash, row.storyboard, row.report_html, row.delivered_at = "ready", delivery.manifest.delivery_id, delivery.manifest_hash, delivery.candidate, delivery.report.decode("utf-8"), utc_now()
             if not receipt_only(self._access):
                 head.status, head.updated_at = "candidate_ready", row.delivered_at
@@ -171,8 +204,8 @@ class ProjectStoryboardReviewPersistence:
             binding, storyboard = StoryboardReviewBinding.model_validate(row.binding), row.storyboard
             if binding != request.binding or self._stale(session, project_id, binding):
                 raise CreativeHandoffError("delivery_stale", "storyboard review candidate context changed before acceptance")
-            current, script, outline, cast, _art = self._context(session, project_id, max_cut_seconds=binding.review_max_cut_seconds)
-            self._validate(storyboard, current, script, outline, cast)
+            _current, script, outline, cast, _art = self._context(session, project_id, max_cut_seconds=binding.review_max_cut_seconds)
+            self._validate(storyboard, binding, script, outline, cast, CreativeHandoffRequest.model_validate(row.request))
             now = utc_now(); head.revision += 1; head.candidate_job_id, head.status, head.updated_at, row.status = None, "accepted", now, "accepted"
             session.add(StoryboardReviewRevisionRow(id=new_id(), project_id=project_id, revision=head.revision, candidate_job_id=row.job_id, content_hash=sha256(canonical_json(storyboard)).hexdigest(), binding=binding.model_dump(mode="json", by_alias=True), storyboard=storyboard, accepted_at=now))
         return self.get_state(project_id)
@@ -209,9 +242,15 @@ class ProjectStoryboardReviewPersistence:
             return CreativeHandoffRequest.model_validate(row.request)
 
     @staticmethod
-    def _validate(storyboard: dict[str, Any], binding: StoryboardReviewBinding, script: dict[str, Any], outline: dict[str, Any], cast: dict[str, Any]) -> None:
+    def _validate(storyboard: dict[str, Any], binding: StoryboardReviewBinding, script: dict[str, Any], outline: dict[str, Any], cast: dict[str, Any], request: CreativeHandoffRequest | None = None) -> None:
         if contains_secret_setting(storyboard) or contains_secret_value(storyboard):
             raise ValueError("storyboard must not contain credentials")
+        contract = binding.storyboard_render_contract
+        frozen = request.input_artifacts.get(CONTRACT_FILENAME) if request else None
+        if frozen != contract or (contract is not None and request is None):
+            raise ValueError("storyboard request and binding visual authority must agree")
+        if contract is not None:
+            validate_storyboard_brief_authority(storyboard, contract, binding.render_contract)
         episodes = storyboard.get("episodes")
         expected = [item.episode for item in binding.section_bindings]
         if not isinstance(episodes, list) or [item.get("ep") for item in episodes if isinstance(item, dict)] != expected or len(episodes) != len(expected):
@@ -251,7 +290,7 @@ class ProjectStoryboardReviewPersistence:
                                route_only_ids=binding.route_only_section_ids,
                                maximum=binding.target_playthrough_seconds, label="storyboard")
         root = Path(__file__).resolve().parents[4]
-        validator = root / "third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs"
+        validator = BRIEF_ADAPTER if contract is not None else root / "third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs"
         if not validator.is_file():
             raise ValueError("pinned upstream novel-storyboard validator is unavailable")
         with tempfile.TemporaryDirectory(prefix="plotloom-storyboard-review-") as directory:
@@ -259,6 +298,13 @@ class ProjectStoryboardReviewPersistence:
             paths = {"storyboard": work / "storyboard.json", "script": work / "script.json", "outline": work / "outline.json", "cast": work / "cast.json"}
             for key, value in (("storyboard", storyboard), ("script", script), ("outline", outline), ("cast", cast)):
                 paths[key].write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
-            result = subprocess.run(["node", str(validator), "validate", str(paths["storyboard"]), "--script", str(paths["script"]), "--outline", str(paths["outline"]), "--cast", str(paths["cast"]), "--no-log"], capture_output=True, text=True, check=False)
+            args = ["node", str(validator), "validate", str(paths["storyboard"])]
+            if contract is not None:
+                request_path = work / "request.json"
+                request_path.write_text(request.model_dump_json(by_alias=True), encoding="utf-8")
+                args += ["--request", str(request_path)]
+            else:
+                args += ["--script", str(paths["script"]), "--outline", str(paths["outline"]), "--cast", str(paths["cast"]), "--no-log"]
+            result = subprocess.run(args, capture_output=True, text=True, check=False)
         if result.returncode:
             raise ValueError(f"upstream novel-storyboard validation failed: {(result.stdout or result.stderr).strip()}")

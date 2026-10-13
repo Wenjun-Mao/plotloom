@@ -83,6 +83,7 @@
           "frontend/e2e/source-outline-section-map.spec.ts",
           "frontend/e2e/aspect-ratio-currentness.spec.ts",
           "frontend/e2e/source-review-currentness.spec.ts",
+          "frontend/e2e/storyboard-brief-diagnostic.spec.ts",
           "frontend/e2e/story-prototype.spec.ts",
           "frontend/e2e/storyboard-source-review.spec.ts",
           "frontend/e2e/synopsis-proposal.spec.ts",
@@ -350,6 +351,7 @@
           "tests/test_project_storage_route_contracts.py",
           "tests/test_project_storage_script.py",
           "tests/test_project_storage_storyboard_review.py",
+          "tests/test_storyboard_brief_style.py",
           "tests/test_autopilot_schema_upgrade.py",
           "tests/test_autopilot_recovery.py"
         ],
