@@ -87,6 +87,7 @@ class AutopilotImageController:
             if evidence.execution_pin != view.policy.execution_pins["image"]:
                 raise InvalidTransitionError("prepared image execution differs from launch")
             store.repository.autopilot.checkpoint(key, state="prepared", evidence=evidence)
+            store.repository.autopilot.progress("first-frames" if subject.owner == "image" else "references")
         image_package(store, subject.owner, context["id"])
 
     def native_step(self, store, view, claim, subject, inventory, checkpoint):

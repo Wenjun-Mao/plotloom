@@ -232,4 +232,8 @@ After Start/control, read the durable run without relying on navigation or a
 Brief revision change. Retry transient reads without resending commands, including
 when command acknowledgment is uncertain. Unknown provenance must stay unknown
 in headings, guides and metadata; only exact adopted revision/hash is AI-labelled.
+Canonical membership and frozen identity/source bindings do not establish human
+confirmation. Phase denotes admitted active work, including a prepared image job,
+and commits atomically with preparation. Complete material inventory requires a
+present current installation; early review/handoff refuses without creating facts.
 Read-only admission disables review mutations even if its form is already open.

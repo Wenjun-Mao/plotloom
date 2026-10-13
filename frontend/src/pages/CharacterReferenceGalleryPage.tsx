@@ -6,6 +6,7 @@ import { Button, ErrorNotice, Field, Spinner } from "../components";
 import { AppearanceModeSelector } from "./AppearanceModeSelector";
 import { ManagedAssetProvenanceFields } from "../features/media/assets/ManagedAssetProvenanceFields";
 import { useExplicitReviewCloseGuard } from "../features/authoring/ReviewDraftContext";
+import { useAdoptionLabel } from "../features/autopilot/AutopilotWorkspace";
 import { AssetZoomDialog, ManagedAssetImage as AssetPresentation, useBoundedAssetComparison } from "../features/media/references/AppearanceReviewPrimitives";
 import type { AcceptedCastRevision, CastReviewState, CharacterImportedAppearance, CharacterReferenceDecision, CharacterReferenceProposal, ManagedAsset, VisualWorkbench } from "../types";
 
@@ -35,6 +36,7 @@ type Candidate = {
  * reads until a creator deliberately invokes one of the supplied operations.
  */
 export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, castSession, castSessionOwner, castTransitionPending }: { projectId: string; readOnly: boolean; castState: CastReviewState | undefined; castSession: string; castSessionOwner: Readonly<{ current: string }>; castTransitionPending: boolean }) {
+  const adoptionLabel = useAdoptionLabel();
   const [data, setData] = useState<GalleryData>();
   const [error, setError] = useState("");
   const [retryPending, setRetryPending] = useState(false);
@@ -122,17 +124,17 @@ export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, 
 
   if (error && !data) return <section className="character-reference-review">{readError}</section>;
   if (!data || !castState) return <section className="character-reference-review reference-gallery-loading"><Spinner label="正在读取角色参考" /></section>;
-  if (!castState.acceptedCast) return <section className="character-reference-review"><EmptyState title="尚未确认角色设定" message="先在上方审核并确认角色设定；图像选择不会创建角色或示例图像。" /></section>;
-  if (!selected) return <section className="character-reference-review"><EmptyState title="角色中没有可查看的主体" message="当前已确认角色未提供可映射的主体；这里不会猜测或创建主体。" /></section>;
+  if (!castState.acceptedCast) return <section className="character-reference-review"><EmptyState title="尚无可用角色设定" message="先在上方准备并采用角色设定；图像选择不会创建角色或示例图像。" /></section>;
+  if (!selected) return <section className="character-reference-review"><EmptyState title="角色中没有可查看的主体" message="保留的角色设定未提供可映射的主体；这里不会猜测或创建主体。" /></section>;
 
   return <section className="character-reference-review" data-testid="character-reference-gallery">
     {readError}
     <section className="reference-gallery-intro">
       <div><span className="eyebrow">角色外观</span><h2>外观参考</h2><p>{data.title} · {readOnly ? "这里展示已保留的外观图片和选用记录，不会改变选择或启动图像任务。" : "先比较已有图片，再明确选用身份参考；也可基于当前查看图片探索调整。创建提案只冻结请求；必须明确发送给图像生成助手，且不会自动选择。"}</p></div>
-      <div className={`reference-gallery-cast-state ${castState.status === "accepted" && !castTransitionPending ? "current" : "stale"}`}><strong>{castTransitionPending ? "角色文字正在更新" : castState.status === "accepted" ? `已确认角色设定 r${castState.acceptedCast.revision}` : "角色设定需重新确认"}</strong><span>{readOnly ? "此项目为只读；不能选用图片或准备、发送新提案。" : error ? "角色参考读取失败；保留图片仅供核对，请先重新读取。" : castTransitionPending ? "角色更新完成前，保留图像仅供核对。" : castState.status === "accepted" ? "可以审阅、选择、准备并发送新提案。" : "保留图像仅供核对；重新确认角色设定前不能选择、细化、准备或发送新提案。"}</span></div>
+      <div className={`reference-gallery-cast-state ${castState.status === "accepted" && !castTransitionPending ? "current" : "stale"}`}><strong>{castTransitionPending ? "角色文字正在更新" : castState.status === "accepted" ? `${adoptionLabel("characters", castState.acceptedCast.revision, castState.acceptedCast.contentHash)}角色设定 r${castState.acceptedCast.revision}` : "角色设定需重新确认"}</strong><span>{readOnly ? "此项目为只读；不能选用图片或准备、发送新提案。" : error ? "角色参考读取失败；保留图片仅供核对，请先重新读取。" : castTransitionPending ? "角色更新完成前，保留图像仅供核对。" : castState.status === "accepted" ? "可以审阅、选择、准备并发送新提案。" : "保留图像仅供核对；重新确认角色设定前不能选择、细化、准备或发送新提案。"}</span></div>
     </section>
     <div className="reference-gallery-layout">
-      <nav className="reference-subjects" aria-label="角色主体"><span>角色主体</span>{subjects.map((subject) => <button key={subject.id} type="button" className={subject.id === selected.id ? "selected" : ""} aria-pressed={subject.id === selected.id} onClick={() => setSelectedSubjectId(subject.id)}><strong>{subject.name}</strong><small>{subject.inAcceptedCast ? "已确认角色" : "仅保留的历史主体"}</small></button>)}</nav>
+      <nav className="reference-subjects" aria-label="角色主体"><span>角色主体</span>{subjects.map((subject) => <button key={subject.id} type="button" className={subject.id === selected.id ? "selected" : ""} aria-pressed={subject.id === selected.id} onClick={() => setSelectedSubjectId(subject.id)}><strong>{subject.name}</strong><small>{subject.inAcceptedCast ? "设定中的角色" : "仅保留的历史主体"}</small></button>)}</nav>
       <SubjectGallery key={`${castSession}:${selected.id}`} projectId={projectId} subject={selected} data={data} readOnly={readOnly || Boolean(error) || castTransitionPending || castState.status !== "accepted"} castRevision={castState.acceptedCast.revision} rootSession={castSession} session={`${castSession}:${selected.id}`} castSessionOwner={castSessionOwner} onRefresh={refresh} />
     </div>
   </section>;

@@ -281,6 +281,15 @@ requests and persistence contracts unchanged.
 
 ### P5 automatic guidance and immutable delivery disclosure
 
+Native97 exposed three current-contract gaps. Canonical accepted status/membership
+does not prove human review: reference headings use exact adoption provenance,
+while frozen identity/source metadata describes bindings neutrally. Shared inventory
+readiness requires a present current installation; incomplete review/handoff reads
+refuse through the existing domain error without mutation. Phase describes admitted
+active work: commit image phase with its prepared checkpoint in the same transaction,
+before dispatch/selection. Failed preparation cannot advance phase. No schema,
+authority, payload, selection or dispatch-identity changes are implied.
+
 The actual source/characters walkthrough showed dominant manual Next instructions
 alongside an active automatic owner; delivery limitations were retained but absent
 from the consolidated review. Present the observed automatic phase and one final

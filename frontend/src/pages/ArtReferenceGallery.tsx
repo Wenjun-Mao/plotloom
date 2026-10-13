@@ -9,6 +9,7 @@ import { reconcileFailedSend } from "../features/specialists/reconcileFailedSend
 import { ArtReferencePreparation } from "./ArtReferencePreparation";
 import { artSubjects, defaultImageRequirements, record, studyStatus, subjectKey } from "./artReferencePresentation";
 import { useExplicitReviewCloseGuard } from "../features/authoring/ReviewDraftContext";
+import { useAdoptionLabel } from "../features/autopilot/AutopilotWorkspace";
 
 type Candidate = ArtReferenceProposal["deliveries"][number]["candidates"][number] & {
   delivery: ArtReferenceProposal["deliveries"][number]; study: ArtReferenceProposal;
@@ -30,6 +31,7 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
   showStudyActions?: boolean;
   assetUrl?: (assetId: string) => string;
 }) {
+  const adoptionLabel = useAdoptionLabel();
   const [selectedSubjectKey, setSelectedSubjectKey] = useState("");
   const [error, setError] = useState("");
   const sessionKey = `${projectId}:${acceptedRevision}:${acceptedContentHash}`;
@@ -103,7 +105,7 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
   const candidateIsCurrent = Boolean(viewed?.study.current && viewed.delivery.state === "accepted");
   const candidateAlreadyChosen = currentDecision?.assetId === viewed?.assetId;
   return <section className="art-reference-studies art-reference-gallery" data-testid="art-reference-studies">
-    <header><div><span>环境 / 道具参考图片</span><strong>{acceptedArtCurrent ? "按已确认的美术设定生成图片" : "查看保留的参考图片"}</strong></div><small>不会修改已确认的美术设定。</small></header>
+    <header><div><span>环境 / 道具参考图片</span><strong>{acceptedArtCurrent ? `按${adoptionLabel("art", acceptedRevision, acceptedContentHash)}的美术设定生成图片` : "查看保留的参考图片"}</strong></div><small>不会修改美术设定。</small></header>
     <p>{acceptedArtCurrent ? "先选择环境或道具，再准备图片任务。这里选用的图片仅供参考，不会自动用于镜头或生产。" : "当前美术设定尚未重新确认，暂不能准备、发送或选用参考图。已有图片和任务记录仍可查看。"}</p>
     {demonstration && <p className="reference-demonstration" role="note"><strong>演示声明：</strong>{demonstration}。不代表真实交付、生成或创意批准。</p>}
     <nav className="reference-subjects" aria-label="环境和道具主体"><span>{acceptedArtCurrent ? "当前美术主体" : "保留的美术主体"}</span>{subjects.map((subject) => <button key={subjectKey(subject)} type="button" className={subjectKey(subject) === subjectKey(selected) ? "selected" : ""} aria-pressed={subjectKey(subject) === subjectKey(selected)} onClick={() => { setSelectedSubjectKey(subjectKey(subject)); setViewedAssetId(""); clearComparison(); }}><strong>{subject.subjectType === "scene" ? "环境" : "道具"} · {subject.name}</strong><small>{subject.subjectId}</small></button>)}</nav>

@@ -105,7 +105,7 @@ export function ShotPreparationSummary({
     {current?.bridge && (!cut || !sourceMatches) && <p className="warning" data-testid="bridge-source-unavailable">
       {current.bridge.installation?.status === "outdated" ? "当前制作内容需要重建；此镜头不具有当前投产来源绑定。"
         : cut ? "镜头时长或未保存编辑与已应用的原稿来源不一致；先审阅并保存当前分镜设定，不能将其视为来源匹配。"
-          : "当前镜头不属于此已确认投产提案，或分镜版本已变化；来源坐标不适用。"}
+          : "当前镜头不属于此投产提案，或分镜版本已变化；来源坐标不适用。"}
     </p>}
     {cut && <p>原稿位置（F5）：{cut.sectionId} / 第 {cut.episode} 集 / 场次 {cut.sceneIndex} / 段 {cut.segmentIndex} / 段内场次 {cut.segmentSceneIndex} / 镜头 {cut.sourceCutIndex}；精确来源时长 {cut.seconds} 秒{sourceMatches ? " · 当前绑定" : " · 绑定未确认"}。</p>}
     <ul>

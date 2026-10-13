@@ -77,7 +77,7 @@ export function CharacterReferencesPanel({
           </strong>
         </div>
         <p className="muted">
-          身份参考用于保持同一人物的外观，可更新或撤销。它不改写已确认的角色设定，
+          身份参考用于保持同一人物的外观，可更新或撤销。它不改写角色设定，
           也不替代每个镜头的状态、服装、构图和剧情；图片任务只采用当前镜头中人物的参考图。
           角色页已选的外观图仍须在这里明确选为当前制作参考；可以选用同一张图，无需重新生成。
         </p>
@@ -234,7 +234,7 @@ export function CharacterReferencesPanel({
                 </small>
                 {acceptedCast && (
                   <small data-testid={`cast-linked-reference-${character.id}`}>
-                    已确认角色 · {acceptedCast.castCharacterId} · r
+                    角色设定绑定 · {acceptedCast.castCharacterId} · r
                     {acceptedCast.revision} · {acceptedCast.contentHash?.slice(0, 12)}
                   </small>
                 )}

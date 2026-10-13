@@ -43,8 +43,12 @@ class MaterialInventory(CamelModel):
 def initial_inventory(store, policy, *, enforce_limits=True):
     cast = store.cast_state().accepted_cast
     art = store.art_state().accepted_art
-    if cast is None or art is None or store.production_bridge_state().installation.status != "current":
-        raise InvalidTransitionError("complete material inventory requires current accepted text and installation")
+    readiness_error = "complete material inventory requires current accepted text and installation"
+    if cast is None or art is None:
+        raise InvalidTransitionError(readiness_error)
+    installation = store.production_bridge_state().installation
+    if installation is None or installation.status != "current":
+        raise InvalidTransitionError(readiness_error)
     subjects = [MaterialSubject(owner="character-reference", id=item["id"]) for item in cast.cast["characters"]]
     for kind, key in (("scene", "scenes"), ("prop", "props")):
         subjects.extend(MaterialSubject(owner="art-reference", subject_type=kind, id=item["id"]) for item in art.art[key])

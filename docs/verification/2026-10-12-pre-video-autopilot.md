@@ -1119,3 +1119,116 @@ one fresh exact-candidate full. Full/hosted CI, preservation/release/activation 
 distinct fresh native proof remain separate manager gates. This repair performs
 no old-QA operation, provider generation, main merge/push or live activation and
 does not establish owner creative acceptance.
+
+## P5 manager-qualified native97 and three released path repairs · parent 97e6eeb0
+
+The manager's exact97 full passed: **1767 Python,1361 frontend,316 unfiltered
+browser cases**, deterministic static/parity and installed-wheel smoke;
+`output/playwright/pre-video-p5/full-97e6eeb0.log`, final1389.775s exit0.
+This qualifies97, not the changed repair candidate below.
+
+Manager fresh native97 proof finished against a distinct disposable project
+`6920b255-080d-4e32-a0c5-83d9c31d489f`, run
+`b41a3522-4b6d-4bba-8ec8-0ffac45c92d8`: all8 text and7 image jobs completed,
+**exactly7 actual ImageGen calls**, four references and three unique route frames.
+Every original941×1672 remains preserved beside a distinct typed720×1280
+derivative. Final state `awaiting_review`, revision76, `material-review`, no
+handoff; registry15 completed jobs, no leases, both specialists idle. The manager
+stopped only isolated workbench/bridge9951/9952 with clean exit0. Live main/runtime
+remains731cfdbf; source worker performed no native, provider or live operation.
+
+Native evidence is bound to97: `native97-observation-images-complete.json`,
+`native97-managed-assets.json`, `native97-imagegen-calls.json` and the native review
+captures under `output/playwright/pre-video-p5/`. Actual native-pack recovery
+`native97-recovery-proof.json` records snapshot148 files including DB,147 retained
+non-DB files, portable restore and resume/claim refusal. Original DB SHA256
+`36708adede61ef9f9976ec6046d5e5f308cb513cacf3e45055af5ca739cee69a` stayed unchanged.
+Approval, VisualIntent, reviewed binding, SamePerson, handoff and video rows remain
+zero. This is complete technical native-pack/recovery evidence, **not visual owner
+acceptance**. `preservation-97.json` separately records a disposable prior-layout
+fixture with11 retained files/row hash, post-DDL rollback, idempotent rerun, portable
+restore and old-runtime cutback; it is not a valued-owner-project rollout.
+`linux-bind-publication-97e6eeb0.json` provides manager native Linux publication
+evidence on a bind filesystem; shared publication source is unchanged by this slice.
+The old4817 paused run, package/policy/pin and queued reservation remain historical.
+
+The actual walkthrough found three bounded current-contract defects, retained in
+`native97-provenance-finding.json`, `native97-early-review-finding.json` and
+`native97-phase-finding.json`. Manager released repairs only after every frozen
+job settled. Root-cause notes and final implementation:
+
+- Reference/installed panels inferred human confirmation from canonical accepted
+  state or membership. Those owners admit machine adoption too. Current Cast/Art
+  headings now reuse exact operation/revision/hash provenance; subject membership,
+  frozen Cast and installed-source descriptions use neutral binding wording.
+  Existing genuine reviewer/judgment labels and unknown/error/manual/read-only
+  actions remain under their original owners. Five diagnosed presentation owners
+  only; no broader prose, action, schema, API or payload redesign.
+- `initial_inventory` short-circuited correctly before Cast/Art existed, then
+  dereferenced optional `installation.status` once both existed, yielding500 during
+  normal pre-installation stages. Its shared readiness guard now explicitly requires
+  a present current installation before material loading, preserving the existing
+  InvalidTransition409 and current manual/takeover completion semantics. Running
+  handoff retains its stronger stop-first refusal; no UI or endpoint exception bypass.
+- Image phase stayed `references` while the first frame was prepared/sent; selection
+  changed it only afterward. Text preparation already records active phase. Image
+  preparation now commits `first-frames`/`references` with its admitted prepared
+  checkpoint inside the existing IMAGE transaction. Failure rolls back phase and
+  preparation together; waiting/pause/restart keep the exact job and dispatch state.
+  No extra checkpoint, native job, generation, counter or selection permission.
+
+ADR0162 and the current contract capture these semantics; the roadmap and touched
+map identify the released slice and mark the old v1 no-crop/adaptation row explicitly
+historical. No SQLite layout, credential/auth, dependency/build tooling, provider/
+prompt, request/response schema or admission/selection/handoff ownership changed.
+The backend readiness and persisted phase behavior changed, so this combined slice
+requires a fresh manager full gate; frontend qualification cannot substitute for it.
+
+Scoped source evidence in ignored `.local/native97-repair/`:
+
+- New backend focused12 cases passed29.95s: absent/outdated installation with either
+  limit mode; real early GET409 across Source/Cast/Art/Script/storyboard/native bridge
+  stages with byte-identical project/run and unchanged dispatch lists; running and
+  taken-over incomplete handoff refusals; phase prepared/sent/delivered/waiting/pause/
+  restart and injected transaction rollback/no phantom native job.
+- Final expanded backend **focused62 cases passed392.86s**, runner414.829s,
+  `backend-consumers.log`: full new readiness/phase owners, existing
+  `test_autopilot_images.py`, `test_autopilot_image_safety.py`,
+  `test_autopilot_authority.py`, `test_autopilot_late_receipts.py`; explicit handoff
+  takeover/unassessable authorization, manual-import replacement/fresh handoff,
+  complete multiview reference endorsement; both geometry transaction/selection
+  restart cases. This supersedes the first12-case evidence for their final inputs.
+- Focused presentation30 cases passed in1.018s: exact AI/manual/unreadable/mismatched
+  hash/revision headings, neutral membership/current/frozen Cast metadata, real
+  reviewer/judgment preservation and no preparation/selection/control writes.
+- Quick **1368 units/157 files and both type checks** passed13.586s. Initial test
+  harness failures (incorrect API spy name and incomplete typed frozen-Cast fixture)
+  were corrected; production assertions or types were not weakened.
+- Eight affected browser journeys passed20.232s: whole `autopilot-guidance`,
+  `creator-reading-states`, `cast-reference-revision`, `reference-gallery-layout`.
+  Existing manual reading/revision/full frozen-reference checks stay intact. The
+  amended guidance case asserts local AI labels and unknown first-frame provenance
+  before selection, with real retained stage reads and a labelled actor GET fixture,
+  zero navigation writes and no actual native dispatch. Separate capture rerun
+  retains desktop1440×900/600 character, Art and phase pixels in
+  `.local/native97-repair/pixels/`; inspected headings are readable and unclipped.
+- Two independent bounded read-only reviews closed with no actionable findings:
+  authority reviewer for readiness/phase and persistence reviewer for presentation.
+  No delegated edits or checks; prior requested Sol/High and Sol/Medium settings
+  were retained, effective host settings unverified.
+- Native ownership discovery only:1779 pytest/177files,1368 units/157files,
+  316 browser/92specs. New tests registered; no unfiltered test bodies executed.
+- Two deterministic builds match seven static files, sorted manifest SHA256
+  `0ba396bbac866bd51f6efafadd5be007380d72767f435d730a6ad585e421e121`.
+  Installed-wheel smoke passed; wheel SHA256
+  `c90efe9ef6a2ad93fefb70c58fd3d4c5e2ab719bc1ba527e7caffd312e17b41a`.
+  Both changed Python and all seven static archive members byte-match sources.
+  The normal existing large-chunk build notice remains; no optional splitting or
+  warning suppression was added. Targeted Ruff and diff checks pass.
+
+Stop at one clean reviewed source checkpoint and restore all source/dependency/
+configuration/documentation writes and test holds. Manager owns fresh exact-candidate
+full, actual-path recheck, preserving rollout/release/activation and any main merge/
+push. Native97 evidence remains bound to97; post-repair qualification and visual
+owner acceptance remain pending. Source worker ran no full/equivalent release-gate
+union, real generation, nativeQA operation, hosted CI, merge/push or live activation.

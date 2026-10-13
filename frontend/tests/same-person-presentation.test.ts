@@ -36,6 +36,16 @@ it("uses Chinese review instructions while retaining the actual reviewer and jud
   expect(props.onRecord).toHaveBeenCalledOnce();
 });
 
+it("frozen cast metadata describes its binding without inventing human confirmation", async () => {
+  const acceptedCast = { revision: 1, contentHash: "c".repeat(64), castCharacterId: "lin", appearance: "Retained cast appearance", image: null };
+  await act(async () => root.render(createElement(SamePersonReviewPanel, { ...props, selectedIdentityMapping: [{ ...props.selectedIdentityMapping[0], acceptedCast }] })));
+  expect(host.textContent).toContain("冻结角色设定绑定 lin · r1");
+  expect(host.textContent).not.toContain("已确认角色");
+  expect((host.querySelector('input[aria-required="true"]') as HTMLInputElement).value).toBe("Codex");
+  expect(host.querySelector("select")?.value).toBe("pass");
+  expect(props.onRecord).not.toHaveBeenCalled();
+});
+
 it("requires an explicit judgment even when all observations are filled", async () => {
   const comparisons = [{ ...props.comparisons[0], judgment: "" as const }];
   await act(async () => root.render(createElement(SamePersonReviewPanel, { ...props, comparisons })));

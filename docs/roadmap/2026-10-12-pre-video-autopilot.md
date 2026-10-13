@@ -391,6 +391,7 @@ evidence cannot qualify these changed executable inputs. After the reviewed clea
 commit, hold source/dependency/config writes and test bodies for manager contract
 review and one fresh exact-candidate full. New isolated native proof uses distinct
 project/job/specialist identities; old paused 4817 data remains immutable. The
-manager's blocking publication review releases only the shared-owner crash repair:
-staged/fsynced native exclusive rename, strict preservation and Mac/Linux fault
-proof, one independent bounded review, then commit and hold for the same fresh gate.
+manager-qualified97 completed fresh native proof; its three diagnosed provenance,
+early-review readiness and active-image-phase findings are released for bounded
+repair, focused checks and independent review, then commit/hold for fresh full and
+actual-path recheck. Native97 evidence remains bound to97; owner acceptance is pending.

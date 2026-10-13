@@ -36,6 +36,8 @@
           "tests/test_autopilot_late_receipts.py",
           "tests/test_autopilot_images.py",
           "tests/test_autopilot_image_safety.py",
+          "tests/test_autopilot_image_phase.py",
+          "tests/test_autopilot_review_readiness.py",
           "tests/test_image_package_publication.py",
           "tests/test_autopilot_handoff.py",
           "tests/test_autopilot_geometry.py",
@@ -63,7 +65,8 @@
           "frontend/tests/autopilot-review.test.ts",
           "frontend/tests/autopilot-delivery-evidence.test.ts",
           "frontend/tests/autopilot-delivery-reader.test.ts",
-          "frontend/tests/autopilot-presentation.test.ts"
+          "frontend/tests/autopilot-presentation.test.ts",
+          "frontend/tests/autopilot-reference-provenance.test.ts"
         ],
         "playwright": [
           "frontend/e2e/branch-suggestion-recovery.spec.ts",

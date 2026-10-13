@@ -112,7 +112,7 @@ export function SamePersonReviewPanel({
                     </small>
                     {mapping.acceptedCast && (
                       <small>
-                        已确认角色 {mapping.acceptedCast.castCharacterId} · r
+                        冻结角色设定绑定 {mapping.acceptedCast.castCharacterId} · r
                         {mapping.acceptedCast.revision} · {mapping.acceptedCast.contentHash.slice(0, 12)}
                       </small>
                     )}
