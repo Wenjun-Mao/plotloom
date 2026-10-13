@@ -1232,3 +1232,52 @@ full, actual-path recheck, preserving rollout/release/activation and any main me
 push. Native97 evidence remains bound to97; post-repair qualification and visual
 owner acceptance remain pending. Source worker ran no full/equivalent release-gate
 union, real generation, nativeQA operation, hosted CI, merge/push or live activation.
+
+### Manager full at 927 and retained-pack Art caption follow-up
+
+The manager's fresh full passed on exact source `927d6d815a70214351ab92ce8bf89f7528f5fd3c`:
+**1779 Python cases/177 files, 1368 frontend cases/157 files and 316 unfiltered
+browser cases/92 specs**, plus deterministic bundle/parity and installed-wheel
+smoke. `VERIFY_SUMMARY` reports1513.238s total and972.198s for Python in
+`output/playwright/pre-video-p5/full-927d6d81.log`. This full qualifies927; the
+caption-only follow-up below uses the scoped frontend qualification recorded here.
+
+The manager then reloaded the retained native97 pack with runtime927. Its run
+remained `awaiting_review` / `material-review`; the controller claim advanced76 to77
+on restart and stayed77 through the browser recheck. Policy, checkpoints, frames,
+review bundle (`61fe7c1c043480b85e3a81bd43f235e1759865b6dcebb409bb173bda65d7e76e`)
+and review fields were unchanged; the server log had zero mutating HTTP requests.
+The snapshot showed `AI 已采用美术设定 r1` beside the unconditional preparation
+caption `此选择用于新的美术任务，不会修改已确认的角色设定或图片。` The Cast
+was AI-adopted and carried no human confirmation. See
+`native927-recheck-proof.json` and `native927-reloaded-art-snapshot.txt:119` under
+`output/playwright/pre-video-p5/`. Native generation remains bound to97, and human
+visual acceptance is still pending.
+
+The bounded repair changes that helper to `此选择用于新的美术任务，不会修改角色设定或图片。`
+in `frontend/src/pages/ArtPanel.tsx`. The existing `autopilot-guidance` journey now
+checks the AI-adoption context and neutral preparation wording, rejects the old
+confirmation phrase, and retains its zero-write / no-run assertions. Its fresh
+1440x900 preparation capture is
+`.local/native927-caption/pixels/native927-caption-art-preparation-1440x900.png`;
+the caption is readable in context with the AI-adopted heading. Generated delivery
+changed only `src/plotloom/static/workbench.js`.
+
+The actual diff contains this presentation sentence, its existing browser journey,
+the generated bundle and this receipt. Backend/API requests and responses,
+persistence, prompts, admission, auth, provider behavior, dependencies, package
+metadata and package contracts are unchanged from927. No human-confirmation state
+or action was added or altered.
+
+Scoped qualification passed: `verify.py quick` ran all1368 frontend cases across
+157 files plus both frontend and E2E type checks; focused Playwright ran the single
+`e2e/autopilot-guidance.spec.ts` case and passed. Two deterministic builds produced
+the same seven-file static SHA256 manifest (sorted relative path, NUL, per-file
+SHA256, newline)
+`f3728c7484a1480d6f5b8b311e451faf62ceaaed8ce67350eba8f205f3deb5d2`; the changed
+`workbench.js` hash is `d589679ae2ed3b92a0e0dfcdcc31fbea7bd8d5788b70446ad7990d045a526dd5`.
+A fresh wheel build and installed-wheel smoke passed (`plotloom-0.1.0-py3-none-any.whl`,
+SHA256 `b0054a62c55f07e71c383cd1860a9cf7a597137e75255bd431f488d66025648f`). One
+independent bounded read-only review reported no actionable findings. The caption
+follow-up did not rerun full or perform native generation; manager owns the final
+actual-path recheck and release decision.

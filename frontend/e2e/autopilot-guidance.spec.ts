@@ -42,15 +42,22 @@ test("actual stage workspaces distinguish automatic ownership while keeping manu
       for (const height of [900, 600]) {
         await page.setViewportSize({ width: 1440, height });
         await gallery.locator(".reference-gallery-intro").scrollIntoViewIfNeeded();
-        await page.screenshot({ path: `../.local/native97-repair/pixels/native97-repair-character-${height}.png` });
+        await page.screenshot({ path: `../.local/native927-caption/pixels/native927-caption-character-${height}.png` });
       }
       await page.setViewportSize({ width: 1440, height: 900 });
     }
     if (target === "source#art") {
+      const preparation = page.locator('section[aria-label="准备美术设定候选"]');
+      await expect(preparation.getByRole("heading", { name: "准备新的美术候选（可选）" })).toBeVisible();
+      await expect(preparation).toContainText("AI 已采用的美术设定");
+      await expect(preparation).toContainText("此选择用于新的美术任务，不会修改角色设定或图片。");
+      await expect(preparation).not.toContainText("已确认的角色设定");
+      await preparation.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: "../.local/native927-caption/pixels/native927-caption-art-preparation-1440x900.png" });
       const gallery = page.getByTestId("art-reference-studies");
       await expect(gallery.locator("header strong").first()).toHaveText("按AI 已采用的美术设定生成图片");
       await gallery.locator("header").first().scrollIntoViewIfNeeded();
-      await page.screenshot({ path: "../.local/native97-repair/pixels/native97-repair-art-900.png" });
+      await page.screenshot({ path: "../.local/native927-caption/pixels/native927-caption-art-gallery-1440x900.png" });
     }
   }
   // Observe admitted first-frame work before selection; this is an actor fixture,
@@ -60,7 +67,7 @@ test("actual stage workspaces distinguish automatic ownership while keeping manu
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=characters`);
   await expect(guide).toContainText("当前自动阶段：镜头首帧");
   await expect(page.getByTestId("character-reference-gallery").locator(".reference-gallery-cast-state strong")).toContainText("来源待核实");
-  await page.screenshot({ path: "../.local/native97-repair/pixels/native97-repair-phase.png", fullPage: false });
+  await page.screenshot({ path: "../.local/native927-caption/pixels/native927-caption-phase-1440x900.png", fullPage: false });
   expect(writes).toEqual([]);
   expect(await json(request.get(`${root}/autopilot`))).toBeNull();
 });
