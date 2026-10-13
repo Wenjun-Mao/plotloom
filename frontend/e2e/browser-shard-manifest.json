@@ -72,7 +72,8 @@
     "cast-image-direction-edit.spec.ts",
     "cast-render-choice.spec.ts",
     "video_backends/minimax_h3/h3-controls.spec.ts",
-    "creator-workbench-text.spec.ts"
+    "creator-workbench-text.spec.ts",
+    "storyboard-brief-diagnostic.spec.ts"
   ],
   "4": [
     "art-review.spec.ts",

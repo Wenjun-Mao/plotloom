@@ -1680,3 +1680,25 @@ actual-path native proof, preservation and activation. No worker native, live,
 CI, main integration, push, CLI-pool work or owner-story mutation was performed.
 The original valued r229 run, detached c771 source and private477 QA were not
 opened, rebound, rewritten or resumed by this worker.
+
+### Hosted browser shard allocation repair (2026-10-13)
+
+The full run on base `15af8f6b` stopped at the Python gate because
+`tests/test_ci_browser_contract.py` discovered the new
+`storyboard-brief-diagnostic.spec.ts` file but the hosted whole-file manifest
+did not assign it. The spec was already registered to its native module owner.
+The correction adds that spec once to shard 3; no existing shard assignment or
+coverage assertion changed.
+
+Scoped verification on the resulting candidate:
+
+- `uv run --locked --no-sync python scripts/verify.py focused --pytest tests/test_ci_browser_contract.py` — 5 passed.
+- With ambient selectors cleared and `BROWSER_GREP='.*'`,
+  `node scripts/check_browser_shard_manifest.mjs` — 93 specs and 318 selected
+  cases across shards 84/72/72/90; zero overlap or missing cases, with the
+  full browser selection preserved. This is collection/allocation evidence;
+  browser test bodies were not run.
+
+Only the shard manifest and this receipt changed. The full release run remains
+incomplete at its earlier failure; no native, hosted CI, activation, or broader
+qualification was performed in this repair.
