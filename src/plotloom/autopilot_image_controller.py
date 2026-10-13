@@ -141,9 +141,9 @@ class AutopilotImageController:
     def retain_delivery(self, store, view, claim, checkpoint, evidence, context, delivery):
         provenance = delivery.manifest.executor_provenance
         expected = view.policy.execution_pins["image"]
-        native_task_id = delivery.manifest.tool_evidence.native_task_id
+        native_task_identity = delivery.manifest.native_task_identity
         if (provenance.code_revision != expected["codeRevision"] or provenance.skill_hash != expected["skillHash"]
-                or str(native_task_id) != view.policy.specialist_bindings["image"]):
+                or native_task_identity != view.policy.specialist_bindings["image"]):
             raise InvalidTransitionError("image receipt execution differs from frozen policy")
         target = IMAGE_METHODS[evidence.owner][2]
         self.registry.assert_image_terminal_identity(evidence.job_id, view.policy.specialist_bindings["image"], project_id=view.project_id, target=target)

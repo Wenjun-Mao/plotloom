@@ -110,16 +110,12 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
             manifest = ImageDeliveryManifest.model_validate_json(retained[1])
             frozen_policy = json.loads(run["policy"])
             provenance = manifest.executor_provenance
-            native_task_id = (
-                str(manifest.tool_evidence.native_task_id)
-                if manifest.schema_version == 3
-                else manifest.tool_evidence.task_id
-            )
+            native_task_identity = manifest.native_task_identity
             if (stable_hash(manifest.canonical_payload()) != proof
                     or manifest.job_id != evidence.job_id or manifest.request_hash != evidence.request_hash
                     or provenance is None or provenance.code_revision != evidence.execution_pin["codeRevision"]
                     or provenance.skill_hash != evidence.execution_pin["skillHash"]
-                    or native_task_id != frozen_policy["specialistBindings"]["image"]):
+                    or native_task_identity != frozen_policy["specialistBindings"]["image"]):
                 raise ValueError("retained image receipt differs from its frozen execution")
             if "candidateAssetIds" in evidence.result:
                 candidate_table = delivery_table.replace("deliveries", "candidates")

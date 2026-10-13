@@ -281,6 +281,14 @@ class ImageDeliveryManifest(CamelModel):
             raise ValueError("schema-v3 image manifests require distinct native and ImageGen execution identities")
         return self
 
+    @property
+    def native_task_identity(self) -> str | None:
+        """Return the schema-owned Codex task identity without guessing fields."""
+
+        if self.schema_version == 3:
+            return str(self.tool_evidence.native_task_id) if self.tool_evidence.native_task_id is not None else None
+        return self.tool_evidence.task_id
+
     def canonical_payload(self) -> dict:
         """Serialize with the exact identity fields owned by this manifest schema."""
 

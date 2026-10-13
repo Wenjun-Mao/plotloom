@@ -127,6 +127,7 @@ def test_retained_manifest_hash_projection_omits_new_identity_members(schema_ver
         "toolEvidence": {"tool": "codex_imagegen", "taskId": "legacy-codex-task", "available": True},
     })
 
+    assert manifest.native_task_identity == "legacy-codex-task"
     expected_payload = {
         "schemaVersion": schema_version,
         "jobId": "ij_" + "a" * 20,
@@ -296,6 +297,7 @@ def test_schema_v3_delivery_matches_native_uuid_to_pin_and_frozen_binding(
         expected_executor_contract="codex_specialist.v3", expected_native_task_binding=binding)
     assert accepted is not None
     assert str(accepted.manifest.tool_evidence.native_task_id) == task_id
+    assert accepted.manifest.native_task_identity == task_id
     assert accepted.manifest.tool_evidence.image_gen_execution_id == "exec-101f61ef-ab1c-4dcf-a6bc-702e4bc8a81e"
 
     draft_path = delivery / "completion-draft.json"

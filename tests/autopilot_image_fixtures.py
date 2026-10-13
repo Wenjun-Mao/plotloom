@@ -16,7 +16,7 @@ from tests import autopilot_controller_fixtures
 from tests.autopilot_controller_fixtures import environment, run_text
 
 
-def deliver_image(store, view, checkpoint, *, geometry=None, output_count=1):
+def deliver_image(store, view, checkpoint, *, geometry=None, output_count=1, manifest_schema_version=3):
     evidence = checkpoint["evidence"]
     context = image_context(store, evidence["owner"], evidence["jobId"])
     request = context["request"]
@@ -36,12 +36,20 @@ def deliver_image(store, view, checkpoint, *, geometry=None, output_count=1):
         outputs.append({"filename": filename, "sha256": sha256(content).hexdigest(), "role": request["kind"]})
     pin = view.policy.execution_pins["image"]
     provenance = {"codeRevision": pin["codeRevision"], "skillVersion": pin["skillVersion"], "skillHash": pin["skillHash"]}
-    (delivery / "executor-pin.json").write_text(json.dumps({"jobId": evidence["jobId"], "requestHash": context["requestHash"],
-        "executionContract": pin["executionContract"], "nativeTaskId": view.policy.specialist_bindings["image"], **provenance}))
-    manifest = {"schemaVersion": 3, "jobId": evidence["jobId"], "requestHash": context["requestHash"], "deliveryId": "fixture-image",
+    executor_pin = {"jobId": evidence["jobId"], "requestHash": context["requestHash"],
+        "executionContract": pin["executionContract"], **provenance}
+    if pin["executionContract"] == "codex_specialist.v3":
+        executor_pin["nativeTaskId"] = view.policy.specialist_bindings["image"]
+    (delivery / "executor-pin.json").write_text(json.dumps(executor_pin))
+    tool_evidence = {"tool": "codex_imagegen", "available": True}
+    if manifest_schema_version == 3:
+        tool_evidence.update({"nativeTaskId": view.policy.specialist_bindings["image"],
+            "imageGenExecutionId": f"exec-{evidence['jobId']}"})
+    else:
+        tool_evidence["taskId"] = view.policy.specialist_bindings["image"]
+    manifest = {"schemaVersion": manifest_schema_version, "jobId": evidence["jobId"], "requestHash": context["requestHash"], "deliveryId": "fixture-image",
         "actualPrompt": "Deterministic bitmap fixture; no generation.", "outputs": outputs,
-        "toolEvidence": {"tool": "codex_imagegen", "nativeTaskId": view.policy.specialist_bindings["image"],
-            "imageGenExecutionId": f"exec-{evidence['jobId']}", "available": True},
+        "toolEvidence": tool_evidence,
         "executorProvenance": provenance, "limitations": ["Offline fixture, not product acceptance."]}
     identities = [item["originalHash"] for item in request["frozenSnapshot"].get("references", []) if item["role"] == "character_identity"]
     if identities:

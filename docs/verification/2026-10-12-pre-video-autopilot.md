@@ -1771,3 +1771,38 @@ QA/live project/package/pin/output or manager-owned receipt mutation, service or
 provider operation, full gate, CI, activation, merge or push occurred in this
 source checkpoint. The manager retains all such gates and final product/release
 acceptance.
+
+### Legacy image receipt reconciliation follow-up (2026-10-13)
+
+Manager review of the source checkpoint found that autopilot's late-receipt
+ingestion read `nativeTaskId` unconditionally. Retained schema-v1/v2 manifests
+carry the native Codex identity in `taskId`, so a valid schema-v2 receipt with
+the historical `p1.5-pin.v1` / `codex_specialist.v2` contract was rejected before
+ingestion even though the persistence checkpoint validator already understood
+both schemas.
+
+`ImageDeliveryManifest.native_task_identity` now resolves only the identity field
+owned by the manifest schema: the typed UUID for schema v3 and legacy `taskId`
+for schemas v1/v2. Ingestion and persisted checkpoint validation share this
+property, then continue to compare the result exactly with the frozen task UUID.
+There is no ImageGen execution-ID fallback.
+
+Focused regression coverage creates schema-v2 late receipts under the historical
+pin and execution contract, then reconciles them after both cancellation and
+takeover, with and without controller restart. It verifies unchanged package and
+delivery bytes, frozen policy and job/request identities, an `inapplicable`
+retained delivery with no candidate rows or adoption, successful exact dispatch
+reservation settlement, and persisted checkpoint validation. Wrong UUID and
+`exec-*` legacy task IDs remain rejected with their reservations held.
+
+`uv run --locked --no-sync python scripts/verify.py focused` with selectors for
+`test_autopilot_late_receipts.py`, `test_autopilot_image_safety.py`, and
+`test_image_job_exchange_contracts.py` passed **41 tests**, with one existing
+Starlette/httpx deprecation warning. Focused F-rule Ruff, compileall for the
+changed modules and tests, and `git diff --check` passed. The first narrow test
+attempt found a missing fixture import; after correcting it, the complete
+selected set passed. A bounded independent read-only review, requested as
+GPT-6.1 Sol / Medium, found no actionable issues. The reviewer could not verify
+host-effective model or effort settings. Restart coverage recreates the
+autopilot service while retaining the test registry; it does not exercise a
+separate process or fresh registry restart.
