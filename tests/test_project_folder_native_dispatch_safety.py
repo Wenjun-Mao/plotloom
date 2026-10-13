@@ -10,12 +10,22 @@ from fastapi.testclient import TestClient
 from plotloom.api.project_folder_image_jobs import (
     register_project_folder_image_job_routes,
 )
-from plotloom.image_job_contracts import ImageJobError
+from plotloom.image_job_contracts import ImageJobError, NativeTaskBinding
 
 
 class RecordingDispatcher:
     def __init__(self) -> None:
         self.completed: list[str] = []
+
+    def delivery_task_binding(
+        self, _job_id: str, *, require_bound: bool = False
+    ) -> NativeTaskBinding:
+        if require_bound:
+            raise ImageJobError(
+                "specialist_binding_missing",
+                "fixture has no configured native task binding",
+            )
+        return NativeTaskBinding(mode="current_task")
 
     def complete(self, job_id: str) -> None:
         self.completed.append(job_id)
@@ -41,6 +51,9 @@ class FinalSecretManifestExchange:
 
 class TerminalManifest:
     delivery_id = "fixture-delivery"
+
+    def canonical_payload(self) -> dict[str, str]:
+        return {"deliveryId": self.delivery_id}
 
     def model_dump(self, **_kwargs: Any) -> dict[str, str]:
         return {"deliveryId": self.delivery_id}

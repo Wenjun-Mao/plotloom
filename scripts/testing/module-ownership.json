@@ -246,6 +246,7 @@
           "tests/test_media.py",
           "tests/test_project_storage_image_delivery_contracts.py",
           "tests/test_project_storage_image_identity_contracts.py",
+          "tests/test_project_storage_image_keyframe_acceptance.py",
           "tests/test_project_storage_image_workflow.py",
           "tests/test_project_storage_video_dispatch.py",
           "tests/test_project_storage_video_disposal.py",
@@ -572,6 +573,14 @@
       "path": "tests/autopilot_image_fixtures.py",
       "kind": "shared-fixture-or-helper",
       "consumers": ["story-authoring"]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/project_folder_image_delivery_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle"
+      ]
     },
     {
       "suite": "pytest",

@@ -14,6 +14,7 @@ from plotloom.art_contracts import (
 )
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import canonical_json
+from plotloom.image_job_contracts import NativeTaskBinding
 
 
 def _binding(revision: int = 1) -> ArtBinding:
@@ -146,29 +147,48 @@ def _write_art_reference_delivery(
     assert isinstance(request, dict)
     request_hash = proposal["requestHash"]
     assert isinstance(request_hash, str)
+    package_path = delivery_path.parent / "package" / "request.json"
+    package = json.loads(package_path.read_text(encoding="utf-8"))
+    assert package["packageVersion"] == 6
+    assert package["jobId"] == proposal["id"]
+    assert package["requestHash"] == request_hash
+    preflight = request["specialistPreflight"]
+    assert preflight["version"] == "p1.5-pin.v2"
+    assert preflight["executionContract"] == "codex_specialist.v3"
+    assert preflight["skillVersion"] == "plotloom-image-specialist.v4"
+    binding = NativeTaskBinding.model_validate(package["nativeTaskBinding"])
+    native_task_id = (
+        str(binding.task_id)
+        if binding.mode == "configured_task"
+        else "00000000-0000-4000-8000-000000000001"
+    )
+    execution_id = f"exec-art-reference-fixture-{proposal['id']}"
+    assert execution_id != native_task_id
     content = _reference_png()
     provenance = {
         "codeRevision": "a" * 40,
-        "skillVersion": "plotloom-image-specialist.v3",
+        "skillVersion": preflight["skillVersion"],
         "skillHash": "b" * 64,
     }
     delivery_path.mkdir(exist_ok=True)
-    (delivery_path / "outputs").mkdir()
+    (delivery_path / "outputs").mkdir(exist_ok=True)
     (delivery_path / "outputs" / "study.png").write_bytes(content)
     (delivery_path / "executor-pin.json").write_text(
         json.dumps(
             {
                 "jobId": proposal["id"],
                 "requestHash": request_hash,
-                "executionContract": "codex_specialist.v2",
+                "executionContract": preflight["executionContract"],
+                "nativeTaskId": native_task_id,
                 **provenance,
             }
-        )
+        ),
+        encoding="utf-8",
     )
     (delivery_path / "completion.json").write_text(
         json.dumps(
             {
-                "schemaVersion": 2,
+                "schemaVersion": 3,
                 "jobId": proposal["id"],
                 "requestHash": request_hash,
                 "deliveryId": "art-study-001",
@@ -182,11 +202,13 @@ def _write_art_reference_delivery(
                 ],
                 "toolEvidence": {
                     "tool": "codex_imagegen",
-                    "taskId": "art-reference-fixture",
+                    "nativeTaskId": native_task_id,
+                    "imageGenExecutionId": execution_id,
                     "available": True,
                 },
                 "executorProvenance": provenance,
                 "limitations": ["fixture bytes only"],
             }
-        )
+        ),
+        encoding="utf-8",
     )

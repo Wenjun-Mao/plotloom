@@ -634,7 +634,7 @@
       ]
     },
     "tests/test_project_storage_image_delivery_contracts.py::test_keyframe_adaptation_enforces_frozen_geometry_without_reselecting_source": {
-      "source_sha256": "dc4838b91c1ac7430aff45dc630942161dcb970e6e6abdc609b7e6114c55b169",
+      "source_sha256": "0e095dc1e55866bcf800d87b7571ef531f264dbf2dd64bbcdbb04157d7b53c61",
       "assertions": [
         "source.status_code == 201",
         "intent_draft.status_code == 200",
@@ -645,6 +645,33 @@
         "copied.status_code == 200",
         "rejected.status_code == 422",
         "rejected.json()['code'] == 'delivery_geometry_mismatch'",
+        "workbench['reviewedKeyframes'][0]['assetId'] == source.json()['id']",
+        "workbench['selectionRevision'] == selected.json()['selectionRevision']"
+      ]
+    },
+    "tests/test_project_storage_image_keyframe_acceptance.py::test_keyframe_adaptation_accepts_frozen_geometry_and_keeps_source_selected": {
+      "source_sha256": "dbeeb9891c78a051fc9872b77d571028b7c2f44f2ed177fac8a2f47338e6856c",
+      "assertions": [
+        "source.status_code == 201",
+        "intent_draft.status_code == 200",
+        "intent.status_code == 201",
+        "selected.status_code == 201",
+        "direction.status_code == 200",
+        "prepared.status_code == 201",
+        "request['kind'] == 'keyframe_adaptation'",
+        "frozen['sourceBindingId'] == selected.json()['id']",
+        "frozen['sourceOriginalHash'] == source.json()['originalHash']",
+        "frozen['outputContract'] == {'width': 576, 'height': 1024, 'mimeTypes': ['image/jpeg', 'image/png']}",
+        "[item['role'] for item in request['frozenSnapshot']['references']] == ['source_keyframe']",
+        "copied.status_code == 200",
+        "package_request['packageVersion'] == 6",
+        "package_request['nativeTaskBinding'] == {'mode': 'current_task'}",
+        "package_request['references'][0]['role'] == 'source_keyframe'",
+        "'complete 576x1024 composition' in package_request['deliveryInstruction']",
+        "accepted.status_code == 200",
+        "accepted.json()['state'] == 'accepted'",
+        "candidate['role'] == 'keyframe_adaptation'",
+        "candidate['assetId'] != source.json()['id']",
         "workbench['reviewedKeyframes'][0]['assetId'] == source.json()['id']",
         "workbench['selectionRevision'] == selected.json()['selectionRevision']"
       ]
@@ -1147,7 +1174,7 @@
       ]
     },
     "tests/test_project_storage_image_identity_contracts.py::test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacement": {
-      "source_sha256": "0d7857b0d00fb9c512d33c82bc3d67106af1c868059f0e43bd02fef0b6f0e15f",
+      "source_sha256": "7e9c454753f1c3c1d72311204b44471b5762d2061bdbe5ee20f2d05699f1b6c8",
       "assertions": [
         "approval.status_code == 201",
         "missing.status_code == 422",
@@ -1160,7 +1187,7 @@
         "frozen['characterIdentity'][0]['acceptedCast'] == accepted_cast",
         "[entry['role'] for entry in frozen['references']] == ['character_identity']",
         "copied.status_code == 200",
-        "package_request['packageVersion'] == 5",
+        "package_request['packageVersion'] == 6",
         "package_request['references'][0]['role'] == 'character_identity:fixture-hero'",
         "'characterIdentity[].acceptedCast' in (package / 'COPY_ASSIGNMENT.txt').read_text(encoding='utf-8')",
         "awaiting.status_code == 200",
@@ -2953,7 +2980,8 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_image_delivery_contracts.py::test_keyframe_adaptation_enforces_frozen_geometry_without_reselecting_source"
+        "tests/test_project_storage_image_delivery_contracts.py::test_keyframe_adaptation_enforces_frozen_geometry_without_reselecting_source",
+        "tests/test_project_storage_image_keyframe_acceptance.py::test_keyframe_adaptation_accepts_frozen_geometry_and_keeps_source_selected"
       ],
       "mapping_note": "Current project-folder owner preserves the recorded baseline trigger and assertion boundary; exact assertions are stored in the replacement catalog.",
       "review_status": "verified"

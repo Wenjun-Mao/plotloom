@@ -1772,6 +1772,60 @@ provider operation, full gate, CI, activation, merge or push occurred in this
 source checkpoint. The manager retains all such gates and final product/release
 acceptance.
 
+### Full-gate fixture and retained-coverage repair (2026-10-13)
+
+The manager's full local gate on base `2ec62c70fdd84e53e4cd9825e4722c4ea392bda7`
+exited 1 after 729.606 seconds: 1,828 passed and 10 failed. Its captured log is
+`/tmp/plotloom-ux-release-gates.cILc2m/full-2ec62c70.log` (SHA-256
+`f1807ae29ac5c019ca64656dea973aa05601e05c1fba41833da0f39cbc50d616`). Frontend
+tests and type checks passed in that run; it did not reach browser, deterministic
+build, or wheel checks. I reproduced the ten reported failures with focused
+selectors on the unchanged base before changing fixtures or the inventory.
+
+The failures came from stale test contracts, not a demonstrated product defect.
+The Art delivery fixture still emitted a schema-v2 `taskId` manifest and an old
+pin even though packages now freeze package-v6 native-task binding and schema-v3
+identity. The project-folder dispatch safety double did not implement the
+current typed binding method, and its terminal manifest double lacked the
+canonical payload method. The retained coverage catalog also had stale source
+hashes/package-version assertions and listed only a geometry rejection check,
+without a positive exact-geometry acceptance case. These fixtures and
+assertions are now aligned with the current contract; the rejection baseline
+remains recorded and a separate acceptance test checks frozen source identity,
+output geometry, accepted derivative role, and unchanged selected source.
+Shared project-folder image-test setup moved to
+`tests/project_folder_image_delivery_fixtures.py`, leaving the original test file
+at 447 lines.
+
+Scoped verification on the repaired candidate:
+
+- `uv run --locked --no-sync python scripts/verify.py focused` with explicit
+  selectors for the Art fixture consumers, project-folder dispatch safety,
+  retained coverage inventory, image identity/delivery/workflow and exact
+  keyframe acceptance, image exchange, specialist settings, and terminal
+  settlement passed **97 tests**, with one existing Starlette/httpx deprecation
+  warning.
+- `uv run --locked --no-sync python scripts/verify.py module --module
+  media-lifecycle --depth contract --show` confirmed the new acceptance test is
+  in the owner union and that the module declares no additional required gates;
+  this was discovery only, not a module test run. The extracted shared fixture
+  helper is registered under the same module's support dependencies. After
+  adding that registry entry, `verify.py focused --pytest
+  tests/test_verification_module_ownership.py` passed all 7 tests and module
+  planning confirmed both paths.
+- Targeted Ruff `F,I` checks on the five changed Python test/fixture files,
+  compileall for all five changed Python files, and `git diff --check` passed.
+  The retained inventory selector passed as part of the focused run.
+- Independent read-only review found no correctness or scope findings. It noted
+  that the extracted helper was missing from `support_dependencies`; that
+  registry entry was added and checked after review. Effective model/effort
+  settings were unverified.
+
+No full-suite rerun, browser, build, wheel, CI, native dispatch, live/QA state,
+provider action, activation, merge, or push was performed for this repair. The
+failed full gate and its downstream release qualification remain with the
+manager; this receipt records only the bounded fixture/coverage repair evidence.
+
 ### Legacy image receipt reconciliation follow-up (2026-10-13)
 
 Manager review of the source checkpoint found that autopilot's late-receipt
