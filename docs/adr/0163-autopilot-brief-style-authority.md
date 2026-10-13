@@ -44,3 +44,21 @@ frozen direction exactly once without contradictory preset text. Tests cover
 arbitrary selections/free text, empty direction, old-policy preservation,
 manual presets, v2/v3 geometry lineage and inherited references/frames. This
 decision authorizes no live run mutation or activation.
+
+## Saved-Brief specialist instructions
+
+The installed novel-characters and novel-art skills contain mandatory preset
+selection and preset-specific validator/render entrypoints. Those instructions
+conflict with `saved_brief`, even when the request's authority opener says the
+Brief owns visual direction. New saved-Brief Cast and Art requests therefore
+carry the named `plotloom.autopilot.saved-brief-receiving-contract.v1` override
+from the Brief style contract owner. It explicitly supersedes only preset
+selection/defaults, preset bundles and matching, style-specific negative-word
+rules, and preset-specific commands. Upstream stage guidance and unrelated
+structure, source/evidence, language, reporting, and quality requirements
+remain in force. The instructions resolve task package and delivery roots and
+give the exact repository-root validate/render commands for the Brief
+adapters. Manual preset requests keep their existing instructions and
+adapters. New saved-Brief contracts name the receiving-contract version and
+hash this instruction owner; existing requests, policy hashes and specialist
+pins are never rewritten. Installed skill bytes and hashes remain unchanged.

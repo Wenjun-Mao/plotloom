@@ -48,6 +48,9 @@ def test_art_accept_reopen_cancel_and_currentness(tmp_path: Path) -> None:
             "art-style-contract.json",
         }
         assert "F3B" in request.creative_brief
+        assert "EXPLICIT SAVED-BRIEF RECEIVING-CONTRACT OVERRIDE" not in request.creative_brief
+        assert "The author-selected art-style-contract.json owns render style" in request.creative_brief
+        assert "scripts/art-style.mjs" in request.creative_brief
         assert "art_publication_active" in close_blockers(store)
         client = TestClient(create_project_folder_authoring_app(storage))
         recovered = client.get(
@@ -85,6 +88,29 @@ def test_art_accept_reopen_cancel_and_currentness(tmp_path: Path) -> None:
         with pytest.raises(NotFoundError, match="unavailable"):
             store.art_candidate_request(prepared.job_id)
         assert store.art_state().status == "accepted"
+    finally:
+        store.close()
+
+
+def test_saved_brief_art_request_overrides_pinned_preset_routing(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    try:
+        _prepare_art_context(store)
+        candidate, request = store.prepare_art_candidate(
+            "ch_" + "m" * 32, render_style="brief"
+        )
+        instructions = request.creative_brief
+        assert candidate.binding.render_contract["authority"] == "saved_brief"
+        assert "EXPLICIT SAVED-BRIEF RECEIVING-CONTRACT OVERRIDE" in instructions
+        assert "take precedence over conflicting preset-specific requirements" in instructions
+        assert "node scripts/brief-art-style.mjs validate" in instructions
+        assert "node scripts/brief-art-style.mjs render" in instructions
+        assert "node scripts/novel-art.mjs" not in instructions
+        assert "do not add preset fields" in instructions
     finally:
         store.close()
 

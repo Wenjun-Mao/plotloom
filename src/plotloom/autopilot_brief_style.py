@@ -1,18 +1,83 @@
 """Exact saved-Brief style authority for autopilot Cast and Art candidates."""
 from __future__ import annotations
 
-from hashlib import sha256
 import json
+from hashlib import sha256
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 BRIEF_STYLE = "saved-brief"
 BRIEF_STYLE_LABEL = "Saved Brief direction"
 EMPTY_DIRECTION = "尊重故事设定，由专业助手结合内容判断视觉表达；不默认真人实拍或其他预设。"
+BRIEF_STAGE_INSTRUCTION_CONTRACT = "plotloom.autopilot.saved-brief-receiving-contract.v1"
+
+
+def brief_stage_instructions(stage: Literal["cast", "art"]) -> str:
+    """Build the frozen receiving contract for one saved-Brief specialist task.
+
+    The pinned skills remain unchanged for manual callers. This task-scoped
+    contract explicitly supersedes only their preset-specific routing, while
+    preserving their unrelated stage and quality guidance.
+    """
+    if stage == "cast":
+        validate = (
+            'node scripts/brief-cast-style.mjs validate "$DELIVERY_ROOT/cast.json" '
+            '--request "$PACKAGE_ROOT/request.json"'
+        )
+        render = (
+            'node scripts/brief-cast-style.mjs render "$DELIVERY_ROOT/cast.json" '
+            '--request "$PACKAGE_ROOT/request.json" > "$DELIVERY_ROOT/report.html"'
+        )
+        markdown = (
+            'node scripts/brief-cast-style.mjs render "$DELIVERY_ROOT/cast.json" '
+            '--request "$PACKAGE_ROOT/request.json" --md > "$DELIVERY_ROOT/cast.md"'
+        )
+        skill_route = "novel-characters"
+        contract_file = "inputs/cast-style-contract.json"
+        fields = "image.prompt, image.sheet, image.negativePrompt, and image.tags"
+        marker = "cast.style"
+    elif stage == "art":
+        validate = (
+            'node scripts/brief-art-style.mjs validate "$DELIVERY_ROOT/art.json" '
+            '--cast "$PACKAGE_ROOT/inputs/cast.json"'
+        )
+        render = (
+            'node scripts/brief-art-style.mjs render "$DELIVERY_ROOT/art.json" '
+            '--cast "$PACKAGE_ROOT/inputs/cast.json" > "$DELIVERY_ROOT/report.html"'
+        )
+        markdown = None
+        skill_route = "novel-art"
+        contract_file = "inputs/art-style-contract.json"
+        fields = "scene and prop image prompts, sheets, lighting/state prompts, negative prompts and tags"
+        marker = "art.style"
+    else:  # pragma: no cover - Literal callers are statically constrained.
+        raise ValueError(f"unknown saved-Brief specialist stage: {stage}")
+
+    commands = [validate, render]
+    if markdown:
+        commands.append(markdown)
+    return (
+        f" EXPLICIT SAVED-BRIEF RECEIVING-CONTRACT OVERRIDE ({BRIEF_STAGE_INSTRUCTION_CONTRACT}): "
+        f"The frozen {contract_file} and this request identify `saved_brief` and take precedence over conflicting "
+        f"preset-specific requirements in the pinned {skill_route} skill for this task. This override replaces only "
+        "preset selection/defaults, preset bundles and cross-stage preset matching, style-specific negative-prompt "
+        "rules, and the preset-specific validate/render entrypoints. Do not route this Brief-authoritative task "
+        "through a preset; do not add preset fields. All other pinned skill instructions still apply, including "
+        "upstream stage guidance, schema/structure, source/evidence, language, reporting, and non-style quality gates. "
+        f"Preserve the exact original direction in {contract_file} as authoritative metadata, then interpret it "
+        f"faithfully in English in {fields}. Set {marker} to `saved-brief` and each image.style to the English "
+        "marker `Saved Brief direction`. Do not copy non-English direction text into machine fields or add unrelated "
+        "photographic/Ghibli defaults. For an empty direction, use story-informed discretion without a preset and "
+        "do not copy emptyDirectionRule into machine fields. Preserve source facts and accepted character "
+        "descriptions; do not edit the cast. Semantic visual fidelity remains subject to human review. "
+        "Resolve PACKAGE_ROOT as the absolute task-package directory containing request.json and inputs/, and "
+        "DELIVERY_ROOT as the absolute assigned delivery directory. From the Plotloom repository root, run exactly:\n"
+        + "\n".join(commands)
+    )
 
 
 def freeze_brief_style(direction: str | None) -> dict[str, Any]:
-    payload = {"version": 1, "authority": "saved_brief", "direction": direction,
+    payload = {"version": 1, "authority": "saved_brief", "stageInstructionContract": BRIEF_STAGE_INSTRUCTION_CONTRACT, "direction": direction,
         "emptyDirectionRule": EMPTY_DIRECTION if not direction else None}
     project_root = Path(__file__).resolve().parents[2]
     validator_paths = {

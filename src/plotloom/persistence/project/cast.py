@@ -265,7 +265,8 @@ class ProjectCastPersistence:
             request.input_artifacts["cast-style-contract.json"] = contract
             request.creative_brief += " Follow cast-writing-contract.json: separate descriptions, source notes and performance guidance."
             if render_style == "brief":
-                request.creative_brief += " This autopilot task uses the saved_brief visual authority in cast-style-contract.json, not a render preset. Preserve its exact original direction there as authoritative metadata and interpret it faithfully in English in every machine prompt field (image.prompt, image.sheet, image.negativePrompt, and image.tags). Set cast.style to saved-brief and each image.style to the English marker 'Saved Brief direction'. Do not copy non-English direction text into machine fields, classify it into a preset, or add unrelated photographic/Ghibli defaults. For an empty direction, use story-informed discretion without a preset; do not copy emptyDirectionRule into machine fields. Validate and render with scripts/brief-cast-style.mjs render cast.json --request request.json (add --md for Markdown); this retains upstream structure, source-evidence, language and report checks. Semantic fidelity remains subject to human review."
+                from ...autopilot_brief_style import brief_stage_instructions
+                request.creative_brief += brief_stage_instructions("cast")
             else:
                 request.creative_brief += " The author-selected cast-style-contract.json owns render style and overrides upstream presets/defaults and inherited outline style. Use its exact style, label and complete preset; apply authorDirection without changing source facts. Validate and render with scripts/cast-style.mjs using --request request.json --contract inputs/cast-style-contract.json. Never defer a style conflict to image generation."
             request.assert_secret_free()

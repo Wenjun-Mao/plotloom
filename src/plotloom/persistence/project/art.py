@@ -128,11 +128,13 @@ class ProjectArtPersistence:
             direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
             contract = freeze_art_style(render_style, direction)
             binding = binding.model_copy(update={"render_contract": contract})
-            style_instructions = (
-                "This autopilot task uses the saved_brief visual authority in art-style-contract.json, not a render preset. Preserve its exact original direction there as authoritative metadata and interpret it faithfully in English in every machine prompt field, including scene and prop image prompts, sheets, lighting/state prompts, negative prompts and tags. Set art.style to saved-brief and each image.style to the English marker 'Saved Brief direction'. Do not copy non-English direction text into machine fields, classify it into a preset, or add unrelated photographic/Ghibli defaults. For an empty direction, use story-informed discretion without a preset; do not copy emptyDirectionRule into machine fields. Preserve source facts and accepted character descriptions; do not edit the cast. Validate and render with scripts/brief-art-style.mjs render art.json --cast cast.json; this retains upstream structure and quality gates. Semantic fidelity remains subject to human review."
-                if render_style == "brief"
-                else "The author-selected art-style-contract.json owns render style, overriding any inherited cast/outline style or upstream default. Preserve source facts and accepted character descriptions; do not edit the cast. Use its preset in scene AND prop image directions, and the actual authorDirection for visual mood. Validate and render with scripts/art-style.mjs, --cast inputs/cast.json --contract inputs/art-style-contract.json (resolve paths from the supplied package). This adapter retains upstream structural gates and adds the selected render contract. Resolve style now, not in a later F3B overlay."
-            )
+            if render_style == "brief":
+                from ...autopilot_brief_style import brief_stage_instructions
+                style_instructions = brief_stage_instructions("art")
+            else:
+                style_instructions = (
+                    "The author-selected art-style-contract.json owns render style, overriding any inherited cast/outline style or upstream default. Preserve source facts and accepted character descriptions; do not edit the cast. Use its preset in scene AND prop image directions, and the actual authorDirection for visual mood. Validate and render with scripts/art-style.mjs, --cast inputs/cast.json --contract inputs/art-style-contract.json (resolve paths from the supplied package). This adapter retains upstream structural gates and adds the selected render contract. Resolve style now, not in a later F3B overlay."
+                )
             request = CreativeHandoffRequest(
                 job_id=job_id, project_id=project_id, section_id="shared-art", stage="art",
                 expected_stage_revision=head.revision, source=source,

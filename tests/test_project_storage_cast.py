@@ -56,6 +56,51 @@ def _deliver(store: object, request: CreativeHandoffRequest) -> object:
     return result
 
 
+def test_saved_brief_cast_request_overrides_pinned_preset_routing(tmp_path: Path) -> None:
+    store = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    ).projects.create(FIXED_CHINESE_BRIEF)
+    context = _context()
+
+    def bound_context(_session: object, _project_id: str):
+        assert context.source and context.accepted_outline and context.accepted_section_map
+        binding = CastBinding(
+            render_contract=freeze_cast_style("brief", FIXED_CHINESE_BRIEF.visual_direction),
+            source_revision=context.source.revision,
+            source_content_hash=context.source.content_hash,
+            outline_revision=context.accepted_outline.revision,
+            outline_content_hash=context.accepted_outline.content_hash,
+            section_map_revision=context.accepted_section_map.revision,
+            section_map_content_hash=context.accepted_section_map.content_hash,
+            graph_revision=1,
+            graph_content_hash="d" * 64,
+            section_ids=["opening", "choose", "ending-a", "ending-b"],
+        )
+        return (
+            binding,
+            context.source.material.model_dump(mode="json", by_alias=True),
+            context.accepted_outline.outline,
+            context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True),
+        )
+
+    store.repository.cast._context = bound_context  # type: ignore[method-assign]
+    try:
+        candidate, request = store.prepare_cast_candidate(
+            "ch_" + "e" * 32, render_style="brief"
+        )
+        instructions = request.creative_brief
+        assert candidate.binding.render_contract["authority"] == "saved_brief"
+        assert "EXPLICIT SAVED-BRIEF RECEIVING-CONTRACT OVERRIDE" in instructions
+        assert "take precedence over conflicting preset-specific requirements" in instructions
+        assert "node scripts/brief-cast-style.mjs validate" in instructions
+        assert "node scripts/brief-cast-style.mjs render" in instructions
+        assert "node scripts/novel-characters.mjs" not in instructions
+        assert "do not add preset fields" in instructions
+    finally:
+        store.close()
+
+
 def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_path: Path) -> None:
     store = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application").projects.create(FIXED_CHINESE_BRIEF)
     context = _context()
@@ -70,6 +115,9 @@ def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_p
         binding, *_ = bound_context(None, store.manifest.project_id)
         _candidate, request = store.prepare_cast_candidate("ch_" + "b" * 32, render_style="realistic")
         assert "characters[].id values" in request.creative_brief
+        assert "EXPLICIT SAVED-BRIEF RECEIVING-CONTRACT OVERRIDE" not in request.creative_brief
+        assert "The author-selected cast-style-contract.json owns render style" in request.creative_brief
+        assert "scripts/cast-style.mjs" in request.creative_brief
         assert request.input_artifacts["cast-writing-contract.json"]["version"] == 1
         assert request.input_artifacts["cast-style-contract.json"] == _candidate.binding.render_contract
         assert _candidate.binding.render_contract["authorDirection"] == FIXED_CHINESE_BRIEF.visual_direction

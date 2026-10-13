@@ -1,17 +1,25 @@
 import json
 import subprocess
 from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
 from plotloom.art_style import ArtPrepareRequest
-from plotloom.autopilot_brief_style import BRIEF_STYLE_LABEL, EMPTY_DIRECTION, freeze_brief_style, image_style_guidance, validate_brief_style
+from plotloom.autopilot_brief_style import (
+    BRIEF_STAGE_INSTRUCTION_CONTRACT,
+    BRIEF_STYLE_LABEL,
+    EMPTY_DIRECTION,
+    brief_stage_instructions,
+    freeze_brief_style,
+    image_style_guidance,
+    validate_brief_style,
+)
 from plotloom.autopilot_contracts import LaunchPolicy, LaunchRequest
 from plotloom.cast_style import CastPrepareRequest, validate_cast_style
 
 
 def _policy(*, version="plotloom.pre-video.v3", authority="brief", direction=None):
-    style = freeze_brief_style(direction)
     return LaunchPolicy.model_validate({
         "version": version, "styleAuthority": authority,
         "renderStyle": None if authority == "brief" else "ghibli",
@@ -63,6 +71,36 @@ def test_empty_brief_direction_is_explicit_and_does_not_inject_a_preset():
     assert image_style_guidance(None, follows_brief=True) == EMPTY_DIRECTION
     assert image_style_guidance("2D；水彩；低饱和", follows_brief=True) == "2D；水彩；低饱和"
     assert image_style_guidance(None, follows_brief=False) == ""
+
+
+@pytest.mark.parametrize(
+    ("stage", "validate", "render"),
+    [
+        (
+            "cast",
+            'node scripts/brief-cast-style.mjs validate "$DELIVERY_ROOT/cast.json" --request "$PACKAGE_ROOT/request.json"',
+            'node scripts/brief-cast-style.mjs render "$DELIVERY_ROOT/cast.json" --request "$PACKAGE_ROOT/request.json" > "$DELIVERY_ROOT/report.html"',
+        ),
+        (
+            "art",
+            'node scripts/brief-art-style.mjs validate "$DELIVERY_ROOT/art.json" --cast "$PACKAGE_ROOT/inputs/cast.json"',
+            'node scripts/brief-art-style.mjs render "$DELIVERY_ROOT/art.json" --cast "$PACKAGE_ROOT/inputs/cast.json" > "$DELIVERY_ROOT/report.html"',
+        ),
+    ],
+)
+def test_saved_brief_instruction_contract_overrides_only_preset_routing(stage, validate, render):
+    instructions = brief_stage_instructions(stage)
+    assert "EXPLICIT SAVED-BRIEF RECEIVING-CONTRACT OVERRIDE" in instructions
+    assert BRIEF_STAGE_INSTRUCTION_CONTRACT in instructions
+    assert "take precedence over conflicting preset-specific requirements" in instructions
+    assert "This override replaces only preset selection/defaults" in instructions
+    assert "All other pinned skill instructions still apply" in instructions
+    assert "upstream stage guidance, schema/structure, source/evidence, language" in instructions
+    assert "do not add preset fields" in instructions
+    assert "Resolve PACKAGE_ROOT as the absolute task-package directory" in instructions
+    assert validate in instructions and render in instructions
+    contract = freeze_brief_style("watercolor collage")
+    assert contract["stageInstructionContract"] == BRIEF_STAGE_INSTRUCTION_CONTRACT
 
 
 def test_brief_cast_keeps_upstream_source_and_structure_validation(tmp_path):
