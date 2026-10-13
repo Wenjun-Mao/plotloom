@@ -1,7 +1,10 @@
 # Pre-video autopilot · implementation plan
 
-Status: owner-approved implementation, 2026-10-12. Baseline inspected:
-`eea34ce1294c3f8aa48d77927847381f38a51f8a`.
+Status: implemented, locally qualified and activated in the existing app on
+2026-10-12 (Toronto), executable checkpoint `b6f0525d`. P0–P5 technical delivery
+is complete; owner creative acceptance remains separate and hosted CI was not
+dispatched. See the [single receipt's manager closeout](../verification/2026-10-12-pre-video-autopilot.md#manager-closeout--actual-valued-activation-at-b6).
+Planning baseline inspected: `eea34ce1294c3f8aa48d77927847381f38a51f8a`.
 Decision proposal: [ADR 0162](../adr/0162-pre-video-autopilot-authority.md).
 
 ## Outcome and agreed choices

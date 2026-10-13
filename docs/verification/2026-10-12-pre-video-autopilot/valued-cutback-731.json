@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "runtime": "731cfdbfb0d9139254e30c34c2a8e7669a98ddba",
+  "opened": [
+    "69530c91-2154-45cb-85f7-2e0b4078d27e",
+    "a46790f2-981d-4454-a9f4-8679d70e65e5",
+    "63e4851b-3af2-40cd-839c-501470c691de",
+    "160554c7-f021-40b0-b218-b9d53412b75c"
+  ],
+  "unsupportedRefused": [
+    "a2bef822-9069-4d47-b966-aae6f2a9160f",
+    "8204819e-da63-46b7-b2ca-0ce64f6e1ef0",
+    "9d90f17a-0c55-4fe6-9417-4834a8c5e45b",
+    "dbf1e542-b783-4ffb-a9f1-64fb7def6ef0"
+  ],
+  "committedDatabasesUnchanged": 12
+}

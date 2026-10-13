@@ -1,8 +1,12 @@
 # Pre-video autopilot · single evidence receipt
 
-Status: **P5 full failed/interrupted; terminal admission and reproduced cleanup
-race repairs in focused verification. Native/preservation/walkthrough/activation remain pending**. No owner creative
-acceptance, valued installation upgrade or live activation is claimed. Scope and stopping boundary are in the
+Status: **Implemented, locally qualified, walked through and activated on the
+existing installation on 2026-10-12 (Toronto), executable source b6f0525d.**
+The exact927 full plus b6 scoped frontend qualification, real native97 proof,
+final b6 retained-pack recheck and actual-valued preserving rollout are recorded
+below. Hosted CI was not dispatched; owner creative acceptance remains separate
+and pending. Earlier failed/pending checkpoints below are historical, not the
+current release status. Scope and stopping boundary are in the
 [approved plan](../roadmap/2026-10-12-pre-video-autopilot.md#p0-implementation-checkpoint)
 and [ADR 0162](../adr/0162-pre-video-autopilot-authority.md).
 
@@ -10,7 +14,8 @@ and [ADR 0162](../adr/0162-pre-video-autopilot-authority.md).
 
 - Production source/test baseline: `731cfdbfb0d9139254e30c34c2a8e7669a98ddba`.
 - Sole writer checkout: `/Users/wjmao/projects/HU/plotloom-worktrees/pre-video-autopilot`,
-  branch `codex/pre-video-autopilot`; retained main/source and owner data untouched.
+  branch `codex/pre-video-autopilot`; main and owner data stayed untouched during
+  implementation. The manager later performed the approved rollout below.
 - Source owner native ID: `01a12e81-53b6-7321-a0ef-adf4cad02b18`; confirmed Relay
   registration to manager `01a04525-e907-7630-9640-78790d69e8ae`, route
   `f91e617c-2925-4962-826d-5dcc14450566`.
@@ -1281,3 +1286,105 @@ SHA256 `b0054a62c55f07e71c383cd1860a9cf7a597137e75255bd431f488d66025648f`). One
 independent bounded read-only review reported no actionable findings. The caption
 follow-up did not rerun full or perform native generation; manager owns the final
 actual-path recheck and release decision.
+
+## Manager closeout · actual-valued activation at b6
+
+### Final source and native-path qualification
+
+The manager independently reviewed the four-file caption change at
+`b6f0525da5c19d572aa64946bad8339fe2f44c7e`. It changes no backend, API/payload,
+persistence, authority, prompt/provider, dependency, configuration or packaging
+contract. Reuse the exact927 full above and b6's scoped frontend/package gates;
+no equivalent full suite was repeated for this sentence.
+
+The retained native97 project `6920b255-080d-4e32-a0c5-83d9c31d489f` was restarted
+under b6 in the isolated9951 runtime, then stopped cleanly. The legitimate
+controller claim advanced run revision77 to78; it remained `awaiting_review` /
+`material-review`, with the same policy,22 checkpoints,4 references,3 frames,
+2 routes and review bundle
+`61fe7c1c043480b85e3a81bd43f235e1759865b6dcebb409bb173bda65d7e76e`.
+The native deliveries remain evidence at97 (8 text and7 ImageGen jobs), not new
+generation or exact-b6 native dispatch. All17 review text fields,3 judgments and
+4 endorsement checkboxes remained blank; human handoff was disabled. No human
+facts or video operations were supplied. The manager inspected the final
+[Art caption capture](2026-10-12-pre-video-autopilot/native-b6-art-1440x900.png)
+beside its AI-adopted heading and found no remaining caption defect.
+
+### Actual-valued preservation and cutback
+
+After verifying native idle, the manager stopped both the Docker workbench and
+the Mac bridge LaunchAgent. Raw inventory found8 project folders:4 exact
+immediate-prior layouts eligible and idle, and4 historically unsupported layouts.
+The actual application registry had57 jobs, each matched to exactly one retained
+completed receipt with matching task/job identity; no unknown or inflight work.
+The four older folders were not migrated, reset or newly made available.
+
+A private complete capture retained1379 entries,12 committed SQLite databases,
+all8 folders and hidden snapshots, application/settings/dispatch state, old
+source731 and image, and private deployment/credential controls. Capture used
+existing noncreating project locks followed by the registry idle guard. Two
+bounded independent helper reviews closed; the first caught a possible lock-file
+creation before inventory, removed before capture. Guarded receipt identity,
+captured-root confinement and original control hashes/modes were also checked.
+
+The copy rehearsal ran in network-disabled Docker, with only copied data at the
+original absolute paths, read-only source and no bridge/credentials/provider.
+The first container launches failed before execution because a nested data
+mountpoint was below read-only source. Mounting only the required `src/` subtree
+resolved that harness arrangement; no product/schema checks were bypassed.
+Loaded module hashes matched the intended current and old source exports.
+
+Executed proof:
+
+- [Upgrade rehearsal](2026-10-12-pre-video-autopilot/valued-rehearsal-b6.json):
+  injected post-DDL failure rolled back; all4 upgrades passed; current-runtime
+  readback, old-column row equality, empty new tables and idempotent second
+  upgrade passed. Application/unsupported DBs and all non-schema files were unchanged.
+- [Old-runtime cutback](2026-10-12-pre-video-autopilot/valued-cutback-731.json):
+  source731/old image directly reopened all4 supported identities read-only;
+  the same4 unsupported folders refused; all12 committed DB hashes were unchanged.
+- [Actual live upgrade](2026-10-12-pre-video-autopilot/valued-upgrade-b6.json):
+  exact same pre-upgrade logical DB hash
+  `060000407bf24d711a88b85de03ee2e6d34288dc1fe9357b91646e41c3db7405`,
+  explicit four-project allowlist, both service owners still stopped, successful
+  rehearsal and cutback receipts verified. All old rows, operational states,
+  retained payloads, native records and unsupported folders preserved.
+
+The complete private cutback directory was moved intact from temporary staging
+to `~/Library/Application Support/Plotloom/recovery/pre-video-autopilot-b6f0525d-20261012/`
+(mode0700), with controls0600. It includes the immutable raw/committed backup,
+old source, copy proofs and operator tools/procedure. It is intentionally not
+committed. Old image `plotloom-cutback:731cfdbf` is retained. Cutback uses a fresh
+complete working copy and the old source/image, never SQL downgrades or deletion
+of failed state. No live cutback was necessary.
+
+### Activated runtime and boundaries
+
+The manager fast-forwarded clean main731 to b6 and used the established
+`uv run --locked --no-sync python services/creator_workbench/manage.py start`.
+It rebuilt/recreated the workbench, restored the bridge and passed health checks.
+Activated image is
+`sha256:bf13cf64601f0ab26905d099f2c3ee3ed5aeee7e2edf4566739fe99fb38ffe2c`.
+Docker image build/dependency/configuration inputs are unchanged from the prior image;
+the runtime consumes the new mounted source and qualified assets.
+
+[Post-activation proof](2026-10-12-pre-video-autopilot/activation-b6.json) checks
+both `http://127.0.0.1:8841` and `https://plotloom.tail6040ad.ts.net`: healthy,
+controller blocker null,4 preserved project summaries with unchanged open/closed
+states, and exact SHA256 match for all7 static files. All old project/application
+rows and retained payloads are unchanged. New run/human-fact tables are empty;
+the native count remains57 and no dispatch is active. The sole new non-schema
+runtime file is the empty application `.autopilot-controller.lock`. Deployment
+configuration, bridge definition, token and H3 configuration hashes are unchanged.
+The manager inspected the [live1440x900 homepage](2026-10-12-pre-video-autopilot/activation-home-1440x900.png);
+the browser had0 console warnings/errors. The owner's browser was not reloaded.
+An attended independent read-only closeout audit compared these claims with the
+retained proofs and found no concrete issue before documentation publication.
+
+This closes implementation, local qualification, native technical demonstration,
+walkthrough repairs and preserving activation. It does not claim hosted CI,
+owner visual acceptance, voice casting, video generation or creative-quality
+approval. Fresh saved Brief-only projects can start `一键准备视频素材`; existing
+manual stories remain manual. Native97 stays an isolated review candidate. The
+separate85-percent Python-performance roadmap edit remains unstaged and outside
+this release; performance implementation has not started.

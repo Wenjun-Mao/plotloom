@@ -1,0 +1,49 @@
+{
+  "mode": "rehearsal",
+  "passed": true,
+  "candidate": "b6f0525da5c19d572aa64946bad8339fe2f44c7e",
+  "projects": 8,
+  "upgraded": {
+    "160554c7-f021-40b0-b218-b9d53412b75c": {
+      "layout": "current",
+      "changed": true,
+      "priorLayoutHash": "ea9facef83198e8b5abdd8693923f51add1376c0b416041dbfa245b92011b825",
+      "currentLayoutHash": "e6e345253ed26b38b2f478807d0fda3d749609bee3fdf3da8cb5131270e9a57c",
+      "retainedRowsHash": "1cf80fa8f00789ce832ad36d6a5d30f5914ac678167842d6f4edadf8d3c5a245"
+    },
+    "63e4851b-3af2-40cd-839c-501470c691de": {
+      "layout": "current",
+      "changed": true,
+      "priorLayoutHash": "ea9facef83198e8b5abdd8693923f51add1376c0b416041dbfa245b92011b825",
+      "currentLayoutHash": "e6e345253ed26b38b2f478807d0fda3d749609bee3fdf3da8cb5131270e9a57c",
+      "retainedRowsHash": "b3d4ab25897e6c5b320271d0c1da7750267bfb06d496078f10be9391f990ab0d"
+    },
+    "69530c91-2154-45cb-85f7-2e0b4078d27e": {
+      "layout": "current",
+      "changed": true,
+      "priorLayoutHash": "ea9facef83198e8b5abdd8693923f51add1376c0b416041dbfa245b92011b825",
+      "currentLayoutHash": "e6e345253ed26b38b2f478807d0fda3d749609bee3fdf3da8cb5131270e9a57c",
+      "retainedRowsHash": "e6ef768731f4f594642bd3041cbcdcd52b30989737227fc1787564807afc9ca1"
+    },
+    "a46790f2-981d-4454-a9f4-8679d70e65e5": {
+      "layout": "current",
+      "changed": true,
+      "priorLayoutHash": "ea9facef83198e8b5abdd8693923f51add1376c0b416041dbfa245b92011b825",
+      "currentLayoutHash": "e6e345253ed26b38b2f478807d0fda3d749609bee3fdf3da8cb5131270e9a57c",
+      "retainedRowsHash": "337e324939e5e7b7dc1d35038fb3b63cf09c9f8d079f93862eadd3ea0d89888a"
+    }
+  },
+  "unsupportedPreserved": [
+    "8204819e-da63-46b7-b2ca-0ce64f6e1ef0",
+    "9d90f17a-0c55-4fe6-9417-4834a8c5e45b",
+    "a2bef822-9069-4d47-b966-aae6f2a9160f",
+    "dbf1e542-b783-4ffb-a9f1-64fb7def6ef0"
+  ],
+  "faultRollback": true,
+  "beforeDatabaseHash": "060000407bf24d711a88b85de03ee2e6d34288dc1fe9357b91646e41c3db7405",
+  "retainedRowsHash": "c0e48f790983d35258eb2be8b223d0e535eb165290490e7752e4db7ec964e0c1",
+  "nativeJobs": 57,
+  "applicationAndUnsupportedDatabasesUnchanged": true,
+  "allNonSchemaFilesUnchanged": true,
+  "newTablesEmpty": true
+}
