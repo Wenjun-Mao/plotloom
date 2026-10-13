@@ -54,11 +54,27 @@ for (const width of [1440, 1920, 1280]) {
     await page.screenshot({ path: testInfo.outputPath(`brief-expanded-${width}.png`), fullPage: true });
     await page.getByLabel("故事梗概").fill("雨停以后，林遥决定赴约还是回家。");
     await expect(save).toBeEnabled();
+    const generationRequests: string[] = [];
+    page.on("request", request => {
+      if (request.method() !== "POST") return;
+      const pathname = new URL(request.url()).pathname;
+      if (/\/api\/v2\/projects\/[^/]+\/(?:autopilot\/start|pipeline-runs|rebuilds|specialist-tasks\/[^/]+\/[^/]+\/send|image-jobs\/[^/]+\/send|character-reference-proposals\/[^/]+\/send|art-reference-proposals\/[^/]+\/send)$/.test(pathname)) {
+        generationRequests.push(pathname);
+      }
+    });
     // Diagnostics remain useful while authoring, but must never cover Save.
     await page.locator(".topbar-technical-status > summary").click();
     await expect(page.locator(".topbar-technical-status")).toHaveAttribute("open", "");
     await expect(page.getByText("草稿：等待编辑", { exact: true })).toBeVisible();
     await save.click();
+    await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
+    await expect(page.getByText("简报已保存", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "自动准备素材", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "继续手动创作", exact: true })).toBeVisible();
+    await expect(page.locator(".topbar-technical-status")).toHaveAttribute("open", "");
+    expect(generationRequests).toEqual([]);
+    await page.getByRole("button", { name: "继续手动创作", exact: true }).click();
+    expect(generationRequests).toEqual([]);
     await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
     await expect(page.getByLabel("补充创作要求（可选）")).not.toHaveAttribute("aria-required", "true");
     const source = page.getByTestId("source-outline-source");
