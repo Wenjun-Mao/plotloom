@@ -1,4 +1,4 @@
-import { expect, test } from "./fixture";
+import { expect, saveBriefAndContinue, test } from "./fixture";
 import { demoProject } from "../src/demo";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,7 +10,7 @@ test.describe("project-folder Close", () => {
   test("cancels a prepared source-outline handoff before Close, then reopens", async ({ page, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开示例项目" }).click();
-    await page.getByRole("button", { name: "保存并继续到来源" }).click();
+    await saveBriefAndContinue(page);
     await expect(page).toHaveURL(/[?&]project=/);
     await page.locator(".topbar-technical-status > summary").click();
     await expect(page.getByText("草稿：等待编辑", { exact: true })).toBeVisible();
@@ -335,7 +335,7 @@ async function openMediaWorkbench(page: import("@playwright/test").Page): Promis
 }
 
 async function saveTeachingSampleAndReturnToBrief(page: import("@playwright/test").Page, frontendOrigin: string): Promise<void> {
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
   const projectId = new URL(page.url()).searchParams.get("project");
   if (!projectId) throw new Error("teaching sample was not saved");

@@ -1,4 +1,4 @@
-import { expect, test } from "./fixture";
+import { expect, saveBriefAndContinue, test } from "./fixture";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { json, writeDelivery, type Preparation } from "./f5a-fixture";
@@ -9,7 +9,7 @@ test("empty production pages identify missing upstream work before a rejected pr
   await page.getByRole("button", { name: "创建空白项目" }).click();
   await page.getByLabel("片名").fill("竖屏前置指引");
   await page.getByLabel("故事梗概").fill("一个人在工作室里决定灯的去留。");
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   const guide = page.getByTestId("recommended-workflow");
   for (const label of ["角色", "美术参考", "剧本", "分镜评审"]) {
     await page.getByRole("link", { name: label, exact: true }).click();
@@ -137,7 +137,7 @@ test("names the real next branch control through delivery, import, confirmation 
   await page.getByLabel("每次完整播放的选择次数", { exact: true }).fill("1");
   await page.getByLabel("不同结局的数量", { exact: true }).fill("2");
   await page.getByLabel("分支汇合次数", { exact: true }).fill("0");
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   await expect(page).toHaveURL(/[?&]project=/);
   const id = new URL(page.url()).searchParams.get("project")!;
   const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
@@ -317,7 +317,7 @@ test("keeps the recommended workflow visible on supported desktops and retains d
   await page.goto(`${workbench.frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "创建空白项目" }).click();
   await page.getByLabel("故事梗概").fill("为这个只用于界面检查的故事建立项目。");
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   await expect(page).toHaveURL(/[?&]project=/);
   const guide = page.getByTestId("recommended-workflow");
   const sourceText = page.getByLabel("故事内容");
@@ -332,7 +332,7 @@ test("keeps the recommended workflow visible on supported desktops and retains d
   await expect(guide).toContainText("当前 · 1/6 项目简报");
   await expect(guide.getByRole("button", { name: "打开来源与大纲" })).toBeVisible();
 
-  for (const size of [{ width: 1280, height: 768 }, { width: 1280, height: 460 }, { width: 1700, height: 900 }]) {
+  for (const size of [{ width: 390, height: 844 }, { width: 1280, height: 768 }, { width: 1280, height: 460 }, { width: 1700, height: 900 }]) {
     await page.setViewportSize(size);
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     const top = await guide.evaluate(element => {
@@ -358,6 +358,7 @@ test("keeps the recommended workflow visible on supported desktops and retains d
     await expect(guide.getByRole("list", { name: "推荐流程步骤" }).getByRole("listitem")).toHaveCount(6);
     await expect(guide.locator('[aria-current="step"]')).toContainText("项目简报");
     await expect(guide).toContainText("静态报告只供阅读");
+    if (size.width === 390) await expect(guide.locator(".recommended-workflow-expanded-next")).toBeVisible();
     const expanded = await guide.evaluate(element => ({
       height: element.getBoundingClientRect().height,
       scrollWidth: document.documentElement.scrollWidth,

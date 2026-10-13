@@ -6,6 +6,8 @@ from .autopilot_materials import MaterialInventory, initial_inventory, inventory
 from .autopilot_image_selection import select_image, publish_bundle
 from .exceptions import InvalidTransitionError
 from .image_commands import IMAGE_METHODS, image_context, image_package, read_image, send_image, ingest_image
+from .brief_contracts import ProjectBrief
+from .autopilot_brief_style import image_style_guidance
 from .persistence.schema import AutopilotCheckpointRow, AutopilotDecisionRow
 
 
@@ -64,13 +66,16 @@ class AutopilotImageController:
         if image_count >= view.policy.max_images:
             raise InvalidTransitionError("达到冻结图片上限；不能新增适配，请接管已保留的素材。")
         with self.command(store, view, claim, OperationScope.IMAGE):
+            frozen_brief = ProjectBrief.model_validate(view.policy.brief)
+            direction = frozen_brief.visual_direction
+            style_guidance = image_style_guidance(direction, follows_brief=view.policy.effective_style_authority == "brief")
             if subject.owner == "character-reference":
                 context = store.media.prepare_character_reference_proposal(view.project_id, character_id=subject.id,
-                    cast_revision=inventory.cast_revision, visual_direction="按冻结人物形象生成一张清晰身份参考图；" + store.project().brief.visual_direction,
+                    cast_revision=inventory.cast_revision, visual_direction="按冻结人物形象生成一张清晰身份参考图；" + style_guidance,
                     parent_candidate_asset_id=None)["proposal"]
             elif subject.owner == "art-reference":
                 context = store.media.prepare_art_reference_proposal(view.project_id, subject_type=subject.subject_type,
-                    subject_id=subject.id, render_direction="按冻结美术方案生成一张独立参考图；" + store.project().brief.visual_direction)["proposal"]
+                    subject_id=subject.id, render_direction="按冻结美术方案生成一张独立参考图；" + style_guidance)["proposal"]
             else:
                 with store.repository._read() as session:
                     install = session.scalar(select(AutopilotCheckpointRow).where(AutopilotCheckpointRow.run_id == view.id,
@@ -80,7 +85,7 @@ class AutopilotImageController:
                         rationale="通过当前规范门槛的安装仅授权首帧生成；不等同于人类分镜批准。")
                 context = store.media.prepare_image_job(view.project_id, machine_decision_id=decision, shot_id=subject.id,
                     storyboard_revision=inventory.storyboard_revision,
-                    presentation_change="按冻结镜头动作与构图生成一张首帧；" + store.project().brief.visual_direction, contract_version=3)["job"]
+                    presentation_change="按冻结镜头动作与构图生成一张首帧；" + style_guidance, contract_version=3)["job"]
             evidence = CheckpointEvidence(owner=subject.owner, subject_id=subject.id, job_id=context["id"],
                 request_hash=context["requestHash"], execution_pin=context["request"]["specialistPreflight"],
                 result={})

@@ -5,7 +5,7 @@ for (const width of [1440, 1920, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "创建空白项目" }).click();
-    const save = page.getByRole("button", { name: "保存并继续到来源" });
+    const save = page.getByRole("button", { name: "保存项目简报" });
     await expect(save).toBeDisabled();
     await expect(page.locator("#brief-save-hint")).toHaveText("填写故事梗概后即可保存；片名可稍后补充。");
     await expect(page.locator("#brief-save-hint")).toBeVisible();

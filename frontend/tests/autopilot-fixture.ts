@@ -14,4 +14,4 @@ export const fixtureMaterial: ReviewMaterial = { runRevision: 12, bundleHash: "a
 export const fixtureRun: AutopilotRun = { id: "disposable-run", projectId: "disposable", revision: 12, state: "awaiting_review", phase: "material-review", blocker: null,
   policy: { renderStyle: "live-action", artRenderStyle: "live-action", maxImages: 80, maxJobs: 96 }, checkpoints: [
     { operationKey: "characters", state: "adopted", evidence: { owner: "characters", result: { revision: 1, contentHash: "cast-hash" } } }],
-  bundle: { inventory: { subjects: [{ owner: "character-reference" }, { owner: "art-reference" }] }, frames: [{}, {}], references: [{}, {}] }, handoff: null };
+  bundle: { inventory: { subjects: [{ owner: "character-reference", id: "hero" }, { owner: "art-reference", id: "tower", subjectType: "scene" }] }, frames: [{}, {}], references: [{}, {}] }, handoff: null };

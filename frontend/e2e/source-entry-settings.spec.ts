@@ -1,4 +1,4 @@
-import { expect, test } from "./fixture";
+import { expect, saveBriefAndContinue, test } from "./fixture";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { Page, TestInfo } from "@playwright/test";
@@ -32,7 +32,7 @@ test("unchanged original synopsis confirms without direction and freezes existin
   await page.getByLabel("类型细节（可选）", { exact: false }).fill("生活短片");
   await page.getByLabel("视觉风格细节（可选）", { exact: false }).fill("真人写实，柔和自然光");
   await page.getByLabel("目标游玩时长（秒）").fill("30");
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
   const projectId = new URL(page.url()).searchParams.get("project");
   if (!projectId) throw new Error("project creation did not bind an ID");
@@ -85,7 +85,7 @@ test("source type changes retain writing and require a goal only for imported ma
   await page.goto(`${workbench.frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "创建空白项目" }).click();
   await page.getByLabel("故事梗概").fill("一个有两种告别方式的故事。");
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
   const save = page.getByRole("button", { name: "确认改编内容" });
   await expect(save).toBeEnabled();

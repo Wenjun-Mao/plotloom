@@ -1,5 +1,5 @@
 import type { Page, Request } from "@playwright/test";
-import { checkedStaticTest as test, expect } from "./fixture";
+import { checkedStaticTest as test, expect, saveBriefAndContinue } from "./fixture";
 
 type AssetKind = "script" | "stylesheet";
 type AssetLoad = "initial" | "reload";
@@ -23,7 +23,7 @@ test("serves and persists the checked production bundle through FastAPI", async 
   await page.getByLabel("片名").fill(title);
   const created = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === "/api/v2/projects");
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   expect((await created).ok()).toBeTruthy();
   await expect(page).toHaveURL(/[?&]project=/);
   await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();

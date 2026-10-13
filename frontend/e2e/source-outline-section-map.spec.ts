@@ -1,4 +1,4 @@
-import { expect, test } from "./fixture";
+import { expect, saveBriefAndContinue, test } from "./fixture";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -13,7 +13,7 @@ test("installs Tide Light routes, survives restart, and retains a readable outli
   await page.getByLabel("每次完整播放的选择次数", { exact: true }).fill("1");
   await page.getByLabel("不同结局的数量", { exact: true }).fill("2");
   await page.getByLabel("分支汇合次数", { exact: true }).fill("0");
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   await expect(page).toHaveURL(/[?&]project=/);
   const projectId = new URL(page.url()).searchParams.get("project");
   if (!projectId) throw new Error("project creation did not bind an ID");

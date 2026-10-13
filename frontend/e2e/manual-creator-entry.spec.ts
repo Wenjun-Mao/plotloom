@@ -1,4 +1,4 @@
-import { expect, test } from "./fixture";
+import { expect, saveBriefAndContinue, test } from "./fixture";
 import { demoProject } from "../src/demo";
 
 for (const height of [900, 600]) {
@@ -17,7 +17,7 @@ for (const height of [900, 600]) {
     const writes: string[] = [];
     page.on("request", req => { if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method())) writes.push(`${req.method()} ${new URL(req.url()).pathname}`); });
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=brief`);
-    const launch = page.getByRole("button", { name: "一键准备视频素材", exact: true });
+    const launch = page.getByRole("button", { name: "自动准备素材", exact: true });
     await expect(launch).toBeVisible(); await launch.click();
     await expect(page.getByRole("button", { name: "开始准备已保存简报的素材", exact: true })).toBeEnabled();
     const before = page.url(), editor = await page.getByLabel("片名", { exact: true }).elementHandle();
@@ -27,7 +27,7 @@ for (const height of [900, 600]) {
       await page.getByLabel("片名", { exact: true }).fill(title);
       expect((await saved).status()).toBe(200);
       expect(await (await admission).json()).toEqual({ eligible: false, briefRevision: canonical.revision });
-      await expect(launch).toHaveCount(0);
+      await expect(launch).toBeVisible(); await expect(launch).toBeDisabled();
       await expect(page.getByRole("button", { name: "开始准备已保存简报的素材", exact: true })).toHaveCount(0);
     }
     await page.getByLabel("片名", { exact: true }).scrollIntoViewIfNeeded();
@@ -65,7 +65,7 @@ test("unchanged restored Brief save refreshes launch admission in place after ex
   const root = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   const canonical = await (await request.get(root)).json();
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=brief`);
-  await expect(page.getByRole("button", { name: "一键准备视频素材", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "自动准备素材", exact: true })).toBeVisible();
   for (const title of ["Temporary title edit", canonical.brief.title]) {
     const saved = page.waitForResponse(r => r.request().method() === "PUT" && r.url().endsWith(`/${id}/authoring-drafts`));
     const admission = page.waitForResponse(r => r.request().method() === "GET" && r.url().endsWith(`/${id}/autopilot/launch-context`));
@@ -87,7 +87,7 @@ test("unchanged restored Brief save refreshes launch admission in place after ex
   expect((await (await restoredAdmission).json()).eligible).toBe(false);
   await expect(recovery).toHaveCount(0);
   await expect(page.getByLabel("片名", { exact: true })).toHaveValue(canonical.brief.title);
-  await expect(page.getByRole("button", { name: "一键准备视频素材", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "自动准备素材", exact: true })).toBeDisabled();
   const before = page.url();
   const editor = await page.getByLabel("片名", { exact: true }).elementHandle();
   const writes: string[] = [];
@@ -100,7 +100,7 @@ test("unchanged restored Brief save refreshes launch admission in place after ex
   expect(receipt.request().postDataJSON()).toEqual({ editorScope: "brief", entityId: "root", expectedDraftRevision: draft.draftRevision });
   expect(receipt.headers()["x-plotloom-draft-consumed-revision"]).toBe(String(draft.draftRevision));
   expect((await (await admission).json()).eligible).toBe(true);
-  await expect(page.getByRole("button", { name: "一键准备视频素材", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "自动准备素材", exact: true })).toBeVisible();
   expect(page.url()).toBe(before);
   expect(await editor!.evaluate(node => node.isConnected)).toBe(true);
   expect(await (await request.get(root)).json()).toEqual(canonical);
@@ -113,21 +113,21 @@ test("unchanged restored Brief save refreshes launch admission in place after ex
 test("autopilot launch is admitted only for current saved Brief-only data", async ({ page, request, workbench }) => {
   await page.goto(`${workbench.frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "创建空白项目" }).click();
-  await expect(page.getByRole("button", { name: "一键准备视频素材", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "自动准备素材", exact: true })).toHaveCount(0);
   await page.getByLabel("片名").fill("Fresh autopilot admission fixture");
   await page.getByLabel("故事梗概").fill("A keeper considers two endings at the lighthouse.");
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
   const id = new URL(page.url()).searchParams.get("project")!;
   expect((await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/autopilot/launch-context`)).json()).eligible).toBe(true);
   await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
-  await expect(page.getByRole("button", { name: "一键准备视频素材", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "自动准备素材", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "返回来源与大纲" }).click();
   await page.getByRole("button", { name: "确认改编内容" }).click();
   await expect(page.getByText("改编内容 r1", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
   await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "一键准备视频素材", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "自动准备素材", exact: true })).toBeDisabled();
   expect((await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/autopilot`)).json())).toBeNull();
 });
 
@@ -140,7 +140,7 @@ test("Brief save continues to an editable Source draft without starting the lega
   await expect(page.getByRole("button", { name: "保存修改" })).toHaveCount(0);
   await page.getByText("其他工作流：旧版故事提案", { exact: true }).click();
   await expect(page.getByRole("button", { name: "生成故事提案" })).toBeVisible();
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
   const projectId = new URL(page.url()).searchParams.get("project");
   if (!projectId) throw new Error("Brief save did not create a project");
@@ -173,7 +173,7 @@ test("existing Source content and optional declarations survive a later source e
   await page.getByRole("button", { name: "创建空白项目" }).click();
   await page.getByLabel("片名").fill("Brief title");
   await page.getByLabel("故事梗概").fill("Brief synopsis that must not replace existing source.");
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
   await expect(page).toHaveURL(/[?&]project=/);
   const projectId = new URL(page.url()).searchParams.get("project");
@@ -215,7 +215,7 @@ test("saved Brief saves in place and offers an explicit return to Source", async
   await page.goto(`${workbench.frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "创建空白项目" }).click();
   await page.getByLabel("故事梗概").fill("一个已保存项目仍可编辑简报。");
-  await page.getByRole("button", { name: "保存并继续到来源" }).click();
+  await saveBriefAndContinue(page);
   await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
   const projectId = new URL(page.url()).searchParams.get("project");
   if (!projectId) throw new Error("project was not saved");
@@ -223,7 +223,7 @@ test("saved Brief saves in place and offers an explicit return to Source", async
   await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
   await expect(page.getByRole("button", { name: "保存修改", exact: true })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "返回来源与大纲", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "保存并继续到来源" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "保存项目简报" })).toHaveCount(0);
   await page.getByText("其他工作流：旧版故事提案", { exact: true }).click();
   await expect(page.getByText("通常请从左侧“来源与大纲”开始，逐步审阅并确认。", { exact: false })).toBeVisible();
   await page.getByLabel("片名").fill("已保存项目的新片名");
@@ -256,9 +256,9 @@ test("Brief actions reject a target below the script workflow minimum", async ({
   await page.getByLabel("故事梗概").fill("一位旅人面临两个结局。");
   await page.getByLabel("目标游玩时长（秒）").fill("2");
   await expect(page.getByRole("button", { name: "保存修改" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "保存并继续到来源" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "保存项目简报" })).toBeDisabled();
   await page.getByText("其他工作流：旧版故事提案", { exact: true }).click();
   await expect(page.getByRole("button", { name: "生成故事提案" })).toBeDisabled();
   await page.getByLabel("目标游玩时长（秒）").fill("3");
-  await expect(page.getByRole("button", { name: "保存并继续到来源" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "保存项目简报" })).toBeEnabled();
 });

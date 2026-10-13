@@ -1,4 +1,4 @@
-import { expect, test } from "./fixture";
+import { expect, saveBriefAndContinue, test } from "./fixture";
 import type { Locator, Page, TestInfo } from "@playwright/test";
 import { demoProject } from "../src/demo";
 
@@ -39,7 +39,7 @@ for (const source of ["session", "reconcile"] as const) {
   test(`draft recovery explains ${source} ownership and keeps held restore readable`, async ({ page, request, workbench }, testInfo) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开示例项目", exact: true }).click();
-    await page.getByRole("button", { name: "保存并继续到来源", exact: true }).click();
+    await saveBriefAndContinue(page);
     await expect(page).toHaveURL(/[?&]project=/);
     const id = new URL(page.url()).searchParams.get("project")!;
     const endpoint = `${workbench.apiOrigin}/api/v2/projects/${id}`;

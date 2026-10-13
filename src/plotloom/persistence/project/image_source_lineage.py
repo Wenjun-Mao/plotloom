@@ -5,12 +5,19 @@ from pathlib import Path
 import json
 from ...autopilot_contracts import CheckpointEvidence
 from ...geometry_preparation_contracts import GeometryPreparation
+from ..codec import stable_hash
 from ...exceptions import InvalidTransitionError
 from ...keyframe_preparation import has_matching_aspect
-from ..codec import stable_hash
 from ..schema import ImageJobRow
 
 
+def geometry_policy_matches(policy, record, policy_hash):
+    """Geometry semantics survived the v2-to-v3 style-authority contract bump."""
+    return (record.policy_hash == policy_hash and stable_hash(policy) == policy_hash
+        and policy.get("version") in {"plotloom.pre-video.v2", "plotloom.pre-video.v3"}
+        and policy.get("geometryPreparation") == {"recipeVersion": record.recipe.version,
+            "runtime": record.runtime.model_dump(mode="json", by_alias=True)}
+        and (record.recipe.target_width, record.recipe.target_height) == (policy["imageWidth"], policy["imageHeight"]))
 @dataclass(frozen=True)
 class ImageSource:
     kind: str
@@ -70,9 +77,7 @@ def assert_geometry(connection, record, *, project_id, run_id, asset_home=None):
     declaration = _row(connection, "SELECT declaration FROM v2_managed_asset_provenance WHERE asset_id=?", (record.output.asset_id,))
     provenance = json.loads(declaration["declaration"])
     if (record.project_id != project_id or record.run_id != run_id or run["project_id"] != project_id
-            or record.policy_hash != run["policy_hash"] or stable_hash(policy) != run["policy_hash"]
-            or policy.get("version") != "plotloom.pre-video.v2" or policy.get("geometryPreparation") != {"recipeVersion": record.recipe.version, "runtime": record.runtime.model_dump(mode="json", by_alias=True)}
-            or (record.recipe.target_width, record.recipe.target_height) != (policy["imageWidth"], policy["imageHeight"])
+            or not geometry_policy_matches(policy, record, run["policy_hash"])
             or record.preparation_id != stable_hash({"runId": run_id, "operationKey": checkpoint["operation_key"] + ":geometry"})
             or checkpoint["run_id"] != run_id or checkpoint["project_id"] != project_id or checkpoint["state"] != "adopted"
             or evidence.owner != "image" or evidence.subject_id != record.shot_id or evidence.job_id != source.job_id

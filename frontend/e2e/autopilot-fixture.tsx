@@ -1,6 +1,6 @@
 // Disposable browser owner. Every command is recorded locally; no dispatch.
 import { createRoot } from "react-dom/client";
-import { AutopilotWorkspace, AutopilotLaunch } from "../src/features/autopilot/AutopilotWorkspace";
+import { AutopilotWorkspace, AutopilotLaunch, AutopilotProgress } from "../src/features/autopilot/AutopilotWorkspace";
 import { autopilotApi } from "../src/features/autopilot/api";
 import { specialistsApi } from "../src/features/specialists/api";
 import { fixtureMaterial, fixtureRun } from "../tests/autopilot-fixture";
@@ -19,7 +19,10 @@ plotloomApi.getManagedAssets = async () => {
 plotloomApi.getCharacterReferenceProposals = async () => ({ configured: true, proposals: evidence.characters });
 plotloomApi.getArtReferenceProposals = async () => ({ configured: true, proposals: evidence.art });
 plotloomApi.getImageJobs = async () => ({ configured: true, jobs: evidence.images });
-let current = initial?.startsWith("fresh") ? null : { ...fixtureRun, state: initial?.startsWith("running") ? "running" as const : fixtureRun.state };
+const longBlocker = "The saved project contains a retained manual edit that no longer matches the frozen source and briefing context. Review the accepted source, story outline, route map, character descriptions, art direction, and the active workflow revision before continuing. No automatic preparation can proceed until the complete currentness chain has been checked.";
+let current = initial?.startsWith("fresh") ? null : initial === "blocked-long"
+  ? { ...fixtureRun, state: "blocked" as const, blocker: { code: "source_context_changed", message: longBlocker } }
+  : { ...fixtureRun, state: initial?.startsWith("running") ? "running" as const : fixtureRun.state };
 let progressReads = 0;
 let handoffReadFailed = false;
 const writes: unknown[] = [];
@@ -55,6 +58,7 @@ autopilotApi.handoff = async (_id, body: Handoff) => { record(["handoff", body])
 specialistsApi.settings = async () => ({ text: { name: "文字测试助手", taskId: "text-fixture" }, image: { name: "图片测试助手", taskId: "image-fixture" }, busy: false });
 createRoot(document.getElementById("root")!).render(<main><h1>灯塔素材准备 · 一次审阅</h1><p>Disposable fixture · no generation or creative acceptance.</p><pre id="fixture-writes">[]</pre>
   <AutopilotWorkspace projectId="disposable" revision={1} readOnly={false} onChanged={async () => undefined} onVideo={() => record(["manual-video-navigation"])}>
-    <AutopilotLaunch saved dirty={false} disabled={false} /><p>故事的全部路线与镜头在这里汇成可审阅的素材包。</p>
+    <section className="recommended-workflow-guide" aria-label="自动素材进度"><AutopilotProgress /></section>
+    <AutopilotLaunch saved dirty={false} disabled={false} visualDirection="2D 动画；水彩；低饱和" /><p>故事的全部路线与镜头在这里汇成可审阅的素材包。</p>
   </AutopilotWorkspace>
 </main>);

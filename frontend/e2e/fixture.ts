@@ -1,4 +1,5 @@
 import { test as base, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { spawn, type ChildProcess } from "node:child_process";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import os from "node:os";
@@ -42,6 +43,16 @@ type ManagedProcess = {
 // alternate persistence model or route surface.
 export const test = createWorkbenchTest("vite");
 export const checkedStaticTest = createWorkbenchTest("checked-static");
+
+/** Save a new Brief, then explicitly choose the established manual route. */
+export async function saveBriefAndContinue(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "保存项目简报", exact: true }).click();
+  const confirmTargets = page.getByRole("button", { name: "确认并保存目标", exact: true });
+  if (await confirmTargets.isVisible().catch(() => false)) await confirmTargets.click();
+  const continueManually = page.getByRole("button", { name: "继续手动创作", exact: true });
+  await expect(continueManually).toBeVisible();
+  await continueManually.click();
+}
 
 function createWorkbenchTest(frontendMode: FrontendMode) {
   return base.extend<WorkbenchFixtures>({

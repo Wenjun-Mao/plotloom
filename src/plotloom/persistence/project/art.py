@@ -11,7 +11,7 @@ from ...art_contracts import (
     AcceptedArtRevision, ArtAcceptRequest, ArtBinding, ArtCandidate,
     ArtReopenRequest, ArtReviewState, ArtSaveRequest,
 )
-from ...art_style import ArtRenderStyle, art_style_current, freeze_art_style, validate_art_style
+from ...art_style import CandidateArtRenderStyle, art_style_current, freeze_art_style, validate_art_style
 from ...cast_contracts import CastBinding
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
@@ -118,7 +118,7 @@ class ProjectArtPersistence:
             accepted_state = accepted_review_state(exists=accepted is not None, candidate_active=candidate is not None, head_status=head.status, stale_reasons=accepted_stale)
             return ArtReviewState(accepted_review_state=accepted_state, candidate=self._candidate(candidate) if candidate else None, accepted_art=self._accepted(accepted) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
 
-    def prepare_candidate(self, project_id: str, job_id: str, *, render_style: ArtRenderStyle, execution_pin: dict[str, str]) -> tuple[ArtCandidate, CreativeHandoffRequest]:
+    def prepare_candidate(self, project_id: str, job_id: str, *, render_style: CandidateArtRenderStyle, execution_pin: dict[str, str]) -> tuple[ArtCandidate, CreativeHandoffRequest]:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             head = self._head(session, project_id)
@@ -128,11 +128,20 @@ class ProjectArtPersistence:
             direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
             contract = freeze_art_style(render_style, direction)
             binding = binding.model_copy(update={"render_contract": contract})
+            style_instructions = (
+                "This autopilot task uses the saved_brief visual authority in art-style-contract.json, not a render preset. Preserve its exact original direction there as authoritative metadata and interpret it faithfully in English in every machine prompt field, including scene and prop image prompts, sheets, lighting/state prompts, negative prompts and tags. Set art.style to saved-brief and each image.style to the English marker 'Saved Brief direction'. Do not copy non-English direction text into machine fields, classify it into a preset, or add unrelated photographic/Ghibli defaults. For an empty direction, use story-informed discretion without a preset; do not copy emptyDirectionRule into machine fields. Preserve source facts and accepted character descriptions; do not edit the cast. Validate and render with scripts/brief-art-style.mjs render art.json --cast cast.json; this retains upstream structure and quality gates. Semantic fidelity remains subject to human review."
+                if render_style == "brief"
+                else "The author-selected art-style-contract.json owns render style, overriding any inherited cast/outline style or upstream default. Preserve source facts and accepted character descriptions; do not edit the cast. Use its preset in scene AND prop image directions, and the actual authorDirection for visual mood. Validate and render with scripts/art-style.mjs, --cast inputs/cast.json --contract inputs/art-style-contract.json (resolve paths from the supplied package). This adapter retains upstream structural gates and adds the selected render contract. Resolve style now, not in a later F3B overlay."
+            )
             request = CreativeHandoffRequest(
                 job_id=job_id, project_id=project_id, section_id="shared-art", stage="art",
                 expected_stage_revision=head.revision, source=source,
                 input_artifacts={"outline.json": outline, "section-map.json": mapping, "cast.json": cast, "art-style-contract.json": contract},
-                creative_brief="Create one upstream-shaped art.json candidate for the accepted source, outline, stable section context, and accepted cast. Plotloom additionally owns a required top-level sectionUsage array: write exactly one {sectionId, sceneIds, propIds} object for each section-map ID; sceneIds must be nonempty declared art scene IDs, propIds declared art prop IDs, and no other IDs are allowed. This is only a thin projection, not a second episode/graph model. Do not invent episodes, hooks, physical setting facts, or props from ambiguous state labels. Preserve reviewable stable scene and prop IDs. The author-selected art-style-contract.json owns render style, overriding any inherited cast/outline style or upstream default. Preserve source facts and accepted character descriptions; do not edit the cast. Use its preset in scene AND prop image directions, and the actual authorDirection for visual mood. Validate and render with scripts/art-style.mjs, --cast inputs/cast.json --contract inputs/art-style-contract.json (resolve paths from the supplied package). This adapter retains upstream structural gates and adds the selected render contract. Resolve style now, not in a later F3B overlay. This is a candidate only, not image generation, an asset selection, or project canon.",
+                creative_brief=(
+                    "Create one upstream-shaped art.json candidate for the accepted source, outline, stable section context, and accepted cast. Plotloom additionally owns a required top-level sectionUsage array: write exactly one {sectionId, sceneIds, propIds} object for each section-map ID; sceneIds must be nonempty declared art scene IDs, propIds declared art prop IDs, and no other IDs are allowed. This is only a thin projection, not a second episode/graph model. Do not invent episodes, hooks, physical setting facts, or props from ambiguous state labels. Preserve reviewable stable scene and prop IDs. "
+                    + style_instructions
+                    + " This is a candidate only, not image generation, an asset selection, or project canon."
+                ),
             )
             request.assert_secret_free()
             freeze_execution_pin(session, request, execution_pin)

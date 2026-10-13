@@ -180,7 +180,17 @@ def test_cancel_reopened_cast_restores_only_current_accepted_authority(tmp_path:
         store.close()
 
 
-def test_accepted_cast_report_keeps_delivery_and_tracks_current_divergence(tmp_path: Path) -> None:
+def test_accepted_cast_report_keeps_delivery_and_tracks_current_divergence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from plotloom.persistence.project import cast as cast_persistence
+
+    original_style_validator = cast_persistence.validate_cast_style
+    validation_requests = []
+
+    def observe_style_validation(cast, contract, request=None):
+        validation_requests.append(request)
+        return original_style_validator(cast, contract, request)
+
+    monkeypatch.setattr(cast_persistence, "validate_cast_style", observe_style_validation)
     store = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application").projects.create(FIXED_CHINESE_BRIEF)
     context = _context()
 
@@ -220,6 +230,7 @@ def test_accepted_cast_report_keeps_delivery_and_tracks_current_divergence(tmp_p
         assert saved.accepted_cast.revision == 2
         assert saved.accepted_cast.report_available is True
         assert saved.accepted_cast.differs_from_delivery is True
+        assert validation_requests[-1]["source"]["text"] == context.source.material.text
         assert store.cast_candidate_report(request.job_id) == original_report
 
         with store.repository._write() as session:  # type: ignore[attr-defined]

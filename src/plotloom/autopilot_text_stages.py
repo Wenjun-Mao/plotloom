@@ -36,8 +36,12 @@ def prepare_text(store, stage, policy):
     elif stage == "branches":
         request = store.repository.branches.prepare(store.manifest.project_id, store.creative_handoff_exchange())
     else:
-        methods = {"characters": (store.prepare_cast_candidate, {"render_style": policy.render_style}),
-            "art": (store.prepare_art_candidate, {"render_style": policy.art_render_style}),
+        cast_style = "brief" if policy.effective_style_authority == "brief" else policy.render_style
+        art_style = "brief" if policy.effective_style_authority == "brief" else policy.art_render_style
+        if cast_style is None or art_style is None:
+            raise ValueError("frozen preset authority is incomplete")
+        methods = {"characters": (store.prepare_cast_candidate, {"render_style": cast_style}),
+            "art": (store.prepare_art_candidate, {"render_style": art_style}),
             "script": (store.prepare_script_candidate, {}),
             "storyboard": (store.prepare_storyboard_review_candidate, {})}
         command, options = methods[stage]
