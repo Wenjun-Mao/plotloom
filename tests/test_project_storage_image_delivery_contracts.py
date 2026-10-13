@@ -523,12 +523,13 @@ def test_keyframe_adaptation_enforces_frozen_geometry_without_reselecting_source
         delivery = Path(copied.json()["deliveryPath"])
         delivery.mkdir()
 
-        provenance = {"codeRevision": "a" * 40, "skillVersion": "plotloom-image-specialist.v3", "skillHash": "b" * 64}
-        (delivery / "executor-pin.json").write_text(json.dumps({"jobId": job["id"], "requestHash": job["requestHash"], "executionContract": "codex_specialist.v2", **provenance}), encoding="utf-8")
+        native_task_id = "01a1357a-249d-7e73-81fa-5e337d7bdfe5"
+        provenance = {"codeRevision": "a" * 40, "skillVersion": "plotloom-image-specialist.v4", "skillHash": "b" * 64}
+        (delivery / "executor-pin.json").write_text(json.dumps({"jobId": job["id"], "requestHash": job["requestHash"], "executionContract": "codex_specialist.v3", "nativeTaskId": native_task_id, **provenance}), encoding="utf-8")
         wrong = _png((40, 90, 120), width=576, height=1023)
         (delivery / "outputs").mkdir()
         (delivery / "outputs" / "adapted.png").write_bytes(wrong)
-        manifest = {"schemaVersion": 2, "jobId": job["id"], "requestHash": job["requestHash"], "deliveryId": "wrong-geometry", "actualPrompt": "Adapt the frozen reviewed keyframe.", "outputs": [{"filename": "adapted.png", "sha256": sha256(wrong).hexdigest(), "role": "keyframe_adaptation"}], "toolEvidence": {"tool": "codex_imagegen", "taskId": "geometry-fixture", "available": True}, "executorProvenance": provenance}
+        manifest = {"schemaVersion": 3, "jobId": job["id"], "requestHash": job["requestHash"], "deliveryId": "wrong-geometry", "actualPrompt": "Adapt the frozen reviewed keyframe.", "outputs": [{"filename": "adapted.png", "sha256": sha256(wrong).hexdigest(), "role": "keyframe_adaptation"}], "toolEvidence": {"tool": "codex_imagegen", "nativeTaskId": native_task_id, "imageGenExecutionId": "exec-geometry-fixture", "available": True}, "executorProvenance": provenance}
         (delivery / "completion.json").write_text(json.dumps(manifest), encoding="utf-8")
         rejected = client.post(f"/api/v2/projects/{project_id}/image-jobs/{job['id']}/refresh")
         assert rejected.status_code == 422, rejected.text

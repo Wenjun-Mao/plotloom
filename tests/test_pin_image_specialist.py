@@ -14,6 +14,7 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+NATIVE_TASK_ID = "01a1357a-249d-7e73-81fa-5e337d7bdfe5"
 
 
 def _git(repository: Path, *args: str) -> None:
@@ -31,15 +32,16 @@ def _request(package: Path) -> None:
         json.dumps(
             {
                 "schemaVersion": 3,
-                "packageVersion": 4,
+                "packageVersion": 6,
                 "jobId": "ij_1234567890abcdefghij",
                 "requestHash": "a" * 64,
-                "executionContract": "codex_specialist.v2",
+                "executionContract": "codex_specialist.v3",
                 "specialistPreflight": {
-                    "version": "p1.5-pin.v1",
-                    "skillVersion": "plotloom-image-specialist.v3",
-                    "executionContract": "codex_specialist.v2",
+                    "version": "p1.5-pin.v2",
+                    "skillVersion": "plotloom-image-specialist.v4",
+                    "executionContract": "codex_specialist.v3",
                 },
+                "nativeTaskBinding": {"mode": "configured_task", "taskId": NATIVE_TASK_ID},
             }
         ),
         encoding="utf-8",
@@ -89,12 +91,19 @@ def modular_checkout(tmp_path: Path) -> tuple[Path, Path]:
     return repository, package
 
 
-def _run_pin(repository: Path, package: Path) -> subprocess.CompletedProcess[str]:
+def _run_pin(repository: Path, package: Path, *, task_id: str | None = NATIVE_TASK_ID) -> subprocess.CompletedProcess[str]:
+    environment = os.environ.copy()
+    if task_id is None:
+        environment.pop("CODEX_THREAD_ID", None)
+    else:
+        environment["CODEX_THREAD_ID"] = task_id
     return subprocess.run(
         [sys.executable, str(repository / "scripts" / "pin_image_specialist.py"), "--package", str(package)],
         cwd=repository,
+        check=False,
         capture_output=True,
         text=True,
+        env=environment,
     )
 
 
@@ -174,10 +183,40 @@ def test_pin_accepts_current_modular_layout_and_preserves_its_provenance(
     assert pin["skillHash"] == sha256(
         (repository / ".agents/skills/plotloom-image-specialist/SKILL.md").read_bytes()
     ).hexdigest()
+    assert pin["executionContract"] == "codex_specialist.v3"
+    assert pin["nativeTaskId"] == NATIVE_TASK_ID
 
     repeat = _run_pin(repository, package)
     assert repeat.returncode != 0
     assert "already exists" in repeat.stderr
+
+
+def test_pin_rejects_missing_or_wrong_native_task_before_generation(modular_checkout) -> None:
+    repository, package = modular_checkout
+
+    missing = _run_pin(repository, package, task_id=None)
+    assert missing.returncode != 0
+    assert "native Codex task UUID is missing or invalid" in missing.stderr
+    assert not (package.parent / "delivery" / "executor-pin.json").exists()
+
+    wrong = _run_pin(repository, package, task_id="6d1218af-044c-426a-99d2-18b76c5c6331")
+    assert wrong.returncode != 0
+    assert "does not match the configured image-specialist task" in wrong.stderr
+    assert not (package.parent / "delivery" / "executor-pin.json").exists()
+
+
+def test_pin_explicitly_supports_a_manual_current_task_binding(modular_checkout) -> None:
+    repository, package = modular_checkout
+    request_path = package / "request.json"
+    request = json.loads(request_path.read_text())
+    request["nativeTaskBinding"] = {"mode": "current_task"}
+    request_path.write_text(json.dumps(request))
+
+    result = _run_pin(repository, package, task_id="6d1218af-044c-426a-99d2-18b76c5c6331")
+
+    assert result.returncode == 0, result.stderr
+    pin = json.loads((package.parent / "delivery" / "executor-pin.json").read_text())
+    assert pin["nativeTaskId"] == "6d1218af-044c-426a-99d2-18b76c5c6331"
 
 
 def test_pin_accepts_stale_valid_bytecode_with_no_source_or_import(
@@ -329,11 +368,11 @@ def test_pin_rejects_a_missing_committed_modular_source(
     assert not (package.parent / "delivery" / "executor-pin.json").exists()
 
 
-def test_pin_supports_current_presentation_package(modular_checkout: tuple[Path, Path]) -> None:
+def test_pin_supports_current_identity_package(modular_checkout: tuple[Path, Path]) -> None:
     repository, package = modular_checkout
     request_path = package / "request.json"
     request = json.loads(request_path.read_text())
-    request["packageVersion"] = 5
+    request["packageVersion"] = 6
     request_path.write_text(json.dumps(request))
     result = _run_pin(repository, package)
     assert result.returncode == 0, result.stderr

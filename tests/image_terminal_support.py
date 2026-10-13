@@ -144,7 +144,7 @@ class ImageTerminalRuntime:
         self.delivery.mkdir(exist_ok=True)
         self.provenance = {
             "codeRevision": "a" * 40,
-            "skillVersion": "plotloom-image-specialist.v3",
+            "skillVersion": "plotloom-image-specialist.v4",
             "skillHash": "b" * 64,
         }
         (self.delivery / "executor-pin.json").write_text(
@@ -152,7 +152,8 @@ class ImageTerminalRuntime:
                 {
                     "jobId": job["id"],
                     "requestHash": job["requestHash"],
-                    "executionContract": "codex_specialist.v2",
+                    "executionContract": "codex_specialist.v3",
+                    "nativeTaskId": self.task_id,
                     **self.provenance,
                 }
             )

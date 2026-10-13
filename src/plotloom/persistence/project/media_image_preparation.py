@@ -267,7 +267,7 @@ class ImageJobPreparationPersistence:
             request = {
                 "schemaVersion": contract_version, "jobId": job_id, "productionUnitId": unit.id,
                 "productionSnapshotHash": snapshot_hash,
-                "executionContract": "codex_specialist.v2" if contract_version == 3 else "codex_specialist.v1",
+                "executionContract": "codex_specialist.v3" if contract_version == 3 else "codex_specialist.v1",
                 "kind": (
                     "keyframe_adaptation"
                     if adaptation_snapshot is not None

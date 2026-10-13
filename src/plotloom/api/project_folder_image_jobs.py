@@ -16,10 +16,11 @@ from ..image_job_contracts import (
     CharacterReferenceProposalRequest,
     CharacterReferenceRevocationRequest,
     ImageJobError,
+    NativeTaskBinding,
 )
 from ..same_person_review_contracts import SamePersonReviewRequest
 from ..image_job_exchange import PackageReference
-from ..codex_image_dispatch import NativeCodexImageDispatcher
+from ..specialist_settings import ImageSpecialist
 from .project_folder_image_send import register_image_send_route
 from .models import (
     ImageJobCancellationRequest,
@@ -34,7 +35,7 @@ def register_project_folder_image_job_routes(
     image_job_target_id: Callable[[ProjectFolderImageJobCreateRequest], str],
     require_media_draft_scope: Callable[..., Any],
     project_h3_target: Callable[[str], dict[str, Any]],
-    image_dispatcher: NativeCodexImageDispatcher | None = None,
+    image_dispatcher: ImageSpecialist | None = None,
 ) -> None:
     def package_references(
         store: Any, sources: list[dict[str, Any]], *, character_roles: bool = False
@@ -85,6 +86,16 @@ def register_project_folder_image_job_routes(
             }
             for output in delivery.outputs
         ]
+
+    def current_task_binding() -> NativeTaskBinding:
+        return NativeTaskBinding(mode="current_task")
+
+    def delivery_task_binding(job_id: str, request: dict | None = None) -> NativeTaskBinding:
+        if image_dispatcher is None:
+            return current_task_binding()
+        execution_contract = (request or {}).get("executionContract") or (request or {}).get("specialistPreflight", {}).get("executionContract")
+        require_bound = execution_contract == "codex_specialist.v3"
+        return image_dispatcher.delivery_task_binding(job_id, require_bound=require_bound)
 
     @app.get("/api/v2/projects/{project_id}/character-references")
     def get_project_character_references(project_id: str) -> dict[str, Any]:
@@ -163,11 +174,14 @@ def register_project_folder_image_job_routes(
                 project_id, proposal_id
             )
             proposal = source["proposal"]
+            native_task_binding = image_dispatcher.configured_task_binding()
+            image_dispatcher.bind_delivery(proposal_id, native_task_binding)
             package = store.image_exchange_for(proposal).write_package(
                 job_id=proposal_id,
                 request=proposal["request"],
                 request_hash=proposal["requestHash"],
                 references=package_references(store, source["references"]),
+                native_task_binding=native_task_binding,
             )
             exported = []
             image_dispatcher.dispatch(
@@ -176,6 +190,7 @@ def register_project_folder_image_job_routes(
                 package_path=package["packagePath"],
                 delivery_path=package["deliveryPath"],
                 before_send=lambda: exported.append(store.media.mark_character_reference_proposal_exported(project_id, proposal_id, require_prepared=True)),
+                expected_task_id=str(native_task_binding.task_id),
             )
             return {
                 "proposal": exported[0],
@@ -216,6 +231,7 @@ def register_project_folder_image_job_routes(
             context = repository.character_reference_proposal_delivery_context(
                 project_id, proposal_id
             )
+            native_task_binding = delivery_task_binding(proposal_id, context["request"])
             references: list[tuple[str, str, str]] = []
             for index, reference in enumerate(
                 context["request"]["frozenSnapshot"].get("references", [])
@@ -235,6 +251,7 @@ def register_project_folder_image_job_routes(
                     request=context["request"],
                     request_hash=context["requestHash"],
                     references=references,
+                    native_task_binding=native_task_binding,
                 )
                 delivery = exchange.read_delivery(
                     job_id=proposal_id,
@@ -242,11 +259,12 @@ def register_project_folder_image_job_routes(
                     require_executor_provenance=True,
                     require_executor_pin=context["request"]
                     .get("specialistPreflight", {})
-                    .get("version")
-                    == "p1.5-pin.v1",
+                    .get("version") in {"p1.5-pin.v1", "p1.5-pin.v2"},
                     expected_executor_skill_version=context["request"]
                     .get("specialistPreflight", {})
                     .get("skillVersion"),
+                    expected_executor_contract=context["request"].get("specialistPreflight", {}).get("executionContract", "codex_specialist.v2"),
+                    expected_native_task_binding=native_task_binding,
                 )
             except ImageJobError as error:
                 if error.code not in {
@@ -268,7 +286,7 @@ def register_project_folder_image_job_routes(
                 project_id,
                 proposal_id,
                 delivery_id=delivery.manifest.delivery_id,
-                manifest=delivery.manifest.model_dump(mode="json", by_alias=True),
+                manifest=delivery.manifest.canonical_payload(),
                 manifest_hash=delivery.manifest_hash,
                 outputs=delivery_outputs(delivery),
                 publish=lambda output: publish_import(
@@ -358,6 +376,9 @@ def register_project_folder_image_job_routes(
         with opened_project(project_id) as store:
             source = store.media.image_job_package_sources(project_id, job_id)
             exchange = store.image_exchange_for(source["job"])
+            native_task_binding = current_task_binding()
+            if image_dispatcher is not None:
+                image_dispatcher.bind_delivery(job_id, native_task_binding)
             package = exchange.write_package(
                 job_id=job_id,
                 request=source["job"]["request"],
@@ -365,11 +386,12 @@ def register_project_folder_image_job_routes(
                 references=package_references(
                     store, source["references"], character_roles=True
                 ),
+                native_task_binding=native_task_binding,
             )
             job = store.media.mark_image_job_exported(project_id, job_id)
             return {
                 "job": job,
-                "assignment": f"Codex image specialist assignment for {job_id}: read {package['packagePath']}/request.json; use built-in imagegen; write JPEG/PNG outputs and completion.json only under {package['deliveryPath']}.",
+                "assignment": f"Codex image specialist assignment for {job_id}: read {package['packagePath']}/request.json and follow {package['packagePath']}/COPY_ASSIGNMENT.txt exactly; use built-in imagegen and deliver only under {package['deliveryPath']}.",
                 "packagePath": package["packagePath"],
                 "deliveryPath": package["deliveryPath"],
             }
@@ -406,12 +428,14 @@ def register_project_folder_image_job_routes(
                 if reference["role"] == "character_identity":
                     identity_hashes.append(reference["originalHash"])
             exchange = store.image_exchange_for(context)
+            native_task_binding = delivery_task_binding(job_id, context["request"])
             try:
                 exchange.verify_package(
                     job_id=job_id,
                     request=context["request"],
                     request_hash=context["requestHash"],
                     references=references,
+                    native_task_binding=native_task_binding,
                 )
                 delivery = exchange.read_delivery(
                     job_id=job_id,
@@ -421,11 +445,12 @@ def register_project_folder_image_job_routes(
                     == 3,
                     require_executor_pin=context["request"]
                     .get("specialistPreflight", {})
-                    .get("version")
-                    == "p1.5-pin.v1",
+                    .get("version") in {"p1.5-pin.v1", "p1.5-pin.v2"},
                     expected_executor_skill_version=context["request"]
                     .get("specialistPreflight", {})
                     .get("skillVersion"),
+                    expected_executor_contract=context["request"].get("specialistPreflight", {}).get("executionContract", "codex_specialist.v2"),
+                    expected_native_task_binding=native_task_binding,
                 )
             except ImageJobError as error:
                 if error.code not in {
@@ -454,7 +479,7 @@ def register_project_folder_image_job_routes(
                 project_id,
                 job_id,
                 delivery_id=delivery.manifest.delivery_id,
-                manifest=delivery.manifest.model_dump(mode="json", by_alias=True),
+                manifest=delivery.manifest.canonical_payload(),
                 manifest_hash=delivery.manifest_hash,
                 outputs=delivery_outputs(delivery),
                 publish=lambda output: publish_import(

@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from plotloom.codex_image_dispatch import NativeCodexImageDispatcher
-from plotloom.image_job_contracts import ImageJobError
+from plotloom.image_job_contracts import ImageJobError, NativeTaskBinding
 from plotloom.specialist_settings import SpecialistRegistry, SpecialistSettings
 
 
@@ -106,6 +106,33 @@ def test_export_precondition_failure_releases_unsent_reservation(tmp_path, monke
         send(registry, before_send=reject)
     assert not registry.view()["busy"]
     assert registry.status("ch_" + "a" * 32)["state"] == "prepared"
+
+
+def test_delivery_binding_survives_busy_dispatch_and_manual_copy(tmp_path, monkeypatch):
+    monkeypatch.setattr(subprocess, "run", lambda command, **kw: subprocess.CompletedProcess(command, 0))
+    registry, settings = configured(tmp_path)
+    send(registry, role="image", job="ij_" + "a" * 32)
+
+    refused_job = "ij_" + "b" * 32
+    configured_binding = NativeTaskBinding(mode="configured_task", task_id=settings.image.task_id)
+    registry.bind_delivery(refused_job, configured_binding)
+    with pytest.raises(ImageJobError, match="in flight"):
+        send(registry, role="image", job=refused_job, expected_task_id=settings.image.task_id)
+    assert registry.status(refused_job)["state"] == "prepared"
+    assert registry.delivery_task_binding(refused_job, require_bound=True) == configured_binding
+
+    manual_job = "ij_" + "c" * 32
+    manual_binding = NativeTaskBinding(mode="current_task")
+    registry.bind_delivery(manual_job, manual_binding)
+    assert registry.delivery_task_binding(manual_job, require_bound=True) == manual_binding
+    with pytest.raises(ImageJobError, match="另一个原生任务身份"):
+        registry.bind_delivery(manual_job, configured_binding)
+
+
+def test_required_delivery_binding_fails_closed_when_not_retained(tmp_path):
+    registry, _settings = configured(tmp_path)
+    with pytest.raises(ImageJobError, match="未保留"):
+        registry.delivery_task_binding("ij_" + "d" * 32, require_bound=True)
 
 
 @pytest.mark.parametrize("role", ["text", "image"])

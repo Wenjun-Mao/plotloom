@@ -29,7 +29,13 @@ def register_image_terminal_routes(app: FastAPI, opened_project: Callable[[str],
                 role = f"character_identity:{reference['characterId']}"
             suffix = ".png" if reference["mimeType"] == "image/png" else ".jpg"
             references.append((role, f"reference-{index + 1}-{reference['originalHash'][:16]}{suffix}", reference["originalHash"]))
-        exchange.verify_package(job_id=job_id, request=context["request"], request_hash=context["requestHash"], references=references)
+        exchange.verify_package(
+            job_id=job_id,
+            request=context["request"],
+            request_hash=context["requestHash"],
+            references=references,
+            native_task_binding=registry.delivery_task_binding(job_id),
+        )
         return read_blocked_outcome(exchange, context)
 
     @app.get("/api/v2/projects/{project_id}/image-terminal/{target}/{job_id}")

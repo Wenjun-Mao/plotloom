@@ -2,6 +2,29 @@
 
 **Status:** Accepted
 
+2026-10-13 amendment: ImageGen's execution/output ID is distinct from the
+native Codex task UUID that owns a dispatched job. New pinned image packages
+carry a transport-only `nativeTaskBinding`: a configured dispatch names the
+exact target UUID, while a manual copy binds to the task running its preflight.
+The executor pin and schema-v3 completion manifest record that native UUID
+separately from the ImageGen execution ID. Preflight and the completion
+publisher reject a missing or mismatched binding before generation or final
+publication; receiving code continues to compare the exact native UUID. This
+supersedes the original decision below that task IDs never appear in packages
+or manifests. The binding is excluded from canonical project requests and
+creative history.
+
+Package v6 owns the new pin and completion-publication instructions; the v3,
+v4, and v5 projections remain byte-stable for retained copied packages. Schema
+v1/v2 manifests keep their historical canonical serialization and hashes.
+Schema-v3 completion bytes are staged and atomically linked as the final marker,
+so a reader never observes a partial manifest. If cleanup is interrupted, the
+reader accepts a leftover completion draft only when it validates identically
+to the published manifest. The host-local specialist registry retains each
+package's task binding before dispatch, allowing refresh to resolve the frozen
+identity even when a busy or refused dispatch never creates a dispatch receipt;
+that per-job identity cannot be rebound.
+
 2026-10-03 amendment: [ADR 0106](0106-reviewed-pre-generation-image-terminal-outcome.md)
 adds explicit, reviewed, request/pin/dispatch-bound terminal proof for cancelled
 attempts blocked before generation. Cancellation and idle alone still do not

@@ -6,6 +6,7 @@ from .autopilot_materials import MaterialInventory, initial_inventory, inventory
 from .autopilot_image_selection import select_image, publish_bundle
 from .exceptions import InvalidTransitionError
 from .image_commands import IMAGE_METHODS, image_context, image_package, read_image, send_image, ingest_image
+from .image_job_contracts import NativeTaskBinding
 from .brief_contracts import ProjectBrief
 from .autopilot_brief_style import image_style_guidance
 from .persistence.schema import AutopilotCheckpointRow, AutopilotDecisionRow
@@ -22,6 +23,10 @@ class AutopilotImageController:
     @staticmethod
     def command(store, view, claim, scope):
         return store.repository.autopilot_command(CommandAuthority(view.id, claim, scope))
+
+    @staticmethod
+    def native_task_binding(view):
+        return NativeTaskBinding(mode="configured_task", task_id=view.policy.specialist_bindings["image"])
 
     def advance(self, store, view, claim):
         self.settle_delivered(view)
@@ -93,7 +98,9 @@ class AutopilotImageController:
                 raise InvalidTransitionError("prepared image execution differs from launch")
             store.repository.autopilot.checkpoint(key, state="prepared", evidence=evidence)
             store.repository.autopilot.progress("first-frames" if subject.owner == "image" else "references")
-        image_package(store, subject.owner, context["id"])
+        native_task_binding = self.native_task_binding(view)
+        self.registry.bind_delivery(context["id"], native_task_binding)
+        image_package(store, subject.owner, context["id"], native_task_binding=native_task_binding)
 
     def native_step(self, store, view, claim, subject, inventory, checkpoint):
         if checkpoint["state"] == "delivered":
@@ -104,8 +111,11 @@ class AutopilotImageController:
         transport = self.registry.status(evidence.job_id)
         context = image_context(store, subject.owner, evidence.job_id)
         if checkpoint["state"] == "prepared" and transport["state"] == "prepared":
-            image_package(store, subject.owner, evidence.job_id)
-        delivery = read_image(store, subject.owner, evidence.job_id, context)
+            native_task_binding = self.native_task_binding(view)
+            self.registry.bind_delivery(evidence.job_id, native_task_binding)
+            image_package(store, subject.owner, evidence.job_id, native_task_binding=native_task_binding)
+        delivery = read_image(store, subject.owner, evidence.job_id, context,
+            native_task_binding=self.native_task_binding(view))
         if delivery is not None:
             self.retain_delivery(store, view, claim, checkpoint, evidence, context, delivery)
             return
@@ -131,8 +141,9 @@ class AutopilotImageController:
     def retain_delivery(self, store, view, claim, checkpoint, evidence, context, delivery):
         provenance = delivery.manifest.executor_provenance
         expected = view.policy.execution_pins["image"]
+        native_task_id = delivery.manifest.tool_evidence.native_task_id
         if (provenance.code_revision != expected["codeRevision"] or provenance.skill_hash != expected["skillHash"]
-                or delivery.manifest.tool_evidence.task_id != view.policy.specialist_bindings["image"]):
+                or str(native_task_id) != view.policy.specialist_bindings["image"]):
             raise InvalidTransitionError("image receipt execution differs from frozen policy")
         target = IMAGE_METHODS[evidence.owner][2]
         self.registry.assert_image_terminal_identity(evidence.job_id, view.policy.specialist_bindings["image"], project_id=view.project_id, target=target)
@@ -160,7 +171,8 @@ class AutopilotImageController:
             if evidence.owner not in IMAGE_METHODS or checkpoint["state"] in {"delivered", "adopted"} or self.registry.status(evidence.job_id)["state"] == "prepared":
                 continue
             context = image_context(store, evidence.owner, evidence.job_id)
-            delivery = read_image(store, evidence.owner, evidence.job_id, context)
+            delivery = read_image(store, evidence.owner, evidence.job_id, context,
+                native_task_binding=self.native_task_binding(view))
             if delivery is not None:
                 self.retain_delivery(store, view, claim, checkpoint, evidence, context, delivery)
 

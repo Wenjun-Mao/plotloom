@@ -116,7 +116,7 @@ class ArtReferenceProposalPersistence:
             }
             request = {
                 "schemaVersion": 3, "jobId": job_id,
-                "executionContract": "codex_specialist.v2",
+                "executionContract": "codex_specialist.v3",
                 "specialistPreflight": image_preflight(self._access, session),
                 "kind": "art_reference", "target": "art_reference_proposal", "frozenSnapshot": snapshot,
             }

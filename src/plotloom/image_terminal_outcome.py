@@ -83,7 +83,7 @@ def read_blocked_outcome(exchange: ImageJobExchange, context: dict) -> dict:
     """
     job_id, request_hash = context["id"], context["requestHash"]
     preflight = context["request"].get("specialistPreflight", {})
-    if context["state"] != "cancelled" or preflight.get("version") != "p1.5-pin.v1":
+    if context["state"] != "cancelled" or preflight.get("version") not in {"p1.5-pin.v1", "p1.5-pin.v2"}:
         raise ImageJobError("image_terminal_ineligible", "只可核对已取消且成功建立执行 pin 的生成前阻塞任务。")
     descriptor = exchange._open_directory(exchange._root(), ("jobs", job_id, "delivery"))
     try:
@@ -109,7 +109,14 @@ def read_blocked_outcome(exchange: ImageJobExchange, context: dict) -> dict:
             raise ImageJobError("image_terminal_secret", "终止声明含不允许的敏感设置；保留预约。")
         if marker.job_id != job_id or marker.request_hash != request_hash:
             raise ImageJobError("image_terminal_identity", "终止声明不属于此冻结请求；保留预约。")
-        pin = exchange._validated_executor_pin(descriptor, job_id=job_id, request_hash=request_hash, expected_skill_version=preflight.get("skillVersion"))
+        execution_contract = preflight.get("executionContract", "codex_specialist.v2")
+        pin = exchange._validated_executor_pin(
+            descriptor, job_id=job_id, request_hash=request_hash,
+            expected_skill_version=preflight.get("skillVersion"),
+            expected_execution_contract=execution_contract,
+        )
+        if execution_contract == "codex_specialist.v3" and pin["nativeTaskId"] != str(marker.task_id):
+            raise ImageJobError("image_terminal_pin", "终止声明原生任务身份与 executor pin 不一致；保留预约。")
         provenance = marker.executor_provenance.model_dump(mode="json", by_alias=True, exclude_none=True)
         if provenance != {key: pin[key] for key in ("codeRevision", "skillVersion", "skillHash")}:
             raise ImageJobError("image_terminal_pin", "终止声明来源与原始 executor pin 不一致；保留预约。")

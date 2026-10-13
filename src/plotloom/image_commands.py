@@ -1,7 +1,7 @@
 """Repository-bound image transport/admission shared by the native controller."""
 from hashlib import sha256
 from pathlib import Path
-from .image_job_contracts import ImageJobError
+from .image_job_contracts import ImageJobError, NativeTaskBinding
 from .image_job_exchange import PackageReference
 from .managed_media import publish_import
 
@@ -28,7 +28,7 @@ def frozen_references(context):
     return values
 
 
-def image_package(store, owner, job_id):
+def image_package(store, owner, job_id, *, native_task_binding: NativeTaskBinding):
     name, key, _target = IMAGE_METHODS[owner]
     sources = getattr(store.media, f"{name}_package_sources")(store.manifest.project_id, job_id)
     context = sources[key]
@@ -44,11 +44,13 @@ def image_package(store, owner, job_id):
         references.append(PackageReference(role=role, filename=f"reference-{index + 1}-{source['contentHash'][:16]}{suffix}",
             content_hash=source["contentHash"], content=content))
     return store.image_exchange_for(context).write_package(job_id=job_id, request=context["request"],
-        request_hash=context["requestHash"], references=references)
+        request_hash=context["requestHash"], references=references, native_task_binding=native_task_binding)
 
 
 def send_image(store, registry, owner, job_id, *, policy, before_send):
-    paths = image_package(store, owner, job_id)
+    native_task_binding = NativeTaskBinding(mode="configured_task", task_id=policy.specialist_bindings["image"])
+    registry.bind_delivery(job_id, native_task_binding)
+    paths = image_package(store, owner, job_id, native_task_binding=native_task_binding)
     delivery_path = Path(paths["deliveryPath"])
     if delivery_path.exists() or delivery_path.is_symlink():
         raise ImageJobError("delivery_conflict", "existing delivery or execution staging must be inspected, never resent")
@@ -63,12 +65,15 @@ def send_image(store, registry, owner, job_id, *, policy, before_send):
             "Do not edit code, package, canon, references, selections or approvals. No video or other providers."))
 
 
-def read_image(store, owner, job_id, context):
+def read_image(store, owner, job_id, context, *, native_task_binding: NativeTaskBinding):
     exchange = store.image_exchange_for(context)
-    exchange.verify_package(job_id=job_id, request=context["request"], request_hash=context["requestHash"], references=frozen_references(context))
+    exchange.verify_package(job_id=job_id, request=context["request"], request_hash=context["requestHash"],
+        references=frozen_references(context), native_task_binding=native_task_binding)
     return exchange.read_delivery(job_id=job_id, request_hash=context["requestHash"], require_executor_provenance=True,
         required_reference_hashes=[item["originalHash"] for item in context["request"]["frozenSnapshot"].get("references", []) if item["role"] == "character_identity"],
-        require_executor_pin=True, expected_executor_skill_version=context["request"]["specialistPreflight"]["skillVersion"])
+        require_executor_pin=True, expected_executor_skill_version=context["request"]["specialistPreflight"]["skillVersion"],
+        expected_executor_contract=context["request"]["specialistPreflight"]["executionContract"],
+        expected_native_task_binding=native_task_binding)
 
 
 def ingest_image(store, owner, job_id, delivery):
@@ -78,6 +83,6 @@ def ingest_image(store, owner, job_id, delivery):
         "width": item.observed.width, "height": item.observed.height, "content": item.content, "observed": item.observed}
         for item in delivery.outputs]
     return getattr(store.media, f"record_{name}_delivery")(store.manifest.project_id, job_id,
-        delivery_id=delivery.manifest.delivery_id, manifest=delivery.manifest.model_dump(mode="json", by_alias=True),
+        delivery_id=delivery.manifest.delivery_id, manifest=delivery.manifest.canonical_payload(),
         manifest_hash=delivery.manifest_hash, outputs=outputs,
         publish=lambda output: publish_import(store.artifacts, output["content"], output["observed"]))

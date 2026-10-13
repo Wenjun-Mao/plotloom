@@ -37,10 +37,11 @@ def deliver_image(store, view, checkpoint, *, geometry=None, output_count=1):
     pin = view.policy.execution_pins["image"]
     provenance = {"codeRevision": pin["codeRevision"], "skillVersion": pin["skillVersion"], "skillHash": pin["skillHash"]}
     (delivery / "executor-pin.json").write_text(json.dumps({"jobId": evidence["jobId"], "requestHash": context["requestHash"],
-        "executionContract": pin["executionContract"], **provenance}))
-    manifest = {"schemaVersion": 2, "jobId": evidence["jobId"], "requestHash": context["requestHash"], "deliveryId": "fixture-image",
+        "executionContract": pin["executionContract"], "nativeTaskId": view.policy.specialist_bindings["image"], **provenance}))
+    manifest = {"schemaVersion": 3, "jobId": evidence["jobId"], "requestHash": context["requestHash"], "deliveryId": "fixture-image",
         "actualPrompt": "Deterministic bitmap fixture; no generation.", "outputs": outputs,
-        "toolEvidence": {"tool": "codex_imagegen", "taskId": view.policy.specialist_bindings["image"], "available": True},
+        "toolEvidence": {"tool": "codex_imagegen", "nativeTaskId": view.policy.specialist_bindings["image"],
+            "imageGenExecutionId": f"exec-{evidence['jobId']}", "available": True},
         "executorProvenance": provenance, "limitations": ["Offline fixture, not product acceptance."]}
     identities = [item["originalHash"] for item in request["frozenSnapshot"].get("references", []) if item["role"] == "character_identity"]
     if identities:

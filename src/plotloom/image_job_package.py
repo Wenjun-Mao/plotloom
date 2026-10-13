@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from shlex import quote
 from typing import Any
 
-from .image_job_contracts import ImageJobError
+from .image_job_contracts import ImageJobError, NativeTaskBinding
 
 PACKAGE_VERSION = 3
 PINNED_PACKAGE_VERSION = 4
 PRESENTATION_PACKAGE_VERSION = 5
+IDENTITY_PACKAGE_VERSION = 6
 
 
 def presentation_amendment_instruction(request: dict) -> str:
@@ -60,9 +62,12 @@ def package_version(request: dict[str, Any]) -> int:
     if schema_version == 2:
         return 2
     if schema_version == 3:
+        preflight_version = request.get("specialistPreflight", {}).get("version")
+        if preflight_version == "p1.5-pin.v2":
+            return IDENTITY_PACKAGE_VERSION
         if request.get("frozenSnapshot", {}).get("presentationContract") == "physical-visible-runtime.v1":
             return PRESENTATION_PACKAGE_VERSION
-        return PINNED_PACKAGE_VERSION if request.get("specialistPreflight", {}).get("version") == "p1.5-pin.v1" else PACKAGE_VERSION
+        return PINNED_PACKAGE_VERSION if preflight_version == "p1.5-pin.v1" else PACKAGE_VERSION
     raise ImageJobError("request_integrity", "frozen image request schema is unsupported")
 
 
@@ -73,10 +78,24 @@ def project_image_package(
     request: dict[str, Any],
     request_hash: str,
     reference_entries: list[dict[str, str]],
+    native_task_binding: NativeTaskBinding | dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], bytes, bytes | None, set[str]]:
     """Derive the complete, recheckable package from frozen database data."""
 
     version = package_version(request)
+    repository_root = Path(__file__).resolve().parents[2]
+    binding: dict[str, Any] | None = None
+    if version == IDENTITY_PACKAGE_VERSION:
+        try:
+            parsed_binding = NativeTaskBinding.model_validate(native_task_binding)
+        except (TypeError, ValueError) as error:
+            raise ImageJobError(
+                "image_native_task_binding_invalid",
+                "new image packages require an explicit native task binding",
+            ) from error
+        if request.get("executionContract") != "codex_specialist.v3":
+            raise ImageJobError("request_integrity", "native task binding requires codex_specialist.v3")
+        binding = parsed_binding.model_dump(mode="json", by_alias=True, exclude_none=True)
     job_root = root / "jobs" / job_id
     package = job_root / "package"
     if version == 1:
@@ -162,16 +181,32 @@ def project_image_package(
                + presentation_amendment_instruction(request)
                + runtime_presentation_instruction(request)
                + "No text compositor is implied by this request; disclose any inability to render the exact authored words. "
-               if version == PRESENTATION_PACKAGE_VERSION else "")
+               if version == PRESENTATION_PACKAGE_VERSION or (
+                   version == IDENTITY_PACKAGE_VERSION
+                   and request.get("frozenSnapshot", {}).get("presentationContract") == "physical-visible-runtime.v1"
+               ) else "")
             + OUTPUT_BASENAME_INSTRUCTION
-            + "Write complete JPEG or PNG files to delivery/outputs, then publish delivery/completion.json once. Do not write "
-            "SQLite, modify this package, or include sensitive values."
+            + (
+                "Write complete JPEG or PNG files to delivery/outputs. Prepare delivery/completion-draft.json, "
+                "then publish it exactly once with the command in COPY_ASSIGNMENT.txt; the publisher verifies the "
+                "native task and ImageGen execution IDs and writes completion.json last. Do not write "
+                if version == IDENTITY_PACKAGE_VERSION else
+                "Write complete JPEG or PNG files to delivery/outputs, then publish delivery/completion.json once. "
+                "Do not write "
+            )
+            + "SQLite, modify this package, or include sensitive values."
         )
         instructions = (
             f"Plotloom {'art-reference study' if art_reference else 'character-reference proposal' if proposal else 'identity-aware image job'} {job_id}\n"
             f"Read: {package / 'request.json'}\n"
             f"Read completion template: {package / COMPLETION_TEMPLATE_FILENAME}\n"
-            + (f"Before ImageGen, run: uv run python scripts/pin_image_specialist.py --package {package}\n" if version in {PINNED_PACKAGE_VERSION, PRESENTATION_PACKAGE_VERSION} and request.get("specialistPreflight") else "")
+            + (
+                f"Before ImageGen, run: uv run python scripts/pin_image_specialist.py --package {package}\n"
+                if version in {PINNED_PACKAGE_VERSION, PRESENTATION_PACKAGE_VERSION} and request.get("specialistPreflight")
+                else f"Before ImageGen, run: uv run --locked --no-sync python {quote(str(repository_root / 'scripts' / 'pin_image_specialist.py'))} --package {quote(str(package))}\n"
+                if version == IDENTITY_PACKAGE_VERSION and request.get("specialistPreflight")
+                else ""
+            )
             + f"Deliver only under: {job_root / 'delivery'}\n"
             + (
                 "Use Codex built-in image generation. View every supplied character_identity reference and preserve "
@@ -197,13 +232,24 @@ def project_image_package(
                + presentation_amendment_instruction(request)
                + runtime_presentation_instruction(request)
                + "No text compositor is implied by this request; disclose any inability to render the exact authored words. "
-               if version == PRESENTATION_PACKAGE_VERSION else "")
+               if version == PRESENTATION_PACKAGE_VERSION or (
+                   version == IDENTITY_PACKAGE_VERSION
+                   and request.get("frozenSnapshot", {}).get("presentationContract") == "physical-visible-runtime.v1"
+               ) else "")
             + OUTPUT_BASENAME_INSTRUCTION
-            + "Disclose the "
-            "exact actual prompt and publish completion.json only after every declared output is complete.\n"
+            + (
+                "Disclose the exact actual prompt. "
+                f"Complete {job_root / 'delivery' / 'completion-draft.json'} from the template, then publish with: "
+                f"uv run --locked --no-sync python {quote(str(repository_root / 'scripts' / 'publish_image_completion.py'))} "
+                f"--package {quote(str(package))} --manifest {quote(str(job_root / 'delivery' / 'completion-draft.json'))}\n"
+                if version == IDENTITY_PACKAGE_VERSION else
+                "Disclose the exact actual prompt and publish completion.json only after every declared output is complete.\n"
+            )
         ).encode()
+        parsed_binding = NativeTaskBinding.model_validate(native_task_binding) if version == IDENTITY_PACKAGE_VERSION else None
+        binding_id = str(parsed_binding.task_id) if parsed_binding and parsed_binding.task_id else "replace-with-CODEX_THREAD_ID-from-the-pinned-native-task"
         template_payload: dict[str, Any] = {
-            "schemaVersion": 2,
+            "schemaVersion": 3 if version == IDENTITY_PACKAGE_VERSION else 2,
             "jobId": job_id,
             "requestHash": request_hash,
             "deliveryId": "replace-with-specialist-delivery-id",
@@ -215,7 +261,14 @@ def project_image_package(
             }],
             "toolEvidence": {
                 "tool": "codex_imagegen",
-                "taskId": "replace-with-Codex-task-id",
+                **(
+                    {
+                        "nativeTaskId": binding_id,
+                        "imageGenExecutionId": "replace-with-ImageGen-execution-id-not-native-task-id",
+                    }
+                    if version == IDENTITY_PACKAGE_VERSION else
+                    {"taskId": "replace-with-Codex-task-id"}
+                ),
                 "available": True,
             },
             "executorProvenance": {
@@ -240,6 +293,8 @@ def project_image_package(
         "references": reference_entries,
         "deliveryInstruction": delivery_instruction,
     })
+    if binding is not None:
+        package_request["nativeTaskBinding"] = binding
     expected_entries = {"request.json", "COPY_ASSIGNMENT.txt"}
     if template is not None:
         expected_entries.add(COMPLETION_TEMPLATE_FILENAME)

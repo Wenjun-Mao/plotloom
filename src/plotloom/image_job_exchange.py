@@ -13,6 +13,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
+from uuid import UUID
 
 from pydantic import ValidationError
 
@@ -20,6 +21,7 @@ from .image_job_contracts import (
     ImageDeliveryManifest,
     ImageExecutorProvenance,
     ImageJobError,
+    NativeTaskBinding,
     is_image_job_id,
 )
 from .managed_media import ManagedMediaLimits, ObservedImage, inspect_import_image
@@ -192,11 +194,26 @@ class ImageJobExchange(ImagePackageCommands):
             os.close(file_fd)
 
     @classmethod
-    def _directory_names(cls, directory_fd: int, *, package: bool = False) -> set[str]:
+    def _directory_names(
+        cls,
+        directory_fd: int,
+        *,
+        package: bool = False,
+        allow_disappearing: frozenset[str] = frozenset(),
+    ) -> set[str]:
         try:
             names = set(os.listdir(directory_fd))
-            for name in names:
-                mode = os.stat(name, dir_fd=directory_fd, follow_symlinks=False).st_mode
+            for name in tuple(names):
+                try:
+                    mode = os.stat(name, dir_fd=directory_fd, follow_symlinks=False).st_mode
+                except FileNotFoundError:
+                    # Directory listings are not snapshots. The publisher
+                    # unlinks this known staging file after linking the final
+                    # completion marker, so omit it if it vanishes mid-scan.
+                    if name not in allow_disappearing:
+                        raise
+                    names.discard(name)
+                    continue
                 if stat.S_ISLNK(mode):
                     raise ImageJobError("delivery_symlink", "image-job paths must not traverse symlinks")
         except ImageJobError:
@@ -244,6 +261,8 @@ class ImageJobExchange(ImagePackageCommands):
         require_executor_provenance: bool = False,
         require_executor_pin: bool = False,
         expected_executor_skill_version: str | None = None,
+        expected_executor_contract: str = "codex_specialist.v2",
+        expected_native_task_binding: NativeTaskBinding | dict | None = None,
     ) -> ValidatedDelivery | None:
         """Read a completed untrusted package, or report that no delivery exists yet.
 
@@ -269,7 +288,9 @@ class ImageJobExchange(ImagePackageCommands):
             raise
         completion_marker_observed = False
         try:
-            names = self._directory_names(delivery_fd)
+            names = self._directory_names(
+                delivery_fd, allow_disappearing=frozenset({"completion-draft.json"})
+            )
             if not names:
                 return None
             if COMPLETION_FILENAME not in names:
@@ -289,9 +310,11 @@ class ImageJobExchange(ImagePackageCommands):
             manifest.assert_secret_free()
             if manifest.job_id != job_id or manifest.request_hash != request_hash:
                 raise ImageJobError("delivery_identity_mismatch", "completion manifest does not belong to this frozen image job")
+            if manifest.schema_version == 3 and not require_executor_pin:
+                raise ImageJobError("delivery_executor_pin_missing", "schema-v3 delivery requires its pre-generation executor pin")
             required_hashes = tuple(required_reference_hashes)
             if required_hashes:
-                if manifest.schema_version != 2 or manifest.reference_use is None:
+                if manifest.schema_version not in {2, 3} or manifest.reference_use is None:
                     raise ImageJobError(
                         "delivery_reference_use_missing",
                         "identity-aware delivery must attest to every viewed character reference",
@@ -317,16 +340,34 @@ class ImageJobExchange(ImagePackageCommands):
                 pin = self._validated_executor_pin(
                     delivery_fd, job_id=job_id, request_hash=request_hash,
                     expected_skill_version=expected_executor_skill_version,
+                    expected_execution_contract=expected_executor_contract,
                 )
                 provenance = manifest.executor_provenance
                 expected_pin = {
                     "jobId": job_id,
                     "requestHash": request_hash,
-                    "executionContract": "codex_specialist.v2",
+                    "executionContract": expected_executor_contract,
                     "skillVersion": provenance.skill_version,
                     "codeRevision": provenance.code_revision,
                     "skillHash": provenance.skill_hash,
                 }
+                if expected_executor_contract == "codex_specialist.v3":
+                    try:
+                        binding = NativeTaskBinding.model_validate(expected_native_task_binding)
+                    except (TypeError, ValueError) as error:
+                        raise ImageJobError(
+                            "delivery_native_task_binding_missing",
+                            "schema-v3 delivery requires the package's expected native task binding",
+                        ) from error
+                    if manifest.schema_version != 3 or manifest.tool_evidence.native_task_id is None:
+                        raise ImageJobError("delivery_native_task_identity_missing", "schema-v3 delivery must name its native task UUID")
+                    if pin["nativeTaskId"] != str(manifest.tool_evidence.native_task_id):
+                        raise ImageJobError("delivery_native_task_identity_mismatch", "completion native task UUID differs from the pre-generation pin")
+                    if binding.mode == "configured_task" and pin["nativeTaskId"] != str(binding.task_id):
+                        raise ImageJobError("delivery_native_task_identity_mismatch", "completion native task UUID differs from the configured specialist binding")
+                    expected_pin["nativeTaskId"] = pin["nativeTaskId"]
+                elif manifest.schema_version == 3:
+                    raise ImageJobError("delivery_executor_pin_invalid", "schema-v3 delivery requires codex_specialist.v3")
                 if pin != expected_pin:
                     raise ImageJobError(
                         "delivery_executor_pin_mismatch",
@@ -335,6 +376,33 @@ class ImageJobExchange(ImagePackageCommands):
             expected_delivery_names = {COMPLETION_FILENAME, "outputs"}
             if require_executor_pin:
                 expected_delivery_names.add(EXECUTOR_PIN_FILENAME)
+            if manifest.schema_version == 3 and "completion-draft.json" in names:
+                try:
+                    draft_payload = json.loads(self._read_regular_at(
+                        delivery_fd, "completion-draft.json", max_bytes=1_000_000
+                    ))
+                    draft = ImageDeliveryManifest.model_validate(draft_payload)
+                except ImageJobError:
+                    # The publisher removes this known staging file after the
+                    # atomic marker link. Recheck the directory to distinguish
+                    # that cleanup race from a still-present invalid entry.
+                    current_names = self._directory_names(
+                        delivery_fd, allow_disappearing=frozenset({"completion-draft.json"})
+                    )
+                    if "completion-draft.json" in current_names:
+                        raise
+                    names = current_names
+                except (json.JSONDecodeError, ValidationError) as error:
+                    raise ImageJobError(
+                        "delivery_partial", "staged completion draft is invalid", publication_phase="final"
+                    ) from error
+                else:
+                    if draft.canonical_payload() != manifest.canonical_payload():
+                        raise ImageJobError(
+                            "delivery_partial", "staged completion draft differs from the published manifest",
+                            publication_phase="final",
+                        )
+                    expected_delivery_names.add("completion-draft.json")
             if names != expected_delivery_names:
                 raise ImageJobError(
                     "delivery_partial", "delivery contains undeclared files", publication_phase="final"
@@ -378,13 +446,14 @@ class ImageJobExchange(ImagePackageCommands):
             os.close(delivery_fd)
         return ValidatedDelivery(
             manifest=manifest,
-            manifest_hash=sha256(_canonical_json(manifest.model_dump(mode="json", by_alias=True))).hexdigest(),
+            manifest_hash=sha256(_canonical_json(manifest.canonical_payload())).hexdigest(),
             outputs=tuple(outputs),
         )
 
     def _validated_executor_pin(
         self, delivery_fd: int, *, job_id: str, request_hash: str,
         expected_skill_version: str | None,
+        expected_execution_contract: str = "codex_specialist.v2",
     ) -> dict[str, str]:
         """Validate the narrow v4 pre-generation marker before accepting waiting."""
 
@@ -398,11 +467,13 @@ class ImageJobExchange(ImagePackageCommands):
             "jobId", "requestHash", "executionContract", "skillVersion",
             "codeRevision", "skillHash",
         }
+        if expected_execution_contract == "codex_specialist.v3":
+            expected_keys.add("nativeTaskId")
         if not isinstance(pin, dict) or set(pin) != expected_keys:
             raise ImageJobError("delivery_executor_pin_invalid", "executor pin has an unsupported shape")
         if pin.get("jobId") != job_id or pin.get("requestHash") != request_hash:
             raise ImageJobError("delivery_executor_pin_mismatch", "executor pin does not belong to this frozen image job")
-        if pin.get("executionContract") != "codex_specialist.v2":
+        if pin.get("executionContract") != expected_execution_contract:
             raise ImageJobError("delivery_executor_pin_invalid", "executor pin has an unsupported execution contract")
         if expected_skill_version is not None and pin.get("skillVersion") != expected_skill_version:
             raise ImageJobError("delivery_executor_pin_invalid", "executor pin has an unsupported specialist skill version")
@@ -413,4 +484,9 @@ class ImageJobExchange(ImagePackageCommands):
             })
         except (KeyError, ValidationError) as error:
             raise ImageJobError("delivery_executor_pin_invalid", "executor pin provenance is invalid") from error
+        if expected_execution_contract == "codex_specialist.v3":
+            try:
+                pin["nativeTaskId"] = str(UUID(pin["nativeTaskId"]))
+            except (KeyError, TypeError, ValueError) as error:
+                raise ImageJobError("delivery_executor_pin_invalid", "executor pin native task UUID is invalid") from error
         return pin

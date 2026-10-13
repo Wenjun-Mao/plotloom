@@ -12,7 +12,7 @@ from pydantic import Field, field_validator, model_validator
 
 from .codex_image_dispatch import NativeCodexImageDispatcher
 from .domain import CamelModel
-from .image_job_contracts import ImageJobError
+from .image_job_contracts import ImageJobError, NativeTaskBinding
 
 Role = Literal["text", "image"]
 
@@ -119,6 +119,41 @@ class SpecialistRegistry:
     def status(self, job_id: str):
         with self.lock():
             return self._status(self._read(), job_id)
+
+    def bind_delivery(self, job_id: str, binding: NativeTaskBinding) -> NativeTaskBinding:
+        """Retain the package identity before dispatch can be refused or delayed."""
+
+        binding = NativeTaskBinding.model_validate(binding)
+        encoded = binding.model_dump(mode="json", by_alias=True, exclude_none=True)
+        with self.lock():
+            data = self._read()
+            bindings = data.setdefault("deliveryBindings", {})
+            existing = bindings.get(job_id)
+            if existing is not None and NativeTaskBinding.model_validate(existing) != binding:
+                raise ImageJobError(
+                    "specialist_binding_changed",
+                    "此图像包已冻结到另一个原生任务身份；请重新准备图像任务。",
+                )
+            if existing is None:
+                bindings[job_id] = encoded
+                self._write(data)
+        return binding
+
+    def delivery_task_binding(self, job_id: str, *, require_bound: bool = False) -> NativeTaskBinding:
+        with self.lock():
+            data = self._read()
+            encoded = data.get("deliveryBindings", {}).get(job_id)
+            if encoded is not None:
+                return NativeTaskBinding.model_validate(encoded)
+            if require_bound:
+                raise ImageJobError(
+                    "specialist_binding_missing",
+                    "图像包的原生任务身份未保留，不能读取其交付。",
+                )
+            transport = self._status(data, job_id)
+            if transport["state"] == "prepared":
+                return NativeTaskBinding(mode="current_task")
+            return NativeTaskBinding(mode="configured_task", task_id=transport["taskId"])
 
     def _status(self, data, job_id):
         for task_id, root in data["roots"].items():
@@ -268,6 +303,18 @@ class ImageSpecialist:
 
     def dispatch(self, **kwargs):
         self.registry.dispatch("image", **kwargs)
+
+    def configured_task_binding(self) -> NativeTaskBinding:
+        task_id = self.registry.view()["image"]["taskId"]
+        if not task_id:
+            raise ImageJobError("specialist_unconfigured", "请先在「生成助手设置」中填写助手的聊天 ID。")
+        return NativeTaskBinding(mode="configured_task", task_id=task_id)
+
+    def bind_delivery(self, job_id: str, binding: NativeTaskBinding) -> NativeTaskBinding:
+        return self.registry.bind_delivery(job_id, binding)
+
+    def delivery_task_binding(self, job_id: str, *, require_bound: bool = False) -> NativeTaskBinding:
+        return self.registry.delivery_task_binding(job_id, require_bound=require_bound)
 
     def complete(self, job_id):
         self.registry.complete(job_id)

@@ -49,9 +49,10 @@ def _direction_draft(
 def _identity_delivery(
     path: Path, job: dict, reference_hash: str, content: bytes
 ) -> None:
+    native_task_id = "01a1357a-249d-7e73-81fa-5e337d7bdfe5"
     provenance = {
         "codeRevision": "a" * 40,
-        "skillVersion": "plotloom-image-specialist.v3",
+        "skillVersion": "plotloom-image-specialist.v4",
         "skillHash": "b" * 64,
     }
     path.mkdir(parents=True, exist_ok=True)
@@ -60,7 +61,8 @@ def _identity_delivery(
             {
                 "jobId": job["id"],
                 "requestHash": job["requestHash"],
-                "executionContract": "codex_specialist.v2",
+                "executionContract": "codex_specialist.v3",
+                "nativeTaskId": native_task_id,
                 **provenance,
             }
         ),
@@ -72,7 +74,7 @@ def _identity_delivery(
     (path / "completion.json").write_text(
         json.dumps(
             {
-                "schemaVersion": 2,
+                "schemaVersion": 3,
                 "jobId": job["id"],
                 "requestHash": job["requestHash"],
                 "deliveryId": "identity-001",
@@ -86,7 +88,8 @@ def _identity_delivery(
                 ],
                 "toolEvidence": {
                     "tool": "codex_imagegen",
-                    "taskId": "identity-currentness-fixture",
+                    "nativeTaskId": native_task_id,
+                    "imageGenExecutionId": "exec-identity-currentness-fixture",
                     "available": True,
                 },
                 "referenceUse": {
@@ -243,7 +246,7 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
         package_request = json.loads(
             (package / "request.json").read_text(encoding="utf-8")
         )
-        assert package_request["packageVersion"] == 5
+        assert package_request["packageVersion"] == 6
         assert (
             package_request["references"][0]["role"]
             == "character_identity:fixture-hero"
@@ -255,8 +258,9 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
         pin = {
             "jobId": job["id"],
             "requestHash": job["requestHash"],
-            "executionContract": "codex_specialist.v2",
-            "skillVersion": "plotloom-image-specialist.v3",
+            "executionContract": "codex_specialist.v3",
+            "nativeTaskId": "01a1357a-249d-7e73-81fa-5e337d7bdfe5",
+            "skillVersion": "plotloom-image-specialist.v4",
             "codeRevision": "a" * 40,
             "skillHash": "b" * 64,
         }

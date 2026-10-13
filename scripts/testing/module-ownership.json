@@ -476,6 +476,7 @@
           "tests/test_h3_i2va_prompt.py",
           "tests/test_native_bridge_intent.py",
           "tests/test_native_bridge_presentation.py",
+          "tests/test_publish_image_completion.py",
           "tests/test_pin_image_specialist.py",
           "tests/test_runtime_capabilities.py",
           "tests/test_runtime_declared_text_preset.py",

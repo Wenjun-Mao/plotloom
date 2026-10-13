@@ -1702,3 +1702,72 @@ Scoped verification on the resulting candidate:
 Only the shard manifest and this receipt changed. The full release run remains
 incomplete at its earlier failure; no native, hosted CI, activation, or broader
 qualification was performed in this repair.
+
+### Native ImageGen identity binding repair checkpoint (2026-10-13)
+
+This is a source-only repair in the isolated worktree
+`/Users/wjmao/.codex/worktrees/8ef5/plotloom`, based on
+`9b914daa591288ef39cc1f67af6e1a5470f8796d` (parent
+`15af8f6ba224d22ce4c6d97dd91c1026635cc043`). The manager's offline native proof
+recorded ImageGen output ID `exec-101f61ef-ab1c-4dcf-a6bc-702e4bc8a81e` in
+`toolEvidence.taskId`, while the frozen native Codex task UUID was
+`01a1357a-249d-7e73-81fa-5e337d7bdfe5`. Existing receiving checks correctly
+require the dispatched native UUID; the package, skill and manifest had not
+carried that identity separately from the ImageGen execution ID.
+
+ADR 0074 now defines the transport-only binding and its two explicit modes:
+configured dispatch carries its exact UUID, and manual copy binds to the
+current task. New packages use version 6, preflight `p1.5-pin.v2`, execution
+contract `codex_specialist.v3`, and schema-v3 completion manifests with separate
+`nativeTaskId` and `imageGenExecutionId`. The preflight validates `CODEX_THREAD_ID`
+and writes the native UUID to the executor pin before generation. The new
+publisher validates binding, pin/provenance, distinct IDs, output inventory and
+hashes before publishing `completion.json` once. Existing schema-v1/v2 manifests
+remain readable; receivers continue to require an exact native-task match.
+
+Focused implementation checks on this candidate:
+
+- `uv run --locked --no-sync python scripts/verify.py focused` with explicit
+  selectors for `test_image_job_exchange_contracts.py`,
+  `test_publish_image_completion.py`, `test_pin_image_specialist.py`,
+  `test_specialist_settings.py`, `test_image_terminal_settlement.py`,
+  `test_project_storage_image_identity_contracts.py`, and
+  `test_project_storage_image_delivery_contracts.py`: **95 passed**, one
+  existing Starlette/httpx deprecation warning.
+- `python -m compileall` for the changed Plotloom modules, pin/publisher scripts
+  and focused tests passed. `git diff --check` passed.
+- Targeted Ruff passed for the pin script, new publisher, package projection and
+  publisher tests. A broader Ruff invocation over all touched existing modules
+  remains unclean with import-order and related style findings; no broad
+  autoformat was applied.
+- Native ownership discovery passed with 1,825 pytest cases, 1,375 Vitest cases
+  and 318 Playwright cases inventoried. `shared-provider-dispatch --depth
+  contract --show` confirmed the registered owner union; no module union or
+  broader suite was executed.
+
+The first focused run exposed two integration gaps and closed them: package
+creation did not forward the binding to its post-write package verification,
+and terminal-proof package verification omitted the bound dispatch identity.
+The generated pin/publish commands were also corrected to point at the Plotloom
+checkout rather than the exchange directory. Regression cases cover these
+paths, configured/manual bindings, missing or mismatched IDs, and refusal before
+the final marker.
+
+An independent read-only review found a P2 race where the publisher could remove
+`completion-draft.json` after directory listing but before the reader stats it.
+The delivery inventory now tolerates disappearance only for that known staging
+file; other missing entries and symlinks remain rejected, and the final expected
+inventory comparison stays strict. A deterministic regression removes the
+listed draft before `stat` and confirms the valid published delivery is accepted.
+`verify.py focused --pytest tests/test_image_job_exchange_contracts.py` passed
+all 14 tests after the repair; focused Ruff, `git diff --check`, and compileall
+also passed. The reviewer rechecked the final race fix with no further findings
+in a static review. The broader implementation suite results above remain the
+separate focused evidence for the other touched contracts.
+
+The scoped source commit is recorded in the isolated worktree for manager review.
+No native proof, ImageGen generation, resend/rebind,
+QA/live project/package/pin/output or manager-owned receipt mutation, service or
+provider operation, full gate, CI, activation, merge or push occurred in this
+source checkpoint. The manager retains all such gates and final product/release
+acceptance.

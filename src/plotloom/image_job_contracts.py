@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from typing import Literal
+from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
 
@@ -32,6 +33,19 @@ class ImageJobError(ValueError):
         super().__init__(message)
         self.code = code
         self.publication_phase = publication_phase
+
+
+class NativeTaskBinding(CamelModel):
+    """Transport-only destination identity for a native ImageGen handoff."""
+
+    mode: Literal["configured_task", "current_task"]
+    task_id: UUID | None = None
+
+    @model_validator(mode="after")
+    def mode_has_the_right_identity(self) -> NativeTaskBinding:
+        if (self.mode == "configured_task") != (self.task_id is not None):
+            raise ValueError("configured task bindings require exactly one native task UUID")
+        return self
 
 
 class ImageJobCreateRequest(CamelModel):
@@ -180,7 +194,12 @@ class ImageJobOutput(CamelModel):
 
 class ImageToolEvidence(CamelModel):
     tool: Literal["codex_imagegen"]
-    task_id: str = Field(min_length=1, max_length=160)
+    # ``taskId`` remains required only for historical schemas 1 and 2. Schema
+    # 3 uses separate typed identities so an ImageGen execution ID cannot be
+    # mistaken for the native Codex task that owns a dispatched job.
+    task_id: str | None = Field(default=None, min_length=1, max_length=160)
+    native_task_id: UUID | None = None
+    image_gen_execution_id: str | None = Field(default=None, min_length=1, max_length=160)
     # A P1 candidate is specifically evidence of an observed built-in-imagegen
     # run. A no-tool manifest is not a weaker success state; it is invalid.
     available: Literal[True] = True
@@ -219,7 +238,7 @@ class ImageExecutorProvenance(CamelModel):
 class ImageDeliveryManifest(CamelModel):
     """The specialist's completion declaration; bytes remain untrusted."""
 
-    schema_version: Literal[1, 2] = 1
+    schema_version: Literal[1, 2, 3] = 1
     job_id: str = Field(pattern=JOB_ID_PATTERN)
     request_hash: str = Field(pattern=SHA256_PATTERN)
     delivery_id: str = Field(pattern=DELIVERY_ID_PATTERN)
@@ -247,10 +266,37 @@ class ImageDeliveryManifest(CamelModel):
             raise ValueError("outputs must not declare the same bytes twice")
         return self
 
+    @model_validator(mode="after")
+    def tool_identity_matches_schema(self) -> ImageDeliveryManifest:
+        evidence = self.tool_evidence
+        if self.schema_version in {1, 2}:
+            if evidence.task_id is None or evidence.native_task_id is not None or evidence.image_gen_execution_id is not None:
+                raise ValueError("legacy image manifests require taskId and cannot mix identity fields")
+        elif (
+            evidence.task_id is not None
+            or evidence.native_task_id is None
+            or evidence.image_gen_execution_id is None
+            or evidence.image_gen_execution_id == str(evidence.native_task_id)
+        ):
+            raise ValueError("schema-v3 image manifests require distinct native and ImageGen execution identities")
+        return self
+
+    def canonical_payload(self) -> dict:
+        """Serialize with the exact identity fields owned by this manifest schema."""
+
+        payload = self.model_dump(mode="json", by_alias=True)
+        if self.schema_version in {1, 2}:
+            # Retained schema-v1/v2 delivery hashes predate these identity
+            # members. Omitting them keeps their canonical bytes unchanged.
+            evidence = payload["toolEvidence"]
+            evidence.pop("nativeTaskId", None)
+            evidence.pop("imageGenExecutionId", None)
+        return payload
+
     def assert_secret_free(self) -> None:
         """Reject specialist-controlled text before it can enter project history."""
 
-        payload = self.model_dump(mode="json", by_alias=True)
+        payload = self.canonical_payload()
         if contains_secret_setting(payload) or contains_secret_value(payload):
             raise ImageJobError(
                 "delivery_manifest_secret",

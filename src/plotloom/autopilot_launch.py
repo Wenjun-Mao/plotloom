@@ -22,7 +22,7 @@ def frozen_bindings(registry):
 
 def image_execution_pin(code_revision):
     root = Path(__file__).resolve().parents[2]
-    return {"version": "p1.5-pin.v1", "skillVersion": "plotloom-image-specialist.v3", "executionContract": "codex_specialist.v2",
+    return {"version": "p1.5-pin.v2", "skillVersion": "plotloom-image-specialist.v4", "executionContract": "codex_specialist.v3",
         "codeRevision": code_revision, "skillHash": sha256((root / ".agents/skills/plotloom-image-specialist/SKILL.md").read_bytes()).hexdigest()}
 
 

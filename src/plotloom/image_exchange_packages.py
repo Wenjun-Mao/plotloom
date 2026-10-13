@@ -5,7 +5,7 @@ from typing import Any, TYPE_CHECKING
 from hashlib import sha256
 import json
 import os
-from .image_job_contracts import ImageJobError, is_image_job_id
+from .image_job_contracts import ImageJobError, NativeTaskBinding, is_image_job_id
 from .image_job_package import COMPLETION_TEMPLATE_FILENAME, project_image_package
 from .image_job_package import canonical_json as _canonical_json
 if TYPE_CHECKING:
@@ -20,6 +20,7 @@ class ImagePackageCommands:
         request: dict[str, Any],
         request_hash: str,
         references: Iterable[PackageReference],
+        native_task_binding: NativeTaskBinding | dict[str, Any] | None = None,
     ) -> dict[str, str]:
         """Publish an immutable specialist-readable package once.
 
@@ -48,12 +49,13 @@ class ImagePackageCommands:
         # transport projection. Verify it before writing or trusting a prior Copy.
         if sha256(_canonical_json(request)).hexdigest() != request_hash:
             raise ImageJobError("request_integrity", "frozen image request hash is invalid")
-        package_request, instructions, template, expected_entries = project_image_package(
+        package_request, instructions, template, _expected_entries = project_image_package(
             root=root,
             job_id=job_id,
             request=request,
             request_hash=request_hash,
             reference_entries=reference_entries,
+            native_task_binding=native_task_binding,
         )
         files = {"request.json": _canonical_json(package_request), "COPY_ASSIGNMENT.txt": instructions}
         if template is not None:
@@ -62,7 +64,8 @@ class ImagePackageCommands:
         from .image_package_publication import publish_image_package
         publish_image_package(self, root, job_id, request_hash, files)
         self.verify_package(job_id=job_id, request=request, request_hash=request_hash,
-            references=[(item.role, item.filename, item.content_hash) for item in reference_values])
+            references=[(item.role, item.filename, item.content_hash) for item in reference_values],
+            native_task_binding=native_task_binding)
         return {"packagePath": str(package), "deliveryPath": str(job_root / "delivery")}
 
     def verify_package(
@@ -72,6 +75,7 @@ class ImagePackageCommands:
         request: dict[str, Any],
         request_hash: str,
         references: Iterable[tuple[str, str, str]],
+        native_task_binding: NativeTaskBinding | dict[str, Any] | None = None,
     ) -> None:
         """Recheck a copied package before accepting its untrusted delivery.
 
@@ -96,6 +100,7 @@ class ImagePackageCommands:
             request=request,
             request_hash=request_hash,
             reference_entries=reference_entries,
+            native_task_binding=native_task_binding,
         )
         package_fd = self._open_directory(root, ("jobs", job_id, "package"), package=True)
         try:
