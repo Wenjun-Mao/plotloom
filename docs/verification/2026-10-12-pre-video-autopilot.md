@@ -14,7 +14,8 @@ The owner-approved UX/Brief-style and creator-confirmation follow-up is now
 technically closed out on executable source `ee7ec8de` and activated on the
 existing installation. Combined local software qualification, real frozen-package
 delivery and preserving activation are recorded in the final manager section.
-Publication is the next manager operation. Hosted CI and owner creative acceptance
+The technical closeout was published as `d2a4cf9b` on `origin/main`; the separate
+CLI assignment is recorded in its roadmap. Hosted CI and owner creative acceptance
 remain separate and unconfirmed. The original completed valued run retains its
 frozen `c771cdd6` policy and jobs, awaiting genuine human review; it was not
 converted to the new executor.
@@ -2239,8 +2240,9 @@ settings were Sol/High; effective settings remain unverified.
 ### Release and next assignment boundary
 
 This records technical closeout and releases the preceding source/heavy-check
-windows for the approved separate CLI assignment. Publication follows the fresh
-remote-divergence check. No hosted CI was manually dispatched; exact-SHA hosted
+windows for the approved separate CLI assignment. A fresh remote-divergence check
+found zero commits behind and a fast-forward-only release; `d2a4cf9b` was pushed
+and the remote SHA read back. No hosted CI was manually dispatched; exact-SHA hosted
 qualification remains unconfirmed. Genuine creator review remains pending and
 does not indefinitely block isolated CLI implementation. Future CLI activation
 requires its own qualification and safe-idle gate; the Moon run must not convert.

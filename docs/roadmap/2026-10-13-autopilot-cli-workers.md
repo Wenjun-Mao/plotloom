@@ -1,9 +1,10 @@
 # Parallel CLI workers for pre-video autopilot
 
-Status: owner-approved direction and conditional implementation, queued on
-2026-10-13. Use Relay Brainstorm and Plan for this design, then Relay Direct
-after the preceding Plotloom assignments finish. No pool implementation or
-live executor change is part of this planning checkpoint.
+Status: **dispatched once through Relay Direct on 2026-10-13**, after the
+preceding technical closeout and publication. Registration and read-only
+admission passed; the manager releases the sole implementation writer after
+recording this dispatch. The original Relay Brainstorm and Plan checkpoint
+contained no pool implementation or live executor change.
 
 The outcome is faster preparation through dependency-ready text and image
 workers, including image work before all text is finished. Each worker uses
@@ -31,6 +32,39 @@ Do not migrate it to CLI, restart it, resend anything, or change its checkout
 while generation is active. Any activation is a later safe-idle operation for
 future launches. The manager's existing heartbeat checks the queue without
 dispatching the new assignment early or reporting unchanged state.
+
+### Actual dispatch record
+
+- Manager: `01a04525-e907-7630-9640-78790d69e8ae`.
+- Native assignment: `01a1373d-a71a-7270-8906-f6430ce855b3`, local chat
+  **Plotloom parallel CLI worker pool**. Do not create another pool assignment.
+- Project: `8f9bfaaf-881e-4e70-9ae5-319e999ef6c0` (Plotloom Git repository).
+- New isolated checkout: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, initially
+  clean and detached at published baseline
+  `d2a4cf9b757aa323d11b293060ff2acd511cd4dd`. The submodule gitlink is
+  `4f9b2128c82adf623f594ba714c97d0afcfc16a2`; its uninitialized working checkout
+  must be initialized and verified before package checks. First-pass speedup
+  `e9e67847` and corrected receipt `31c6a209` are included.
+- Relay completion route `3f6d2e5d-1b26-4d29-83ae-cae454b97d20` is registered
+  to this manager and independently read back. The initial admission final was
+  collected; source edits, dependencies, checks and generation remained held.
+- Native creation used the owner's configured default because worker-model
+  overrides require an explicit native user choice. The actual admission turn
+  context records **GPT-6 Luna / Max**, `danger-full-access`, approval `never`.
+  Harmless read/Git commands succeeded without escalation. Provider-effective
+  model settings are not independently established. Keep implementation
+  checkpoints bounded and attend independent architectural review.
+- Predecessor: combined local software qualification and actual-path preserving
+  activation closed out at executable `ee7ec8de`; documentation closeout
+  `d2a4cf9b` was fast-forwarded and pushed to `origin/main`. Hosted CI and genuine
+  creative acceptance remain separately unconfirmed, not implicit approvals.
+- Live checkout stays detached at `ee7ec8de`. The Moon run awaits review with its
+  original policy/jobs and unchanged bundle; startup's exact controller claim
+  transition (229 → 230) is documented separately. No live run conversion.
+- The preceding source/heavy-check windows are released. Full/native generation
+  windows for this assignment still require explicit manager allocation. Pause
+  the old queue heartbeat after the implementation release and route verification;
+  the active Goal and Relay route carry this assignment forward.
 
 ## Established feasibility and remaining proof
 
