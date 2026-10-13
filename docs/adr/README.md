@@ -88,3 +88,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0161 Specialist presentation candidates](0161-specialist-presentation-candidates.md)
 - [0162 Pre-video autopilot authority](0162-pre-video-autopilot-authority.md)
 - [0163 Autopilot inherits the saved Brief visual direction](0163-autopilot-brief-style-authority.md)
+- [0165 Serial Codex Exec for pre-video autopilot](0165-serial-codex-exec-autopilot.md)
