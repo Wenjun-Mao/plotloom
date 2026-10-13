@@ -1926,3 +1926,104 @@ GPT-6.1 Sol / Medium, found no actionable issues. The reviewer could not verify
 host-effective model or effort settings. Restart coverage recreates the
 autopilot service while retaining the test registry; it does not exercise a
 separate process or fresh registry restart.
+
+### Unnamed creator confirmation · 2026-10-13
+
+Owner-approved implementation revision
+`65af67acf4cbc550294df8be0ad9f6577f2c5795`, parent
+`4d216ec8a7be59e593f2f8b0ccf0c2e7c30bbe6d`, is a bounded source checkpoint.
+The checks below exercised the source tree committed at this revision; no
+executable input changed after the passing checks. This receipt closeout changes
+documentation only. Independent read-only review requested GPT-6.1 Sol / Medium
+and found no actionable in-scope finding; effective host settings were unverified.
+The reviewer inspected source/diff, not UI/live state, and executed no checks.
+The manager independently reviewed exact `65af67acf4cbc550294df8be0ad9f6577f2c5795`
+and closed with no actionable findings, including unchanged NOT NULL SQL layout,
+retained-v1 hashes, truthful attribution and unchanged manual/video guards.
+
+Root cause: the final review form and `HumanHandoffRequest` required a typed name
+and whole-pack prose, while shared approval/SamePerson writers required a name.
+A supplied name is not authentication (ADR0162); those fields added paperwork
+beyond the exact material choices and actual frame/character observations.
+The owner approved removing the name and making the overall comment optional.
+ADR0162, the accepted contract and approved roadmap step were amended before
+implementation; stable ordinary-Chinese creator guidance is captured there.
+
+Current requests have no reviewer field. Blank/omitted comments are absent;
+nonblank comments retain their exact authored bytes. New `pre-video.handoff.v2`
+receipts record explicit `unnamed_creator` attribution and exact material choices.
+Shared writers admit the typed attribution only under HANDOFF authority and store
+no name as an empty reviewer string in the unchanged SQL layout. Readbacks label
+the attribution explicitly; ordinary-open/recovery rejects unnamed facts without
+validated v2 receipt links. Manual named-review requests retain their requirements.
+Retained v1 receipts use a separate read-only parser, preserving original bytes
+and hashes. A fresh confirmation reuses a genuine existing approval without
+changing its name/note. No actor or positive comment is invented.
+
+The UI removes the name input, labels the comment `备注（可选）`, uses ordinary
+reference-confirmation wording with accessible subject names and full image sets,
+and offers `查看生成信息`. The footer explains saved choices and the later separate
+workspace action for manual video work. Required individual decisions, uncertainty
+hold/authorize, read-only behavior, currentness/CAS, retry/draft retention and
+machine/video denial remain. Raw generator limitations and evidence are unchanged.
+
+Executed scoped evidence:
+
+- `verify.py focused` first checked handoff and SamePerson contracts: **27 Python
+  tests passed**. The initial new UI test failed because it assumed Field's control
+  was nested inside its label; using the associated control corrected the harness.
+- Initial new confirmation fixtures had **9 passed / 3 failed**: a fabricated
+  controller claim was correctly refused, and lifecycle writes correctly caused
+  takeover during synthetic historical setup. The fixtures were corrected;
+  product admission was not weakened. The follow-up focused new-confirmation and
+  five valid machine-scope selectors passed **18 Python / 27 Vitest tests**.
+- Final `uv run --locked --no-sync python scripts/verify.py module --module
+  story-authoring --depth contract` passed **279 Python / 269 Vitest tests**,
+  frontend typecheck and complete native ownership preflight. This includes no-name/
+  no-comment API handoff, exact optional text, manual-name refusals, failed/held/
+  missing/stale decisions, rollback, current and synthetic retained-v1 recovery,
+  and preservation of an existing named approval on fresh recovered confirmation.
+- Focused shared-consumer selectors `test_project_storage_image_identity_contracts`,
+  `test_project_storage_current_schema`, `test_autopilot_schema_upgrade`,
+  `test_autopilot_recovery`, `test_same_person_review_contract`,
+  `test_verification_module_ownership`, `test_retained_runtime_coverage_inventory`
+  passed **95 Python tests**. Vitest `human-review-attribution`,
+  `same-person-presentation`, `storyboard-workflow-observation` passed **16 tests**.
+- Both frontend type checks passed. Focused Playwright `e2e/autopilot-review.spec.ts`
+  passed **14 cases**; `e2e/shipped-static.spec.ts` passed **2 cases**. A separate
+  one-case replay retained desktop captures, without changing source or inventory.
+- Native discovery retained **1,855 Python cases / 182 files**, **1,377 Vitest
+  cases / 158 files**, and **318 Playwright cases / 93 specs**, with valid owners.
+  These are discovery counts, not claims that all test bodies passed.
+- Two deterministic frontend builds produced identical seven-file SHA-256 trees;
+  tree-list digest `a2f986d5f61191d55fc92fd009d76942c789f4d864090efaa12ff5319d428362`.
+  Generated `workbench.js` SHA-256 is
+  `e4b418264800791b4f5167002b5748bf142bb470184bb4aab616b0c8d79c9b78`.
+  Targeted F-rule Ruff, new-file import checks, compileall and diff checks passed.
+
+Direct desktop pixel inspection covered the gallery, required frame observations
+and optional-comment/footer states at 1280×720. Four retained captures are in
+`/tmp/plotloom-creator-confirmation-pixels.uE519F`; capture-list SHA-256 is
+`4387c0fcd3c1a0d1c993fe7948440ffff6176b59c11827eb3458e591ef6a0d1f`.
+The observed command/result summary is retained at
+`/tmp/plotloom-creator-confirmation-verification-summary.log`; it is a concise
+record of observed results, not a full stdout transcript. Deterministic hash
+manifests are `/tmp/plotloom-creator-confirmation-static-first.sha256` and
+`/tmp/plotloom-creator-confirmation-static-second.sha256`; pixel hashes are in
+`/tmp/plotloom-creator-confirmation-pixel-captures.sha256`.
+The original and retained captures show readable controls, raw limitations,
+explicit subject endorsements and the separate-video-work wording. This is local
+fixture UI evidence, not valued-project or creative/media acceptance. Non-failing
+Starlette/httpx, browser color-environment and large-chunk advisories remain.
+
+The manager's `2ec62c70` full gate remains failed **1,828 / 10** on its base;
+the `d721bc68` continuation has **104 Python passed**, then **308 / 10 failed**
+of 318 browser cases; the `4d216ec8` worker checkpoint has **26 affected browser /
+8 metadata tests passed**, not full qualification. None is relabelled by this
+source checkpoint. Fresh full/local/browser/wheel, native/preservation and hosted
+CI remain manager-owned and pending. This worker performed no full or equivalent
+release collection, real generation, live/QA operation, activation, merge or push.
+The valued Moon story and retained c771 installation were left aside without
+close/delete/cancel/replay/rebind operations. The source checkout and Relay route
+remain retained; after the committed receipt closeout the worker holds all edits
+and checks for the next explicit brief.
