@@ -1190,6 +1190,11 @@ or cleanup occurred. Combined full qualification must be refreshed for the
 stable integrated production candidate; earlier release evidence does not
 qualify these changes. Whole-suite speed and 85 percent remain open.
 
+Frozen executable after is `5516f5a09808968fb535e54e818ef057608074dd`;
+before remains `598c21f063ac4a820dae6b8e3b10f8c395c48fe4`. Any future
+37-case quiet comparison must use those exact refs and the frozen inventory;
+later documentation commits do not silently retarget it.
+
 ## Residual-cost investigation — historical proposal, now separately scoped
 
 One fresh main-thread profile ran the unchanged complete-pack control at clean
