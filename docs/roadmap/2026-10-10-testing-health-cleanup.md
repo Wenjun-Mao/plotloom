@@ -1082,6 +1082,11 @@ The four-row opt-in is implemented locally with exact eight-stage/six-frame
 guards. Three six-case baseline samples (including both unchanged controls)
 passed at clean `734624b8`, median 125.984s. Independent read-only review found
 no actionable gaps; focused verification passed all sixteen creator cases
-plus the unchanged geometry and 27-frame controls (18 total). Matched candidate
-timing and final qualification remain pending. Compare on the same host under
-coordinated quiet windows before claiming a benefit.
+plus the unchanged geometry and 27-frame controls (18 total). Three matched
+samples at clean `ab4c6746` reduced the six-case external median from 125.984s
+to 94.724s (24.81 percent). The four target rows' rounded phase median fell
+39.55 percent; unchanged named-v1 and geometry controls moved +0.67 percent
+and -5.00 percent, below the regression trigger. Raw log hashes and matching
+host/toolchain/command metadata were checked. Full qualification, publication
+and the 85-percent whole-Python target remain open. Use one stable final full
+gate to measure the remaining suite cost before proposing broader scope.

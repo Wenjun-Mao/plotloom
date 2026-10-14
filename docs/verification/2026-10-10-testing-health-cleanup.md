@@ -1652,4 +1652,20 @@ passed. The established focused runner passed all sixteen creator-confirmation
 cases plus the unchanged derivative-geometry and full 27-frame pack controls:
 18 passed in 132.11s, 137.855s including selector checks and runner overhead.
 The existing Starlette/httpx warning remains. `correctness.log` retains the
-result. Candidate timing, full qualification and publication remain pending.
+result.
+
+Three matched candidate samples at clean `ab4c6746` passed all six cases in
+94.724s, 95.467s and 92.425s (median 94.724s): 24.81 percent less external wall
+time than the 125.984s baseline. The four changed rows' summed, rounded pytest
+phase-time median fell from 79.26s to 47.91s (39.55 percent). The unchanged
+named-v1 control's phase median moved from 22.25s to 22.40s (+0.67 percent);
+the derivative-geometry control moved from 21.40s to 20.33s (-5.00 percent).
+Neither breached the ten-percent regression trigger. Phase totals are not
+external command wall time. All six raw-log hashes were verified; command,
+selectors, host, Python, uv and clean diff metadata match. Source checkpoints
+and input fingerprints identify the deliberate test delta.
+
+The CLI worker held checks/native probes during the correctness-and-timing
+window and was explicitly released at completion. No manager check remains
+running. Full qualification, publication and whole-Python target measurement
+are next; the selected-case gain does not establish the 85-percent target.
