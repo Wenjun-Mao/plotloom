@@ -1427,11 +1427,20 @@ use fresh native collection and completion-marker verification for exact case
 fingerprint `4a5688a8f77a9eefd4132e4753046ad0532ff693c4c84d60c8905ead6e1d6e55`,
 fresh absolute per-side roots, fixed dependency/interpreter/host probes, owned
 process-group cleanup and finally restoration of its pinned clean main HEAD.
-It times the complete unprofiled pytest process plus immediate owned-group
-cleanup, including import/collection/setup/call/teardown/reporting, and excludes
-the separate collection proof and probes. It uses the same explicit existing
-completion plugin as the diagnostic; no cProfile instrumentation or alternative
-test path. No pair has run or performance result is available at this checkpoint.
+It times the established complete unprofiled command
+`uv run --locked --no-sync python scripts/verify.py focused --pytest <CASE>`
+plus immediate owned-group cleanup, including uv/wrapper startup, the wrapper's
+selector collection and pytest import/collection/setup/call/teardown/reporting.
+The separate native collection proof and probes are excluded. Ambient selectors
+and plugin configuration are refused before the observer installs only the
+existing timing plugin through its child-owned `PYTEST_PLUGINS`. The wrapper's
+collection-only marker (`complete=false`, no executed files) is checked
+separately; only the execution block's successful exact-ID marker establishes
+completion. Both wrapper steps and its final summary must succeed. The manager
+caught and corrected the initially prepared direct-pytest timer path before any
+launch; the production runner was not changed. No cProfile instrumentation or
+alternative test path. No pair has run or performance result is available at
+this checkpoint.
 
 ### Historical material-closure attribution — read-only extraction
 
