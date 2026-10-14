@@ -57,6 +57,11 @@ def build_accepted_script_seed(root):
     finally:
         store.close()
     assert not (storage.application.root / "specialists").exists()
+    return freeze_accepted_script_project(home, project)
+
+
+def freeze_accepted_script_project(home, project):
+    """Freeze a closed home; callers own their stricter domain preconditions."""
     seed = AcceptedScriptSeed(home, project, seed_files(home))
     with _exclusive_project(seed):
         assert seed_files(home) == seed.files

@@ -781,6 +781,83 @@ quiet matched complete-command pair needs manager allocation. Keep default two,
 complete native coverage and the original 85-percent target open; no broad,
 module/full, profile, provider, moving-CLI merge, push, live or cleanup occurred.
 
+## Pending native Bridge seed — selected implementation
+
+Historical manifest attribution assigns repeated accepted-project construction
+to the native intent/presentation setup owners (22/21 cases; 19.515/23.473 setup
+seconds). This is prioritization evidence, not current measured speed. The
+reviewed fix belongs in test setup: share a closed real nine-shot pending project
+only across 22 specified negative cases; keep native authority/dispatch fresh.
+No production optimization or admission bypass is needed. ADR 0158 records the
+boundary and independent Sol/Medium design review found no blocker.
+
+Frozen before is `99954dc584060266790d4df90825e8fd0c3a8312`. The 26-case
+matched union comprises presentation's eight invalid-candidate and five invalid
+delivery variants, intent's five identity/pin and four send-recheck failures,
+and four unchanged fresh positive/unknown-dispatch controls:
+`test_delivery_prefills_advice_without_changing_proposal_then_explicit_save`,
+`test_prepare_send_validated_delivery_requires_explicit_whole_package_review`,
+`test_unknown_send_and_reopen_never_resends`, and
+`test_unknown_send_reopens_same_job_without_resending_or_api_reconciliation`.
+Before IDs are retained in
+`.local/remaining-cost/native-bridge-seed-before-native-cases.txt`; sorted
+fingerprint `365c4c8fc6e9a8af90bfb80d49cb9167912abd84a6f993a67c2e3bf4a593383d`.
+New copy/closure guards run separately. No timing/full/profile/provider work is
+authorized by this selection; the terminal pair remains queued separately.
+
+The implementation builds the original `_pending_project` 9/9 project, verifies
+current source/outline/map/graph and all four accepted creative owners, only
+accepted candidate rows, no close/publication blockers, no native/autopilot/
+generation/media/reference work, a current pending noninstallable Bridge with
+reviewed presentation, blank pending intent and no installation/job/candidate.
+The store closes before the complete home is frozen under its existing project
+lock. Application/registry/dispatch state is never copied. Accepted execution
+pins and completed package bytes are preserved; only closed-home freeze metadata
+was extracted from reconciliation, leaving its builder conditions and the
+autopilot two-lock path unchanged.
+
+Copies pass full-tree hashes and independent inode checks, normal project
+admission and the same pending-state assertions, then read proposal identity
+anew. Each runtime creates fresh settings/task UUIDs, registry, native service,
+pin, job, export and queue-call list. Presentation's prepare/author-intent edit
+still runs per case. Default fresh fixture behavior, including its original
+pin seams, remains equivalent. All 19 original test-function ASTs are identical
+to baseline except four selected fixture arguments/local aliases; no failure
+assertion or fresh control was removed.
+
+**34 focused cases passed**: 22 selected failures, three new guards, two
+reconciliation-copy guards and seven ownership checks. The four unchanged fresh
+positive/unknown-dispatch controls passed separately (**38 distinct cases**).
+The earlier three-guard smoke run also passed. Exact 26 native IDs and the
+recorded fingerprint match before/after; after inventory is
+`.local/remaining-cost/native-bridge-seed-after-native-cases.txt`.
+Retained evidence SHA-256:
+
+- `native-bridge-seed-isolation-first.log`:
+  `be05bdb661712d1d4f9b03148e683746c2ccb4a6b87a05861f21f5a1ad18e429`;
+- `native-bridge-seed-guards.log`:
+  `26d45df91f2b71a9f0f4a275adcb45352f0c99d94df959e048472d548f53e14a`;
+- `native-bridge-seed-fresh-controls.log`:
+  `1ff787e6fe8cfd417f007fd2f3ec9771b5d76263450e1690df2b9810c818b062`.
+
+Logs are under `.local/remaining-cost/`. Scoped Ruff F401 and diff checks passed;
+the existing Starlette/httpx warning remains. These concurrent focused results
+are correctness evidence, not measured performance. Attended independent
+Sol/Medium design and stable code reviews found no blocker/actionable finding;
+effective settings are unverified and the reviewer ran no checks.
+
+New guards admit both real fake-native intent and presentation advice and serve
+their derived reports while the original seed is renamed unavailable. No copy
+is installed/approved. The sibling keeps its exact proposal/database/reservation
+while only the completed copy releases its own lease; task IDs, jobs, call lists,
+project/package/dispatch paths and inodes are independent. Separate project locks,
+active-source refusal, package mutation isolation and incompatible Script-only
+seed refusal pass. Seed hashes remain exact. No production/frontend/dependency/
+timing-manifest changes, full/module/profile/provider calls, moving CLI merges,
+push, live checkout changes or cleanup occurred. Scoped readiness does not claim
+full qualification, hosted CI, product acceptance, measured Bridge savings or
+achievement of the unchanged 85-percent target. Default workers remain two.
+
 ## Residual-cost investigation — historical proposal, now separately scoped
 
 One fresh main-thread profile ran the unchanged complete-pack control at clean

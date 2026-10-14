@@ -484,6 +484,7 @@
           "tests/test_h3_i2va_prompt.py",
           "tests/test_native_bridge_intent.py",
           "tests/test_native_bridge_presentation.py",
+          "tests/test_native_bridge_seed.py",
           "tests/test_publish_image_completion.py",
           "tests/test_pin_image_specialist.py",
           "tests/test_runtime_capabilities.py",
@@ -582,9 +583,21 @@
   "support_dependencies": [
     {
       "suite": "pytest",
+      "path": "tests/native_bridge_seed_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["shared-provider-dispatch", "story-authoring"]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/native_bridge_runtime_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["shared-provider-dispatch", "story-authoring"]
+    },
+    {
+      "suite": "pytest",
       "path": "tests/specialist_reconciliation_seed.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["media-lifecycle", "project-lifecycle", "shared-provider-dispatch"]
+      "consumers": ["media-lifecycle", "project-lifecycle", "shared-provider-dispatch", "story-authoring"]
     },
     {
       "suite": "pytest",

@@ -54,3 +54,11 @@ def accepted_script_reconciliation_seed(tmp_path_factory):
     from tests.specialist_reconciliation_seed import build_accepted_script_seed
 
     return build_accepted_script_seed(tmp_path_factory.mktemp("reconciliation-script-seed"))
+
+
+@pytest.fixture(scope="session")
+def pending_native_bridge_seed(tmp_path_factory):
+    """Closed nine-shot pending proposal only; native authority stays per case."""
+    from tests.native_bridge_seed_fixtures import build_pending_bridge_seed
+
+    return build_pending_bridge_seed(tmp_path_factory.mktemp("pending-native-bridge-seed"))

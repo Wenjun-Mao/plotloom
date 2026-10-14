@@ -159,3 +159,32 @@ Attended independent Sol/Medium design and stable code reviews found no
 blocker/actionable finding; the reviewer ran no checks. Exact 44 native IDs
 match before/after; terminal-reconciliation speed and combined full release
 qualification remain open. See the Python plan for frozen refs and log hashes.
+
+## Pending native Bridge failure consumers — October 14
+
+An attended Sol/Medium design review supports one distinct closed seed built
+through the exact original `_pending_project` nine-shot minimum/maximum path.
+The 1/4-shot reconciliation seed cannot substitute for it. Require current
+accepted source/outline/map/graph, Cast/Art/Script/Storyboard, no active
+candidates or native/media/autopilot work, and a current noninstallable pending
+proposal with reviewed presentation and blank pending intent. Preserve accepted
+execution pins and completed package evidence. Freeze only the complete closed
+project home; reuse the reviewed project lock/hash/inode copy safeguards.
+
+Only 22 selected binder/delivery/pin failures consume copies. Default fixtures
+and four positive/unknown-dispatch controls remain fresh. Every case recreates
+application state, task UUIDs, registry, services, execution pins, native job,
+export/send and any presentation author-intent update. Read proposal identity
+afresh after ordinary opening; never cache parsed authority, rewrite retained
+provenance or carry a reservation into a copy. Positive-copy guards must prove
+real fake-native advice admission while the seed is unavailable, with independent
+sibling reservations, files and locks. Performance remains unmeasured until a
+quiet matched 26-case pair; see the Python plan for the frozen inventory.
+
+Implementation passed 34 focused failures/isolation/helper/ownership checks and
+the four unchanged fresh controls (38 distinct cases). Independent Sol/Medium
+stable review found no actionable findings and ran no checks. Exact 26 native
+IDs match. Intent/presentation positive-copy guards admit advice and derived
+reports without installation while the seed is unavailable, preserving sibling
+proposal/database/reservations. No performance comparison has run; frozen refs
+and log hashes live in the Python plan.

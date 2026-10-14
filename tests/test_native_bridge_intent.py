@@ -23,35 +23,17 @@ from tests.production_bridge_intent_fixtures import (
     FakeResolver,
     _pending_project,
 )
-from tests.test_specialist_settings import configured
+from tests.native_bridge_runtime_fixtures import create_native_intent_runtime
 
 
 @pytest.fixture
 def native(tmp_path, monkeypatch):
-    storage, project_id, revision, digest = _pending_project(tmp_path)
-    registry, _settings = configured(storage.application.root)
-    service = NativeBridgeIntentService(storage, registry)
-    checkout = Path(__file__).resolve().parents[1]
-    pin = {
-        "upstreamRevision": subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip(),
-        "upstreamSkillHash": sha256((checkout / "docs/creative-workflow/native-bridge-intent.md").read_bytes()).hexdigest(),
-        "specialistSkillHash": sha256((checkout / ".agents/skills/plotloom-intent-specialist/SKILL.md").read_bytes()).hexdigest(),
-    }
-    # Tests are authored before the checkpoint commit. This explicit fake pin
-    # seam qualifies state/binding mechanics, not real native source execution.
-    monkeypatch.setattr(CreativeHandoffExchange, "current_execution_pin", lambda _self, stage: pin if stage == "bridge-intent" else pytest.fail("unexpected stage"))
-    calls = []
-    real_run = subprocess.run
+    return create_native_intent_runtime(tmp_path, monkeypatch)
 
-    def send(command, **kwargs):
-        if len(command) > 1 and command[1] == "queue":
-            calls.append(command)
-            return subprocess.CompletedProcess(command, 0, "queued")
-        return real_run(command, **kwargs)
 
-    monkeypatch.setattr(subprocess, "run", send)
-    job = service.create(project_id, expected_revision=revision, expected_hash=digest)
-    return storage, project_id, revision, digest, service, job, calls
+@pytest.fixture
+def seeded_native(tmp_path, monkeypatch, pending_native_bridge_seed):
+    return create_native_intent_runtime(tmp_path, monkeypatch, pending_native_bridge_seed)
 
 
 def deliver(native, *, candidate=None, mutation=None, partial=False):
@@ -170,7 +152,8 @@ def test_cancelled_or_changed_authority_contains_late_delivery(native, change):
 
 
 @pytest.mark.parametrize("field", ["jobId", "requestHash", "stage", "execution", "hash"])
-def test_wrong_delivery_identity_or_pin_preserves_reservation(native, field):
+def test_wrong_delivery_identity_or_pin_preserves_reservation(seeded_native, field):
+    native = seeded_native
     _storage, project, _revision, _digest, service, job, _calls = native
     service.send(project, job)
 
@@ -273,7 +256,8 @@ def test_native_execution_pin_refuses_uncommitted_source(monkeypatch):
 
 
 @pytest.mark.parametrize("change", ["upstreamRevision", "upstreamSkillHash", "specialistSkillHash", "dirty"])
-def test_send_rechecks_clean_frozen_execution_before_any_dispatch(native, monkeypatch, change):
+def test_send_rechecks_clean_frozen_execution_before_any_dispatch(seeded_native, monkeypatch, change):
+    native = seeded_native
     storage, project, _revision, _digest, service, job, calls = native
     with closing(storage.projects.open(project)) as store:
         request, frozen_job = service._request(store, project, job)
