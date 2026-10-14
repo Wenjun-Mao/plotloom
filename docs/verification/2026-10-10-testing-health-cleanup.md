@@ -1737,3 +1737,34 @@ for focused saved-Brief routing checks. Further Python profiling remains
 serial and queued. This closeout changes documentation only; it does not
 invalidate the executable qualification. Hosted CI, live activation and the
 85-percent objective remain separate and unproved.
+
+### Published checkpoint and next-cost attribution
+
+`54eb72c5e46d2a46923a4dd16f0064446e5b9f33` was fast-forwarded to clean main
+and pushed without force; remote main was verified at the same SHA. It changes
+only documentation after executable checkpoint `e5876029`. The live checkout
+remained clean at `ee7ec8de`; no runtime or project data was changed.
+
+On clean `54eb72c5`, two sequential disposable main-thread cProfile probes
+passed before releasing the native window to the CLI owner. The first-shot
+delivered-cancellation row took 10.994s in its call phase (10.639s CPU), with
+5.873s in real `run_text` and 487 `material_closure` calls totaling 3.250s
+cumulatively. The absent-outline terminal row took 0.750s in setup, including
+0.672s in `_accepted_f4_script`, and 0.428s in its call phase. Profiling adds
+overhead; nested cumulative values overlap, and work in other threads is not
+fully attributed. These are owning-cost diagnostics, not matched speed gains.
+The existing Starlette/httpx warning was non-failing. Retained attribution:
+
+| File under `.local/remaining-cost/` | SHA-256 |
+| --- | --- |
+| `image-safety-baqqddor/attribution.json` | `d5135e2473bc3b987094b695639a248a4869b18df17694b3dad0f3dc08532428` |
+| `terminal-outline-mxdx8ty6/attribution.json` | `f938d7f5eefdd7edc8e62a2279a0826810165a481bc2d4d89a521060014da64d` |
+
+Independent read-only prerequisite review rejected autopilot snapshot reuse:
+freshness and recovered-run command authority deliberately forbid it. No raw
+seed copy or validation bypass is introduced. A possible non-autopilot terminal
+seed remains an unimplemented hypothesis; simpler prerequisite tiers come
+first if that family is selected. The next safety-only compact fixture has a
+behavior map and prepared five-case timing harness (three target rows, two
+unchanged controls), but no timing samples or source changes yet. Manager
+tests are held while the CLI owner exercises its native execution boundary.

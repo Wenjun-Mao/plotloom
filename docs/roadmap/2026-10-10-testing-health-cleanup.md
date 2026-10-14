@@ -1128,3 +1128,21 @@ validation. Their respective 124.116s whole-file and 38.001s setup totals are
 nonoverlapping upper bounds, not promised removable cost or wall-time savings.
 The two disposable probes are prepared but not yet executed. The CLI worker
 owns the next focused-check window; no competing benchmark is started.
+
+The manager published this qualified checkpoint as `54eb72c5`; the live
+installation remained clean at `ee7ec8de`. Both queued attribution probes then
+passed on clean `54eb72c5` before the CLI native window was released. The
+image-safety call spent 10.994s under profiling, including 5.873s in real text
+setup; the terminal outline setup spent 0.750s, including 0.672s constructing
+accepted F4 content. These nested profiler durations are not speed samples.
+
+Read-only review ruled out autopilot snapshot reuse: accepted text violates
+fresh-launch prerequisites, while restoring an existing run preserves recovery
+controls that prohibit renewed dispatch. Do not remove those controls or use
+raw folder copies. The next bounded candidate is an explicit compact fixture
+only for the nineteen early image-safety rows, preserving eight real text
+stages, two routes, exact reference/receipt identities and all existing test
+assertions. Shared/full-size and geometry/recovery owners stay unchanged.
+Three representative rows and two unchanged recovery/geometry controls are
+preselected for three matched fresh-root samples. The sample harness is ready,
+but baseline timing and source edits wait for the CLI native window to close.
