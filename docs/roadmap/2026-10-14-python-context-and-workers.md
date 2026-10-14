@@ -528,6 +528,97 @@ combined stable final full gate remain pending. The original fixed-resource
 No handoff implementation, provider execution, hosted CI, push or activation
 was performed by this measurement.
 
+### Five-defect handoff fixture slice — frozen before implementation
+
+After auditing the geometry pair, the manager released the proposed handoff
+fixture implementation under the existing owner fixture-reuse preapproval.
+Clean before baseline is `140b4a3117d49908e761fe72925c24f14dd8bc2b`.
+Preselected native cases, captured before editing, are exactly eight:
+
+- `tests/test_autopilot_handoff.py::test_invalid_whole_handoff_creates_no_partial_human_authority` (five defects);
+- `tests/test_autopilot_handoff.py::test_exact_human_handoff_preserves_machine_origin_and_withdraws_after_edit`;
+- `tests/test_autopilot_handoff.py::test_mid_handoff_failure_rolls_back_all_native_human_rows`;
+- `tests/test_autopilot_handoff.py::test_takeover_accepts_current_bundle_and_explicit_unassessable_authorization`.
+
+Ordered IDs are retained in
+`.local/remaining-cost/handoff-seed-before-native-cases.txt`; sorted native-ID
+fingerprint: `25b6162b971cf349bb919944219bf3f8144401ef15d2b90d4ade0a9d0a9f254f`.
+A future matched pair must use these same eight cases and unchanged controls,
+fresh roots and complete command time including real seed construction/copies.
+No handoff timing, broad/module/profile/full run or provider call is allocated.
+The manager will separately allocate a quiet measurement window.
+
+Build one genuinely completed current-policy two-route/six-frame/two-reference
+`awaiting_review` seed, with terminal successful attempts, no pending host work,
+stopped controller, closed DB/lease resources and zero human facts. Reuse full
+physical copies only for the five invalid cases. Each copy computes fresh
+`review_material` and request observations, preserving all six original
+zero-partial-authority table assertions. The three controls retain real fresh
+setup; never pre-create human authority or cache a review/request in seed data.
+
+Reuse only the already-proven closed-tree hash/physical-copy/lock guards in a
+cohesive test helper. Geometry and handoff builders keep separate state-specific
+preconditions; do not turn either into a permissive generic state factory.
+Keep completed attempt identities and absolute execution provenance immutable.
+Add a positive-copy guard exercising genuine human handoff and video eligibility
+in one disposable copy while seed and sibling remain `awaiting_review` with
+zero human authority. Verify copied assets/evidence, independent physical files,
+seed immutability and fresh rollback/refusal paths. Scope stays test-only; no
+production admission, identity, rollback, validation or ordinary-open bypass.
+
+### Handoff fixture implementation readiness
+
+The five invalid consumers now use a real completed awaiting-review seed. Its
+builder preserves two routes, six frames, two references and sixteen successful
+terminal attempts/receipts, with no pending host work or reserved output and
+zero rows in all six human-authority/video tables. Service/thread/controller and
+project handles close before the complete project/application root is frozen.
+Only reviewed physical-copy/hash/inode/OS-lock guards moved into
+`tests/autopilot_seed_fixtures.py`; state-specific geometry and handoff builders
+and copy wrappers remain distinct. Copies create fresh storage/catalog owners
+and never construct a host/controller, continue native work or rebind evidence.
+
+The five fault mutations, fresh review/request construction, rejection checks
+and all six zero-table assertions are AST-identical to baseline, as are the
+complete three fresh-setup controls. Native collection retains the exact eight
+before/after IDs in
+`.local/remaining-cost/handoff-seed-{before,after}-native-cases.txt`.
+New isolation guards are outside this prospective matched union.
+
+**23 focused cases passed**: five invalid handoffs, two new handoff copy guards,
+nine affected geometry-copy guards and seven module-ownership checks. The three
+unchanged successful API/withdrawal, mid-handoff rollback and takeover controls
+then passed separately with their original fresh setup (**26 distinct cases**
+in total). Retained logs and SHA-256:
+
+- `.local/remaining-cost/handoff-seed-guards-first.log`:
+  `33599292c2fd738d9b7963cb08d54683b3325af0b03b3ea4701cb1dd06302862`;
+- `.local/remaining-cost/handoff-seed-controls.log`:
+  `bf3c2280a9261a2399c8c2a73200d042f82240f35d141c58480f04c41e329141`.
+
+Scoped Ruff F401 and diff checks passed. Both focused commands used native
+`verify.py focused --pytest` selections; their elapsed times are correctness
+observations under concurrent CLI priority, not speed evidence. The existing
+Starlette/httpx warning remains; no selected case failed or was omitted.
+
+Attended independent stable Sol/Medium read-only code review found no actionable
+findings; effective settings are unverified and the reviewer ran no checks. The
+positive-copy guard executed a real human handoff and video-eligibility check in
+one disposable copy while the seed location was unavailable, preserved exact
+sixteen attempt/receipt rows, established independent file inodes and left the
+sibling and a new seed copy awaiting review with all six authority tables empty.
+The seed's complete hashes stayed unchanged. A second guard rejects mixing the
+first-geometry and completed-handoff seed states. Production source, frontend,
+dependencies, ordinary-open validation, identity and rollback are unchanged.
+
+The before revision remains clean `140b4a31`; the ensuing scoped commit owns the
+after executable checkpoint. Handoff performance, full release qualification
+and publication remain open pending manager allocation. The earlier geometry
+pair stays bound to its exact `e1a79830`/`b8b6b886` inputs; extracting common
+copy code does not relabel it as a fresh measurement of this newer candidate.
+No timing manifest rewrite, moving-CLI merge, provider call, broad/module/full
+run, push, activation or cleanup was performed for this slice.
+
 ## Residual-cost investigation — historical proposal, now separately scoped
 
 One fresh main-thread profile ran the unchanged complete-pack control at clean

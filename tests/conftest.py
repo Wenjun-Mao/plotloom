@@ -38,3 +38,11 @@ def geometry_frame_seed(tmp_path_factory):
     from tests.autopilot_geometry_fixtures import build_geometry_frame_seed
 
     return build_geometry_frame_seed(tmp_path_factory.mktemp("geometry-frame-seed"))
+
+
+@pytest.fixture(scope="session")
+def awaiting_handoff_seed(tmp_path_factory):
+    """Completed machine material only; human facts remain copy-local."""
+    from tests.autopilot_handoff_seed_fixtures import build_awaiting_handoff_seed
+
+    return build_awaiting_handoff_seed(tmp_path_factory.mktemp("awaiting-handoff-seed"))

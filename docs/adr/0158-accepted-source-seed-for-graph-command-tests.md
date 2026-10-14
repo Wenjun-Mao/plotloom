@@ -91,3 +91,34 @@ Attended independent Sol/Medium read-only design and stable code reviews found
 no actionable issues. Twenty-seven focused checks and the matched quiet pair
 passed; combined full qualification remains open. Implementation evidence belongs in the existing
 [Python follow-up](../roadmap/2026-10-14-python-context-and-workers.md).
+
+## Five invalid-handoff consumers — October 14, 2026
+
+After the geometry matched pair, the manager approved reuse for only the five
+invalid-whole-handoff variants. Build a real current-policy completed pack:
+two routes, six provisional frames, two selected references, `awaiting_review`,
+successful terminal attempts, no pending native work and no human facts. Close
+controller, DB and file resources before freezing the complete project and
+application root. Preserve six zero-partial-authority assertions in each case;
+compute review material and request anew after ordinary opening of its copy.
+
+Share only the closed-root inventory/hash, physical-copy and OS-lock safeguards
+with geometry. Each builder keeps its own strict state/evidence preconditions.
+Never cache a parsed review/request, manufacture approval, rebind retained
+attempt identity, continue copied work or weaken ordinary-open validation.
+Success/withdrawal, mid-handoff rollback and takeover controls keep fresh setup.
+
+A new positive-copy guard must accept a genuine handoff and establish video
+eligibility in one disposable copy while the seed and sibling retain zero human
+facts and await review. Retain physical/evidence isolation and seed-absence
+checks. Run affected geometry copy guards when extracting their shared code.
+Eight native cases are frozen against clean `140b4a31` in the Python plan;
+new guards run separately. Handoff speed remains unmeasured until the manager
+allocates a quiet matched window; final combined full qualification is separate.
+
+The handoff implementation passed 23 focused isolation/invalid-case/ownership
+checks plus the three unchanged end-to-end controls. An attended independent
+Sol/Medium stable code review found no actionable issues and ran no checks.
+The positive-copy guard proves human handoff/video eligibility only in its
+copy while original seed and sibling remain machine-only. Actual handoff
+speed and combined full qualification remain pending in the Python plan.

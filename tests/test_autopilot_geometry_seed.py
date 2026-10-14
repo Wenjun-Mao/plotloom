@@ -8,7 +8,8 @@ import pytest
 
 from plotloom.project_storage import ProjectStorageCorruptionError, ProjectStorageConfinementError
 from plotloom.project_storage.operational_state import ProjectAccessLease
-from tests.autopilot_geometry_fixtures import copy_geometry_frame_seed, seed_files
+from tests.autopilot_geometry_fixtures import copy_geometry_frame_seed
+from tests.autopilot_seed_fixtures import seed_files
 
 
 def _attempts(storage, project):

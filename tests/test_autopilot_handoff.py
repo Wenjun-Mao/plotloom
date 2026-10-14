@@ -12,6 +12,7 @@ from plotloom.persistence.project.autopilot_handoff import (
     record_handoff,
     review_material,
 )
+from tests.autopilot_handoff_seed_fixtures import copy_awaiting_handoff_seed
 from tests.autopilot_image_fixtures import (
     assert_compact_handoff_pack as assert_handoff_pack,
     handoff_image_environment as handoff_environment,
@@ -87,26 +88,23 @@ def test_exact_human_handoff_preserves_machine_origin_and_withdraws_after_edit(t
 
 
 @pytest.mark.parametrize("defect", ["missing", "fail", "hold", "asset", "references"])
-def test_invalid_whole_handoff_creates_no_partial_human_authority(tmp_path, monkeypatch, defect):
-    storage, _registry, service, view, calls, _text = handoff_image_environment(tmp_path, monkeypatch)
-    try:
-        complete = run_pack(storage, service, view)
-        assert_compact_handoff_pack(storage, view, complete, calls)
-        with closing(storage.projects.open(view.project_id)) as store:
-            review = review_material(store)
-            body = deepcopy(observation(review))
-            if defect == "missing": body["frames"].pop()
-            elif defect == "fail": body["frames"][0]["comparisons"][0]["judgment"] = "fail"
-            elif defect == "hold": body["frames"][0]["comparisons"][0].update(judgment="unassessable", productionDecision="hold", uncertaintyReason="Face occluded")
-            elif defect == "asset": body["frames"][0]["assetId"] = "another-asset"
-            else: body["endorsedReferenceIds"].pop()
-            with pytest.raises(InvalidTransitionError): record_handoff(store, HumanHandoffRequest.model_validate(body))
-            assert len(calls) == len(complete.frames) + 2
-            with store.repository.engine.connect() as connection:
-                for table in ("v2_approval_decisions", "v2_visual_intents", "v2_reviewed_shot_bindings", "v2_same_person_reviews", "v2_autopilot_handoffs", "v2_video_jobs"):
-                    assert connection.exec_driver_sql(f'SELECT count(*) FROM "{table}"').scalar() == 0
-    finally:
-        service.close()
+def test_invalid_whole_handoff_creates_no_partial_human_authority(tmp_path, awaiting_handoff_seed, defect):
+    storage, view, calls = copy_awaiting_handoff_seed(awaiting_handoff_seed, tmp_path / "handoff-copy")
+    complete = view
+    assert_compact_handoff_pack(storage, view, complete, calls)
+    with closing(storage.projects.open(view.project_id)) as store:
+        review = review_material(store)
+        body = deepcopy(observation(review))
+        if defect == "missing": body["frames"].pop()
+        elif defect == "fail": body["frames"][0]["comparisons"][0]["judgment"] = "fail"
+        elif defect == "hold": body["frames"][0]["comparisons"][0].update(judgment="unassessable", productionDecision="hold", uncertaintyReason="Face occluded")
+        elif defect == "asset": body["frames"][0]["assetId"] = "another-asset"
+        else: body["endorsedReferenceIds"].pop()
+        with pytest.raises(InvalidTransitionError): record_handoff(store, HumanHandoffRequest.model_validate(body))
+        assert len(calls) == len(complete.frames) + 2
+        with store.repository.engine.connect() as connection:
+            for table in ("v2_approval_decisions", "v2_visual_intents", "v2_reviewed_shot_bindings", "v2_same_person_reviews", "v2_autopilot_handoffs", "v2_video_jobs"):
+                assert connection.exec_driver_sql(f'SELECT count(*) FROM "{table}"').scalar() == 0
 
 
 def test_takeover_accepts_current_bundle_and_explicit_unassessable_authorization(tmp_path, monkeypatch):

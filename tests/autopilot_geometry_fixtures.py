@@ -1,16 +1,10 @@
 """Quiescent real geometry seeds for isolated ordinary-open corruption checks."""
-from contextlib import ExitStack, closing, contextmanager
-from dataclasses import dataclass
-import fcntl
-from hashlib import sha256
-from pathlib import Path
-import shutil
-import stat
+from contextlib import closing
 
 import pytest
 
-from plotloom.project_storage import ProjectFolderStorage
 from tests.autopilot_image_fixtures import image_environment
+from tests.autopilot_seed_fixtures import copy_closed_autopilot_seed, freeze_closed_autopilot_seed
 
 
 def first_geometry_frame(storage, service, view):
@@ -26,50 +20,6 @@ def first_geometry_frame(storage, service, view):
 
 def mismatch(*, context):
     return (941, 1672) if "shot" in context["request"]["frozenSnapshot"] else None
-
-
-def seed_files(root):
-    """Hash every regular file; a seed must not hide mutable or external state."""
-    if not stat.S_ISDIR(root.lstat().st_mode):
-        raise ValueError("geometry seed root must be a real directory")
-    files = {}
-    for path in sorted(root.rglob("*")):
-        metadata = path.lstat()
-        if stat.S_ISLNK(metadata.st_mode):
-            raise ValueError("geometry seed cannot contain links")
-        if stat.S_ISDIR(metadata.st_mode):
-            continue
-        if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
-            raise ValueError("geometry seed requires independent regular files")
-        if path.name.endswith(("-wal", "-shm", "-journal")):
-            raise ValueError("geometry seed retained SQLite sidecars")
-        files[path.relative_to(root).as_posix()] = sha256(path.read_bytes()).hexdigest()
-    return tuple(files.items())
-
-
-@dataclass(frozen=True)
-class GeometryFrameSeed:
-    root: Path
-    project_id: str
-    home_name: str
-    files: tuple[tuple[str, str], ...]
-
-
-@contextmanager
-def _exclusive_seed(seed):
-    # Existing OS locks prove no controller or project handle still owns this
-    # fixture. Keep them held through physical copying; never create lock files.
-    with ExitStack() as stack:
-        for path in (
-            seed.root / "application/.autopilot-controller.lock",
-            seed.root / "outputs" / seed.home_name / ".project-operation.lock",
-        ):
-            handle = stack.enter_context(path.open("rb"))
-            try:
-                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError as error:
-                raise ValueError("geometry seed still has active resources") from error
-        yield
 
 
 def build_geometry_frame_seed(root):
@@ -91,30 +41,10 @@ def build_geometry_frame_seed(root):
         finally:
             service.close()
         assert service._thread is None and service._descriptor is None
-    seed = GeometryFrameSeed(root, view.project_id, home_name, seed_files(root))
-    with _exclusive_seed(seed):
-        assert seed.files == seed_files(root)
-    return seed
+    return freeze_closed_autopilot_seed(root, view.project_id, home_name)
 
 
 def copy_geometry_frame_seed(seed, destination):
-    # Refuse replaced links/special files before opening even the lock paths.
-    if seed_files(seed.root) != seed.files:
-        raise ValueError("geometry seed changed after closure")
-    with _exclusive_seed(seed):
-        if seed_files(seed.root) != seed.files:
-            raise ValueError("geometry seed changed after closure")
-        shutil.copytree(seed.root, destination)
-        if seed_files(destination) != seed.files:
-            raise ValueError("geometry copy differs from its complete seed")
-        for relative, _digest in seed.files:
-            source, copied = (seed.root / relative).stat(), (destination / relative).stat()
-            if (source.st_dev, source.st_ino) == (copied.st_dev, copied.st_ino):
-                raise ValueError("geometry copy shares a file with its seed")
-    storage = ProjectFolderStorage(
-        outputs_root=destination / "outputs", application_data_root=destination / "application",
-    )
-    with closing(storage.projects.open(seed.project_id)) as store:
-        view = store.repository.autopilot.current(seed.project_id)
-        assert store.home == destination / "outputs" / seed.home_name
+    storage, view = copy_closed_autopilot_seed(seed, destination)
+    assert len(view.frames) == 1 and view.frames[0].geometry_preparation is not None
     return storage, view
