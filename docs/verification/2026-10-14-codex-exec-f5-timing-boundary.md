@@ -109,9 +109,56 @@ control and fresh plan passed independent delta review with no blockers.
 These changes concern the ignored qualification harness, not production
 sandbox argv, permissions, model settings or supervisor semantics.
 
+## Fresh bounded serial proof
+
+Source `8ee80e9b148ffdb6a19ee698ce0a4387b01ba9d4` completed the fresh
+production-supervisor criterion at `2026-10-14T21:55:24Z`: eight actual text
+deliveries were adopted, Bridge installation became current, and two
+normal-order character-reference images were adopted. The run then paused
+before any third image. Model/effort remained Sol / Medium; product ceilings
+remained 32 images / 40 jobs and the functional envelope remained eight text /
+two images. The frozen complete inventory has 17 unique subjects across two
+routes; the remaining 15 images were not dispatched by this experiment.
+
+Project `15652b79-0c76-4626-a4a5-6ae2808355a0`, run
+`60b52c00-0847-459b-bbc3-c0553f2aab52`, uses profile
+`7a4fccea8fea939dde64083bcd38bf647d179da5561ad29b2b178d5f400dae17`.
+Evidence is under `.local/native-proof/coordinator-serial-8ee80e9b-20261014/`.
+The result-bound `latest_snapshot.json` is the final pre-pause observation and
+still says `running`; its bytes are retained. The additive
+`post_pause_receipt.json` verifies actual paused revision 68 from an exact
+disposable project snapshot. It verifies ten successful adopted typed receipts,
+18 output files, unchanged packages, two current Story-Bible reference decisions
+bound to exact native ImageGen original bytes, and ten absent owned groups.
+All 2,580 filtered files and exact path inventories across five older evidence
+roots remain unchanged. Same-attempt reopen occurred without a replacement.
+Post-pause receipt SHA-256:
+`7ad63e42949aff9abfd200a81e79e160fde3ed2c2f5153be682c51f1ac03fadf`.
+
+The fresh Script contains actions only: its frozen F5 timing contract has zero
+spoken lines. This run establishes functional adoption/installation and image
+delivery; nonzero dialogue/VO timing remains supported by the accepted sandbox
+controls and regressions above. There is no complete-pack, speed or human
+acceptance claim. Independent manager audit verified all 16 trusted text
+validate/render exits, both actual native image calls/events and transcript
+evidence hashes, original/display asset bytes, budgets and absence of human or
+video facts.
+
+The first post-pause inspection **failed** its strict before/after file check and
+wrote no receipt. Its in-memory baseline was not saved, so the exact original
+delta cannot be reconstructed. The failed helper/log are preserved. A bounded
+diagnostic on an exact disposable copy observed transient SQLite WAL/SHM
+creation/removal and zero net delta; the original stayed unchanged during that
+diagnostic. This does not establish the cause of the first failure and does not
+justify a production storage repair. The corrected receipt method captures
+source inventories and an exact delta even on failure, inspects a byte-equal
+copy, and claims original-tree equality only over that new observed interval.
+Its delta is empty. Manager review and the reopened independent failure-path
+review found no remaining blockers. No assertion was weakened or file excluded;
+no original run, snapshot or native job was rewritten or replayed.
+
 ## Remaining qualification
 
-Then run a new bounded disposable production-supervisor proof under fresh pins.
 The stopped `596c2213` run remains inspection-only. The fair pool, early references,
 truthful concurrent progress, paired all-route performance proof and one combined
 full gate remain open. Resource-heavy measurement/full qualification requires the

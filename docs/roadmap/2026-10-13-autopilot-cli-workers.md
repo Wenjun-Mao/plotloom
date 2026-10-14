@@ -6,8 +6,10 @@ validate/render pairs and controls. Test-only follow-up `7685a868` passed fresh
 checkout checks; documentation checkpoint `dda660dc` is clean and idle. The
 worker explicitly released the source/check window for the approved Python
 follow-up, then resumed as the owner-requested Sol coordinator. Source remains
-unmerged to main; serial generation and pool qualification
-remain open. Old stopped/unknown runs are unchanged and must not be retried.
+unmerged to main. Fresh source `8ee80e9b` completed the bounded eight-text /
+two-image serial functional proof and paused; the full material pack and pool
+qualification remain open. Old stopped/unknown runs are unchanged and must not
+be retried.
 
 The outcome is faster preparation through dependency-ready text and image
 workers, including image work before all text is finished. Each worker uses
@@ -106,8 +108,15 @@ criterion. Changed actual-sandbox F5 qualification passed at `e71e537f`:
 both routes validated/rendered, six negative entrypoint controls failed as
 expected, four production preflights refused, and all ten process groups were
 absent. Zero model/provider/image calls; the receipt preserves the initial
-prelaunch cleanup finding and its reviewed correction. A fresh functional proof
-is next. No stopped run is replayed; pool/performance/full qualification
+prelaunch cleanup finding and its reviewed correction. Fresh `8ee80e9b` then
+adopted all eight actual text deliveries, installed the current Bridge, adopted
+two normal-order images and paused at revision 68 before a third. Its 17-subject
+inventory is complete; the bounded experiment delivered two images. The receipt
+records the actions-only Script, the failed first inspection with unknown exact
+delta, and the reviewed additive snapshot closeout: ten successful receipts,
+18 unchanged outputs and all 2,580 older files preserved. The fair pool and
+dependency-ready scheduling are next. No stopped run is replayed;
+pool/performance/full qualification
 and final manager acceptance remain outstanding.
 
 The manager starts this assignment after the current autopilot UX repair,
