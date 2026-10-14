@@ -1259,6 +1259,25 @@ two-worker duration qualification only on that stable candidate in a separately
 released window. Preserve the original fallback evidence; no extra concurrency
 or 85-percent success is implied.
 
+At `a5c24b7a`, all seven publisher cases passed (2.14s external / 1.29s
+pytest) and two independent full native collections produced identical ordered
+IDs: 1,859 cases / 182 files. Only the foreign-native-task parameter name moved;
+its exact mapping is retained in `.local/remaining-cost/stable-duration-iFrpXh`.
+The manager explicitly replaced the stale tracked weights with 180 compatible
+unchanged base rows plus the two fresh complete-file captures. The production
+scheduler accepts the complete set as `duration`, with 975/884 cases assigned
+to 92/90 whole files. Estimated phase loads are 578.964s each, not measured wall
+time. Independent read-only metadata review found no findings; the quiet
+two-worker Python gate remains pending;
+the earlier provisional manifest remains retained and unpromoted.
+
+Qualification scope: since `e5876029`, executable changes are confined to the
+two reviewed test files and advisory timing data. Production, dependencies,
+frontend, browser fixtures and packaging inputs are unchanged. Execute the
+complete established two-worker Python step on the stable candidate and reuse
+the unchanged frontend, browser, type/build and wheel evidence from the passed
+base gate; do not rerun those unrelated suites merely for another timing number.
+
 ### Unapproved production-context option — October 14
 
 Follow-up read-only review of the retained image-safety profile and owning

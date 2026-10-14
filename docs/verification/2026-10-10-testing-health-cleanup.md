@@ -1900,3 +1900,36 @@ the reviewer ran no tests. Repeated native collection and publisher execution
 are pending the CLI owner's check-window release. Refresh the changed publisher file before
 assembling new weights; do not weaken the native fingerprint guard or claim
 the provisional 579.075s phase-load estimates are executed wall time.
+
+At clean `a5c24b7ac1672e98b7033a4c6c8eab3b5cf966ab`, the complete publisher
+file then passed seven cases in 1.29s pytest / 2.14s external. Two fresh native
+collections produced identical ordered IDs for 1,859 cases / 182 files. The
+only inventory move replaces the randomized foreign UUID suffix with
+`[foreign-native-task]`; no case or assertion was removed. Input and host
+fingerprints were identical before and after. All processes exited zero and
+the test window was returned to the CLI worker before metadata assembly.
+
+The retained `.local/remaining-cost/stable-duration-iFrpXh/refresh-summary.json`
+records commands, exact ID mapping, fingerprints and source logs. Publisher log
+SHA-256 is `69368eb8599128e73f3e15c6484cd097d03c6abbe938a3ba68d1bd7e145e100d`;
+collection logs are `a4bb4c6171f73b0d7820226283614857878d6708bb5307be17c0a95f4fb2cfd8`
+and `56082eb99de73642aff886b6ff85e213a9eebec88a0be8e755ad10d4786f567f`.
+The stable native inventory hash is
+`a1343c056598ee64104953692ae334e2df8b8c073dead554accdadb875044ce6`.
+
+The manager explicitly promoted compatible advisory weights: 180 unchanged
+complete base-file rows plus fresh safety and publisher whole-file captures.
+The manifest SHA-256 is
+`08176933a4872c019dfba203754663b2b6dd5ab46f34e00487a4a0cb3856ad20`.
+Production scheduling validation accepts `duration`, with exact disjoint union
+975/884 cases over 92/90 files. The approximately 578.964s phase load per worker
+is only an estimate assembled from mixed single/two-process captures. Independent
+read-only metadata review (requested GPT-6.1 Sol / Medium; effective settings
+unverified) found no findings and ran no tests or collection. A quiet complete
+Python execution and publication remain pending; no
+85-percent result, hosted qualification or native generation is implied.
+
+The next gate runs the established complete two-worker Python step. Only the
+two test files and advisory timings changed executable inputs since the passed
+`e5876029` full gate; production, dependency, frontend, browser-fixture and
+packaging inputs are unchanged. Their corresponding passed evidence is reused.
