@@ -94,10 +94,11 @@ Do not infer success or restart generation from this loss of test evidence.
 Recover retained evidence or allocate fresh qualification after the current
 native proof window. This optional work does not block CLI development.
 
-The current Goal API reports no active goal despite the earlier dispatch
-record's expectation. Continuation currently uses the explicitly resumed
-worker and its verified Relay completion route; do not report Goal mode as
-active without a new runtime confirmation.
+The owner subsequently reactivated the unbudgeted Goal for both parallel CLI
+generation and Python test-speed improvement toward 85 percent. The manager
+verified its active runtime status. Both tracks continue concurrently in
+separate checkouts, with one source owner per checkout and allocated checks;
+the existing worker and verified Relay route are retained.
 
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
