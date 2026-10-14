@@ -351,8 +351,8 @@ headroom; the release default stays two). The CLI worker released source/check
 ownership at this checkpoint and is idle. The manager completed the Python
 slice, matched experiment and full local gate; its
 [separate receipt](2026-10-14-python-context-and-workers.md) records the results.
-CLI source changes, additional probes and generation remain held pending the
-runtime/import contract decision below, not because a Python test is still running.
+The runtime/import decision was subsequently approved in the bounded allocation
+below; provider generation and old-run replay remain held.
 
 The first all-route sandbox probe passed the Outline Node validate/render pair
 but the Branches Python/uv validator stopped before validation:
@@ -392,6 +392,40 @@ This diagnostic did not approve a production provisioning or permission change.
 All owned diagnostic processes exited. No retry, provider call, full gate,
 activation, merge or push was performed. Decide the CLI runtime/import contract
 from this checkpoint before allocating further native proof.
+
+#### Approved isolated runtime repair · 2026-10-14
+
+The owner explicitly approved both pending follow-ups. For CLI, this releases
+the existing worker at `7b30ad3d` as the sole source/check owner in its retained
+isolated checkout. The manager and Python reviewer remain read-only while this
+window is held. Requested worker model/effort: GPT-6.1 Sol / High; effective
+settings require host confirmation.
+
+Implement one checkout-owned, checked-lock, alias-free Python environment and
+the minimum `src` parent read needed by Python validators. Provision explicitly
+outside attempts; readiness, resource pins, filesystem profile and validation
+commands must agree on that exact environment. Preserve the `uv run --project
+… --locked --no-sync` plan contract and bind the interpreter/configuration,
+versioned runtime, lock and dependency identity. Fail closed on drift rather
+than repairing an attempt's environment automatically. Do not inject the old
+environment's site-packages, broaden the shared runtime parent or grant the
+checkout root. Validate the permitted `src` tree and symlink boundaries so
+unrelated sibling content cannot acquire read permission silently.
+
+Record the durable contract and source-level root cause before implementation;
+cover missing/changed environments, aliases, unexpected source siblings,
+symlink escapes, changed pins, unchanged Node routes and credential/sibling
+denials with focused tests. After those checks, one fresh provider-free native
+validation-plan preflight is allocated for all eleven trusted plans. Save its
+exact script, argv/profile and input fingerprints before launch; retain each
+result and stop on an unexplained failure. A passing import control alone is
+not the complete native gate. Independently review the stable candidate.
+
+This approval does not release provider calls, old paused/unknown runs, pool
+qualification, full/hosted gates, merge/push, global settings, credentials or
+live activation. Return a committed checkpoint and release the source/check
+window for the approved Python implementation; the manager allocates the next
+native generation proof only after reviewing this repair's actual evidence.
 
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image

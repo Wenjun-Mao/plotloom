@@ -10,8 +10,9 @@ not a redefinition of its 85-percent complete-suite wall-time target.
 The owner approved operation-local production Script/Storyboard context reuse
 and experimentation with four Python workers. Eight workers are permitted only
 after measured memory/isolation headroom. The released default remains two.
-Broader Production Bridge reuse, cross-operation caching and coverage reduction
-are excluded. [ADR 0167](../adr/0167-operation-local-storyboard-context.md)
+The initial slice excluded broader Production Bridge reuse; its separately
+approved follow-up is below. Cross-operation caching and coverage reduction
+remain excluded. [ADR 0167](../adr/0167-operation-local-storyboard-context.md)
 records the production boundary before implementation.
 
 The isolated checkout is `python85-profiling`, branch
@@ -270,3 +271,33 @@ Command: `uv run --locked --no-sync python .local/remaining-cost/profile_case.py
 observer SHA-256
 `4fd3cb2fc79e81536e5746a68febc467de4a308e9984b6a782db6e7ef012885c`.
 Source remained clean and input/host fingerprints matched after completion.
+
+## Approved Bridge / controller-claim follow-up — October 14
+
+The owner explicitly approved both pending follow-ups: the isolated CLI
+runtime/import repair and a design-reviewed local production optimization of
+Bridge reads and controller-claim transactions. This is not approval to remove
+authority checks, change material hashes, reinterpret retained evidence or
+increase default worker concurrency.
+
+First obtain an independent read-only design review against main `b4f831da`
+and the residual-cost evidence above. Requested model/effort: GPT-6.1 Sol /
+High, effective settings unverified. Identify exact operation/transaction
+boundaries, exception and return-value behavior, lifecycle/contention semantics,
+stale/recovered/closed/handed-off cases and regression owners before editing.
+Do not substitute the work-unit allocation lease simply because it also uses
+`BEGIN IMMEDIATE`; its error contract and backend behavior differ.
+
+The CLI worker holds the source/check window first. Python review may proceed
+without writes, tests or profiling. After its findings are collected and the
+CLI window is explicitly released, the manager records the selected design,
+preselects matching timing and unaffected checks, and implements only the
+reviewed local optimizations. Preserve fresh checks across separate operations,
+writes, commits, rollback, cancellation, restoration and dispatch. No
+session/global cache or ordinary-open corruption-validation bypass is allowed.
+
+Use focused regressions and a stable independent code review before a final
+full gate. Reconcile the exact integrated CLI/Python source before reusing
+evidence or timing manifests. Actual whole-suite timing, publication and hosted
+status remain separate; neither approval nor a local profile establishes 85
+percent. Stop for a materially different authority or data-model change.
