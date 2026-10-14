@@ -17,6 +17,12 @@ from .creative_handoff_contracts import (
     CreativeDeliveryManifest, CreativeHandoffError, CreativeHandoffRequest,
     is_creative_job_id,
 )
+from .codex_exec_contracts import (
+    CodexExecAttempt,
+    CodexExecProfile,
+    CodexExecReceipt,
+    assert_receipt_matches_attempt,
+)
 
 
 PACKAGE_VERSION = 1
@@ -175,18 +181,22 @@ class CreativeHandoffExchange:
         return self._pinned_execution(stage)
 
     def _projection(
-        self, request: CreativeHandoffRequest, execution_pin: dict[str, str]
+        self, request: CreativeHandoffRequest, execution_pin: dict[str, str], *, executor_backend: str = "specialist_chat"
     ) -> tuple[dict[str, Any], bytes, bytes, set[str]]:
+        if executor_backend not in {"specialist_chat", "codex_exec"}:
+            raise CreativeHandoffError("execution_backend_invalid", "creative package execution backend is unsupported")
         frozen_hash = request_hash(request)
         candidate_filename = self._candidate_filename(request.stage)
         projected = request.model_dump(mode="json", by_alias=True) | {
-            "packageVersion": PACKAGE_VERSION,
+            "packageVersion": 2 if executor_backend == "codex_exec" else PACKAGE_VERSION,
             "requestHash": frozen_hash,
             "candidateFilename": candidate_filename,
             "reportFilename": "report.html",
             "upstreamSkillPath": f"docs/creative-workflow/native-{request.stage}.md" if request.stage in {"bridge-intent", "bridge-presentation"} else f"third_party/shuohao-skills/skills/novel-{'outline' if request.stage == 'branches' else request.stage}/SKILL.md",
             "executionPin": execution_pin_for_request(request, execution_pin),
         }
+        if executor_backend == "codex_exec":
+            projected["executorBackend"] = "codex_exec"
         character_id_instruction = (
             "For characters, preserve established characters[].id values; every "
             "characters[].id must be unique and nonblank. "
@@ -217,6 +227,16 @@ class CreativeHandoffExchange:
             "then render with the same arguments to derive report.html. Suggestions do not approve presentation or production. "
             if request.stage == "bridge-presentation" else ""
         )
+        if executor_backend == "codex_exec":
+            instructions = (
+                "Read request.json, each inputs/*.json file, and the pinned upstream skill path. "
+                f"Write only the stage-shaped candidate JSON to ../delivery/{candidate_filename} and derive "
+                "../delivery/report.html from that candidate. Do not write completion.json or other files; "
+                "the trusted Codex Exec host publishes completion after the exact output inventory is checked. "
+                f"{character_id_instruction}{branch_instruction}{intent_instruction}{presentation_instruction}"
+                "This is a candidate only: do not edit project canon, approvals, selections, or request files.\n"
+            ).encode()
+            return projected, instructions, b"", {"request.json", "COPY_ASSIGNMENT.txt", "inputs"}
         instructions = (
             "Read request.json, each inputs/*.json file, and the pinned upstream skill path. "
             f"Write the stage-shaped candidate JSON to the sibling ../delivery/{candidate_filename}, then derive "
@@ -241,13 +261,13 @@ class CreativeHandoffExchange:
         return projected, instructions, template, {"request.json", "COPY_ASSIGNMENT.txt", TEMPLATE_FILENAME, "inputs"}
 
     def _verify_frozen_package(
-        self, request: CreativeHandoffRequest, execution_pin: dict[str, str]
+        self, request: CreativeHandoffRequest, execution_pin: dict[str, str], *, executor_backend: str = "specialist_chat"
     ) -> tuple[Path, dict[str, Any]]:
         """Confirm every specialist-consumed package file still matches its projection."""
 
         job_root = self._job_root(request.job_id)
         package = job_root / "package"
-        projected, instructions, template, expected = self._projection(request, execution_pin)
+        projected, instructions, template, expected = self._projection(request, execution_pin, executor_backend=executor_backend)
         names = self._names(package, package=True)
         if names != expected:
             raise CreativeHandoffError("package_conflict", "existing package has unexpected entries")
@@ -255,7 +275,7 @@ class CreativeHandoffExchange:
             raise CreativeHandoffError("package_conflict", "existing package differs from frozen request")
         if _read_regular(package / "COPY_ASSIGNMENT.txt", max_bytes=20_000, package=True) != instructions:
             raise CreativeHandoffError("package_conflict", "existing package instructions differ from frozen request")
-        if _read_regular(package / TEMPLATE_FILENAME, max_bytes=20_000, package=True) != template:
+        if executor_backend == "specialist_chat" and _read_regular(package / TEMPLATE_FILENAME, max_bytes=20_000, package=True) != template:
             raise CreativeHandoffError("package_conflict", "existing package template differs from frozen request")
         inputs = package / "inputs"
         if self._names(inputs, package=True) != set(request.input_artifacts):
@@ -266,36 +286,40 @@ class CreativeHandoffExchange:
         return job_root, projected
 
     def verified_package_paths(
-        self, request: CreativeHandoffRequest, execution_pin: dict[str, str]
+        self, request: CreativeHandoffRequest, execution_pin: dict[str, str], *, executor_backend: str = "specialist_chat"
     ) -> dict[str, str]:
         """Recover an existing handoff without creating or repairing frozen files."""
         request.assert_secret_free()
-        job_root, _ = self._verify_frozen_package(request, execution_pin)
+        job_root, _ = self._verify_frozen_package(request, execution_pin, executor_backend=executor_backend)
         return {"packagePath": str(job_root / "package"), "deliveryPath": str(job_root / "delivery")}
 
     def write_package(
-        self, request: CreativeHandoffRequest, execution_pin: dict[str, str]
+        self, request: CreativeHandoffRequest, execution_pin: dict[str, str], *, executor_backend: str = "specialist_chat"
     ) -> dict[str, str]:
         request.assert_secret_free()
         job_root = self._job_root(request.job_id)
         package = job_root / "package"
-        projected, instructions, template, expected = self._projection(request, execution_pin)
+        projected, instructions, template, expected = self._projection(request, execution_pin, executor_backend=executor_backend)
         self._names(package, package=True)
         if package.exists():
-            self._verify_frozen_package(request, execution_pin)
+            self._verify_frozen_package(request, execution_pin, executor_backend=executor_backend)
             return {"packagePath": str(package), "deliveryPath": str(job_root / "delivery")}
         from .creative_package_publication import publish_package
         files = {**{f"inputs/{filename}": canonical_json(payload) for filename, payload in request.input_artifacts.items()},
-            "request.json": canonical_json(projected), "COPY_ASSIGNMENT.txt": instructions, TEMPLATE_FILENAME: template}
+            "request.json": canonical_json(projected), "COPY_ASSIGNMENT.txt": instructions}
+        if executor_backend == "specialist_chat":
+            files[TEMPLATE_FILENAME] = template
         publish_package(package, digest=request_hash(request), files=files, write_once=_write_once)
-        self._verify_frozen_package(request, execution_pin)
+        self._verify_frozen_package(request, execution_pin, executor_backend=executor_backend)
         return {"packagePath": str(package), "deliveryPath": str(job_root / "delivery")}
 
     def read_delivery(
-        self, request: CreativeHandoffRequest, execution_pin: dict[str, str]
+        self, request: CreativeHandoffRequest, execution_pin: dict[str, str], *,
+        executor_backend: str = "specialist_chat", executor_attempt: CodexExecAttempt | None = None,
+        executor_profile: CodexExecProfile | None = None, executor_receipt: CodexExecReceipt | None = None,
     ) -> ValidatedCreativeDelivery | None:
         request.assert_secret_free()
-        job_root, projected = self._verify_frozen_package(request, execution_pin)
+        job_root, projected = self._verify_frozen_package(request, execution_pin, executor_backend=executor_backend)
         delivery = job_root / "delivery"
         names = self._names(delivery)
         if not names:
@@ -307,6 +331,33 @@ class CreativeHandoffExchange:
         except (json.JSONDecodeError, ValidationError) as error:
             raise CreativeHandoffError("delivery_manifest_invalid", "completion manifest does not match the creative handoff contract") from error
         manifest.assert_secret_free()
+        if executor_backend == "specialist_chat":
+            if manifest.schema_version != 1:
+                raise CreativeHandoffError("delivery_execution_mismatch", "specialist delivery cannot claim Codex Exec identity")
+        elif executor_backend == "codex_exec":
+            if executor_attempt is None or executor_profile is None or executor_receipt is None:
+                raise CreativeHandoffError("delivery_executor_evidence_missing", "Codex Exec delivery requires its exact project attempt and host receipt")
+            try:
+                assert_receipt_matches_attempt(executor_attempt, executor_receipt)
+            except (TypeError, ValueError) as error:
+                raise CreativeHandoffError("delivery_executor_evidence_invalid", "Codex Exec delivery receipt is invalid") from error
+            if (manifest.schema_version != 2 or manifest.executor_backend != "codex_exec"
+                    or manifest.executor_attempt_id != executor_attempt.attempt_id
+                    or manifest.codex_session_id != executor_receipt.session_id
+                    or manifest.executor_profile_hash != executor_profile.profile_hash
+                    or executor_attempt.profile_hash != executor_profile.profile_hash
+                    or manifest.executor_provenance.model != executor_profile.model
+                    or manifest.executor_provenance.reasoning_effort != executor_profile.reasoning_effort):
+                raise CreativeHandoffError("delivery_execution_mismatch", "creative delivery differs from its exact Codex Exec host receipt")
+            receipt_outputs = {item.output_relative_path: item for item in executor_receipt.outputs}
+            if any(
+                (output := receipt_outputs.get(f"delivery/{declared.filename}")) is None
+                or output.output_hash != declared.sha256
+                for declared in (manifest.candidate, manifest.report)
+            ) or set(receipt_outputs) != {f"delivery/{manifest.candidate.filename}", f"delivery/{manifest.report.filename}"}:
+                raise CreativeHandoffError("delivery_executor_evidence_invalid", "creative manifest outputs differ from the exact host receipt inventory")
+        else:
+            raise CreativeHandoffError("execution_backend_invalid", "creative delivery execution backend is unsupported")
         frozen_hash = request_hash(request)
         if manifest.job_id != request.job_id or manifest.request_hash != frozen_hash or manifest.stage != request.stage:
             raise CreativeHandoffError("delivery_identity_mismatch", "completion manifest does not belong to this frozen creative request")

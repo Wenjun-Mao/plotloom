@@ -102,11 +102,15 @@ def test_waiting_first_frame_restart_keeps_prepared_identity_without_resend(
             if item["evidence"]["owner"] == "image"
         )
 
-        def occupied(*args, **kwargs):
-            raise ImageJobError("image_dispatch_busy", "fixture occupied image role")
+        admit = registry.codex_exec_admit
+
+        def occupied(attempt):
+            if attempt.domain == "image":
+                raise ImageJobError("image_dispatch_busy", "fixture occupied image role")
+            return admit(attempt)
 
         with monkeypatch.context() as busy:
-            busy.setattr(registry, "dispatch", occupied)
+            busy.setattr(registry, "codex_exec_admit", occupied)
             service.step(view.project_id)
             waiting = current(storage, view)
             assert (
@@ -114,20 +118,23 @@ def test_waiting_first_frame_restart_keeps_prepared_identity_without_resend(
                 and waiting.phase == "first-frames"
                 and not waiting.frames
             )
+            waiting_checkpoint = next(
+                item for item in waiting.checkpoints if item["id"] == checkpoint["id"]
+            )
+            assert waiting_checkpoint["state"] == "sent"
+            attempt_id = waiting_checkpoint["evidence"]["executorAttemptId"]
             service.close()
             resumed = AutopilotService(storage, registry)
             assert resumed.acquire_controller()
             resumed.step(view.project_id)
             retained = current(storage, view)
             assert retained.state == "waiting" and retained.phase == "first-frames"
-            assert (
-                next(
-                    item
-                    for item in retained.checkpoints
-                    if item["id"] == checkpoint["id"]
-                )
-                == checkpoint
+            retained_checkpoint = next(
+                item for item in retained.checkpoints if item["id"] == checkpoint["id"]
             )
+            assert retained_checkpoint["state"] == "sent"
+            assert retained_checkpoint["evidence"]["jobId"] == checkpoint["evidence"]["jobId"]
+            assert retained_checkpoint["evidence"]["executorAttemptId"] == attempt_id
             assert len(calls) == 2
         resumed.step(view.project_id)
         sent = current(storage, view)

@@ -17,6 +17,7 @@ from plotloom.image_job_contracts import (
     NativeTaskBinding,
 )
 from plotloom.image_job_exchange import ImageJobExchange
+from plotloom.image_job_package import package_version
 from plotloom.managed_media import ManagedMediaLimits
 
 
@@ -241,6 +242,49 @@ def test_identity_package_requires_an_explicit_task_binding_before_publication(t
         exchange.write_package(job_id=request["jobId"], request=request, request_hash=request_hash, references=[])
 
     assert not (tmp_path / "exchange" / "jobs" / request["jobId"]).exists()
+
+
+def test_v2_preflight_contract_must_match_the_top_level_image_contract() -> None:
+    request = {
+        "schemaVersion": 3,
+        "executionContract": "codex_specialist.v3",
+        "jobId": "ij_" + "f" * 20,
+        "specialistPreflight": {
+            "version": "p1.5-pin.v2",
+            "executionContract": "codex_exec.v1",
+        },
+    }
+
+    with pytest.raises(ImageJobError, match="execution contracts differ"):
+        package_version(request)
+
+
+def test_codex_exec_image_package_leaves_delivery_writes_to_the_trusted_host(tmp_path: Path) -> None:
+    request = {
+        "schemaVersion": 3,
+        "executionContract": "codex_exec.v1",
+        "jobId": "ij_" + "e" * 20,
+        "kind": "original",
+        "target": "image_job",
+        "specialistPreflight": {
+            "version": "p1.5-pin.v2",
+            "skillVersion": "plotloom-image-specialist.v4",
+            "executionContract": "codex_exec.v1",
+        },
+    }
+    request_hash = sha256(json.dumps(request, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    exchange = ImageJobExchange(tmp_path / "exchange", limits=ManagedMediaLimits())
+    copied = exchange.write_package(
+        job_id=request["jobId"], request=request, request_hash=request_hash, references=[]
+    )
+    package = Path(copied["packagePath"])
+    emitted = json.loads((package / "request.json").read_text())
+    assignment = (package / "COPY_ASSIGNMENT.txt").read_text()
+
+    for instruction in (emitted["deliveryInstruction"], assignment):
+        assert "Do not write image files or completion markers into delivery." in instruction
+        assert "trusted Codex Exec host copies the exact image bytes" in instruction
+        assert "Write complete JPEG or PNG files to delivery/outputs" not in instruction
 
 
 def test_schema_v3_delivery_matches_native_uuid_to_pin_and_frozen_binding(

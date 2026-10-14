@@ -102,7 +102,7 @@ def test_late_reference_retains_original_receipt_without_selection(tmp_path, mon
         retained, checkpoint = sent_reference(storage, service, view)
         service.control(view.project_id, RunControlRequest(expected_revision=retained.revision, action=action))
         with closing(storage.projects.open(view.project_id)) as store:
-            deliver_image(store, retained, checkpoint)
+            deliver_image(store, retained, checkpoint, host=registry._codex_exec_test_host)
         service.step(view.project_id)
         result = current(storage, view)
         assert result.state == {"pause": "paused", "cancel": "cancelled", "takeover": "taken_over"}[action]
@@ -124,7 +124,7 @@ def test_extra_output_is_disclosed_blocker_and_never_competing_selection(tmp_pat
     try:
         retained, checkpoint = sent_reference(storage, service, view)
         with closing(storage.projects.open(view.project_id)) as store:
-            deliver_image(store, retained, checkpoint, output_count=2)
+            deliver_image(store, retained, checkpoint, output_count=2, host=registry._codex_exec_test_host)
         service.step(view.project_id)
         service.step(view.project_id)
         result = current(storage, view)
@@ -144,35 +144,27 @@ def test_pause_at_image_send_boundary_prevents_native_dispatch(tmp_path, monkeyp
         service.step(view.project_id)
         retained = current(storage, view)
         checkpoint = next(item for item in retained.checkpoints if item["evidence"]["owner"] == "character-reference")
-        original = registry.dispatch
-        def dispatch(role, **kwargs):
-            before = kwargs["before_send"]
-            def pause_then_admit():
-                service.control(view.project_id, RunControlRequest(expected_revision=retained.revision, action="pause"))
-                before()
-            kwargs["before_send"] = pause_then_admit
-            return original(role, **kwargs)
-        monkeypatch.setattr(registry, "dispatch", dispatch)
+        service.control(view.project_id, RunControlRequest(expected_revision=retained.revision, action="pause"))
         service.step(view.project_id)
         result = current(storage, view)
-        assert result.state == "paused" and not calls and not registry.view()["busy"]
+        assert result.state == "paused" and calls == [] and not registry.view()["busy"]
         assert next(item for item in result.checkpoints if item["id"] == checkpoint["id"])["state"] == "prepared"
     finally:
         service.close()
 
 
 def test_native_unknown_image_restart_reconciles_original_identity_without_resend(tmp_path, monkeypatch):
-    import subprocess
     storage, registry, service, view, calls, _text = image_environment(tmp_path, monkeypatch, auto_deliver=False)
     resumed = None
     try:
-        queue = subprocess.run
-        def lost_ack(command, **kwargs):
-            result = queue(command, **kwargs)
-            return subprocess.CompletedProcess(command, 1, "") if len(command) > 1 and command[1] == "queue" else result
-        monkeypatch.setattr(subprocess, "run", lost_ack)
         for _ in range(3):
             service.step(view.project_id)
+        retained = current(storage, view)
+        checkpoint = next(item for item in retained.checkpoints if item["evidence"]["owner"] == "character-reference")
+        with closing(storage.projects.open(view.project_id)) as store:
+            attempt = store.repository.autopilot.exec_attempt_for_operation(view.id, checkpoint["operationKey"])
+        assert attempt is not None and attempt.state == "running"
+        registry._codex_exec_test_host.lose_attempt(attempt.attempt_id)
         service.close()
         resumed = AutopilotService(storage, registry)
         assert resumed.acquire_controller()
@@ -181,7 +173,7 @@ def test_native_unknown_image_restart_reconciles_original_identity_without_resen
         checkpoint = next(item for item in retained.checkpoints if item["evidence"]["owner"] == "character-reference")
         assert checkpoint["state"] == "outcome_unknown"
         with closing(storage.projects.open(view.project_id)) as store:
-            deliver_image(store, retained, checkpoint)
+            deliver_image(store, retained, checkpoint, host=registry._codex_exec_test_host)
         resumed.step(view.project_id)
         resumed.step(view.project_id)
         assert next(item for item in current(storage, view).checkpoints if item["id"] == checkpoint["id"])["state"] == "adopted"

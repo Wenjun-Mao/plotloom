@@ -5,30 +5,12 @@ from pydantic import ValidationError
 
 from plotloom.codex_exec_contracts import (
     CodexExecAttempt,
-    CodexExecImageEvidence,
-    CodexExecOutputEvidence,
     CodexExecProfile,
-    CodexExecReceipt,
     SpecialistChatExecutor,
-    assert_receipt_matches_attempt,
-    image_arguments_hash,
-    output_manifest_hash,
+    transition_exec_attempt,
 )
 
 HASH = "a" * 64
-
-
-def output_evidence(path="delivery/outputs/frame.png", digest="b" * 64):
-    return CodexExecOutputEvidence(outputHash=digest, outputRelativePath=path, sizeBytes=128)
-
-
-def image_args_hash(*, prompt_hash="c" * 64, reference_hashes=("d" * 64,), transparent=False, prior=0):
-    return image_arguments_hash(
-        prompt_hash=prompt_hash,
-        reference_hashes=reference_hashes,
-        transparent_background=transparent,
-        num_last_images_to_include=prior,
-    )
 
 
 def profile(**changes):
@@ -119,6 +101,56 @@ def test_attempt_reserves_exact_domain_budget_and_process_group():
     assert attempt.process_group_id == 123
 
 
+def test_attempt_lifecycle_uses_validated_immutable_snapshots():
+    attempt = CodexExecAttempt(
+        attemptId=uuid4(),
+        runId=uuid4(),
+        projectId=uuid4(),
+        jobId="ch_" + "b" * 24,
+        operationKey="outline",
+        domain="text",
+        requestHash=HASH,
+        packageHash=HASH,
+        profileHash=HASH,
+        reservedImageOutputs=0,
+        state="reserved",
+    )
+    intent = transition_exec_attempt(attempt, state="spawn_intent")
+    running = transition_exec_attempt(
+        intent,
+        state="running",
+        process_id=123,
+        process_group_id=123,
+        process_birth_identity="pid-start-123",
+    )
+    uncertain = transition_exec_attempt(running, state="outcome_unknown")
+    assert attempt.state == "reserved"
+    assert intent.state == "spawn_intent"
+    assert running.state == "running"
+    assert uncertain.state == "outcome_unknown"
+    assert uncertain.process_birth_identity == "pid-start-123"
+    with pytest.raises(ValueError, match="lifecycle transition"):
+        transition_exec_attempt(attempt, state="running")
+    with pytest.raises(ValueError, match="only lifecycle and terminal facts"):
+        transition_exec_attempt(attempt, run_id=uuid4())
+    with pytest.raises(ValidationError):
+        transition_exec_attempt(running.model_copy(update={"process_id": -1}), state="running")
+
+
+def test_terminal_attempt_cannot_rewrite_its_evidence_while_settling():
+    attempt = CodexExecAttempt(
+        attemptId=uuid4(), runId=uuid4(), projectId=uuid4(), jobId="ch_" + "a" * 24,
+        operationKey="outline", domain="text", requestHash=HASH, packageHash=HASH,
+        profileHash=HASH, reservedImageOutputs=0, state="failed", sessionId=uuid4(),
+        processId=321, processGroupId=321, processBirthIdentity="pid-start-321",
+        processExitCode=1, terminalResult="failure", remoteToolState="not_applicable", evidenceHash=HASH,
+    )
+    settled = transition_exec_attempt(attempt, state="settled")
+    assert settled.state == "settled"
+    with pytest.raises(ValueError, match="terminal attempt evidence"):
+        transition_exec_attempt(attempt, state="settled", evidence_hash="f" * 64)
+
+
 @pytest.mark.parametrize(
     "domain,outputs",
     [("text", 1), ("image", 0), ("image", 5)],
@@ -169,20 +201,21 @@ def test_settled_attempt_requires_truthful_terminal_process_and_remote_facts():
         "packageHash": HASH,
         "profileHash": HASH,
         "reservedImageOutputs": 1,
+        "imageBudgetState": "reserved",
         "state": "settled",
     }
     with pytest.raises(ValidationError):
         CodexExecAttempt(**common)
     with pytest.raises(ValidationError):
         CodexExecAttempt(
-            **common,
+            **(common | {"imageBudgetState": "released"}),
             terminalResult="failure",
             evidenceHash=HASH,
             remoteToolState="failed",
         )
 
     settled_not_started = CodexExecAttempt(
-        **common,
+        **(common | {"imageBudgetState": "released"}),
         terminalResult="not_started",
         evidenceHash=HASH,
         remoteToolState="not_applicable",
@@ -190,7 +223,7 @@ def test_settled_attempt_requires_truthful_terminal_process_and_remote_facts():
     assert settled_not_started.state == "settled"
 
     settled_failure = CodexExecAttempt(
-        **(common | {"attemptId": uuid4()}),
+        **(common | {"attemptId": uuid4(), "imageBudgetState": "released"}),
         terminalResult="failure",
         evidenceHash=HASH,
         remoteToolState="failed",
@@ -216,6 +249,7 @@ def test_confirmed_remote_completion_requires_the_exact_session_id():
             packageHash=HASH,
             profileHash=HASH,
             reservedImageOutputs=1,
+            imageBudgetState="consumed",
             state="failed",
             processId=321,
             processGroupId=321,
@@ -225,218 +259,32 @@ def test_confirmed_remote_completion_requires_the_exact_session_id():
             remoteToolState="completed",
             evidenceHash=HASH,
             outputHash=HASH,
+            remoteOutputHash=HASH,
         )
 
 
-def test_image_event_and_receipt_bind_exact_attempt_session_and_bytes():
-    attempt_id, session_id = uuid4(), uuid4()
-    output = output_evidence()
-    manifest_hash = output_manifest_hash([output])
-    event = CodexExecImageEvidence(
-        attemptId=attempt_id,
-        sessionId=session_id,
-        callId="call_1",
-        eventType="image_gen.generation",
-        eventStatus="completed",
-        argumentsHash=image_args_hash(),
-        promptHash="c" * 64,
-        referenceHashes=["d" * 64],
-        transparentBackground=False,
-        numLastImagesToInclude=0,
-        outputHash=output.output_hash,
-        outputRelativePath="delivery/outputs/frame.png",
-    )
-    receipt = CodexExecReceipt(
-        attemptId=attempt_id,
-        sessionId=session_id,
-        profileHash=HASH,
-        requestHash=HASH,
-        packageHash=HASH,
-        processId=321,
-        processGroupId=321,
-        processBirthIdentity="pid-start-321",
-        processExitCode=0,
-        expectedImageOutputs=1,
-        evidenceHash=HASH,
-        outputHash=manifest_hash,
-        outputs=[output],
-        imageEvidence=[event],
-        remoteToolState="completed",
-    )
-    assert receipt.image_evidence[0].session_id == session_id
-    attempt = CodexExecAttempt(
-        attemptId=attempt_id,
-        runId=uuid4(),
-        projectId=uuid4(),
-        jobId="ij_" + "f" * 24,
-        operationKey="frame-1",
-        domain="image",
-        requestHash=HASH,
-        packageHash=HASH,
-        profileHash=HASH,
-        reservedImageOutputs=1,
-        state="completed",
-        sessionId=session_id,
-        processId=321,
-        processGroupId=321,
-        processBirthIdentity="pid-start-321",
-        processExitCode=0,
-        terminalResult="success",
-        remoteToolState="completed",
-        evidenceHash=HASH,
-        outputHash=manifest_hash,
-    )
-    assert_receipt_matches_attempt(attempt, receipt)
-    with pytest.raises(ValueError, match="exact project attempt"):
-        assert_receipt_matches_attempt(
-            attempt.model_copy(update={"profile_hash": "c" * 64}), receipt
-        )
-    with pytest.raises(ValidationError, match="process ownership"):
-        assert_receipt_matches_attempt(
-            attempt.model_copy(update={"process_birth_identity": None}), receipt
-        )
-    with pytest.raises(ValidationError, match="output hash must bind"):
-        CodexExecReceipt(
-            attemptId=attempt_id,
-            sessionId=session_id,
-            profileHash=HASH,
+def test_failed_cli_after_remote_completion_requires_retained_output_hash():
+    with pytest.raises(ValidationError, match="retain confirmed remote ImageGen byte provenance"):
+        CodexExecAttempt(
+            attemptId=uuid4(),
+            runId=uuid4(),
+            projectId=uuid4(),
+            jobId="ij_" + "g" * 24,
+            operationKey="frame-1",
+            domain="image",
             requestHash=HASH,
             packageHash=HASH,
-            processId=321,
-            processGroupId=321,
-            processBirthIdentity="pid-start-321",
-            processExitCode=0,
-            expectedImageOutputs=1,
-            evidenceHash=HASH,
-            outputHash=HASH,
-            outputs=[output],
-            imageEvidence=[event],
-            remoteToolState="completed",
-        )
-    different_bytes = output_evidence(digest="c" * 64)
-    with pytest.raises(ValidationError, match="exact output path and byte hash"):
-        CodexExecReceipt(
-            attemptId=attempt_id,
-            sessionId=session_id,
             profileHash=HASH,
-            requestHash=HASH,
-            packageHash=HASH,
-            processId=321,
-            processGroupId=321,
-            processBirthIdentity="pid-start-321",
-            processExitCode=0,
-            expectedImageOutputs=1,
-            evidenceHash=HASH,
-            outputHash=output_manifest_hash([different_bytes]),
-            outputs=[different_bytes],
-            imageEvidence=[event],
-            remoteToolState="completed",
-        )
-    with pytest.raises(AttributeError):
-        receipt.image_evidence.append(event)
-    with pytest.raises(AttributeError):
-        event.reference_hashes.append("e" * 64)
-    with pytest.raises(ValidationError):
-        event.output_hash = "f" * 64
-    with pytest.raises(ValidationError):
-        event.output_relative_path = "../frame.png"
-    with pytest.raises(ValidationError):
-        CodexExecReceipt(
-            attemptId=attempt_id,
+            reservedImageOutputs=1,
+            imageBudgetState="consumed",
+            state="failed",
             sessionId=uuid4(),
-            profileHash=HASH,
-            requestHash=HASH,
-            packageHash=HASH,
-            processId=321,
-            processGroupId=321,
-            processBirthIdentity="pid-start-321",
-            processExitCode=0,
-            expectedImageOutputs=1,
-            evidenceHash=HASH,
-            outputHash=manifest_hash,
-            outputs=[output],
-            imageEvidence=[event],
-            remoteToolState="completed",
-        )
-
-
-@pytest.mark.parametrize(
-    "path",
-    [
-        "delivery/outputs",
-        "delivery\\outputs\\frame.png",
-        "delivery/outputs/../frame.png",
-    ],
-)
-def test_image_event_rejects_noncanonical_or_directory_only_output_paths(path):
-    with pytest.raises(ValidationError):
-        CodexExecImageEvidence(
-            attemptId=uuid4(),
-            sessionId=uuid4(),
-            callId="call_1",
-            eventType="image_gen.generation",
-            eventStatus="completed",
-            argumentsHash=image_args_hash(),
-            promptHash="c" * 64,
-            referenceHashes=["d" * 64],
-            transparentBackground=False,
-            outputHash="b" * 64,
-            outputRelativePath=path,
-        )
-
-
-@pytest.mark.parametrize("value", ["not-a-hash", "sk-proj-privatecredential"])
-def test_image_event_rejects_unhashed_or_credential_shaped_reference_evidence(value):
-    with pytest.raises(ValidationError):
-        CodexExecImageEvidence(
-            attemptId=uuid4(),
-            sessionId=uuid4(),
-            callId="call_1",
-            eventType="image_gen.generation",
-            eventStatus="completed",
-            argumentsHash=image_args_hash(reference_hashes=(value,)),
-            promptHash="c" * 64,
-            referenceHashes=[value],
-            transparentBackground=False,
-            outputHash="b" * 64,
-            outputRelativePath="delivery/outputs/frame.png",
-        )
-
-
-def test_image_argument_hash_must_bind_normalized_actual_arguments():
-    with pytest.raises(ValidationError, match="argument hash"):
-        CodexExecImageEvidence(
-            attemptId=uuid4(),
-            sessionId=uuid4(),
-            callId="call_1",
-            eventType="image_gen.generation",
-            eventStatus="completed",
-            argumentsHash=HASH,
-            promptHash="c" * 64,
-            referenceHashes=["d" * 64],
-            transparentBackground=False,
-            numLastImagesToInclude=0,
-            outputHash="b" * 64,
-            outputRelativePath="delivery/outputs/frame.png",
-        )
-
-
-def test_nonzero_process_exit_cannot_be_success_receipt():
-    output = output_evidence()
-    with pytest.raises(ValidationError):
-        CodexExecReceipt(
-            attemptId=uuid4(),
-            sessionId=uuid4(),
-            profileHash=HASH,
-            requestHash=HASH,
-            packageHash=HASH,
             processId=321,
             processGroupId=321,
             processBirthIdentity="pid-start-321",
             processExitCode=1,
-            expectedImageOutputs=0,
+            terminalResult="failure",
+            remoteToolState="completed",
             evidenceHash=HASH,
-            outputHash=output_manifest_hash([output]),
-            outputs=[output],
-            remoteToolState="not_applicable",
+            outputHash=HASH,
         )

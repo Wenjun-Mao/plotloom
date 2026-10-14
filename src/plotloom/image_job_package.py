@@ -13,6 +13,7 @@ PACKAGE_VERSION = 3
 PINNED_PACKAGE_VERSION = 4
 PRESENTATION_PACKAGE_VERSION = 5
 IDENTITY_PACKAGE_VERSION = 6
+CODEX_EXEC_PACKAGE_VERSION = 7
 
 
 def presentation_amendment_instruction(request: dict) -> str:
@@ -64,7 +65,17 @@ def package_version(request: dict[str, Any]) -> int:
     if schema_version == 3:
         preflight_version = request.get("specialistPreflight", {}).get("version")
         if preflight_version == "p1.5-pin.v2":
-            return IDENTITY_PACKAGE_VERSION
+            contract = request.get("specialistPreflight", {}).get("executionContract")
+            if request.get("executionContract") != contract:
+                raise ImageJobError(
+                    "request_integrity",
+                    "image request and specialist preflight execution contracts differ",
+                )
+            if contract == "codex_exec.v1":
+                return CODEX_EXEC_PACKAGE_VERSION
+            if contract == "codex_specialist.v3":
+                return IDENTITY_PACKAGE_VERSION
+            raise ImageJobError("request_integrity", "image request execution contract is unsupported")
         if request.get("frozenSnapshot", {}).get("presentationContract") == "physical-visible-runtime.v1":
             return PRESENTATION_PACKAGE_VERSION
         return PINNED_PACKAGE_VERSION if preflight_version == "p1.5-pin.v1" else PACKAGE_VERSION
@@ -96,6 +107,9 @@ def project_image_package(
         if request.get("executionContract") != "codex_specialist.v3":
             raise ImageJobError("request_integrity", "native task binding requires codex_specialist.v3")
         binding = parsed_binding.model_dump(mode="json", by_alias=True, exclude_none=True)
+    elif version == CODEX_EXEC_PACKAGE_VERSION:
+        if request.get("executionContract") != "codex_exec.v1" or native_task_binding is not None:
+            raise ImageJobError("request_integrity", "Codex Exec image packages cannot carry a native chat binding")
     job_root = root / "jobs" / job_id
     package = job_root / "package"
     if version == 1:
@@ -161,7 +175,9 @@ def project_image_package(
             if adaptation else ""
         )
         delivery_instruction = (
-            "Read completion-manifest.example.json before preparing delivery. "
+            ("The trusted host publishes completion.json from the exact CLI session and output bytes. "
+             if version == CODEX_EXEC_PACKAGE_VERSION else
+             "Read completion-manifest.example.json before preparing delivery. ")
             + (
                 "View every role-mapped character_identity reference before generation and report its hashes in referenceUse. "
                 if not proposal else
@@ -181,12 +197,17 @@ def project_image_package(
                + presentation_amendment_instruction(request)
                + runtime_presentation_instruction(request)
                + "No text compositor is implied by this request; disclose any inability to render the exact authored words. "
-               if version == PRESENTATION_PACKAGE_VERSION or (
+               if version in {PRESENTATION_PACKAGE_VERSION, CODEX_EXEC_PACKAGE_VERSION} or (
                    version == IDENTITY_PACKAGE_VERSION
                    and request.get("frozenSnapshot", {}).get("presentationContract") == "physical-visible-runtime.v1"
                ) else "")
             + OUTPUT_BASENAME_INSTRUCTION
             + (
+                "Do not write image files or completion markers into delivery. The trusted Codex Exec host "
+                "copies the exact image bytes from the completed built-in ImageGen session event into "
+                "delivery/outputs and publishes completion.json after validating the event, arguments and "
+                "output bytes. Do not "
+                if version == CODEX_EXEC_PACKAGE_VERSION else
                 "Write complete JPEG or PNG files to delivery/outputs. Prepare delivery/completion-draft.json, "
                 "then publish it exactly once with the command in COPY_ASSIGNMENT.txt; the publisher verifies the "
                 "native task and ImageGen execution IDs and writes completion.json last. Do not write "
@@ -199,7 +220,7 @@ def project_image_package(
         instructions = (
             f"Plotloom {'art-reference study' if art_reference else 'character-reference proposal' if proposal else 'identity-aware image job'} {job_id}\n"
             f"Read: {package / 'request.json'}\n"
-            f"Read completion template: {package / COMPLETION_TEMPLATE_FILENAME}\n"
+            + (f"Read completion template: {package / COMPLETION_TEMPLATE_FILENAME}\n" if version != CODEX_EXEC_PACKAGE_VERSION else "")
             + (
                 f"Before ImageGen, run: uv run python scripts/pin_image_specialist.py --package {package}\n"
                 if version in {PINNED_PACKAGE_VERSION, PRESENTATION_PACKAGE_VERSION} and request.get("specialistPreflight")
@@ -232,7 +253,7 @@ def project_image_package(
                + presentation_amendment_instruction(request)
                + runtime_presentation_instruction(request)
                + "No text compositor is implied by this request; disclose any inability to render the exact authored words. "
-               if version == PRESENTATION_PACKAGE_VERSION or (
+               if version in {PRESENTATION_PACKAGE_VERSION, CODEX_EXEC_PACKAGE_VERSION} or (
                    version == IDENTITY_PACKAGE_VERSION
                    and request.get("frozenSnapshot", {}).get("presentationContract") == "physical-visible-runtime.v1"
                ) else "")
@@ -243,6 +264,12 @@ def project_image_package(
                 f"uv run --locked --no-sync python {quote(str(repository_root / 'scripts' / 'publish_image_completion.py'))} "
                 f"--package {quote(str(package))} --manifest {quote(str(job_root / 'delivery' / 'completion-draft.json'))}\n"
                 if version == IDENTITY_PACKAGE_VERSION else
+                "Do not write image files or completion markers into delivery. The trusted host records the exact "
+                "literal ImageGen prompt, reference arguments and completion event. The trusted Codex Exec host "
+                "copies the exact image bytes from that event into delivery/outputs and publishes completion.json "
+                "after validating the event, arguments and output bytes. "
+                "Do not create a completion manifest, executor pin or extra delivery files.\n"
+                if version == CODEX_EXEC_PACKAGE_VERSION else
                 "Disclose the exact actual prompt and publish completion.json only after every declared output is complete.\n"
             )
         ).encode()
@@ -285,7 +312,7 @@ def project_image_package(
                 "viewedReferenceHashes": ["replace-with-every-character-identity-hash"],
                 "identityNotes": "describe how identity was preserved; this attestation is not creator approval",
             }
-        template = canonical_json(template_payload)
+        template = None if version == CODEX_EXEC_PACKAGE_VERSION else canonical_json(template_payload)
     package_request = dict(request)
     package_request.update({
         "packageVersion": version,
@@ -295,6 +322,8 @@ def project_image_package(
     })
     if binding is not None:
         package_request["nativeTaskBinding"] = binding
+    if version == CODEX_EXEC_PACKAGE_VERSION:
+        package_request["executorBackend"] = "codex_exec"
     expected_entries = {"request.json", "COPY_ASSIGNMENT.txt"}
     if template is not None:
         expected_entries.add(COMPLETION_TEMPLATE_FILENAME)

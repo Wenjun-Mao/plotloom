@@ -114,10 +114,11 @@ class ArtReferenceProposalPersistence:
                 "renderDirection": render_direction.strip(),
                 "authority": "accepted_art_subject_plus_creator_render_overlay_exploratory_only_no_selection_or_shot",
             }
+            preflight = image_preflight(self._access, session)
             request = {
                 "schemaVersion": 3, "jobId": job_id,
-                "executionContract": "codex_specialist.v3",
-                "specialistPreflight": image_preflight(self._access, session),
+                "executionContract": preflight["executionContract"],
+                "specialistPreflight": preflight,
                 "kind": "art_reference", "target": "art_reference_proposal", "frozenSnapshot": snapshot,
             }
             proposal = ArtReferenceProposalRow(

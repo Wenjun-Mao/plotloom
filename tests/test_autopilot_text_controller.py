@@ -60,7 +60,7 @@ def test_pause_retains_receipt_then_resume_adopts_original_outline_without_resen
             request = store.outline_candidate_request(job)
         service.control(view.project_id, RunControlRequest(expected_revision=current.revision, action="pause"))
         with closing(storage.projects.open(view.project_id)) as store:
-            deliver(store, request)
+            deliver(store, request, host=registry._codex_exec_test_host)
         service.step(view.project_id)
         with closing(storage.projects.open(view.project_id)) as store:
             paused = store.repository.autopilot.current(view.project_id)
@@ -76,13 +76,7 @@ def test_pause_retains_receipt_then_resume_adopts_original_outline_without_resen
 
 
 def test_unknown_ack_restart_checks_original_job_and_never_resends(tmp_path, monkeypatch):
-    import subprocess
     storage, registry, service, view, calls = environment(tmp_path, monkeypatch, auto_deliver=False)
-    queue = subprocess.run
-    def lost_ack(command, **kwargs):
-        result = queue(command, **kwargs)
-        return subprocess.CompletedProcess(command, 1, "") if len(command) > 1 and command[1] == "queue" else result
-    monkeypatch.setattr(subprocess, "run", lost_ack)
     assert service.acquire_controller()
     for _ in range(3):
         service.step(view.project_id)
@@ -90,6 +84,12 @@ def test_unknown_ack_restart_checks_original_job_and_never_resends(tmp_path, mon
         current = store.repository.autopilot.current(view.project_id)
         checkpoint = next(item for item in current.checkpoints if item["operationKey"] == "outline")
         request = store.outline_candidate_request(checkpoint["evidence"]["jobId"])
+        attempt, _receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
+            current.id, "outline"
+        )
+    # Simulate the host losing its live process owner before the next poll.
+    # Restart must inspect this exact attempt rather than sending a new one.
+    registry._codex_exec_test_host.lose_attempt(attempt.attempt_id)
     service.close()
     resumed = AutopilotService(storage, registry)
     try:
@@ -102,7 +102,7 @@ def test_unknown_ack_restart_checks_original_job_and_never_resends(tmp_path, mon
             checkpoint = next(item for item in unknown.checkpoints if item["operationKey"] == "outline")
             assert checkpoint["state"] == "outcome_unknown"
             assert checkpoint["evidence"]["result"]["dispatchOutcomeUnknown"] is True
-            deliver(store, request)
+            deliver(store, request, host=registry._codex_exec_test_host)
         resumed.step(view.project_id)
         resumed.step(view.project_id)
         with closing(storage.projects.open(view.project_id)) as store:
@@ -129,7 +129,7 @@ def test_late_stopped_delivery_retains_proof_without_adoption(tmp_path, monkeypa
             request = store.outline_candidate_request(job)
         service.control(view.project_id, RunControlRequest(expected_revision=current.revision, action=action))
         with closing(storage.projects.open(view.project_id)) as store:
-            deliver(store, request)
+            deliver(store, request, host=registry._codex_exec_test_host)
         service.step(view.project_id)
         with closing(storage.projects.open(view.project_id)) as store:
             stopped = store.repository.autopilot.current(view.project_id)
@@ -145,15 +145,14 @@ def test_late_stopped_delivery_retains_proof_without_adoption(tmp_path, monkeypa
 
 def test_occupied_native_role_waits_then_dispatches_same_prepared_job(tmp_path, monkeypatch):
     storage, registry, service, view, calls = environment(tmp_path, monkeypatch, auto_deliver=False)
-    from plotloom.codex_image_dispatch import NativeCodexImageDispatcher
     from plotloom.image_job_contracts import ImageJobError
-    original = NativeCodexImageDispatcher.dispatch
+    original = registry.codex_exec_admit
     occupied = [True]
-    def admission(dispatcher, **kwargs):
+    def admission(attempt):
         if occupied[0]:
-            raise ImageJobError("image_dispatch_busy", "fixture occupied native role")
-        return original(dispatcher, **kwargs)
-    monkeypatch.setattr(NativeCodexImageDispatcher, "dispatch", admission)
+            raise ImageJobError("codex_exec_outcome_unknown", "fixture Mac process slot is occupied")
+        return original(attempt)
+    monkeypatch.setattr(registry, "codex_exec_admit", admission)
     try:
         assert service.acquire_controller()
         for _ in range(3):
@@ -161,18 +160,25 @@ def test_occupied_native_role_waits_then_dispatches_same_prepared_job(tmp_path, 
         with closing(storage.projects.open(view.project_id)) as store:
             waiting = store.repository.autopilot.current(view.project_id)
             prepared = next(item for item in waiting.checkpoints if item["operationKey"] == "outline")
-            assert waiting.state == "waiting" and prepared["state"] == "prepared"
+            assert waiting.state == "waiting" and prepared["state"] == "sent"
+            attempt_before, _receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
+                waiting.id, "outline"
+            )
         assert not calls
         occupied[0] = False
         service.step(view.project_id)
         assert calls == [prepared["evidence"]["jobId"]]
+        with closing(storage.projects.open(view.project_id)) as store:
+            attempt_after, _receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
+                view.id, "outline"
+            )
+        assert attempt_after.attempt_id == attempt_before.attempt_id
     finally:
         service.close()
 
 
-@pytest.mark.parametrize("drift", ["binding", "pin"])
+@pytest.mark.parametrize("drift", ["profile", "pin"])
 def test_frozen_configuration_drift_blocks_before_sending(tmp_path, monkeypatch, drift):
-    from uuid import uuid4
     from plotloom.creative_handoff_exchange import CreativeHandoffExchange
     from tests.autopilot_controller_fixtures import PIN
     storage, registry, service, view, calls = environment(tmp_path, monkeypatch, auto_deliver=False)
@@ -180,12 +186,13 @@ def test_frozen_configuration_drift_blocks_before_sending(tmp_path, monkeypatch,
         assert service.acquire_controller()
         service.step(view.project_id)
         service.step(view.project_id)
-        if drift == "binding":
-            from plotloom.specialist_settings import SpecialistSettings
-            current = registry.view()
-            settings = SpecialistSettings.model_validate({role: current[role] for role in ("text", "image")})
-            settings.text.task_id = str(uuid4())
-            registry.save(settings)
+        if drift == "profile":
+            original_profile = registry.codex_exec_profile()
+            monkeypatch.setattr(
+                registry,
+                "codex_exec_profile",
+                lambda: original_profile.model_copy(update={"model": "changed-profile"}),
+            )
         else:
             monkeypatch.setattr(CreativeHandoffExchange, "current_execution_pin", lambda _self, _stage: PIN | {"upstreamRevision": "d" * 40})
         service.step(view.project_id)
@@ -195,6 +202,39 @@ def test_frozen_configuration_drift_blocks_before_sending(tmp_path, monkeypatch,
             prepared = next(item for item in blocked.checkpoints if item["operationKey"] == "outline")
             assert prepared["state"] == "prepared"
         assert not calls and not registry.view()["busy"]
+    finally:
+        service.close()
+
+
+def test_cli_rechecks_frozen_profile_after_reservation_before_spawn_intent(tmp_path, monkeypatch):
+    storage, registry, service, view, calls = environment(tmp_path, monkeypatch, auto_deliver=False)
+    try:
+        assert service.acquire_controller()
+        service.step(view.project_id)
+        service.step(view.project_id)
+        original_profile = registry.codex_exec_profile
+        profile_reads = 0
+
+        def drift_during_final_gate():
+            nonlocal profile_reads
+            profile_reads += 1
+            profile = original_profile()
+            if profile_reads == 3:
+                return profile.model_copy(update={"model": "changed-after-reservation"})
+            return profile
+
+        monkeypatch.setattr(registry, "codex_exec_profile", drift_during_final_gate)
+        service.step(view.project_id)
+        with closing(storage.projects.open(view.project_id)) as store:
+            blocked = store.repository.autopilot.current(view.project_id)
+            checkpoint = next(item for item in blocked.checkpoints if item["operationKey"] == "outline")
+            attempt, _receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
+                blocked.id, "outline"
+            )
+            assert blocked.state == "blocked" and blocked.blocker["code"] == "contract_blocked"
+            assert checkpoint["state"] == "prepared"
+            assert attempt is None
+        assert not calls and registry._codex_exec_test_host.admissions == 0
     finally:
         service.close()
 

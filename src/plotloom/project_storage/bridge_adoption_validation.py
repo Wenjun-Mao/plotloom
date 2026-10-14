@@ -23,7 +23,8 @@ def assert_adoption(connection, project, adoption: MachineAdoption, owner):
             or evidence.owner != owner or evidence.job_id != adoption.job_id or evidence.request_hash != adoption.request_hash
             or evidence.delivery_hash != adoption.delivery_hash):
         raise ValueError("machine bridge native decision binding changed")
-    assert_checkpoint_binding(connection, project, "delivered", evidence, run_id=adoption.run_id)
+    assert_checkpoint_binding(connection, project, "delivered", evidence, run_id=adoption.run_id,
+        operation_key=owner)
     source = _row(connection, "SELECT content_hash,proposal FROM v2_production_bridge_revisions WHERE project_id=? AND revision=?",
         (project, adoption.proposal_revision))
     job = _row(connection, "SELECT * FROM v2_production_bridge_intent_jobs WHERE id=?", (adoption.job_id,))

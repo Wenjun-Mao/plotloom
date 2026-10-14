@@ -32,6 +32,63 @@ def missing_completed_jobs(root, database):
         connection.close()
 
 
+def _codex_creative_jobs(connection):
+    """Bind CLI package shape to the v4 checkpoint and its project attempt."""
+    from ..autopilot_contracts import LaunchPolicy, POLICY_VERSION
+    from ..codex_exec_contracts import CodexExecAttempt, CodexExecReceipt
+
+    tables = {row[0] for row in connection.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'"
+    )}
+    v4_runs = {}
+    if "v2_autopilot_runs" in tables:
+        for run_id, project_id, raw_policy in connection.execute(
+            "SELECT id, project_id, policy FROM v2_autopilot_runs"
+        ):
+            policy = json.loads(raw_policy)
+            if policy.get("version") == POLICY_VERSION:
+                parsed_policy = LaunchPolicy.model_validate(policy)
+                v4_runs[run_id] = (project_id, parsed_policy.executor_binding)
+
+    jobs = {}
+    if "v2_autopilot_checkpoints" in tables:
+        for run_id, project_id, operation_key, raw_evidence in connection.execute(
+            "SELECT run_id, project_id, operation_key, evidence FROM v2_autopilot_checkpoints"
+        ):
+            run_binding = v4_runs.get(run_id)
+            if run_binding is None or run_binding[0] != project_id:
+                continue
+            evidence = json.loads(raw_evidence)
+            job_id = evidence.get("jobId")
+            if job_id is not None:
+                jobs[job_id] = {
+                    "project_id": project_id,
+                    "operation_key": operation_key,
+                    "profile": run_binding[1],
+                    "attempt": None,
+                    "receipt": None,
+                }
+
+    if "v2_autopilot_exec_attempts" in tables:
+        for project_id, operation_key, job_id, raw_attempt, raw_receipt in connection.execute(
+            "SELECT project_id, operation_key, job_id, snapshot, receipt FROM v2_autopilot_exec_attempts"
+        ):
+            attempt = CodexExecAttempt.model_validate_json(raw_attempt)
+            if attempt.domain != "text":
+                continue
+            if (str(attempt.project_id) != project_id or attempt.operation_key != operation_key
+                    or attempt.job_id != job_id):
+                raise ProjectStorageCorruptionError("retained Codex creative attempt row identity changed")
+            binding = jobs.get(job_id)
+            if (binding is None or (binding["project_id"], binding["operation_key"])
+                    != (project_id, operation_key) or binding["profile"] is None
+                    or binding["profile"].profile_hash != attempt.profile_hash):
+                raise ProjectStorageCorruptionError("retained Codex creative attempt has no exact v4 checkpoint")
+            binding["attempt"] = attempt
+            binding["receipt"] = CodexExecReceipt.model_validate_json(raw_receipt) if raw_receipt else None
+    return jobs
+
+
 def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
     connection = sqlite3.connect(f"{database.as_uri()}?mode=ro", uri=True)
     try:
@@ -39,6 +96,7 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
         requests = retained_requests(connection)
         pins = {identifier: (digest, json.loads(pin)) for identifier, digest, pin in connection.execute(
             "SELECT job_id, request_hash, execution_pin FROM v2_creative_handoff_execution_pins")}
+        codex_jobs = _codex_creative_jobs(connection)
     finally:
         connection.close()
     base = root / "outputs" / "creative-handoff" / "jobs"
@@ -60,6 +118,7 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
     if any(path.name not in requests for path in base.iterdir()):
         raise ProjectStorageCorruptionError("creative evidence has an unowned job directory")
     paths = []
+    projection_exchange = CreativeHandoffExchange(base.parent)
     for identifier, (request, manifest_hash) in requests.items():
         job = base / identifier
         if not job.exists() and not job.is_symlink():
@@ -67,14 +126,26 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
         _safe_directory(job, label="creative evidence job")
         if request.job_id != identifier or pins.get(identifier, (None,))[0] != request_hash(request):
             raise ProjectStorageCorruptionError("creative evidence request or pin identity changed")
-        execution_pin_for_request(request, pins[identifier][1])
+        execution_pin = execution_pin_for_request(request, pins[identifier][1])
+        codex_binding = codex_jobs.get(identifier)
+        if codex_binding is not None and (
+            codex_binding["project_id"] != request.project_id
+            or codex_binding["operation_key"] != request.stage
+        ):
+            raise ProjectStorageCorruptionError("retained Codex creative checkpoint differs from its request")
+        executor_backend = "codex_exec" if codex_binding is not None else "specialist_chat"
+        projected, _instructions, _template, _package_members = projection_exchange._projection(
+            request, execution_pin, executor_backend=executor_backend
+        )
         candidate_name = CreativeHandoffExchange._candidate_filename(request.stage)
         expected = {
-            "package/request.json", "package/COPY_ASSIGNMENT.txt", "package/completion-manifest.example.json",
+            "package/request.json", "package/COPY_ASSIGNMENT.txt",
             *(f"package/inputs/{name}" for name in request.input_artifacts),
             f"delivery/{candidate_name}", "delivery/report.html", "delivery/completion.json",
             PUBLICATION_LOCK,
         }
+        if executor_backend == "specialist_chat":
+            expected.add("package/completion-manifest.example.json")
         allowed_dirs = {"package", "package/inputs", "delivery"}
         observed = set()
 
@@ -102,10 +173,23 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
             # reprojected dispatch package at the recovery destination.
             raise ProjectStorageCorruptionError("completed creative evidence omits frozen package members")
         package_request = job / "package" / "request.json"
+        if codex_binding is not None and codex_binding["attempt"] is not None:
+            if not (job / "package").is_dir():
+                raise ProjectStorageCorruptionError("retained Codex creative attempt lost its frozen package")
+            from ..codex_exec_runtime import package_tree_hash
+            attempt = codex_binding["attempt"]
+            try:
+                actual_package_hash = package_tree_hash(
+                    job, max_total_bytes=codex_binding["profile"].max_output_bytes
+                )
+            except (OSError, TypeError, ValueError) as error:
+                raise ProjectStorageCorruptionError("retained Codex creative package is unsafe") from error
+            if (attempt.request_hash != request_hash(request)
+                    or actual_package_hash != attempt.package_hash):
+                raise ProjectStorageCorruptionError("retained Codex creative package differs from its exact attempt")
         if package_request.exists():
             raw = json.loads(package_request.read_text(encoding="utf-8"))
-            expected_request = request.model_dump(mode="json", by_alias=True)
-            if any(raw.get(key) != value for key, value in expected_request.items()) or raw.get("requestHash") != request_hash(request) or raw.get("executionPin") != pins[identifier][1]:
+            if raw != projected:
                 raise ProjectStorageCorruptionError("retained creative package differs from its frozen request/pin")
         for name, payload in request.input_artifacts.items():
             path = job / "package" / "inputs" / name
@@ -120,6 +204,33 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
                 raise ProjectStorageCorruptionError("retained final creative manifest changed")
             if manifest.job_id != identifier or manifest.request_hash != request_hash(request) or manifest.stage != request.stage:
                 raise ProjectStorageCorruptionError("retained creative delivery identity changed")
+            if (executor_backend == "codex_exec") != (manifest.schema_version == 2):
+                raise ProjectStorageCorruptionError("retained creative delivery backend differs from its frozen owner")
+            if executor_backend == "codex_exec":
+                from ..codex_exec_contracts import assert_receipt_matches_attempt
+                attempt = codex_binding["attempt"]
+                receipt = codex_binding["receipt"]
+                if (attempt is None or receipt is None or attempt.state not in {"completed", "settled"}
+                        or attempt.terminal_result != "success"
+                        or manifest.executor_attempt_id != attempt.attempt_id
+                        or manifest.codex_session_id != receipt.session_id
+                        or manifest.executor_profile_hash != attempt.profile_hash):
+                    raise ProjectStorageCorruptionError("retained Codex creative manifest lost its exact attempt receipt")
+                try:
+                    assert_receipt_matches_attempt(attempt, receipt)
+                except (TypeError, ValueError) as error:
+                    raise ProjectStorageCorruptionError("retained Codex creative attempt receipt is invalid") from error
+                receipt_outputs = {item.output_relative_path: item for item in receipt.outputs}
+                expected_outputs = {
+                    f"delivery/{manifest.candidate.filename}",
+                    f"delivery/{manifest.report.filename}",
+                }
+                if set(receipt_outputs) != expected_outputs or any(
+                    (output := receipt_outputs.get(f"delivery/{declared.filename}")) is None
+                    or output.output_hash != declared.sha256
+                    for declared in (manifest.candidate, manifest.report)
+                ):
+                    raise ProjectStorageCorruptionError("retained Codex creative outputs differ from their attempt receipt")
             for output in (manifest.candidate, manifest.report):
                 path = job / "delivery" / output.filename
                 _safe_regular(path, label="retained creative output")

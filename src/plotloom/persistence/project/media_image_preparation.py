@@ -264,10 +264,14 @@ class ImageJobPreparationPersistence:
             session.add(unit)
             session.flush()
             job_id = self._currentness.image_job_id()
+            preflight = image_preflight(self._access, session) if contract_version == 3 else None
             request = {
                 "schemaVersion": contract_version, "jobId": job_id, "productionUnitId": unit.id,
                 "productionSnapshotHash": snapshot_hash,
-                "executionContract": "codex_specialist.v3" if contract_version == 3 else "codex_specialist.v1",
+                "executionContract": (
+                    preflight.get("executionContract", "codex_specialist.v3")
+                    if preflight is not None else "codex_specialist.v1"
+                ),
                 "kind": (
                     "keyframe_adaptation"
                     if adaptation_snapshot is not None
@@ -275,8 +279,8 @@ class ImageJobPreparationPersistence:
                 ),
                 "visualProposal": visual_proposal, "frozenSnapshot": snapshot,
             }
-            if contract_version == 3:
-                request["specialistPreflight"] = image_preflight(self._access, session)
+            if preflight is not None:
+                request["specialistPreflight"] = preflight
             job = ImageJobRow(
                 id=job_id, project_id=project_id, production_unit_id=unit.id,
                 parent_job_id=parent_job_id, parent_candidate_asset_id=parent_candidate_asset_id,

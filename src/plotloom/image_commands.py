@@ -2,6 +2,7 @@
 from hashlib import sha256
 from pathlib import Path
 from .image_job_contracts import ImageJobError, NativeTaskBinding
+from .codex_exec_contracts import CodexExecAttempt, CodexExecProfile, CodexExecReceipt
 from .image_job_exchange import PackageReference
 from .managed_media import publish_import
 
@@ -28,7 +29,7 @@ def frozen_references(context):
     return values
 
 
-def image_package(store, owner, job_id, *, native_task_binding: NativeTaskBinding):
+def image_package(store, owner, job_id, *, native_task_binding: NativeTaskBinding | None = None):
     name, key, _target = IMAGE_METHODS[owner]
     sources = getattr(store.media, f"{name}_package_sources")(store.manifest.project_id, job_id)
     context = sources[key]
@@ -43,6 +44,10 @@ def image_package(store, owner, job_id, *, native_task_binding: NativeTaskBindin
         suffix = ".png" if source["mimeType"] == "image/png" else ".jpg"
         references.append(PackageReference(role=role, filename=f"reference-{index + 1}-{source['contentHash'][:16]}{suffix}",
             content_hash=source["contentHash"], content=content))
+    if context["request"].get("executionContract") == "codex_exec.v1" and native_task_binding is not None:
+        raise ImageJobError("image_native_task_binding_invalid", "Codex Exec image packages cannot bind a native chat task")
+    if context["request"].get("executionContract") != "codex_exec.v1" and native_task_binding is None:
+        raise ImageJobError("image_native_task_binding_missing", "specialist image packages require their native task binding")
     return store.image_exchange_for(context).write_package(job_id=job_id, request=context["request"],
         request_hash=context["requestHash"], references=references, native_task_binding=native_task_binding)
 
@@ -65,14 +70,57 @@ def send_image(store, registry, owner, job_id, *, policy, before_send):
             "Do not edit code, package, canon, references, selections or approvals. No video or other providers."))
 
 
-def read_image(store, owner, job_id, context, *, native_task_binding: NativeTaskBinding):
+def read_image(
+    store,
+    owner,
+    job_id,
+    context,
+    *,
+    native_task_binding: NativeTaskBinding | None = None,
+    executor_attempt: CodexExecAttempt | None = None,
+    executor_profile: CodexExecProfile | None = None,
+    executor_receipt: CodexExecReceipt | None = None,
+):
     exchange = store.image_exchange_for(context)
-    exchange.verify_package(job_id=job_id, request=context["request"], request_hash=context["requestHash"],
+    request = context["request"]
+    is_codex_exec = request.get("executionContract") == "codex_exec.v1"
+    if is_codex_exec and native_task_binding is not None:
+        raise ImageJobError("image_native_task_binding_invalid", "Codex Exec delivery cannot use a native chat binding")
+    if not is_codex_exec and native_task_binding is None:
+        raise ImageJobError("image_native_task_binding_missing", "specialist delivery requires its native task binding")
+    exchange.verify_package(job_id=job_id, request=request, request_hash=context["requestHash"],
         references=frozen_references(context), native_task_binding=native_task_binding)
+    preflight = request.get("specialistPreflight", {})
+    if is_codex_exec:
+        if executor_attempt is None or executor_profile is None or executor_receipt is None:
+            raise ImageJobError("delivery_executor_evidence_missing", "Codex Exec delivery requires its exact project attempt and receipt")
+        all_reference_hashes = tuple(
+            item["originalHash"] for item in request.get("frozenSnapshot", {}).get("references", [])
+        )
+        output_role = (
+            "art_reference" if request.get("target") == "art_reference_proposal"
+            else "keyframe_adaptation" if request.get("kind") == "keyframe_adaptation"
+            else "refinement" if request.get("kind") == "refinement"
+            else "original"
+        )
+        return exchange.read_delivery(
+            job_id=job_id,
+            request_hash=context["requestHash"],
+            require_executor_provenance=True,
+            expected_executor_contract="codex_exec.v1",
+            required_reference_hashes=[item["originalHash"] for item in request.get("frozenSnapshot", {}).get("references", [])
+                if item["role"] == "character_identity"],
+            expected_codex_attempt=executor_attempt,
+            expected_codex_profile=executor_profile,
+            expected_codex_receipt=executor_receipt,
+            expected_codex_reference_hashes=all_reference_hashes,
+            expected_codex_execution_pin=preflight,
+            expected_codex_output_role=output_role,
+        )
     return exchange.read_delivery(job_id=job_id, request_hash=context["requestHash"], require_executor_provenance=True,
-        required_reference_hashes=[item["originalHash"] for item in context["request"]["frozenSnapshot"].get("references", []) if item["role"] == "character_identity"],
-        require_executor_pin=True, expected_executor_skill_version=context["request"]["specialistPreflight"]["skillVersion"],
-        expected_executor_contract=context["request"]["specialistPreflight"]["executionContract"],
+        required_reference_hashes=[item["originalHash"] for item in request["frozenSnapshot"].get("references", []) if item["role"] == "character_identity"],
+        require_executor_pin=True, expected_executor_skill_version=preflight["skillVersion"],
+        expected_executor_contract=preflight["executionContract"],
         expected_native_task_binding=native_task_binding)
 
 

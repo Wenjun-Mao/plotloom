@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import fcntl
 import json
+import subprocess
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal
@@ -11,6 +12,7 @@ from uuid import UUID
 from pydantic import Field, field_validator, model_validator
 
 from .codex_image_dispatch import NativeCodexImageDispatcher
+from .codex_exec_contracts import CodexExecAttempt, CodexExecHostStatus, CodexExecProfile
 from .domain import CamelModel
 from .image_job_contracts import ImageJobError, NativeTaskBinding
 
@@ -86,6 +88,95 @@ class SpecialistRegistry:
                     lease = json.loads(path.read_text())
                     active.append(lease | data.get("jobs", {}).get(lease["jobId"], {}))
             return data["settings"] | {"busy": bool(active), "activeTasks": active}
+
+    def codex_exec_profile(self) -> CodexExecProfile:
+        """Read the source and CLI profile from the authenticated Mac host."""
+        if not self.executable:
+            raise ImageJobError(
+                "codex_exec_unavailable",
+                "Codex Exec is unavailable because the authenticated Mac host is not configured.",
+            )
+        try:
+            result = subprocess.run(
+                [self.executable, "exec-profile"],
+                capture_output=True,
+                timeout=20,
+                check=False,
+                env=self.environment,
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise ImageJobError(
+                "codex_exec_profile_unavailable",
+                "The Mac host could not report its qualified Codex Exec profile.",
+            ) from error
+        if result.returncode != 0 or result.stderr:
+            raise ImageJobError(
+                "codex_exec_profile_unavailable",
+                "The Mac host could not report its qualified Codex Exec profile.",
+            )
+        try:
+            profile = CodexExecProfile.model_validate_json(result.stdout)
+        except (TypeError, ValueError) as error:
+            raise ImageJobError(
+                "codex_exec_profile_invalid",
+                "The Mac host returned an unsupported Codex Exec profile.",
+            ) from error
+        return profile
+
+    def codex_exec_admit(self, attempt: CodexExecAttempt) -> CodexExecHostStatus:
+        """Request one idempotent initial attempt from the Mac-owned supervisor."""
+        attempt = CodexExecAttempt.model_validate(attempt.model_dump(mode="python"))
+        if attempt.state != "spawn_intent":
+            raise ImageJobError("codex_exec_attempt_invalid", "Codex Exec admission requires a persisted spawn intent.")
+        return self._codex_exec_request(
+            "exec-admit",
+            "--attempt-json",
+            json.dumps(attempt.model_dump(mode="json", by_alias=True), separators=(",", ":")),
+        )
+
+    def codex_exec_status(self, attempt_id) -> CodexExecHostStatus:
+        return self._codex_exec_request("exec-status", "--attempt-id", str(UUID(str(attempt_id))))
+
+    def codex_exec_cancel(self, attempt: CodexExecAttempt) -> CodexExecHostStatus:
+        """Fence a stop against the exact attempt, including pre-admission races."""
+        attempt = CodexExecAttempt.model_validate(attempt.model_dump(mode="python"))
+        return self._codex_exec_request(
+            "exec-cancel",
+            "--attempt-json",
+            json.dumps(attempt.model_dump(mode="json", by_alias=True), separators=(",", ":")),
+        )
+
+    def _codex_exec_request(self, command: str, *arguments: str) -> CodexExecHostStatus:
+        if not self.executable:
+            raise ImageJobError(
+                "codex_exec_unavailable",
+                "Codex Exec is unavailable because the authenticated Mac host is not configured.",
+            )
+        try:
+            result = subprocess.run(
+                [self.executable, command, *arguments],
+                capture_output=True,
+                timeout=30,
+                check=False,
+                env=self.environment,
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise ImageJobError(
+                "codex_exec_outcome_unknown",
+                "The Mac supervisor did not acknowledge this Codex Exec operation; inspect the original attempt.",
+            ) from error
+        if result.returncode != 0 or result.stderr:
+            raise ImageJobError(
+                "codex_exec_outcome_unknown",
+                "The Mac supervisor did not acknowledge this Codex Exec operation; inspect the original attempt.",
+            )
+        try:
+            return CodexExecHostStatus.model_validate_json(result.stdout)
+        except (TypeError, ValueError) as error:
+            raise ImageJobError(
+                "codex_exec_status_invalid",
+                "The Mac supervisor returned an unsupported Codex Exec status.",
+            ) from error
 
     @contextmanager
     def idle_guard(self):

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from typing import Any, Literal
+from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
 
@@ -96,7 +97,11 @@ class CreativeExecutorProvenance(CamelModel):
 
 
 class CreativeDeliveryManifest(CamelModel):
-    schema_version: Literal[1] = 1
+    schema_version: Literal[1, 2] = 1
+    executor_backend: Literal["codex_exec"] | None = Field(default=None, exclude_if=lambda value: value is None)
+    executor_attempt_id: UUID | None = Field(default=None, exclude_if=lambda value: value is None)
+    codex_session_id: UUID | None = Field(default=None, exclude_if=lambda value: value is None)
+    executor_profile_hash: str | None = Field(default=None, pattern=SHA256_PATTERN, exclude_if=lambda value: value is None)
     job_id: str = Field(pattern=JOB_ID_PATTERN)
     request_hash: str = Field(pattern=SHA256_PATTERN)
     delivery_id: str = Field(pattern=DELIVERY_ID_PATTERN)
@@ -110,6 +115,14 @@ class CreativeDeliveryManifest(CamelModel):
     def filenames_are_distinct(self) -> "CreativeDeliveryManifest":
         if self.candidate.filename == self.report.filename:
             raise ValueError("candidate and report filenames must differ")
+        executor_fields = (self.executor_backend, self.executor_attempt_id, self.codex_session_id, self.executor_profile_hash)
+        if self.schema_version == 1 and any(value is not None for value in executor_fields):
+            raise ValueError("specialist-chat creative manifests cannot claim Codex Exec identity")
+        if self.schema_version == 2 and (
+            self.executor_backend != "codex_exec" or self.executor_attempt_id is None
+            or self.codex_session_id is None or self.executor_profile_hash is None
+        ):
+            raise ValueError("Codex Exec creative manifests require their exact attempt, session and profile")
         return self
 
     @field_validator("limitations")

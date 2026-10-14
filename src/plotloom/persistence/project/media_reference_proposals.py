@@ -133,9 +133,11 @@ class CharacterReferenceProposalPersistence:
                 "visualDirection": visual_direction.strip(), "references": references,
                 "authority": "cast_owned_exploratory_only_no_story_bible_shot_approval_or_keyframe_selection",
             }
+            preflight = image_preflight(self._access, session)
             request = {
-                "schemaVersion": 3, "jobId": job_id, "executionContract": "codex_specialist.v3",
-                "specialistPreflight": image_preflight(self._access, session),
+                "schemaVersion": 3, "jobId": job_id,
+                "executionContract": preflight["executionContract"],
+                "specialistPreflight": preflight,
                 "kind": "refinement" if parent_candidate_asset_id else "original",
                 "target": "character_reference_proposal", "frozenSnapshot": snapshot,
             }

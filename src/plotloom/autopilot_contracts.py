@@ -5,18 +5,21 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Any, Literal
+from uuid import UUID
 
 from pydantic import Field, model_validator
 
 from .art_style import ArtRenderStyle
 from .cast_style import CastRenderStyle
 from .domain import CamelModel, contains_secret_setting, contains_secret_value
+from .codex_exec_contracts import CodexExecProfile, ExecutorBinding
 
 from .geometry_preparation_contracts import GeometryPolicy, GeometryPreparation
 from .geometry_preparation import geometry_policy
 
-POLICY_VERSION = "plotloom.pre-video.v3"
-PREVIOUS_POLICY_VERSION = "plotloom.pre-video.v2"
+POLICY_VERSION = "plotloom.pre-video.v4"
+PREVIOUS_POLICY_VERSION = "plotloom.pre-video.v3"
+RETAINED_POLICY_VERSIONS = {"plotloom.pre-video.v1", "plotloom.pre-video.v2", PREVIOUS_POLICY_VERSION, POLICY_VERSION}
 HASH = r"^[a-f0-9]{64}$"
 RunState = Literal["running", "waiting", "paused", "cancelled", "stale", "blocked", "awaiting_review", "handed_off", "taken_over"]
 
@@ -41,7 +44,7 @@ class CommandAuthority:
 
 
 class LaunchPolicy(CamelModel):
-    version: Literal["plotloom.pre-video.v1", PREVIOUS_POLICY_VERSION, POLICY_VERSION] = POLICY_VERSION
+    version: Literal["plotloom.pre-video.v1", "plotloom.pre-video.v2", PREVIOUS_POLICY_VERSION, POLICY_VERSION] = PREVIOUS_POLICY_VERSION
     geometry_preparation: GeometryPolicy | None = Field(default_factory=geometry_policy, exclude_if=lambda value: value is None)
     # Older retained policies had no style-authority member. Keep omission
     # stable when those rows are decoded and re-encoded.
@@ -53,7 +56,8 @@ class LaunchPolicy(CamelModel):
     image_width: int = Field(ge=64, le=4096)
     image_height: int = Field(ge=64, le=4096)
     code_revision: str = Field(pattern=r"^[a-f0-9]{7,64}$")
-    specialist_bindings: dict[Literal["text", "image"], str]
+    specialist_bindings: dict[Literal["text", "image"], str] | None = Field(default=None, exclude_if=lambda value: value is None)
+    executor_binding: ExecutorBinding | None = Field(default=None, exclude_if=lambda value: value is None)
     execution_pins: dict[str, dict[str, str]]
     brief: dict[str, Any]
 
@@ -64,7 +68,7 @@ class LaunchPolicy(CamelModel):
             value = dict(value)
             if value.get("version") == POLICY_VERSION and "styleAuthority" not in value and "style_authority" not in value:
                 value["styleAuthority"] = "preset"
-            elif value.get("version") in {"plotloom.pre-video.v1", PREVIOUS_POLICY_VERSION} and "styleAuthority" not in value and "style_authority" not in value:
+            elif value.get("version") in {"plotloom.pre-video.v1", "plotloom.pre-video.v2", PREVIOUS_POLICY_VERSION} and "styleAuthority" not in value and "style_authority" not in value:
                 value["styleAuthority"] = None
             if value.get("version") == "plotloom.pre-video.v1":
                 return {key: item for key, item in value.items() if key != "geometry_preparation"} | {"geometryPreparation": value.get("geometryPreparation", value.get("geometry_preparation"))}
@@ -76,16 +80,22 @@ class LaunchPolicy(CamelModel):
 
     @model_validator(mode="after")
     def validate_frozen_authority(self):
-        if (self.version in {PREVIOUS_POLICY_VERSION, POLICY_VERSION}) != (self.geometry_preparation is not None):
-            raise ValueError("geometry preparation permission belongs only to policy v2 or v3")
-        if self.version != POLICY_VERSION and self.effective_style_authority != "preset":
+        if (self.version in {"plotloom.pre-video.v2", PREVIOUS_POLICY_VERSION, POLICY_VERSION}) != (self.geometry_preparation is not None):
+            raise ValueError("geometry preparation permission belongs only to policy v2, v3 or v4")
+        if self.version not in {PREVIOUS_POLICY_VERSION, POLICY_VERSION} and self.effective_style_authority != "preset":
             raise ValueError("retained autopilot policies must keep their original preset authority")
         if self.effective_style_authority == "brief" and (self.render_style is not None or self.art_render_style is not None):
             raise ValueError("Brief style authority cannot carry independent render presets")
         if self.effective_style_authority == "preset" and (self.render_style is None or self.art_render_style is None):
             raise ValueError("preset style authority requires both frozen render styles")
-        if set(self.specialist_bindings) != {"text", "image"} or len(set(self.specialist_bindings.values())) != 2:
-            raise ValueError("two distinct native specialist bindings are required")
+        if self.version == POLICY_VERSION:
+            if self.specialist_bindings is not None or not isinstance(self.executor_binding, CodexExecProfile):
+                raise ValueError("new pre-video launches require one frozen Codex Exec profile")
+        else:
+            if self.executor_binding is not None or self.specialist_bindings is None:
+                raise ValueError("retained specialist-chat policies require their original bindings")
+            if set(self.specialist_bindings) != {"text", "image"} or len(set(self.specialist_bindings.values())) != 2:
+                raise ValueError("two distinct native specialist bindings are required")
         payload = self.model_dump(mode="json", by_alias=True)
         if contains_secret_setting(payload) or contains_secret_value(payload):
             raise ValueError("autopilot policy cannot contain credentials")
@@ -109,7 +119,15 @@ class CheckpointEvidence(CamelModel):
     request_hash: str | None = Field(default=None, pattern=HASH)
     execution_pin: dict[str, str] | None = None
     delivery_hash: str | None = Field(default=None, pattern=HASH)
+    executor_attempt_id: UUID | None = Field(default=None, exclude_if=lambda value: value is None)
+    executor_receipt_hash: str | None = Field(default=None, pattern=HASH, exclude_if=lambda value: value is None)
     result: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def executor_receipt_requires_attempt(self):
+        if self.executor_receipt_hash is not None and self.executor_attempt_id is None:
+            raise ValueError("CLI receipt evidence requires its exact project attempt")
+        return self
 
 
 class MachineDecision(CamelModel):

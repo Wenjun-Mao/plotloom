@@ -200,6 +200,10 @@ class ImageToolEvidence(CamelModel):
     task_id: str | None = Field(default=None, min_length=1, max_length=160)
     native_task_id: UUID | None = None
     image_gen_execution_id: str | None = Field(default=None, min_length=1, max_length=160)
+    executor_attempt_id: UUID | None = Field(default=None, exclude_if=lambda value: value is None)
+    codex_session_id: UUID | None = Field(default=None, exclude_if=lambda value: value is None)
+    image_gen_call_id: str | None = Field(default=None, min_length=1, max_length=160, exclude_if=lambda value: value is None)
+    image_gen_event_id: str | None = Field(default=None, min_length=1, max_length=160, exclude_if=lambda value: value is None)
     # A P1 candidate is specifically evidence of an observed built-in-imagegen
     # run. A no-tool manifest is not a weaker success state; it is invalid.
     available: Literal[True] = True
@@ -238,7 +242,7 @@ class ImageExecutorProvenance(CamelModel):
 class ImageDeliveryManifest(CamelModel):
     """The specialist's completion declaration; bytes remain untrusted."""
 
-    schema_version: Literal[1, 2, 3] = 1
+    schema_version: Literal[1, 2, 3, 4] = 1
     job_id: str = Field(pattern=JOB_ID_PATTERN)
     request_hash: str = Field(pattern=SHA256_PATTERN)
     delivery_id: str = Field(pattern=DELIVERY_ID_PATTERN)
@@ -247,6 +251,7 @@ class ImageDeliveryManifest(CamelModel):
     tool_evidence: ImageToolEvidence
     reference_use: ImageReferenceUse | None = None
     executor_provenance: ImageExecutorProvenance | None = None
+    executor_profile_hash: str | None = Field(default=None, pattern=SHA256_PATTERN, exclude_if=lambda value: value is None)
     limitations: list[str] = Field(default_factory=list, max_length=32)
 
     @field_validator("limitations")
@@ -269,16 +274,27 @@ class ImageDeliveryManifest(CamelModel):
     @model_validator(mode="after")
     def tool_identity_matches_schema(self) -> ImageDeliveryManifest:
         evidence = self.tool_evidence
+        exec_fields = (evidence.executor_attempt_id, evidence.codex_session_id, evidence.image_gen_call_id, evidence.image_gen_event_id)
         if self.schema_version in {1, 2}:
-            if evidence.task_id is None or evidence.native_task_id is not None or evidence.image_gen_execution_id is not None:
+            if (evidence.task_id is None or evidence.native_task_id is not None or evidence.image_gen_execution_id is not None
+                    or any(value is not None for value in exec_fields) or self.executor_profile_hash is not None):
                 raise ValueError("legacy image manifests require taskId and cannot mix identity fields")
-        elif (
+        elif self.schema_version == 3 and (
             evidence.task_id is not None
             or evidence.native_task_id is None
             or evidence.image_gen_execution_id is None
             or evidence.image_gen_execution_id == str(evidence.native_task_id)
+            or any(value is not None for value in exec_fields)
+            or self.executor_profile_hash is not None
         ):
             raise ValueError("schema-v3 image manifests require distinct native and ImageGen execution identities")
+        elif self.schema_version == 4 and (
+            evidence.task_id is not None or evidence.native_task_id is not None
+            or evidence.image_gen_execution_id is not None
+            or any(value is None for value in exec_fields)
+            or self.executor_profile_hash is None
+        ):
+            raise ValueError("schema-v4 image manifests require Codex Exec attempt, session, call, event and profile identities")
         return self
 
     @property
@@ -299,6 +315,18 @@ class ImageDeliveryManifest(CamelModel):
             evidence = payload["toolEvidence"]
             evidence.pop("nativeTaskId", None)
             evidence.pop("imageGenExecutionId", None)
+            evidence.pop("executorAttemptId", None)
+            evidence.pop("codexSessionId", None)
+            evidence.pop("imageGenCallId", None)
+            evidence.pop("imageGenEventId", None)
+            payload.pop("executorProfileHash", None)
+        elif self.schema_version == 3:
+            evidence = payload["toolEvidence"]
+            evidence.pop("executorAttemptId", None)
+            evidence.pop("codexSessionId", None)
+            evidence.pop("imageGenCallId", None)
+            evidence.pop("imageGenEventId", None)
+            payload.pop("executorProfileHash", None)
         return payload
 
     def assert_secret_free(self) -> None:

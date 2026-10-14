@@ -28,6 +28,11 @@ contract.
    process ID, or attempt UUID must never be encoded as a specialist chat ID.
    Existing launch policies and manual specialist packages remain evidence
    of the contract under which they were created; they are not rewritten.
+   Each prepared image owner writes its top-level `executionContract` from the
+   same frozen `specialistPreflight` value. Image attempt keys retain the full
+   per-subject checkpoint identity (for example `character-reference:keeper`);
+   receipt validation compares against that exact key, not the broader owner
+   label.
 
 2. **Keep one immutable job and one durable initial attempt.** Each attempt
    has a unique ID and binds the run, project, operation, frozen request/package
@@ -45,23 +50,46 @@ contract.
    project attempt can cross-bind them. Success requires a zero exit, exact
    process and session identity, output hash, and the domain's expected
    remote-operation outcome. Confirmed remote output retains its byte hash
-   even if the CLI later fails; unresolved facts keep the attempt unknown.
+   even if the CLI later fails; `remoteOutputHash` records the exact generated
+   image bytes while the raw image remains in the private attempt directory.
+   Unresolved facts keep the attempt unknown.
 
 3. **Make the Mac host supervisor the process owner.** The existing creator
    workbench bridge accepts typed attempt identities and frozen profiles; it
    does not accept executable paths, shell text, arbitrary commands, or caller
    selected writable roots. The supervisor persists its reservation and
-   spawn intent before starting one process outside the HTTP request lifetime.
-   It owns a private attempt directory, process-group identity, PID birth
-   evidence, session ID, terminal receipt, and descendant reconciliation.
-   Admission of the same attempt ID is idempotent; another attempt for the same
-   immutable job is refused. The first serial checkpoint admits one host
-   process at a time.
+   spawn intent before starting work outside the HTTP request lifetime. The
+   bridge starts one source-owned, attempt-scoped worker process, which owns
+   the Codex CLI child and terminal publication. The worker records its own
+   PID, process group and birth identity before it can start the CLI, so a
+   bridge restart can reconnect to the same live worker. If that worker dies
+   before terminal settlement, the attempt remains unknown and keeps its host
+   slot. The supervisor owns a private attempt directory, session ID, terminal
+   receipt, and descendant reconciliation. The host ledger enforces one
+   initial attempt for each immutable project/job identity. Admission of the
+   same attempt ID is idempotent; another attempt for the same immutable job
+   is refused. The first serial checkpoint admits one host process at a time.
+   Before persisting spawn intent, the project marks the
+   exact prepared image proposal exported under the same image authority.
+   Reconciliation from a still-reserved attempt may repeat that local
+   transition only when the same job remains current and is already exported;
+   once spawn intent is recorded, host admission resumes with that same
+   attempt ID. The host SQLite transaction is also the cross-process spawn
+   fence: it holds the write reservation across the final cancellation read,
+   Codex `Popen`, and exact PID/group/birth-identity persistence. A bridge
+   cancellation therefore sees either a worker that has not claimed the
+   attempt, which may be settled as not-started, or the exact running process,
+   which it can cancel. A process-local lock alone is insufficient because
+   the bridge and attempt worker are separate processes. Lifecycle snapshot
+   merges preserve recorded process/session facts and reject conflicting
+   identities, so stale snapshots cannot erase ownership evidence.
 
 4. **Keep raw evidence private and typed.** The supervisor stores the exact
    attempt's event stream beneath installation-local application state with
    owner-only directory/file permissions. It parses only versioned event
-   shapes and typed tool arguments from that attempt's session. It never scans
+   shapes and typed tool arguments from that attempt's session. The worker
+   cannot write image outputs or completion markers into the delivery tree;
+   the host copies exact ImageGen event bytes there after validation. It never scans
    unrelated Codex sessions or treats string/regex matches, exit status, or a
    model claim as proof. ImageGen completion requires the supported native
    completion event, exact assigned tool/session identity, validated arguments,
@@ -82,18 +110,37 @@ contract.
    retry. Unknown provider outcomes retain their budget and host reservation
    until exact terminal settlement. PID reuse and orphan descendants are
    fenced before signaling; lack of permission is not proof that a process is
-   gone. Pause stops new scheduling. Cancel and takeover revoke automatic
+   gone. After the CLI leader exits, the host waits briefly for its process
+   group to become empty before trusting outputs. A remaining group becomes
+   `outcome_unknown` and keeps the serial host slot; the host does not signal a
+   group whose original leader identity can no longer be verified. Pause stops
+   new scheduling. Cancel and takeover revoke automatic
    adoption while preserving late bytes and requiring truthful process and
-   remote-operation settlement. Killing the CLI cannot establish that a
-   remote ImageGen operation did not occur.
+   remote-operation settlement. Cancellation sends the full frozen attempt
+   identity to the Mac supervisor and serializes with admission. If cancellation
+   wins before the host creates its durable attempt row, the supervisor records
+   a terminal `not_started` result in that row; a later duplicate admission
+   returns that result without launching. If an unrecorded snapshot already
+   contains process facts, it is retained as `outcome_unknown` and holds the
+   host slot. Killing the CLI cannot establish that a remote ImageGen operation
+   did not occur. A broken assignment write after spawn is retained as unknown
+   even if the CLI exits cleanly, since a partial prompt cannot prove that no
+   remote operation ran. Broken-pipe handling still applies the frozen runtime,
+   cancellation and output watchdog, including termination escalation; it never
+   waits indefinitely for the child. If a text-stage session contains observed
+   ImageGen calls or events, the text attempt remains unknown and retains the
+   host slot. Its domain contract cannot truthfully settle a remote operation
+   that text work forbids.
 
 6. **Validate before existing adoption.** The current stage owners continue to
    validate complete packages and exact output inventories. CLI evidence is
    admitted as a separate typed receipt before the existing currentness and
    compare-and-swap adoption transaction. Receipts, source currentness,
    canonical adoption, material inventory and final human handoff retain their
-   current owners. Portable recovery can inspect settled evidence but cannot
-   reacquire authority to resume a host attempt.
+   current owners. Portable snapshot inventory derives the creative package
+   shape from its v4 checkpoint and requires the exact project attempt receipt
+   for a completed CLI delivery. Recovery can inspect settled evidence but
+   cannot reacquire authority to resume a host attempt.
 
 7. **Keep source-only native capabilities explicit.** Native execution pins
    currently depend on checkout-owned skills and validators. The executor may
@@ -101,6 +148,23 @@ contract.
    installation and match the frozen pins. Installed-wheel startup is not
    evidence that CLI worker capabilities or those resources are available.
    No arbitrary current-directory fallback is permitted.
+
+8. **Keep author, model and trusted-executor fields separate.** The author and
+   canonical project state own the frozen request, accepted revisions,
+   reference identities and stage authority. The model owns only the candidate,
+   report, declared output roles, and its literal ImageGen arguments. It cannot
+   declare a process, CLI session, native task, successful ImageGen event,
+   actual output hash, or executor provenance. The Mac host derives process and
+   session identity from its persisted launch and the exact session file; it
+   parses the literal tool arguments and supported terminal ImageGen event and
+   hashes the resulting bytes. The project binds that private receipt before
+   invoking existing package, currentness and adoption owners. Existing
+   specialist-chat schemas remain unchanged; CLI delivery gets its own typed
+   identity fields and cannot satisfy a native-task UUID slot with a session,
+   process, event, or fabricated chat ID.
+   V4 preserves the frozen local geometry recipe and target dimensions, so
+   existing geometry lineage validation applies to v4 under the same policy
+   hash and output-byte checks.
 
 ## Alternatives rejected
 
@@ -124,9 +188,13 @@ contract.
 ## Consequences and guardrails
 
 The serial executor is a new launch and package contract, not a migration of
-retained runs. Its first checkpoint preserves existing stage order and admits
-one process at a time. Pool scheduling, early-reference dispatch, provisional
-inventory discovery, progress UI and parallel capacity policy are later
+retained runs. Fresh autopilot runs require v4; retained v1–v3 runs may be
+inspected, reconciled as evidence, or handed off, but cannot resume automatic
+specialist dispatch. Existing manual specialist and creative-handoff workflows
+remain available under their own contracts. Its first checkpoint preserves
+existing stage order and admits one process at a time. Pool scheduling,
+early-reference dispatch, provisional inventory discovery, progress UI and
+parallel capacity policy are later
 roadmap checkpoints. Early reference work must disclose its bounded inventory
 consequence and use a separately frozen allowance before it is enabled.
 
@@ -135,3 +203,19 @@ and foreign evidence, omitted ImageGen stdout events, PID reuse/descendants,
 late delivery after stop, exact output hashes and adoption races. Full release
 qualification, disposable native actual-path proof and activation remain
 separate gates.
+
+## Field ownership reviewed before implementation
+
+The creative request and image request are frozen by trusted authoring
+operations; their request hashes and canonical subject/reference bindings are
+authoritative. In current creative and image packages, the worker writes the
+candidate or image completion declaration. Existing `executorProvenance`,
+`taskId`, `nativeTaskId`, and ImageGen claims are validated according to their
+current specialist-chat schemas. The CLI path must use a separate manifest
+identity shape: no `taskId` or `nativeTaskId`; the trusted attempt receipt owns
+CLI/process/session/event provenance and observed bytes. The model's literal
+ImageGen prompt, reference arguments, and transparency setting are recorded as
+observed arguments, then checked against the frozen package references. This
+ownership mapping is the contract for the next CLI-specific package and binder
+changes; it does not rewrite retained specialist receipts or relax their
+validators.

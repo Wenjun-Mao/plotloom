@@ -7,6 +7,7 @@ from ..autopilot_contracts import (
     MachineDecision,
     ProvisionalFrame,
 )
+from ..codex_exec_contracts import CodexExecAttempt, CodexExecReceipt, assert_receipt_matches_attempt
 from ..persistence.codec import stable_hash
 from ..persistence.project.autopilot_bindings import (
     assert_checkpoint_binding,
@@ -20,6 +21,7 @@ STATES = {"running", "waiting", "paused", "cancelled", "stale", "blocked", "awai
 def assert_autopilot_contracts(connection, *, asset_home=None):
     try:
         runs = {}
+        run_policies = {}
         for identifier, project, policy, digest, brief_hash, state, bundle, bundle_hash, handoff in connection.execute(
                 "SELECT id,project_id,policy,policy_hash,brief_hash,state,bundle,bundle_hash,handoff FROM v2_autopilot_runs"):
             raw = json.loads(policy)
@@ -34,11 +36,56 @@ def assert_autopilot_contracts(connection, *, asset_home=None):
             if state == "handed_off" and handoff is None:
                 raise ValueError("handed-off run lacks immutable review evidence")
             runs[identifier] = (project, digest)
-        for identifier, run_id, project, state, raw in connection.execute("SELECT id,run_id,project_id,state,evidence FROM v2_autopilot_checkpoints"):
+            run_policies[identifier] = parsed
+        for identifier, run_id, project, operation_key, state, raw in connection.execute("SELECT id,run_id,project_id,operation_key,state,evidence FROM v2_autopilot_checkpoints"):
             parsed = CheckpointEvidence.model_validate_json(raw)
-            assert_checkpoint_binding(connection, project, state, parsed, run_id=run_id, asset_home=asset_home)
+            assert_checkpoint_binding(connection, project, state, parsed, run_id=run_id,
+                operation_key=operation_key, asset_home=asset_home)
             if run_id not in runs or runs[run_id][0] != project:
                 raise ValueError("checkpoint run identity changed")
+        if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_autopilot_exec_attempts'").fetchone():
+            budget_totals = {}
+            for attempt_id, run_id, project, operation_key, job_id, domain, state, budget_state, reserved, snapshot, raw_receipt in connection.execute(
+                    "SELECT id,run_id,project_id,operation_key,job_id,domain,state,image_budget_state,reserved_image_outputs,snapshot,receipt FROM v2_autopilot_exec_attempts"):
+                raw_attempt = json.loads(snapshot)
+                attempt = CodexExecAttempt.model_validate(raw_attempt)
+                if (str(attempt.attempt_id), str(attempt.run_id), str(attempt.project_id), attempt.operation_key,
+                        attempt.job_id, attempt.domain, attempt.state, attempt.image_budget_state,
+                        attempt.reserved_image_outputs) != (attempt_id, run_id, project, operation_key, job_id, domain, state, budget_state, reserved):
+                    raise ValueError("project CLI attempt index differs from its typed snapshot")
+                if attempt.model_dump(mode="json", by_alias=True) != raw_attempt:
+                    raise ValueError("project CLI attempt snapshot is not canonical")
+                receipt = CodexExecReceipt.model_validate_json(raw_receipt) if raw_receipt is not None else None
+                if attempt.state in {"completed", "settled"} and attempt.terminal_result == "success":
+                    if receipt is None:
+                        raise ValueError("successful project CLI attempt lacks its typed host receipt")
+                    assert_receipt_matches_attempt(attempt, receipt)
+                elif receipt is not None:
+                    raise ValueError("non-successful project CLI attempt cannot retain a success receipt")
+                if runs.get(run_id, (None,))[0] != project:
+                    raise ValueError("project CLI attempt run identity changed")
+                policy = run_policies[run_id]
+                if policy.version == "plotloom.pre-video.v4" and (
+                        policy.executor_binding is None or attempt.profile_hash != policy.executor_binding.profile_hash):
+                    raise ValueError("project CLI attempt profile differs from its frozen launch")
+                checkpoint = connection.execute(
+                    "SELECT evidence FROM v2_autopilot_checkpoints WHERE run_id=? AND operation_key=?",
+                    (run_id, operation_key),
+                ).fetchone()
+                if checkpoint is None:
+                    raise ValueError("project CLI attempt has no owning stage checkpoint")
+                evidence = CheckpointEvidence.model_validate_json(checkpoint[0])
+                if (evidence.executor_attempt_id != attempt.attempt_id or evidence.job_id != attempt.job_id
+                        or evidence.request_hash != attempt.request_hash):
+                    raise ValueError("project CLI attempt differs from its stage checkpoint")
+                expected_receipt = attempt.evidence_hash if attempt.state in {"completed", "failed", "settled"} else None
+                if evidence.executor_receipt_hash != expected_receipt:
+                    raise ValueError("project CLI receipt binding differs from its terminal attempt")
+                if attempt.domain == "image" and attempt.image_budget_state in {"reserved", "consumed"}:
+                    budget_totals[run_id] = budget_totals.get(run_id, 0) + attempt.reserved_image_outputs
+            for run_id, reserved in budget_totals.items():
+                if reserved > run_policies[run_id].max_images:
+                    raise ValueError("project CLI image reservations exceed the frozen run budget")
         for run_id, project, scope, checkpoint, raw in connection.execute("SELECT run_id,project_id,scope,checkpoint_id,decision FROM v2_autopilot_decisions"):
             parsed = MachineDecision.model_validate_json(raw)
             if runs.get(run_id) != (project, parsed.policy_hash) or parsed.scope.value != scope:
@@ -52,7 +99,12 @@ def assert_autopilot_contracts(connection, *, asset_home=None):
                     raise ValueError("decision native owner differs from checkpoint")
             if parsed.evidence.delivery_hash not in {None, recorded.delivery_hash} or any(recorded.result.get(key) != value for key, value in parsed.evidence.result.items()):
                 raise ValueError("decision retained evidence differs from checkpoint")
-            assert_checkpoint_binding(connection, project, "delivered" if parsed.evidence.delivery_hash else "prepared", parsed.evidence, run_id=run_id, asset_home=asset_home)
+            retained_checkpoint = connection.execute(
+                "SELECT operation_key FROM v2_autopilot_checkpoints WHERE id=?", (checkpoint,)
+            ).fetchone()
+            assert_checkpoint_binding(connection, project,
+                "delivered" if parsed.evidence.delivery_hash else "prepared", parsed.evidence,
+                run_id=run_id, operation_key=retained_checkpoint[0], asset_home=asset_home)
         for run_id, project, shot, job, asset, decision, raw in connection.execute("SELECT run_id,project_id,shot_id,job_id,asset_id,decision_id,frame FROM v2_autopilot_frames"):
             parsed = ProvisionalFrame.model_validate_json(raw)
             if runs.get(run_id, (None,))[0] != project or (parsed.shot_id, parsed.job_id, parsed.asset_id) != (shot, job, asset):

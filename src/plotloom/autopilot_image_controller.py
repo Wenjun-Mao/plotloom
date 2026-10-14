@@ -1,15 +1,16 @@
 """Serial native initial images and separately authorized local geometry."""
 from sqlalchemy import select
-from .autopilot_contracts import CheckpointEvidence, CommandAuthority, OperationScope
+from .autopilot_contracts import CheckpointEvidence, CommandAuthority, OperationScope, POLICY_VERSION
 from .autopilot_launch import assert_frozen_execution, assert_frozen_pins, require_job_capacity
+from .autopilot_exec import cancel_codex_exec, reconcile_codex_exec
 from .autopilot_materials import MaterialInventory, initial_inventory, inventory_hash
 from .autopilot_image_selection import select_image, publish_bundle
 from .exceptions import InvalidTransitionError
 from .image_commands import IMAGE_METHODS, image_context, image_package, read_image, send_image, ingest_image
-from .image_job_contracts import NativeTaskBinding
+from .image_job_contracts import ImageJobError, NativeTaskBinding
 from .brief_contracts import ProjectBrief
 from .autopilot_brief_style import image_style_guidance
-from .persistence.schema import AutopilotCheckpointRow, AutopilotDecisionRow
+from .persistence.schema import AutopilotCheckpointRow
 
 
 class AutopilotImageController:
@@ -98,11 +99,17 @@ class AutopilotImageController:
                 raise InvalidTransitionError("prepared image execution differs from launch")
             store.repository.autopilot.checkpoint(key, state="prepared", evidence=evidence)
             store.repository.autopilot.progress("first-frames" if subject.owner == "image" else "references")
-        native_task_binding = self.native_task_binding(view)
-        self.registry.bind_delivery(context["id"], native_task_binding)
-        image_package(store, subject.owner, context["id"], native_task_binding=native_task_binding)
+        if view.policy.version == POLICY_VERSION:
+            image_package(store, subject.owner, context["id"])
+        else:
+            native_task_binding = self.native_task_binding(view)
+            self.registry.bind_delivery(context["id"], native_task_binding)
+            image_package(store, subject.owner, context["id"], native_task_binding=native_task_binding)
 
     def native_step(self, store, view, claim, subject, inventory, checkpoint):
+        if view.policy.version == POLICY_VERSION:
+            self.codex_exec_step(store, view, claim, subject, inventory, checkpoint)
+            return
         if checkpoint["state"] == "delivered":
             with self.command(store, view, claim, OperationScope.SELECT):
                 select_image(store, view, subject, checkpoint, inventory)
@@ -138,15 +145,63 @@ class AutopilotImageController:
                 store.repository.autopilot.checkpoint(checkpoint["operationKey"], state=target, expected_revision=checkpoint["revision"],
                     evidence=evidence.model_copy(update={"result": facts}))
 
+    def codex_exec_step(self, store, view, claim, subject, inventory, checkpoint):
+        if checkpoint["state"] == "delivered":
+            with self.command(store, view, claim, OperationScope.SELECT):
+                select_image(store, view, subject, checkpoint, inventory)
+            return
+        evidence = CheckpointEvidence.model_validate(checkpoint["evidence"])
+        context = image_context(store, subject.owner, evidence.job_id)
+        paths = image_package(store, subject.owner, evidence.job_id)
+
+        def before_spawn():
+            assert_frozen_pins(store, view.policy)
+            current = image_context(store, subject.owner, evidence.job_id)
+            if not current["current"]:
+                raise InvalidTransitionError("image proposal changed before Codex Exec admission")
+            if current["state"] == "prepared":
+                name = IMAGE_METHODS[subject.owner][0]
+                getattr(store.media, f"mark_{name}_exported")(
+                    view.project_id, evidence.job_id, require_prepared=True
+                )
+            elif current["state"] != "exported":
+                raise InvalidTransitionError("image proposal is no longer eligible for first Codex Exec admission")
+
+        attempt, receipt, profile = reconcile_codex_exec(
+            store, self.registry, view, claim, checkpoint,
+            domain="image", package_path=paths["packagePath"], command_factory=self.command,
+            before_spawn=before_spawn,
+        )
+        if attempt.state in {"failed", "settled"} and attempt.terminal_result in {"failure", "not_started"}:
+            raise ImageJobError("codex_exec_attempt_failed", "Codex Exec image attempt failed; preserve the exact attempt for review.")
+        if attempt.state == "outcome_unknown":
+            raise ImageJobError("codex_exec_outcome_unknown", "Codex Exec outcome is being reconciled; do not send another attempt.")
+        if attempt.state == "cancel_requested":
+            return
+        if attempt.state not in {"completed", "settled"} or receipt is None:
+            return
+        delivery = read_image(
+            store, subject.owner, evidence.job_id, context,
+            executor_attempt=attempt, executor_profile=profile, executor_receipt=receipt,
+        )
+        if delivery is None:
+            return
+        current = store.repository.autopilot.current(view.project_id)
+        current_checkpoint = self.checkpoint(current, checkpoint["operationKey"])
+        current_evidence = CheckpointEvidence.model_validate(current_checkpoint["evidence"])
+        self.retain_delivery(store, view, claim, current_checkpoint, current_evidence, context, delivery)
+
     def retain_delivery(self, store, view, claim, checkpoint, evidence, context, delivery):
         provenance = delivery.manifest.executor_provenance
         expected = view.policy.execution_pins["image"]
         native_task_identity = delivery.manifest.native_task_identity
         if (provenance.code_revision != expected["codeRevision"] or provenance.skill_hash != expected["skillHash"]
-                or native_task_identity != view.policy.specialist_bindings["image"]):
+                or (view.policy.version != POLICY_VERSION
+                    and native_task_identity != view.policy.specialist_bindings["image"])):
             raise InvalidTransitionError("image receipt execution differs from frozen policy")
         target = IMAGE_METHODS[evidence.owner][2]
-        self.registry.assert_image_terminal_identity(evidence.job_id, view.policy.specialist_bindings["image"], project_id=view.project_id, target=target)
+        if view.policy.version != POLICY_VERSION:
+            self.registry.assert_image_terminal_identity(evidence.job_id, view.policy.specialist_bindings["image"], project_id=view.project_id, target=target)
         with self.command(store, view, claim, OperationScope.EVIDENCE):
             if view.state in {"cancelled", "taken_over", "stale"}:
                 name = IMAGE_METHODS[evidence.owner][0]
@@ -156,9 +211,12 @@ class AutopilotImageController:
                 "outputRoles": [item.role for item in delivery.outputs]}
             store.repository.autopilot.checkpoint(checkpoint["operationKey"], state="delivered", expected_revision=checkpoint["revision"],
                 evidence=evidence.model_copy(update={"delivery_hash": delivery.manifest_hash, "result": facts}))
-        self.registry.complete(evidence.job_id)
+        if view.policy.version != POLICY_VERSION:
+            self.registry.complete(evidence.job_id)
 
     def settle_delivered(self, view):
+        if view.policy.version == POLICY_VERSION:
+            return
         for checkpoint in view.checkpoints:
             evidence = checkpoint["evidence"]
             if evidence["owner"] in IMAGE_METHODS and checkpoint["state"] in {"delivered", "adopted"} and self.registry.status(evidence["jobId"])["state"] != "completed":
@@ -166,6 +224,9 @@ class AutopilotImageController:
                 self.registry.complete(evidence["jobId"])
 
     def reconcile_inactive(self, store, view, claim):
+        if view.policy.version == POLICY_VERSION:
+            self.reconcile_codex_inactive(store, view, claim)
+            return
         for checkpoint in view.checkpoints:
             evidence = CheckpointEvidence.model_validate(checkpoint["evidence"])
             if evidence.owner not in IMAGE_METHODS or checkpoint["state"] in {"delivered", "adopted"} or self.registry.status(evidence.job_id)["state"] == "prepared":
@@ -176,9 +237,38 @@ class AutopilotImageController:
             if delivery is not None:
                 self.retain_delivery(store, view, claim, checkpoint, evidence, context, delivery)
 
-    @staticmethod
-    def cancel_pending(store, view):
+    def reconcile_codex_inactive(self, store, view, claim):
+        for checkpoint in view.checkpoints:
+            evidence = CheckpointEvidence.model_validate(checkpoint["evidence"])
+            if (evidence.owner not in IMAGE_METHODS or checkpoint["state"] in {"delivered", "adopted"}
+                    or evidence.executor_attempt_id is None):
+                continue
+            context = image_context(store, evidence.owner, evidence.job_id)
+            paths = image_package(store, evidence.owner, evidence.job_id)
+            attempt, receipt, profile = reconcile_codex_exec(
+                store, self.registry, view, claim, checkpoint,
+                domain="image", package_path=paths["packagePath"], command_factory=self.command,
+                allow_admission=False,
+            )
+            if attempt is None or attempt.state not in {"completed", "settled"} or receipt is None:
+                continue
+            delivery = read_image(
+                store, evidence.owner, evidence.job_id, context,
+                executor_attempt=attempt, executor_profile=profile, executor_receipt=receipt,
+            )
+            if delivery is None:
+                continue
+            current = store.repository.autopilot.current(view.project_id)
+            current_checkpoint = self.checkpoint(current, checkpoint["operationKey"])
+            current_evidence = CheckpointEvidence.model_validate(current_checkpoint["evidence"])
+            self.retain_delivery(store, view, claim, current_checkpoint, current_evidence, context, delivery)
+
+    def cancel_pending(self, store, view):
         for checkpoint in view.checkpoints:
             evidence = checkpoint["evidence"]
+            if (view.policy.version == POLICY_VERSION and evidence.get("executorAttemptId")
+                    and checkpoint["state"] not in {"delivered", "adopted"}):
+                cancel_codex_exec(store, self.registry, view.id, checkpoint)
+                continue
             if evidence["owner"] in IMAGE_METHODS and checkpoint["state"] not in {"delivered", "adopted"} and image_context(store, evidence["owner"], evidence["jobId"])["state"] != "delivered":
                 getattr(store.media, f"cancel_{IMAGE_METHODS[evidence['owner']][0]}")(view.project_id, evidence["jobId"], "自动运行已取消或接管。")

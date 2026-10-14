@@ -41,8 +41,8 @@ def mismatch(*, context):
     return (941, 1672) if "shot" in context["request"]["frozenSnapshot"] else None
 
 
-@pytest.mark.parametrize("version", ["plotloom.pre-video.v2", "plotloom.pre-video.v3"])
-def test_geometry_policy_assertion_accepts_retained_v2_and_current_v3(version):
+@pytest.mark.parametrize("version", ["plotloom.pre-video.v2", "plotloom.pre-video.v3", "plotloom.pre-video.v4"])
+def test_geometry_policy_assertion_accepts_retained_and_current_frozen_geometry_versions(version):
     from types import SimpleNamespace
     from plotloom.geometry_preparation import geometry_policy
     from plotloom.persistence.codec import stable_hash
@@ -70,7 +70,7 @@ def test_geometry_policy_assertion_accepts_retained_v2_and_current_v3(version):
 def test_geometry_derivative_retains_original_and_no_native_job_increment(tmp_path, monkeypatch):
     storage, registry, service, view, calls, _ = image_environment(tmp_path, monkeypatch, geometry=mismatch, brief=FIXED_CHINESE_BRIEF.model_copy(update={"aspect_ratio": "9:16", "decision_points_per_path": 1, "ending_count": 2, "desired_join_count": 0}))
     try:
-        assert view.policy.version == "plotloom.pre-video.v3"
+        assert view.policy.version == "plotloom.pre-video.v4"
         result = first_geometry_frame(storage, service, view)
         frame = result.frames[0]; record = frame.geometry_preparation
         assert record and (frame.width, frame.height) == (720, 1280)
@@ -358,6 +358,8 @@ def test_retained_v1_policy_does_not_acquire_geometry_permission():
 
 
 def test_retired_policy_is_refused_at_domain_resume_and_machine_command_boundary(tmp_path):
+    from uuid import uuid4
+
     from plotloom.autopilot_contracts import OperationScope
     from plotloom.contract_hash import stable_hash
     from plotloom.exceptions import InvalidTransitionError
@@ -369,7 +371,10 @@ def test_retired_policy_is_refused_at_domain_resume_and_machine_command_boundary
         run = start_run(store)
         with store.repository._write() as session:
             row = session.get(AutopilotRunRow, run.id)
-            policy = dict(row.policy); policy.pop("geometryPreparation"); policy["version"] = "plotloom.pre-video.v1"
+            policy = dict(row.policy)
+            policy.pop("executorBinding")
+            policy["version"] = "plotloom.pre-video.v3"
+            policy["specialistBindings"] = {"text": str(uuid4()), "image": str(uuid4())}
             row.policy = policy; row.policy_hash = stable_hash(policy)
         for scope in [OperationScope.SOURCE, OperationScope.TEXT, OperationScope.INSTALL, OperationScope.IMAGE, OperationScope.GEOMETRY, OperationScope.SELECT]:
             with pytest.raises(InvalidTransitionError, match="retired"):

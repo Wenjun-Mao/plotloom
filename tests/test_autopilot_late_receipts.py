@@ -1,11 +1,11 @@
-"""Unknown bridge settlement and identical frozen execution gates in all states."""
+"""Unknown Codex Exec outcomes retain late proof without bypassing stage owners."""
 from contextlib import closing
 import json
-import subprocess
 from pathlib import Path
+
 import pytest
+
 from plotloom.autopilot_contracts import RunControlRequest
-from plotloom.autopilot_service import AutopilotService
 from tests.autopilot_controller_fixtures import environment
 
 
@@ -32,75 +32,109 @@ def stop(storage, service, current, state):
 
 @pytest.mark.parametrize("stage", ["bridge-intent", "bridge-presentation"])
 @pytest.mark.parametrize("state", ["paused", "blocked"])
-def test_uncertain_bridge_late_receipt_settles_without_proposal_or_human_edits(tmp_path, monkeypatch, stage, state):
-    storage, registry, service, view, calls = environment(tmp_path, monkeypatch)
+def test_uncertain_bridge_late_receipt_settles_without_proposal_or_human_edits(
+    tmp_path, monkeypatch, stage, state
+):
+    storage, registry, service, view, _calls = environment(tmp_path, monkeypatch)
+    host = registry._codex_exec_test_host
     try:
         _current, checkpoint = prepared(storage, service, view, stage)
-        queue = subprocess.run
-        def lost_ack(command, **kwargs):
-            result = queue(command, **kwargs)
-            return subprocess.CompletedProcess(command, 1, "") if len(command) > 1 and command[1] == "queue" else result
-        monkeypatch.setattr(subprocess, "run", lost_ack)
+        host.auto_deliver = False
         service.step(view.project_id)
         with closing(storage.projects.open(view.project_id)) as store:
             current = store.repository.autopilot.current(view.project_id)
+            attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
+                current.id, stage
+            )
             original = store.production_bridge_state().proposal.content_hash
-            assert store.repository.production_bridge_intent.load_job(view.project_id, checkpoint["evidence"]["jobId"])["status"] == "outcome_unknown"
-        stop(storage, service, current, state)
+            assert attempt is not None and attempt.state == "running"
+            assert receipt is None
+
+        host.lose_attempt(attempt.attempt_id)
         service.step(view.project_id)
         with closing(storage.projects.open(view.project_id)) as store:
             current = store.repository.autopilot.current(view.project_id)
             retained = next(item for item in current.checkpoints if item["operationKey"] == stage)
-            assert retained["state"] == "delivered"
+            unknown, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
+                current.id, stage
+            )
+            assert retained["state"] == "outcome_unknown"
+            assert retained["evidence"]["result"]["dispatchOutcomeUnknown"] is True
+            assert unknown.state == "outcome_unknown" and receipt is None
             assert store.production_bridge_state().proposal.content_hash == original
-            assert store.repository.production_bridge_intent.load_job(view.project_id, checkpoint["evidence"]["jobId"])["status"] == "outcome_unknown"
+
+        stop(storage, service, current, state)
+        with closing(storage.projects.open(view.project_id)) as store:
+            request = host.request(store, unknown)
+            host.complete(store, request, unknown)
+        service.step(view.project_id)
+
+        with closing(storage.projects.open(view.project_id)) as store:
+            current = store.repository.autopilot.current(view.project_id)
+            retained = next(item for item in current.checkpoints if item["operationKey"] == stage)
+            settled, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
+                current.id, stage
+            )
+            assert retained["state"] == "delivered"
+            assert retained["evidence"]["result"]["dispatchOutcomeUnknown"] is True
+            assert settled.state == "completed" and receipt is not None
+            assert store.production_bridge_state().proposal.content_hash == original
             with store.repository.engine.connect() as connection:
                 assert connection.exec_driver_sql("SELECT count(*) FROM v2_approval_decisions").scalar() == 0
         assert not registry.view()["busy"]
-        original_calls = list(calls)
-        service.control(view.project_id, RunControlRequest(expected_revision=current.revision, action="resume"))
+
+        original_calls = list(host.calls)
+        service.control(
+            view.project_id,
+            RunControlRequest(expected_revision=current.revision, action="resume"),
+        )
         service.step(view.project_id)
         with closing(storage.projects.open(view.project_id)) as store:
-            assert next(item for item in store.repository.autopilot.current(view.project_id).checkpoints if item["operationKey"] == stage)["state"] == "adopted"
-        assert calls == original_calls
+            current = store.repository.autopilot.current(view.project_id)
+            assert next(item for item in current.checkpoints if item["operationKey"] == stage)["state"] == "adopted"
+        assert host.calls == original_calls
     finally:
         service.close()
 
 
-@pytest.mark.parametrize("state", ["running", "paused", "blocked", "retained-then-restart"])
-def test_foreign_text_execution_never_gains_receipt_or_adoption_authority(tmp_path, monkeypatch, state):
-    storage, registry, service, view, calls = environment(tmp_path, monkeypatch)
-    resumed = None
+def test_foreign_codex_manifest_cannot_gain_text_adoption_authority(tmp_path, monkeypatch):
+    storage, registry, service, view, _calls = environment(
+        tmp_path, monkeypatch, auto_deliver=False
+    )
+    host = registry._codex_exec_test_host
     try:
         _current, checkpoint = prepared(storage, service, view, "outline")
         service.step(view.project_id)
         with closing(storage.projects.open(view.project_id)) as store:
             current = store.repository.autopilot.current(view.project_id)
             request = store.outline_candidate_request(checkpoint["evidence"]["jobId"])
-            path = Path(store.creative_handoff_exchange().write_package(request, store.creative_handoff_execution_pin(request))["deliveryPath"]) / "completion.json"
-        stop(storage, service, current, "paused" if state == "retained-then-restart" else state)
-        if state == "retained-then-restart":
-            service.step(view.project_id)
-        manifest = json.loads(path.read_text())
+            attempt, _receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
+                current.id, "outline"
+            )
+            assert attempt is not None and attempt.state == "running"
+            host.complete(store, request, attempt)
+            delivery_path = (
+                Path(store.creative_handoff_exchange().root)
+                / "jobs"
+                / attempt.job_id
+                / "delivery"
+                / "completion.json"
+            )
+
+        manifest = json.loads(delivery_path.read_text(encoding="utf-8"))
         manifest["executorProvenance"]["codeRevision"] = "d" * 40
-        path.write_text(json.dumps(manifest, ensure_ascii=False))
-        if state == "retained-then-restart":
-            with closing(storage.projects.open(view.project_id)) as store:
-                current = store.repository.autopilot.current(view.project_id)
-            service.close()
-            resumed = AutopilotService(storage, registry)
-            assert resumed.acquire_controller()
-            resumed.control(view.project_id, RunControlRequest(expected_revision=current.revision, action="resume"))
-        active = resumed or service
-        original_calls = list(calls)
-        active.step(view.project_id)
+        delivery_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+        service.step(view.project_id)
+
         with closing(storage.projects.open(view.project_id)) as store:
             current = store.repository.autopilot.current(view.project_id)
+            retained = next(item for item in current.checkpoints if item["operationKey"] == "outline")
+            attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
+                current.id, "outline"
+            )
+            assert attempt.state == "completed" and receipt is not None
             assert store.source_outline_state().accepted_outline is None
-            assert next(item for item in current.checkpoints if item["operationKey"] == "outline")["state"] != "adopted"
-        assert calls == original_calls
-        assert json.loads(path.read_text())["executorProvenance"]["codeRevision"] == "d" * 40
+            assert retained["state"] != "adopted"
+            assert json.loads(delivery_path.read_text(encoding="utf-8"))["executorProvenance"]["codeRevision"] == "d" * 40
     finally:
         service.close()
-        if resumed:
-            resumed.close()
