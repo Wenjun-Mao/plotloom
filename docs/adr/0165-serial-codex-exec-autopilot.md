@@ -225,6 +225,21 @@ generated files in `delivery`.
    symlink/traversal sentinels before any provider dispatch; post-delivery
    package rejection is not pre-read protection.
 
+   Frozen visual-style authority also selects the deterministic stage
+   validator. A `saved_brief` authority in the exact frozen Cast, Art, or
+   Storyboard input contract routes to its neutral Brief adapter and the
+   source-owned upstream structural gate; a preset Cast or Art contract keeps
+   the existing preset adapter. The host verifies a saved-Brief contract
+   against its source-owned policy before granting the adapter. It permits
+   only that adapter, its exact policy file, and the pinned stage resources.
+   In particular, the F5A adapter reads `src/plotloom/storyboard_brief_style.py`
+   to verify the contract's validator hash, so that exact file belongs in the
+   Storyboard read allowlist. Codex remains in `delivery`: Plotloom validator
+   commands use the absolute `$PLOTLOOM_SOURCE_ROOT` path, while candidate,
+   report, and package-input paths resolve from `delivery`. This changes only
+   the shell path base from legacy repository-root instructions; it does not
+   change saved-Brief authority or any stage validation rule.
+
    Upstream skill commands bind `{baseDir}` to the directory containing the
    exact pinned `upstreamSkillPath` in `request.json`.
    `$PLOTLOOM_SOURCE_ROOT` remains the checkout root for Plotloom-owned

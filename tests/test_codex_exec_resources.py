@@ -7,12 +7,13 @@ from pathlib import Path
 
 import pytest
 
+from plotloom.autopilot_brief_style import freeze_brief_style
 from plotloom.codex_exec_resources import (
     CodexExecResourceError,
     codex_exec_source_read_paths,
     upstream_skill_path_for_stage,
 )
-
+from plotloom.storyboard_brief_style import freeze_storyboard_brief_style
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -112,6 +113,70 @@ def test_node_stage_allowlist_pins_only_its_skill_adapter_and_runtime(tmp_path):
         node_executable.parent.parent,
     }
     assert (ROOT / ".venv").resolve() not in paths
+
+
+@pytest.mark.parametrize(
+    ("stage", "contract_filename", "contract", "adapter", "policy"),
+    [
+        (
+            "characters",
+            "cast-style-contract.json",
+            freeze_brief_style("hand-cut paper collage"),
+            "scripts/brief-cast-style.mjs",
+            "src/plotloom/autopilot_brief_style.py",
+        ),
+        (
+            "art",
+            "art-style-contract.json",
+            freeze_brief_style("hand-cut paper collage"),
+            "scripts/brief-art-style.mjs",
+            "src/plotloom/autopilot_brief_style.py",
+        ),
+        (
+            "storyboard",
+            "storyboard-style-contract.json",
+            freeze_storyboard_brief_style(freeze_brief_style("hand-cut paper collage")),
+            "scripts/brief-storyboard-style.mjs",
+            "src/plotloom/storyboard_brief_style.py",
+        ),
+    ],
+)
+def test_saved_brief_source_allowlist_selects_neutral_adapter_and_exact_policy(
+    stage: str, contract_filename: str, contract: dict, adapter: str, policy: str,
+):
+    request = {
+        "stage": stage,
+        "upstreamSkillPath": upstream_skill_path_for_stage(stage),
+        "executionPin": _pin(stage),
+        "inputArtifacts": {contract_filename: contract},
+    }
+
+    paths = set(codex_exec_source_read_paths(ROOT, request))
+    node_executable = Path(shutil.which("node")).resolve(strict=True)
+    expected = {
+        (ROOT / f"third_party/shuohao-skills/skills/novel-{stage}").resolve(),
+        (ROOT / adapter).resolve(),
+        (ROOT / policy).resolve(),
+        node_executable.parent.parent,
+    }
+    assert paths == expected
+    if stage == "characters":
+        assert (ROOT / "scripts/cast-style.mjs").resolve() not in paths
+    elif stage == "art":
+        assert (ROOT / "scripts/art-style.mjs").resolve() not in paths
+
+
+def test_saved_brief_resource_route_fails_closed_for_mutated_contract():
+    contract = freeze_brief_style("hand-cut paper collage") | {"direction": "new direction"}
+    request = {
+        "stage": "characters",
+        "upstreamSkillPath": upstream_skill_path_for_stage("characters"),
+        "executionPin": _pin("characters"),
+        "inputArtifacts": {"cast-style-contract.json": contract},
+    }
+
+    with pytest.raises(CodexExecResourceError, match="saved-Brief contract"):
+        codex_exec_source_read_paths(ROOT, request)
 
 
 def test_source_allowlist_rejects_a_forged_stage_path_or_pin():

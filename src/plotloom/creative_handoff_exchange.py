@@ -13,10 +13,6 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from .creative_handoff_contracts import (
-    CreativeDeliveryManifest, CreativeHandoffError, CreativeHandoffRequest,
-    is_creative_job_id,
-)
 from .codex_exec_contracts import (
     CodexExecAttempt,
     CodexExecProfile,
@@ -24,7 +20,15 @@ from .codex_exec_contracts import (
     assert_receipt_matches_attempt,
 )
 from .codex_exec_resources import upstream_skill_path_for_stage
-
+from .codex_exec_stage_routing import (
+    codex_exec_stage_validator_instructions,
+)
+from .creative_handoff_contracts import (
+    CreativeDeliveryManifest,
+    CreativeHandoffError,
+    CreativeHandoffRequest,
+    is_creative_job_id,
+)
 
 PACKAGE_VERSION = 1
 COMPLETION_FILENAME = "completion.json"
@@ -299,22 +303,9 @@ class CreativeHandoffExchange:
                     f"Validate with {presentation_runner} validate {presentation_candidate} --request {branch_request}, then "
                     f"render with the same command and arguments using render, redirecting to {branch_report}. "
                 )
-            elif request.stage == "characters":
-                cast_candidate = shlex.quote(str(self._job_root(request.job_id) / "delivery" / "cast.json"))
-                cast_contract = shlex.quote(str(self._job_root(request.job_id) / "package" / "inputs" / "cast-style-contract.json"))
-                cast_runner = '"$PLOTLOOM_NODE" "$PLOTLOOM_SOURCE_ROOT/scripts/cast-style.mjs"'
-                codex_validator_instruction += (
-                    f"Validate with {cast_runner} validate {cast_candidate} --request {branch_request} --contract {cast_contract}, then "
-                    f"render with the same arguments using render --html, redirecting to {branch_report}. "
-                )
-            elif request.stage == "art":
-                art_candidate = shlex.quote(str(self._job_root(request.job_id) / "delivery" / "art.json"))
-                cast_input = shlex.quote(str(self._job_root(request.job_id) / "package" / "inputs" / "cast.json"))
-                art_contract = shlex.quote(str(self._job_root(request.job_id) / "package" / "inputs" / "art-style-contract.json"))
-                art_runner = '"$PLOTLOOM_NODE" "$PLOTLOOM_SOURCE_ROOT/scripts/art-style.mjs"'
-                codex_validator_instruction += (
-                    f"Validate with {art_runner} validate {art_candidate} --cast {cast_input} --contract {art_contract}, then "
-                    f"render with the same arguments using render --html, redirecting to {branch_report}. "
+            elif request.stage in {"characters", "art", "storyboard"}:
+                codex_validator_instruction += codex_exec_stage_validator_instructions(
+                    request.stage, projected, self._job_root(request.job_id)
                 )
             else:
                 codex_validator_instruction += (
@@ -393,7 +384,7 @@ class CreativeHandoffExchange:
         request.assert_secret_free()
         job_root = self._job_root(request.job_id)
         package = job_root / "package"
-        projected, instructions, template, expected = self._projection(request, execution_pin, executor_backend=executor_backend)
+        projected, instructions, template, _expected = self._projection(request, execution_pin, executor_backend=executor_backend)
         self._names(package, package=True)
         if package.exists():
             self._verify_frozen_package(request, execution_pin, executor_backend=executor_backend)

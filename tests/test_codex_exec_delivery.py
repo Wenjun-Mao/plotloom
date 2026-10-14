@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from hashlib import sha256
 import json
+from hashlib import sha256
 from pathlib import Path
 from uuid import uuid4
 
 import pytest
 
+from plotloom.autopilot_brief_style import brief_stage_instructions, freeze_brief_style
 from plotloom.codex_exec_contracts import (
     CodexExecAttempt,
     CodexExecOutputEvidence,
@@ -15,8 +16,19 @@ from plotloom.codex_exec_contracts import (
     output_manifest_hash,
 )
 from plotloom.codex_exec_delivery import publish_creative_completion
-from plotloom.creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
-from plotloom.creative_handoff_exchange import CreativeHandoffExchange, canonical_json, request_hash
+from plotloom.creative_handoff_contracts import (
+    CreativeHandoffError,
+    CreativeHandoffRequest,
+)
+from plotloom.creative_handoff_exchange import (
+    CreativeHandoffExchange,
+    canonical_json,
+    request_hash,
+)
+from plotloom.storyboard_brief_style import (
+    freeze_storyboard_brief_style,
+    storyboard_brief_instructions,
+)
 
 
 def _request() -> CreativeHandoffRequest:
@@ -183,6 +195,82 @@ def test_cli_assignment_maps_base_dir_to_the_pinned_skill_directory(
     expected = f'`"$PLOTLOOM_SOURCE_ROOT/third_party/shuohao-skills/skills/{skill_directory}"`'
     assert expected in instructions
     assert "substitute the checkout root for `{baseDir}`" not in instructions
+
+
+def _saved_brief_request(stage: str) -> CreativeHandoffRequest:
+    parent = freeze_brief_style("hand-cut paper collage")
+    if stage == "characters":
+        input_artifacts = {"cast-style-contract.json": parent}
+        creative_brief = brief_stage_instructions("cast")
+    elif stage == "art":
+        input_artifacts = {"cast.json": {}, "art-style-contract.json": parent}
+        creative_brief = brief_stage_instructions("art")
+    else:
+        input_artifacts = {
+            "storyboard-style-contract.json": freeze_storyboard_brief_style(parent),
+        }
+        creative_brief = storyboard_brief_instructions()
+    source = (
+        {"acceptedScriptRevision": 1, "acceptedScriptContentHash": "a" * 64}
+        if stage == "storyboard"
+        else {"kind": "synopsis", "text": "A ferryman faces one irreversible choice."}
+    )
+    value = _request().model_dump(mode="json", by_alias=True) | {
+        "stage": stage,
+        "source": source,
+        "inputArtifacts": input_artifacts,
+        "creativeBrief": creative_brief,
+    }
+    return CreativeHandoffRequest.model_validate(value)
+
+
+@pytest.mark.parametrize(
+    ("stage", "contract_filename", "adapter", "commands"),
+    [
+        (
+            "characters", "cast-style-contract.json", "brief-cast-style.mjs",
+            (
+                'validate cast.json --request ../package/request.json',
+                'render cast.json --request ../package/request.json > report.html',
+            ),
+        ),
+        (
+            "art", "art-style-contract.json", "brief-art-style.mjs",
+            (
+                'validate art.json --cast ../package/inputs/cast.json',
+                'render art.json --cast ../package/inputs/cast.json > report.html',
+            ),
+        ),
+        (
+            "storyboard", "storyboard-style-contract.json", "brief-storyboard-style.mjs",
+            (
+                'validate storyboard.json --request ../package/request.json',
+                'render storyboard.json --request ../package/request.json > report.html',
+            ),
+        ),
+    ],
+)
+def test_cli_saved_brief_package_routes_neutral_validator_from_delivery(
+    tmp_path: Path, stage: str, contract_filename: str, adapter: str, commands: tuple[str, str],
+):
+    request = _saved_brief_request(stage)
+    exchange = CreativeHandoffExchange(tmp_path / "project" / "outputs" / "creative-handoff")
+    pin = exchange.current_execution_pin(request.stage)
+    paths = exchange.write_package(request, pin, executor_backend="codex_exec")
+    package = Path(paths["packagePath"])
+    instructions = (package / "COPY_ASSIGNMENT.txt").read_text(encoding="utf-8")
+    package_request = json.loads((package / "request.json").read_text(encoding="utf-8"))
+
+    assert package_request["inputArtifacts"][contract_filename] == request.input_artifacts[contract_filename]
+    assert (package / "inputs" / contract_filename).is_file()
+    assert f'"$PLOTLOOM_SOURCE_ROOT/scripts/{adapter}"' in instructions
+    assert "replace only that shell path base and entrypoint syntax" in instructions
+    for command in commands:
+        assert command in instructions
+    if stage == "characters":
+        assert "/scripts/cast-style.mjs" not in instructions
+    elif stage == "art":
+        assert "/scripts/art-style.mjs" not in instructions
 
 
 @pytest.mark.parametrize(

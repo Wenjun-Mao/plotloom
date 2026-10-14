@@ -189,6 +189,8 @@ def _required_tool_paths(source_root: Path, plan: _StageResources) -> tuple[tupl
 
 def codex_exec_source_resources(source_root: Path, package_request: dict) -> CodexExecSourceResources:
     """Validate exact pinned stage resources and return their read-only roots and tools."""
+    from .codex_exec_stage_routing import codex_exec_saved_brief_route
+
     root = source_root.expanduser().resolve(strict=True)
     stage = package_request.get("stage")
     try:
@@ -231,7 +233,12 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
         if revision != pin["upstreamRevision"]:
             raise CodexExecResourceError("pinned native contract revision differs from the frozen package")
 
-    relative_paths = [plan.upstream_read_path, *plan.validator_paths]
+    try:
+        saved_brief_route = codex_exec_saved_brief_route(stage, package_request)
+    except (TypeError, ValueError) as error:
+        raise CodexExecResourceError("frozen saved-Brief contract does not match its source policy") from error
+    validator_paths = saved_brief_route.source_paths if saved_brief_route else plan.validator_paths
+    relative_paths = [plan.upstream_read_path, *validator_paths]
     if plan.python_project:
         relative_paths.extend(("src/plotloom", "pyproject.toml", "uv.lock", ".venv"))
     paths = list(dict.fromkeys(_source_path(root, relative) for relative in relative_paths))
