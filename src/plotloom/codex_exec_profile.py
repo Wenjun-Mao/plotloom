@@ -75,6 +75,7 @@ VALIDATOR_FILES = (
     "services/creator_workbench/codex_exec_supervisor_job.py",
     "services/creator_workbench/codex_exec_supervisor_ledger.py",
     "services/creator_workbench/codex_exec_supervisor_process.py",
+    "services/creator_workbench/codex_exec_supervisor_image.py",
     "services/creator_workbench/codex_exec_supervisor_terminal.py",
     "services/creator_workbench/codex_exec_supervisor_worker.py",
     "services/creator_workbench/host_bridge.py",

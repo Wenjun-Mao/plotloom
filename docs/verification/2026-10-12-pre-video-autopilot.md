@@ -2571,3 +2571,31 @@ unused-import, all 1,377 frontend unit tests, and frontend/browser-fixture type
 checks. Quick excludes Python integration, browser execution, bundle parity,
 wheel and installed-wheel smoke. No full gate or provider/native dispatch ran
 for this source candidate; those remain under manager review.
+
+### Source candidate checkpoint: supervisor image helper extraction · 2026-10-14
+
+The supervisor process module had grown to 603 lines. Image reference matching,
+reference-view binding, trusted image copying, and image completion evidence now
+live in `services/creator_workbench/codex_exec_supervisor_image.py`; the process
+module is 472 lines. Receipt contents and attempt/error ordering remain the same.
+The new helper is included in `VALIDATOR_FILES`, so its source is covered by the
+frozen validator hash.
+
+The profile-owner focused selection passed 2 tests. The service selections passed
+47 tests (`test_codex_exec_supervisor.py`, `test_codex_exec_supervisor_ledger.py`,
+and `test_bridge.py`) using the locked environment; `verify.py focused` accepts
+pytest selectors under `tests/`, so the service files were run through explicit
+`uv run --locked --no-sync pytest` selectors. An initial overlapping run reported
+one profile mismatch because the process source was edited to remove a trailing
+blank line while that test process was still running. The source-bound profile
+guard rejected the changed input; the isolated case then passed, and the complete
+service selection passed after the source was stable.
+
+`ruff check --select I,F` on the changed Python files and `git diff --check` pass.
+A broader Ruff invocation also surfaced existing findings in the unchanged
+process orchestration code (`BLE001`, `S110`, `SIM102`, `SIM117`, `TRY201`); those
+were outside this extraction. Independent read-only review found no issues in
+method resolution, preserved behavior, receipt ordering, or validator ownership.
+Previously passed quick/frontend evidence was reused because those inputs did not
+change. No full gate, native CLI, provider dispatch, ImageGen, hosted CI, or live
+activation ran for this checkpoint.

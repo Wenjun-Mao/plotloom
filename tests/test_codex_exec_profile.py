@@ -2,7 +2,11 @@ from pathlib import Path
 
 import pytest
 
-from plotloom.codex_exec_profile import DISABLED_CLI_FEATURES, VALIDATOR_FILES, cli_feature_flags
+from plotloom.codex_exec_profile import (
+    DISABLED_CLI_FEATURES,
+    VALIDATOR_FILES,
+    cli_feature_flags,
+)
 
 
 def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources() -> None:
@@ -30,6 +34,7 @@ def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources()
         "services/creator_workbench/codex_exec_supervisor_job.py",
         "services/creator_workbench/codex_exec_supervisor_ledger.py",
         "services/creator_workbench/codex_exec_supervisor_process.py",
+        "services/creator_workbench/codex_exec_supervisor_image.py",
         "services/creator_workbench/codex_exec_supervisor_terminal.py",
         "services/creator_workbench/codex_exec_supervisor_worker.py",
         "services/creator_workbench/host_bridge.py",
