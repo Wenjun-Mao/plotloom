@@ -242,6 +242,24 @@ Production scanning and all acceptance/permission/generation bounds stay
 unchanged. The single native session allowance was not consumed by preflight;
 any actual native failure still stops without automatic retry.
 
+The revised proof at unchanged `ad3ccf58` passed. Exact native session
+`01a13911-06ef-7e41-9e6e-9d026776f52f` contains one paired call / `ImageView` /
+`input_image` at ordinals 12 / 14 / 15. The production parser accepted all
+297,396 bytes, matching the frozen PNG SHA-256
+`2f2cb5d3172b3d3757a635bd30226d14f29c50df97016ae1c13c244a065f10e4`.
+The manager independently re-parsed that exact session and verified its hash,
+unchanged source/input hashes, original failed-plan/runner hashes and absent
+owned process group. There were no ImageGen calls or generation events.
+Private evidence is retained in the worker's ignored
+`.local/native-proof/genuine-pixel-view-ad3ccf58-revised-20261014/`; session
+SHA-256 is `a03ecd24d5f83463520f31a462e7624ca1026322464e0db85abdc2a8183b6cb6`.
+This closes genuine reference-pixel delivery only, not ImageGen confinement or
+production serial execution. The worker is allocated preparation and dry
+checks for a new ImageGen pre-read plan using the exact v4 profile and
+`referenced_image_paths`; the stale v3 plan remains unexecuted. Its proposed
+negative outside-reference call, positive control and serial canaries each
+remain held pending the manager's explicit next allocation.
+
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
 workers with 13.762 seconds of actual tool-interval overlap. All processes
