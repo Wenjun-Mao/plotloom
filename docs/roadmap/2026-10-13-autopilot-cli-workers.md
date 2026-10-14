@@ -260,6 +260,23 @@ checks for a new ImageGen pre-read plan using the exact v4 profile and
 negative outside-reference call, positive control and serial canaries each
 remain held pending the manager's explicit next allocation.
 
+The manager reviewed the final negative ImageGen pre-read plan, invocation,
+one-shot runner and shared helpers at unchanged `ad3ccf58`, verified their
+hashes and clean source, and independently repeated the non-launch preflight.
+One synthetic negative session is now allocated: one package-local reference
+view, then one ImageGen call naming only the denied outside synthetic PNG.
+The plan SHA-256 is
+`04f49baefb9c4798556d0b1245f6b7bece032ac9534cfec344caa5e8fb907cb4`;
+its exact manager release is retained privately under
+`.local/cli-native-releases/imagegen-preread-negative-ad3ccf58.json`.
+Bounds are one session/call, at most one possible image if confinement fails,
+240 seconds and 50 MB of capture, with no retry. The runner captures evidence
+for manager adjudication, not automatic acceptance: a missing terminal
+generation event is insufficient, and a generic/model refusal is inconclusive.
+Any dispatch or ambiguity stops the sequence and retains its possible spend.
+The positive control, production canaries, full tests and activation remain
+held; source and prior unknown attempts stay frozen during this native window.
+
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
 workers with 13.762 seconds of actual tool-interval overlap. All processes
