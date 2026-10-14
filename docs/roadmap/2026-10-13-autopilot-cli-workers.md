@@ -192,6 +192,25 @@ allocated with the same four synthetic view cases and zero ImageGen calls.
 Effective feature inspection must precede launch; production edits and
 generation remain held until the actual view results are reviewed.
 
+The corrected session `01a138cb-c1bd-7db1-bdb6-5a355363ba4c` loaded the
+allowed synthetic PNG (native `ImageView` event) and returned path-specific
+permission errors for outside absolute, traversal and symlink reads. The
+manager inspected the paired calls and matched the retained session hash
+`104764341073ac0f2b8cf5bc98cf4d512a4d000908a10c27da0927a8661e3f42`.
+It made no ImageGen call and preserved the synthetic files. This is scoped
+loader evidence, not visual-delivery qualification: the positive call emitted
+base64 text, not an image content block, due to the probe's incorrect MIME
+check. A subsequent hardcoded success flag does not repair that evidence.
+
+The sole writer is now released for the domain-specific profile, strict
+view/event/pixel pairing, actual ImageGen argument name and honest reference
+receipt repair, with focused tests and stable independent review. Required
+reference roles and admission/recovery must agree with the frozen package;
+attachments alone cannot become viewed hashes. No further native session,
+ImageGen call, full gate or activation is allocated at this source checkpoint.
+The next native proof must show genuine pixel delivery before proceeding to
+ImageGen-specific pre-read confinement and real serial package execution.
+
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
 workers with 13.762 seconds of actual tool-interval overlap. All processes
