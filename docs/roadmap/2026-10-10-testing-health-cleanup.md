@@ -1146,3 +1146,36 @@ assertions. Shared/full-size and geometry/recovery owners stay unchanged.
 Three representative rows and two unchanged recovery/geometry controls are
 preselected for three matched fresh-root samples. The sample harness is ready,
 but baseline timing and source edits wait for the CLI native window to close.
+
+### Early image-safety fixture checkpoint — October 14
+
+Three quiet five-case baseline samples at clean `d6f09d95` passed in
+47.737s, 44.708s and 45.354s (median 45.354s). The selection retains three
+early safety rows and unchanged unknown-image restart and derivative-handoff
+controls. Each sample used a fresh root and the same locked dependencies;
+exact commands, fingerprints and raw-log hashes are retained in
+`.local/remaining-cost/safety-baseline.json`.
+
+The one-file candidate explicitly uses the existing six-frame handoff fixture
+for all nineteen safety rows, with guards for eight real text stages, two
+routes and six inventory frames. Every prior assertion and parameter row is
+retained. Shared fixture defaults, full 27-frame completion and the unchanged
+recovery/geometry owners are untouched. Independent read-only review found no
+actionable issue, including historical pin/schema-2 handling, late delivery,
+actual restart, immutable evidence and function-scoped monkeypatch isolation.
+This is static review, not executed correctness or performance evidence.
+
+The CLI owner has the native/focused window. Candidate checks and matched
+timing wait for its release; no competing manager suite is running. Next run
+all nineteen safety cases plus unchanged full-pack, recovery and derivative
+controls, then the three matched samples at a clean reviewed checkpoint. The
+85-percent whole-Python target remains unmet.
+
+The worker subsequently released the window after an inconclusive native
+boundary probe. Manager focused verification passed all 22 selected cases
+(nineteen safety rows plus unchanged full-pack, recovery and derivative
+controls), and seven ownership tests passed. Targeted static checks passed;
+the receipt discloses the pre-existing broader Ruff style warning. The clean
+candidate checkpoint and three matched timing samples are next. CLI source
+repair may proceed independently, but its tests/native dispatch stay held
+until these samples finish.

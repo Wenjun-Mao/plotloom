@@ -1,13 +1,34 @@
 """Attended P3 lifecycle, dispatch and immutable output-association regressions."""
-from contextlib import closing
 import json
+from contextlib import closing
+
 import pytest
+
 from plotloom.autopilot_contracts import CheckpointEvidence, RunControlRequest
+from plotloom.autopilot_materials import initial_inventory
 from plotloom.autopilot_service import AutopilotService
 from plotloom.image_commands import image_context
 from plotloom.persistence.project.autopilot_bindings import assert_checkpoint_binding
-from tests.autopilot_image_fixtures import deliver_image, image_environment
+from tests.autopilot_image_fixtures import deliver_image, handoff_image_environment
 from tests.test_autopilot_images import current, sent_reference
+
+
+def safety_environment(tmp_path, monkeypatch, *, auto_deliver=True):
+    """Keep real stage/receipt boundaries; later unused frame count is incidental."""
+    values = handoff_image_environment(
+        tmp_path, monkeypatch, auto_deliver=auto_deliver, cuts_per_scene=2
+    )
+    storage, _registry, service, view, _calls, text_calls = values
+    try:
+        assert len(text_calls) == 8
+        with closing(storage.projects.open(view.project_id)) as store:
+            inventory = initial_inventory(store, view.policy)
+        assert inventory.route_count == 2
+        assert sum(subject.owner == "image" for subject in inventory.subjects) == 6
+    except Exception:
+        service.close()
+        raise
+    return values
 
 
 def legacy_image_environment(tmp_path, monkeypatch):
@@ -21,7 +42,7 @@ def legacy_image_environment(tmp_path, monkeypatch):
         }
 
     monkeypatch.setattr("plotloom.autopilot_launch.image_execution_pin", historical_image_pin)
-    return image_environment(tmp_path, monkeypatch, auto_deliver=False)
+    return safety_environment(tmp_path, monkeypatch, auto_deliver=False)
 
 
 def file_bytes(root):
@@ -42,7 +63,7 @@ def reach(storage, service, view, owner, state):
 @pytest.mark.parametrize("owner", ["character-reference", "art-reference"])
 @pytest.mark.parametrize("action", ["cancel", "takeover"])
 def test_stop_after_reference_ingestion_preserves_terminal_owner_and_prevents_selection(tmp_path, monkeypatch, owner, action):
-    storage, registry, service, view, calls, _text = image_environment(tmp_path, monkeypatch)
+    storage, registry, service, view, calls, _text = safety_environment(tmp_path, monkeypatch)
     try:
         retained, checkpoint = reach(storage, service, view, owner, "delivered")
         stopped = service.control(view.project_id, RunControlRequest(expected_revision=retained.revision, action=action))
@@ -204,7 +225,7 @@ def test_wrong_legacy_task_id_keeps_late_image_reservation(tmp_path, monkeypatch
 
 @pytest.mark.parametrize("state", ["delivered", "adopted"])
 def test_direct_shot_cancellation_withdraws_automatic_authority_before_bundle(tmp_path, monkeypatch, state):
-    storage, _registry, service, view, calls, _text = image_environment(tmp_path, monkeypatch)
+    storage, _registry, service, view, calls, _text = safety_environment(tmp_path, monkeypatch)
     try:
         _retained, checkpoint = reach(storage, service, view, "image", state)
         with closing(storage.projects.open(view.project_id)) as store:
@@ -222,7 +243,7 @@ def test_direct_shot_cancellation_withdraws_automatic_authority_before_bundle(tm
 
 @pytest.mark.parametrize("race", [False, True])
 def test_partial_execution_publication_blocks_initial_or_final_native_send(tmp_path, monkeypatch, race):
-    storage, registry, service, view, calls, _text = image_environment(tmp_path, monkeypatch, auto_deliver=False)
+    storage, registry, service, view, calls, _text = safety_environment(tmp_path, monkeypatch, auto_deliver=False)
     try:
         _retained, checkpoint = reach(storage, service, view, "character-reference", "prepared")
         with closing(storage.projects.open(view.project_id)) as store:
@@ -251,7 +272,7 @@ def test_partial_execution_publication_blocks_initial_or_final_native_send(tmp_p
 
 @pytest.mark.parametrize("field,value", [("output_filename", "foreign.png"), ("output_hash", "d" * 64), ("role", "refinement")])
 def test_retained_candidate_must_match_exact_manifest_output(tmp_path, monkeypatch, field, value):
-    storage, _registry, service, view, _calls, _text = image_environment(tmp_path, monkeypatch)
+    storage, _registry, service, view, _calls, _text = safety_environment(tmp_path, monkeypatch)
     try:
         _retained, checkpoint = reach(storage, service, view, "character-reference", "delivered")
         with closing(storage.projects.open(view.project_id)) as store:

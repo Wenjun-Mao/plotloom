@@ -1768,3 +1768,56 @@ first if that family is selected. The next safety-only compact fixture has a
 behavior map and prepared five-case timing harness (three target rows, two
 unchanged controls), but no timing samples or source changes yet. Manager
 tests are held while the CLI owner exercises its native execution boundary.
+
+### Early image-safety fixture — baseline and static review, October 14
+
+At clean `d6f09d95`, three quiet direct-native pytest samples passed the same
+five preselected cases in 47.736582s, 44.708213s and 45.354019s (median
+45.354019s). The targets are first-shot delivered cancellation, historical
+schema-2 cancel/restart, and exact retained-candidate role association. The
+unchanged controls are unknown-image restart without resend and genuine
+derivative-geometry handoff/withdrawal. All samples used fresh temporary roots,
+locked dependencies and disabled pytest cacheprovider; the harness refused
+ambient selection controls and verified the exact native five-case collection.
+`.local/remaining-cost/safety-baseline.json` retains source/input/host/toolchain
+fingerprints, exact commands, rounded phase durations and all three raw logs:
+
+| Log under `.local/remaining-cost/` | SHA-256 |
+| --- | --- |
+| `safety-baseline-1-duf3kxoy/pytest.log` | `fe40f7b9e955a8e7cb16f6cee4fde535e326a21586f1903bd4176b16ed5a8a84` |
+| `safety-baseline-2-83b692me/pytest.log` | `9d133f6d2cc2756d72ab037569de77d1b90e677ed05188f87f331d69aa0ff295` |
+| `safety-baseline-3-xcr7m2dn/pytest.log` | `46b87e4616af3b9817d44330c3ed97b789d0f6b5e205a0e4302a399c774292c1` |
+
+After those samples, only `tests/test_autopilot_image_safety.py` was changed:
+a local wrapper opts into the existing six-frame fixture and asserts eight
+real text deliveries, two routes and six image subjects. Existing assertions,
+parameter rows, historical execution-pin setup and `auto_deliver=False` paths
+remain. The wrapper closes the service if its new guards fail. Shared defaults,
+full-pack scale, production code and geometry/recovery controls are unchanged.
+
+Independent read-only review (requested GPT-6.1 Sol / Medium; effective settings
+unverified) found no actionable issue. The shortened Brief/Script prerequisites
+do not own runtime-length or full-pack scale in these nineteen cases; real
+stage admission, references, first-shot state, currentness, reservation and
+immutable-evidence checks remain. No tests were run by the reviewer. Candidate
+correctness, matched performance and unchanged-control results remain pending
+while the CLI worker owns the native/focused window. Static review and a faster
+fixture hypothesis do not establish a speed gain or the whole-Python target.
+
+After explicit native-window release, the established focused runner passed
+all nineteen safety rows followed by unchanged full 27-frame completion,
+unknown-image restart and derivative-geometry handoff: **22 passed** in
+171.71s (180.001s including selector checks and runner overhead). The existing
+Starlette/httpx warning remains. Retained `safety-correctness.log` SHA-256:
+`dd92dae70ba06f207d5161f3d9f3eb54b48e7e503acf16ab17de831784f56439`.
+Seven module-ownership tests also passed; the story-authoring contract plan
+expanded successfully without executing its unrelated suites. Targeted Ruff
+`F,I`, compileall and diff checks passed after tidying the touched imports.
+A whole-file Ruff run identified `I001` and `SIM117`; both were reproduced on
+the unchanged HEAD version. Only the touched import block was tidied; the
+pre-existing nested-context `SIM117` remains outside this fixture delta.
+Matched candidate timing and whole-Python qualification are still pending.
+Complete native ownership discovery also passed without executing test bodies:
+1,859 Python cases / 182 files, 1,377 Vitest cases / 158 files and 318 browser
+cases / 93 specs. Existing owner and helper mappings required no changes;
+the full discovery output is `safety-native-ownership.log` beside the samples.
