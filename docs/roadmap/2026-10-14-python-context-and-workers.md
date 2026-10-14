@@ -1335,6 +1335,104 @@ read-only on retained files. No retry/new measurement/full/provider work or
 production edit occurred. The existing warning remains. Whole-suite speed,
 85-percent achievement and combined full/hosted qualification remain open.
 
+### Receipt-command material projections — bounded implementation
+
+After accepting the diagnostic receipt above, the owner authorized a bounded
+design review and conditional implementation of receipt-command construction
+reuse, with no further timing/profile/full allocation. The retained checkout
+remains the sole source writer; the manager remains read-only, and CLI normal
+work has priority. [ADR 0176](../adr/0176-receipt-command-local-material-projections.md)
+records the separate decision; CLI reserved ADRs 0174/0175 are not used here.
+
+Root cause: each receipt-command pre-yield and post-yield segment independently
+selected, projected and sorted protected material twice to build protected and
+full hashes. The command owner needs both identities in that segment. It does
+not need another resolution of unchanged inputs inside that same uninterrupted
+segment. This does not authorize sharing fresh admission, read or open results.
+
+An independent read-only design review (existing GPT-6.1 Sol / High reviewer,
+effective settings unverified) found no wider-authority blocker. The private
+paired helper explicitly flushes, constructs/hashes protected rows, and checks
+the post-command protected value **before** any managed-asset, geometry or
+cancellation read/full hash. It then extends its local payload with the exact
+existing extras and returns only two hash strings. Separate calls straddle the
+yield; no row payload survives it. Public `material_closure` keeps its signature,
+custom projection options, full columns, per-row datetime conversion/sorting,
+original query order and hash keys through extracted unchanged helper bodies.
+The paired receipt projection adds assets after protection; canonical JSON
+already sorts keys, preserving the same full hash.
+
+Unchanged boundaries: lifecycle lease/driver semantics, validation/admission,
+controller claims, CAS, write/commit/rollback, other lifecycle owners,
+ordinary-open corruption checks, inventory, current-versus-stale expected-
+closure rebasing and run revision/time. This grants no new non-SQLite command
+support; the existing driver `total_changes` assumption is untouched. No cache,
+global/session/result state, row reduction or bypass was added.
+
+New focused guards cover independent canonical payload expectations for empty
+and populated projections, Unicode/nested JSON/null/datetime values, geometry
+and all three cancellation lists, exact public custom projections, one table
+projection per segment, pending-write flush even without autoflush, successive
+call/rollback freshness, independent pre/post/subsequent command reads,
+protected-refusal priority over extras/full hashing, ordinary-command exclusion,
+receipt no-op revision behavior and flush/projection/hash-failure rollback with
+context cleanup. Current/stale allowed-asset rebasing remains covered by the
+existing authority tests. Stable-candidate independent review and focused
+downstream results are recorded in the completion receipt for this slice.
+
+Stopping condition: deliver this bounded source change with focused correctness
+evidence and independent review. No benchmark/profile/full/provider work,
+publication, moving CLI merge, default-worker change, creative acceptance or
+speed claim is included. Combined full/hosted qualification and the original
+85-percent target remain open.
+
+Executable checkpoint: `a2436d78b18f3e6e05a380c85181208c920275aa`, based on
+`04f6002a01d42660af5f7b174c0ef144bc9b90f0`. Independent stable code review by the
+existing GPT-6.1 Sol / Medium reviewer (effective settings unverified) found no
+actionable findings; the manager independently read the ADR, production diff,
+all new guards, module-owner addition and actual 62-case exit-zero log without
+an additional finding. Reviewers did not rerun tests or measure performance.
+
+Executed tier: **focused**, 84 distinct cases passed:
+
+- 62 passed: complete `tests/test_receipt_material_projections.py` (16),
+  `tests/test_autopilot_authority.py` (20) and
+  `tests/test_autopilot_claim_transactions.py` (26).
+- 38 passed, including the same 16 guards: complete
+  `tests/test_verification_module_ownership.py` (7),
+  `tests/test_autopilot_late_receipts.py` (5), and explicit existing selectors
+  `test_autopilot_images.py::test_complete_pack_selects_all_subjects_and_unique_route_frames_without_human_facts`
+  (1), `test_autopilot_images.py::test_late_reference_retains_original_receipt_without_selection`
+  (3), `test_autopilot_image_safety.py::test_direct_shot_cancellation_withdraws_automatic_authority_before_bundle`
+  (2), and `test_autopilot_image_safety.py::test_stop_after_reference_ingestion_preserves_terminal_owner_and_prevents_selection`
+  (4), all under `tests/`. These retain real stage/receipt/open/claim boundaries
+  and fresh fake-host transport. The existing Starlette warning remains.
+- `git diff --check` and F401 checks on both changed production modules and the
+  new guard file passed. No full/module/hosted/provider run occurred.
+
+Logs under `.local/remaining-cost/`, SHA-256:
+
+- `receipt-projection-contracts.log`:
+  `e79a3f1a662c438a866abb79fa71532cff87f5dd7c3692213887183e0d22f160`;
+- `receipt-projection-downstream.log`:
+  `d577b25bcfeef4accb9b7d4e2fa6db74b4132fb51ff210131ea8a739425dbcae`.
+
+After correctness review, the manager requested preparation only of one
+unprofiled pair for the unchanged complete-pack selector above: before
+`04f6002a` versus executable `a2436d78`. The observer is the existing one-case
+diagnostic/quiet-pair discipline adapted in ignored
+`.local/remaining-cost/receipt_material_quiet_pair.py`; finished observers and
+their pins stay immutable. It must start only after a separate quiet allocation,
+use fresh native collection and completion-marker verification for exact case
+fingerprint `4a5688a8f77a9eefd4132e4753046ad0532ff693c4c84d60c8905ead6e1d6e55`,
+fresh absolute per-side roots, fixed dependency/interpreter/host probes, owned
+process-group cleanup and finally restoration of its pinned clean main HEAD.
+It times the complete unprofiled pytest process plus immediate owned-group
+cleanup, including import/collection/setup/call/teardown/reporting, and excludes
+the separate collection proof and probes. It uses the same explicit existing
+completion plugin as the diagnostic; no cProfile instrumentation or alternative
+test path. No pair has run or performance result is available at this checkpoint.
+
 ### Historical material-closure attribution — read-only extraction
 
 The manager extracted the existing main-thread complete-pack profile without
@@ -1345,9 +1443,10 @@ The manager verified `call.prof` SHA-256
 and `attribution.json` SHA-256
 `3be56242301e7077c8232ec8b513d8c08af300ac2a2765f9aa349f4bb511cb71`.
 That profile binds source `3c3a025e` and a 55.536-second instrumented call.
-This coordinator did not access the other checkout. Local Git-object comparison
-independently confirms current `autopilot_closure.py` and `contract_hash.py` are
-byte-identical to that revision, with SHA-256 respectively
+This coordinator did not access the other checkout. At that attribution
+checkpoint, local Git-object comparison independently confirmed then-current
+`autopilot_closure.py` and `contract_hash.py` were byte-identical to that revision,
+with SHA-256 respectively
 `3345c6046c401af180f9c0ce362d733219216e255bc33a6b4bf3a30b7740fc4b`
 and `2e779ab1b1f44bddf8ebebf975eb001f3bdf1f7bde8596075d5eb5305c773b77`.
 Callers and counts changed afterward; attribution remains historical.
