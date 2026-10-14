@@ -1,8 +1,9 @@
 # 0167 — One resolved context per Storyboard owner read
 
 Status: accepted by the owner on October 14, 2026; implemented with focused
-regressions and independent read-only review. Full qualification remains
-pending in the [Python follow-up](../roadmap/2026-10-14-python-context-and-workers.md).
+regressions, independent read-only review and the full local gate at `4bc1d62a`.
+Measurements and separate publication/hosted status are in the
+[Python follow-up](../roadmap/2026-10-14-python-context-and-workers.md).
 
 ## Problem
 

@@ -1,7 +1,8 @@
 # 0168 — Exact native case proof for Python workers
 
 Status: accepted for the owner-approved bounded worker experiment on October
-14, 2026; implemented with focused checks; full qualification pending. The release default stays
+14, 2026; implemented with focused checks, complete two/four-worker experiments
+and the full local gate at `4bc1d62a`. The release default stays
 two under [ADR 0160](0160-two-process-python-full-gate.md).
 
 ## Problem

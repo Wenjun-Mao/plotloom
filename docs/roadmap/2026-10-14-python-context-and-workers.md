@@ -1,7 +1,7 @@
 # Python context reuse and bounded worker experiment
 
-Status: owner approved on October 14, 2026; implementation and measurement in
-progress. This continues the [testing-health plan](2026-10-10-testing-health-cleanup.md),
+Status: owner-approved slice implemented, independently reviewed and locally
+full-qualified on October 14, 2026; publication pending. This continues the [testing-health plan](2026-10-10-testing-health-cleanup.md),
 not a redefinition of its 85-percent complete-suite wall-time target.
 
 ## Authority and baseline
@@ -92,8 +92,8 @@ pytest reported 121.74s / 109.51s. Both commands exited zero. This is one quiet
 focused pair, not a whole-suite or repeated-median speed claim. Logs are in
 `.local/remaining-cost/operation-context-before-fGZr2z/focused.log` and
 `.local/remaining-cost/operation-context-after-JDkaf0/focused.log`.
-No full gate, new complete-suite measurement or worker-count experiment has
-run on this slice yet. The two/four experiment remains the next deliverable.
+At this checkpoint, the full gate and worker experiment were still pending;
+their executed evidence follows below.
 
 ## Runner checkpoint
 
@@ -110,7 +110,7 @@ suggestion is included.
 Native ownership discovery passed with 1,911 Python cases / 185 files
 (`6c202360bb4dea63a47ccfa1cd4539f5af6ae8bf529452f76fd911d2eedb61a1`),
 1,377 Vitest / 158 files and 318 Playwright / 93 files. This discovery did not
-run test bodies. Both forthcoming worker measurements use the same committed
+run test bodies. Both subsequent worker measurements use the same committed
 candidate and unchanged timing input. The old timing manifest is ineligible;
 the explicit case-count fallback is the matched experimental basis. No full
 gate or whole-suite speed claim is established by this checkpoint.
@@ -164,8 +164,45 @@ native case IDs, host fingerprint, and executable-input fingerprint
 `ba57bfa2c56d911e1652eeb3e283440c1294285ec89f0bcd17df8a588810c20f`.
 A fresh native collection and the real scheduler accepted it with
 `schedule=duration`, no fallback, and exact 93/92-file coverage. Estimated phase
-loads are 540.379s each, **not measured wall time**. The final full gate will
-measure the default two-worker candidate and qualify all remaining release
-surfaces. The current 1,911-case measurements are not an exact-inventory speed
+loads are 540.379s each, **not measured wall time**. The final full gate below
+measures the default two-worker candidate and qualifies all remaining local
+release surfaces. The current 1,911-case measurements are not an exact-inventory speed
 comparison to the older 1,859-case / 633.23s release. No 85-percent or full
-release success is claimed here.
+release success is claimed by the experiment alone.
+
+## Complete local qualification — October 14
+
+Clean candidate `4bc1d62a5532a7da429d991b210b3c8c6317c0b3` passed
+`/usr/bin/time -p uv run --locked --no-sync python scripts/verify.py full`.
+The full gate exited zero in 1064.824s (1064.87s external), including:
+
+- all 1,911 Python cases / 185 files, with the unchanged exact native inventory;
+- all 1,377 frontend unit tests / 158 files and frontend type contracts;
+- deterministic production assets, checked-bundle parity and unfiltered shard
+  coverage, followed by all 318 browser tests;
+- locked dependencies, media probes, API unused imports, archived prompt reader,
+  wheel build and installed-wheel smoke.
+
+The default **two-worker Python command took 578.639s**, including startup,
+collection, reports and cleanup. Its post-collection runner summary was
+572.809s; pytest reported 990 cases in 550.31s and 921 in 563.16s. Both exact
+assigned-ID completion proofs passed and `schedule=duration` had no fallback.
+The runner temporary root was absent after completion, the checkout remained
+clean, and the executable-input and host fingerprints still matched the
+experiment's recorded values. Deprecation warnings concerned Starlette/httpx
+and three existing fork-based crash cases; no test failed or was omitted.
+
+Retained log: `.local/remaining-cost/python-context-final-j87N9xwN/full.log`,
+SHA-256 `13279c4660dd562aef42108c991e64199422e2db9c5d4fd06a6f9e959304c3cf`.
+The preceding timing-data refresh also passed all 33 completion/runner checks.
+No repeated full gate is needed for the subsequent documentation-only receipt
+or an integration whose executable/dependency/configuration trees match this
+candidate. Verify that equality before carrying the evidence to main.
+
+The 578.639s observation is not a matched old-versus-new production comparison:
+the former 633.23s release had 1,859 cases, while this candidate has 1,911.
+The fixed-resource 85-percent target remains unmet. Four-worker results remain
+separate added-compute evidence; eight was not run and default concurrency is
+unchanged. Hosted CI was not dispatched and remains separately unqualified.
+CLI integration, provider execution, deployment and live activation are not
+covered by this local gate.
