@@ -1977,3 +1977,15 @@ back at that exact SHA. Its source, scripts, tests, frontend, dependency and
 submodule trees match the qualified `bafb1587` candidate; the intervening
 integration includes only the already published CLI roadmap notes and receipt
 documentation. No force push, live checkout change or hosted dispatch occurred.
+
+### Operation-local context and bounded worker follow-up — October 14
+
+The [follow-up receipt](../roadmap/2026-10-14-python-context-and-workers.md)
+records the approved production boundary, independent reviews, matched
+two/four-worker experiment, fresh advisory weights and full local qualification
+of `4bc1d62a`. All 1,911 Python, 1,377 frontend and 318 browser cases passed,
+along with the remaining release gates. Default two-worker Python command time
+was 578.639s; the complete full gate took 1064.824s. Main integration through
+`aa926b03` preserves every qualified executable/dependency/configuration input
+and the newer CLI records. The 85-percent target remains unmet, extra worker
+resources are reported separately, and hosted CI remains unqualified.

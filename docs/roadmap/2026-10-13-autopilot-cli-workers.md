@@ -348,9 +348,11 @@ of this allocation.
 The owner approved both operation-local Script/Storyboard context reuse and a
 bounded four-worker Python experiment on October 14 (eight only after measured
 headroom; the release default stays two). The CLI worker released source/check
-ownership at this checkpoint and is idle. The manager now owns the Python
-implementation and quiet timing window in `python85-profiling`; CLI source
-changes, additional probes and generation remain held during that window.
+ownership at this checkpoint and is idle. The manager completed the Python
+slice, matched experiment and full local gate; its
+[separate receipt](2026-10-14-python-context-and-workers.md) records the results.
+CLI source changes, additional probes and generation remain held pending the
+runtime/import contract decision below, not because a Python test is still running.
 
 The first all-route sandbox probe passed the Outline Node validate/render pair
 but the Branches Python/uv validator stopped before validation:

@@ -1,7 +1,8 @@
 # Python context reuse and bounded worker experiment
 
-Status: owner-approved slice implemented, independently reviewed and locally
-full-qualified on October 14, 2026; publication pending. This continues the [testing-health plan](2026-10-10-testing-health-cleanup.md),
+Status: owner-approved slice implemented, independently reviewed, locally
+full-qualified and integrated on October 14, 2026. This continues the
+[testing-health plan](2026-10-10-testing-health-cleanup.md),
 not a redefinition of its 85-percent complete-suite wall-time target.
 
 ## Authority and baseline
@@ -206,3 +207,24 @@ separate added-compute evidence; eight was not run and default concurrency is
 unchanged. Hosted CI was not dispatched and remains separately unqualified.
 CLI integration, provider execution, deployment and live activation are not
 covered by this local gate.
+
+The complete final capture contains 185 unique timing rows / 1,911 cases and
+1110.509s of aggregate pytest phase work. Even ideal two-way allocation at
+those observed costs needs 555.254s before overhead. The 578.639s command is
+already near that packing floor; further scheduling tweaks cannot produce the
+original 85-percent result. Geometry (155.776s), handoff (139.887s), image safety
+(103.576s) and images (99.435s) remain the largest files. These are residual
+costs, not authority to remove their behavior coverage or broaden production
+caching. Any next production change needs its own measured cause and scope.
+
+### Integration
+
+The manager selectively integrated only this slice's four commits into main
+through `aa926b03`, preserving the newer CLI roadmap and previous publication
+receipts. The sole conflict was the testing roadmap heading adjacent to its
+older publication receipt; both the receipt and new approval were retained.
+All source, scripts, tests, frontend, dependency, workflow and submodule inputs
+match qualified `4bc1d62a`; a complete tracked diff contains only documentation.
+The actual main input/host fingerprints also match. The subsequent receipt
+updates are documentation-only and do not require another full run. Ordinary
+main publication does not dispatch hosted CI or activate CLI generation.
