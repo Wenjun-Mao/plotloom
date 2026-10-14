@@ -121,5 +121,7 @@ checks, the three unchanged end-to-end controls and seven original geometry
 corruption consumers after shared-copy extraction (33 distinct cases). An attended independent
 Sol/Medium stable code review found no actionable issues and ran no checks.
 The positive-copy guard proves human handoff/video eligibility only in its
-copy while original seed and sibling remain machine-only. Actual handoff
-speed and combined full qualification remain pending in the Python plan.
+copy while original seed and sibling remain machine-only. The quiet matched eight-case pair measured 99.715s before / 53.505s after
+(46.34% less complete-command wall time). This scoped one-pair result preserves
+the fresh controls; whole-suite speed and combined full qualification remain
+open in the Python plan.

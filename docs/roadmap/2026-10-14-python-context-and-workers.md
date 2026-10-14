@@ -641,6 +641,51 @@ remain frozen. The clean reviewed checkpoint is ready for a separately allocated
 quiet matched pair; no handoff benchmark, combined full qualification, push or
 activation is claimed.
 
+### Handoff matched quiet pair — October 14
+
+The manager allocated a natural CLI quiescent window after confirming no native
+or check processes. Both exact preselected **eight-case** complete native
+`verify.py focused` commands passed. Before was clean detached `140b4a31`;
+after was clean detached `f1e72a30`. The observer's finally path restored clean
+main at `cd3a99ad46983f527ba37fbe596907a0791e8584`; the timing/check window was
+promptly released before this documentation-only receipt.
+
+External complete-command time was **99.715s before /
+53.505s after**, **46.34% less wall time**
+in one scoped ordered pair. Pytest reported **93.17s / 48.45s**. Timing includes
+command startup, all four native selector preflights, collection, real session
+seed setup, physical copies and all eight tests/cleanup. Separate collection
+proof/fingerprint reads are outside the timed command; no extra guard cases
+entered the matched union. Fresh distinct per-run temporary roots, same absolute
+checkout, interpreter/version, locked dependencies and environment were used.
+No ambient pytest selection was present. The existing Starlette/httpx warning
+appeared in both runs; no selected case failed or was omitted.
+
+Input fingerprints stayed stable within each run: before
+`c1abfaab446925b8ac5c0630f3d55e6ef77256faca0ff4622b297668f7c609e4`; after
+`7c6ac6ccde2a226dc34ce49ed29d2b1c4eee737bf93246fdb760a17c8321c20f`.
+Host, interpreter/version, dependency declaration, lockfile, Python version file
+and timing-manifest hashes matched between runs. The timing manifest was never
+rewritten. Ordered eight-case lists are byte-identical and retain sorted-ID
+fingerprint `25b6162b971cf349bb919944219bf3f8144401ef15d2b90d4ade0a9d0a9f254f`.
+
+Retained root: `.local/remaining-cost/handoff-quiet-1l6f0mdj/`, with per-run
+`focused.log`, `collection.log`, `cases.txt`, `metadata.json` and pair
+`result.json`. SHA-256:
+
+- before `focused.log`: `0ad337a3330b926a10e96435ec71a9c4fa6e7b489ec8a6e7c0c472bdfd13f84c`;
+- after `focused.log`: `8edee4fe89a9ad528f6c58401ba3425196559e65a840ea802e52028684a5ec08`;
+- byte-identical ordered `cases.txt`: `1452d54ba461ffafedc9dbb760d69b8e4d6fc0788ba834680374e3ad528550a4`;
+- `result.json`: `f02e8cd51af7f3089e3a5782213794a445c07d2a967a1b3764ff7777653a6e2e`;
+- observer `.local/remaining-cost/handoff_quiet_pair.py`: `c36fbd0600771a801b505d9ba9a9f82f135c762cca03090dbe610f5e33a9ee1c`.
+
+This is a measured saving for the exact eight cases, including three unchanged
+fresh end-to-end controls. It is not a repeated median, whole-suite saving,
+85-percent result or full release qualification. Keep the original fixed-resource
+151.733s target open and default workers two. No broad/module/full run,
+profiling, provider execution, push, live activation or data cleanup occurred.
+The manager retains final integration/publication and quiet-window allocation.
+
 ## Residual-cost investigation — historical proposal, now separately scoped
 
 One fresh main-thread profile ran the unchanged complete-pack control at clean
