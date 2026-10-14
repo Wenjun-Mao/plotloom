@@ -3,9 +3,10 @@ from ...autopilot_contracts import CheckpointEvidence
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 
 TRANSITIONS = {
-    "prepared": {"prepared", "sent", "outcome_unknown", "delivered"},
-    "sent": {"sent", "outcome_unknown", "delivered"},
-    "outcome_unknown": {"outcome_unknown", "delivered"},
+    "prepared": {"prepared", "sent", "outcome_unknown", "failed", "delivered"},
+    "sent": {"sent", "outcome_unknown", "failed", "delivered"},
+    "outcome_unknown": {"outcome_unknown", "failed", "delivered"},
+    "failed": {"failed"},
     "delivered": {"delivered", "adopted"},
     "adopted": {"adopted"},
 }
@@ -27,8 +28,12 @@ def assert_checkpoint_update(checkpoint, expected_revision, state, evidence):
     for field in ("owner", "subject_id", "job_id", "request_hash", "execution_pin", "geometry_preparation"):
         if getattr(previous, field) != getattr(evidence, field):
             raise InvalidTransitionError("checkpoint cannot replace its frozen owner/execution identity")
+    if previous.executor_attempt_id is not None and previous.executor_attempt_id != evidence.executor_attempt_id:
+        raise InvalidTransitionError("checkpoint cannot replace its original CLI attempt")
     if previous.delivery_hash is not None and previous.delivery_hash != evidence.delivery_hash:
         raise InvalidTransitionError("checkpoint delivery evidence is immutable")
+    if previous.executor_receipt_hash is not None and previous.executor_receipt_hash != evidence.executor_receipt_hash:
+        raise InvalidTransitionError("checkpoint executor receipt evidence is immutable")
     if any(evidence.result.get(key) != value for key, value in previous.result.items()):
         raise InvalidTransitionError("checkpoint retained result evidence is immutable")
     if checkpoint.state == "adopted" and checkpoint.evidence != evidence.model_dump(mode="json", by_alias=True):

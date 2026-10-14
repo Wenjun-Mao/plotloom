@@ -5,7 +5,8 @@ checked-runtime repair `e24cb80e` passed all eleven provider-free native
 validate/render pairs and controls. Test-only follow-up `7685a868` passed fresh
 checkout checks; documentation checkpoint `dda660dc` is clean and idle. The
 worker explicitly released the source/check window for the approved Python
-follow-up. Source remains unmerged; serial generation and pool qualification
+follow-up, then resumed as the owner-requested Sol coordinator. Source remains
+unmerged to main; serial generation and pool qualification
 remain open. Old stopped/unknown runs are unchanged and must not be retried.
 
 The outcome is faster preparation through dependency-ready text and image
@@ -26,8 +27,8 @@ failures at the same criterion, retain evidence and reassess the root cause and
 method before another dispatch. No new providers or global credential/settings
 changes are authorized.
 
-The worker remains idle at `dda660dc` until the manager explicitly releases the
-next window. Its eleven-plan native proof is accepted for its pinned inputs;
+The manager explicitly released this same worker from `dda660dc` for the
+coordinator scope below. Its eleven-plan native proof is accepted for its pinned inputs;
 reconcile changed CLI/Python inputs before new native proof, rather than replay
 unchanged checks or treat prior results as qualification of integrated source.
 The intended paired small all-route serial/parallel proof remains the first
@@ -63,6 +64,36 @@ full local gate at a stable candidate, then return the integrated evidence for
 manager review/publication. No hosted CI, live activation or old-run replay.
 The manager remains read-only while this source/check window is held. Python
 optimization is queued, not a gate ahead of parallel-generation delivery.
+
+The coordinator reconciled exactly reviewed manager-main `65cf84cd` with
+the retained CLI source. The later historical-scheduler commits `b4b82f6d` and
+`6b6c2e09` remain excluded. Source integration preserves the dedicated controller
+claim transaction and current CLI attempt accounting; retired receipt execution
+tests remain retired. Current plan authority was copied from the manager's
+explicit coordinator allocation, independently of those excluded source changes.
+The bounded independent merge review found no blockers. Quick feedback passed
+1,377 frontend unit checks and both type checks; the affected focused union
+passed 101 backend cases (Bridge/claim, Storyboard context, current image safety
+and checked-runtime/resource/child-environment contracts). Bind the changed source/validator profile before
+new disposable production-supervisor generation. No replay of old attempts or
+the completed eleven-plan gate is allocated merely by integration.
+
+### Parallel Python checkout and frozen local integration
+
+The owner later requested a separate Python coordinator, native task
+`01a13bfd-1979-7b12-9f0d-54a80eeee329`, as the sole retained
+`autopilot-ux-release` writer; the CLI coordinator keeps its independent `b30f`
+writer. This supersedes the queued/serial ownership statements above. The
+manager is read-only in both checkouts. Small focused correctness work and
+attended read-only reviews may overlap; broad runs, profiling and benchmarks
+require a manager-allocated quiet window and CLI has priority.
+
+The manager explicitly released frozen CLI `c5c2414d` for local integration
+into Python checkpoint `0a515687`, preserving historical scheduling and all
+current CLI contracts. This is separate from the CLI checkpoint's deliberate
+scheduler exclusion above. Do not merge moving CLI HEAD or edit its checkout.
+This unpushed integration is not full release qualification, native generation
+proof, hosted CI or live activation. The manager owns publication.
 
 ## Queue and start conditions
 

@@ -1,14 +1,19 @@
 """Disposable policy/source builders; never dispatch native specialists."""
 from plotloom.autopilot_contracts import LaunchPolicy, CommandAuthority, OperationScope
+from plotloom.codex_exec_contracts import CodexExecProfile
 from plotloom.persistence.codec import stable_hash
 from plotloom.source_outline_contracts import SourceMaterial
 
 
 def policy_for(store):
-    return LaunchPolicy(render_style="live-action", art_render_style="live-action", code_revision="a" * 40,
+    profile = CodexExecProfile(contract_version="plotloom.codex-exec.v1", executable_sha256="0" * 64, cli_version="codex-cli test", model="gpt-6.1-sol",
+        reasoning_effort="medium", capabilities=("exec_json_events_v1", "session_rollout_v1", "image_gen_event_v1", "delivery_directory_write_v1"),
+        instruction_hash="1" * 64, validator_hash="2" * 64, sandbox_profile="read_only_with_delivery_write",
+        max_runtime_seconds=1800, max_event_bytes=1_000_000, max_output_bytes=100_000_000, max_image_outputs=4)
+    return LaunchPolicy(version="plotloom.pre-video.v4", render_style="live-action", art_render_style="live-action", code_revision="a" * 40,
         image_width=1280, image_height=720,
-        specialist_bindings={"text": "00000000-0000-4000-8000-000000000001", "image": "00000000-0000-4000-8000-000000000002"},
-        execution_pins={}, brief=store.project().brief.model_dump(mode="json", by_alias=False))
+        specialist_bindings=None, executor_binding=profile,
+        execution_pins={"image": {"contract": "codex_exec.v1"}}, brief=store.project().brief.model_dump(mode="json", by_alias=False))
 
 
 def start_run(store):

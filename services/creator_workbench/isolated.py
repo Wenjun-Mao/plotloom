@@ -62,6 +62,11 @@ class RuntimeConfig:
         token_path = token_path.resolve(strict=True)
         if token_path.is_relative_to(data):
             raise ValueError("bridge credential must stay outside installation state")
+        private_root = token_path.parent / "codex-exec"
+        if private_root.is_symlink():
+            raise ValueError("Codex Exec private state must not be a symlink")
+        if data.is_relative_to(private_root.resolve()):
+            raise ValueError("installation data must stay outside Codex Exec private state")
         for path, mode in ((token_path, 0o600), (token_path.parent, 0o700)):
             metadata = path.stat()
             if stat.S_IMODE(metadata.st_mode) != mode or metadata.st_uid != os.getuid():
@@ -140,7 +145,15 @@ def compose(config: RuntimeConfig):
             storage, video_provider=provider, video_adapter=adapter, static_dir=config.static_dir,
             specialist_executable=str(shim), specialist_environment=environment,
         )
-        bridge = QueueBridge(config.native_executable, app.state.specialists.path, config.token_file.read_text().strip())
+        source_root = Path(__file__).resolve().parents[2]
+        bridge = QueueBridge(
+            config.native_executable,
+            app.state.specialists.path,
+            config.token_file.read_text().strip(),
+            source_root=source_root,
+            outputs_root=config.data_root / "outputs",
+            private_root=config.token_file.parent / "codex-exec",
+        )
         server.RequestHandlerClass = handler_for(bridge)
 
         @app.get("/healthz")

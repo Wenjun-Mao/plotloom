@@ -5,10 +5,17 @@ and on ordinary folder reads. Historical rows need not remain currently usable.
 """
 import json
 
-from ...creative_handoff_contracts import CreativeHandoffRequest
+from ...creative_handoff_contracts import CREATIVE_CANDIDATE_FILENAMES, CreativeHandoffRequest
 from ...creative_handoff_exchange import request_hash, execution_pin_for_request
 from ..codec import stable_hash
 from ...source_outline_contracts import SourceMaterial
+from ...autopilot_contracts import POLICY_VERSION
+from ...codex_exec_contracts import (
+    CodexExecAttempt,
+    CodexExecProfile,
+    CodexExecReceipt,
+    assert_receipt_matches_attempt,
+)
 
 CREATIVE_OWNERS = {
     "outline": "v2_source_outline_candidates", "branches": "v2_source_outline_candidates",
@@ -32,7 +39,68 @@ def _row(connection, sql, values):
     return dict(zip((column[0] for column in cursor.description), row, strict=True))
 
 
-def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id, asset_home=None):
+def _assert_exec_attempt_binding(connection, project_id, run_id, state, evidence, owner, operation_key):
+    run = _row(connection, "SELECT project_id,policy FROM v2_autopilot_runs WHERE id=?", (run_id,))
+    policy = json.loads(run["policy"])
+    is_codex_exec = policy.get("version") == POLICY_VERSION
+    if not is_codex_exec:
+        if evidence.executor_attempt_id is not None or evidence.executor_receipt_hash is not None:
+            raise ValueError("retained specialist evidence cannot claim a Codex Exec attempt")
+        return None, None
+    if run["project_id"] != project_id:
+        raise ValueError("Codex Exec checkpoint belongs to a different project run")
+    if evidence.executor_attempt_id is None:
+        if evidence.executor_receipt_hash is not None:
+            raise ValueError("Codex Exec receipt hash requires its exact project attempt")
+        return None, None
+    if operation_key is None:
+        raise ValueError("Codex Exec checkpoint requires its exact operation key")
+    row = _row(connection, "SELECT * FROM v2_autopilot_exec_attempts WHERE id=?", (str(evidence.executor_attempt_id),))
+    attempt = CodexExecAttempt.model_validate(json.loads(row["snapshot"]))
+    expected_domain = "text" if owner in CREATIVE_OWNERS else "image"
+    profile = CodexExecProfile.model_validate(policy.get("executorBinding", {}))
+    if (row["run_id"] != run_id or row["project_id"] != project_id
+            or row["operation_key"] != operation_key or row["job_id"] != evidence.job_id
+            or row["domain"] != expected_domain or attempt.attempt_id != evidence.executor_attempt_id
+            or str(attempt.run_id) != run_id or str(attempt.project_id) != project_id
+            or attempt.operation_key != operation_key or attempt.job_id != evidence.job_id
+            or attempt.request_hash != evidence.request_hash or attempt.domain != expected_domain
+            or attempt.profile_hash != profile.profile_hash
+            or (profile.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}
+                and attempt.plotloom_code_revision != json.loads(run["policy"])["codeRevision"])
+            or (profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7"} and expected_domain == "text"
+                and attempt.validation_plan_hash is None)
+            or row["state"] != attempt.state or row["image_budget_state"] != attempt.image_budget_state
+            or row["reserved_image_outputs"] != attempt.reserved_image_outputs):
+        raise ValueError("Codex Exec checkpoint differs from its immutable project attempt")
+    allowed = {
+        "prepared": {"reserved"},
+        "sent": {"spawn_intent", "running", "cancel_requested", "completed", "settled"},
+        "outcome_unknown": {
+            "outcome_unknown", "running", "cancel_requested", "completed", "failed", "settled",
+        },
+        "failed": {"failed", "settled"},
+        "delivered": {"completed", "settled"},
+        "adopted": {"completed", "settled"},
+    }
+    if state in allowed and attempt.state not in allowed[state]:
+        raise ValueError(
+            f"Codex Exec attempt state {attempt.state!r} is not valid for {state!r} checkpoint"
+        )
+    receipt = CodexExecReceipt.model_validate(json.loads(row["receipt"])) if row["receipt"] is not None else None
+    terminal = attempt.state in {"completed", "failed", "settled"}
+    if evidence.executor_receipt_hash != (attempt.evidence_hash if terminal else None):
+        raise ValueError("checkpoint receipt hash differs from its exact terminal project attempt")
+    if attempt.terminal_result == "success":
+        if receipt is None:
+            raise ValueError("successful Codex Exec project attempt has no retained host receipt")
+        assert_receipt_matches_attempt(attempt, receipt)
+    elif receipt is not None:
+        raise ValueError("failed Codex Exec attempt cannot retain a successful host receipt")
+    return attempt, receipt
+
+
+def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id, operation_key=None, asset_home=None):
     owner = evidence.owner
     if owner == "geometry-preparation":
         if evidence.job_id or evidence.request_hash or evidence.execution_pin or evidence.delivery_hash or evidence.geometry_preparation is None:
@@ -74,6 +142,9 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
         return
     if not evidence.job_id or not evidence.request_hash or not evidence.execution_pin:
         raise ValueError("native checkpoint requires its exact frozen execution identity")
+    exec_attempt, exec_receipt = _assert_exec_attempt_binding(
+        connection, project_id, run_id, state, evidence, owner, operation_key
+    )
     if owner in CREATIVE_OWNERS:
         bridge = owner.startswith("bridge-")
         table = CREATIVE_OWNERS[owner]
@@ -87,6 +158,28 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
                 or request_hash(request) != evidence.request_hash or pin["request_hash"] != evidence.request_hash
                 or pin["project_id"] != project_id or pin["stage"] != owner or expected_pin != evidence.execution_pin):
             raise ValueError("creative checkpoint frozen owner binding changed")
+        if exec_attempt is not None and exec_attempt.domain == "text":
+            frozen_policy = json.loads(_row(
+                connection, "SELECT policy FROM v2_autopilot_runs WHERE id=?", (run_id,),
+            )["policy"])
+            executor_profile = CodexExecProfile.model_validate(frozen_policy.get("executorBinding", {}))
+            if executor_profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}:
+                from ...codex_exec_validation import build_text_validation_plan
+                plan = build_text_validation_plan(
+                    request,
+                    execution_pin=expected_pin,
+                    source_revision=frozen_policy["codeRevision"],
+                )
+                if exec_attempt.validation_plan_hash != plan.plan_hash:
+                    raise ValueError("Codex Exec attempt differs from the frozen creative validation plan")
+                if exec_receipt is not None and (
+                    exec_receipt.validation_plan_hash != plan.plan_hash
+                    or exec_receipt.text_validation is None
+                    or exec_receipt.text_validation.validator_hash != executor_profile.validator_hash
+                    or exec_receipt.text_validation.candidate_filename
+                    != CREATIVE_CANDIDATE_FILENAMES[request.stage]
+                ):
+                    raise ValueError("Codex Exec receipt differs from the frozen creative validation evidence")
         proof = json.loads(row["response_evidence"] or "{}").get("manifestHash") if bridge else row["manifest_hash"]
     elif owner in IMAGE_OWNERS:
         table, delivery_table, foreign_key = IMAGE_OWNERS[owner]
@@ -115,8 +208,18 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
                     or manifest.job_id != evidence.job_id or manifest.request_hash != evidence.request_hash
                     or provenance is None or provenance.code_revision != evidence.execution_pin["codeRevision"]
                     or provenance.skill_hash != evidence.execution_pin["skillHash"]
-                    or native_task_identity != frozen_policy["specialistBindings"]["image"]):
+                    or (exec_attempt is None and native_task_identity != frozen_policy["specialistBindings"]["image"])):
                 raise ValueError("retained image receipt differs from its frozen execution")
+            if exec_attempt is not None and (
+                manifest.schema_version != 5 or manifest.executor_profile_hash != exec_attempt.profile_hash
+                or manifest.tool_evidence is None
+                or manifest.tool_evidence.executor_attempt_id != exec_attempt.attempt_id
+                or manifest.tool_evidence.codex_session_id != exec_receipt.session_id
+                or manifest.tool_evidence.image_gen_call_id != exec_receipt.image_evidence[0].call_id
+                or manifest.tool_evidence.image_gen_event_id != exec_receipt.image_evidence[0].event_id
+                or {item.sha256 for item in manifest.outputs} != {item.output_hash for item in exec_receipt.outputs}
+            ):
+                raise ValueError("retained Codex Exec image receipt differs from its exact host proof")
             if "candidateAssetIds" in evidence.result:
                 candidate_table = delivery_table.replace("deliveries", "candidates")
                 candidates = list(connection.execute(f'SELECT candidate.asset_id,candidate.output_filename,candidate.output_hash,candidate.role,asset.project_id,asset.original_hash FROM "{candidate_table}" AS candidate JOIN v2_managed_assets AS asset ON asset.id=candidate.asset_id WHERE candidate."{foreign_key}"=? AND candidate.delivery_id=?', (evidence.job_id, retained[2])))
@@ -135,8 +238,10 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
                 raise ValueError("image checkpoint output roles differ from exact native delivery")
     else:
         raise ValueError("unknown checkpoint evidence owner")
-    if (terminal and (not proof or evidence.delivery_hash != proof)) or (evidence.delivery_hash is not None and evidence.delivery_hash != proof):
-        raise ValueError("terminal checkpoint lacks exact native delivery evidence")
+    if terminal and not proof:
+        raise ValueError(f"terminal {owner} checkpoint has no retained native delivery proof")
+    if evidence.delivery_hash is not None and evidence.delivery_hash != proof:
+        raise ValueError(f"{owner} checkpoint delivery hash differs from its retained native proof")
 
 
 def assert_frame_binding(connection, run_id, project_id, decision_id, frame, *, asset_home=None):

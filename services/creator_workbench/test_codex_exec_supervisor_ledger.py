@@ -1,0 +1,227 @@
+"""Admission, settlement and cancellation regressions for the host ledger."""
+import time
+from contextlib import closing
+from hashlib import sha256
+from uuid import UUID, uuid4
+
+import pytest
+
+from codex_exec_supervisor_errors import CodexExecSupervisorError
+from plotloom.codex_exec_contracts import (
+    CodexExecAttempt,
+    CodexExecOutputEvidence,
+    CodexExecReceipt,
+    output_manifest_hash,
+    transition_exec_attempt,
+)
+from plotloom.codex_exec_telemetry import CodexSessionEvidence, ImageGenCall, ImageGenEvent
+from codex_exec_supervisor_test_support import _attempt, _insert_attempt_row, _prepared_text_job
+
+
+def test_busy_host_slot_refusal_leaves_same_attempt_admissible_after_release(supervisor, tmp_path):
+    _exchange, _request, _pin, job_root, attempt, _profile = _prepared_text_job(
+        supervisor, tmp_path, fake_cli_source="import sys\nsys.stdin.read()\n"
+    )
+    private_attempt = supervisor.private_root / "attempts" / str(attempt.attempt_id)
+    with closing(supervisor._connect()) as connection:
+        connection.execute("INSERT INTO exec_slot VALUES (1,?)", (str(uuid4()),))
+
+    with pytest.raises(CodexExecSupervisorError, match="slot is already occupied"):
+        supervisor.admit(attempt)
+    assert supervisor._row(attempt.attempt_id) is None
+    assert not private_attempt.exists()
+    assert not any((job_root / "delivery").iterdir())
+
+    with closing(supervisor._connect()) as connection:
+        connection.execute("DELETE FROM exec_slot WHERE slot_id=1")
+    status = supervisor.admit(attempt)
+    assert status.state in {"spawn_intent", "running", "outcome_unknown"}
+    assert supervisor._row(attempt.attempt_id) is not None
+    assert private_attempt.is_dir()
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        status = supervisor.status(attempt.attempt_id)
+        if status.state in {"completed", "failed", "settled", "outcome_unknown"}:
+            break
+        time.sleep(0.05)
+    worker = supervisor._workers.get(str(attempt.attempt_id))
+    if worker is not None:
+        worker.wait(timeout=5)
+
+
+def test_cancelled_job_tombstone_prevents_a_second_host_attempt(supervisor, tmp_path):
+    _exchange, _request, _pin, _job_root, attempt, _profile = _prepared_text_job(supervisor, tmp_path)
+    assert supervisor.cancel(attempt).state == "settled"
+    replacement = CodexExecAttempt.model_validate(
+        attempt.model_dump(mode="python") | {"attempt_id": uuid4(), "run_id": uuid4()}
+    )
+
+    with pytest.raises(CodexExecSupervisorError, match="already has a host attempt"):
+        supervisor.admit(replacement)
+    assert supervisor._row(replacement.attempt_id) is None
+
+
+def test_terminal_receipt_cannot_be_overwritten_by_a_stale_cancel_snapshot(supervisor):
+    from uuid import uuid4
+
+    initial = _attempt()
+    running = transition_exec_attempt(
+        initial,
+        state="running",
+        process_id=43210,
+        process_group_id=43210,
+        process_birth_identity="fixture-process",
+    )
+    _insert_attempt_row(supervisor, initial, running)
+    output = CodexExecOutputEvidence(
+        outputHash="d" * 64,
+        outputRelativePath="delivery/outline.json",
+        sizeBytes=7,
+    )
+    output_hash = output_manifest_hash((output,))
+    session_id = uuid4()
+    completed = transition_exec_attempt(
+        running,
+        state="completed",
+        session_id=session_id,
+        process_exit_code=0,
+        terminal_result="success",
+        remote_tool_state="not_applicable",
+        evidence_hash="e" * 64,
+        output_hash=output_hash,
+    )
+    receipt = CodexExecReceipt(
+        attemptId=initial.attempt_id,
+        sessionId=session_id,
+        profileHash=initial.profile_hash,
+        requestHash=initial.request_hash,
+        packageHash=initial.package_hash,
+        processId=running.process_id,
+        processGroupId=running.process_group_id,
+        processBirthIdentity=running.process_birth_identity,
+        processExitCode=0,
+        expectedImageOutputs=0,
+        evidenceHash=completed.evidence_hash,
+        outputHash=output_hash,
+        outputs=(output,),
+        remoteToolState="not_applicable",
+    )
+    supervisor._store(completed, receipt=receipt, manifest_json="{}")
+    stale_cancel = transition_exec_attempt(running, state="cancel_requested")
+
+    supervisor._store(stale_cancel)
+    current = supervisor._load(supervisor._row(initial.attempt_id))
+    assert current.state == "completed"
+    assert current.receipt == receipt
+
+
+def test_stale_cancel_snapshot_cannot_erase_owned_process_identity(supervisor):
+    initial = _attempt()
+    running = transition_exec_attempt(
+        initial,
+        state="running",
+        process_id=43213,
+        process_group_id=43213,
+        process_birth_identity="fixture-process-identity",
+    )
+    _insert_attempt_row(supervisor, initial, initial)
+    stale_cancel = transition_exec_attempt(initial, state="cancel_requested")
+
+    supervisor._store(running)
+    updated = supervisor._store(stale_cancel)
+
+    assert updated.state == "cancel_requested"
+    assert updated.process_id == running.process_id
+    assert updated.process_group_id == running.process_group_id
+    assert updated.process_birth_identity == running.process_birth_identity
+
+
+def test_failed_cli_after_completed_image_event_retains_exact_remote_hash(supervisor, tmp_path):
+    from uuid import uuid4
+
+    initial = CodexExecAttempt(
+        attemptId=uuid4(),
+        runId=uuid4(),
+        projectId=uuid4(),
+        jobId="ij_" + "a" * 24,
+        operationKey="frame-1",
+        domain="image",
+        requestHash="a" * 64,
+        packageHash="b" * 64,
+        profileHash="c" * 64,
+        reservedImageOutputs=1,
+        imageBudgetState="reserved",
+        state="spawn_intent",
+    )
+    running = transition_exec_attempt(
+        initial,
+        state="running",
+        process_id=43211,
+        process_group_id=43211,
+        process_birth_identity="fixture-image-process",
+    )
+    _insert_attempt_row(supervisor, initial, running)
+    private_dir = supervisor.private_root / "attempts" / str(initial.attempt_id)
+    private_dir.mkdir(parents=True)
+    generated = supervisor.codex_home / "generated_images" / str(uuid4()) / "frame.png"
+    generated.parent.mkdir(parents=True)
+    image_bytes = b"verified generated bytes"
+    generated.write_bytes(image_bytes)
+    stdout_path = private_dir / "stdout.jsonl"
+    stderr_path = private_dir / "stderr.log"
+    stdout_path.write_bytes(b"terminal error\n")
+    stderr_path.write_bytes(b"")
+    session_id = UUID(generated.parent.name)
+    session = CodexSessionEvidence(
+        session_id=session_id,
+        image_calls=(ImageGenCall("call_1", "draw a frame", (), False, 0),),
+        image_events=(ImageGenEvent("call_1", "event_1", "completed", str(generated), False),),
+        transcript_sha256="f" * 64,
+        transcript_size_bytes=1,
+    )
+
+    supervisor._finish_failure(running, 1, session_id, session, stdout_path, stderr_path)
+
+    status = supervisor._load(supervisor._row(initial.attempt_id))
+    assert status.state == "failed"
+    assert status.receipt is None
+    assert status.attempt.remote_output_hash == sha256(image_bytes).hexdigest()
+    assert status.attempt.image_budget_state == "consumed"
+
+
+def test_failed_text_turn_with_imagegen_evidence_remains_unknown(supervisor, tmp_path):
+    initial = _attempt()
+    running = transition_exec_attempt(
+        initial,
+        state="running",
+        process_id=43214,
+        process_group_id=43214,
+        process_birth_identity="fixture-text-process",
+    )
+    _insert_attempt_row(supervisor, initial, running)
+    with closing(supervisor._connect()) as connection:
+        connection.execute("INSERT INTO exec_slot VALUES (1,?)", (str(initial.attempt_id),))
+    private_dir = supervisor.private_root / "attempts" / str(initial.attempt_id)
+    private_dir.mkdir(parents=True)
+    stdout_path = private_dir / "stdout.jsonl"
+    stderr_path = private_dir / "stderr.log"
+    stdout_path.write_bytes(b"turn.failed\n")
+    stderr_path.write_bytes(b"")
+    session_id = UUID(int=87)
+    session = CodexSessionEvidence(
+        session_id=session_id,
+        image_calls=(ImageGenCall("call_1", "unexpected remote operation", (), False, 0),),
+        image_events=(ImageGenEvent("call_1", "event_1", "completed", "/private/frame.png", False),),
+        transcript_sha256="f" * 64,
+        transcript_size_bytes=1,
+    )
+
+    supervisor._finish_failure(running, 1, session_id, session, stdout_path, stderr_path)
+
+    status = supervisor._load(supervisor._row(initial.attempt_id))
+    assert status.state == "outcome_unknown"
+    assert status.attempt.session_id == session_id
+    assert status.attempt.process_id == running.process_id
+    assert status.receipt is None
+    with closing(supervisor._connect()) as connection:
+        assert connection.execute("SELECT attempt_id FROM exec_slot WHERE slot_id=1").fetchone()[0] == str(initial.attempt_id)

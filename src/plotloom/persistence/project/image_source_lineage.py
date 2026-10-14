@@ -14,7 +14,9 @@ from ..schema import ImageJobRow
 def geometry_policy_matches(policy, record, policy_hash):
     """Geometry semantics survived the v2-to-v3 style-authority contract bump."""
     return (record.policy_hash == policy_hash and stable_hash(policy) == policy_hash
-        and policy.get("version") in {"plotloom.pre-video.v2", "plotloom.pre-video.v3"}
+        and policy.get("version") in {
+            "plotloom.pre-video.v2", "plotloom.pre-video.v3", "plotloom.pre-video.v4"
+        }
         and policy.get("geometryPreparation") == {"recipeVersion": record.recipe.version,
             "runtime": record.runtime.model_dump(mode="json", by_alias=True)}
         and (record.recipe.target_width, record.recipe.target_height) == (policy["imageWidth"], policy["imageHeight"]))
@@ -101,7 +103,8 @@ def assert_geometry(connection, record, *, project_id, run_id, asset_home=None):
             or has_matching_aspect(raw["width"], raw["height"], policy["imageWidth"], policy["imageHeight"])):
         raise ValueError("geometry preparation differs from its frozen local/native authority")
     _assert_geometry_bytes(connection, raw, output, asset_home=asset_home)
-    assert_checkpoint_binding(connection, project_id, "adopted", evidence, run_id=run_id, asset_home=asset_home)
+    assert_checkpoint_binding(connection, project_id, "adopted", evidence, run_id=run_id,
+        operation_key=checkpoint["operation_key"], asset_home=asset_home)
 
 
 def resolve_image_source(connection, project_id, asset_id, *, shot_id=None, asset_home=None):

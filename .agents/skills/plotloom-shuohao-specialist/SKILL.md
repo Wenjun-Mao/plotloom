@@ -1,28 +1,47 @@
 ---
 name: plotloom-shuohao-specialist
-description: Deliver one frozen Plotloom Shuohao-derived creative-stage candidate and HTML report from an explicit project-local package, without changing project canon, approvals, selections, media, or application code.
+description: Deliver one frozen Plotloom Shuohao-derived stage candidate from an explicit project-local package. Manual specialist-chat packages include a derived HTML report; Codex package v4 delegates validation and report production to the trusted host.
 ---
 
 # Plotloom Shuohao Specialist
 
 Use this skill only for one exact package path supplied by the coordinator. The
-package's `request.json` is the authority. It is a manual candidate handoff,
-not a backend job, a review decision, or permission to edit canon.
+package's `request.json` is the authority. Manual packages use the candidate
+handoff workflow; Codex package v4 assigns validation and report production to
+the trusted host. Neither is a review decision or permission to edit canon.
+
+For a frozen request with `executorBackend: "codex_exec"` and
+`packageVersion: 4`, the model owns only the candidate JSON. Do not run any
+validator or renderer, do not create `report.html`, and do not create any other
+delivery output. The trusted host runs the exact frozen validation plan and
+creates the report after the CLI exits. In this package version, any stage
+instructions below that ask the specialist to validate or render describe the
+manual workflow only; they are not executable instructions for the CLI. This
+applies to validator, renderer, report, and completion-manifest directions in
+`request.creativeBrief`, `COPY_ASSIGNMENT.txt`, pinned stage skills, and their
+referenced instructions. Those instructions continue to define creative, style,
+source, schema, and candidate requirements. The trusted host follows only the
+validation plan frozen in the package. The manual specialist-chat workflow
+keeps its existing candidate, report, and manifest responsibilities.
 
 ## Scope and ownership
 
-- Read `request.json`, `COPY_ASSIGNMENT.txt`, every `inputs/*.json`, and
-  `completion-manifest.example.json` before starting.
+- Read `request.json`, `COPY_ASSIGNMENT.txt`, and every `inputs/*.json` before
+  starting. Read `completion-manifest.example.json` only when a manual
+  specialist-chat package includes it; Codex package v4 deliberately omits it.
 - Read the pinned stage skill named by `upstreamSkillPath`, plus the references
-  it routes to for this request. Run its deterministic `validate` and `render`
-  commands from `third_party/shuohao-skills`; this is a repository-checkout
-  seam, not a capability supplied by an installed Plotloom wheel. Do not use an
+  it routes to for this request. In the manual specialist-chat workflow, run
+  its deterministic `validate` and `render` commands from
+  `third_party/shuohao-skills`; this is a repository-checkout seam, not a
+  capability supplied by an installed Plotloom wheel. For Codex package v4,
+  the trusted host runs the exact frozen plan after the CLI exits. Never use an
   unpinned checkout, a global installation, an API key, or a provider fallback.
 - The author owns source text, rights/attribution declarations, desired
   adaptation, and acceptance. The specialist owns a proposed stage-shaped JSON
-  candidate and a derived report. F0 trusted Plotloom code owns frozen identity,
-  request hashes, candidate admission, and currentness. A later selected owner
-  must own review and canonical installation.
+  candidate; the manual specialist-chat workflow also owns its derived report.
+  Codex package v4 assigns report production to trusted host code. F0 trusted
+  Plotloom code owns frozen identity, request hashes, candidate admission, and
+  currentness. A later selected owner must own review and canonical installation.
 - For `branches`, the pinned outline skill is narrative guidance only. The
   frozen `inputs/branch-schema.json` defines a complete advisory draft:
   all planned nodes, choices/options/consequences, join reconciliation and clarifications.
@@ -123,18 +142,21 @@ not a backend job, a review decision, or permission to edit canon.
 
 ## Delivery
 
-1. Follow the upstream skill's stage boundaries and validators. Seed-derived
-   facts in supplied inputs are trusted context, not fields to reinvent.
-2. From the package directory, write exactly the sibling
-   `../delivery/<candidateFilename>` and derive `../delivery/report.html`.
-   Never create `package/delivery`. Do not produce media in this F0 path.
-3. Copy the completion template to `delivery/completion.json` and fill it
-   truthfully: actual byte hashes, checked-out code revision, this skill's hash,
-   model/reasoning when known (including a coordinator-specified execution
-   model), and concrete limitations. Publish the
-   completion file last, once; do not edit it or either declared output later.
-4. Re-read the manifest and compare job ID, request hash, stage, filenames, and
-   hashes with the frozen request. Report only the package and candidate paths.
+1. Follow the upstream skill's stage boundaries. Seed-derived facts in supplied
+   inputs are trusted context, not fields to reinvent. In Codex package v4, its
+   validator and renderer run after the CLI returns under the frozen plan.
+2. Write exactly `../delivery/<candidateFilename>`. For manual
+   specialist-chat packages, also derive `../delivery/report.html`; Codex
+   package v4 forbids model-created reports and other delivery outputs. Never
+   create `package/delivery`. Do not produce media in this F0 path.
+3. For manual specialist-chat packages, copy the included completion template
+   to `delivery/completion.json`, fill it truthfully, and publish it last. Codex
+   package v4 has no completion template; the trusted host publishes the
+   manifest after validation. Do not create or wait for that manifest.
+4. For manual specialist-chat packages, re-read the manifest and compare its
+   identities and hashes with the frozen request. For Codex package v4, report
+   only the package and candidate paths; do not claim that trusted validation,
+   report rendering, or manifest publication has completed.
 
 ## Prohibitions
 

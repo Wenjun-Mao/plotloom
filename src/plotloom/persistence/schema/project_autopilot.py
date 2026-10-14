@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -39,7 +39,7 @@ class AutopilotCheckpointRow(Base):
     __table_args__ = (
         ForeignKeyConstraint(["run_id", "project_id"], ["v2_autopilot_runs.id", "v2_autopilot_runs.project_id"], ondelete="CASCADE"),
         UniqueConstraint("run_id", "operation_key"), UniqueConstraint("id", "run_id", "project_id"),
-        CheckConstraint("state IN ('prepared','sent','outcome_unknown','delivered','adopted')"),
+        CheckConstraint("state IN ('prepared','sent','outcome_unknown','failed','delivered','adopted')", name="ck_v2_autopilot_checkpoints_state"),
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     run_id: Mapped[str] = mapped_column(String(36), nullable=False)
@@ -48,6 +48,35 @@ class AutopilotCheckpointRow(Base):
     revision: Mapped[int] = mapped_column(Integer, nullable=False)
     state: Mapped[str] = mapped_column(String(24), nullable=False)
     evidence: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class AutopilotExecAttemptRow(Base):
+    """One project-owned initial CLI attempt and its atomic image budget."""
+    __tablename__ = "v2_autopilot_exec_attempts"
+    __table_args__ = (
+        ForeignKeyConstraint(["run_id", "project_id"], ["v2_autopilot_runs.id", "v2_autopilot_runs.project_id"], ondelete="CASCADE"),
+        UniqueConstraint("run_id", "operation_key"),
+        UniqueConstraint("project_id", "job_id"),
+        CheckConstraint("state IN ('reserved','spawn_intent','running','outcome_unknown','cancel_requested','completed','failed','settled')"),
+        CheckConstraint("domain IN ('text','image')"),
+        CheckConstraint("image_budget_state IN ('none','reserved','consumed','released')"),
+        CheckConstraint("(domain = 'text' AND image_budget_state = 'none' AND reserved_image_outputs = 0) OR (domain = 'image' AND image_budget_state != 'none' AND reserved_image_outputs BETWEEN 1 AND 4)"),
+        Index("ix_v2_autopilot_exec_attempts_run_state", "run_id", "state"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    run_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    project_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    operation_key: Mapped[str] = mapped_column(String(160), nullable=False)
+    job_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    domain: Mapped[str] = mapped_column(String(8), nullable=False)
+    state: Mapped[str] = mapped_column(String(24), nullable=False)
+    image_budget_state: Mapped[str] = mapped_column(String(12), nullable=False)
+    reserved_image_outputs: Mapped[int] = mapped_column(Integer, nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    receipt: Mapped[dict[str, Any] | None] = mapped_column(JSON(none_as_null=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

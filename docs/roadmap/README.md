@@ -1,21 +1,22 @@
 # Plotloom roadmap entrypoint
 
-The owner-approved [Bridge / controller-claim follow-up](2026-10-14-bridge-claim-optimization.md)
-is the active Python speed slice after the qualified
-[Script/Storyboard and bounded-worker work](2026-10-14-python-context-and-workers.md).
-The CLI worker has released the source/check window after its isolated runtime
-repair and provider-free native gate. Default Python concurrency remains two;
-the 85-percent complete-suite target remains open.
+The owner-requested Python coordinator continues the approved
+[Python speed track](2026-10-14-python-context-and-workers.md) in retained
+`autopilot-ux-release`, separately from higher-priority
+[parallel CLI generation](2026-10-13-autopilot-cli-workers.md) in `b30f`.
+The manager is read-only in both checkouts. Small focused correctness work and
+attended read-only reviews may overlap; broad qualification, profiles and
+benchmarks require a manager-allocated quiet window. Default Python concurrency
+remains two and the 85-percent complete-suite target remains open.
 
-The owner-approved [parallel CLI workers for pre-video autopilot](2026-10-13-autopilot-cli-workers.md)
-assignment was dispatched once through Relay Direct after the preceding
-technical release and first-pass Python speedup integration. Implementation
-is retained in its isolated checkout. The checked-runtime repair and eleven
-native validation-plan pairs passed; generation/pool qualification is pending
-and held during the Python slice. This changes only future launches: durable
-CLI attempts, bounded within-domain concurrency and early dependency-ready
-references. The valued run keeps its original executor. Use the plan's actual
-task identity and verified Relay route; do not dispatch a duplicate assignment.
+The [Bridge / controller-claim follow-up](2026-10-14-bridge-claim-optimization.md)
+has independent review and scoped matched evidence. Historical scheduling has
+141 affected focused checks and stable code review, with no fresh speed claim.
+The manager released frozen CLI `c5c2414d` for local integration into Python
+checkpoint `0a515687`; current contracts and scheduler coverage proofs are
+preserved. Source integration, full qualification, measured speed, publication,
+native generation and product acceptance remain distinct. No hosted CI or live
+activation is authorized by this local integration.
 
 The owner-approved [autopilot UX correction follow-up](2026-10-12-pre-video-autopilot.md#owner-approved-ux-correction-follow-up--2026-10-12)
 adds a deliberate post-save choice, Brief-authoritative autopilot style and

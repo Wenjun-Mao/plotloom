@@ -11,18 +11,61 @@ from urllib.request import Request, urlopen
 
 def main(argv=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["queue", "bridge-health"])
+    parser.add_argument(
+        "command",
+        choices=["queue", "bridge-health", "exec-profile", "exec-readiness", "exec-admit", "exec-status", "exec-cancel"],
+    )
     parser.add_argument("--thread")
     parser.add_argument("--message")
+    parser.add_argument("--attempt-json")
+    parser.add_argument("--attempt-id")
     args = parser.parse_args(argv)
     if args.command == "queue" and (not args.thread or not args.message):
         parser.error("queue requires --thread and --message")
+    if args.command != "queue" and (args.thread or args.message):
+        parser.error("thread and message are only valid for queue")
+    if args.command in {"exec-admit", "exec-cancel"} and (not args.attempt_json or args.attempt_id):
+        parser.error(f"{args.command} requires --attempt-json")
+    if args.command == "exec-status" and (not args.attempt_id or args.attempt_json):
+        parser.error("exec-status requires --attempt-id")
+    if args.command not in {"exec-admit", "exec-status", "exec-cancel"} and (args.attempt_json or args.attempt_id):
+        parser.error("attempt arguments are only valid for Codex Exec commands")
     token = Path(os.environ["PLOTLOOM_CODEX_BRIDGE_TOKEN_FILE"]).read_text().strip()
     url = os.environ["PLOTLOOM_CODEX_BRIDGE_URL"].rstrip("/")
-    payload = {"thread": args.thread, "message": args.message}
+    payload = None
+    if args.command == "queue":
+        payload = {"thread": args.thread, "message": args.message}
+    elif args.command == "exec-admit":
+        try:
+            payload = {"attempt": json.loads(args.attempt_json)}
+        except json.JSONDecodeError:
+            parser.error("--attempt-json must be valid JSON")
+    elif args.command == "exec-cancel":
+        try:
+            from plotloom.codex_exec_contracts import CodexExecAttempt
+            attempt = CodexExecAttempt.model_validate_json(args.attempt_json)
+            payload = {"attempt": attempt.model_dump(mode="json", by_alias=True)}
+        except (ImportError, TypeError, ValueError):
+            parser.error("--attempt-json must be a valid Codex Exec attempt")
+    elif args.command == "exec-cancel":
+        payload = {}
+    endpoint = {
+        "queue": "/queue",
+        "bridge-health": "/healthz",
+        "exec-profile": "/exec-profile",
+        "exec-readiness": "/exec-readiness",
+        "exec-admit": "/exec-admit",
+        "exec-status": f"/exec-status/{args.attempt_id}" if args.attempt_id else "",
+        "exec-cancel": (
+            f"/exec-cancel/{payload['attempt'].get('attemptId')}"
+            if isinstance(payload, dict) and isinstance(payload.get("attempt"), dict)
+            else ""
+        ),
+    }[args.command]
     request = Request(
-        url + ("/queue" if args.command == "queue" else "/healthz"),
-        data=json.dumps(payload).encode() if args.command == "queue" else None,
+        url + endpoint,
+        data=json.dumps(payload).encode() if payload is not None else None,
+        method="POST" if args.command in {"queue", "exec-admit", "exec-cancel"} else "GET",
         headers={
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
@@ -37,6 +80,33 @@ def main(argv=None):
         return 1
     if args.command == "bridge-health":
         print("Native Codex bridge is available.")
+        return 0
+    if args.command == "exec-profile":
+        try:
+            from plotloom.codex_exec_contracts import CodexExecProfile
+            profile = CodexExecProfile.model_validate(result)
+        except (ImportError, TypeError, ValueError):
+            print("Codex Exec profile acknowledgement is invalid.", file=sys.stderr)
+            return 1
+        print(profile.model_dump_json(by_alias=True))
+        return 0
+    if args.command == "exec-readiness":
+        try:
+            from plotloom.codex_exec_contracts import CodexExecReadiness
+            readiness = CodexExecReadiness.model_validate(result)
+        except (ImportError, TypeError, ValueError):
+            print("Codex Exec readiness acknowledgement is invalid.", file=sys.stderr)
+            return 1
+        print(readiness.model_dump_json(by_alias=True))
+        return 0
+    if args.command in {"exec-admit", "exec-status", "exec-cancel"}:
+        try:
+            from plotloom.codex_exec_contracts import CodexExecHostStatus
+            status = CodexExecHostStatus.model_validate(result)
+        except (ImportError, TypeError, ValueError):
+            print("Codex Exec status acknowledgement is invalid.", file=sys.stderr)
+            return 1
+        print(status.model_dump_json(by_alias=True))
         return 0
     if not isinstance(result, dict) or type(result.get("returncode")) is not int:
         print("Native Codex bridge acknowledgement is invalid.", file=sys.stderr)

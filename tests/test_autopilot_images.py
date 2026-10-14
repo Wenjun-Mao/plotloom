@@ -102,7 +102,7 @@ def test_late_reference_retains_original_receipt_without_selection(tmp_path, mon
         retained, checkpoint = sent_reference(storage, service, view)
         service.control(view.project_id, RunControlRequest(expected_revision=retained.revision, action=action))
         with closing(storage.projects.open(view.project_id)) as store:
-            deliver_image(store, retained, checkpoint)
+            deliver_image(store, retained, checkpoint, host=registry._codex_exec_test_host)
         service.step(view.project_id)
         result = current(storage, view)
         assert result.state == {"pause": "paused", "cancel": "cancelled", "takeover": "taken_over"}[action]
@@ -124,7 +124,7 @@ def test_extra_output_is_disclosed_blocker_and_never_competing_selection(tmp_pat
     try:
         retained, checkpoint = sent_reference(storage, service, view)
         with closing(storage.projects.open(view.project_id)) as store:
-            deliver_image(store, retained, checkpoint, output_count=2)
+            deliver_image(store, retained, checkpoint, output_count=2, host=registry._codex_exec_test_host)
         service.step(view.project_id)
         service.step(view.project_id)
         result = current(storage, view)
@@ -144,35 +144,30 @@ def test_pause_at_image_send_boundary_prevents_native_dispatch(tmp_path, monkeyp
         service.step(view.project_id)
         retained = current(storage, view)
         checkpoint = next(item for item in retained.checkpoints if item["evidence"]["owner"] == "character-reference")
-        original = registry.dispatch
-        def dispatch(role, **kwargs):
-            before = kwargs["before_send"]
-            def pause_then_admit():
-                service.control(view.project_id, RunControlRequest(expected_revision=retained.revision, action="pause"))
-                before()
-            kwargs["before_send"] = pause_then_admit
-            return original(role, **kwargs)
-        monkeypatch.setattr(registry, "dispatch", dispatch)
+        service.control(view.project_id, RunControlRequest(expected_revision=retained.revision, action="pause"))
         service.step(view.project_id)
         result = current(storage, view)
-        assert result.state == "paused" and not calls and not registry.view()["busy"]
+        assert result.state == "paused" and calls == [] and not registry.view()["busy"]
         assert next(item for item in result.checkpoints if item["id"] == checkpoint["id"])["state"] == "prepared"
     finally:
         service.close()
 
 
 def test_native_unknown_image_restart_reconciles_original_identity_without_resend(tmp_path, monkeypatch):
-    import subprocess
+    import sqlite3
+    from pathlib import PurePosixPath
+
     storage, registry, service, view, calls, _text = image_environment(tmp_path, monkeypatch, auto_deliver=False)
     resumed = None
     try:
-        queue = subprocess.run
-        def lost_ack(command, **kwargs):
-            result = queue(command, **kwargs)
-            return subprocess.CompletedProcess(command, 1, "") if len(command) > 1 and command[1] == "queue" else result
-        monkeypatch.setattr(subprocess, "run", lost_ack)
         for _ in range(3):
             service.step(view.project_id)
+        retained = current(storage, view)
+        checkpoint = next(item for item in retained.checkpoints if item["evidence"]["owner"] == "character-reference")
+        with closing(storage.projects.open(view.project_id)) as store:
+            attempt = store.repository.autopilot.exec_attempt_for_operation(view.id, checkpoint["operationKey"])
+        assert attempt is not None and attempt.state == "running"
+        registry._codex_exec_test_host.lose_attempt(attempt.attempt_id)
         service.close()
         resumed = AutopilotService(storage, registry)
         assert resumed.acquire_controller()
@@ -181,7 +176,61 @@ def test_native_unknown_image_restart_reconciles_original_identity_without_resen
         checkpoint = next(item for item in retained.checkpoints if item["evidence"]["owner"] == "character-reference")
         assert checkpoint["state"] == "outcome_unknown"
         with closing(storage.projects.open(view.project_id)) as store:
-            deliver_image(store, retained, checkpoint)
+            unknown_attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
+                retained.id, checkpoint["operationKey"]
+            )
+            assert unknown_attempt.state == "outcome_unknown" and receipt is None
+            assert unknown_attempt.image_budget_state == "reserved"
+            with sqlite3.connect(store.database_path) as connection:
+                original_row = connection.execute(
+                    "SELECT snapshot,image_budget_state,reserved_image_outputs "
+                    "FROM v2_autopilot_exec_attempts WHERE id=?",
+                    (str(unknown_attempt.attempt_id),),
+                ).fetchone()
+            run_directory = next(
+                path for path in (store.home / "runs").iterdir()
+                if path.name.endswith("__" + unknown_attempt.job_id)
+            )
+            package_request = run_directory / "jobs" / unknown_attempt.job_id / "package" / "request.json"
+            original_package_request = package_request.read_bytes()
+
+        resumed.control(
+            view.project_id,
+            RunControlRequest(expected_revision=retained.revision, action="pause"),
+        )
+        resumed.step(view.project_id)
+        paused = current(storage, view)
+        assert paused.state == "paused"
+        from plotloom.project_storage.operational_state import ProjectBusyError
+        from plotloom.project_storage.recovery_validation import payload_inventory, payload_paths
+
+        # A retained unknown image attempt still owns an active publication
+        # lease, so snapshot creation must refuse it. Exercise the exact
+        # read-only payload inventory that snapshot creation uses after that
+        # gate, without bypassing the lease.
+        with pytest.raises(ProjectBusyError, match="character_reference_publication_active"):
+            storage.recovery.create_snapshot(view.project_id)
+        inventory_paths = payload_paths(store.home, store.database_path)
+        assert PurePosixPath("project.sqlite3") in inventory_paths
+        inventory = payload_inventory(store.home, inventory_paths)
+        assert inventory[PurePosixPath("project.sqlite3")].content_hash
+        with sqlite3.connect(store.database_path) as connection:
+            after_row = connection.execute(
+                "SELECT snapshot,image_budget_state,reserved_image_outputs "
+                "FROM v2_autopilot_exec_attempts WHERE id=?",
+                (str(unknown_attempt.attempt_id),),
+            ).fetchone()
+        assert after_row == original_row
+        assert original_row[1:] == ("reserved", 1)
+        assert package_request.read_bytes() == original_package_request
+
+        resumed.control(
+            view.project_id,
+            RunControlRequest(expected_revision=paused.revision, action="resume"),
+        )
+        resumed.step(view.project_id)
+        with closing(storage.projects.open(view.project_id)) as store:
+            deliver_image(store, retained, checkpoint, host=registry._codex_exec_test_host)
         resumed.step(view.project_id)
         resumed.step(view.project_id)
         assert next(item for item in current(storage, view).checkpoints if item["id"] == checkpoint["id"])["state"] == "adopted"

@@ -12,56 +12,168 @@ from plotloom.creative_package_publication import publish_package
 from tests.autopilot_controller_fixtures import environment
 
 
+def _current(storage, view):
+    with closing(storage.projects.open(view.project_id)) as store:
+        return store.repository.autopilot.current(view.project_id)
+
+
+def test_launch_requires_usable_cli_login_before_creating_frozen_run(tmp_path, monkeypatch):
+    from plotloom.autopilot_contracts import LaunchRequest
+    from plotloom.autopilot_service import AutopilotService
+    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+    from plotloom.image_job_contracts import ImageJobError
+    from plotloom.codex_exec_contracts import CodexExecReadiness
+    from plotloom.project_storage import ProjectFolderStorage
+    from tests.autopilot_controller_fixtures import PIN
+    from tests.codex_exec_fixtures import install_profile
+    from tests.test_specialist_settings import configured
+
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    with closing(storage.projects.create(FIXED_CHINESE_BRIEF)) as store:
+        project_id = store.manifest.project_id
+    registry, _settings = configured(storage.application.root)
+    install_profile(registry)
+    registry.codex_exec_readiness = lambda: CodexExecReadiness(state="not_authenticated")
+    monkeypatch.setattr(CreativeHandoffExchange, "current_execution_pin", lambda *_: PIN)
+    service = AutopilotService(storage, registry)
+    request = LaunchRequest(
+        expected_brief_revision=1,
+        render_style="realistic",
+        art_render_style="realistic",
+    )
+    try:
+        with pytest.raises(ImageJobError) as error:
+            service.launch(project_id, request)
+        assert error.value.code == "codex_exec_not_ready"
+        with closing(storage.projects.open(project_id)) as store:
+            assert store.repository.autopilot.current(project_id) is None
+    finally:
+        service.close()
+
+
 @pytest.mark.parametrize("stage", ["outline", "bridge-intent"])
-@pytest.mark.parametrize("action", ["pause", "takeover", "cancel", "brief-edit", "pin-change", "binding-change"])
-def test_current_authority_required_at_final_send(tmp_path, monkeypatch, stage, action):
-    storage, registry, service, view, calls = environment(tmp_path, monkeypatch)
+@pytest.mark.parametrize("drift", ["pin", "profile"])
+def test_frozen_cli_configuration_rechecked_at_final_spawn_gate(tmp_path, monkeypatch, stage, drift):
+    from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+    from plotloom import autopilot_text_controller
+
+    storage, registry, service, view, calls = environment(tmp_path, monkeypatch, auto_deliver=True)
     try:
         assert service.acquire_controller()
-        for _ in range(40):
+        for _ in range(80):
             service.step(view.project_id)
             with closing(storage.projects.open(view.project_id)) as store:
                 current = store.repository.autopilot.current(view.project_id)
             checkpoint = next((item for item in current.checkpoints if item["operationKey"] == stage), None)
-            if checkpoint is not None:
+            if checkpoint is not None and checkpoint["state"] == "prepared":
                 break
-        assert checkpoint["state"] == "prepared"
-        original_dispatch = registry.dispatch
+        assert checkpoint is not None and checkpoint["state"] == "prepared"
+        calls_before = list(calls)
+        admissions_before = registry._codex_exec_test_host.admissions
+        original_gate = autopilot_text_controller.assert_frozen_execution
+        gate_calls = 0
 
-        def dispatch(role, **kwargs):
-            if action == "binding-change":
-                with registry.lock():
-                    data = registry._read()
-                    data["settings"]["image"]["taskId"] = "00000000-0000-4000-8000-000000000001"
-                    registry._write(data)
-            else:
-                before_send = kwargs["before_send"]
+        def intervene_at_final_gate(store, owner_registry, policy):
+            nonlocal gate_calls
+            gate_calls += 1
+            if gate_calls == 2:
+                if drift == "pin":
+                    monkeypatch.setattr(
+                        CreativeHandoffExchange,
+                        "current_execution_pin",
+                        lambda *_: {"upstreamRevision": "d" * 40},
+                    )
+                else:
+                    profile = owner_registry.codex_exec_profile()
+                    monkeypatch.setattr(
+                        owner_registry,
+                        "codex_exec_profile",
+                        lambda: profile.model_copy(update={"model": "changed-at-final-gate"}),
+                    )
+            return original_gate(store, owner_registry, policy)
 
-                def intervene():
-                    if action in {"pause", "takeover", "cancel"}:
-                        service.control(view.project_id, RunControlRequest(expected_revision=current.revision, action=action))
-                    elif action == "brief-edit":
-                        with closing(storage.projects.open(view.project_id)) as store:
-                            project = store.project()
-                            store.update_brief(project.brief.model_copy(update={"synopsis": project.brief.synopsis + "调整"}), expected_revision=project.revision)
-                    else:
-                        from plotloom.creative_handoff_exchange import CreativeHandoffExchange
-                        monkeypatch.setattr(CreativeHandoffExchange, "current_execution_pin", lambda *_: {"upstreamRevision": "d" * 40})
-                    before_send()
-
-                kwargs["before_send"] = intervene
-            return original_dispatch(role, **kwargs)
-
-        monkeypatch.setattr(registry, "dispatch", dispatch)
-        original_calls = list(calls)
+        monkeypatch.setattr(autopilot_text_controller, "assert_frozen_execution", intervene_at_final_gate)
         service.step(view.project_id)
         with closing(storage.projects.open(view.project_id)) as store:
             result = store.repository.autopilot.current(view.project_id)
             retained = next(item for item in result.checkpoints if item["operationKey"] == stage)
+            attempt, _receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
+                result.id, retained["operationKey"]
+            )
+        assert result.state == "blocked" and result.blocker["code"] == "contract_blocked"
         assert retained["state"] == "prepared"
         assert retained["evidence"]["jobId"] == checkpoint["evidence"]["jobId"]
-        assert calls == original_calls
-        assert not registry.view()["busy"]
+        assert calls == calls_before
+        assert registry._codex_exec_test_host.admissions == admissions_before
+        assert attempt is None
+    finally:
+        service.close()
+
+
+def test_lost_cli_login_readiness_does_not_reserve_or_admit_prepared_job(tmp_path, monkeypatch):
+    from plotloom.codex_exec_contracts import CodexExecReadiness
+
+    storage, registry, service, view, calls = environment(tmp_path, monkeypatch, auto_deliver=True)
+    try:
+        assert service.acquire_controller()
+        for _ in range(80):
+            service.step(view.project_id)
+            current = _current(storage, view)
+            checkpoint = next((item for item in current.checkpoints if item["operationKey"] == "outline"), None)
+            if checkpoint is not None and checkpoint["state"] == "prepared":
+                break
+        assert checkpoint is not None and checkpoint["state"] == "prepared"
+
+        admissions_before = registry._codex_exec_test_host.admissions
+        calls_before = list(calls)
+        registry.codex_exec_readiness = lambda: CodexExecReadiness(state="not_authenticated")
+        service.step(view.project_id)
+
+        current = _current(storage, view)
+        retained = next(item for item in current.checkpoints if item["operationKey"] == "outline")
+        with closing(storage.projects.open(view.project_id)) as store:
+            attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
+                current.id, "outline"
+            )
+        assert current.state == "blocked" and current.blocker["code"] == "codex_exec_not_ready"
+        assert retained["state"] == "prepared" and retained["evidence"].get("executorAttemptId") is None
+        assert attempt is None and receipt is None
+        assert registry._codex_exec_test_host.admissions == admissions_before
+        assert calls == calls_before
+    finally:
+        service.close()
+
+
+@pytest.mark.parametrize("stage", ["outline", "bridge-intent"])
+@pytest.mark.parametrize("action", ["pause", "takeover", "cancel"])
+def test_stopped_run_does_not_admit_prepared_cli_job(tmp_path, monkeypatch, stage, action):
+    storage, registry, service, view, calls = environment(tmp_path, monkeypatch, auto_deliver=True)
+    try:
+        assert service.acquire_controller()
+        for _ in range(80):
+            service.step(view.project_id)
+            current = _current(storage, view)
+            checkpoint = next((item for item in current.checkpoints if item["operationKey"] == stage), None)
+            if checkpoint is not None and checkpoint["state"] == "prepared":
+                break
+        assert checkpoint is not None and checkpoint["state"] == "prepared"
+        calls_before = list(calls)
+        admissions_before = registry._codex_exec_test_host.admissions
+        stopped = service.control(
+            view.project_id,
+            RunControlRequest(expected_revision=current.revision, action=action),
+        )
+        service.step(view.project_id)
+        result = _current(storage, view)
+        assert result.state == {"pause": "paused", "takeover": "taken_over", "cancel": "cancelled"}[action]
+        assert next(item for item in result.checkpoints if item["operationKey"] == stage)["state"] == "prepared"
+        assert calls == calls_before
+        assert registry._codex_exec_test_host.admissions == admissions_before
+        assert stopped.revision >= current.revision
     finally:
         service.close()
 
@@ -101,7 +213,9 @@ def test_controller_inspects_idle_or_closed_folders_without_writing(tmp_path, mo
     if has_run:
         from tests.autopilot_controller_fixtures import PIN
         from tests.test_specialist_settings import configured
+        from tests.codex_exec_fixtures import install_profile
         registry, _settings = configured(storage.application.root)
+        install_profile(registry)
         service = AutopilotService(storage, registry)
         from plotloom.creative_handoff_exchange import CreativeHandoffExchange
         monkeypatch.setattr(CreativeHandoffExchange, "_pinned_execution", staticmethod(lambda _: PIN))
@@ -199,7 +313,11 @@ def test_background_storage_failure_preserves_job_and_other_project_progress(tmp
             return
         # Preparation is durably committed before static publication fails.
         exchange_type = type(store.creative_handoff_exchange())
-        monkeypatch.setattr(exchange_type, "write_package", lambda *_: (_ for _ in ()).throw(failure))
+        monkeypatch.setattr(
+            exchange_type,
+            "write_package",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(failure),
+        )
         original_advance(store, current, claim)
 
     monkeypatch.setattr(service.controller, "advance", advance)

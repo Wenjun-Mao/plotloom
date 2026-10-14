@@ -9,6 +9,7 @@ import sys
 import time
 from contextlib import contextmanager
 from dataclasses import replace
+from pathlib import Path
 from threading import Thread
 from urllib.error import HTTPError
 from urllib.request import ProxyHandler, Request, build_opener
@@ -41,6 +42,9 @@ def installation(tmp_path, monkeypatch):
     fake = tmp_path / "native.py"
     fake.write_text(
         "import json, sys\n"
+        "if sys.argv[1:] == ['--version']:\n"
+        "    print('codex-cli 0.162.0-alpha.17.2')\n"
+        "    raise SystemExit(0)\n"
         f"with open({str(calls)!r}, 'a') as log:\n"
         "    log.write(json.dumps(sys.argv[1:]) + '\\n')\n"
     )
@@ -190,6 +194,46 @@ def test_full_http_dispatch_uses_one_settings_owner_and_actual_outbound_shim(ins
     with socket.socket() as released:
         released.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         released.bind(("127.0.0.1", bridge_port))
+
+
+def test_isolated_runtime_routes_profile_and_supervisor_to_confined_roots(installation):
+    from plotloom.codex_exec_contracts import CodexExecProfile
+    from plotloom.codex_exec_profile import SUPPORTED_CLI_VERSION
+
+    config, calls = installation
+    with compose(config) as runtime:
+        assert runtime.bridge.source_root == Path(isolated.__file__).resolve().parents[2]
+        assert runtime.bridge.outputs_root == config.data_root / "outputs"
+        assert runtime.bridge.private_root == config.token_file.parent / "codex-exec"
+        assert not runtime.bridge.private_root.is_relative_to(config.data_root)
+
+        profile_result = subprocess.run(
+            [str(runtime.shim), "exec-profile"],
+            env=runtime.app.state.specialists.environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert profile_result.returncode == 0, profile_result.stderr
+        profile = CodexExecProfile.model_validate_json(profile_result.stdout)
+        assert profile.cli_version == SUPPORTED_CLI_VERSION
+
+        supervisor = runtime.bridge.exec_supervisor()
+        assert supervisor.source_root == runtime.bridge.source_root
+        assert supervisor.outputs_root == runtime.bridge.outputs_root
+        assert supervisor.private_root == runtime.bridge.private_root
+        assert supervisor.database.is_relative_to(runtime.bridge.private_root)
+        assert not runtime.bridge.private_root.is_relative_to(config.data_root / "outputs")
+        assert calls.read_text() == "" if calls.exists() else True
+
+
+def test_installation_data_cannot_be_nested_in_private_exec_state(installation):
+    config, _calls = installation
+    nested_data = config.token_file.parent / "codex-exec" / "installation"
+    for directory in ("outputs", "application"):
+        (nested_data / directory).mkdir(parents=True)
+    with pytest.raises(ValueError, match="outside Codex Exec private state"):
+        replace(config, data_root=nested_data).validated()
 
 
 def test_foreign_installation_tasks_auth_and_health_queue_nothing(installation):

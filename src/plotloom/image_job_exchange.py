@@ -17,6 +17,13 @@ from uuid import UUID
 
 from pydantic import ValidationError
 
+from .codex_exec_contracts import (
+    CodexExecAttempt,
+    CodexExecProfile,
+    CodexExecReceipt,
+    assert_receipt_matches_attempt,
+)
+from .image_exchange_packages import ImagePackageCommands
 from .image_job_contracts import (
     ImageDeliveryManifest,
     ImageExecutorProvenance,
@@ -24,10 +31,8 @@ from .image_job_contracts import (
     NativeTaskBinding,
     is_image_job_id,
 )
-from .managed_media import ManagedMediaLimits, ObservedImage, inspect_import_image
-
-from .image_exchange_packages import ImagePackageCommands
 from .image_job_package import canonical_json as _canonical_json
+from .managed_media import ManagedMediaLimits, ObservedImage, inspect_import_image
 
 COMPLETION_FILENAME = "completion.json"
 EXECUTOR_PIN_FILENAME = "executor-pin.json"
@@ -263,6 +268,12 @@ class ImageJobExchange(ImagePackageCommands):
         expected_executor_skill_version: str | None = None,
         expected_executor_contract: str = "codex_specialist.v2",
         expected_native_task_binding: NativeTaskBinding | dict | None = None,
+        expected_codex_attempt: CodexExecAttempt | None = None,
+        expected_codex_profile: CodexExecProfile | None = None,
+        expected_codex_receipt: CodexExecReceipt | None = None,
+        expected_codex_references: Iterable[tuple[str, str, str]] = (),
+        expected_codex_execution_pin: dict[str, str] | None = None,
+        expected_codex_output_role: str | None = None,
     ) -> ValidatedDelivery | None:
         """Read a completed untrusted package, or report that no delivery exists yet.
 
@@ -312,14 +323,33 @@ class ImageJobExchange(ImagePackageCommands):
                 raise ImageJobError("delivery_identity_mismatch", "completion manifest does not belong to this frozen image job")
             if manifest.schema_version == 3 and not require_executor_pin:
                 raise ImageJobError("delivery_executor_pin_missing", "schema-v3 delivery requires its pre-generation executor pin")
+            if manifest.schema_version == 5 and expected_executor_contract != "codex_exec.v1":
+                raise ImageJobError("delivery_execution_mismatch", "schema-v5 delivery requires its exact Codex Exec attempt receipt")
+            if expected_executor_contract == "codex_exec.v1":
+                self._validate_codex_exec_delivery(
+                    manifest,
+                    job_id=job_id,
+                    request_hash=request_hash,
+                    expected_references=tuple(expected_codex_references),
+                    required_identity_hashes=tuple(required_reference_hashes),
+                    execution_pin=expected_codex_execution_pin,
+                    expected_output_role=expected_codex_output_role,
+                    attempt=expected_codex_attempt,
+                    profile=expected_codex_profile,
+                    receipt=expected_codex_receipt,
+                )
+            elif manifest.schema_version in {4, 5}:
+                raise ImageJobError("delivery_execution_mismatch", "Codex Exec delivery requires its exact attempt receipt")
             required_hashes = tuple(required_reference_hashes)
             if required_hashes:
-                if manifest.schema_version not in {2, 3} or manifest.reference_use is None:
+                if manifest.schema_version not in {2, 3, 4, 5} or manifest.reference_use is None:
                     raise ImageJobError(
                         "delivery_reference_use_missing",
                         "identity-aware delivery must attest to every viewed character reference",
                     )
-                if set(manifest.reference_use.viewed_reference_hashes) != set(required_hashes):
+                viewed_hashes = set(manifest.reference_use.viewed_reference_hashes)
+                required_match = set(required_hashes) <= viewed_hashes if manifest.schema_version == 5 else viewed_hashes == set(required_hashes)
+                if not required_match:
                     raise ImageJobError(
                         "delivery_reference_use_mismatch",
                         "identity-aware delivery reference attestation does not match the frozen identity set",
@@ -449,6 +479,72 @@ class ImageJobExchange(ImagePackageCommands):
             manifest_hash=sha256(_canonical_json(manifest.canonical_payload())).hexdigest(),
             outputs=tuple(outputs),
         )
+
+    @staticmethod
+    def _validate_codex_exec_delivery(
+        manifest: ImageDeliveryManifest,
+        *,
+        job_id: str,
+        request_hash: str,
+        expected_references: tuple[tuple[str, str, str], ...],
+        required_identity_hashes: tuple[str, ...],
+        execution_pin: dict[str, str] | None,
+        expected_output_role: str | None,
+        attempt: CodexExecAttempt | None,
+        profile: CodexExecProfile | None,
+        receipt: CodexExecReceipt | None,
+    ) -> None:
+        expected_package_views = tuple(
+            (role, f"references/{filename}", reference_hash)
+            for role, filename, reference_hash in expected_references
+        )
+        if attempt is None or profile is None or receipt is None:
+            raise ImageJobError("delivery_executor_evidence_missing", "Codex Exec image delivery requires its exact project attempt and host receipt")
+        try:
+            assert_receipt_matches_attempt(attempt, receipt)
+        except (TypeError, ValueError) as error:
+            raise ImageJobError("delivery_executor_evidence_invalid", "Codex Exec image receipt is invalid") from error
+        tool = manifest.tool_evidence
+        if (
+            manifest.schema_version != 5
+            or attempt.domain != "image"
+            or attempt.job_id != job_id
+            or attempt.request_hash != request_hash
+            or attempt.profile_hash != profile.profile_hash
+            or attempt.plotloom_code_revision != (execution_pin or {}).get("codeRevision")
+            or manifest.executor_profile_hash != profile.profile_hash
+            or tool.executor_attempt_id != attempt.attempt_id
+            or tool.codex_session_id != receipt.session_id
+            or receipt.expected_image_outputs != 1
+            or len(receipt.image_evidence) != 1
+            or tool.image_gen_call_id != receipt.image_evidence[0].call_id
+            or tool.image_gen_event_id != receipt.image_evidence[0].event_id
+            or manifest.actual_prompt == ""
+            or sha256(manifest.actual_prompt.encode("utf-8")).hexdigest()
+                != receipt.image_evidence[0].prompt_hash
+            or receipt.image_evidence[0].reference_hashes != tuple(item[2] for item in expected_references)
+            or tuple((item.role, item.package_relative_path, item.reference_hash) for item in receipt.reference_views)
+                != expected_package_views
+            or ((manifest.reference_use is not None) != bool(expected_references))
+            or (manifest.reference_use is not None and
+                manifest.reference_use.viewed_reference_hashes != [item[2] for item in expected_references])
+            or manifest.executor_provenance is None
+            or manifest.executor_provenance.model != profile.model
+            or manifest.executor_provenance.reasoning_effort != profile.reasoning_effort
+            or execution_pin is None
+            or manifest.executor_provenance.code_revision != execution_pin.get("codeRevision")
+            or manifest.executor_provenance.skill_version != execution_pin.get("skillVersion")
+            or manifest.executor_provenance.skill_hash != execution_pin.get("skillHash")
+            or not set(required_identity_hashes) <= {item[2] for item in expected_references}
+        ):
+            raise ImageJobError("delivery_execution_mismatch", "image delivery differs from its exact Codex Exec attempt, profile or host receipt")
+        event = receipt.image_evidence[0]
+        if len(manifest.outputs) != 1 or (
+            manifest.outputs[0].filename != event.output_relative_path.rsplit("/", 1)[-1]
+            or manifest.outputs[0].sha256 != event.output_hash
+            or manifest.outputs[0].role != expected_output_role
+        ):
+            raise ImageJobError("delivery_executor_evidence_invalid", "image output differs from the exact Codex Exec event bytes")
 
     def _validated_executor_pin(
         self, delivery_fd: int, *, job_id: str, request_hash: str,
