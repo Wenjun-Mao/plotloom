@@ -1081,6 +1081,10 @@ push, live checkout write or cleanup occurred. This ten-case comparison needs
 its own quiet allocation. Combined full/hosted qualification, creative/product
 acceptance, whole-suite speed and the original 85-percent target remain open.
 
+Frozen executable after is `201adc21dc6ff4bd1f9c413d377f6056dac48bd6`;
+before remains `2f57f598f9bdac67f6bce10012b351344b4bf7a3`. Later docs-only
+HEADs do not retarget this ten-case comparison or any earlier accepted pair.
+
 ## Residual-cost investigation — historical proposal, now separately scoped
 
 One fresh main-thread profile ran the unchanged complete-pack control at clean
