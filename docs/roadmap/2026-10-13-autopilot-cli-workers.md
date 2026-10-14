@@ -13,6 +13,31 @@ workers, including image work before all text is finished. Each worker uses
 one isolated `codex exec` process for one immutable job. Plotloom remains the
 owner of admission, scheduling, validation, adoption and final human handoff.
 
+## Latest owner preapproval — October 14
+
+The owner removed the proposed aggregate native-generation quota: run the
+necessary justified proofs, including failures and diagnostics, without the
+earlier sixteen-image or proposed 24-text/32-image ceiling. Keep each experiment
+bounded and recorded; freeze exact job budgets and inputs before dispatch.
+This does not remove per-run product budgets or the maximum of four concurrent
+processes, permit duplicate unknown attempts, or authorize aesthetic retries.
+Use existing Codex authentication and new disposable projects only. After two
+failures at the same criterion, retain evidence and reassess the root cause and
+method before another dispatch. No new providers or global credential/settings
+changes are authorized.
+
+The worker remains idle at `dda660dc` until the manager explicitly releases the
+next window. Its eleven-plan native proof is accepted for its pinned inputs;
+reconcile changed CLI/Python inputs before new native proof, rather than replay
+unchanged checks or treat prior results as qualification of integrated source.
+The intended paired small all-route serial/parallel proof remains the first
+choice; narrow diagnostics must answer a named unresolved question.
+
+Final delivery is **local verification and push only: no hosted CI or live
+activation**. This latest instruction supersedes earlier future-launch
+activation language below. Preserve all old stopped/unknown runs and valued
+stories. A materially wider scope still needs an explained owner decision.
+
 ## Queue and start conditions
 
 The manager starts this assignment after the current autopilot UX repair,
@@ -579,10 +604,10 @@ and late results; closed folders; portable recovery; derivative lineage;
 single final human handoff; and unchanged video denial.
 
 Native proof must use real frozen Plotloom packages through the production
-adapter, not replace provider calls with fixtures. Bound the proof to two small
-disposable all-route packs, at most sixteen native images across the paired
-serial/parallel comparison. Extend that allowance only after preserving a
-concrete failure and explaining the necessary additional proof. Do not use
+adapter, not replace provider calls with fixtures. Prefer two small disposable
+all-route packs for the paired serial/parallel comparison. The latest owner
+preapproval above removes the aggregate sixteen-image ceiling, not frozen
+per-run budgets or the need to explain each additional experiment. Do not use
 valued projects or another provider as test fixtures.
 
 Measure queue, process setup, tool execution, validation/adoption and end-to-end

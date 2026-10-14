@@ -235,7 +235,30 @@ The qualified integration was pushed as
 back at that exact SHA. The isolated profiling checkout and its raw evidence
 remain retained. Hosted qualification and the overall two-part goal are open.
 
-## Residual-cost investigation — not an approved implementation
+## Owner's unattended-work preapproval — October 14
+
+After the Bridge/claim focused checkpoint, the owner approved further measured
+local fixture reuse, test scheduling and operation-local duplicate parsing/read
+elimination. Historical timings may predict scheduling order, but never serve as
+new performance evidence. Preserve complete native coverage, genuine validation,
+fixture isolation, transaction/recovery contracts and the two-worker release
+default. Cross-operation authority caching and ordinary-open validation bypass
+remain excluded; materially wider scope still requires an explained decision.
+
+The manager retains the sole source/check window for this Python qualification.
+Review the scheduling contract independently before changing it: current
+inventory and exact worker completion own coverage, whereas stale duration
+weights are predictions. Avoid an extra full-suite capture solely to make old
+weights eligible. Run focused regressions and independently review the stable
+candidate before one final local full gate; report observed time and remaining
+distance to the target, not an estimated speedup.
+
+The latest release instruction is **local verification and push only: no hosted
+CI and no live activation**. This overrides earlier anticipated hosted/deploy
+steps for the current work. The CI workflow is dispatch-only; do not dispatch
+it. Leave valued projects, existing executors and old unknown attempts intact.
+
+## Residual-cost investigation — historical proposal, now separately scoped
 
 One fresh main-thread profile ran the unchanged complete-pack control at clean
 `3c3a025e` (the same executable inputs as the qualified/published candidate).
