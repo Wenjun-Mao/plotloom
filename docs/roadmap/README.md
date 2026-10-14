@@ -1,12 +1,14 @@
 # Plotloom roadmap entrypoint
 
-The owner approved and queued [parallel CLI workers for pre-video autopilot](2026-10-13-autopilot-cli-workers.md)
-through Relay Brainstorm and Plan, followed by Direct after the current UX
-repair, combined qualification/actual-path release work and first-pass Python
-speedup integration finish. This changes only future launches: durable CLI
-attempts, bounded within-domain concurrency and early dependency-ready
-references. The current valued run keeps its original executor. Implementation
-has not started; the queue must not bypass the preceding technical gates.
+The owner-approved [parallel CLI workers for pre-video autopilot](2026-10-13-autopilot-cli-workers.md)
+assignment was dispatched once through Relay Direct after the preceding
+technical release and first-pass Python speedup integration. Implementation
+is active in its isolated checkout; the serial checkpoint is undergoing
+authentication and permission-boundary repair before fresh native proof.
+Concurrency remains unqualified. This changes only future launches: durable
+CLI attempts, bounded within-domain concurrency and early dependency-ready
+references. The valued run keeps its original executor. Use the plan's actual
+task identity and verified Relay route; do not dispatch a duplicate assignment.
 
 The owner-approved [autopilot UX correction follow-up](2026-10-12-pre-video-autopilot.md#owner-approved-ux-correction-follow-up--2026-10-12)
 adds a deliberate post-save choice, Brief-authoritative autopilot style and
@@ -17,8 +19,9 @@ The owner approved implementing [pre-video autopilot](2026-10-12-pre-video-autop
 automatic first-pass text adoption and initial image/reference selections, then
 one human review before video work. Existing-app rollout follows isolated proof
 and a preservation-qualified schema transition. [ADR 0162](../adr/0162-pre-video-autopilot-authority.md)
-is accepted for implementation, not yet delivered. Relay Direct authorizes the
-scoped isolated proof, preserving upgrade and quiet activation; voice casting,
+has reached its recorded local technical release and preserving activation;
+hosted CI and genuine creative acceptance remain separate. Relay Direct authorized
+the scoped isolated proof, preserving upgrade and quiet activation; voice casting,
 video operations, new providers and destructive valued-data changes are excluded.
 
 The owner-approved [presentation suggestions and readability refinement](2026-10-11-presentation-suggestions.md)
