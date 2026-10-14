@@ -3,7 +3,8 @@
 Status: the first owner-approved slice was independently reviewed, locally
 full-qualified and integrated on October 14, 2026. The later historical-scheduler
 and geometry-fixture continuation is implemented with focused checks and
-independent review; fresh measurement and combined full qualification are open. This continues the
+independent review; scoped geometry measurement passed, while whole-suite
+measurement and combined full qualification remain open. This continues the
 [testing-health plan](2026-10-10-testing-health-cleanup.md),
 not a redefinition of its 85-percent complete-suite wall-time target.
 
@@ -469,6 +470,63 @@ This is implementation/focused-review readiness, not measured speed or full
 release qualification. Combined final full qualification, quiet before/after
 measurement, publication and product acceptance remain separate. The original
 85-percent / 151.733s fixed-resource target remains unmet; keep default two.
+
+### Geometry matched quiet measurement — October 14
+
+The manager explicitly allocated one short quiet pair after verifying the CLI
+run was terminal and provider/heavy checks were held. Both exact preselected
+**eleven-case** native focused commands passed, with byte-identical collected
+inventories and the previously recorded `68c0c97f...` native-ID fingerprint.
+Before: clean detached `e1a798300b25047a92f4a7f3ea71b21a77b0ea9b`.
+After: clean detached `b8b6b8868980baf1103a196bcef9b457a1a6f69e`.
+The observer restored clean main at preserved
+`d039efedabf614809ca111998699f1b7c0e93234` in its finally path; the quiet window
+was promptly released before this documentation-only receipt.
+
+External complete-command time was **89.454s before /
+38.556s after**, a **56.90% reduction**
+in this one scoped pair. Pytest reported **83.53s / 33.83s**. The measured command
+is `uv run --locked --no-sync python scripts/verify.py focused`, with the exact
+four `--pytest` selectors frozen above (seven corruption cases plus derivative,
+two restart cases and pure-recipe control). External timing includes command
+startup, all four native selector preflights, pytest collection, real session
+seed creation, full physical copies and all test/cleanup work. Separate native
+inventory capture and fingerprint reads occurred outside the timed command.
+No new isolation-guard cases enter this matched performance union.
+
+Both runs used the same absolute checkout, locked interpreter and dependency
+inputs. Each used a fresh distinct `TMPDIR` under its retained evidence root;
+`PYTHONDONTWRITEBYTECODE=1` and no ambient pytest selection were present. Input
+fingerprints remained stable before/after each run: before
+`64469ddc503f2c11ff2de2b05853eb1b9cb1b50d26c6e6ef6b321ca66a4c2630`;
+after `c1abfaab446925b8ac5c0630f3d55e6ef77256faca0ff4622b297668f7c609e4`.
+The common host fingerprint was
+`e157fcd2c8db7127845d443a20785aff48490f424fcbfe1eb56ec31bb040db92`.
+Python executable/version, lockfile, project dependency declaration, Python
+version file and retained timing-manifest hashes matched across the pair. The
+timing manifest was never rewritten. Metadata retains the exact environment
+whitelist and full dependency hashes without credentials.
+
+Evidence root: `.local/remaining-cost/geometry-quiet-6gvu0pg8/`.
+Each `before/` and `after/` contains `focused.log`, `collection.log`, `cases.txt`
+and `metadata.json`; `result.json` binds the command, revisions, environment,
+inputs, times, exit codes, reduction and restored main. SHA-256 values:
+
+- before `focused.log`: `8c1c2d18a75a46e09d97b060ad071e1f36256f67f648cff7629f84aa1cbd9499`;
+- after `focused.log`: `76e6d6757c080f5c7ec50a1469f95d8ad70d25a8d884df602ad0711edb00d44b`;
+- byte-identical ordered `cases.txt`: `d69c7a611d6574ce09d7c0e32385ba396fe2c69ff65130f8b93e9cade19121a6`;
+- `result.json`: `8bcfc999055fa62fd13dd103339b033543ed70b30074ae17993bcb6694b43aa2`;
+- observer `.local/remaining-cost/geometry_quiet_pair.py`: `b89c2795af125f13db374934501df479117facf98cc6983f334b2e57b7e9edf9`.
+
+This demonstrates a measured saving for repeated real geometry setup while
+preserving all eleven selected cases, including unchanged generation/restart
+controls. It is one ordered pair, not a repeated median, whole-suite gain or
+release qualification. Starlette/httpx emitted its existing deprecation warning
+in both runs; no case failed or was omitted. Complete-suite measurement and the
+combined stable final full gate remain pending. The original fixed-resource
+85-percent / 151.733s target remains unmet; default workers remain two.
+No handoff implementation, provider execution, hosted CI, push or activation
+was performed by this measurement.
 
 ## Residual-cost investigation — historical proposal, now separately scoped
 

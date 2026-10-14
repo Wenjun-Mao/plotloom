@@ -59,8 +59,9 @@ seven geometry-lineage ordinary-open corruption variants. Their repeated real
 current-policy fake-host text/image/geometry setup is a shared precondition;
 the fault mutation and full ordinary-open refusal remain per-case behavior.
 The unchanged derivative-generation and restart/rollback cases keep complete
-function-scoped setup. Runtime improvement is unmeasured until a quiet matched
-comparison; do not infer a whole-suite gain from removing repeated setup.
+function-scoped setup. A quiet matched eleven-case pair measured 89.454s before / 38.556s after
+(56.90% less complete-command wall time). This scoped one-pair result does not
+establish a whole-suite gain or release qualification.
 
 Build one real first-geometry-frame seed per pytest session, with construction
 patches scoped to that build. Require an empty pending fake-host set, terminal
@@ -87,6 +88,6 @@ project/controller locks, seed immutability and refusal of active/sidecar/link
 inputs. Production validation, corruption checks and authority are unchanged.
 
 Attended independent Sol/Medium read-only design and stable code reviews found
-no actionable issues. Twenty-seven focused checks passed; quiet measurement and
-combined full qualification remain open. Implementation evidence belongs in the existing
+no actionable issues. Twenty-seven focused checks and the matched quiet pair
+passed; combined full qualification remains open. Implementation evidence belongs in the existing
 [Python follow-up](../roadmap/2026-10-14-python-context-and-workers.md).
