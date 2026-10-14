@@ -34,6 +34,7 @@ from plotloom.persistence.schema import (
 from plotloom.project_storage.autopilot_validation import assert_autopilot_contracts
 from plotloom.project_storage.format import ProjectStorageCorruptionError
 from plotloom.same_person_review_contracts import SamePersonReviewRequest
+from tests.autopilot_handoff_seed_fixtures import copy_awaiting_handoff_seed
 from tests.autopilot_image_fixtures import (
     assert_compact_handoff_pack,
     handoff_image_environment,
@@ -83,56 +84,52 @@ def test_manual_approval_and_identity_requests_keep_their_named_review_contract(
 
 
 @pytest.mark.parametrize("comment", [None, "  创作者的可选备注。\n"])
-def test_exact_choices_succeed_without_a_name_and_store_no_invented_actor_or_comment(tmp_path, monkeypatch, comment):
-    storage, _registry, service, view, calls, text = handoff_image_environment(tmp_path, monkeypatch, cuts_per_scene=2)
-    try:
-        assert len(text) == 8
-        complete = run_pack(storage, service, view)
-        assert_compact_handoff_pack(storage, view, complete, calls, expected_frames=6)
-        with closing(storage.projects.open(view.project_id)) as store:
-            body = observation(review_material(store))
-            if comment is not None:
-                body["notes"] = comment
-            request = HumanHandoffRequest.model_validate(body)
-            with pytest.raises(RevisionConflictError):
-                record_handoff(store, request.model_copy(update={"expected_run_revision": complete.revision + 1}))
-            with pytest.raises(InvalidTransitionError, match="material changed"):
-                record_handoff(store, request.model_copy(update={"bundle_hash": "a" * 64}))
-            result = record_handoff(store, request)
-            assert result.state == "handed_off"
-            with store.repository._read() as session:
-                retained = session.get(AutopilotHandoffRow, result.handoff["receiptId"])
-                raw = retained.receipt
-                assert raw["version"] == "pre-video.handoff.v2"
-                assert raw["attribution"] == {"kind": "unnamed_creator"}
-                assert "reviewer" not in raw["observation"]
-                assert raw["observation"].get("notes") == comment
-                assert ("notes" in raw["observation"]) == (comment is not None)
-                assert stable_hash(parse_handoff_receipt(raw).model_dump(mode="json", by_alias=True)) == retained.receipt_hash
-                approval = session.get(ApprovalDecisionRow, retained.approval_id)
-                assert approval.reviewer == "" and approval.note == comment
-                assert all(row.reviewer == "" for row in session.scalars(select(SamePersonReviewRow)))
-                assert video_eligible(session, view.project_id)
-            approval = store.repository._approvals.list_approval_decisions(view.project_id)[0]
-            projection = _approval_decision_view(approval).model_dump(mode="json", by_alias=True)
-            assert projection["reviewer"] == "" and projection["attribution"] == {"kind": "unnamed_creator"}
-            reviews = store.repository._media.same_person.list_same_person_reviews(view.project_id)["reviews"]
-            assert all(row["reviewer"] == "" and row["attribution"] == {"kind": "unnamed_creator"} for row in reviews)
-            assert all(row["notes"] == body["frames"][0]["compatibilityNote"] for row in reviews)
-            with store.repository.engine.connect() as connection:
-                assert connection.exec_driver_sql("SELECT count(*) FROM v2_video_jobs").scalar() == 0
-        snapshot = storage.recovery.create_snapshot(view.project_id)
-        restored = storage_at(tmp_path / "restored")
-        restored.recovery.restore(Path(snapshot.location))
-        restored.recovery.acknowledge_recovery(view.project_id)
-        with closing(restored.projects.open(view.project_id)) as store:
-            with store.repository._read() as session:
-                copy = session.get(AutopilotHandoffRow, result.handoff["receiptId"])
-                assert copy.receipt == raw and copy.receipt_hash == stable_hash(raw)
-                assert video_eligible(session, view.project_id)
-        assert len(calls) == len(complete.frames) + 2
-    finally:
-        service.close()
+def test_exact_choices_succeed_without_a_name_and_store_no_invented_actor_or_comment(tmp_path, awaiting_handoff_seed, comment):
+    storage, view, retained_image_job_ids = copy_awaiting_handoff_seed(awaiting_handoff_seed, tmp_path / "handoff-copy")
+    complete = view
+    assert_compact_handoff_pack(storage, view, complete, retained_image_job_ids, expected_frames=6)
+    with closing(storage.projects.open(view.project_id)) as store:
+        body = observation(review_material(store))
+        if comment is not None:
+            body["notes"] = comment
+        request = HumanHandoffRequest.model_validate(body)
+        with pytest.raises(RevisionConflictError):
+            record_handoff(store, request.model_copy(update={"expected_run_revision": complete.revision + 1}))
+        with pytest.raises(InvalidTransitionError, match="material changed"):
+            record_handoff(store, request.model_copy(update={"bundle_hash": "a" * 64}))
+        result = record_handoff(store, request)
+        assert result.state == "handed_off"
+        with store.repository._read() as session:
+            retained = session.get(AutopilotHandoffRow, result.handoff["receiptId"])
+            raw = retained.receipt
+            assert raw["version"] == "pre-video.handoff.v2"
+            assert raw["attribution"] == {"kind": "unnamed_creator"}
+            assert "reviewer" not in raw["observation"]
+            assert raw["observation"].get("notes") == comment
+            assert ("notes" in raw["observation"]) == (comment is not None)
+            assert stable_hash(parse_handoff_receipt(raw).model_dump(mode="json", by_alias=True)) == retained.receipt_hash
+            approval = session.get(ApprovalDecisionRow, retained.approval_id)
+            assert approval.reviewer == "" and approval.note == comment
+            assert all(row.reviewer == "" for row in session.scalars(select(SamePersonReviewRow)))
+            assert video_eligible(session, view.project_id)
+        approval = store.repository._approvals.list_approval_decisions(view.project_id)[0]
+        projection = _approval_decision_view(approval).model_dump(mode="json", by_alias=True)
+        assert projection["reviewer"] == "" and projection["attribution"] == {"kind": "unnamed_creator"}
+        reviews = store.repository._media.same_person.list_same_person_reviews(view.project_id)["reviews"]
+        assert all(row["reviewer"] == "" and row["attribution"] == {"kind": "unnamed_creator"} for row in reviews)
+        assert all(row["notes"] == body["frames"][0]["compatibilityNote"] for row in reviews)
+        with store.repository.engine.connect() as connection:
+            assert connection.exec_driver_sql("SELECT count(*) FROM v2_video_jobs").scalar() == 0
+    snapshot = storage.recovery.create_snapshot(view.project_id)
+    restored = storage_at(tmp_path / "restored")
+    restored.recovery.restore(Path(snapshot.location))
+    restored.recovery.acknowledge_recovery(view.project_id)
+    with closing(restored.projects.open(view.project_id)) as store:
+        with store.repository._read() as session:
+            copy = session.get(AutopilotHandoffRow, result.handoff["receiptId"])
+            assert copy.receipt == raw and copy.receipt_hash == stable_hash(raw)
+            assert video_eligible(session, view.project_id)
+    assert len(retained_image_job_ids) == len(complete.frames) + 2
 
 
 def _install_synthetic_retained_v1(store, result):
@@ -201,23 +198,19 @@ def test_retained_named_v1_receipt_bytes_hash_and_recovery_stay_exact(tmp_path, 
 
 
 @pytest.mark.parametrize("table", ["v2_approval_decisions", "v2_same_person_reviews"])
-def test_ordinary_validation_refuses_unnamed_fact_without_its_receipt(tmp_path, monkeypatch, table):
-    storage, _registry, service, view, calls, text = handoff_image_environment(tmp_path, monkeypatch, cuts_per_scene=2)
-    try:
-        assert len(text) == 8
-        complete = run_pack(storage, service, view)
-        assert_compact_handoff_pack(storage, view, complete, calls, expected_frames=6)
-        with closing(storage.projects.open(view.project_id)) as store:
-            record_handoff(store, HumanHandoffRequest.model_validate(observation(review_material(store))))
-            with store.repository.engine.connect() as connection:
-                with connection.begin():
-                    # Clone a valid fact with a distinct unlinked identity in this
-                    # disposable transaction; the genuine receipt stays intact.
-                    columns = [row[1] for row in connection.exec_driver_sql(f'PRAGMA table_info("{table}")')]
-                    projection = ["?" if column == "id" else f'"{column}"' for column in columns]
-                    connection.exec_driver_sql(f'INSERT INTO "{table}" SELECT {",".join(projection)} FROM "{table}" LIMIT 1', ("00000000-0000-4000-8000-000000000099",))
-                    with pytest.raises(ProjectStorageCorruptionError, match="autopilot authority"):
-                        assert_autopilot_contracts(connection.connection.driver_connection)
-                    connection.rollback()
-    finally:
-        service.close()
+def test_ordinary_validation_refuses_unnamed_fact_without_its_receipt(tmp_path, awaiting_handoff_seed, table):
+    storage, view, retained_image_job_ids = copy_awaiting_handoff_seed(awaiting_handoff_seed, tmp_path / "handoff-copy")
+    complete = view
+    assert_compact_handoff_pack(storage, view, complete, retained_image_job_ids, expected_frames=6)
+    with closing(storage.projects.open(view.project_id)) as store:
+        record_handoff(store, HumanHandoffRequest.model_validate(observation(review_material(store))))
+        with store.repository.engine.connect() as connection:
+            with connection.begin():
+                # Clone a valid fact with a distinct unlinked identity in this
+                # disposable transaction; the genuine receipt stays intact.
+                columns = [row[1] for row in connection.exec_driver_sql(f'PRAGMA table_info("{table}")')]
+                projection = ["?" if column == "id" else f'"{column}"' for column in columns]
+                connection.exec_driver_sql(f'INSERT INTO "{table}" SELECT {",".join(projection)} FROM "{table}" LIMIT 1', ("00000000-0000-4000-8000-000000000099",))
+                with pytest.raises(ProjectStorageCorruptionError, match="autopilot authority"):
+                    assert_autopilot_contracts(connection.connection.driver_connection)
+                connection.rollback()

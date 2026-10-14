@@ -1719,6 +1719,95 @@ integrated inputs stabilize. This analysis used only retained rows and source
 reads; no new test/profile/capture ran, no observer/result/log was edited, and
 no runtime or workflow contract changed, so no new ADR is needed.
 
+### Approved creator-confirmation seed extension — bounded implementation
+
+Root authorized only the four post-generation cases proposed above, starting
+from clean `245975b51840b388a3a08a59d6ff020de6a130e1`. The root cause is repeated
+test arrangement: both exact-choice variants and both orphan-unnamed-fact
+variants independently rebuild the same completed six-frame pack inside their
+test bodies. Current file cost is 74.457998s, mostly call phase, but file rows
+do not isolate the recoverable arrangement cost. The existing closed handoff
+seed already builds that exact state through real boundaries with eight text /
+eight image / sixteen successful typed terminal receipts and no human facts.
+Reuse belongs in these test inputs, not production validation or dispatch.
+
+Use a full isolated physical copy per case through `copy_awaiting_handoff_seed`;
+retain fresh review/request construction and all handoff, CAS/hash, corruption,
+transaction rollback, ordinary-open and snapshot/restore assertions. Retained
+image job IDs describe the completed seed's evidence, never a new per-case
+generation counter. No copied controller is constructed or resumed. Keep the
+retained-v1 test and its fresh generation path unchanged. The existing seed
+isolation/no-source-access guards and fresh handoff/recovery controls remain
+in the focused selection. No helper or production contract changes are needed.
+
+Before editing, native collection retained all **16** ordered case IDs in
+`.local/remaining-cost/creator-confirmation-seed-before-native-cases.txt`, file
+SHA-256 `e9d2689866e678ff3c4255264df633d25f807de1464e5478368ec399f85110cc`,
+sorted native-ID SHA-256
+`628c63d3757606ff9845972bc59cef9a5cdaa14c760a02fe1f1d6e31056e68c2`.
+The proposed later measurement is exactly this whole file, including the real
+session-seed construction and copies on the after side, unchanged retained-v1
+fresh control, fresh external roots and full command wall time on both sides.
+No benchmark/capture/profile/broad/full run or provider dispatch is allocated.
+First complete focused correctness and existing independent stable review, then
+return a pinned matched-pair proposal; no speed or 85-percent claim follows.
+
+The bounded extension is implemented in
+`tests/test_autopilot_creator_confirmation.py` only. The two selected functions
+use existing closed-seed copies and label their evidence
+`retained_image_job_ids`. Their handoff/recovery and corruption/rollback bodies
+are AST-identical to baseline, as are every untouched function including the
+retained-v1 fresh-generation control. No shared seed/helper, session-fixture,
+production, CLI, dependency or timing-manifest code changed. After collection
+retains the exact ordered 16 IDs in
+`.local/remaining-cost/creator-confirmation-seed-after-native-cases.txt`, with
+the same file and sorted-ID hashes above. The test file SHA-256 is
+`3f1515dd74403967e5852032ce6f29746f2f0fa2427c57bf85454f945f6b5784`;
+executable input is
+`4109455dfab7da169c299c4e759d022c9f854d1ac42c80f922f02243106ea8f1`.
+
+**38 distinct focused cases passed** in one native `verify.py focused` union:
+the complete creator-confirmation file (16), handoff seed isolation/no-source-
+access file (2), geometry seed safeguards (9), five invalid handoffs plus fresh
+exact-handoff/withdrawal, mid-handoff rollback and takeover controls (8), and
+three recovery cases: snapshot/closed-folder retained-file restore, portable
+resume/claim/command refusal after acknowledgement, and active-autopilot snapshot
+refusal until safe pause. The run used fresh absolute external
+`/private/tmp/plotloom-creator-confirmation-focused-7qk8uryq`, removed after exit
+zero. The existing Starlette/httpx warning remains. This concurrent correctness
+run is not a performance comparison. Full selector argv and results are retained
+in `.local/remaining-cost/creator-confirmation-seed-correctness.log`, SHA-256
+`37b4b12c85e4367d492888fd8b6293860daaa7ba71d86e354f56fdb68fe6b419`.
+Scoped Ruff F401 and whitespace checks passed.
+
+The existing independent read-only reviewer (requested GPT-6.1 Sol / Medium;
+effective settings unverified) found no actionable issue in the stable test /
+plan diff and ran no checks. Root independently reviewed the complete test
+diff and unchanged seed owner with no additional finding. The production
+parsing-context hypothesis remains unallocated. No new fixture/runtime/workflow
+contract was introduced; the existing closed-seed contract remains the owner.
+
+Proposed observer for a separately approved **single matched whole-file pair**:
+adapt the existing immutable receipt-pair method into a new ignored observer;
+do not retarget any completed observer. Before is `245975b5` with input
+`18155d64c943e12b03766f50cb9b80be7b3e4e25ab93200ff2c66d0dce7dc6f0`;
+after is the scoped executable commit reported with this receipt and the input
+above. On each exact clean pin, separately verify the same 16 ordered IDs and
+native fingerprint, matching dependency/manifest/host identity, rejected ambient
+filters/plugins and protected old evidence hashes. Then time the complete
+`uv run --locked --no-sync python scripts/verify.py focused --pytest tests/test_autopilot_creator_confirmation.py`
+command plus owned cleanup in a distinct fresh canonical external temporary
+root, with no seed prewarming. The after-side session seed must be built inside
+the timed command; both sides include the unchanged retained-v1 fresh control.
+If using the existing observer-owned timing plugin, distinguish wrapper
+collection from the actual 16-case execution and require exact successful
+completion proof plus one valid 16-case file row. Preserve logs, source/host
+probes, hashes and cleanup evidence; restore the original clean main pin and
+report terminal/cleanup before docs. No retry on failure and no performance
+dispatch until root reviews the concrete new observer and allocates CLI quiet.
+No timing gain, final full qualification, hosted CI, push or product acceptance
+is established by this implementation checkpoint.
+
 ### Historical material-closure attribution — read-only extraction
 
 The manager extracted the existing main-thread complete-pack profile without
