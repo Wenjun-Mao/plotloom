@@ -458,8 +458,8 @@ The exact preselected eleven IDs match before/after in
 `.local/remaining-cost/geometry-seed-{before,after}-native-cases.txt`; their
 sorted native-ID fingerprint is
 `68c0c97fad698898aad733dc81c9299573c1e7038c34056c4cab06f781047ad0`.
-Before is immutable integrated `e1a79830`; the after executable checkpoint is
-recorded in the ensuing commit. Fresh benchmark commands must include session
+Before is immutable integrated `e1a798300b25047a92f4a7f3ea71b21a77b0ea9b`;
+after is committed `b8b6b8868980baf1103a196bcef9b457a1a6f69e`. Fresh benchmark commands must include session
 seed creation and physical copy cost, use the same eleven selectors and fresh
 temporary roots, and run only in a manager-allocated quiet window. New guards
 remain outside that matched union. Contended correctness runtimes are not
