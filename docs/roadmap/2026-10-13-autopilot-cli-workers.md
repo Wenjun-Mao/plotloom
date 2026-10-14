@@ -211,6 +211,25 @@ ImageGen call, full gate or activation is allocated at this source checkpoint.
 The next native proof must show genuine pixel delivery before proceeding to
 ImageGen-specific pre-read confinement and real serial package execution.
 
+The sole writer's reference-view contract checkpoint `47ef9cb6` and cohesive
+supervisor extraction `ad3ccf58fa40e30bc048425a8a9eb109e548149c` passed focused
+checks and independent review. The manager inspected the profile/prompt,
+strict view/event/content parsing, ordered receipt/publication binding and
+extraction. A source-bound test correctly rejected a profile after a file was
+edited during the initial run; stable-source reruns passed. No native evidence
+is inferred from those tests.
+
+One fresh, non-generating native proof is now allocated at exact `ad3ccf58`:
+use the repaired image-domain profile and one harmless frozen synthetic PNG,
+emit the actual awaited view result through `image(...)`, and require the
+production parser to accept paired native view and complete `input_image`
+pixels. Keep source frozen, retain exact private session/profile/argv/hash
+evidence and prove owned-process cleanup. No MIME-prefix shortcut, image-text
+dump, retry, ImageGen call, global setting change or live mutation is authorized.
+ImageGen-specific pre-read confinement, serial production execution, scheduling
+and activation remain separate pending gates. The original unknown attempt and
+all earlier diagnostic evidence remain unchanged.
+
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
 workers with 13.762 seconds of actual tool-interval overlap. All processes
