@@ -35,6 +35,17 @@ class ProjectCommandTransactions:
             yield session
 
     @contextmanager
+    def _controller_claim_write(self) -> Iterator[Session]:
+        """Claim metadata cannot edit material; enclosing commands still own it."""
+        command = self._command_context.get()
+        if command:
+            yield command[0]
+            return
+        with lifecycle_lease(self._sessions, self._write_lock, dialect_name=self.engine.dialect.name,
+                retry_after_seconds=self._bootstrap_retry_after_seconds, is_contention=self._is_sqlite_lock_contention) as session:
+            yield session
+
+    @contextmanager
     def _lifecycle_write(self) -> Iterator[Session]:
         command = self._command_context.get()
         if command:
@@ -73,9 +84,13 @@ class ProjectCommandTransactions:
                 retry_after_seconds=self._bootstrap_retry_after_seconds, is_contention=self._is_sqlite_lock_contention) as session:
             run = self.autopilot.validate_command(session, authority)
             from .autopilot_closure import material_closure, MATERIAL_TABLES
-            receipt_tables = tuple(name for name in MATERIAL_TABLES if name != "v2_managed_assets")
-            protected_before = material_closure(session, self.project_id, tables=receipt_tables, include_cancellations=False)
-            closure_was_current = run.expected_closure == material_closure(session, self.project_id)
+            receipt_reconciliation = authority.scope.value == "receipt_reconciliation"
+            if receipt_reconciliation:
+                # Receipt admission may outlive creative authority. Only this
+                # scope needs a protected snapshot and the old currentness fact.
+                receipt_tables = tuple(name for name in MATERIAL_TABLES if name != "v2_managed_assets")
+                protected_before = material_closure(session, self.project_id, tables=receipt_tables, include_cancellations=False)
+                closure_was_current = run.expected_closure == material_closure(session, self.project_id)
             connection = session.connection().connection.driver_connection
             changes_before = connection.total_changes
             session.info["autopilot_run_id"] = run.id
@@ -83,11 +98,11 @@ class ProjectCommandTransactions:
             try:
                 yield session
                 from .autopilot_closure import material_closure
-                if authority.scope.value == "receipt_reconciliation" and protected_before != material_closure(session, self.project_id, tables=receipt_tables, include_cancellations=False):
+                if receipt_reconciliation and protected_before != material_closure(session, self.project_id, tables=receipt_tables, include_cancellations=False):
                     raise InvalidTransitionError("receipt reconciliation cannot change creative or human authority")
                 closure = material_closure(session, self.project_id)
                 if connection.total_changes != changes_before:
-                    if authority.scope.value != "receipt_reconciliation" or closure_was_current:
+                    if not receipt_reconciliation or closure_was_current:
                         run.expected_closure = closure
                     run.revision += 1
                     run.updated_at = utc_now()

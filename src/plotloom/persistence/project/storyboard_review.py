@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import subprocess
 import tempfile
+from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
@@ -46,6 +47,16 @@ from .autopilot_authority import receipt_only
 from .creative_execution_pins import freeze_execution_pin
 from .script import ProjectScriptPersistence, _upstream_script_outline
 
+StoryboardReviewContext = tuple[
+    StoryboardReviewBinding, dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any],
+]
+
+
+@dataclass(frozen=True)
+class _ResolvedStoryboardContext:
+    context: StoryboardReviewContext
+    section_map: dict[str, Any]
+
 
 class ProjectStoryboardReviewPersistence:
     """Retains raw `novel-storyboard` review data with F4 as its only creative seam."""
@@ -72,7 +83,11 @@ class ProjectStoryboardReviewPersistence:
     def _accepted(row: StoryboardReviewRevisionRow) -> AcceptedStoryboardReviewRevision:
         return AcceptedStoryboardReviewRevision(revision=row.revision, candidate_job_id=row.candidate_job_id, content_hash=row.content_hash, binding=row.binding, storyboard=row.storyboard, accepted_at=row.accepted_at)
 
-    def _context(self, session: Any, project_id: str, *, max_cut_seconds: int = 8) -> tuple[StoryboardReviewBinding, dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
+    def _context(self, session: Any, project_id: str, *, max_cut_seconds: int = 8) -> StoryboardReviewContext:
+        return self._resolve_context(session, project_id, max_cut_seconds=max_cut_seconds).context
+
+    def _resolve_context(self, session: Any, project_id: str, *, max_cut_seconds: int = 8) -> _ResolvedStoryboardContext:
+        """Keep the section map with the exact Script resolution that supplied it."""
         script_head = self._script._head(session, project_id)
         accepted_row = session.scalar(select(ScriptRevisionRow).where(
             ScriptRevisionRow.project_id == project_id,
@@ -82,23 +97,39 @@ class ProjectStoryboardReviewPersistence:
             raise ReviewContextError(ReviewContextDiagnostic(code="accepted_script_not_current", owner="script", technical_message="a current accepted F4 script revision is required before preparing storyboard review"))
         script = AcceptedScriptRevision(revision=accepted_row.revision, candidate_job_id=accepted_row.candidate_job_id, content_hash=accepted_row.content_hash, binding=accepted_row.binding, script=accepted_row.script, accepted_at=accepted_row.accepted_at)
         inherited = ScriptBinding.model_validate(script.binding)
-        if self._script._stale(session, project_id, inherited):
+        try:
+            current, _source, outline, mapping, cast, art = self._script._context(session, project_id)
+        except ReviewContextError as error:
+            raise ReviewContextError(ReviewContextDiagnostic(code="accepted_script_not_current", owner="script", technical_message="the accepted F4 script context is stale")) from error
+        if self._script._binding_diagnostics(current, inherited):
             raise ReviewContextError(ReviewContextDiagnostic(code="accepted_script_not_current", owner="script", technical_message="the accepted F4 script context is stale"))
-        current, _source, outline, mapping, cast, art = self._script._context(session, project_id)
         if current != inherited:
             raise ReviewContextError(ReviewContextDiagnostic(code="accepted_script_not_current", owner="script", technical_message="the accepted F4 script binding is stale"))
-        return StoryboardReviewBinding(
+        binding = StoryboardReviewBinding(
             **inherited.model_dump(mode="python"),
             script_revision=script.revision,
             script_content_hash=script.content_hash,
             review_min_cut_seconds=2,
             review_max_cut_seconds=max_cut_seconds,
             review_max_segment_seconds=15,
-        ), script.script, _upstream_script_outline(outline, mapping, cast, inherited), cast, art
+        )
+        return _ResolvedStoryboardContext(
+            context=(binding, script.script, _upstream_script_outline(outline, mapping, cast, inherited), cast, art),
+            section_map=mapping,
+        )
 
-    def context_for_binding(self, session: Any, project_id: str, binding: StoryboardReviewBinding) -> tuple[StoryboardReviewBinding, dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
+    def context_for_binding(self, session: Any, project_id: str, binding: StoryboardReviewBinding) -> StoryboardReviewContext:
         """Resolve the current identity in the frozen F5A mode, including history."""
-        current, *inputs = self._context(session, project_id, max_cut_seconds=binding.review_max_cut_seconds)
+        return self._project_context(self._context(session, project_id), binding)
+
+    @staticmethod
+    def _project_context(context: StoryboardReviewContext, binding: StoryboardReviewBinding) -> StoryboardReviewContext:
+        """Apply one binding's frozen mode without changing the shared read inputs."""
+        current, *inputs = context
+        current = current.model_copy(update={
+            "review_max_cut_seconds": binding.review_max_cut_seconds,
+            "storyboard_render_contract": None,
+        })
         if binding.storyboard_render_contract is not None:
             try:
                 contract = freeze_storyboard_brief_style(current.render_contract)
@@ -109,7 +140,14 @@ class ProjectStoryboardReviewPersistence:
 
     def _stale(self, session: Any, project_id: str, binding: StoryboardReviewBinding) -> list[ReviewContextDiagnostic]:
         try:
-            current, *_ = self.context_for_binding(session, project_id, binding)
+            context = self._context(session, project_id)
+        except ReviewContextError as error:
+            return [error.diagnostic]
+        return self._binding_diagnostics(context, binding)
+
+    def _binding_diagnostics(self, context: StoryboardReviewContext, binding: StoryboardReviewBinding) -> list[ReviewContextDiagnostic]:
+        try:
+            current, *_ = self._project_context(context, binding)
         except ReviewContextError as error:
             return [error.diagnostic]
         return review_binding_diagnostics(current, binding, tuple(StoryboardReviewBinding.model_fields))
@@ -119,10 +157,26 @@ class ProjectStoryboardReviewPersistence:
             self._access.rows.project(session, project_id); head = self._head(session, project_id)
             candidate = session.get(StoryboardReviewCandidateRow, head.candidate_job_id) if head.candidate_job_id else None
             accepted = session.scalar(select(StoryboardReviewRevisionRow).where(StoryboardReviewRevisionRow.project_id == project_id, StoryboardReviewRevisionRow.revision == head.revision)) if head.revision else None
+            accepted_binding = StoryboardReviewBinding.model_validate(accepted.binding) if accepted else None
+            candidate_binding = StoryboardReviewBinding.model_validate(candidate.binding) if candidate else None
+            context, context_diagnostic = None, None
+            if accepted_binding is not None or candidate_binding is not None:
+                try:
+                    context = self._context(session, project_id)
+                except ReviewContextError as error:
+                    context_diagnostic = error.diagnostic
+
+            def stale_for(binding: StoryboardReviewBinding) -> list[ReviewContextDiagnostic]:
+                if context_diagnostic is not None:
+                    return [context_diagnostic]
+                assert context is not None
+                return self._binding_diagnostics(context, binding)
+
             # A current replacement candidate is the active review seam even
-            # when the retained accepted revision is stale historical evidence.
-            accepted_stale = self._stale(session, project_id, StoryboardReviewBinding.model_validate(accepted.binding)) if accepted else []
-            stale = self._stale(session, project_id, StoryboardReviewBinding.model_validate(candidate.binding)) if candidate else accepted_stale
+            # when retained accepted evidence is stale. Share only this read's
+            # base context; each binding keeps its own timing and render mode.
+            accepted_stale = stale_for(accepted_binding) if accepted_binding is not None else []
+            stale = stale_for(candidate_binding) if candidate_binding is not None else accepted_stale
             accepted_state = accepted_review_state(exists=accepted is not None, candidate_active=candidate is not None, head_status=head.status, stale_reasons=accepted_stale)
             return StoryboardReviewState(accepted_review_state=accepted_state, candidate=self._candidate(candidate) if candidate else None, accepted_review=self._accepted(accepted) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
 

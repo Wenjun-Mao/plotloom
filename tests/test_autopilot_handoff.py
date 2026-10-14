@@ -13,10 +13,21 @@ from plotloom.persistence.project.autopilot_handoff import (
     review_material,
 )
 from tests.autopilot_image_fixtures import (
-    assert_compact_handoff_pack,
-    handoff_image_environment,
+    assert_compact_handoff_pack as assert_handoff_pack,
+    handoff_image_environment as handoff_environment,
     run_pack,
 )
+
+
+def handoff_image_environment(tmp_path, monkeypatch, **kwargs):
+    """Handoff ownership needs two cuts per scene, not one cut per beat."""
+    result = handoff_environment(tmp_path, monkeypatch, cuts_per_scene=2, **kwargs)
+    assert len(result[-1]) == 8
+    return result
+
+
+def assert_compact_handoff_pack(storage, view, complete, calls):
+    assert_handoff_pack(storage, view, complete, calls, expected_frames=6)
 
 
 def observation(review):

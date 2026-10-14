@@ -1021,3 +1021,309 @@ claims; the explicit observed target, baseline and variance limits above address
 its measurement concern. No performance implementation or benchmark was started.
 
 Implementation approval: the owner authorized M6–M9 on October 12, 2026, to proceed in parallel with the completed pre-video autopilot. Stable starting base verified in the isolated implementation worktree: `c771cdd67eb8fd0925cdfe772c46ed85eeb51657`.
+
+### Resumed test-only M7 refinement — October 13
+
+The reactivated Goal retains the 85-percent target and the original scope
+boundary. A separate test-only branch, `codex/python85-handoff-fixtures`,
+starts from released `cf26b32d` in `python85-profiling`. Production-query
+proposals remain isolated in `python85-release` pending owner approval; they
+are not included in this refinement.
+
+Independent source review supports pairing four existing action beats into
+two five-second cuts for each handoff scene. Only the twelve handoff cases
+opt in; shared default consumers keep four cuts, while full-size all-route,
+geometry and recovery owners retain their source. The exact-frame invariant
+is six for the opt-in shape and twelve for the default. Retain both routes,
+all four beats, eight text stages, references, second-frame rollback, real
+derivatives and all case IDs/parameters. No prepared seeds, cached acceptance
+or production changes are allowed.
+
+The preselected slow comparison is missing-frame handoff refusal, late
+handoff rollback and derived-reference withdrawal. Unchanged controls are the
+27-frame complete-pack and derivative-handoff owners; include retained
+confirmation/recovery after an opt-in case to verify fixture isolation.
+Three baseline and three candidate samples passed. Their selected-case median
+fell from 69.802s to 41.206s (40.97 percent); focused correctness and static
+independent review passed. Unaffected-family timing and final qualification
+remain pending. Keep raw logs/fingerprints in ignored checkout-local storage,
+coordinate quiet timing with the CLI worker, and report selected-case gains
+separately from whole-Python wall time. See the corresponding verification
+receipt for actual results and limits.
+
+### Narrow production-query qualification — owner approved October 13
+
+The owner answered “Yes—proceed with verification” for the measured
+receipt-only snapshot query-placement optimization. Move only the two
+pre-mutation material reads used by receipt reconciliation into that scope;
+preserve fresh admission, post-write closure, transaction rollback and current
+versus stale receipt rebasing. No cross-command cache or validation bypass is
+authorized. Carry this change and its regressions onto the released baseline
+with the fixture refinement, independently review the stable composition,
+measure it without profiler overhead and run risk-proportional final gates.
+The older installation-reader candidate stays separate. Neither native
+generation nor live activation is needed for this optimization. The 85-percent
+whole-Python objective and original measurement/coverage requirements remain.
+
+Checkpoint `d8c73828` passed 54 scoped cases and independent review. Three
+matched selected-case samples show an additional 11.62-percent median reduction
+over the fixture-only checkpoint, or 47.83 percent against `cf26b32d` for those
+three handoff cases. This does not establish the whole-suite target. Before
+final qualification, retain unaffected-family comparisons and complete coverage.
+
+A bounded read-only follow-up identified one further test-only candidate:
+the two comment rows of creator confirmation and the two unnamed-fact corruption
+rows can explicitly use the same six-frame, four-beat, two-route fixture.
+Keep real handoff, eight-stage setup, receipt hashing, reopen and snapshot/
+restore/acknowledgement paths. Do not change the shared default or remaining
+geometry cases. Preselect named-v1 receipt recovery and derivative-handoff
+geometry as unchanged controls, retaining the 27-frame complete-pack owner.
+The four-row opt-in is implemented locally with exact eight-stage/six-frame
+guards. Three six-case baseline samples (including both unchanged controls)
+passed at clean `734624b8`, median 125.984s. Independent read-only review found
+no actionable gaps; focused verification passed all sixteen creator cases
+plus the unchanged geometry and 27-frame controls (18 total). Three matched
+samples at clean `ab4c6746` reduced the six-case external median from 125.984s
+to 94.724s (24.81 percent). The four target rows' rounded phase median fell
+39.55 percent; unchanged named-v1 and geometry controls moved +0.67 percent
+and -5.00 percent, below the regression trigger. Raw log hashes and matching
+host/toolchain/command metadata were checked. Full qualification, publication
+and the 85-percent whole-Python target remain open. Use one stable final full
+gate to measure the remaining suite cost before proposing broader scope.
+
+### Combined query/fixture qualification and residual budget
+
+The clean composition `e58760291919c7741dc180e54133e3674bf2cfa2` includes
+current main `14ad98cb` plus the reviewed handoff/creator fixtures and the
+owner-approved receipt-only query change. Independent read-only composition
+review found no actionable issue. Its full local gate passed 1,859 Python,
+1,377 Vitest and 318 Playwright cases, type checks, deterministic bundle parity,
+shard coverage and installed-wheel smoke in 1,203.332s. An initial prerequisite
+failure stopped before those suites; the receipt retains both attempts and
+the locked dependency repair. No source was changed during qualification.
+
+The externally timed Python step was 697.496s. Its two workers passed
+930/929 cases over 182 whole files in 516.398/691.261s. Allocation used the
+visible case-count fallback because the retained timing manifest predates the
+current case inventory. This is not an executed duration-packing measurement.
+The earlier 1,779-case baseline is not a matched comparison to this 1,859-case
+candidate, and the 85-percent objective remains open.
+
+Complete phase rows total 1,186.308s. At these observed weights, an ideal
+two-worker split still needs at least 593.154s of phase work; the longest file
+is geometry at 162.471s. A deterministic packing calculation also gives about
+593.154s per worker, but that is an estimate, not measured execution. Both
+ordinary scheduling overhead and timing variability remain. Rescheduling alone
+cannot deliver the historical 151.733s target reference.
+
+Next test-only investigation: profile one unchanged first-shot cancellation
+case including its eight-stage construction, then one terminal-reconciliation
+outline row including fixture setup. Read-only review found that the nineteen
+image-safety rows exercise early receipt/cancellation/publication boundaries,
+not all 27 frames; a compact opt-in may preserve those boundaries. Terminal
+setup always constructs accepted F4 content, including for earlier stages;
+stage-specific preparation requires a behavior map before changing it. Keep
+the shared defaults, full-pack/geometry/restart controls, every case and real
+validation. Their respective 124.116s whole-file and 38.001s setup totals are
+nonoverlapping upper bounds, not promised removable cost or wall-time savings.
+The two disposable probes are prepared but not yet executed. The CLI worker
+owns the next focused-check window; no competing benchmark is started.
+
+The manager published this qualified checkpoint as `54eb72c5`; the live
+installation remained clean at `ee7ec8de`. Both queued attribution probes then
+passed on clean `54eb72c5` before the CLI native window was released. The
+image-safety call spent 10.994s under profiling, including 5.873s in real text
+setup; the terminal outline setup spent 0.750s, including 0.672s constructing
+accepted F4 content. These nested profiler durations are not speed samples.
+
+Read-only review ruled out autopilot snapshot reuse: accepted text violates
+fresh-launch prerequisites, while restoring an existing run preserves recovery
+controls that prohibit renewed dispatch. Do not remove those controls or use
+raw folder copies. The next bounded candidate is an explicit compact fixture
+only for the nineteen early image-safety rows, preserving eight real text
+stages, two routes, exact reference/receipt identities and all existing test
+assertions. Shared/full-size and geometry/recovery owners stay unchanged.
+Three representative rows and two unchanged recovery/geometry controls are
+preselected for three matched fresh-root samples. The sample harness is ready,
+but baseline timing and source edits wait for the CLI native window to close.
+
+### Early image-safety fixture checkpoint — October 14
+
+Three quiet five-case baseline samples at clean `d6f09d95` passed in
+47.737s, 44.708s and 45.354s (median 45.354s). The selection retains three
+early safety rows and unchanged unknown-image restart and derivative-handoff
+controls. Each sample used a fresh root and the same locked dependencies;
+exact commands, fingerprints and raw-log hashes are retained in
+`.local/remaining-cost/safety-baseline.json`.
+
+The one-file candidate explicitly uses the existing six-frame handoff fixture
+for all nineteen safety rows, with guards for eight real text stages, two
+routes and six inventory frames. Every prior assertion and parameter row is
+retained. Shared fixture defaults, full 27-frame completion and the unchanged
+recovery/geometry owners are untouched. Independent read-only review found no
+actionable issue, including historical pin/schema-2 handling, late delivery,
+actual restart, immutable evidence and function-scoped monkeypatch isolation.
+This is static review, not executed correctness or performance evidence.
+
+The CLI owner has the native/focused window. Candidate checks and matched
+timing wait for its release; no competing manager suite is running. Next run
+all nineteen safety cases plus unchanged full-pack, recovery and derivative
+controls, then the three matched samples at a clean reviewed checkpoint. The
+85-percent whole-Python target remains unmet.
+
+The worker subsequently released the window after an inconclusive native
+boundary probe. Manager focused verification passed all 22 selected cases
+(nineteen safety rows plus unchanged full-pack, recovery and derivative
+controls), and seven ownership tests passed. Targeted static checks passed;
+the receipt discloses the pre-existing broader Ruff style warning. The clean
+candidate checkpoint and three matched timing samples are next. CLI source
+repair may proceed independently, but its tests/native dispatch stay held
+until these samples finish.
+
+At clean `2797ece1`, all three matched samples passed: the five-case external
+median changed 45.354→44.326s (2.27 percent), and the three target rows'
+rounded phase-sum median changed 17.02→16.14s (5.17 percent). Neither
+unchanged control regressed by 10 percent. All six raw logs match their
+recorded hashes and the host/toolchain/command metadata match. The ranges
+overlap; this small selected-case result is not a whole-suite or statistically
+established speedup. Retain the simple safety-only prerequisite opt-in for the
+next combined candidate, with full qualification and publication still open.
+
+The CLI owner now has focused checks; manager timing/checks are finished.
+Read-only prerequisite review identified an independent terminal-test option:
+only the outline/branches/characters parameter rows can construct accepted
+Cast instead of later Art/Script. Retain real source, graph, Cast and delivery
+history; leave Art/Script, storyboard and identity/crash owners on their current
+full builder. Do not introduce copied databases, snapshot reuse or raw seeds.
+The earlier 38.001s whole-file setup is an upper bound, not a promised saving.
+Geometry compaction has limited leverage because most cases generate only one
+frame; retain the explicit portrait and complete handoff/full-pack controls.
+Before another implementation, compare this small-fixture strategy with the
+remaining execution/scheduling limits, without running competing benchmarks.
+
+### Remaining fixed-resource limit and separate concurrency proposal
+
+Independent read-only review of the retained 182 complete file weights gives
+ideal deterministic whole-file loads of 593.154s at two workers, 296.577s at
+four, and 162.471s at eight. These are estimates, not executed runs; they omit
+collection/startup/reporting and assume no slowdown from contention. Even
+perfect eight-way subdivision has a 148.289s aggregate-work floor, only 3.444s
+below the historical 151.733s target reference before overhead. Neither that
+reference nor this changed inventory is a new matched whole-suite comparison.
+
+At two workers, reaching that reference would require removing at least
+882.841s of the 1,186.308s phase work before overhead. Even unrealistically
+removing all geometry/publication work and all terminal setup removes only
+230.446s. The reviewed terminal/geometry fixture options do not offer a
+credible route to 85 percent within the current fixed-resource scope. Keep
+the target explicitly unmet; do not pursue many tiny changes as its proof.
+
+The manager asked the owner about a separate bounded 4–8-worker evaluation;
+approval is pending. The host reports 18 physical/logical CPUs and 24 GiB, but
+memory and subprocess contention still need measurement. If approved, retain
+the release default of two while evaluating four first: complete representative
+files for SQLite isolation, Node validators, crash descendants and cleanup,
+then a quiet matched whole-Python 2-versus-4 comparison with identical inputs,
+fresh roots, exact case coverage, peak memory and cleanup evidence. Consider
+eight only with measured headroom. No additional concurrency is implemented
+or authorized by this proposal, and extra compute cannot count as satisfying
+the original fixed-resource target. No test or native operation ran for this
+read-only feasibility review.
+
+### Remaining two-worker duration measurement
+
+The existing M8 scope can proceed independently of the concurrency decision.
+Read-only reconciliation verified the retained `full-e5876029-deps-ready.log`
+hash against the receipt: two successful complete worker captures contain
+182 unique file rows and all 1,859 cases. The current candidate differs from
+that executable base only in `tests/test_autopilot_image_safety.py` (19 cases);
+the pinned submodule is unchanged. The other 181 file weights are reusable
+subject to fresh native inventory and host/toolchain verification.
+
+The CLI owner released a short window at `e5959c73`: all nineteen safety cases
+passed in 100.31s externally and fresh native collection found 1,859 cases. The
+window was immediately returned. The complete refresh row is retained under
+`.local/remaining-cost/duration-refresh-AHMmlW`; its single-process phase cost
+is an advisory weight, not a matched speed comparison with the two-worker base.
+
+Reconciliation then found native inventory drift: the publisher's foreign-task
+parameter evaluates `uuid4()` at import and includes that value in its pytest
+ID. An explicit semantic ID preserves the random foreign UUID and assertions
+while making the inventory stable. Independent read-only review found no issue
+in this test-only correction (requested GPT-6.1 Sol / Medium; effective settings
+unverified); execution verification is pending the CLI owner's check-window release.
+The initially assembled timing manifest remains unpromoted. Next refresh the
+publisher's complete timing row and verify two identical fresh native
+collections before explicitly promoting complete compatible weights. Run the
+two-worker duration qualification only on that stable candidate in a separately
+released window. Preserve the original fallback evidence; no extra concurrency
+or 85-percent success is implied.
+
+At `a5c24b7a`, all seven publisher cases passed (2.14s external / 1.29s
+pytest) and two independent full native collections produced identical ordered
+IDs: 1,859 cases / 182 files. Only the foreign-native-task parameter name moved;
+its exact mapping is retained in `.local/remaining-cost/stable-duration-iFrpXh`.
+The manager explicitly replaced the stale tracked weights with 180 compatible
+unchanged base rows plus the two fresh complete-file captures. The production
+scheduler accepts the complete set as `duration`, with 975/884 cases assigned
+to 92/90 whole files. Estimated phase loads are 578.964s each, not measured wall
+time. Independent read-only metadata review found no findings; the quiet
+two-worker Python gate remains pending;
+the earlier provisional manifest remains retained and unpromoted.
+
+Qualification scope: since `e5876029`, executable changes are confined to the
+two reviewed test files and advisory timing data. Production, dependencies,
+frontend, browser fixtures and packaging inputs are unchanged. Execute the
+complete established two-worker Python step on the stable candidate and reuse
+the unchanged frontend, browser, type/build and wheel evidence from the passed
+base gate; do not rerun those unrelated suites merely for another timing number.
+
+The stable `bafb15873c0b59fc519e53f68ad39b9a7a1a714e` Python gate passed all
+1,859 cases in **633.23s externally**, with `schedule=duration` and no fallback.
+Workers passed 884/975 cases in 579.213s/627.323s; both exited zero, the temporary
+root was removed, and source/host fingerprints stayed unchanged. This is the
+first executed whole-suite duration-packing result, not merely a packing estimate.
+The previous equal-count gate was 697.496s: the observed reduction is **9.21%**.
+It is one whole-suite comparison with both fixture and schedule changes, not a
+scheduler-only causal estimate or statistical result. Full log and summary are
+under `.local/final-qualification/python-duration-bafb1587*`.
+
+The measured phase total is still 1,185.146s, with geometry the longest file at
+174.850s. At that observed cost, ideal two-worker phase packing alone still needs
+592.573s before overhead. The historical 151.733s stretch reference is not
+attainable by scheduling alone, and the original 85-percent target remains open.
+Do not silently increase workers or extend production scope. The owner later
+approved the two bounded follow-ups below; the qualified partial improvement
+still does not complete the stretch goal.
+
+Publication: the manager merged and pushed this qualified partial improvement
+as `c9781b95678dc871c0a79ac1501ab489bfe554fe`, with exact remote readback and
+unchanged qualified executable trees. The 85-percent stretch objective and
+separate scope decisions remain open; hosted qualification remains unconfirmed.
+
+### Approved production-context and concurrency follow-up — October 14
+
+Follow-up read-only review of the retained image-safety profile and owning
+source found duplicate upstream resolution inside a single owner operation:
+Storyboard review calls Script's stale check (which resolves context), then
+resolves Script context again. Production Bridge repeats review resolution
+and reads Script context again for the section map. In the profiled 10.994s
+call, Bridge `get_state` accounts for 2.297s cumulative; nested timings overlap
+and cannot be summed or extrapolated to the suite.
+
+A possible next production slice would resolve Script inputs once within an
+uninterrupted Storyboard owner read and compare all bindings against those
+inputs, preserving missing/stale diagnostics and frozen render modes. It must
+not reuse state across reads, mutation, dispatch, steps, commits or rollback;
+a shared SQLAlchemy session is not a stable-snapshot guarantee. Broader Bridge
+reuse is deferred. Required guards include mutation between successive reads,
+stale/missing bindings, render modes and error equivalence, followed by matched
+measurement. No validation may be skipped and no installation/global cache or
+already-validated flag is proposed.
+
+The owner explicitly approved this operation-local production slice and a
+bounded four-worker experiment on October 14; eight workers require measured
+headroom, and the release default remains two. Implementation, precise
+boundaries, matched measurements and release status now belong to the
+[cohesive follow-up plan](2026-10-14-python-context-and-workers.md) and ADR 0167.
+Approval is not a claim that 85 percent is achievable or already measured.

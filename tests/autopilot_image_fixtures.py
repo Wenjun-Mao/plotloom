@@ -35,8 +35,10 @@ def image_environment(tmp_path, monkeypatch, *, auto_deliver=True, geometry=None
     return storage, registry, service, view, calls, text_calls
 
 
-def handoff_image_environment(tmp_path, monkeypatch, *, auto_deliver=True, geometry=None, limits=None):
+def handoff_image_environment(tmp_path, monkeypatch, *, auto_deliver=True, geometry=None, limits=None, cuts_per_scene=4):
     """Build a real two-route review with the smallest useful filmed package."""
+    if cuts_per_scene not in (2, 4):
+        raise ValueError("handoff fixtures preserve four beats in two or four cuts")
     brief = FIXED_CHINESE_BRIEF.model_copy(update={
         "decision_points_per_path": 1,
         "ending_count": 2,
@@ -56,7 +58,8 @@ def handoff_image_environment(tmp_path, monkeypatch, *, auto_deliver=True, geome
         if request.stage == "storyboard":
             binding = store.storyboard_review_state().candidate.binding
             return _compact_handoff_storyboard(
-                [item.episode for item in binding.section_bindings]
+                [item.episode for item in binding.section_bindings],
+                cuts_per_scene=cuts_per_scene,
             )
         return original_candidate(store, request)
 
@@ -71,28 +74,30 @@ def handoff_image_environment(tmp_path, monkeypatch, *, auto_deliver=True, geome
     )
 
 
-def _compact_handoff_storyboard(episodes):
+def _compact_handoff_storyboard(episodes, *, cuts_per_scene=4):
+    seconds = 10 / cuts_per_scene
+    beats_per_cut = 4 // cuts_per_scene
     cuts = [
         {
-            "seconds": 2.5,
-            "beats": [index, index],
+            "seconds": seconds,
+            "beats": [beats_per_cut * (index - 1) + 1, beats_per_cut * index],
             "size": "medium",
             "camera": "Static Shot",
             "characters": ["keeper"],
             "props": [],
             "frame": "medium shot of the keeper in the beacon room at dawn, cinematic film still, cool gray palette, 16:9",
         }
-        for index in range(1, 5)
+        for index in range(1, cuts_per_scene + 1)
     ]
     alignments = "; ".join(
-        f"Picture {index} (from Shot {index}) aligns with the {2.5 * (index - 1):.2f}-second mark of the target video"
+        f"Picture {index} (from Shot {index}) aligns with the {seconds * (index - 1):.2f}-second mark of the target video"
         for index in range(1, len(cuts) + 1)
     )
     shot_descriptions = "\n".join(
         (
             f"[Shot {index}] Cinematic, live-action, cool gray palette. The beacon room holds on <Picture {index}> with a static shot."
             if index == 1
-            else f"[Shot {index}] At 00:{2.5 * (index - 1):06.3f}, the camera cuts to <Picture {index}> and holds a static shot in the beacon room."
+            else f"[Shot {index}] At 00:{seconds * (index - 1):06.3f}, the camera cuts to <Picture {index}> and holds a static shot in the beacon room."
         )
         for index in range(1, len(cuts) + 1)
     )
@@ -121,7 +126,7 @@ def _compact_handoff_storyboard(episodes):
     }
 
 
-def assert_compact_handoff_pack(storage, view, complete, calls):
+def assert_compact_handoff_pack(storage, view, complete, calls, *, expected_frames=12):
     """Prove the small pack still covers both routes and every unique shot."""
     with closing(storage.projects.open(view.project_id)) as store:
         inventory = initial_inventory(store, view.policy)
@@ -129,7 +134,7 @@ def assert_compact_handoff_pack(storage, view, complete, calls):
     reference_count = sum(item.owner != "image" for item in inventory.subjects)
     assert inventory.route_count == 2
     assert {frame.shot_id for frame in complete.frames} == image_subjects
-    assert len(complete.frames) == len(image_subjects) < 27
+    assert len(complete.frames) == len(image_subjects) == expected_frames
     assert len(calls) == len(set(calls)) == len(image_subjects) + reference_count
 
 

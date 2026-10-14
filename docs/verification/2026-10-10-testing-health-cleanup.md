@@ -1525,3 +1525,467 @@ The completed software verification did not establish preservation of the
 active execution. The main publication bypassed the manager's integration
 hold. The incident note is retained in the isolated documentation checkpoint
 and remains unpublished pending manager integration.
+
+### Test-only handoff refinement — 2026-10-13
+
+This isolated follow-up starts from released `cf26b32d`, on branch
+`codex/python85-handoff-fixtures` in the retained `python85-profiling`
+checkout. The old profiling branch still retains `ce8bebdc`. Production
+source matches the released baseline exactly; the separate installation-reader
+and receipt-query proposals in `python85-release` are not included and remain
+pending explicit production-scope approval.
+
+The remaining handoff fixture generated one frame for each of four action
+beats in every scene. Handoff ownership needs complete routes and multiple
+frames, but does not require one frame per beat. The pinned storyboard
+validator accepts contiguous multi-beat cuts, and the production bridge maps
+every beat in the range. Two five-second cuts cover `[1,2]` and `[3,4]` while
+retaining all four script beats, ten seconds per scene, the same Brief,
+three mapped episodes, two routes, cast/art references, and eight real text
+stages. Their H3 alignment and cut timestamps use the same cut duration.
+
+Only `test_autopilot_handoff.py` opts into this six-frame shape through its
+local wrapper. The shared fixture keeps its four-cut default for geometry
+and creator-confirmation/recovery consumers. Full-size `image_environment`
+is unchanged. All twelve handoff cases and parameter rows remain; omitted
+frames, second-selection rollback, manual replacement/restore and derivative
+withdrawal retain their assertions. Pack checks now assert exactly six frames
+for the opt-in shape and twelve for the shared default, alongside exact
+unique-shot coverage and two routes. The local wrapper also asserts eight
+text deliveries.
+
+Before editing, three serial focused baseline samples ran the unchanged
+missing-frame, late-rollback and derived-reference-withdrawal selectors with
+fresh pytest case roots and locked installed dependencies. All passed;
+runner wall times were 72.958s, 69.802s and 68.629s (median 69.802s).
+The CLI worker explicitly held heavy checks and native probes for this window,
+then was released. These selected-case timings are not a whole-suite result.
+Ignored `.local/handoff-six-frame/` retains the sampling script, baseline
+metadata/input and host fingerprints, and hashed raw logs in this checkout.
+
+Independent read-only review (requested Sol/Medium; effective settings
+unverified) found no actionable gaps in the two-file candidate. Targeted
+Ruff, diff checks and the story-authoring ownership/module plan passed.
+The focused file run passed all twelve cases in 162.71s (168.738s including
+the verification runner); this correctness run was not an isolated performance
+sample. The existing Starlette/httpx deprecation warning remains. Unchanged
+full-size, derivative-geometry and retained-confirmation/recovery controls
+passed after an opt-in case in the same pytest process: four cases passed in
+111.04s (117.565s including the runner). `controls.log` retains that result;
+`correctness.log` retains the twelve-case run. No checks are still running.
+Three matched candidate samples at clean `3f9d57bb` passed in 39.300s,
+41.206s and 41.527s (median 41.206s), a 40.97-percent reduction from the
+69.802s selected-case baseline. Commands, selectors, host, Python and uv
+versions matched; both checkpoints were clean. All six raw log hashes were
+verified against `baseline.json` and `candidate.json`. The CLI worker held
+checks/probes during the timing window and was released afterward. This is
+a gain for those three handoff cases, not the whole Python suite. Unaffected
+family timing, broader qualification, publication and the 85-percent target
+remain open.
+
+### Receipt-query scope approval — 2026-10-13
+
+The owner explicitly approved verification and integration of the narrow
+production query-placement proposal. The next candidate will carry only that
+transaction-owner change and its regression guards onto the released baseline
+plus the test-only fixture refinement. The separate installation-reader
+proposal (ADR 0164) is not implicitly included in this approval. The original
+isolated proposal and profiled evidence remain in `python85-release`.
+Qualification must re-establish behavior on the new composition; previous
+focused results with the installation-reader change are not substituted for it.
+
+The new composition is isolated on `codex/python85-query-qualification`, based
+on fixture checkpoint `3f9d57bb` and documentation checkpoint `188c1674`.
+Its only production-source delta against released `cf26b32d` is
+`command_transactions.py`; ADR 0166 records the operation-scoped query decision.
+The twenty authority cases passed in 1.58s (3.297s including selection and the
+runner). A separate downstream selection passed 34 cases: complete handoff and
+late-receipt files, final-send currentness, portable-recovery refusal and retired
+geometry-policy admission. Its retained log is `.local/receipt-query/focused.log`;
+the existing Starlette/httpx deprecation warning remains. This concurrent
+correctness run is not a performance measurement.
+
+Independent read-only review of this exact composition (requested Sol/Medium;
+effective settings unverified) found no actionable findings and no dependency
+on the installation-reader proposal. Targeted Ruff and diff checks passed.
+Three unprofiled samples at clean `d8c73828` passed in 36.419s, 36.333s
+and 36.752s (median 36.419s), using the same three handoff selectors and
+command. Compared with fixture-only `3f9d57bb` (41.206s), the query change
+reduced that median by 11.62 percent. Compared with released `cf26b32d`
+(69.802s), the combined reduction is 47.83 percent. All nine retained raw
+log hashes and matching host, Python, uv, command and selector metadata were
+checked. `query-candidate.json` and its three logs join the earlier samples
+in `.local/handoff-six-frame/`. The CLI worker explicitly held checks and
+native probes during this window and was released immediately afterward.
+
+These are selected-case medians, not whole-suite results. Unaffected-family
+timing, broader final qualification and publication remain pending; the
+85-percent whole-Python target is not achieved.
+
+### Creator-confirmation fixture refinement — October 13
+
+The next test-only slice starts at clean `734624b8` on the retained
+`python85-query-qualification` branch. Four creator-confirmation rows still
+built twelve frames although their contracts concern unnamed attribution,
+optional authored comments, receipt binding and orphan-fact refusal, not the
+number of cuts. They now explicitly request two cuts per scene from the
+existing shared fixture. Each case asserts eight real text deliveries, six
+frames, complete unique-shot coverage and two routes. Existing handoff,
+receipt/hash, reopen and snapshot/restore/acknowledgement assertions remain.
+The shared four-cut default, named-v1 recovery control, derivative-geometry
+control and full 27-frame owner are unchanged. No additional production
+change is included in this slice.
+
+Before editing, three quiet baseline runs at `734624b8` passed all six selected
+cases: the four target rows followed by those two unchanged controls. External
+wall times were 125.984s, 125.863s and 127.701s (median 125.984s). These samples
+use direct native `uv run --locked --no-sync pytest -q --durations=0
+--durations-min=0` with explicit selectors, not the `verify.py focused` wrapper;
+the same command will measure the candidate. Raw logs, rounded pytest phase
+durations, fingerprints and exact commands are retained in ignored
+`.local/creator-confirmation/`. The CLI worker held tests/native probes for
+this window and was explicitly released. Independent read-only review of the
+one-file delta (requested Sol/Medium, effective settings unverified) found no
+actionable gaps: all prior assertions and parameter rows remain, with
+function-scoped fixture isolation. Targeted Ruff, compile and diff checks
+passed. The established focused runner passed all sixteen creator-confirmation
+cases plus the unchanged derivative-geometry and full 27-frame pack controls:
+18 passed in 132.11s, 137.855s including selector checks and runner overhead.
+The existing Starlette/httpx warning remains. `correctness.log` retains the
+result.
+
+Three matched candidate samples at clean `ab4c6746` passed all six cases in
+94.724s, 95.467s and 92.425s (median 94.724s): 24.81 percent less external wall
+time than the 125.984s baseline. The four changed rows' summed, rounded pytest
+phase-time median fell from 79.26s to 47.91s (39.55 percent). The unchanged
+named-v1 control's phase median moved from 22.25s to 22.40s (+0.67 percent);
+the derivative-geometry control moved from 21.40s to 20.33s (-5.00 percent).
+Neither breached the ten-percent regression trigger. Phase totals are not
+external command wall time. All six raw-log hashes were verified; command,
+selectors, host, Python, uv and clean diff metadata match. Source checkpoints
+and input fingerprints identify the deliberate test delta.
+
+The CLI worker held checks/native probes during the correctness-and-timing
+window and was explicitly released at completion. No manager check remains
+running. Full qualification, publication and whole-Python target measurement
+are next; the selected-case gain does not establish the 85-percent target.
+
+### Combined query/fixture final local gate
+
+Qualified executable checkpoint:
+`e58760291919c7741dc180e54133e3674bf2cfa2`, including main `14ad98cb`.
+The detached pinned submodule remained exactly
+`4f9b2128c82adf623f594ba714c97d0afcfc16a2`; the source checkout was clean
+before and after the gate. The only production delta against main is the
+approved receipt-scoped query placement. The older installation-only reader
+is excluded. Independent read-only final composition review, requested as
+GPT-6.1 Sol / Medium (effective settings unverified), found no actionable
+integration or coverage issue.
+
+The first `uv run --locked --no-sync python scripts/verify.py full` stopped
+after 0.378s because this isolated Python-only checkout lacked `jsdom` for
+the archived prompt reader. No frontend, Python or browser suite had run.
+The documented checkout prerequisites were missing, not a product contract.
+`npm --prefix docs/prompt-pipeline-lab ci --no-audit --no-fund` and
+`npm --prefix frontend ci --no-audit --no-fund` installed the checked locks;
+no lockfile, source, global approval setting or live installation changed.
+The existing pinned Chromium executable was present. The second attempt
+passed the complete gate in **1,203.332s**, exit zero:
+
+- 1,377 Vitest cases / 158 files; frontend and E2E type checks.
+- 1,859 Python cases / 182 files; two isolated workers, 930/929 cases.
+- Deterministic frontend build and checked static-tree parity.
+- All 93 browser specs / 318 cases; allocation guard 84/72/72/90,
+  with no missing or overlapping case, then unfiltered execution of all 318.
+- Wheel build and installed-wheel smoke.
+
+The complete Python command step took **697.496s** including collection,
+reporting and cleanup; worker lifetimes were 516.398s and 691.261s. The
+post-collection runner summary was 691.263s, not the whole-command boundary.
+Browser execution took 487.927s including its E2E type check. The Python
+schedule was `case-count fallback=native-case-inventory-changed`. No
+duration-based allocation execution or 85-percent reduction is claimed.
+The historical M6 baseline covered 1,779 cases, not this candidate's 1,859;
+this result is therefore not a matched whole-suite speed comparison.
+
+Raw evidence is retained in the `python85-profiling` checkout under
+`.local/final-qualification/`:
+
+| File | SHA-256 |
+| --- | --- |
+| `full-e5876029.log` (prerequisite failure) | `cf39c223d365409f0d7080c3b3d8cc74cca727cef40179509ef988a1d2daef29` |
+| `full-e5876029-deps-ready.log` (complete success) | `22f2799352a52e6c5b6a8a0081821051dc8abc18128edf6f7baa433f7861a484` |
+| `npm-prompt-reader.log` | `d722c43611f0e765e4727e73eef491d2c494b26b0b702d50128ddf34165708d2` |
+| `npm-frontend.log` | `9d7a3bb0fdcf0771452b0a81f67261de861a6a44d9c8fd78ae579dc91afe0b90` |
+
+Existing Starlette/httpx, large frontend chunk and NO_COLOR/FORCE_COLOR
+warnings were non-failing. Locked npm installation also reported deprecated
+whatwg-encoding and unapproved esbuild/fsevents scripts; no global script
+approval was changed, and the actual deterministic build passed.
+
+All 182 complete file-phase rows are retained in the successful log, summing
+to 1,186.308s. The largest files were geometry 162.471s, handoff 158.908s,
+image safety 124.116s, images 112.524s, creator confirmation 75.952s and
+specialist reconciliation 63.053s (38.001s in setup). At these weights,
+aggregate work divided by two is 593.154s; deterministic two-bin packing
+predicts the same bound to three decimals. These are accounting estimates,
+not a new wall-time benchmark, and nested profile totals must not be added
+to them. The timing manifest was not silently rewritten.
+
+The manager released the completed full-check window to the CLI source owner
+for focused saved-Brief routing checks. Further Python profiling remains
+serial and queued. This closeout changes documentation only; it does not
+invalidate the executable qualification. Hosted CI, live activation and the
+85-percent objective remain separate and unproved.
+
+### Published checkpoint and next-cost attribution
+
+`54eb72c5e46d2a46923a4dd16f0064446e5b9f33` was fast-forwarded to clean main
+and pushed without force; remote main was verified at the same SHA. It changes
+only documentation after executable checkpoint `e5876029`. The live checkout
+remained clean at `ee7ec8de`; no runtime or project data was changed.
+
+On clean `54eb72c5`, two sequential disposable main-thread cProfile probes
+passed before releasing the native window to the CLI owner. The first-shot
+delivered-cancellation row took 10.994s in its call phase (10.639s CPU), with
+5.873s in real `run_text` and 487 `material_closure` calls totaling 3.250s
+cumulatively. The absent-outline terminal row took 0.750s in setup, including
+0.672s in `_accepted_f4_script`, and 0.428s in its call phase. Profiling adds
+overhead; nested cumulative values overlap, and work in other threads is not
+fully attributed. These are owning-cost diagnostics, not matched speed gains.
+The existing Starlette/httpx warning was non-failing. Retained attribution:
+
+| File under `.local/remaining-cost/` | SHA-256 |
+| --- | --- |
+| `image-safety-baqqddor/attribution.json` | `d5135e2473bc3b987094b695639a248a4869b18df17694b3dad0f3dc08532428` |
+| `terminal-outline-mxdx8ty6/attribution.json` | `f938d7f5eefdd7edc8e62a2279a0826810165a481bc2d4d89a521060014da64d` |
+
+Independent read-only prerequisite review rejected autopilot snapshot reuse:
+freshness and recovered-run command authority deliberately forbid it. No raw
+seed copy or validation bypass is introduced. A possible non-autopilot terminal
+seed remains an unimplemented hypothesis; simpler prerequisite tiers come
+first if that family is selected. The next safety-only compact fixture has a
+behavior map and prepared five-case timing harness (three target rows, two
+unchanged controls), but no timing samples or source changes yet. Manager
+tests are held while the CLI owner exercises its native execution boundary.
+
+### Early image-safety fixture — baseline and static review, October 14
+
+At clean `d6f09d95`, three quiet direct-native pytest samples passed the same
+five preselected cases in 47.736582s, 44.708213s and 45.354019s (median
+45.354019s). The targets are first-shot delivered cancellation, historical
+schema-2 cancel/restart, and exact retained-candidate role association. The
+unchanged controls are unknown-image restart without resend and genuine
+derivative-geometry handoff/withdrawal. All samples used fresh temporary roots,
+locked dependencies and disabled pytest cacheprovider; the harness refused
+ambient selection controls and verified the exact native five-case collection.
+`.local/remaining-cost/safety-baseline.json` retains source/input/host/toolchain
+fingerprints, exact commands, rounded phase durations and all three raw logs:
+
+| Log under `.local/remaining-cost/` | SHA-256 |
+| --- | --- |
+| `safety-baseline-1-duf3kxoy/pytest.log` | `fe40f7b9e955a8e7cb16f6cee4fde535e326a21586f1903bd4176b16ed5a8a84` |
+| `safety-baseline-2-83b692me/pytest.log` | `9d133f6d2cc2756d72ab037569de77d1b90e677ed05188f87f331d69aa0ff295` |
+| `safety-baseline-3-xcr7m2dn/pytest.log` | `46b87e4616af3b9817d44330c3ed97b789d0f6b5e205a0e4302a399c774292c1` |
+
+After those samples, only `tests/test_autopilot_image_safety.py` was changed:
+a local wrapper opts into the existing six-frame fixture and asserts eight
+real text deliveries, two routes and six image subjects. Existing assertions,
+parameter rows, historical execution-pin setup and `auto_deliver=False` paths
+remain. The wrapper closes the service if its new guards fail. Shared defaults,
+full-pack scale, production code and geometry/recovery controls are unchanged.
+
+Independent read-only review (requested GPT-6.1 Sol / Medium; effective settings
+unverified) found no actionable issue. The shortened Brief/Script prerequisites
+do not own runtime-length or full-pack scale in these nineteen cases; real
+stage admission, references, first-shot state, currentness, reservation and
+immutable-evidence checks remain. No tests were run by the reviewer. Candidate
+correctness, matched performance and unchanged-control results remain pending
+while the CLI worker owns the native/focused window. Static review and a faster
+fixture hypothesis do not establish a speed gain or the whole-Python target.
+
+After explicit native-window release, the established focused runner passed
+all nineteen safety rows followed by unchanged full 27-frame completion,
+unknown-image restart and derivative-geometry handoff: **22 passed** in
+171.71s (180.001s including selector checks and runner overhead). The existing
+Starlette/httpx warning remains. Retained `safety-correctness.log` SHA-256:
+`dd92dae70ba06f207d5161f3d9f3eb54b48e7e503acf16ab17de831784f56439`.
+Seven module-ownership tests also passed; the story-authoring contract plan
+expanded successfully without executing its unrelated suites. Targeted Ruff
+`F,I`, compileall and diff checks passed after tidying the touched imports.
+A whole-file Ruff run identified `I001` and `SIM117`; both were reproduced on
+the unchanged HEAD version. Only the touched import block was tidied; the
+pre-existing nested-context `SIM117` remains outside this fixture delta.
+Matched candidate timing and whole-Python qualification are still pending.
+Complete native ownership discovery also passed without executing test bodies:
+1,859 Python cases / 182 files, 1,377 Vitest cases / 158 files and 318 browser
+cases / 93 specs. Existing owner and helper mappings required no changes;
+the full discovery output is `safety-native-ownership.log` beside the samples.
+
+### Early image-safety matched result — October 14
+
+Clean candidate `2797ece13ec95d077329c22186851117366e470a` passed all five
+preselected cases in each of three fresh-root samples: 44.831059s,
+44.326434s and 42.772404s. External median fell from 45.354019s to
+44.326434s (**2.27 percent**). The three changed rows' rounded phase-sum
+median fell from 17.02s to 16.14s (5.17 percent). Their individual phase
+medians were 7.23→6.07s for first-shot cancellation, 4.91→5.02s for legacy
+receipt cancellation, and 4.93→4.77s for exact manifest association. The
+unchanged unknown-image restart and geometry controls were 5.68→5.38s and
+20.54→20.37s; neither reached the 10-percent regression trigger.
+
+The host, Python, uv, selector order, command prefix and fresh-root policy
+match. All six raw log hashes were verified. Retained evidence:
+
+| File under `.local/remaining-cost/` | SHA-256 |
+| --- | --- |
+| `safety-baseline.json` | `33bc7e76fd4a1b990aaba224f6e642113b15e436676c33e5a29312ffeab6f61b` |
+| `safety-candidate.json` | `095123a91f2760108f3b7dcf67937045c63fcd81998d66c4c3994f3d5f8b5ad7` |
+| `safety-candidate-1-dqhus7gr/pytest.log` | `e2189fec4458bccc37f6b459d156a7c4046dec7bdcb14f427da543ea4a8db3d8` |
+| `safety-candidate-2-c38tj9r9/pytest.log` | `0e23fb1ef04c531ba65fa9f3308741c0cceee0c0748606b5ab5d8ebd122d0f33` |
+| `safety-candidate-3-ipgj3egx/pytest.log` | `a20b59be2e0a24936a448c6ee95e3942e8f13be2545c4e68f3ae47c54d660a00` |
+
+The ranges overlap and there are only three samples per checkpoint. This is
+a small observed selected-case improvement, not a statistically established
+whole-suite gain. Keep the bounded, reviewed test-only simplification for the
+next combined candidate; do not extrapolate it to the 85-percent target or
+repeat it indiscriminately across geometry tests. Most geometry cases create
+only one native frame: shrinking unused future frames cannot remove their
+actual image/derivative cost. The 12-frame handoff and 27-frame full-pack
+controls remain unchanged.
+
+The manager released the test window to the CLI worker after the final sample;
+no Python check remained running. Further performance work must wait for that
+window's release. Full qualification, publication and a matched whole-Python
+measurement remain pending for this candidate.
+
+Read-only residual-cost review (requested GPT-6.1 Sol / Medium; effective
+settings unverified) estimates whole-file phase packing at 593.154s / 296.577s /
+162.471s for 2 / 4 / 8 workers from the retained 182-file gate. It did not run
+tests or measure concurrent performance. Geometry and handoff remain indivisible
+162.471s / 158.908s owners, and ideal eight-way aggregate work is 148.289s before
+overhead. The 18-core, 24-GiB host inventory is not evidence of safe memory use
+under more workers. Current evidence does not support achieving the fixed-two-
+worker 85-percent target through the remaining compact-fixture options. A
+separate bounded concurrency evaluation is proposed in the roadmap and awaits
+owner scope approval; no default, CI, worker count or production code changed.
+
+### Duration-weight refresh and native inventory drift — October 14
+
+At clean `e5959c73`, the manager borrowed and returned a short check window
+while the CLI source owner held checks. The complete safety file passed all
+19 cases with the existing timing plugin: 100.31s externally, 96.12s pytest,
+and the existing non-failing Starlette/httpx warning. Fresh native collection
+found 1,859 cases / 182 files. Executable, host and interpreter fingerprints
+matched the reviewed safety candidate before and after; no full suite or native
+generation ran. Both owned processes exited zero before the window was returned.
+
+Evidence under `.local/remaining-cost/duration-refresh-AHMmlW`:
+
+- `pytest.log`: `cf308a3564f7cedc90efd90606be733401cd7b5af67c7dec87a82d80d8c7bd6b`
+- `native-collection.log`: `fa4ea00fbab7832900349c0a9b1723b9deaa0a235e7ce873bf7e247fb2d47811`
+- `refresh-summary.json` retains exact commands, input/host fingerprints and
+  explicit single-process-refresh versus two-worker-base conditions.
+
+The initial proposed manifest was validated against that one captured inventory
+only. Its hash `a99a9cc176695aa1977c0f1cfc5c8655dfa03fbd7a2aa5bba7ad68802f403fd9`
+is retained, **not promoted**. Comparison to the prior native ownership hash
+exposed an import-time random UUID in the publisher's foreign-native-task
+parameter ID. This causes a new inventory fingerprint even without source
+changes, legitimately forcing the scheduler to fall back. The scoped fix gives
+only that row an explicit semantic pytest ID; its randomized foreign UUID,
+case count and rejection assertions are preserved. Independent read-only review
+(requested GPT-6.1 Sol / Medium; effective settings unverified) found no issue;
+the reviewer ran no tests. Repeated native collection and publisher execution
+are pending the CLI owner's check-window release. Refresh the changed publisher file before
+assembling new weights; do not weaken the native fingerprint guard or claim
+the provisional 579.075s phase-load estimates are executed wall time.
+
+At clean `a5c24b7ac1672e98b7033a4c6c8eab3b5cf966ab`, the complete publisher
+file then passed seven cases in 1.29s pytest / 2.14s external. Two fresh native
+collections produced identical ordered IDs for 1,859 cases / 182 files. The
+only inventory move replaces the randomized foreign UUID suffix with
+`[foreign-native-task]`; no case or assertion was removed. Input and host
+fingerprints were identical before and after. All processes exited zero and
+the test window was returned to the CLI worker before metadata assembly.
+
+The retained `.local/remaining-cost/stable-duration-iFrpXh/refresh-summary.json`
+records commands, exact ID mapping, fingerprints and source logs. Publisher log
+SHA-256 is `69368eb8599128e73f3e15c6484cd097d03c6abbe938a3ba68d1bd7e145e100d`;
+collection logs are `a4bb4c6171f73b0d7820226283614857878d6708bb5307be17c0a95f4fb2cfd8`
+and `56082eb99de73642aff886b6ff85e213a9eebec88a0be8e755ad10d4786f567f`.
+The stable native inventory hash is
+`a1343c056598ee64104953692ae334e2df8b8c073dead554accdadb875044ce6`.
+
+The manager explicitly promoted compatible advisory weights: 180 unchanged
+complete base-file rows plus fresh safety and publisher whole-file captures.
+The manifest SHA-256 is
+`08176933a4872c019dfba203754663b2b6dd5ab46f34e00487a4a0cb3856ad20`.
+Production scheduling validation accepts `duration`, with exact disjoint union
+975/884 cases over 92/90 files. The approximately 578.964s phase load per worker
+is only an estimate assembled from mixed single/two-process captures. Independent
+read-only metadata review (requested GPT-6.1 Sol / Medium; effective settings
+unverified) found no findings and ran no tests or collection. A quiet complete
+Python execution and publication remain pending; no
+85-percent result, hosted qualification or native generation is implied.
+
+The next gate runs the established complete two-worker Python step. Only the
+two test files and advisory timings changed executable inputs since the passed
+`e5876029` full gate; production, dependency, frontend, browser-fixture and
+packaging inputs are unchanged. Their corresponding passed evidence is reused.
+
+### Executed two-worker duration qualification — October 14
+
+Clean candidate `bafb15873c0b59fc519e53f68ad39b9a7a1a714e` passed the complete
+Python step via `/usr/bin/time -p uv run --locked --no-sync python
+scripts/testing/run_python_suite.py`. Fresh native collection selected all
+1,859 cases / 182 files; the runner confirmed `schedule=duration` with no
+fallback. Both workers exited zero: 884 cases / 90 files in 579.213s and
+975 cases / 92 files in 627.323s. External time was **633.23s**, parallel-runner
+time 627.324s. Each worker emitted the existing Starlette/httpx deprecation
+warning. Complete per-file capture contains 182 unique rows covering all cases.
+
+The quiet window excluded other tests and native/model/ImageGen dispatch. After
+completion, source/host fingerprints matched preflight, the candidate remained
+clean, the temporary suite root was absent and no pytest worker referenced it.
+The manager then explicitly returned the window to the CLI owner for its focused
+pixel-decoding regressions. No test process was interrupted.
+
+Retained log: `.local/final-qualification/python-duration-bafb1587.log`, SHA-256
+`ef370026f7f7be72b10df839e4a31aee22ece94b8f5067c02948afe08f664e62`.
+Its adjacent `python-duration-bafb1587-summary.json` records commands, allocation,
+fingerprints and measured costs. The old 697.496s gate and this 633.23s gate use
+the same 1,859-case inventory except the explicitly documented parameter-ID
+rename. The **9.21% observed reduction** is a single whole-suite comparison;
+the fixture and allocation changed together, so this does not isolate scheduler
+benefit or establish statistical significance. The earlier 1,779-case historical
+baseline is not a matched comparison.
+
+Current phase work totals 1,185.146s; longest owners are geometry 174.850s,
+handoff 153.799s, early image safety 114.078s and images 109.779s. Ideal two-way
+packing at these observed costs is bounded below by 592.573s before overhead.
+Thus scheduling alone cannot reach the historical 151.733s stretch reference.
+The **85-percent goal remains unmet**. The qualified test-only partial improvement
+can be published; broader concurrency or production-context changes remain
+separate owner scope decisions. Unchanged frontend/browser/type/build/wheel
+evidence from `e5876029` is reused as justified above. No hosted CI, native
+generation, live restart or creative acceptance was performed.
+
+The manager merged the reviewed follow-up into clean `main` and pushed
+`c9781b95678dc871c0a79ac1501ab489bfe554fe`; remote `refs/heads/main` was read
+back at that exact SHA. Its source, scripts, tests, frontend, dependency and
+submodule trees match the qualified `bafb1587` candidate; the intervening
+integration includes only the already published CLI roadmap notes and receipt
+documentation. No force push, live checkout change or hosted dispatch occurred.
+
+### Operation-local context and bounded worker follow-up — October 14
+
+The [follow-up receipt](../roadmap/2026-10-14-python-context-and-workers.md)
+records the approved production boundary, independent reviews, matched
+two/four-worker experiment, fresh advisory weights and full local qualification
+of `4bc1d62a`. All 1,911 Python, 1,377 frontend and 318 browser cases passed,
+along with the remaining release gates. Default two-worker Python command time
+was 578.639s; the complete full gate took 1064.824s. Main integration through
+`aa926b03` preserves every qualified executable/dependency/configuration input
+and the newer CLI records. The 85-percent target remains unmet, extra worker
+resources are reported separately, and hosted CI remains unqualified.

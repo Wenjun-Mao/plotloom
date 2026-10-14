@@ -381,6 +381,21 @@ and exit status, and does not establish product or creative acceptance.
 uv run --locked --no-sync python scripts/verify.py full
 ```
 
+Each successful Python worker must emit one complete, versioned case-ID proof
+matching its exact coordinator assignment. Missing or mismatched proof fails
+the suite even when pytest exits zero. The released full gate remains two
+workers. The owner-approved bounded concurrency experiment uses the same runner:
+
+```sh
+uv run --locked --no-sync python scripts/testing/experiment_python_workers.py --workers 4
+```
+
+The explicit choices are two, four and eight; eight is allowed only after
+measured memory and isolation headroom. This command runs the complete Python
+suite, not other release gates. Compare identical candidate/inventory/schedule
+inputs in a quiet window and record aggregate owned-process memory and cleanup;
+do not call added-compute gains the original fixed-resource speed target.
+
 ### Risk-scoped local frontend qualification
 
 For a bounded frontend presentation or navigation change consuming unchanged

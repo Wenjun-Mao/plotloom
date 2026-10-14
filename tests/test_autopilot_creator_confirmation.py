@@ -34,7 +34,11 @@ from plotloom.persistence.schema import (
 from plotloom.project_storage.autopilot_validation import assert_autopilot_contracts
 from plotloom.project_storage.format import ProjectStorageCorruptionError
 from plotloom.same_person_review_contracts import SamePersonReviewRequest
-from tests.autopilot_image_fixtures import handoff_image_environment, run_pack
+from tests.autopilot_image_fixtures import (
+    assert_compact_handoff_pack,
+    handoff_image_environment,
+    run_pack,
+)
 from tests.test_autopilot_handoff import observation
 from tests.test_autopilot_recovery import storage_at
 
@@ -80,9 +84,11 @@ def test_manual_approval_and_identity_requests_keep_their_named_review_contract(
 
 @pytest.mark.parametrize("comment", [None, "  创作者的可选备注。\n"])
 def test_exact_choices_succeed_without_a_name_and_store_no_invented_actor_or_comment(tmp_path, monkeypatch, comment):
-    storage, _registry, service, view, calls, _text = handoff_image_environment(tmp_path, monkeypatch)
+    storage, _registry, service, view, calls, text = handoff_image_environment(tmp_path, monkeypatch, cuts_per_scene=2)
     try:
+        assert len(text) == 8
         complete = run_pack(storage, service, view)
+        assert_compact_handoff_pack(storage, view, complete, calls, expected_frames=6)
         with closing(storage.projects.open(view.project_id)) as store:
             body = observation(review_material(store))
             if comment is not None:
@@ -196,9 +202,11 @@ def test_retained_named_v1_receipt_bytes_hash_and_recovery_stay_exact(tmp_path, 
 
 @pytest.mark.parametrize("table", ["v2_approval_decisions", "v2_same_person_reviews"])
 def test_ordinary_validation_refuses_unnamed_fact_without_its_receipt(tmp_path, monkeypatch, table):
-    storage, _registry, service, view, _calls, _text = handoff_image_environment(tmp_path, monkeypatch)
+    storage, _registry, service, view, calls, text = handoff_image_environment(tmp_path, monkeypatch, cuts_per_scene=2)
     try:
-        run_pack(storage, service, view)
+        assert len(text) == 8
+        complete = run_pack(storage, service, view)
+        assert_compact_handoff_pack(storage, view, complete, calls, expected_frames=6)
         with closing(storage.projects.open(view.project_id)) as store:
             record_handoff(store, HumanHandoffRequest.model_validate(observation(review_material(store))))
             with store.repository.engine.connect() as connection:

@@ -171,7 +171,7 @@ class ProjectSQLiteRepository(ProjectCommandTransactions):
             ),
         )
         from .autopilot import AutopilotPersistence
-        self.autopilot = AutopilotPersistence(self._project_access)
+        self.autopilot = AutopilotPersistence(self._project_access, claim_write=self._controller_claim_write)
         self._catalog = ProjectCatalogPersistence(self._project_access)
         self._lifecycle = ProjectLifecyclePersistence(self._project_access)
         self._gates = ProjectGatePersistence(self._project_access, self._catalog)

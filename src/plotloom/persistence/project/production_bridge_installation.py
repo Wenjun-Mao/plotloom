@@ -54,13 +54,19 @@ class ProductionBridgeInstallation:
 
     def _proposal_stale(self, session, project_id, row):
         """A pending review also depends on the production it would replace."""
-        stale = self._current(session, project_id, row.inputs)
+        return self._current(session, project_id, row.inputs) + self._replacement_stale(session, project_id, row)
+
+    def _replacement_stale(self, session, project_id, row):
         target = ProductionBridgeReplacementTarget.model_validate(row.proposal["replacementTarget"])
         if target != self._replacement_target(session, project_id):
-            stale.append("production rebuild replacement target changed")
-        return stale
+            return ["production rebuild replacement target changed"]
+        return []
 
     def installation_in_session(self, session, project_id):
+        return self._installation_state(session, project_id, lambda inputs: self._current(session, project_id, inputs))
+
+    def _installation_state(self, session, project_id, stale_for):
+        """Assemble installation evidence with this owner's local currentness read."""
         admission = self._latest_admission(session, project_id)
         if admission is None:
             return None
@@ -68,7 +74,7 @@ class ProductionBridgeInstallation:
             ProductionBridgeRevisionRow.project_id == project_id,
             ProductionBridgeRevisionRow.revision == admission.proposal_revision,
         ))
-        stale = self._current(session, project_id, admission.inputs)
+        stale = stale_for(admission.inputs)
         if row is None or row.content_hash != admission.proposal_content_hash or row.inputs != admission.inputs:
             raise InvalidTransitionError("installed production proposal evidence is missing or inconsistent")
         if set(admission.installed_stage_revisions) != {stage.value for stage in PRODUCTION_STAGES}:

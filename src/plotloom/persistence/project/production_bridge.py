@@ -29,6 +29,7 @@ from ...production_bridge_contracts import (
     ProductionBridgeState,
 )
 from ...production_presentation import ProductionPresentation, prepare_presentation
+from ...review_context_diagnostics import ReviewContextError
 from ...storyboard_review_contracts import StoryboardReviewBinding
 from ...validation import DomainValidationError, validate_stage_payload
 from ..schema.project_production_bridge import (
@@ -74,12 +75,15 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
         if review_head.status != "accepted" or accepted is None:
             raise InvalidTransitionError("a current accepted F5 storyboard review is required")
         binding = StoryboardReviewBinding.model_validate(accepted.binding)
-        if self._review._stale(session, project_id, binding):
+        try:
+            resolved = self._review._resolve_context(session, project_id)
+        except ReviewContextError as error:
+            raise InvalidTransitionError("the accepted F5 storyboard review is stale") from error
+        if self._review._binding_diagnostics(resolved.context, binding):
             raise InvalidTransitionError("the accepted F5 storyboard review is stale")
-        current, script, _outline, cast, art = self._review.context_for_binding(session, project_id, binding)
+        current, script, _outline, cast, art = self._review._project_context(resolved.context, binding)
         if current != binding:
             raise InvalidTransitionError("the accepted F5 storyboard review binding differs from current source")
-        _, _, _, mapping, _, _ = self._review._script._context(session, project_id)
         inputs = {
             "reviewRevision": accepted.revision, "reviewContentHash": accepted.content_hash,
             "scriptRevision": binding.script_revision, "scriptContentHash": binding.script_content_hash,
@@ -90,7 +94,7 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
             "briefRevision": project.revision,
             "briefContentHash": sha256(canonical_json(project.brief)).hexdigest(),
         }
-        return inputs, accepted.storyboard, script, cast | {"__art__": art, "__section_map__": mapping}
+        return inputs, accepted.storyboard, script, cast | {"__art__": art, "__section_map__": resolved.section_map}
 
     def _validate_payload(self, session: Any, project_id: str, payload: dict[str, Any]) -> list[ProductionBridgeConflict]:
         """Run the same V2 models and gates used by canonical installation early."""
@@ -135,20 +139,48 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
     def _current(self, session: Any, project_id: str, inputs: dict[str, Any]) -> list[str]:
         try: current, *_ = self._context(session, project_id)
         except InvalidTransitionError as error: return [str(error)]
+        return self._input_stale(current, inputs)
+
+    @staticmethod
+    def _input_stale(current: dict[str, Any], inputs: dict[str, Any]) -> list[str]:
         return [f"{key} changed" for key, value in inputs.items() if current.get(key) != value]
 
     def get_state(self, project_id: str) -> ProductionBridgeState:
         with self._access.leases.read() as session:
             self._access.rows.project(session, project_id); head = self._head(session, project_id)
             row = session.scalar(select(ProductionBridgeRevisionRow).where(ProductionBridgeRevisionRow.project_id == project_id, ProductionBridgeRevisionRow.revision == head.revision)) if head.revision else None
+            context, context_error = None, None
+
+            def resolve_context():
+                nonlocal context, context_error
+                if context_error is not None:
+                    raise context_error
+                if context is None:
+                    try:
+                        context = self._context(session, project_id)
+                    except InvalidTransitionError as error:
+                        context_error = error
+                        raise
+                return context
+
+            def stale_for(inputs):
+                try:
+                    current, *_ = resolve_context()
+                except InvalidTransitionError as error:
+                    return [str(error)]
+                return self._input_stale(current, inputs)
+
+            # Laziness preserves exception order. Only source resolution belongs
+            # to this read; each consumer's diagnostics and target checks are fresh.
             # Successful installation necessarily advances the frozen target.
             # Only a pending proposal is still authorized against that target.
-            stale = (self._current(session, project_id, row.inputs) if head.status == "accepted"
-                     else self._proposal_stale(session, project_id, row)) if row else []
+            stale = stale_for(row.inputs) if row else []
+            if row and head.status != "accepted":
+                stale.extend(self._replacement_stale(session, project_id, row))
             proposal = ProductionBridgeProposal(revision=row.revision, content_hash=row.content_hash, inputs=row.inputs, replacement_target=row.proposal["replacementTarget"], intent_package=self._intent_package(session, row), presentation=ProductionPresentation.model_validate(row.proposal["presentation"]), scenes=row.proposal["scenes"], cuts=row.proposal["cuts"], conflicts=[ProductionBridgeConflict.model_validate(item) for item in row.conflicts], advisories=[ProductionBridgeConflict.model_validate(item) for item in row.proposal["advisories"]], installable=row.installable, prepared_at=row.prepared_at) if row else None
-            installation = self.installation_in_session(session, project_id)
+            installation = self._installation_state(session, project_id, stale_for)
             try:
-                inputs, *_ = self._context(session, project_id)
+                inputs, *_ = resolve_context()
                 assert_production_quiescent(self._access, session, project_id)
                 preparation = BridgePrepareAvailable(request=self._prepare_request(session, project_id, inputs))
             except InvalidTransitionError as error:
