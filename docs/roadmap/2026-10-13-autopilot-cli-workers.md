@@ -5,9 +5,8 @@ preceding technical closeout and publication. Registration and read-only
 admission passed and the sole implementation writer was released. The serial
 executor checkpoint and authentication/tool-profile repairs are committed in
 the isolated worker. Exact-tool boundary qualification passed at `ad3ccf58`;
-the first production serial canary blocked at adoption; repair precedes concurrency.
-The original Relay Brainstorm and Plan checkpoint
-contained no pool implementation or live executor change.
+the first production serial canary blocked at adoption. The repaired source
+`4442331b` passed review; a fresh bounded serial canary precedes concurrency.
 
 The outcome is faster preparation through dependency-ready text and image
 workers, including image work before all text is finished. Each worker uses
@@ -73,30 +72,14 @@ dispatching the new assignment early or reporting unchanged state.
 
 ### Serial checkpoint and resumed proof allocation
 
-The existing worker committed `181a8edf` on `codex/autopilot-cli-workers` in
-the recorded `b30f` checkout. The manager verified its clean checkout and
-collected its actual completion response. Its focused verification and
-independent review are checkpoint evidence; real CLI/ImageGen execution,
-release qualification and concurrency remain unqualified.
-
-The manager resumed that same native task for a disposable serial production-
-supervisor proof, initially bounded to a text package and at most two new
-images. The task acknowledged the allocation and is active. It must verify
-the installed profile and sandbox, exact typed evidence, validated delivery
-and adoption, duplicate refusal and restart reconciliation before concurrent
-scheduling. Keep private proof artifacts in ignored checkout-local storage.
-The existing Relay route was independently read back and remains registered.
-Full/browser qualification remains manager-owned; live activation is not part
-of this allocation.
-
-The earlier optional Python-speed run at `76d6a916` lost its final evidence;
-it is not qualification. Later Python results are recorded in that track's plan.
-
-The owner subsequently reactivated the unbudgeted Goal for both parallel CLI
-generation and Python test-speed improvement toward 85 percent. The manager
-verified its active runtime status. Both tracks continue concurrently in
-separate checkouts, with one source owner per checkout and allocated checks;
-the existing worker and verified Relay route are retained.
+Serial checkpoint `181a8edf` passed focused verification and independent review
+in the existing `b30f` worker. Its initial production-supervisor allocation was
+one text package and at most two images; the failures and revised allocations
+below supersede that initial window. Source review is not native qualification.
+The owner reactivated the unbudgeted Goal for this work and Python speed toward
+85 percent. Keep their separate checkouts, one writer and allocated checks;
+retain the existing worker and Relay route. The lost Python evidence at
+`76d6a916` is not qualification; later results belong in that track's plan.
 
 ### Native authentication and confinement repair
 
@@ -215,16 +198,11 @@ extraction. A source-bound test correctly rejected a profile after a file was
 edited during the initial run; stable-source reruns passed. No native evidence
 is inferred from those tests.
 
-One fresh, non-generating native proof is now allocated at exact `ad3ccf58`:
-use the repaired image-domain profile and one harmless frozen synthetic PNG,
-emit the actual awaited view result through `image(...)`, and require the
-production parser to accept paired native view and complete `input_image`
-pixels. Keep source frozen, retain exact private session/profile/argv/hash
-evidence and prove owned-process cleanup. No MIME-prefix shortcut, image-text
-dump, retry, ImageGen call, global setting change or live mutation is authorized.
-ImageGen-specific pre-read confinement, serial production execution, scheduling
-and activation remain separate pending gates. The original unknown attempt and
-all earlier diagnostic evidence remain unchanged.
+The next allocation at exact `ad3ccf58` was a non-generating synthetic view:
+emit the awaited result through `image(...)`, require production parsing of
+paired native view/complete pixels, preserve frozen inputs and prove process
+cleanup. Image-text dumps, retries, ImageGen and live mutation were excluded.
+The original unknown attempt and earlier diagnostics remained unchanged.
 
 The first `ad3ccf58` proof harness stopped before creating a launch marker,
 stdout/stderr files or a CLI process: it used the nonempty execution-tree scanner
@@ -317,16 +295,39 @@ and Node OpenSSL-configuration access followed by ad hoc recovery. The manager
 verified output hashes and process-group absence; no second job was admitted.
 Preserve this failed canary and all earlier unknowns without resend or rewriting.
 
-After this checkpoint closes, the same source owner may repair only the proven
-contracts: bind Plotloom's frozen code revision independently of the upstream
-skill revision through trusted admission/publication, and qualify the text
-runtime's exact filesystem/environment prerequisites. Retain strict adoption
-checks; no terminal-time HEAD substitution, broad permission grant or fallback.
-Record the decision and test differing code/upstream revisions, actual owner
-adoption and non-generating sandbox validator execution. Review the stable
-candidate before freezing any fresh canary allocation; all provider dispatch,
-pool/full qualification and activation stay held. Later serial proof still needs
-real adoption, deduplication and same-attempt restart without fabricated state.
+Source repair `00e2949c` binds Plotloom's revision separately from the upstream
+skill and pins private zsh `TMPPREFIX` plus text-only exact OpenSSL access.
+Review found two retained-evidence regressions; correction
+`4442331b5b4d1634f51151e78e59e1095cffb00f` passed independent re-review with no
+new findings. Old omitted revision fields remain omitted; historical package
+projection is read-only. Fresh v5 admission/adoption and unknown reservations
+remain strict. ADR 0165 records the ownership and inspection boundary.
+
+The correction passed 65 focused tests and two missing/forged-revision host
+admission cases. Manager read-only validation of the original canary passed
+canonicalization and its eight evidence paths without changing the database.
+Current v5 profile SHA-256 is
+`df28b7edfed13fea85e53975f6a51957251fdb51159b331d5ccf1df62fa3b75d`.
+Prior sandbox receipts at profile `d31029a5` remain historical evidence for
+unchanged runtime behavior, not exact-profile or model-tool qualification.
+
+### Current fresh serial allocation
+
+The same worker may prepare and execute one fresh disposable canary at exact
+`4442331b`, after its new-profile non-generating sandbox/validator smoke passes.
+Use a new ignored proof root and the existing one-shot production runner;
+preserve every old attempt, package and receipt. Freeze source/profile/inputs
+and verify readiness before any provider admission. The fresh project uses
+normal production preparation, validation and adoption, without seeded outputs.
+Allow at most eight sequential text attempts, then the first two normally
+ordered image attempts; pause before a third. Keep normal launch ceilings
+`maxImages=16`, `maxJobs=24`, and require complete all-route inventory of at most
+16 images before admitting any image. Do not skip references to force a frame.
+Retain exact package/attempt/session/receipt/output identities, actual validator
+calls, deduplication, same-attempt reopen/adoption and process cleanup. A failed
+or ambiguous preflight/native result stops without retry or ad hoc environment
+overrides. No extra approval round is needed after passing this preflight.
+Pool/full/hosted qualification, merge and live activation remain held.
 
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
