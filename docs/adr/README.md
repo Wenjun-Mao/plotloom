@@ -91,3 +91,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0166 Receipt-scoped authority snapshots](0166-receipt-scoped-authority-snapshots.md)
 - [0167 Operation-local Storyboard context](0167-operation-local-storyboard-context.md)
 - [0168 Exact Python worker completion](0168-exact-python-worker-completion.md)
+- [0170 Operation-local Bridge and controller claim](0170-operation-local-bridge-and-controller-claim.md)

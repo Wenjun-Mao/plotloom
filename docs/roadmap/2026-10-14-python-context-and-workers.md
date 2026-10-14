@@ -274,6 +274,11 @@ Source remained clean and input/host fingerprints matched after completion.
 
 ## Approved Bridge / controller-claim follow-up — October 14
 
+The design review is collected and the CLI worker has explicitly released the
+source/check window. The selected contract, exact measurement union and active
+implementation status now live in the
+[Bridge / claim plan](2026-10-14-bridge-claim-optimization.md).
+
 The owner explicitly approved both pending follow-ups: the isolated CLI
 runtime/import repair and a design-reviewed local production optimization of
 Bridge reads and controller-claim transactions. This is not approval to remove
