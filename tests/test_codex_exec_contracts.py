@@ -65,6 +65,23 @@ def test_v2_profile_binds_auth_and_invocation_local_permissions():
     assert current.profile_hash != profile().profile_hash
 
 
+def test_v3_profile_pins_the_corrected_tool_capability_contract():
+    value = profile().model_dump(mode="json", by_alias=True)
+    value.update({
+        "contractVersion": "plotloom.codex-exec.v3",
+        "sandboxProfile": None,
+        "authenticationStore": "file",
+        "permissionProfile": "plotloom_autopilot_delivery_v2",
+        "toolProfile": "plotloom_autopilot_tools_v3",
+    })
+
+    current = CodexExecProfile.model_validate(value)
+
+    assert current.contract_version == "plotloom.codex-exec.v3"
+    assert current.tool_profile == "plotloom_autopilot_tools_v3"
+    assert current.profile_hash != profile().profile_hash
+
+
 def test_v2_profile_rejects_legacy_sandbox_and_missing_auth_binding():
     value = profile().model_dump(mode="json", by_alias=True)
     value.update({

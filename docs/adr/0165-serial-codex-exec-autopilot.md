@@ -126,6 +126,17 @@ generated files in `delivery`.
    the normalized prompt hash, reference hashes, transparency setting and
    prior-image allowance.
 
+   The pinned CLI also emits typed `item.completed` diagnostics before
+   `turn.started` when it ignores an invocation setting, followed by
+   `item.started` and `item.completed` `file_change` events for built-in
+   patches. The JSONL reader accepts only the observed bounded shapes, keeps
+   diagnostic message hashes and byte sizes rather than raw messages, and
+   requires each file-change completion to match its start. A diagnostic
+   makes a zero-exit `turn.completed` attempt a failure; malformed or
+   out-of-delivery file-change evidence leaves the attempt unknown. The host
+   verifies every reported changed path is canonical and confined to the
+   assigned delivery before adopting outputs.
+
 5. **Reconcile the original attempt after restart or stop.** A missing host
    acknowledgement, PID, session, event stream, or output does not authorize a
    retry. Unknown provider outcomes retain their budget and host reservation
@@ -212,15 +223,27 @@ generated files in `delivery`.
    executable and runtime directory. The CLI keeps its working directory in
    `delivery`; source commands use `PLOTLOOM_SOURCE_ROOT` and Python validators
    run the pinned `PLOTLOOM_UV` with `--locked --no-sync` so validation cannot
-   update the source environment. The run also disables apps, browser,
-   web-search and multi-agent features and sets `tools.view_image=false` for
-   every attempt because no frozen workflow needs local image attachment. User
-   configuration is ignored, and ImageGen is enabled only for an image attempt.
-   The Codex client's own authentication and service traffic remains outside
-   the local-command sandbox. The exact `exec` command flags and filesystem
-   profile are frozen by the source-bound profile and must pass allow/deny
-   probes before provider dispatch. Shell sandbox tests do not establish
-   confinement for the built-in patch tool or ImageGen reference pre-reads.
+   update the source environment. Fresh profiles use tool contract v3. They
+   disable apps, browser, web-search and multi-agent features; the pinned CLI
+   uses `--disable view_image` because no frozen workflow needs local image
+   attachment. The documented `tools.view_image=false` setting was ignored by
+   the exact pinned binary and produced diagnostic items. Its local
+   `codex-cli 0.162.0-alpha.17.2 features list` reports `view_image` disabled
+   under `--disable`, which
+   qualifies this feature-selection route but does not by itself establish
+   actual filesystem/tool boundary enforcement. Deprecated
+   `features.web_search_cached` and `features.web_search_request` toggles also
+   produced diagnostics, so the invocation uses top-level
+   `web_search="disabled"`. The documented setting is listed in the
+   [Codex CLI config reference](https://learn.chatgpt.com/docs/config-file/config-reference);
+   the [JSONL event reference](https://learn.chatgpt.com/docs/non-interactive-mode#make-output-machine-readable)
+   describes `codex exec --json` event output. User configuration is ignored, and ImageGen is
+   enabled only for an image attempt. The Codex client's own authentication
+   and service traffic remains outside the local-command sandbox. The exact
+   `exec` command flags and filesystem profile are frozen by the source-bound
+   profile and must pass allow/deny probes before provider dispatch. Shell
+   sandbox tests do not establish confinement for the built-in patch tool or
+   ImageGen reference pre-reads.
    Those exact tools require allowed controls and denied absolute-path plus
    symlink/traversal sentinels before any provider dispatch; post-delivery
    package rejection is not pre-read protection.

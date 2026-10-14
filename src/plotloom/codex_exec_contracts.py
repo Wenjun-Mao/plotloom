@@ -93,7 +93,9 @@ class CodexExecProfile(CamelModel):
     model_config = CamelModel.model_config | {"frozen": True}
 
     backend: Literal["codex_exec"] = "codex_exec"
-    contract_version: Literal["plotloom.codex-exec.v1", "plotloom.codex-exec.v2"] = "plotloom.codex-exec.v2"
+    contract_version: Literal[
+        "plotloom.codex-exec.v1", "plotloom.codex-exec.v2", "plotloom.codex-exec.v3"
+    ] = "plotloom.codex-exec.v3"
     executable_sha256: str = Field(pattern=HASH)
     cli_version: str = Field(min_length=1, max_length=80)
     model: str = Field(min_length=1, max_length=120)
@@ -107,7 +109,9 @@ class CodexExecProfile(CamelModel):
     sandbox_profile: Literal["read_only_with_delivery_write"] | None = Field(default=None, exclude_if=lambda value: value is None)
     authentication_store: Literal["file"] | None = Field(default=None, exclude_if=lambda value: value is None)
     permission_profile: Literal["plotloom_autopilot_delivery_v2"] | None = Field(default=None, exclude_if=lambda value: value is None)
-    tool_profile: Literal["plotloom_autopilot_tools_v2"] | None = Field(default=None, exclude_if=lambda value: value is None)
+    tool_profile: Literal[
+        "plotloom_autopilot_tools_v2", "plotloom_autopilot_tools_v3"
+    ] | None = Field(default=None, exclude_if=lambda value: value is None)
     max_runtime_seconds: int = Field(ge=30, le=7200)
     max_event_bytes: int = Field(ge=1024, le=50_000_000)
     max_output_bytes: int = Field(ge=1024, le=500_000_000)
@@ -126,13 +130,20 @@ class CodexExecProfile(CamelModel):
                 )
             ):
                 raise ValueError("legacy Codex Exec profiles must retain their original sandbox contract")
-        elif (
+        elif self.contract_version == "plotloom.codex-exec.v2" and (
             self.sandbox_profile is not None
             or self.authentication_store != "file"
             or self.permission_profile != "plotloom_autopilot_delivery_v2"
             or self.tool_profile != "plotloom_autopilot_tools_v2"
         ):
             raise ValueError("Codex Exec v2 requires its pinned auth, permission and tool profiles")
+        elif self.contract_version == "plotloom.codex-exec.v3" and (
+            self.sandbox_profile is not None
+            or self.authentication_store != "file"
+            or self.permission_profile != "plotloom_autopilot_delivery_v2"
+            or self.tool_profile != "plotloom_autopilot_tools_v3"
+        ):
+            raise ValueError("Codex Exec v3 requires its pinned auth, permission and tool profiles")
         selected = set(self.capabilities)
         if len(selected) != len(self.capabilities):
             raise ValueError("CLI capability pins must not contain duplicates")

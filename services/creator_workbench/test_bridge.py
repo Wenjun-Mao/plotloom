@@ -4,21 +4,22 @@ import json
 import subprocess
 from http.server import ThreadingHTTPServer
 from io import BytesIO
+from pathlib import Path
 from threading import Thread
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
-from pathlib import Path
+from uuid import uuid4
 
 import codex_client
 import pytest
 from host_bridge import QueueBridge, handler_for
+
 from plotloom.codex_exec_contracts import (
     CodexExecAttempt,
     CodexExecHostStatus,
     CodexExecProfile,
     transition_exec_attempt,
 )
-from uuid import uuid4
 
 TEXT_TASK = "01a0dfa6-40ae-7cf2-82eb-edcde7a8fcc0"
 IMAGE_TASK = "01a0c506-84d5-7161-8ae0-2ae914e5d81a"
@@ -69,10 +70,10 @@ def test_exec_profile_is_host_observed_and_never_uses_project_or_user_config(
     assert profile["backend"] == "codex_exec"
     assert profile["cliVersion"] == "codex-cli 0.162.0-alpha.17.2"
     assert profile["model"] == "gpt-6.1-sol"
-    assert profile["contractVersion"] == "plotloom.codex-exec.v2"
+    assert profile["contractVersion"] == "plotloom.codex-exec.v3"
     assert profile["authenticationStore"] == "file"
     assert profile["permissionProfile"] == "plotloom_autopilot_delivery_v2"
-    assert profile["toolProfile"] == "plotloom_autopilot_tools_v2"
+    assert profile["toolProfile"] == "plotloom_autopilot_tools_v3"
     assert "sandboxProfile" not in profile
     assert profile["maxProcesses"] == 1
     assert profile["apiFallback"] is False

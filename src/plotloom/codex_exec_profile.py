@@ -14,7 +14,7 @@ SUPPORTED_CLI_VERSION = "codex-cli 0.162.0-alpha.17.2"
 EXECUTION_MODEL = "gpt-6.1-sol"
 EXECUTION_REASONING_EFFORT = "medium"
 PERMISSION_PROFILE = "plotloom_autopilot_delivery_v2"
-TOOL_PROFILE = "plotloom_autopilot_tools_v2"
+TOOL_PROFILE = "plotloom_autopilot_tools_v3"
 DISABLED_CLI_FEATURES = (
     "apps",
     "browser_annotation_api",
@@ -28,8 +28,7 @@ DISABLED_CLI_FEATURES = (
     "skill_mcp_dependency_install",
     "standalone_web_search",
     "tool_call_mcp_elicitation",
-    "web_search_cached",
-    "web_search_request",
+    "view_image",
 )
 INSTRUCTION_FILES = (
     "src/plotloom/codex_exec_prompts.py",
@@ -148,7 +147,7 @@ def build_codex_exec_profile(executable: Path, *, source_root: Path) -> CodexExe
     if version.returncode != 0 or version.stderr or version.stdout.decode("utf-8", "strict").strip() != SUPPORTED_CLI_VERSION:
         raise RuntimeError("installed Codex CLI version has no qualified execution evidence adapter")
     return CodexExecProfile(
-        contractVersion="plotloom.codex-exec.v2",
+        contractVersion="plotloom.codex-exec.v3",
         executable_sha256=_hash_file(executable),
         cli_version=SUPPORTED_CLI_VERSION,
         model=EXECUTION_MODEL,

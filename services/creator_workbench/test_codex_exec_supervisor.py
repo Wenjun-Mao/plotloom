@@ -1,8 +1,8 @@
 """Process lifecycle and exact-evidence tests for the Mac supervisor."""
 import json
 import os
-import signal
 import shutil
+import signal
 import subprocess
 import time
 from contextlib import closing
@@ -176,7 +176,13 @@ time.sleep(0.2)
     assert 'cli_auth_credentials_store="file"' in config_values
     assert 'default_permissions="plotloom_autopilot_delivery_v2"' in config_values
     filesystem = next(value for value in config_values if value.startswith("permissions.plotloom_autopilot_delivery_v2.filesystem="))
-    assert "tools.view_image=false" in config_values
+    assert 'web_search="disabled"' in config_values
+    assert "tools.view_image=false" not in config_values
+    assert any(
+        command[index:index + 2] == ["--disable", "view_image"]
+        for index, item in enumerate(command[:-1])
+        if item == "--disable"
+    )
     assert '":root"="deny"' in filesystem
     assert '":minimal"="read"' in filesystem
     assert '":tmpdir"="write"' in filesystem
@@ -213,8 +219,55 @@ time.sleep(0.2)
     assert delivery.manifest.codex_session_id == session_id
 
 
+def test_cli_error_diagnostic_cannot_publish_a_success_receipt(supervisor, monkeypatch, tmp_path):
+    session_id = uuid4()
+    monkeypatch.setenv("PLOTLOOM_TEST_SESSION_ID", str(session_id))
+    fake_cli = r'''import json, os, sys
+from datetime import date, datetime
+from pathlib import Path
+from uuid import UUID
+
+sys.stdin.read()
+session_id = UUID(os.environ["PLOTLOOM_TEST_SESSION_ID"])
+day = date.today()
+session_dir = Path(os.environ["CODEX_HOME"]) / "sessions" / f"{day.year:04d}" / f"{day.month:02d}" / f"{day.day:02d}"
+session_dir.mkdir(parents=True)
+timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+(session_dir / f"rollout-{timestamp}-{session_id}.jsonl").write_text(
+    json.dumps({"type": "session_meta", "payload": {"id": str(session_id)}}) + "\n",
+    encoding="utf-8",
+)
+for event in (
+    {"type": "thread.started", "thread_id": str(session_id)},
+    {"type": "item.completed", "item": {"id": "err_01", "type": "error", "message": "Ignoring unsupported configuration setting"}},
+    {"type": "turn.started"},
+    {"type": "turn.completed"},
+):
+    print(json.dumps(event), flush=True)
+'''
+    _exchange, _request, _pin, _job_root, attempt, _profile = _prepared_text_job(
+        supervisor, tmp_path, fake_cli_source=fake_cli
+    )
+
+    status = supervisor.admit(attempt)
+    assert status.state in {"spawn_intent", "running"}
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        status = supervisor.status(attempt.attempt_id)
+        if status.state in {"completed", "failed", "settled", "outcome_unknown"}:
+            break
+        time.sleep(0.05)
+
+    assert status.state == "failed", status
+    assert status.receipt is None
+    assert status.attempt.terminal_result == "failure"
+    assert status.attempt.process_exit_code == 0
+    assert status.attempt.session_id == session_id
+
+
 def test_cross_process_cancel_serializes_with_cli_spawn_boundary(supervisor, monkeypatch, tmp_path):
     import codex_exec_supervisor_process as process_module
+
     from plotloom.codex_exec_contracts import CodexExecReadiness
 
     _exchange, _request, _pin, job_root, attempt, profile = _prepared_text_job(
@@ -415,6 +468,7 @@ time.sleep(0.2)
 
 def test_broken_pipe_wait_obeys_runtime_watchdog_and_retains_unknown(supervisor, monkeypatch, tmp_path):
     import codex_exec_supervisor_process as process_module
+
     from plotloom.codex_exec_contracts import CodexExecReadiness
 
     _exchange, _request, _pin, job_root, attempt, profile = _prepared_text_job(

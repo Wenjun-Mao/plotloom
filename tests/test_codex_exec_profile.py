@@ -55,4 +55,6 @@ def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources()
         "multi_agent",
         "multi_agent_v2",
         "tool_call_mcp_elicitation",
+        "view_image",
     } <= set(DISABLED_CLI_FEATURES)
+    assert not {"web_search_cached", "web_search_request"} & set(DISABLED_CLI_FEATURES)

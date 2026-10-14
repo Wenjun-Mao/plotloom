@@ -1,8 +1,8 @@
 """Process execution and private evidence handling for the Mac supervisor."""
 from __future__ import annotations
 
-import os
 import json
+import os
 import signal
 import subprocess
 import time
@@ -12,8 +12,11 @@ from pathlib import Path
 
 from codex_exec_supervisor_errors import CodexExecSupervisorError
 from codex_exec_supervisor_terminal import CodexExecSupervisorTerminalMixin
+
 from plotloom.codex_exec_auth import (
     AUTHENTICATION_STORE,
+)
+from plotloom.codex_exec_auth import (
     credential_free_environment as _credential_free_environment,
 )
 
@@ -48,6 +51,7 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin):
         from plotloom.codex_exec_prompts import assignment_prompt
         from plotloom.codex_exec_runtime import (
             CodexExecRuntimeError,
+            assert_file_changes_confined,
             locate_exact_session,
             package_tree_hash,
             read_exec_events,
@@ -108,7 +112,9 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin):
         ]
         from plotloom.codex_exec_profile import DISABLED_CLI_FEATURES
         command.extend(flag for feature in DISABLED_CLI_FEATURES for flag in ("--disable", feature))
-        command.extend(("--config", "tools.view_image=false"))
+        # The pinned CLI ignores tools.view_image; its stable `view_image`
+        # feature flag is the supported exact-version disable path.
+        command.extend(("--config", 'web_search="disabled"'))
         if attempt.domain == "text":
             command.extend(("--disable", "image_generation"))
         else:
@@ -290,6 +296,7 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin):
             if package_tree_hash(job_root, max_total_bytes=profile.max_output_bytes) != attempt.package_hash:
                 raise CodexExecRuntimeError("Codex Exec frozen package changed during the process")
             stream = read_exec_events(stdout_path, max_event_bytes=profile.max_event_bytes, max_total_bytes=profile.max_output_bytes)
+            assert_file_changes_confined(stream, job_root / "delivery")
             session_path = locate_exact_session(self._codex_home(environment), stream.session_id)
             session = read_cli_session(
                 session_path,
@@ -300,7 +307,7 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin):
             if attempt.domain == "text" and (session.image_calls or session.image_events):
                 self._mark_unknown(current, session_id=stream.session_id)
                 return
-            if exit_code != 0 or stream.terminal_event != "turn.completed":
+            if exit_code != 0 or stream.terminal_event != "turn.completed" or stream.diagnostics:
                 self._finish_failure(
                     current, exit_code, stream.session_id, session, stdout_path, stderr_path,
                     max_output_bytes=profile.max_output_bytes,
