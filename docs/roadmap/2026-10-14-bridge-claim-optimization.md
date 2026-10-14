@@ -2,7 +2,8 @@
 
 Status: owner-approved and independently design-reviewed; implementation and
 focused guards are complete after the CLI runtime worker's explicit October 14
-source/check handoff. Stable code review and release qualification remain open.
+source/check handoff. Stable code review and matched focused measurement passed;
+complete release qualification remains open.
 This continues the [Python speed track](2026-10-14-python-context-and-workers.md),
 whose fixed-resource 85-percent target remains open.
 
@@ -89,7 +90,7 @@ Retained root: `.local/remaining-cost/bridge-claim-before.2oqItH/`.
 `31af3814f3040bb6ab06ceb6e0ff7356b38afc4f4cd6400fba5bb26aa4d817da`.
 The ordered, 73-line collected inventory (`cases.txt`) has SHA-256
 `599c2c85f8228f6eb6e1c0e425e38be0bad7f065c86dc10a67a7699a82c3bde6`.
-The matched after-run has not yet executed.
+The matched after-run is recorded below.
 
 The two new regression files contain 47 cases. Together with the unchanged
 12 Storyboard-operation guards, all **59 passed**. Seven module-ownership
@@ -101,5 +102,37 @@ change. The failed log, four-case return-validation rerun and stable 59-case
 rerun are retained under `.local/remaining-cost/bridge-claim-*.log`.
 
 Selected timing tests and their existing helpers are unchanged. This focused
-checkpoint does not establish the after speed, whole-suite success, publication
-or the 85-percent target. Stable independent code review precedes release.
+checkpoint does not establish whole-suite success, publication or the
+85-percent target.
+
+## Matched after-run and independent code review
+
+Clean `d09322cb911986c0592c39435af44c3d69e04c6a` passed the same **73 cases**,
+with byte-identical collected inventory and unchanged existing test/helper files.
+External command time was **65.21s**, versus **71.41s** before: one pair observed
+**8.68% less wall time**. Pytest reported 57.19s versus 64.63s. Both commands
+exited zero, used fresh temporary roots and ran without competing test/native
+jobs. This is scoped single-pair evidence, not a repeated median or whole-suite
+speed claim.
+
+The after input fingerprint remained
+`6a88498ac86cbddb5fa804dfd3a8ef79efbe6050bcad68f5d1770b03cc2561df`
+before/after the run. Host, lockfile, project dependency declaration and Python
+version file matched the baseline. Retained root:
+`.local/remaining-cost/bridge-claim-after.bSdrjL/`; `focused.log` SHA-256
+`8353efa439bcaa1d56cbc5ae1f4bb652c70582dcdc4c95829e516b02b947db88`.
+`cases.txt` has the same `599c2c85...` SHA-256 recorded above.
+
+An attended independent read-only code review of `37756cfd..d09322cb`
+(requested GPT-6.1 Sol / High; effective provider settings unverified) found no
+concrete correctness, security or regression findings. It confirmed preserved
+diagnostics/installation failures, independent video-source currentness,
+lifecycle transaction semantics, joined-command authority and the service's
+fresh post-claim read. The reviewer ran no checks. Non-SQLite coverage remains
+a transaction-delegation stub, not live backend qualification.
+
+The complete Python inventory and release gate are still pending. The old
+duration manifest binds the earlier 1,911-case executable inputs and cannot
+silently qualify this changed candidate. Reconcile current scheduling inputs
+before interpreting complete-suite timing. CLI integration, provider proof,
+hosted CI and live activation remain separate.
