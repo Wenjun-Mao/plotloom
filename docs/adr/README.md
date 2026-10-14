@@ -96,3 +96,5 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0170 Operation-local Bridge and controller claim](0170-operation-local-bridge-and-controller-claim.md)
 - [0172 Preserve F4 voice-over in canonical dialogue](0172-f4-voice-over-projection.md)
 - [0173 Freeze canonical dialogue minima at F5 admission](0173-f5-canonical-dialogue-timing-admission.md)
+- [0174 Bounded fair Codex Exec scheduling](0174-bounded-fair-codex-exec-pool.md)
+- [0175 Dependency-ready references, frames and progress](0175-dependency-ready-autopilot-materials.md)
