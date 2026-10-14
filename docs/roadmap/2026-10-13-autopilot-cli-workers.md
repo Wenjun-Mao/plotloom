@@ -3,9 +3,10 @@
 Status: **dispatched once through Relay Direct on 2026-10-13**, after the
 preceding technical closeout and publication. Registration and read-only
 admission passed and the sole implementation writer was released. The serial
-executor checkpoint is now committed; the first native proof exposed an
-authentication-composition failure and repair is in progress as recorded
-below. The original Relay Brainstorm and Plan checkpoint
+executor checkpoint and authentication/tool-profile repairs are committed in
+the isolated worker. Exact-tool boundary qualification remains in progress;
+reference viewing revealed a further contract mismatch described below.
+The original Relay Brainstorm and Plan checkpoint
 contained no pool implementation or live executor change.
 
 The outcome is faster preparation through dependency-ready text and image
@@ -147,6 +148,36 @@ do not establish native ImageGen reference pre-read enforcement; use harmless
 synthetic sentinels and count any possible generated outputs. The worker also
 must reconcile emitted repository-validator instructions with the frozen read
 allowlist before provider proof. Activation remains held pending qualification.
+
+### Exact-tool qualification and reference-view finding — October 14
+
+At clean executable checkpoint `7c9d74a1`, the manager verified actual paired
+tool calls/results and retained hashes for a successful package read and
+delivery patch, plus denied outside absolute, traversal and symlink patches.
+A separate readable-package patch was rejected by the built-in tool's project
+approval boundary. This qualifies the tested patch path, not ImageGen reads
+or a general operating-system sandbox claim. Both initial harness classifications
+and their evidence-only reconciliations remain retained; no failed native call
+was retried. The original unknown production attempt remains untouched.
+
+Source review then found a disagreement: frozen image packages require viewing
+references before generation, the CLI profile disables `view_image`, and the
+host derives `viewedReferenceHashes` from generation attachments rather than
+observed views. Keep genuine reference viewing and generation attachment as
+separate evidence. Do not remove the viewing obligation to make the disabled
+tool profile appear compatible. The outer app and child CLI tool schemas are
+also distinct authorities; the current outer `referenced_image_paths` declaration
+does not by itself establish the child's `images` argument contract.
+
+The existing sole writer has one bounded, diagnostic-only native allocation:
+capture exposed child tool metadata and actual allowed/denied reference views,
+with `view_image` enabled only in the explicitly recorded diagnostic image
+profile. No ImageGen call or production activation is released. Use this evidence
+to reconcile the domain-specific profile, prompt, typed view evidence and delivery
+claims, then focused tests and independent review. ImageGen pre-read confinement,
+real serial package proof, concurrency and final qualification remain separate
+unfinished gates. Private probe artifacts and the tracked verification receipt
+remain in the existing `b30f` checkout; do not create a competing assignment.
 
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
