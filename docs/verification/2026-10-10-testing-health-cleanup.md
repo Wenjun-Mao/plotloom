@@ -1821,3 +1821,40 @@ Complete native ownership discovery also passed without executing test bodies:
 1,859 Python cases / 182 files, 1,377 Vitest cases / 158 files and 318 browser
 cases / 93 specs. Existing owner and helper mappings required no changes;
 the full discovery output is `safety-native-ownership.log` beside the samples.
+
+### Early image-safety matched result — October 14
+
+Clean candidate `2797ece13ec95d077329c22186851117366e470a` passed all five
+preselected cases in each of three fresh-root samples: 44.831059s,
+44.326434s and 42.772404s. External median fell from 45.354019s to
+44.326434s (**2.27 percent**). The three changed rows' rounded phase-sum
+median fell from 17.02s to 16.14s (5.17 percent). Their individual phase
+medians were 7.23→6.07s for first-shot cancellation, 4.91→5.02s for legacy
+receipt cancellation, and 4.93→4.77s for exact manifest association. The
+unchanged unknown-image restart and geometry controls were 5.68→5.38s and
+20.54→20.37s; neither reached the 10-percent regression trigger.
+
+The host, Python, uv, selector order, command prefix and fresh-root policy
+match. All six raw log hashes were verified. Retained evidence:
+
+| File under `.local/remaining-cost/` | SHA-256 |
+| --- | --- |
+| `safety-baseline.json` | `33bc7e76fd4a1b990aaba224f6e642113b15e436676c33e5a29312ffeab6f61b` |
+| `safety-candidate.json` | `095123a91f2760108f3b7dcf67937045c63fcd81998d66c4c3994f3d5f8b5ad7` |
+| `safety-candidate-1-dqhus7gr/pytest.log` | `e2189fec4458bccc37f6b459d156a7c4046dec7bdcb14f427da543ea4a8db3d8` |
+| `safety-candidate-2-c38tj9r9/pytest.log` | `0e23fb1ef04c531ba65fa9f3308741c0cceee0c0748606b5ab5d8ebd122d0f33` |
+| `safety-candidate-3-ipgj3egx/pytest.log` | `a20b59be2e0a24936a448c6ee95e3942e8f13be2545c4e68f3ae47c54d660a00` |
+
+The ranges overlap and there are only three samples per checkpoint. This is
+a small observed selected-case improvement, not a statistically established
+whole-suite gain. Keep the bounded, reviewed test-only simplification for the
+next combined candidate; do not extrapolate it to the 85-percent target or
+repeat it indiscriminately across geometry tests. Most geometry cases create
+only one native frame: shrinking unused future frames cannot remove their
+actual image/derivative cost. The 12-frame handoff and 27-frame full-pack
+controls remain unchanged.
+
+The manager released the test window to the CLI worker after the final sample;
+no Python check remained running. Further performance work must wait for that
+window's release. Full qualification, publication and a matched whole-Python
+measurement remain pending for this candidate.

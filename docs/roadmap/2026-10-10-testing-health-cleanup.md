@@ -1179,3 +1179,24 @@ the receipt discloses the pre-existing broader Ruff style warning. The clean
 candidate checkpoint and three matched timing samples are next. CLI source
 repair may proceed independently, but its tests/native dispatch stay held
 until these samples finish.
+
+At clean `2797ece1`, all three matched samples passed: the five-case external
+median changed 45.354→44.326s (2.27 percent), and the three target rows'
+rounded phase-sum median changed 17.02→16.14s (5.17 percent). Neither
+unchanged control regressed by 10 percent. All six raw logs match their
+recorded hashes and the host/toolchain/command metadata match. The ranges
+overlap; this small selected-case result is not a whole-suite or statistically
+established speedup. Retain the simple safety-only prerequisite opt-in for the
+next combined candidate, with full qualification and publication still open.
+
+The CLI owner now has focused checks; manager timing/checks are finished.
+Read-only prerequisite review identified an independent terminal-test option:
+only the outline/branches/characters parameter rows can construct accepted
+Cast instead of later Art/Script. Retain real source, graph, Cast and delivery
+history; leave Art/Script, storyboard and identity/crash owners on their current
+full builder. Do not introduce copied databases, snapshot reuse or raw seeds.
+The earlier 38.001s whole-file setup is an upper bound, not a promised saving.
+Geometry compaction has limited leverage because most cases generate only one
+frame; retain the explicit portrait and complete handoff/full-pack controls.
+Before another implementation, compare this small-fixture strategy with the
+remaining execution/scheduling limits, without running competing benchmarks.
