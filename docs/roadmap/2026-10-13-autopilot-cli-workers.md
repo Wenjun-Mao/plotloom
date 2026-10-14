@@ -102,8 +102,12 @@ ADR 0173 owns the reviewed fresh-F5 receiving alignment: one trusted estimator,
 frozen source/language/pace minima, both validator routes and unchanged upstream
 gates/ceilings. [The local receipt](../verification/2026-10-14-codex-exec-f5-timing-boundary.md)
 records passed checks, preserved failures and the original run's incomplete
-criterion. Changed actual-sandbox F5 qualification and a fresh functional proof
-are the next steps. No stopped run is replayed; pool/performance/full qualification
+criterion. Changed actual-sandbox F5 qualification passed at `e71e537f`:
+both routes validated/rendered, six negative entrypoint controls failed as
+expected, four production preflights refused, and all ten process groups were
+absent. Zero model/provider/image calls; the receipt preserves the initial
+prelaunch cleanup finding and its reviewed correction. A fresh functional proof
+is next. No stopped run is replayed; pool/performance/full qualification
 and final manager acceptance remain outstanding.
 
 The manager starts this assignment after the current autopilot UX repair,

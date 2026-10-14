@@ -79,14 +79,37 @@ its independent estimator, canonical rates and retained timings are unchanged.
 Logs are retained under `.local/coordinator-resume-20261014/` with `timing-*`
 names. Earlier failed checks are retained alongside successful follow-ups.
 
-## Remaining qualification
+## Changed F5 native qualification
 
-Pin and qualify the changed F5 validator plans through the actual provider-free
-sandbox: both routes' successful validate/render pairs and exact known refusals
-for too-short, missing and drifted timing inputs. Record production preflight
-refusals separately from adversarial validator-entrypoint controls; neither
-creates a successful receipt or adoption. Reuse unchanged runtime evidence only
-for unchanged inputs/behavior.
+Source `e71e537f89130eb6fd8f4b7f60019ba89710fa47` passed the actual
+provider-free sandbox qualification for both preset/manual and saved-Brief
+F5 routes. Each successful production plan validated and rendered its exact
+candidate. Both routes rejected the 6,500 ms cut against the unchanged 7,920 ms
+minimum. Missing and drifted metadata caused four production preflight refusals
+with zero dispatches. Separate frozen adversarial diagnostic copies also failed
+the exact validator entrypoints for those faults; these controls bypassed no
+production admission and claim no receipt or adoption.
+
+All **ten sandbox commands** returned their expected results. Candidate/package
+hashes remained unchanged and all recorded process groups were absent. There
+were zero model/provider dispatches and zero ImageGen calls. Evidence:
+`.local/native-proof/f5-canonical-timing-e71e537f-20261014-02/`, including
+`plan.json`, immutable script snapshots, per-command stdout/stderr and
+`result.json`. The actual CLI remained `0.162.0-alpha.17.2`.
+
+Independent prelaunch review found a diagnostic cleanup flaw in the initial
+prepared plan: waiting only for an exited leader could leave descendants.
+That plan never launched and is retained with its rejection record. The
+corrected harness keeps an identity-checked group owner alive through cleanup,
+uses production ownership checks before signaling, and requires group absence.
+A bounded local control proved cleanup of an orphan that ignored SIGTERM.
+Its first preparation failed before any child because the temporary output
+directory was missing; the failure root is retained separately. The corrected
+control and fresh plan passed independent delta review with no blockers.
+These changes concern the ignored qualification harness, not production
+sandbox argv, permissions, model settings or supervisor semantics.
+
+## Remaining qualification
 
 Then run a new bounded disposable production-supervisor proof under fresh pins.
 The stopped `596c2213` run remains inspection-only. The fair pool, early references,
