@@ -1,17 +1,18 @@
 # Plotloom roadmap entrypoint
 
-The owner-approved [Python context and worker follow-up](2026-10-14-python-context-and-workers.md)
-owns operation-local Script/Storyboard read reuse and the bounded four-worker
-experiment (eight only after measured headroom; released default two). The CLI
-worker's diagnostic checkpoint is committed and its source/check window is
-released to this Python slice. The 85-percent complete-suite target remains open.
+The owner-approved [Bridge / controller-claim follow-up](2026-10-14-bridge-claim-optimization.md)
+is the active Python speed slice after the qualified
+[Script/Storyboard and bounded-worker work](2026-10-14-python-context-and-workers.md).
+The CLI worker has released the source/check window after its isolated runtime
+repair and provider-free native gate. Default Python concurrency remains two;
+the 85-percent complete-suite target remains open.
 
 The owner-approved [parallel CLI workers for pre-video autopilot](2026-10-13-autopilot-cli-workers.md)
 assignment was dispatched once through Relay Direct after the preceding
 technical release and first-pass Python speedup integration. Implementation
-is active in its isolated checkout; the serial checkpoint is undergoing
-authentication and permission-boundary repair before fresh native proof.
-Concurrency remains unqualified. This changes only future launches: durable
+is retained in its isolated checkout. The checked-runtime repair and eleven
+native validation-plan pairs passed; generation/pool qualification is pending
+and held during the Python slice. This changes only future launches: durable
 CLI attempts, bounded within-domain concurrency and early dependency-ready
 references. The valued run keeps its original executor. Use the plan's actual
 task identity and verified Relay route; do not dispatch a duplicate assignment.

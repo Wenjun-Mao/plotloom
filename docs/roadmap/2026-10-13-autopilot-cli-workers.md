@@ -1,8 +1,12 @@
 # Parallel CLI workers for pre-video autopilot
 
-Status: **dispatched once through Relay Direct on 2026-10-13**. Reviewed source
-`4442331b` exposed missing text-validator proof and a Python-alias denial in its
-fresh canary. The run is stopped; completion-contract repair precedes more proof.
+Status: **dispatched once through Relay Direct on 2026-10-13**. The isolated
+checked-runtime repair `e24cb80e` passed all eleven provider-free native
+validate/render pairs and controls. Test-only follow-up `7685a868` passed fresh
+checkout checks; documentation checkpoint `dda660dc` is clean and idle. The
+worker explicitly released the source/check window for the approved Python
+follow-up. Source remains unmerged; serial generation and pool qualification
+remain open. Old stopped/unknown runs are unchanged and must not be retried.
 
 The outcome is faster preparation through dependency-ready text and image
 workers, including image work before all text is finished. Each worker uses

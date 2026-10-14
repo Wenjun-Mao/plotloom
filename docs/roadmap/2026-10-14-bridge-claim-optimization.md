@@ -1,7 +1,8 @@
 # Bridge read and controller-claim optimization
 
-Status: owner-approved and independently design-reviewed; implementation starts
-after the CLI runtime worker's explicit October 14 source/check handoff.
+Status: owner-approved and independently design-reviewed; implementation and
+focused guards are complete after the CLI runtime worker's explicit October 14
+source/check handoff. Stable code review and release qualification remain open.
 This continues the [Python speed track](2026-10-14-python-context-and-workers.md),
 whose fixed-resource 85-percent target remains open.
 
@@ -71,3 +72,34 @@ pair is scoped evidence, not a repeated-median or whole-suite speed claim.
 Stop only for a material scope/authority change or an unresolved concrete
 failure. The owner has already approved this bounded implementation; routine
 progress does not require another permission question.
+
+## Baseline and focused checkpoint
+
+Before production edits, clean `37756cfd` passed the exact 73-case union above.
+External command time was **71.41s**; pytest reported **64.63s**. Both exited
+zero. The input fingerprint remained
+`ba57bfa2c56d911e1652eeb3e283440c1294285ec89f0bcd17df8a588810c20f`
+before/after; host fingerprint was
+`e157fcd2c8db7127845d443a20785aff48490f424fcbfe1eb56ec31bb040db92`.
+Submodule revision remained `4f9b2128c82adf623f594ba714c97d0afcfc16a2`.
+No CLI/native activity or other test job ran during the measurement.
+
+Retained root: `.local/remaining-cost/bridge-claim-before.2oqItH/`.
+`focused.log` SHA-256:
+`31af3814f3040bb6ab06ceb6e0ff7356b38afc4f4cd6400fba5bb26aa4d817da`.
+The ordered, 73-line collected inventory (`cases.txt`) has SHA-256
+`599c2c85f8228f6eb6e1c0e425e38be0bad7f065c86dc10a67a7699a82c3bde6`.
+The matched after-run has not yet executed.
+
+The two new regression files contain 47 cases. Together with the unchanged
+12 Storyboard-operation guards, all **59 passed**. Seven module-ownership
+guards, scoped Ruff F401 and `git diff --check` also passed. The first run's
+one failure was in the newly injected malformed-frame query substitute: it
+assumed Core column queries expose ORM `entity` metadata. Narrowing that test
+substitute to its exact ORM entity repaired the test; production code did not
+change. The failed log, four-case return-validation rerun and stable 59-case
+rerun are retained under `.local/remaining-cost/bridge-claim-*.log`.
+
+Selected timing tests and their existing helpers are unchanged. This focused
+checkpoint does not establish the after speed, whole-suite success, publication
+or the 85-percent target. Stable independent code review precedes release.

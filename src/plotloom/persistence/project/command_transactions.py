@@ -35,6 +35,17 @@ class ProjectCommandTransactions:
             yield session
 
     @contextmanager
+    def _controller_claim_write(self) -> Iterator[Session]:
+        """Claim metadata cannot edit material; enclosing commands still own it."""
+        command = self._command_context.get()
+        if command:
+            yield command[0]
+            return
+        with lifecycle_lease(self._sessions, self._write_lock, dialect_name=self.engine.dialect.name,
+                retry_after_seconds=self._bootstrap_retry_after_seconds, is_contention=self._is_sqlite_lock_contention) as session:
+            yield session
+
+    @contextmanager
     def _lifecycle_write(self) -> Iterator[Session]:
         command = self._command_context.get()
         if command:

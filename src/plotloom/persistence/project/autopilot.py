@@ -1,5 +1,9 @@
 """One durable admitted run; existing stage/media owners remain authoritative."""
+from collections.abc import Callable
+from typing import ContextManager
+
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from ...autopilot_contracts import CheckpointEvidence, LaunchPolicy, MachineDecision, OperationScope, ProvisionalFrame, RunView, POLICY_VERSION
 from ...domain import new_id, utc_now
@@ -12,8 +16,9 @@ from .autopilot_freshness import assert_fresh
 
 
 class AutopilotPersistence:
-    def __init__(self, access):
+    def __init__(self, access, *, claim_write: Callable[[], ContextManager[Session]]):
         self.access = access
+        self._claim_write = claim_write
         self.recovered_run_ids = lambda: set()
 
     @staticmethod
@@ -95,7 +100,7 @@ class AutopilotPersistence:
 
     def claim(self, project_id, claim):
         """Caller must hold the application reconciler's process lease."""
-        with self.access.leases.lifecycle_write() as session:
+        with self._claim_write() as session:
             row = self.row(session, project_id)
             if row is None:
                 raise InvalidTransitionError("cannot claim a missing autopilot run")

@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import subprocess
 import tempfile
+from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
@@ -51,6 +52,12 @@ StoryboardReviewContext = tuple[
 ]
 
 
+@dataclass(frozen=True)
+class _ResolvedStoryboardContext:
+    context: StoryboardReviewContext
+    section_map: dict[str, Any]
+
+
 class ProjectStoryboardReviewPersistence:
     """Retains raw `novel-storyboard` review data with F4 as its only creative seam."""
 
@@ -77,6 +84,10 @@ class ProjectStoryboardReviewPersistence:
         return AcceptedStoryboardReviewRevision(revision=row.revision, candidate_job_id=row.candidate_job_id, content_hash=row.content_hash, binding=row.binding, storyboard=row.storyboard, accepted_at=row.accepted_at)
 
     def _context(self, session: Any, project_id: str, *, max_cut_seconds: int = 8) -> StoryboardReviewContext:
+        return self._resolve_context(session, project_id, max_cut_seconds=max_cut_seconds).context
+
+    def _resolve_context(self, session: Any, project_id: str, *, max_cut_seconds: int = 8) -> _ResolvedStoryboardContext:
+        """Keep the section map with the exact Script resolution that supplied it."""
         script_head = self._script._head(session, project_id)
         accepted_row = session.scalar(select(ScriptRevisionRow).where(
             ScriptRevisionRow.project_id == project_id,
@@ -94,14 +105,18 @@ class ProjectStoryboardReviewPersistence:
             raise ReviewContextError(ReviewContextDiagnostic(code="accepted_script_not_current", owner="script", technical_message="the accepted F4 script context is stale"))
         if current != inherited:
             raise ReviewContextError(ReviewContextDiagnostic(code="accepted_script_not_current", owner="script", technical_message="the accepted F4 script binding is stale"))
-        return StoryboardReviewBinding(
+        binding = StoryboardReviewBinding(
             **inherited.model_dump(mode="python"),
             script_revision=script.revision,
             script_content_hash=script.content_hash,
             review_min_cut_seconds=2,
             review_max_cut_seconds=max_cut_seconds,
             review_max_segment_seconds=15,
-        ), script.script, _upstream_script_outline(outline, mapping, cast, inherited), cast, art
+        )
+        return _ResolvedStoryboardContext(
+            context=(binding, script.script, _upstream_script_outline(outline, mapping, cast, inherited), cast, art),
+            section_map=mapping,
+        )
 
     def context_for_binding(self, session: Any, project_id: str, binding: StoryboardReviewBinding) -> StoryboardReviewContext:
         """Resolve the current identity in the frozen F5A mode, including history."""

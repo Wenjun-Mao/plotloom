@@ -1,7 +1,8 @@
 # 0170 — Operation-local Bridge reads and controller-claim transactions
 
 Status: owner-approved October 14, 2026; independently design-reviewed;
-implementation and qualification pending. Delivery is tracked in the
+implemented with focused guards; code review and release qualification pending.
+Delivery is tracked in the
 [Bridge / claim plan](../roadmap/2026-10-14-bridge-claim-optimization.md).
 
 ## Problem and evidence
