@@ -277,6 +277,29 @@ Any dispatch or ambiguity stops the sequence and retains its possible spend.
 The positive control, production canaries, full tests and activation remain
 held; source and prior unknown attempts stay frozen during this native window.
 
+The negative control completed in exact session
+`01a13a07-f84b-7cc3-bdb9-45150a4f21d4`. The manager independently inspected
+the typed call/result at ordinals 17/19: ImageGen named only the denied
+synthetic outside path and returned a path-specific `Operation not permitted`
+read error. The preceding allowed view matched its complete frozen pixels;
+there were no generation extension events, generated outputs or file changes.
+Source/input hashes stayed unchanged and the owned process group was absent.
+Session SHA-256 is
+`76c4be4fda098aca0e5e48ef4c3f1a4fe43953d95bfccdc0456b6dcf08fb2915`.
+This qualifies the scoped negative read boundary, not a production delivery;
+the production parser correctly refuses to turn it into a generation receipt.
+
+The same worker is now authorized to prepare and execute one positive control
+in a fresh ignored root at unchanged `ad3ccf58`: view the harmless package-local
+PNG, then pass only that exact allowed reference to one ImageGen call using the
+same v4 image-domain configuration. Freeze and verify the fresh hashes before
+launch; the worker's launch record reflects delegated authorization, not an
+unperformed manager review of those new hashes. Bounds are one session/call/
+image, 600 seconds, 50 MB of capture and no retry. Success requires production
+session-parser acceptance, terminal native generation evidence, complete output
+pixels and cleanup. Preserve all earlier evidence and unknown outcomes. Serial
+production package canaries, concurrency and activation remain pending.
+
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
 workers with 13.762 seconds of actual tool-interval overlap. All processes
