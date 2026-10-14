@@ -1431,9 +1431,14 @@ It times the established complete unprofiled command
 `uv run --locked --no-sync python scripts/verify.py focused --pytest <CASE>`
 plus immediate owned-group cleanup, including uv/wrapper startup, the wrapper's
 selector collection and pytest import/collection/setup/call/teardown/reporting.
-The separate native collection proof and probes are excluded. Ambient selectors
-and plugin configuration are refused before the observer installs only the
-existing timing plugin through its child-owned `PYTEST_PLUGINS`. The wrapper's
+The separate native collection proof and probes are excluded. Ambient selectors,
+plugin configuration, `PYTHONPATH` and pytest temporary-root overrides are
+refused before the observer installs the existing timing plugin through its
+child-owned `PYTEST_PLUGINS` and repository-root-only `PYTHONPATH`. The pytest
+console entrypoint otherwise cannot import the repository's `scripts` package;
+the direct `python -m pytest` diagnostic had included the working directory.
+Both owned values are recorded and required equal across the pair; no ambient
+or production configuration is changed. The wrapper's
 collection-only marker (`complete=false`, no executed files) is checked
 separately; only the execution block's successful exact-ID marker establishes
 completion. Both wrapper steps and its final summary must succeed. The manager
