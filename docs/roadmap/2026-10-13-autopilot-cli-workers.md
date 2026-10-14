@@ -4,8 +4,8 @@ Status: **dispatched once through Relay Direct on 2026-10-13**, after the
 preceding technical closeout and publication. Registration and read-only
 admission passed and the sole implementation writer was released. The serial
 executor checkpoint and authentication/tool-profile repairs are committed in
-the isolated worker. Exact-tool boundary qualification remains in progress;
-reference viewing revealed a further contract mismatch described below.
+the isolated worker. Exact-tool boundary qualification passed at `ad3ccf58`;
+production serial execution remains the next gate before concurrency.
 The original Relay Brainstorm and Plan checkpoint
 contained no pool implementation or live executor change.
 
@@ -299,6 +299,31 @@ image, 600 seconds, 50 MB of capture and no retry. Success requires production
 session-parser acceptance, terminal native generation evidence, complete output
 pixels and cleanup. Preserve all earlier evidence and unknown outcomes. Serial
 production package canaries, concurrency and activation remain pending.
+
+The positive control passed manager review in exact session
+`01a13a13-e1e4-7171-b344-142e76800366`, with one ordered reference view and one
+completed ImageGen event. The complete 1,367,056-byte, 1254×1254 PNG has SHA-256
+`9aac55e4ba70c9f7d193415f032581df2b6260f1447f5860bb9e00cb8d256002`.
+The manager independently ran production parsing and full raster decode,
+verified source/input/package/capture hashes and confirmed process-group absence.
+Session SHA-256 is
+`ebead789874cfc4e4c6cd963ff710b9a8fd9a0264c4e54bd22b5095c00568a28`.
+The runner's original `captured_inconclusive` result is preserved: its extra
+source-byte hash check rejected only a trailing LF; strict production parsing
+accepted exactly the frozen arguments. A separate evidence-only adjudication
+records acceptance without parser changes or retry. Prelaunch path-normalization
+and missing-import corrections are retained with their fingerprint lineage in
+`.local/native-proof/imagegen-preread-positive-ad3ccf58-20261014-02/`.
+
+The same idle worker is now allocated the next serial production-supervisor
+window at unchanged `ad3ccf58`: prepare and execute one fresh disposable text
+job, then at most two image jobs, each with one immutable production package
+and one durable attempt. No repeat of the old unknown attempt is permitted.
+Require actual validated delivery/adoption, exact native provenance, duplicate
+refusal and restart reconciliation; a referenced image must use its current
+canonical bytes. Preserve failures and unknown reservations without resend.
+This is not the later matched serial/parallel pack comparison. Source changes,
+pool implementation, full qualification and activation wait for checkpoint review.
 
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
