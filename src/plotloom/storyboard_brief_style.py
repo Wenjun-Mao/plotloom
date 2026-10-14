@@ -40,6 +40,7 @@ def freeze_storyboard_brief_style(inherited: dict[str, Any] | None) -> dict[str,
             for name, path in {
                 "policy": Path(__file__), "adapter": ADAPTER, "upstream": UPSTREAM,
                 "upstreamGateSummary": UPSTREAM.with_name("gate-summary.mjs"),
+                "dialogueTiming": PROJECT_ROOT / "scripts/storyboard-dialogue-timing.mjs",
             }.items()
         },
     }

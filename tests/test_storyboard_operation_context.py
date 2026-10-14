@@ -10,10 +10,17 @@ from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError
 from plotloom.domain import utc_now
 from plotloom.persistence.project.script import ProjectScriptPersistence
-from plotloom.persistence.project.storyboard_review import ProjectStoryboardReviewPersistence
-from plotloom.persistence.schema.project_storyboard_review import StoryboardReviewRevisionRow
+from plotloom.persistence.project.storyboard_review import (
+    ProjectStoryboardReviewPersistence,
+)
+from plotloom.persistence.schema.project_storyboard_review import (
+    StoryboardReviewRevisionRow,
+)
 from plotloom.project_storage.composition import ProjectFolderStorage
-from plotloom.review_context_diagnostics import ReviewContextDiagnostic, ReviewContextError
+from plotloom.review_context_diagnostics import (
+    ReviewContextDiagnostic,
+    ReviewContextError,
+)
 from plotloom.script_contracts import ScriptBinding, ScriptReopenRequest
 from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
 from tests.creative_delivery_fixtures import _accepted_f4_script, _deliver_stage
@@ -54,7 +61,7 @@ def test_script_binding_diagnostics_keep_exact_field_order_and_section_reason(bi
 def _context_owner(monkeypatch, binding, *, status="accepted", row_exists=True, resolve=None):
     row = SimpleNamespace(
         revision=1, candidate_job_id="ch_" + "s" * 32, content_hash="a" * 64,
-        binding=binding, script={}, accepted_at=utc_now(),
+        binding=binding, script={"episodes": []}, accepted_at=utc_now(),
     )
     calls = []
 
@@ -74,7 +81,9 @@ def _context_owner(monkeypatch, binding, *, status="accepted", row_exists=True, 
         lambda *_: {},
     )
     return (
-        ProjectStoryboardReviewPersistence(None, script),
+        ProjectStoryboardReviewPersistence(SimpleNamespace(rows=SimpleNamespace(
+            project=lambda *_: SimpleNamespace(brief={"language": "zh-CN"}),
+        )), script),
         SimpleNamespace(scalar=lambda *_: row if row_exists else None),
         calls,
     )

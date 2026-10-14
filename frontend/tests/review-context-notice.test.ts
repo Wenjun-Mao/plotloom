@@ -46,6 +46,12 @@ it("names changed binding fields without treating their English evidence as UI c
   expect(reviewContextMessage({ code: "binding_content_changed", owner: "source", field: "graph_content_hash", technicalMessage: "installed graph content changed" })).toBe("已应用故事路线内容已变化，需要重新检查这份设定。");
 });
 
+it("names changed frozen dialogue timing and retains current F5 recovery", () => {
+  const diagnostic: ReviewContextDiagnostic = { code: "binding_value_changed", owner: "storyboard-review", field: "dialogue_timing_contract", technicalMessage: "dialogue timing contract changed" };
+  expect(reviewContextMessage(diagnostic)).toBe("台词时长规则已变化，需要重新检查这份内容。");
+  expect(reviewContextNextStep(diagnostic, "准备当前分镜任务")).toBe("准备当前分镜任务");
+});
+
 it.each(["art_render_contract_changed", "cast_render_contract_changed"] as const)("does not blame author direction for %s implementation-only invalidation", code => {
   const message = reviewContextMessage({ code, owner: code.startsWith("art") ? "art" : "characters", field: null, technicalMessage: "implementation changed" });
   expect(message).toContain("按当前要求重新审核确认");

@@ -23,6 +23,7 @@ FIELD_OWNERS = {
     "review_max_cut_seconds": "storyboard-review",
     "review_max_segment_seconds": "storyboard-review",
     "storyboard_render_contract": "storyboard-review",
+    "dialogue_timing_contract": "storyboard-review",
 }
 
 

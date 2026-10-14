@@ -176,14 +176,14 @@ def test_ordinary_reopen_late_delivery_and_superseded_script_keep_frozen_directi
         store.close()
 
 
-def test_manual_binding_keeps_omitted_f5_contract_and_pinned_path(tmp_path):
+def test_manual_binding_keeps_omitted_visual_contract_and_uses_receiving_path(tmp_path):
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     store = storage.projects.create(FIXED_CHINESE_BRIEF)
     try:
         _accepted_f4_script(store)
         candidate, request = store.prepare_storyboard_review_candidate("ch_" + "m" * 32)
         assert "storyboardRenderContract" not in candidate.binding.model_dump(mode="json", by_alias=True)
-        assert CONTRACT_FILENAME not in request.input_artifacts and "Run the pinned novel-storyboard" in request.creative_brief
+        assert CONTRACT_FILENAME not in request.input_artifacts and "scripts/storyboard-receiving.mjs" in request.creative_brief
         ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", _source_shaped_review_board(), "manual"))
         state = store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
         assert state.status == "accepted" and not state.stale_reasons

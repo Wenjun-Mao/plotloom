@@ -91,6 +91,21 @@ the completed eleven-plan gate is allocated merely by integration.
 
 ## Queue and start conditions
 
+### Current serial proof and receiving boundary
+
+The fresh serial proof at `596c2213` adopted all eight actual text deliveries,
+then stopped before images at Bridge installation. The exact `VO` projection
+correction is committed as `659b0521`; its decision is ADR 0172, preserving the
+separate Python ADR 0171. Read-only diagnosis confirmed the independent
+7,920 ms canonical minimum versus 6,500 ms source-shot mismatch.
+ADR 0173 owns the reviewed fresh-F5 receiving alignment: one trusted estimator,
+frozen source/language/pace minima, both validator routes and unchanged upstream
+gates/ceilings. [The local receipt](../verification/2026-10-14-codex-exec-f5-timing-boundary.md)
+records passed checks, preserved failures and the original run's incomplete
+criterion. Changed actual-sandbox F5 qualification and a fresh functional proof
+are the next steps. No stopped run is replayed; pool/performance/full qualification
+and final manager acceptance remain outstanding.
+
 The manager starts this assignment after the current autopilot UX repair,
 combined integration qualification and actual-path release checks have reached
 their recorded technical closeout. Integrate the completed first-pass Python

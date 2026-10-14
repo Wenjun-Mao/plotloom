@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { STYLE_PRESETS, validateStoryboard, renderHtml, loadRecipes } from '../third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs';
+import { validateF5ReceivingTiming } from './storyboard-dialogue-timing.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const canonical = value => JSON.stringify(sort(value));
@@ -40,6 +41,7 @@ export function frozenContext(request) {
     policy: 'src/plotloom/storyboard_brief_style.py', adapter: 'scripts/brief-storyboard-style.mjs',
     upstream: 'third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs',
     upstreamGateSummary: 'third_party/shuohao-skills/skills/novel-storyboard/scripts/gate-summary.mjs',
+    dialogueTiming: 'scripts/storyboard-dialogue-timing.mjs',
   };
   assert(canonical(Object.keys(contract.validatorHashes ?? {}).sort()) === canonical(Object.keys(files).sort()), 'Storyboard validator identities are required');
   for (const [name, path] of Object.entries(files)) {
@@ -68,6 +70,7 @@ export function validateBriefStoryboard(board, request, recipes = null) {
   assert(admission.completeRouteSectionIds.every(route => route.reduce((sum, id) => sum + (durations.get(id) ?? 0), 0) <= admission.targetPlaythroughSeconds + 0.0001), 'Complete storyboard route exceeds author playthrough maximum');
   const issues = validateStoryboard(board, { ...ctx, recipes });
   assert(!issues.length, issues.join('\n'));
+  validateF5ReceivingTiming(board, request);
   return { ...ctx, recipes };
 }
 

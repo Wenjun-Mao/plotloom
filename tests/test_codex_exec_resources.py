@@ -168,6 +168,8 @@ def test_saved_brief_source_allowlist_selects_neutral_adapter_and_exact_policy(
         (ROOT / policy).resolve(),
         node_executable.parent.parent,
     }
+    if stage == "storyboard":
+        expected.add((ROOT / "scripts/storyboard-dialogue-timing.mjs").resolve())
     assert paths == expected
     if stage == "characters":
         assert (ROOT / "scripts/cast-style.mjs").resolve() not in paths

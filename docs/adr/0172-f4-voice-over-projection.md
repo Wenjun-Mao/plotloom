@@ -1,4 +1,4 @@
-# ADR 0171: Preserve F4 voice-over in canonical dialogue
+# ADR 0172: Preserve F4 voice-over in canonical dialogue
 
 Status: accepted for the bounded serial-executor repair, 2026-10-14.
 

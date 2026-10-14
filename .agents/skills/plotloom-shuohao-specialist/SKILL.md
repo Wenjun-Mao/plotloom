@@ -124,6 +124,17 @@ keeps its existing candidate, report, and manifest responsibilities.
   durations. Preserve unequal section lengths; do not impose an equal split,
   pad time, or sum mutually exclusive endings. Storyboard cuts must satisfy the
   same route maximum as well as their frozen cut/segment limits.
+- Fresh `storyboard` requests require `inputs/dialogue-timing-contract.json`.
+  Trusted code owns its spoken language, canonical delivery pace and exact
+  millisecond minimum for each accepted F4 dialogue flow item, including `VO`.
+  Report `lang` is independent. A cut must fit the sum of its owned dialogue
+  minima as well as every pinned upstream gate; one line belongs to exactly
+  one cut. Free-form performance notes do not select a faster pace. Preserve
+  source text, beat ranges and frozen cut/segment/route ceilings. Do not edit
+  the contract or silently retime accepted source. Missing or changed timing
+  inputs require a fresh valid task. Preset/manual validation and rendering
+  use `scripts/storyboard-receiving.mjs` with `--request`; saved-Brief tasks
+  keep their explicit Brief adapter, which enforces the same timing contract.
 
 ## Local authoring
 

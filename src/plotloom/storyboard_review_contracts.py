@@ -8,6 +8,7 @@ from pydantic import Field, model_validator
 
 from .accepted_review_state import AcceptedReviewState
 from .domain import CamelModel
+from .production_dialogue_timing import FrozenF5DialogueTiming
 from .review_context_diagnostics import ReviewContextDiagnostic
 from .script_contracts import ScriptBinding, ScriptSectionBinding
 
@@ -26,6 +27,7 @@ class StoryboardReviewBinding(ScriptBinding):
     review_max_segment_seconds: int = Field(ge=1, le=15)
     # New F5A authority only. Retained bindings keep this member absent.
     storyboard_render_contract: dict[str, Any] | None = Field(default=None, exclude_if=lambda value: value is None)
+    dialogue_timing_contract: FrozenF5DialogueTiming | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def _valid_review_timing(self) -> "StoryboardReviewBinding":

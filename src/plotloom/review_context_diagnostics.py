@@ -22,7 +22,7 @@ ReviewContextField = Literal[
     "target_playthrough_seconds", "route_budget_hash", "section_bindings",
     "complete_route_section_ids", "route_only_section_ids", "section_ids",
     "render_contract", "review_min_cut_seconds", "review_max_cut_seconds",
-    "review_max_segment_seconds", "storyboard_render_contract",
+    "review_max_segment_seconds", "storyboard_render_contract", "dialogue_timing_contract",
 ]
 
 

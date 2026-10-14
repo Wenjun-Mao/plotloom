@@ -146,6 +146,13 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
                    for key in ("upstreamSkillHash", "specialistSkillHash"))):
         raise ValueError("text validation requires the exact frozen execution pin")
     stage = request.stage
+    if stage == "storyboard":
+        from .production_dialogue_timing import TIMING_FILENAME, FrozenF5DialogueTiming
+
+        frozen_timing = request.input_artifacts.get(TIMING_FILENAME)
+        if frozen_timing is None:
+            raise ValueError("text validation plan requires frozen canonical dialogue timing")
+        FrozenF5DialogueTiming.model_validate(frozen_timing)
     candidate = CREATIVE_CANDIDATE_FILENAMES[stage]
     artifacts = request.input_artifacts
     inputs = tuple(CodexExecValidationInput(
@@ -206,9 +213,9 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
         render = ("node", (base, "render", cand, "--html", "--outline", input_path("outline.json"), "--art", input_path("art.json"), "--cast", input_path("cast.json")))
         route = "upstream"
     elif stage == "storyboard":
-        base = f"{source}/third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs"
-        validate = ("node", (base, "validate", cand, "--script", input_path("script.json"), "--outline", input_path("outline.json"), "--cast", input_path("cast.json"), "--no-log"))
-        render = ("node", (base, "render", cand, "--html", "--script", input_path("script.json"), "--outline", input_path("outline.json"), "--art", input_path("art.json")))
+        base = f"{source}/scripts/storyboard-receiving.mjs"
+        validate = ("node", (base, "validate", cand, "--request", request_path))
+        render = ("node", (base, "render", cand, "--request", request_path))
         route = "upstream"
     else:
         base = f"{source}/third_party/shuohao-skills/skills/novel-{stage}/scripts/novel-{stage}.mjs"

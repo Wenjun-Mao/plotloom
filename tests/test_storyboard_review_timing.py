@@ -124,12 +124,12 @@ def test_explicit_twelve_second_review_freezes_policy_without_staling_default_ei
             )(),
         )
         ProjectStoryboardReviewPersistence._validate(
-            candidate, longer.binding, {}, {}, {}
+            candidate, longer.binding, request.input_artifacts["script.json"], {}, {}, request
         )
         candidate["params"]["maxCutSeconds"] = 15
         with pytest.raises(ValueError, match="frozen review timing limits"):
             ProjectStoryboardReviewPersistence._validate(
-                candidate, longer.binding, {}, {}, {}
+                candidate, longer.binding, request.input_artifacts["script.json"], {}, {}, request
             )
     finally:
         store.close()

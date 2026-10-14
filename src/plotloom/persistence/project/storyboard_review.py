@@ -17,6 +17,11 @@ from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffR
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
 from ...domain import contains_secret_setting, contains_secret_value, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
+from ...production_dialogue_timing import (
+    TIMING_FILENAME,
+    assert_f5_dialogue_capacity,
+    freeze_f5_dialogue_timing,
+)
 from ...review_binding_diagnostics import review_binding_diagnostics
 from ...review_context_diagnostics import ReviewContextDiagnostic, ReviewContextError
 from ...script_contracts import AcceptedScriptRevision, ScriptBinding
@@ -112,6 +117,10 @@ class ProjectStoryboardReviewPersistence:
             review_min_cut_seconds=2,
             review_max_cut_seconds=max_cut_seconds,
             review_max_segment_seconds=15,
+            dialogue_timing_contract=freeze_f5_dialogue_timing(
+                script.script, script_content_hash=script.content_hash,
+                language=self._access.rows.project(session, project_id).brief["language"],
+            ),
         )
         return _ResolvedStoryboardContext(
             context=(binding, script.script, _upstream_script_outline(outline, mapping, cast, inherited), cast, art),
@@ -189,6 +198,8 @@ class ProjectStoryboardReviewPersistence:
             ).limit(1)):
                 raise InvalidTransitionError("explicitly accept or cancel the current storyboard review candidate before preparing another")
             binding, script, outline, cast, art = self._context(session, project_id, max_cut_seconds=max_cut_seconds)
+            assert binding.dialogue_timing_contract is not None
+            assert_f5_dialogue_capacity(binding.dialogue_timing_contract, max_cut_seconds=max_cut_seconds)
             style_contract = None
             if binding.render_contract and binding.render_contract.get("authority") == "saved_brief":
                 style_contract = freeze_storyboard_brief_style(binding.render_contract)
@@ -207,11 +218,13 @@ class ProjectStoryboardReviewPersistence:
                     "maxSegmentSeconds": binding.review_max_segment_seconds,
                 },
             }
-            artifacts = {"script.json": script, "outline.json": outline, "cast.json": cast, "art.json": art, "storyboard-admission.json": admission}
-            receiving = " Run the pinned novel-storyboard validate and render commands, and derive report.html unchanged."
+            artifacts = {"script.json": script, "outline.json": outline, "cast.json": cast, "art.json": art, "storyboard-admission.json": admission, TIMING_FILENAME: binding.dialogue_timing_contract.model_dump(mode="json", by_alias=True)}
+            receiving = " Follow dialogue-timing-contract.json: every line, including VO, has a trusted canonical minimum in integer milliseconds. Each cut must fit the sum of minima for its owned flow beats, as well as every upstream timing gate. Spoken language is frozen separately from report lang; free-form performance notes do not select a faster pace. Do not change source text or the contract, raise limits, or distribute one line across cuts."
             if style_contract is not None:
                 artifacts[CONTRACT_FILENAME] = style_contract
-                receiving = storyboard_brief_instructions()
+                receiving += storyboard_brief_instructions()
+            else:
+                receiving += " Run the pinned novel-storyboard gates through the Plotloom receiving adapter. From the repository root, run node scripts/storyboard-receiving.mjs validate <absolute-delivery/storyboard.json> --request <absolute-package/request.json>, then the same command with render redirected to report.html."
             request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="pilot-storyboard", stage="storyboard", expected_stage_revision=head.revision, source={"acceptedScriptRevision": binding.script_revision, "acceptedScriptContentHash": binding.script_content_hash}, input_artifacts=artifacts, creative_brief=f"Create one raw upstream-shaped storyboard.json for the current accepted F4 script only. storyboard-admission.json freezes the exact accepted script revision/hash, ordered stable section-to-episode mapping, the complete-route maximum and budget hash, and review timing. Preserve unequal authored section lengths; sum actual cuts along each complete route, not across mutually exclusive endings. Retain every mapped episode exactly once and in that order. Set storyboard.params exactly to minCutSeconds {binding.review_min_cut_seconds}, maxCutSeconds {binding.review_max_cut_seconds}, and maxSegmentSeconds {binding.review_max_segment_seconds}; every cut must be {binding.review_min_cut_seconds}–{binding.review_max_cut_seconds} seconds. The script owns dialogue and story facts. Preserve upstream storyboard segments, cuts, frames and H3 prompt text as review direction only. This is review evidence, not canonical Plotloom shots, a SceneBeats/Bible projection, selected reference, media prompt, player content, dispatch request, or approval. Do not generate media or infer deployed H3 duration support." + receiving)
             request.assert_secret_free(); freeze_execution_pin(session, request, execution_pin); now = utc_now()
             row = StoryboardReviewCandidateRow(job_id=job_id, project_id=project_id, expected_review_revision=head.revision, binding=binding.model_dump(mode="json", by_alias=True), request=request.model_dump(mode="json", by_alias=True), status="prepared", delivery_id=None, manifest_hash=None, storyboard=None, report_html=None, created_at=now, delivered_at=None)
@@ -343,8 +356,15 @@ class ProjectStoryboardReviewPersistence:
         validate_route_seconds(durations=actual, routes=binding.complete_route_section_ids,
                                route_only_ids=binding.route_only_section_ids,
                                maximum=binding.target_playthrough_seconds, label="storyboard")
+        timing = binding.dialogue_timing_contract
+        if timing is None or request is None or request.input_artifacts.get(TIMING_FILENAME) != timing.model_dump(mode="json", by_alias=True):
+            raise ValueError("storyboard request and binding canonical dialogue timing must agree")
+        if request.input_artifacts.get("script.json") != script:
+            raise ValueError("storyboard frozen Script differs from accepted Script")
+        if timing != freeze_f5_dialogue_timing(script, script_content_hash=binding.script_content_hash, language=timing.language):
+            raise ValueError("storyboard canonical dialogue timing differs from accepted Script")
         root = Path(__file__).resolve().parents[4]
-        validator = BRIEF_ADAPTER if contract is not None else root / "third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs"
+        validator = BRIEF_ADAPTER if contract is not None else root / "scripts/storyboard-receiving.mjs"
         if not validator.is_file():
             raise ValueError("pinned upstream novel-storyboard validator is unavailable")
         with tempfile.TemporaryDirectory(prefix="plotloom-storyboard-review-") as directory:
@@ -353,12 +373,9 @@ class ProjectStoryboardReviewPersistence:
             for key, value in (("storyboard", storyboard), ("script", script), ("outline", outline), ("cast", cast)):
                 paths[key].write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
             args = ["node", str(validator), "validate", str(paths["storyboard"])]
-            if contract is not None:
-                request_path = work / "request.json"
-                request_path.write_text(request.model_dump_json(by_alias=True), encoding="utf-8")
-                args += ["--request", str(request_path)]
-            else:
-                args += ["--script", str(paths["script"]), "--outline", str(paths["outline"]), "--cast", str(paths["cast"]), "--no-log"]
+            request_path = work / "request.json"
+            request_path.write_text(request.model_dump_json(by_alias=True), encoding="utf-8")
+            args += ["--request", str(request_path)]
             result = subprocess.run(args, capture_output=True, text=True, check=False)
         if result.returncode:
             raise ValueError(f"upstream novel-storyboard validation failed: {(result.stdout or result.stderr).strip()}")

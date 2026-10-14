@@ -275,6 +275,10 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
         raise CodexExecResourceError("frozen saved-Brief contract does not match its source policy") from error
     validator_paths = saved_brief_route.source_paths if saved_brief_route else plan.validator_paths
     relative_paths = [plan.upstream_read_path, *validator_paths]
+    if stage == "storyboard":
+        relative_paths.append("scripts/storyboard-dialogue-timing.mjs")
+        if saved_brief_route is None:
+            relative_paths.append("scripts/storyboard-receiving.mjs")
     environment = None
     source_hash = None
     if plan.python_project:

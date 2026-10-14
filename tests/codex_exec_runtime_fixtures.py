@@ -7,12 +7,14 @@ execution is qualified separately with an explicitly provisioned environment.
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
+from plotloom.codex_exec_profile import INSTRUCTION_FILES, VALIDATOR_FILES
 from plotloom.codex_exec_python_environment import (
     ENVIRONMENT_PATH,
     RECEIPT_PATH,
@@ -37,12 +39,28 @@ def _clone(source: Path, destination: Path) -> None:
 
 @pytest.fixture(scope="session", name="codex_exec_test_source")
 def codex_exec_test_source(tmp_path_factory):
-    """Use committed source copies and synthetic owned runtime files, never .local."""
+    """Clone Git identity, then copy current owned source and synthetic runtime."""
     original = Path(__file__).resolve().parents[1]
     fixture_root = tmp_path_factory.mktemp("codex-exec-source").resolve()
     source = fixture_root / "checkout"
     _clone(original, source)
     _clone(original / "third_party/shuohao-skills", source / "third_party/shuohao-skills")
+    tracked = subprocess.run(["git", "-C", str(original), "ls-files", "-z"],
+                             check=True, capture_output=True, timeout=10).stdout.decode().split("\0")
+    # Development checks must inspect the same source bytes that the parent
+    # imports. A committed-only clone silently omits newly owned validators.
+    # Never copy ignored .local/auth/environment data or arbitrary untracked files.
+    for relative in sorted(set(tracked) | set(INSTRUCTION_FILES) | set(VALIDATOR_FILES)):
+        if not relative or relative.startswith("third_party/shuohao-skills"):
+            continue
+        current, copied = original / relative, source / relative
+        if current.is_symlink():
+            raise ValueError("fixture source must not contain tracked symlinks")
+        if current.is_file():
+            copied.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(current, copied)
+        elif copied.is_file():
+            copied.unlink()
     version = ".".join(str(value) for value in sys.version_info[:3])
     runtime = fixture_root / f"cpython-{version}-fixture"
     (runtime / "bin").mkdir(parents=True)

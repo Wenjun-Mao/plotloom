@@ -14,6 +14,10 @@ from plotloom.creative_handoff_contracts import (
     CreativeHandoffRequest,
     creative_handoff_request_from_package,
 )
+from plotloom.production_dialogue_timing import (
+    TIMING_FILENAME,
+    freeze_f5_dialogue_timing,
+)
 from plotloom.storyboard_brief_style import freeze_storyboard_brief_style
 
 PIN = {
@@ -25,6 +29,10 @@ SOURCE_REVISION = "d" * 40
 
 
 def _request(stage: str, artifacts: dict | None = None) -> CreativeHandoffRequest:
+    if stage == "storyboard" and artifacts is not None and TIMING_FILENAME not in artifacts:
+        artifacts = artifacts | {TIMING_FILENAME: freeze_f5_dialogue_timing(
+            artifacts["script.json"], script_content_hash="a" * 64, language="zh-CN",
+        ).model_dump(mode="json", by_alias=True)}
     return CreativeHandoffRequest.model_validate({
         "jobId": "ch_" + "a" * 20,
         "projectId": "project-demo",
