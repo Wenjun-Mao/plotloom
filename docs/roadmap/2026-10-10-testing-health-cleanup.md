@@ -1278,6 +1278,24 @@ complete established two-worker Python step on the stable candidate and reuse
 the unchanged frontend, browser, type/build and wheel evidence from the passed
 base gate; do not rerun those unrelated suites merely for another timing number.
 
+The stable `bafb15873c0b59fc519e53f68ad39b9a7a1a714e` Python gate passed all
+1,859 cases in **633.23s externally**, with `schedule=duration` and no fallback.
+Workers passed 884/975 cases in 579.213s/627.323s; both exited zero, the temporary
+root was removed, and source/host fingerprints stayed unchanged. This is the
+first executed whole-suite duration-packing result, not merely a packing estimate.
+The previous equal-count gate was 697.496s: the observed reduction is **9.21%**.
+It is one whole-suite comparison with both fixture and schedule changes, not a
+scheduler-only causal estimate or statistical result. Full log and summary are
+under `.local/final-qualification/python-duration-bafb1587*`.
+
+The measured phase total is still 1,185.146s, with geometry the longest file at
+174.850s. At that observed cost, ideal two-worker phase packing alone still needs
+592.573s before overhead. The historical 151.733s stretch reference is not
+attainable by scheduling alone, and the original 85-percent target remains open.
+Do not silently increase workers or extend production scope. The separate
+concurrency and production-context options remain owner decisions; publish the
+qualified partial improvement without calling the stretch goal complete.
+
 ### Unapproved production-context option — October 14
 
 Follow-up read-only review of the retained image-safety profile and owning

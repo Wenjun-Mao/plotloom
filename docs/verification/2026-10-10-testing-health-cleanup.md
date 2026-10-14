@@ -1933,3 +1933,40 @@ The next gate runs the established complete two-worker Python step. Only the
 two test files and advisory timings changed executable inputs since the passed
 `e5876029` full gate; production, dependency, frontend, browser-fixture and
 packaging inputs are unchanged. Their corresponding passed evidence is reused.
+
+### Executed two-worker duration qualification — October 14
+
+Clean candidate `bafb15873c0b59fc519e53f68ad39b9a7a1a714e` passed the complete
+Python step via `/usr/bin/time -p uv run --locked --no-sync python
+scripts/testing/run_python_suite.py`. Fresh native collection selected all
+1,859 cases / 182 files; the runner confirmed `schedule=duration` with no
+fallback. Both workers exited zero: 884 cases / 90 files in 579.213s and
+975 cases / 92 files in 627.323s. External time was **633.23s**, parallel-runner
+time 627.324s. Each worker emitted the existing Starlette/httpx deprecation
+warning. Complete per-file capture contains 182 unique rows covering all cases.
+
+The quiet window excluded other tests and native/model/ImageGen dispatch. After
+completion, source/host fingerprints matched preflight, the candidate remained
+clean, the temporary suite root was absent and no pytest worker referenced it.
+The manager then explicitly returned the window to the CLI owner for its focused
+pixel-decoding regressions. No test process was interrupted.
+
+Retained log: `.local/final-qualification/python-duration-bafb1587.log`, SHA-256
+`ef370026f7f7be72b10df839e4a31aee22ece94b8f5067c02948afe08f664e62`.
+Its adjacent `python-duration-bafb1587-summary.json` records commands, allocation,
+fingerprints and measured costs. The old 697.496s gate and this 633.23s gate use
+the same 1,859-case inventory except the explicitly documented parameter-ID
+rename. The **9.21% observed reduction** is a single whole-suite comparison;
+the fixture and allocation changed together, so this does not isolate scheduler
+benefit or establish statistical significance. The earlier 1,779-case historical
+baseline is not a matched comparison.
+
+Current phase work totals 1,185.146s; longest owners are geometry 174.850s,
+handoff 153.799s, early image safety 114.078s and images 109.779s. Ideal two-way
+packing at these observed costs is bounded below by 592.573s before overhead.
+Thus scheduling alone cannot reach the historical 151.733s stretch reference.
+The **85-percent goal remains unmet**. The qualified test-only partial improvement
+can be published; broader concurrency or production-context changes remain
+separate owner scope decisions. Unchanged frontend/browser/type/build/wheel
+evidence from `e5876029` is reused as justified above. No hosted CI, native
+generation, live restart or creative acceptance was performed.
