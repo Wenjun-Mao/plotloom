@@ -5,7 +5,7 @@ preceding technical closeout and publication. Registration and read-only
 admission passed and the sole implementation writer was released. The serial
 executor checkpoint and authentication/tool-profile repairs are committed in
 the isolated worker. Exact-tool boundary qualification passed at `ad3ccf58`;
-production serial execution remains the next gate before concurrency.
+the first production serial canary blocked at adoption; repair precedes concurrency.
 The original Relay Brainstorm and Plan checkpoint
 contained no pool implementation or live executor change.
 
@@ -89,12 +89,8 @@ The existing Relay route was independently read back and remains registered.
 Full/browser qualification remains manager-owned; live activation is not part
 of this allocation.
 
-The optional Python-speed qualification at `76d6a916` has no recoverable final
-result at this checkpoint: the original execution handle and temporary log
-are unavailable, and process inspection found no running verification suite.
-Do not infer success or restart generation from this loss of test evidence.
-Recover retained evidence or allocate fresh qualification after the current
-native proof window. This optional work does not block CLI development.
+The earlier optional Python-speed run at `76d6a916` lost its final evidence;
+it is not qualification. Later Python results are recorded in that track's plan.
 
 The owner subsequently reactivated the unbudgeted Goal for both parallel CLI
 generation and Python test-speed improvement toward 85 percent. The manager
@@ -289,16 +285,10 @@ Session SHA-256 is
 This qualifies the scoped negative read boundary, not a production delivery;
 the production parser correctly refuses to turn it into a generation receipt.
 
-The same worker is now authorized to prepare and execute one positive control
-in a fresh ignored root at unchanged `ad3ccf58`: view the harmless package-local
-PNG, then pass only that exact allowed reference to one ImageGen call using the
-same v4 image-domain configuration. Freeze and verify the fresh hashes before
-launch; the worker's launch record reflects delegated authorization, not an
-unperformed manager review of those new hashes. Bounds are one session/call/
-image, 600 seconds, 50 MB of capture and no retry. Success requires production
-session-parser acceptance, terminal native generation evidence, complete output
-pixels and cleanup. Preserve all earlier evidence and unknown outcomes. Serial
-production package canaries, concurrency and activation remain pending.
+The subsequent positive control used one allowed package-local PNG, one session/
+call/image, a 600-second limit and no retry under the same v4 image configuration.
+Its fresh prelaunch record reflects delegated authorization, not an unperformed
+manager review of those hashes. Production delivery and concurrency stayed held.
 
 The positive control passed manager review in exact session
 `01a13a13-e1e4-7171-b344-142e76800366`, with one ordered reference view and one
@@ -315,18 +305,28 @@ records acceptance without parser changes or retry. Prelaunch path-normalization
 and missing-import corrections are retained with their fingerprint lineage in
 `.local/native-proof/imagegen-preread-positive-ad3ccf58-20261014-02/`.
 
-Serial preflight found that one text job cannot reach image adoption: the
-supported fresh launch requires six creative stages, two bridge stages and
-current installation. No dispatch or project mutation occurred. The corrected
-window at unchanged `ad3ccf58` permits those eight sequential text jobs and the
-first two image jobs in normal scheduler order, then pauses before a third.
-Keep complete-inventory policy ceilings distinct from this two-image dispatch
-allowance; never skip prerequisites or fabricate checkpoints. Every job needs
-one immutable package/attempt, actual validated delivery/adoption, exact native
-provenance, duplicate refusal and same-attempt restart reconciliation. Referenced
-images use current canonical bytes. Preserve failures and unknown reservations
-without resend, including the old unknown attempt. This is not the later matched
-pack comparison. Source changes, pool/full qualification and activation stay held.
+The serial allocation allowed eight prerequisite text jobs and the first two
+normally ordered images, with complete inventory bounded to 16 required images.
+The first actual outline job `ch_adf01a2fdb644ad4b3d87e24971d7ec9`, attempt
+`cfbb52b4-939d-45b9-a49f-c4f79f34ac0e`, session
+`01a13a2a-bc79-7a60-916e-7588b3744bba` exited zero but was not adopted.
+Run `a9ba9cc9-cc14-4419-ae1b-88c768e02737` blocked because the host publisher
+wrote Shuohao revision `4f9b2128` into Plotloom `codeRevision`, not launch
+`ad3ccf58`. The raw session also records denied shell temporary-file creation
+and Node OpenSSL-configuration access followed by ad hoc recovery. The manager
+verified output hashes and process-group absence; no second job was admitted.
+Preserve this failed canary and all earlier unknowns without resend or rewriting.
+
+After this checkpoint closes, the same source owner may repair only the proven
+contracts: bind Plotloom's frozen code revision independently of the upstream
+skill revision through trusted admission/publication, and qualify the text
+runtime's exact filesystem/environment prerequisites. Retain strict adoption
+checks; no terminal-time HEAD substitution, broad permission grant or fallback.
+Record the decision and test differing code/upstream revisions, actual owner
+adoption and non-generating sandbox validator execution. Review the stable
+candidate before freezing any fresh canary allocation; all provider dispatch,
+pool/full qualification and activation stay held. Later serial proof still needs
+real adoption, deduplication and same-attempt restart without fabricated state.
 
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
