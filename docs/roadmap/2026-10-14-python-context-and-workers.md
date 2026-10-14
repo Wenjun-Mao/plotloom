@@ -781,6 +781,50 @@ quiet matched complete-command pair needs manager allocation. Keep default two,
 complete native coverage and the original 85-percent target open; no broad,
 module/full, profile, provider, moving-CLI merge, push, live or cleanup occurred.
 
+### Terminal reconciliation quiet pair — October 14
+
+After CLI explicitly released the quiet resource window, the manager allocated
+exactly one matched complete-command pair against immutable before
+`4f6f6804438f346e50b920a69351602d68a550ae` and executable after
+`8aedede95f38ab8511bd296195fdf5c4d815ba70`. The four frozen selectors above
+retained all 44 native IDs, including six unchanged fresh all-stage controls.
+Sorted native fingerprint stayed
+`0b834fbf99b6b8829b740ba7846f3c9cc53e4d3a1b0fe3a8d7a92e0a4dad9010`.
+
+Both commands passed all 44 cases, exit zero. External complete-command wall
+time was **40.95796179199533 → 22.25733779199072 seconds**, a
+**45.65809230199387-percent reduction** in this selected group. Pytest reported
+36.71 → 18.23 seconds. The external timer includes the runner's native-selector
+preflight, collection, real seed construction, complete physical copies, test
+execution and cleanup. A separate native collection retains the exact inventory.
+Fresh per-run TMPDIR roots, the same absolute checkout/interpreter/dependencies/
+environment policy and unchanged manifest were used. Input fingerprints were
+stable before/after each pinned run; host/interpreter/dependency/manifest values
+matched across the pair. The input fingerprint itself intentionally differs
+between executable revisions. No manifest was rewritten or relabelled.
+
+Evidence root `.local/remaining-cost/reconciliation-quiet-ajfc16x2/` retains
+`before/` and `after/` collection logs, native cases, focused logs and metadata,
+plus `result.json`. SHA-256:
+
+- before `focused.log`:
+  `5914081bfab4e6f3e81f043a860d4d987a73bd333df29b80bceb5a29067fbae9`;
+- after `focused.log`:
+  `eb67c3e4a121229acd6c13f7da8ea0dd1b83a1777c1740c3f12f694a5831aaf2`;
+- `result.json`:
+  `f3ef0e7a92ee10115b252e32b21eb8a7142c36606aa6fcbfd53a88d62ee97404`;
+- observer `.local/remaining-cost/reconciliation_quiet_pair.py`:
+  `1aaf70371576bd38726eea88c498fa64f68192748b51878f8796bd409cafa130`.
+
+Native session 22282 completed once, with no retries. Its `finally` restored the
+exact clean starting `main` at `9161caea84a02bcb2fd4c766b10bd8dd5136b0ee`.
+The manager independently inspected the observer, actual logs/hashes, native
+inventory equality, assertions and restored checkout, and accepted the one-pair
+measurement. Resources were idle before a separately authorized Bridge pair.
+The existing Starlette/httpx warning appeared. No whole-suite speed, 85-percent
+achievement, combined full qualification, hosted CI or product acceptance is
+established by this scoped comparison; default workers remain two.
+
 ## Pending native Bridge seed — selected implementation
 
 Historical manifest attribution assigns repeated accepted-project construction
@@ -863,6 +907,49 @@ before remains `99954dc584060266790d4df90825e8fd0c3a8312`. The retained
 checkout is clean at the local checkpoint, with no push. The earlier terminal
 pair remains bound to `4f6f6804` → `8aedede9`; do not silently retarget either
 comparison to a later source revision.
+
+### Native Bridge quiet pair — October 14
+
+The manager separately allocated exactly one Bridge comparison while CLI kept
+the explicit quiet window held. Immutable before was
+`99954dc584060266790d4df90825e8fd0c3a8312`; executable after was
+`3c17594927cfb43ea65ef77ac31a08e41826d675`. All 26 native IDs matched,
+including the four unchanged fresh positive/unknown-dispatch controls. Sorted
+fingerprint stayed
+`365c4c8fc6e9a8af90bfb80d49cb9167912abd84a6f993a67c2e3bf4a593383d`.
+
+Both complete focused commands passed all 26 cases, exit zero. External wall
+time was **32.44459995800571 → 18.408682709006825 seconds**, a
+**43.261181420532566-percent reduction** for this selected group. Pytest
+reported 24.93 → 11.23 seconds. The timer includes runner selector preflight,
+collection, real seed build, full physical copies, execution and cleanup. Fresh
+per-run temporary roots and the same checkout/interpreter/dependencies/host and
+environment policy were used. Within-pin input fingerprints stayed stable;
+host/interpreter/dependency/manifest values matched across the pair. Separate
+native collection proved inventory equality. Manifest bytes remained unchanged.
+
+Evidence `.local/remaining-cost/native-bridge-quiet-1h38zjcz/` retains per-run
+`collection.log`, `cases.txt`, `focused.log`, `metadata.json` and `result.json`.
+SHA-256:
+
+- before `focused.log`:
+  `e4f3ce73c085788500bf8d63952f53e768ba1e6a773b744fc22e5b7af7ebe03d`;
+- after `focused.log`:
+  `7024c823572eeabebc21027b1f336531d3930ee615220908a3a11c6c3c3c47a6`;
+- `result.json`:
+  `4cf5a3e7b75458c4cca4c4319161c6692a2fa8d86204bbb2d5649c726ea6adec`;
+- observer `.local/remaining-cost/native_bridge_quiet_pair.py`:
+  `edf07a85ec1e9d849a9a93cdee35a5fc971568e24fac5730fff2d8b8cf15c06e`.
+
+Native session 6478 completed once without retry and restored exact clean
+starting `main` `9161caea84a02bcb2fd4c766b10bd8dd5136b0ee` in `finally`.
+The manager received the terminal result and idle-resource notification before
+this documentation-only receipt. The existing Starlette/httpx warning appeared.
+These are separate one-pair observations; do not add their percentages or infer
+whole-suite timing, 85-percent achievement, full qualification, hosted CI or
+creative/product acceptance. No production/frontend/dependency/timing-manifest
+change, broad/full/module/profile/provider call, push or live-checkout write
+occurred during either comparison. Default workers remain two.
 
 ## Residual-cost investigation — historical proposal, now separately scoped
 

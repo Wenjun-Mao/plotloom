@@ -186,5 +186,11 @@ the four unchanged fresh controls (38 distinct cases). Independent Sol/Medium
 stable review found no actionable findings and ran no checks. Exact 26 native
 IDs match. Intent/presentation positive-copy guards admit advice and derived
 reports without installation while the seed is unavailable, preserving sibling
-proposal/database/reservations. No performance comparison has run; frozen refs
-and log hashes live in the Python plan.
+proposal/database/reservations. The later separately allocated quiet pairs
+retained all 44 reconciliation and 26 Bridge cases, including fresh controls.
+Complete-command wall time was 40.958 → 22.257 seconds for reconciliation
+(45.66 percent less) and 32.445 → 18.409 seconds for Bridge (43.26 percent less).
+Each pair ran once with immutable refs, stable inputs, equal host/dependencies,
+fresh temporary roots and exact clean-checkout restoration. These scoped results
+do not establish whole-suite speed, the 85-percent target or full qualification.
+Frozen refs, exact values and evidence hashes live in the Python plan.
