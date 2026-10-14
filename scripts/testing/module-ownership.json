@@ -168,6 +168,7 @@
           "tests/test_shot_presentation.py",
           "tests/test_shot_presentation_integration.py",
           "tests/test_storyboard_operation_context.py",
+          "tests/test_art_script_operation_context.py",
           "tests/test_storyboard_review_timing.py"
         ],
         "vitest": [

@@ -56,7 +56,7 @@ class ProjectArtPersistence:
         base, source, outline, mapping = self._cast._context(session, project_id)
         cast_head = self._cast._head(session, project_id)
         accepted = session.scalar(select(CastRevisionRow).where(CastRevisionRow.project_id == project_id, CastRevisionRow.revision == cast_head.revision)) if cast_head.revision else None
-        if cast_head.status != "accepted" or accepted is None or self._cast._stale(session, project_id, CastBinding.model_validate(accepted.binding)):
+        if cast_head.status != "accepted" or accepted is None or self._cast._stale_against(session, project_id, base, CastBinding.model_validate(accepted.binding)):
             raise ReviewContextError(ReviewContextDiagnostic(code="accepted_cast_not_current", owner="characters", technical_message="a current accepted cast is required before preparing art"))
         binding = ArtBinding(**base.model_dump(), cast_revision=accepted.revision, cast_content_hash=accepted.content_hash)
         return binding, source, outline, mapping, accepted.cast
@@ -66,6 +66,10 @@ class ProjectArtPersistence:
             current, *_ = self._context(session, project_id)
         except ReviewContextError as error:
             return [error.diagnostic]
+        return self._stale_against(session, project_id, current, binding)
+
+    def _stale_against(self, session: Any, project_id: str, current: ArtBinding, binding: ArtBinding) -> list[ReviewContextDiagnostic]:
+        """Compare this operation's inputs; never resolve or retain context."""
         fields = (
             ("source_revision", "source"), ("outline_revision", "accepted outline"),
             ("section_map_revision", "section map"), ("graph_revision", "installed graph"),

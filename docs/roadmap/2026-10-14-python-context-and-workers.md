@@ -1085,6 +1085,111 @@ Frozen executable after is `201adc21dc6ff4bd1f9c413d377f6056dac48bd6`;
 before remains `2f57f598f9bdac67f6bce10012b351344b4bf7a3`. Later docs-only
 HEADs do not retarget this ten-case comparison or any earlier accepted pair.
 
+## Art/Script operation-local upstream resolution — selected implementation
+
+The manager requested prioritizing the largest remaining source-backed costs.
+Current native collection of image safety, complete images and creator
+confirmation contains 11/10/16 cases (37 total). Their historical phase totals
+(about 101.6/99.9/71.2 seconds) guide this investigation only; the old image-safety
+count does not describe the current source.
+
+Image-flow cases create real controller steps/native admission, pending fake
+host work, selection, stop/resume and unknown-attempt recovery; gallery and
+ceiling cases change inputs/policy. Existing closed seeds cannot replace these
+boundaries without reconstructing native ownership. Only two creator-confirmation
+corruption cases directly match the existing six-frame completed seed; retain
+the positive/recovery controls fresh. That small reuse is deferred in favor of
+the larger repeated read path below. Independent Sol/Medium source triage agrees;
+it ran no checks or profiling.
+
+Art `_context` calls Cast `_context`, then Cast `_stale` resolves it again.
+Script `_context` resolves Art through `_stale`, then calls Art `_context`
+again. One normal Script context therefore reaches Cast four times, propagating
+through Storyboard/Bridge into image inventory. Inventory's separate
+Cast/Art/Bridge reads can reach Cast approximately seven times on the ordinary
+accepted-only path. These are static call-path counts, not timings. Existing
+Bridge-local reuse does not remove the upstream duplication.
+
+The selected fix resolves once inside each existing Art/Script `_context`, with
+private Cast/Art comparison helpers that do not resolve/cache upstream state.
+It preserves diagnostic/style/section order, Art's source-before-Cast readiness,
+Script's accepted-Art readiness/binding-validation before resolution, expected
+resolution-error mapping before target validation, unexpected failures and the
+accepted receipt's frozen render ownership. ADR 0167 records the exact extension;
+independent Sol/High design review found it safe within existing authority.
+Effective delegated settings remain unverified. No production edit preceded
+that design review. Separate reads/transactions/write/admission/currentness/open
+validation, native execution/recovery, material hashes and default workers stay
+unchanged. Inventory/review-bundle cross-owner reuse requires new authority and
+is excluded.
+
+Frozen before is `598c21f063ac4a820dae6b8e3b10f8c395c48fe4`. The prospective
+quiet measurement union is all three unchanged files above, 37 native IDs at
+`.local/remaining-cost/art-script-context-before-{cases,native-cases}.txt`;
+sorted fingerprint `f89dadafd5d4bf75e3657968b92f6c700a84f7f2b57662678c18065ee8ea678f`.
+No benchmark is allocated. New guards plus the reviewed exact existing
+Art/Cast/Script/Storyboard/Bridge/lifecycle/style selectors establish focused
+correctness before stable independent review. Full/hosted qualification remains
+a later combined-candidate gate; do not infer whole-suite speed or 85 percent.
+
+The reviewed implementation adds private comparison boundaries to Cast and Art,
+passing the already resolved Cast base inside Art and resolving Art once inside
+Script. Cast and Art's post-resolution comparison bodies and `get_state`
+methods are AST-identical to baseline. Script validates the accepted ArtBinding
+before resolution, catches only the expected resolution error, compares outside
+that catch and keeps target/route work and `ScriptBinding(**accepted.binding)`
+unchanged. Its generic error has no chained resolution exception. The source
+remains cohesive (Cast 485 lines, Art 343, Script 364); no framework, public
+already-validated flag or cache was added.
+
+**32 new focused guards passed**, covering exact ordered diagnostics and text,
+style evaluation despite field changes, expected/unexpected failures, source/
+head/binding/target precedence, empty-state zero reads, one upstream resolution
+per owner call, repeated fresh calls within a session, frozen accepted output,
+two distinct accepted/candidate Art comparisons and normal Art-reopen refusal.
+The real accepted-project guard proves one Cast resolution for each Art or
+Script context call; this is structural call-count evidence, not measured speed.
+
+**67 existing focused cases passed** with these explicit selections:
+
+- whole files `test_storyboard_operation_context.py`,
+  `test_bridge_operation_context.py`, `test_accepted_review_lifecycle.py`,
+  `test_project_storage_script.py`, `test_script_storyboard_diagnostics.py`
+  and `test_verification_module_ownership.py` under `tests/`;
+- `test_project_storage_art.py::test_art_accept_reopen_cancel_and_currentness`;
+- `test_project_storage_cast.py::test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context`;
+- `test_cast_style.py::test_persisted_cast_style_change_revokes_art_consumption_without_mutation`;
+- `test_art_style.py::test_stale_prepared_task_cannot_send_or_admit_and_retains_evidence`;
+- `test_art_style.py::test_live_action_api_delivery_accept_save_and_staleness`.
+
+**Four fresh downstream cases passed**: complete 27-frame/29-image pack with
+zero human facts; native unknown-image restart without resend; takeover after
+delivered Art reference; and creator handoff/recovery with comment `None`.
+Their full native selectors and commands are retained in the downstream log.
+Total is **103 distinct focused passes**. The first 27-case smoke and expanded
+32-case guard runs both passed; duplicate smoke cases are not added to this
+total. No original assertion or test was weakened. Exact 37 native IDs remain
+unchanged in `.local/remaining-cost/art-script-context-after-native-cases.txt`.
+
+Retained logs under `.local/remaining-cost/`, SHA-256:
+
+- `art-script-context-guards.log` (32):
+  `faba02c145c597e8f25a871939c7a935d0ae1286247f7db9e6f616f1677de0f3`;
+- `art-script-context-regressions.log` (67):
+  `8126e0a32363feb31dc1d8e710166cebe2d63537bc4c19841c29e4d0f7f5c49f`;
+- `art-script-context-downstream.log` (4):
+  `69175dc45766e1a354b11e0c4639729cc8874c7eb7f7633327e73917e8688d29`.
+
+Scoped Ruff F401 and diff checks passed. The existing Starlette/httpx warning
+appeared in route-consuming unions. Independent Sol/High design and Sol/Medium
+stable code reviews found no actionable finding and ran no checks; effective
+settings are unverified. Concurrent test times are correctness evidence only.
+No benchmark, broad/module/full/profile run, real provider, frontend/dependency/
+timing-manifest change, resumed native seed, moving CLI merge, push, live write
+or cleanup occurred. Combined full qualification must be refreshed for the
+stable integrated production candidate; earlier release evidence does not
+qualify these changes. Whole-suite speed and 85 percent remain open.
+
 ## Residual-cost investigation — historical proposal, now separately scoped
 
 One fresh main-thread profile ran the unchanged complete-pack control at clean
