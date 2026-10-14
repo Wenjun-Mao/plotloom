@@ -1195,6 +1195,56 @@ before remains `598c21f063ac4a820dae6b8e3b10f8c395c48fe4`. Any future
 37-case quiet comparison must use those exact refs and the frozen inventory;
 later documentation commits do not silently retarget it.
 
+### Historical material-closure attribution — read-only extraction
+
+The manager extracted the existing main-thread complete-pack profile without
+running new profiling or checks. Authoritative retained root:
+`/Users/wjmao/projects/HU/plotloom-worktrees/python85-profiling/.local/remaining-cost/complete-pack-o_v35lkn/`.
+The manager verified `call.prof` SHA-256
+`0568761cd60476b78b42aa863676e969a53dc17ba9dd7a529a230df1e84fbee3`
+and `attribution.json` SHA-256
+`3be56242301e7077c8232ec8b513d8c08af300ac2a2765f9aa349f4bb511cb71`.
+That profile binds source `3c3a025e` and a 55.536-second instrumented call.
+This coordinator did not access the other checkout. Local Git-object comparison
+independently confirms current `autopilot_closure.py` and `contract_hash.py` are
+byte-identical to that revision, with SHA-256 respectively
+`3345c6046c401af180f9c0ce362d733219216e255bc33a6b4bf3a30b7740fc4b`
+and `2e779ab1b1f44bddf8ebebf975eb001f3bdf1f7bde8596075d5eb5305c773b77`.
+Callers and counts changed afterward; attribution remains historical.
+
+`material_closure`: 1,695 calls, 1.462100 seconds own / 20.708023 cumulative.
+Its direct caller-to-callee edges were:
+
+| Edge | Calls | Own seconds | Cumulative seconds |
+| --- | ---: | ---: | ---: |
+| result `iterrows` | 839,705 | 0.582317 | 5.275426 |
+| `Session.execute` | 39,705 | 0.012568 | 4.115400 |
+| `sorted` | 42,027 | 0.134032 | 4.032141 |
+| final-closure `stable_hash` | 1,695 | 0.002136 | 2.302446 |
+| `RowMapping.items` | 801,161 | 0.646190 | 1.171200 |
+| operator equality | 46,671 | 0.022541 | 0.618996 |
+| select construction | 43,188 | 0.012966 | 0.093166 |
+| `Session.scalars` | 3,483 | — | 0.348339 |
+
+Global profile edges, **not closure-exclusive**, included `Session._execute_internal`
+(115,224 calls / 14.543607 cumulative seconds), engine execute (116,256 /
+10.490219), `_compile_w_cache` (115,960 / 6.894215), `_compiler` (19,997 /
+4.608755), select construction (115,224 / 0.424907), `_generative` (119,084 /
+0.319015), `where` (79,314 / 0.148470), `Session._connection_for_bind`
+(115,913 / 0.334061), SQLite cursor execute (118,915 / 1.005493 own/cumulative),
+fetchone (978,278 / 1.171670 own/cumulative), and SQL type processing (1,988,466 /
+5.032310 cumulative). These nested costs must not be summed or extrapolated
+into current complete-suite savings.
+
+This evidence does not identify query construction as the main remaining lever;
+row processing, sorting/hashing and execution are larger historical edges. No
+speculative plan cache or closure rewrite is selected. Keep exact hash inputs,
+freshness and backend semantics. The next allocated observation remains the
+prepared, unexecuted 37-case `598c21f0` → `5516f5a0` quiet pair. If its current
+evidence leaves a material bottleneck uncertain, propose one source-bound
+attribution run before choosing another change. No new product authority,
+profiling/full/benchmark allocation or speed claim follows from this receipt.
+
 ## Residual-cost investigation — historical proposal, now separately scoped
 
 One fresh main-thread profile ran the unchanged complete-pack control at clean
