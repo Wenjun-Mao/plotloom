@@ -62,8 +62,19 @@ requests; preserve exact frozen budgets, unknown outcomes and the two-failure
 reassessment rule. Obtain independent stable reviews and perform one combined
 full local gate at a stable candidate, then return the integrated evidence for
 manager review/publication. No hosted CI, live activation or old-run replay.
-The manager remains read-only while this source/check window is held. Python
-optimization is queued, not a gate ahead of parallel-generation delivery.
+The manager remains read-only while this source/check window is held. A later
+owner instruction releases a separate Sol Python coordinator in the retained
+manager checkout. Ownership is now one writer per isolated checkout, with
+manager integration serialized. That coordinator cannot write this `b30f`
+checkout. Parallel generation retains priority and does not wait for Python
+optimization.
+
+Lightweight focused Python correctness work may overlap CLI functional native
+proof. Contended wall times are recorded as functional evidence, not a speed
+claim. Before a matched serial/parallel performance measurement or the stable
+resource-heavy full gate, return a ready-for-quiet-window checkpoint through
+Relay; the manager quiesces other checks and allocates that quiet window.
+This coordinates resources and does not add a per-batch user approval gate.
 
 The coordinator reconciled exactly reviewed manager-main `65cf84cd` with
 the retained CLI source. The later historical-scheduler commits `b4b82f6d` and
