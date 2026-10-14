@@ -772,8 +772,9 @@ active seed and database/package mutation isolation. Seed hashes remain intact.
 Accepted package evidence is neither rewritten nor rebound. No parsed authority,
 registry reservation or active job is shared between cases.
 
-Before stays immutable `4f6f6804`; the ensuing scoped commit owns the executable
-after checkpoint. Production/frontend/dependencies/timing-manifest inputs have
+Before stays immutable `4f6f6804438f346e50b920a69351602d68a550ae`; executable
+after is `8aedede95f38ab8511bd296195fdf5c4d815ba70`.
+Production/frontend/dependencies/timing-manifest inputs have
 no diff from that baseline. This is reviewed implementation/focused readiness,
 not measured speed, full qualification, hosted CI or product acceptance. A
 quiet matched complete-command pair needs manager allocation. Keep default two,
