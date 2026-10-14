@@ -1593,3 +1593,20 @@ proposal (ADR 0164) is not implicitly included in this approval. The original
 isolated proposal and profiled evidence remain in `python85-release`.
 Qualification must re-establish behavior on the new composition; previous
 focused results with the installation-reader change are not substituted for it.
+
+The new composition is isolated on `codex/python85-query-qualification`, based
+on fixture checkpoint `3f9d57bb` and documentation checkpoint `188c1674`.
+Its only production-source delta against released `cf26b32d` is
+`command_transactions.py`; ADR 0166 records the operation-scoped query decision.
+The twenty authority cases passed in 1.58s (3.297s including selection and the
+runner). A separate downstream selection passed 34 cases: complete handoff and
+late-receipt files, final-send currentness, portable-recovery refusal and retired
+geometry-policy admission. Its retained log is `.local/receipt-query/focused.log`;
+the existing Starlette/httpx deprecation warning remains. This concurrent
+correctness run is not a performance measurement.
+
+Independent read-only review of this exact composition (requested Sol/Medium;
+effective settings unverified) found no actionable findings and no dependency
+on the installation-reader proposal. Targeted Ruff and diff checks passed.
+Unprofiled measurement, broader final qualification and publication remain
+pending; no whole-suite improvement or 85-percent completion is claimed.

@@ -208,6 +208,81 @@ def test_receipt_only_outline_ingestion_is_atomic_without_material_adoption(tmp_
         assert store.repository.autopilot.current(store.manifest.project_id).state == "running"
 
 
+def test_source_command_avoids_receipt_snapshots_but_validates_each_admission(tmp_path, monkeypatch):
+    from plotloom.persistence.project import autopilot_closure
+
+    with closing(storage_at(tmp_path).projects.create(FIXED_CHINESE_BRIEF)) as store:
+        run = start_run(store)
+        original = autopilot_closure.material_closure
+
+        def no_receipt_projection(*args, **kwargs):
+            assert kwargs.get("include_cancellations", True), "ordinary command projected receipt-only authority"
+            return original(*args, **kwargs)
+
+        monkeypatch.setattr(autopilot_closure, "material_closure", no_receipt_projection)
+        with store.repository.autopilot_command(authority(run)):
+            store.save_source_material(expected_source_revision=0, material=exact_source(store))
+        with store.repository._read() as session:
+            row = store.repository.autopilot.row(session, store.manifest.project_id)
+            assert row.expected_closure == original(session, store.manifest.project_id)
+        with store.repository.engine.begin() as connection:
+            assert connection.exec_driver_sql("UPDATE v2_source_outline_heads SET source_revision=source_revision+1").rowcount == 1
+        with pytest.raises(InvalidTransitionError, match="closure changed"):
+            with store.repository.autopilot_command(authority(run)):
+                pytest.fail("ordinary command reused authority from an earlier transaction")
+
+
+def test_receipt_protected_mutation_rolls_back_with_its_transport_write(tmp_path):
+    with closing(storage_at(tmp_path).projects.create(FIXED_CHINESE_BRIEF)) as store:
+        run = start_run(store)
+        before = store.repository.autopilot.current(store.manifest.project_id)
+        with pytest.raises(InvalidTransitionError, match="cannot change creative or human authority"):
+            with store.repository.autopilot_command(authority(run, OperationScope.EVIDENCE)) as session:
+                assert session.connection().exec_driver_sql("UPDATE v2_source_outline_heads SET source_revision=source_revision+1").rowcount == 1
+                row = store.repository.autopilot.row(session, store.manifest.project_id)
+                row.blocker = {"code": "receipt_test", "message": "must roll back"}
+        after = store.repository.autopilot.current(store.manifest.project_id)
+        assert after.revision == before.revision and after.blocker == before.blocker
+        with store.repository.autopilot_command(authority(run)):
+            store.save_source_material(expected_source_revision=0, material=exact_source(store))
+
+
+@pytest.mark.parametrize("stale", [False, True])
+def test_receipt_asset_write_rebases_only_current_creative_authority(tmp_path, stale):
+    from hashlib import sha256
+
+    from plotloom.persistence.project.autopilot_closure import material_closure
+
+    with closing(storage_at(tmp_path).projects.create(FIXED_CHINESE_BRIEF)) as store:
+        run = start_run(store)
+        with store.repository._read() as session:
+            original = store.repository.autopilot.row(session, store.manifest.project_id).expected_closure
+        if stale:
+            with store.repository.engine.begin() as connection:
+                assert connection.exec_driver_sql("UPDATE v2_source_outline_heads SET source_revision=source_revision+1").rowcount == 1
+        with store.repository._read() as session:
+            before_closure = material_closure(session, store.manifest.project_id)
+        before = store.repository.autopilot.current(store.manifest.project_id)
+        with store.repository.autopilot_command(authority(run, OperationScope.EVIDENCE)):
+            content = b"immutable receipt asset fixture"
+            digest = sha256(content).hexdigest()
+            uri = store.artifacts.put(content)
+            asset = store.media.record_managed_import(
+                store.manifest.project_id, original_hash=digest, display_hash=digest,
+                mime_type="image/png", byte_size=len(content), width=1, height=1,
+                declaration={"origin": "receipt_test"}, publish=lambda: (uri, uri),
+            )
+        after = store.repository.autopilot.current(store.manifest.project_id)
+        assert after.revision == before.revision + 1
+        assert store.media.get_managed_asset_storage(store.manifest.project_id, asset["id"])["originalHash"] == digest
+        with store.repository._read() as session:
+            row = store.repository.autopilot.row(session, store.manifest.project_id)
+            after_closure = material_closure(session, store.manifest.project_id)
+            assert after_closure != before_closure
+            assert row.expected_closure == (original if stale else after_closure)
+            assert (row.expected_closure != after_closure) is stale
+
+
 @pytest.mark.parametrize("mutation", ["text", "origin"])
 def test_retained_source_exact_frozen_brief_binding_is_verified_on_open(tmp_path, mutation):
     import json

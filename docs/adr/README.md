@@ -88,3 +88,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0161 Specialist presentation candidates](0161-specialist-presentation-candidates.md)
 - [0162 Pre-video autopilot authority](0162-pre-video-autopilot-authority.md)
 - [0163 Autopilot inherits the saved Brief visual direction](0163-autopilot-brief-style-authority.md)
+- [0166 Receipt-scoped authority snapshots](0166-receipt-scoped-authority-snapshots.md)
