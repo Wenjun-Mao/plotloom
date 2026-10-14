@@ -1090,3 +1090,41 @@ and -5.00 percent, below the regression trigger. Raw log hashes and matching
 host/toolchain/command metadata were checked. Full qualification, publication
 and the 85-percent whole-Python target remain open. Use one stable final full
 gate to measure the remaining suite cost before proposing broader scope.
+
+### Combined query/fixture qualification and residual budget
+
+The clean composition `e58760291919c7741dc180e54133e3674bf2cfa2` includes
+current main `14ad98cb` plus the reviewed handoff/creator fixtures and the
+owner-approved receipt-only query change. Independent read-only composition
+review found no actionable issue. Its full local gate passed 1,859 Python,
+1,377 Vitest and 318 Playwright cases, type checks, deterministic bundle parity,
+shard coverage and installed-wheel smoke in 1,203.332s. An initial prerequisite
+failure stopped before those suites; the receipt retains both attempts and
+the locked dependency repair. No source was changed during qualification.
+
+The externally timed Python step was 697.496s. Its two workers passed
+930/929 cases over 182 whole files in 516.398/691.261s. Allocation used the
+visible case-count fallback because the retained timing manifest predates the
+current case inventory. This is not an executed duration-packing measurement.
+The earlier 1,779-case baseline is not a matched comparison to this 1,859-case
+candidate, and the 85-percent objective remains open.
+
+Complete phase rows total 1,186.308s. At these observed weights, an ideal
+two-worker split still needs at least 593.154s of phase work; the longest file
+is geometry at 162.471s. A deterministic packing calculation also gives about
+593.154s per worker, but that is an estimate, not measured execution. Both
+ordinary scheduling overhead and timing variability remain. Rescheduling alone
+cannot deliver the historical 151.733s target reference.
+
+Next test-only investigation: profile one unchanged first-shot cancellation
+case including its eight-stage construction, then one terminal-reconciliation
+outline row including fixture setup. Read-only review found that the nineteen
+image-safety rows exercise early receipt/cancellation/publication boundaries,
+not all 27 frames; a compact opt-in may preserve those boundaries. Terminal
+setup always constructs accepted F4 content, including for earlier stages;
+stage-specific preparation requires a behavior map before changing it. Keep
+the shared defaults, full-pack/geometry/restart controls, every case and real
+validation. Their respective 124.116s whole-file and 38.001s setup totals are
+nonoverlapping upper bounds, not promised removable cost or wall-time savings.
+The two disposable probes are prepared but not yet executed. The CLI worker
+owns the next focused-check window; no competing benchmark is started.

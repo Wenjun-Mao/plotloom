@@ -1669,3 +1669,71 @@ The CLI worker held checks/native probes during the correctness-and-timing
 window and was explicitly released at completion. No manager check remains
 running. Full qualification, publication and whole-Python target measurement
 are next; the selected-case gain does not establish the 85-percent target.
+
+### Combined query/fixture final local gate
+
+Qualified executable checkpoint:
+`e58760291919c7741dc180e54133e3674bf2cfa2`, including main `14ad98cb`.
+The detached pinned submodule remained exactly
+`4f9b2128c82adf623f594ba714c97d0afcfc16a2`; the source checkout was clean
+before and after the gate. The only production delta against main is the
+approved receipt-scoped query placement. The older installation-only reader
+is excluded. Independent read-only final composition review, requested as
+GPT-6.1 Sol / Medium (effective settings unverified), found no actionable
+integration or coverage issue.
+
+The first `uv run --locked --no-sync python scripts/verify.py full` stopped
+after 0.378s because this isolated Python-only checkout lacked `jsdom` for
+the archived prompt reader. No frontend, Python or browser suite had run.
+The documented checkout prerequisites were missing, not a product contract.
+`npm --prefix docs/prompt-pipeline-lab ci --no-audit --no-fund` and
+`npm --prefix frontend ci --no-audit --no-fund` installed the checked locks;
+no lockfile, source, global approval setting or live installation changed.
+The existing pinned Chromium executable was present. The second attempt
+passed the complete gate in **1,203.332s**, exit zero:
+
+- 1,377 Vitest cases / 158 files; frontend and E2E type checks.
+- 1,859 Python cases / 182 files; two isolated workers, 930/929 cases.
+- Deterministic frontend build and checked static-tree parity.
+- All 93 browser specs / 318 cases; allocation guard 84/72/72/90,
+  with no missing or overlapping case, then unfiltered execution of all 318.
+- Wheel build and installed-wheel smoke.
+
+The complete Python command step took **697.496s** including collection,
+reporting and cleanup; worker lifetimes were 516.398s and 691.261s. The
+post-collection runner summary was 691.263s, not the whole-command boundary.
+Browser execution took 487.927s including its E2E type check. The Python
+schedule was `case-count fallback=native-case-inventory-changed`. No
+duration-based allocation execution or 85-percent reduction is claimed.
+The historical M6 baseline covered 1,779 cases, not this candidate's 1,859;
+this result is therefore not a matched whole-suite speed comparison.
+
+Raw evidence is retained in the `python85-profiling` checkout under
+`.local/final-qualification/`:
+
+| File | SHA-256 |
+| --- | --- |
+| `full-e5876029.log` (prerequisite failure) | `cf39c223d365409f0d7080c3b3d8cc74cca727cef40179509ef988a1d2daef29` |
+| `full-e5876029-deps-ready.log` (complete success) | `22f2799352a52e6c5b6a8a0081821051dc8abc18128edf6f7baa433f7861a484` |
+| `npm-prompt-reader.log` | `d722c43611f0e765e4727e73eef491d2c494b26b0b702d50128ddf34165708d2` |
+| `npm-frontend.log` | `9d7a3bb0fdcf0771452b0a81f67261de861a6a44d9c8fd78ae579dc91afe0b90` |
+
+Existing Starlette/httpx, large frontend chunk and NO_COLOR/FORCE_COLOR
+warnings were non-failing. Locked npm installation also reported deprecated
+whatwg-encoding and unapproved esbuild/fsevents scripts; no global script
+approval was changed, and the actual deterministic build passed.
+
+All 182 complete file-phase rows are retained in the successful log, summing
+to 1,186.308s. The largest files were geometry 162.471s, handoff 158.908s,
+image safety 124.116s, images 112.524s, creator confirmation 75.952s and
+specialist reconciliation 63.053s (38.001s in setup). At these weights,
+aggregate work divided by two is 593.154s; deterministic two-bin packing
+predicts the same bound to three decimals. These are accounting estimates,
+not a new wall-time benchmark, and nested profile totals must not be added
+to them. The timing manifest was not silently rewritten.
+
+The manager released the completed full-check window to the CLI source owner
+for focused saved-Brief routing checks. Further Python profiling remains
+serial and queued. This closeout changes documentation only; it does not
+invalidate the executable qualification. Hosted CI, live activation and the
+85-percent objective remain separate and unproved.

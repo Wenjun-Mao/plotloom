@@ -1,7 +1,9 @@
 # 0166 — Receipt reconciliation owns its pre-mutation snapshots
 
-Status: accepted for qualification, 2026-10-13. The owner approved this narrow
-production query-placement change; release qualification remains pending.
+Status: accepted and locally qualified. The owner approved this narrow
+production query-placement change on 2026-10-13; combined checkpoint
+`e5876029` passed the full local gate. Hosted qualification and live activation
+are separate and are not established by this result.
 
 ## Problem and evidence
 
