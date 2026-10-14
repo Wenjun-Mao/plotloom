@@ -151,8 +151,12 @@ class ProductionBridgeProjection:
                     beats.append({"id": beat_id, "sceneId": scene_id, "order": order, "description": description, "purpose": "", "visibleEvent": description, "immediateResult": "", "dramaticChange": "", "entryState": state, "exitState": state, "continuityAnchors": [], "continuityDelta": {}})
                     if isinstance(value, dict) and isinstance(value.get("line"), str) and value["line"].strip():
                         source_speaker = value.get("speaker")
-                        speaker_id = mappings.get(source_speaker, source_speaker) if isinstance(source_speaker, str) else None
-                        if speaker_id not in canonical_character_ids:
+                        voice_over = "VO" if source_speaker == "VO" else None
+                        speaker_id = (
+                            mappings.get(source_speaker, source_speaker)
+                            if voice_over is None and isinstance(source_speaker, str) else None
+                        )
+                        if voice_over is None and speaker_id not in canonical_character_ids:
                             conflicts.append(ProductionBridgeConflict(code="dialogue_speaker_unknown", message="不能安装：F4 台词说话人不在已接受角色映射中", section_id=section_id, episode=ep, scene_index=index))
                         else:
                             source_delivery = value.get("delivery")
@@ -161,7 +165,7 @@ class ProductionBridgeProjection:
                             if estimate is None:
                                 conflicts.append(ProductionBridgeConflict(code="dialogue_timing_unmappable", message="不能安装：F4 台词没有当前语言的时长规则", section_id=section_id, episode=ep, scene_index=index))
                             else:
-                                cues.append({"id": f"{beat_id}-d1", "beatId": beat_id, "order": 1, "speakerId": speaker_id, "voiceOver": None, "text": value["line"], "language": brief.language, "delivery": delivery, "performanceNotes": source_delivery if isinstance(source_delivery, str) else "", "estimatedDurationUnits": estimate})
+                                cues.append({"id": f"{beat_id}-d1", "beatId": beat_id, "order": 1, "speakerId": speaker_id, "voiceOver": voice_over, "text": value["line"], "language": brief.language, "delivery": delivery, "performanceNotes": source_delivery if isinstance(source_delivery, str) else "", "estimatedDurationUnits": estimate})
                 visual_scenes.append({"sectionId": section_id, "episode": ep, "sceneIndex": index, "sceneId": scene_id, "title": source_scene.get("sceneId") or scene_id, "cutCount": len(cuts)})
                 for order, (segment_order, segment, source_cut_index, cut) in enumerate(cuts, 1):
                     if not isinstance(cut, dict) or order not in cut_durations:

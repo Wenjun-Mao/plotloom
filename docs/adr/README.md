@@ -94,3 +94,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0168 Exact Python worker completion](0168-exact-python-worker-completion.md)
 - [0169 Isolated Codex Python validator runtime](0169-isolated-codex-python-validator-runtime.md)
 - [0170 Operation-local Bridge and controller claim](0170-operation-local-bridge-and-controller-claim.md)
+- [0171 Preserve F4 voice-over in canonical dialogue](0171-f4-voice-over-projection.md)
