@@ -1229,3 +1229,28 @@ eight only with measured headroom. No additional concurrency is implemented
 or authorized by this proposal, and extra compute cannot count as satisfying
 the original fixed-resource target. No test or native operation ran for this
 read-only feasibility review.
+
+### Unapproved production-context option — October 14
+
+Follow-up read-only review of the retained image-safety profile and owning
+source found duplicate upstream resolution inside a single owner operation:
+Storyboard review calls Script's stale check (which resolves context), then
+resolves Script context again. Production Bridge repeats review resolution
+and reads Script context again for the section map. In the profiled 10.994s
+call, Bridge `get_state` accounts for 2.297s cumulative; nested timings overlap
+and cannot be summed or extrapolated to the suite.
+
+A possible next production slice would resolve Script inputs once within an
+uninterrupted Storyboard owner read and compare all bindings against those
+inputs, preserving missing/stale diagnostics and frozen render modes. It must
+not reuse state across reads, mutation, dispatch, steps, commits or rollback;
+a shared SQLAlchemy session is not a stable-snapshot guarantee. Broader Bridge
+reuse is deferred. Required guards include mutation between successive reads,
+stale/missing bindings, render modes and error equivalence, followed by matched
+measurement. No validation may be skipped and no installation/global cache or
+already-validated flag is proposed.
+
+This differs from the earlier narrow production-query placement approval and
+is not authorized for implementation. It is an evidence-backed open option,
+not an adopted architecture or a claim that 85 percent is achievable. No new
+profile, test, native call or production edit was run for this review.
