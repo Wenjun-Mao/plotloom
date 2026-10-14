@@ -1195,6 +1195,51 @@ before remains `598c21f063ac4a820dae6b8e3b10f8c395c48fe4`. Any future
 37-case quiet comparison must use those exact refs and the frozen inventory;
 later documentation commits do not silently retarget it.
 
+### Art/Script quiet pair — no observed speed gain
+
+After explicit CLI quiet release and manager START, the inspected observer ran
+exactly one complete-command pair: before
+`598c21f063ac4a820dae6b8e3b10f8c395c48fe4` versus executable after
+`5516f5a09808968fb535e54e818ef057608074dd`. Both passed all 37 unchanged
+native cases. External focused-verify wall time was
+**245.64915658300743 → 246.6204901250021 seconds**, a recorded reduction of
+**-0.3954149712972699 percent**. Pytest reported 236.71 → 237.71 seconds.
+This one pair establishes **no observed speed gain**; it does not establish a
+statistical regression, whole-suite timing or achievement of the 85-percent
+target. The separate 103-case correctness readiness remains as recorded above.
+
+The external timer included native-selector preflight, collection, fresh setup,
+execution, reporting and cleanup. Each leg used its own fresh temporary root.
+Native case files were byte-identical with sorted fingerprint
+`f89dadafd5d4bf75e3657968b92f6c700a84f7f2b57662678c18065ee8ea678f`.
+Input probes stayed stable within each pin; host/interpreter/dependency and
+manifest records matched across the pair. No manifest was rewritten. Native
+session 78826 completed once, and the observer's `finally` restored exact clean
+starting `main` `7a2d677b2590d8440fb1c18ac39c436b02c1e5a8`.
+
+Evidence `.local/remaining-cost/art-script-context-quiet-qoax2cd5/` retains
+per-leg collection logs, native IDs, focused logs and metadata plus `result.json`.
+SHA-256:
+
+- before `focused.log`:
+  `6af106b328024a80167e442680cd9b801e804ecfa0e2b99da696e58600b2e984`;
+- after `focused.log`:
+  `b55ec0fb8d9261986f3519babf602a7ab1f2582df2109793436ef6874de8a4f1`;
+- `result.json`:
+  `c74464853c1e588f953a7e221730e2d86b2368d0a66939b1979446fcf5b56e43`;
+- observer `.local/remaining-cost/art_script_context_quiet_pair.py`:
+  `3f2125ad69ab17815733df7be61298e0ef1c3d02730ad482819e02776c70dc7e`.
+
+The manager independently verified logs/hashes, all 37 passes, matched IDs,
+source/host/dependency probes, arithmetic and clean restoration, accepting the
+measurement as scoped evidence. CLI's quiet interval was then explicitly
+released. No retry, profiling, full gate, provider work or source edit ran in
+the allocation. Do not tune tests, infer speed from fewer resolutions, revert
+structural correctness work from this one small timing difference, or introduce
+speculative caching. The inspected one-case current-source attribution proposal
+is the next evidence need; it remains unexecuted pending a separate START.
+All earlier pair pins remain unchanged; combined full qualification stays open.
+
 ### Historical material-closure attribution — read-only extraction
 
 The manager extracted the existing main-thread complete-pack profile without
