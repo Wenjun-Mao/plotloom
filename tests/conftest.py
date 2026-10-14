@@ -30,3 +30,11 @@ def source_project(
         yield store
     finally:
         store.close()
+
+
+@pytest.fixture(scope="session")
+def geometry_frame_seed(tmp_path_factory):
+    """One fully closed current-contract seed; consumers only open case copies."""
+    from tests.autopilot_geometry_fixtures import build_geometry_frame_seed
+
+    return build_geometry_frame_seed(tmp_path_factory.mktemp("geometry-frame-seed"))

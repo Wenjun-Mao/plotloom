@@ -51,3 +51,42 @@ project home, reopen through the project-folder owner, and preserve the
 cross-copy mutation guard. Keep seed creation global and immutable, but keep the
 copying optimization scoped to graph-command cases whose repeated setup was
 measured.
+
+## Geometry-corruption consumer — October 14, 2026
+
+The owner-approved fixture-reuse follow-up extends this pattern only to the
+seven geometry-lineage ordinary-open corruption variants. Their repeated real
+current-policy fake-host text/image/geometry setup is a shared precondition;
+the fault mutation and full ordinary-open refusal remain per-case behavior.
+The unchanged derivative-generation and restart/rollback cases keep complete
+function-scoped setup. Runtime improvement is unmeasured until a quiet matched
+comparison; do not infer a whole-suite gain from removing repeated setup.
+
+Build one real first-geometry-frame seed per pytest session, with construction
+patches scoped to that build. Require an empty pending fake-host set, terminal
+host statuses and persisted attempts, and no reserved/unknown/cancel-pending
+native work. Close service threads/controller descriptors and every project
+handle. Preserve the original logically running run and open project state:
+this is fixture-only resource quiescence, not production snapshot/restore or
+lifecycle-close eligibility. Copies must never dispatch or continue that run.
+
+Freeze complete project and disposable application bytes with only scalar/path
+metadata. Reject SQLite sidecars, symlinks, nonregular files and hard links;
+acquire existing controller/project locks to refuse active readers/writers.
+Copy the complete root physically into an absent case root. Compare inventory/
+hashes and independent inodes, then instantiate fresh storage/catalog owners
+and obtain a new typed view through ordinary project admission. No live handle,
+parsed authority, writable asset, application state or lock inode is shared.
+
+Completed native attempts/receipts and absolute execution provenance stay byte
+identical as evidence. Do not rebind paths/identities/hashes or instantiate a
+host/controller for copies. Ordinary-open asset checks use the copied admitted
+database home; prove this by making the seed location unavailable. Guard sibling
+and seed independence after database, asset and application mutations, distinct
+project/controller locks, seed immutability and refusal of active/sidecar/link
+inputs. Production validation, corruption checks and authority are unchanged.
+
+Attended independent Sol/Medium read-only design and stable code reviews found
+no actionable issues. Twenty-seven focused checks passed; quiet measurement and
+combined full qualification remain open. Implementation evidence belongs in the existing
+[Python follow-up](../roadmap/2026-10-14-python-context-and-workers.md).

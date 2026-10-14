@@ -43,6 +43,7 @@
           "tests/test_autopilot_handoff.py",
           "tests/test_autopilot_creator_confirmation.py",
           "tests/test_autopilot_geometry.py",
+          "tests/test_autopilot_geometry_seed.py",
           "tests/test_autopilot_geometry_publication.py",
           "tests/test_autopilot_brief_style.py"
         ],
@@ -579,6 +580,12 @@
   "support_dependencies": [
     {
       "suite": "pytest",
+      "path": "tests/autopilot_geometry_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["story-authoring"]
+    },
+    {
+      "suite": "pytest",
       "path": "tests/autopilot_image_fixtures.py",
       "kind": "shared-fixture-or-helper",
       "consumers": ["story-authoring"]
@@ -1111,7 +1118,8 @@
       "path": "tests/conftest.py",
       "kind": "conftest",
       "consumers": [
-        "graph"
+        "graph",
+        "story-authoring"
       ]
     },
     {

@@ -1,7 +1,9 @@
 # Python context reuse and bounded worker experiment
 
-Status: owner-approved slice implemented, independently reviewed, locally
-full-qualified and integrated on October 14, 2026. This continues the
+Status: the first owner-approved slice was independently reviewed, locally
+full-qualified and integrated on October 14, 2026. The later historical-scheduler
+and geometry-fixture continuation is implemented with focused checks and
+independent review; fresh measurement and combined full qualification are open. This continues the
 [testing-health plan](2026-10-10-testing-health-cleanup.md),
 not a redefinition of its 85-percent complete-suite wall-time target.
 
@@ -352,6 +354,121 @@ build the same valid geometry-frame project before injecting their own fault.
 A real closed seed copied into isolated roots might avoid duplicate setup while
 preserving every ordinary-open corruption check. This is an unmeasured lead;
 no fixture change or new authority decision is implied by this observation.
+
+### Frozen CLI integration baseline
+
+The manager explicitly released frozen CLI `c5c2414d` for local integration,
+overriding this task's earlier no-merge restriction only. Clean merge baseline
+`e1a798300b25047a92f4a7f3ea71b21a77b0ea9b` has parents `0a515687` and
+`c5c2414d`; production `src`, `services`, frontend and dependency inputs exactly
+match the frozen CLI tree. Scheduler code, guards, ADR and development commands
+are unchanged from the Python parent. The roadmap-only conflict retains current
+per-checkout ownership and historical evidence. A bounded independent Sol/Medium
+read-only merge review found no blockers; no reviewer checks were run.
+
+Minimal affected `focused` verification passed **63 cases**:
+`test_python_suite_history_integration`, `test_python_suite_completion`,
+`test_python_suite_runner`, `test_verification_module_ownership` and
+`test_verify_script` (all under `tests/`). Log
+`.local/remaining-cost/python-cli-merge-guards.log`, SHA-256
+`34dc7f28cf8195242cc7c5723f6cc8fffc1c619e9c85041c3b990c5a66343576`.
+The diff against frozen CLI passes whitespace checks. A merge-wide whitespace
+check also reports two already-imported trailing blank lines in the frozen CLI
+validator services; those source bytes were preserved. This is local merge
+preservation and focused readiness, not release or performance qualification.
+No separate scheduler-only full run is allocated; combined final qualification
+can cover the stable source later. No push, hosted CI or activation was done.
+
+### Current-contract geometry seed slice — preselected before implementation
+
+Use clean integrated `e1a79830` as the before revision. The bounded target is
+only the seven variants of
+`tests/test_autopilot_geometry.py::test_tampered_or_missing_lineage_refuses_ordinary_open`.
+The fault mutations and ordinary-open assertions stay unchanged. Exclude the
+handoff matrix from this slice. Preselect the same matched union before/after:
+
+- that seven-case geometry corruption function;
+- `tests/test_autopilot_geometry.py::test_geometry_derivative_retains_original_and_no_native_job_increment`;
+- `tests/test_autopilot_geometry.py::test_failure_then_restart_reuses_local_identity_without_regeneration` (two cases);
+- `tests/test_autopilot_geometry.py::test_recipe_is_exif_transposed_centered_cover_at_exact_dimensions`.
+
+This is eleven current supported cases, including unchanged real-generation,
+restart/rollback and pure geometry controls. Retain collected IDs and exact
+revisions; no before timing has run yet. New seed/isolation guards run separately
+and cannot alter the matched inventory. Any later benchmark needs the manager's
+quiet window and fresh roots, and includes real seed setup/copy cost.
+
+Design proposed for attended independent review: create the same real current-
+policy fake-host geometry-frame project once per pytest session; require no
+pending fake-host work or unsettled durable attempts, close the service and all
+project handles, and reject any remaining SQLite sidecars or links. Freeze the
+entire fixture root, including project bytes and disposable application state.
+Each case receives a complete physical copy under its unique temporary root,
+a fresh storage/catalog and independent locks. Reopen through normal project
+admission, recover a new typed view from the copy, then run the unchanged fault
+and refusal logic. Never recreate host/service objects or dispatch from a copy;
+retained attempt identities remain evidence and are neither rebound nor replayed.
+
+Guard that seed and copies have independent file inodes, application/controller
+and project locks are independent, completed CLI attempt/receipt bytes remain
+unchanged, ordinary admission reads only copied project assets despite retained
+absolute execution provenance, sibling copies stay valid after database/asset
+mutations, seed bytes remain unchanged and active-resource/sidecar/link inputs
+are refused. Preserve the logically running run and future unstarted work from
+the original corruption scenario; do not pause it or invoke product snapshot/
+restore. This fixture-only quiescence means stopped service, closed handles and
+no unresolved native attempts, not production lifecycle-close eligibility.
+No writable handles or parsed authority are shared; no production validation
+is skipped or cached. Extend ADR 0158's existing closed-seed contract
+with this narrowly scoped geometry consumer after review. Retain unchanged
+whole-generation paths outside the seven corruption variants.
+
+### Geometry fixture implementation checkpoint
+
+The reviewed seed/copy design is implemented under ADR 0158's narrow extension.
+One real current-contract setup reaches the first geometry frame; all fake-host
+statuses/persisted attempts are terminal, pending work is empty and service/
+project resources are closed. Copies retain exact evidence but never construct
+a host/controller or dispatch. Each copy uses independent physical files,
+application state, catalogs and locks and opens through full ordinary admission.
+The seven original fault mutations and refusal assertions are AST-identical to
+clean integrated `e1a79830`; generation/restart controls retain fresh setup.
+
+The first **23 focused cases passed** (nine seed guards, seven corruption
+variants and seven ownership checks). After preflight tightening to reject links
+before opening even lock paths, **27 focused cases passed**: the eleven
+preselected cases, nine isolation guards and seven module-ownership checks.
+Log `.local/remaining-cost/geometry-seed-guards.log`, SHA-256
+`ec2931f40b8891aed08759b7098bb73a2e4173f4a83d648aab05b7cc1c8cd56e`.
+Scoped Ruff F401 and diff checks passed. Two already-unused imports in the
+touched geometry module were removed. The root conftest's declared consumers
+now include story-authoring as well as graph; all seven ownership guards passed
+again for that manifest-only correction (`geometry-seed-ownership.log`).
+No production source or dependencies changed.
+
+The attended independent Sol/Medium stable code review found no actionable
+issues and ran no checks. It confirmed resource closure, independent copies,
+normal admission and unchanged corruption coverage. Guard evidence includes
+successful copied asset reads while the seed location is unavailable, exact
+attempt/receipt preservation, sibling database/asset/application mutation
+isolation, independent project/controller locks, and refusal of active resource,
+sidecar, symlink, hard-link, FIFO or changed-byte seeds. Seed hashes stay intact.
+
+The exact preselected eleven IDs match before/after in
+`.local/remaining-cost/geometry-seed-{before,after}-native-cases.txt`; their
+sorted native-ID fingerprint is
+`68c0c97fad698898aad733dc81c9299573c1e7038c34056c4cab06f781047ad0`.
+Before is immutable integrated `e1a79830`; the after executable checkpoint is
+recorded in the ensuing commit. Fresh benchmark commands must include session
+seed creation and physical copy cost, use the same eleven selectors and fresh
+temporary roots, and run only in a manager-allocated quiet window. New guards
+remain outside that matched union. Contended correctness runtimes are not
+performance evidence, and no timing manifest was rewritten.
+
+This is implementation/focused-review readiness, not measured speed or full
+release qualification. Combined final full qualification, quiet before/after
+measurement, publication and product acceptance remain separate. The original
+85-percent / 151.733s fixed-resource target remains unmet; keep default two.
 
 ## Residual-cost investigation — historical proposal, now separately scoped
 
