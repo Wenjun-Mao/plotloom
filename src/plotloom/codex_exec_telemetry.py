@@ -1,22 +1,21 @@
 """Strict parsing of the qualified Codex CLI and private session event shapes."""
 from __future__ import annotations
 
-import ast
 import json
+import os
+import stat
 from dataclasses import dataclass
+from hashlib import sha256
 from pathlib import Path
-from typing import Any
 from uuid import UUID
 
-
-class CodexExecTelemetryError(ValueError):
-    """The installed CLI emitted an unsupported or unbound evidence shape."""
-
-
-@dataclass(frozen=True)
-class _Token:
-    kind: str
-    value: Any
+from .codex_exec_tool_source import (
+    CodexExecTelemetryError,
+    image_view_event_path,
+    parse_imagegen_tool_source,
+    parse_view_image_tool_source,
+    validate_inline_image_result,
+)
 
 
 @dataclass(frozen=True)
@@ -26,6 +25,7 @@ class ImageGenCall:
     reference_paths: tuple[str, ...]
     transparent_background: bool
     num_last_images_to_include: int | None
+    ordinal: int = 0
 
 
 @dataclass(frozen=True)
@@ -35,6 +35,28 @@ class ImageGenEvent:
     status: str
     saved_path: str | None
     transparent_background: bool | None
+    ordinal: int = 0
+
+
+@dataclass(frozen=True)
+class ReferenceViewEvidence:
+    call_id: str
+    event_id: str
+    path: str
+    call_ordinal: int
+    event_ordinal: int
+    output_ordinal: int
+    content_sha256: str
+    content_size_bytes: int
+
+
+@dataclass
+class _PendingReferenceView:
+    call_id: str
+    path: str
+    call_ordinal: int
+    event_id: str | None = None
+    event_ordinal: int | None = None
 
 
 @dataclass(frozen=True)
@@ -44,227 +66,11 @@ class CodexSessionEvidence:
     image_events: tuple[ImageGenEvent, ...]
     transcript_sha256: str
     transcript_size_bytes: int
-
-
-def _tokens(source: str, *, allow_unrelated_syntax: bool = False) -> tuple[_Token, ...]:
-    values: list[_Token] = []
-    index = 0
-    while index < len(source):
-        char = source[index]
-        if char.isspace():
-            index += 1
-            continue
-        if source.startswith("//", index):
-            ending = source.find("\n", index + 2)
-            index = len(source) if ending < 0 else ending + 1
-            continue
-        if source.startswith("/*", index):
-            ending = source.find("*/", index + 2)
-            if ending < 0:
-                raise CodexExecTelemetryError("tool source has an unterminated comment")
-            index = ending + 2
-            continue
-        if char in {'"', "'"}:
-            quote = char
-            start = index
-            index += 1
-            escaped = False
-            while index < len(source):
-                current = source[index]
-                if escaped:
-                    escaped = False
-                elif current == "\\":
-                    escaped = True
-                elif current == quote:
-                    index += 1
-                    break
-                index += 1
-            else:
-                raise CodexExecTelemetryError("tool source has an unterminated string")
-            literal = source[start:index]
-            try:
-                value = json.loads(literal) if quote == '"' else ast.literal_eval(literal)
-            except (ValueError, SyntaxError, json.JSONDecodeError) as error:
-                if allow_unrelated_syntax:
-                    values.append(_Token("opaque_string", None))
-                    continue
-                raise CodexExecTelemetryError("tool source string is not a supported literal") from error
-            if not isinstance(value, str):
-                raise CodexExecTelemetryError("tool source string is not text")
-            values.append(_Token("string", value))
-            continue
-        if char == "`":
-            # The qualified ImageGen source shape does not use templates. Keep
-            # them opaque for unrelated exec snippets; if an ImageGen call is
-            # also present, the exact whole-source grammar below rejects it.
-            index += 1
-            escaped = False
-            while index < len(source):
-                current = source[index]
-                index += 1
-                if escaped:
-                    escaped = False
-                elif current == "\\":
-                    escaped = True
-                elif current == "`":
-                    break
-            if not allow_unrelated_syntax:
-                raise CodexExecTelemetryError("ImageGen arguments cannot use template strings")
-            values.append(_Token("opaque_string", None))
-            continue
-        if char.isalpha() or char in "_$":
-            start = index
-            index += 1
-            while index < len(source) and (source[index].isalnum() or source[index] in "_$"):
-                index += 1
-            values.append(_Token("identifier", source[start:index]))
-            continue
-        if char.isdigit():
-            start = index
-            index += 1
-            while index < len(source) and source[index].isdigit():
-                index += 1
-            values.append(_Token("number", int(source[start:index])))
-            continue
-        if char in "{}[]():,.;=":
-            values.append(_Token(char, char))
-            index += 1
-            continue
-        if allow_unrelated_syntax:
-            values.append(_Token("other", char))
-            index += 1
-            continue
-        raise CodexExecTelemetryError("tool source contains unsupported syntax")
-    return tuple(values)
-
-
-class _ObjectParser:
-    def __init__(self, tokens: tuple[_Token, ...], index: int):
-        self.tokens = tokens
-        self.index = index
-
-    def take(self, kind: str) -> _Token:
-        if self.index >= len(self.tokens) or self.tokens[self.index].kind != kind:
-            raise CodexExecTelemetryError("ImageGen arguments have an unsupported shape")
-        token = self.tokens[self.index]
-        self.index += 1
-        return token
-
-    def value(self):
-        if self.index >= len(self.tokens):
-            raise CodexExecTelemetryError("ImageGen arguments are incomplete")
-        token = self.tokens[self.index]
-        self.index += 1
-        if token.kind == "string" or token.kind == "number":
-            return token.value
-        if token.kind == "identifier" and token.value in {"true", "false", "null"}:
-            return {"true": True, "false": False, "null": None}[token.value]
-        if token.kind == "[":
-            result = []
-            if self.index < len(self.tokens) and self.tokens[self.index].kind == "]":
-                self.index += 1
-                return result
-            while True:
-                value = self.value()
-                if not isinstance(value, str):
-                    raise CodexExecTelemetryError("ImageGen reference arguments must be literal paths")
-                result.append(value)
-                if self.index < len(self.tokens) and self.tokens[self.index].kind == "]":
-                    self.index += 1
-                    return result
-                self.take(",")
-        raise CodexExecTelemetryError("ImageGen arguments must use supported literal values")
-
-    def imagegen_arguments(self) -> dict[str, Any]:
-        self.take("(")
-        self.take("{")
-        result: dict[str, Any] = {}
-        while self.index < len(self.tokens) and self.tokens[self.index].kind != "}":
-            token = self.tokens[self.index]
-            self.index += 1
-            if token.kind not in {"identifier", "string"}:
-                raise CodexExecTelemetryError("ImageGen argument names must be literal keys")
-            key = token.value
-            if key in result:
-                raise CodexExecTelemetryError("ImageGen arguments cannot repeat a field")
-            self.take(":")
-            result[key] = self.value()
-            if self.index < len(self.tokens) and self.tokens[self.index].kind == "}":
-                break
-            self.take(",")
-        self.take("}")
-        self.take(")")
-        allowed = {"prompt", "images", "transparent_background", "num_last_images_to_include"}
-        if set(result) - allowed or not isinstance(result.get("prompt"), str) or not result["prompt"].strip():
-            raise CodexExecTelemetryError("ImageGen arguments do not match the supported prompt contract")
-        if type(result.get("transparent_background")) is not bool:
-            raise CodexExecTelemetryError("ImageGen transparency must be an explicit boolean")
-        if "images" in result and not isinstance(result["images"], list):
-            raise CodexExecTelemetryError("ImageGen references must be a literal path list")
-        prior = result.get("num_last_images_to_include")
-        if prior is not None and (type(prior) is not int or prior != 0):
-            raise CodexExecTelemetryError("ImageGen cannot consume prior-session outputs")
-        return result
-
-
-def parse_imagegen_tool_source(source: str) -> dict[str, Any] | None:
-    """Parse the sole supported, awaited top-level ImageGen expression.
-
-    The CLI transcript records JavaScript source and a separate extension
-    event, but does not bind that event to the source call's arguments. Only
-    accepting one direct statement prevents a dead branch, helper function,
-    template interpolation, or unrelated call from donating arguments to an
-    observed event.
-    """
-    tokens = _tokens(source, allow_unrelated_syntax=True)
-    matches = []
-    imagegen_names = [index for index, token in enumerate(tokens)
-                      if token.kind == "identifier" and token.value == "image_gen__imagegen"]
-    for index in imagegen_names:
-        is_builtin = (
-            index >= 2
-            and tokens[index - 2].kind == "identifier" and tokens[index - 2].value == "tools"
-            and tokens[index - 1].kind == "."
-            and (index == 2 or tokens[index - 3].kind != ".")
-            and index + 1 < len(tokens) and tokens[index + 1].kind == "("
-        )
-        if not is_builtin:
-            raise CodexExecTelemetryError("ImageGen call does not use the exact built-in tools namespace")
-        matches.append(index + 1)
-    if not matches:
-        return None
-    if len(matches) != 1:
-        raise CodexExecTelemetryError("one CLI tool invocation cannot contain multiple ImageGen calls")
-    index = matches[0] - 1
-    expected_prefix = (
-        _Token("identifier", "await"),
-        _Token("identifier", "tools"),
-        _Token(".", "."),
-    )
-    if index != len(expected_prefix) or tokens[:index] != expected_prefix:
-        raise CodexExecTelemetryError(
-            "ImageGen evidence requires one direct top-level awaited built-in call"
-        )
-    parser = _ObjectParser(tokens, matches[0])
-    arguments = parser.imagegen_arguments()
-    suffix = tokens[parser.index:]
-    if suffix not in {(), (_Token(";", ";"),)}:
-        raise CodexExecTelemetryError(
-            "ImageGen evidence cannot share an exec snippet with other JavaScript"
-        )
-    if any(token.kind == "opaque_string" for token in tokens):
-        raise CodexExecTelemetryError(
-            "ImageGen evidence cannot share an exec snippet with opaque template code"
-        )
-    return arguments
+    reference_views: tuple[ReferenceViewEvidence, ...] = ()
 
 
 def read_cli_session(session_path: Path, expected_session_id: UUID, *, max_event_bytes: int, max_total_bytes: int) -> CodexSessionEvidence:
     """Read only the session named by the CLI thread.started event."""
-    from hashlib import sha256
-    import os
-    import stat
-
     if max_event_bytes < 1 or max_total_bytes < max_event_bytes:
         raise ValueError("Codex session byte limits must be positive and ordered")
     if session_path.is_symlink():
@@ -275,7 +81,11 @@ def read_cli_session(session_path: Path, expected_session_id: UUID, *, max_event
     calls: list[ImageGenCall] = []
     pending: list[ImageGenCall] = []
     events: list[ImageGenEvent] = []
+    exec_call_ids: set[str] = set()
     event_ids_by_call: dict[str, str] = {}
+    reference_views: list[ReferenceViewEvidence] = []
+    pending_view: _PendingReferenceView | None = None
+    view_event_ids: set[str] = set()
     first = True
     last_ordinal = -1
     try:
@@ -307,44 +117,115 @@ def read_cli_session(session_path: Path, expected_session_id: UUID, *, max_event
                             or metadata.get("id") != str(expected_session_id)):
                         raise CodexExecTelemetryError("Codex session file does not belong to the exact CLI session")
                 ordinal = row.get("ordinal")
-                if type(ordinal) is int:
-                    if ordinal <= last_ordinal:
-                        raise CodexExecTelemetryError("Codex session event order is not monotonic")
-                    last_ordinal = ordinal
+                if type(ordinal) is not int or ordinal <= last_ordinal:
+                    raise CodexExecTelemetryError("Codex session event order is not monotonic and complete")
+                last_ordinal = ordinal
                 payload = row.get("payload")
-                if row["type"] == "response_item" and isinstance(payload, dict) and payload.get("type") == "custom_tool_call":
-                    tool_name = payload.get("name")
-                    if tool_name != "exec":
-                        raise CodexExecTelemetryError("Codex session contains an unsupported custom tool")
-                    source = payload.get("input")
-                    call_id = payload.get("call_id")
-                    if not isinstance(source, str) or not isinstance(call_id, str) or not call_id:
-                        raise CodexExecTelemetryError("Codex tool call lacks its typed source and ID")
-                    arguments = parse_imagegen_tool_source(source)
-                    if arguments is not None:
-                        call = ImageGenCall(
-                            call_id=call_id,
-                            prompt=arguments["prompt"],
-                            reference_paths=tuple(arguments.get("images", ())),
-                            transparent_background=arguments["transparent_background"],
-                            num_last_images_to_include=arguments.get("num_last_images_to_include"),
-                        )
-                        if any(prior.call_id == call.call_id for prior in calls):
-                            raise CodexExecTelemetryError("Codex ImageGen call IDs are not unique")
-                        calls.append(call)
-                        pending.append(call)
+                if row["type"] == "response_item" and isinstance(payload, dict):
+                    if payload.get("type") == "custom_tool_call":
+                        tool_name = payload.get("name")
+                        if tool_name != "exec":
+                            raise CodexExecTelemetryError("Codex session contains an unsupported custom tool")
+                        source = payload.get("input")
+                        call_id = payload.get("call_id")
+                        if not isinstance(source, str) or not isinstance(call_id, str) or not call_id:
+                            raise CodexExecTelemetryError("Codex tool call lacks its typed source and ID")
+                        try:
+                            call_id_size = len(call_id.encode("utf-8", "strict"))
+                        except UnicodeEncodeError:
+                            call_id_size = 161
+                        if call_id_size > 160 or call_id in exec_call_ids:
+                            raise CodexExecTelemetryError("Codex exec call IDs must be unique and bounded")
+                        exec_call_ids.add(call_id)
+                        view_path = parse_view_image_tool_source(source)
+                        arguments = parse_imagegen_tool_source(source)
+                        if view_path is not None:
+                            if pending_view is not None or calls:
+                                raise CodexExecTelemetryError("reference views must complete before ImageGen and cannot overlap")
+                            pending_view = _PendingReferenceView(call_id, view_path, ordinal)
+                        elif arguments is not None:
+                            if pending_view is not None:
+                                raise CodexExecTelemetryError("ImageGen cannot start before its reference view result completes")
+                            call = ImageGenCall(
+                                call_id=call_id,
+                                prompt=arguments["prompt"],
+                                reference_paths=tuple(arguments.get("referenced_image_paths", ())),
+                                transparent_background=arguments["transparent_background"],
+                                num_last_images_to_include=arguments.get("num_last_images_to_include"),
+                                ordinal=ordinal,
+                            )
+                            if any(prior.call_id == call.call_id for prior in calls):
+                                raise CodexExecTelemetryError("Codex ImageGen call IDs are not unique")
+                            calls.append(call)
+                            pending.append(call)
+                    elif payload.get("type") == "custom_tool_call_output":
+                        output = payload.get("output")
+                        if pending_view is not None:
+                            if payload.get("call_id") != pending_view.call_id:
+                                raise CodexExecTelemetryError("view_image result does not match its exact exec call")
+                            if pending_view.event_id is None or pending_view.event_ordinal is None:
+                                raise CodexExecTelemetryError("view_image result lacks its exact ImageView event")
+                            if not pending_view.call_ordinal < pending_view.event_ordinal < ordinal:
+                                raise CodexExecTelemetryError("view_image evidence is not in exact call, event and result order")
+                            image = validate_inline_image_result(output, max_bytes=max_event_bytes)
+                            reference_views.append(ReferenceViewEvidence(
+                                call_id=pending_view.call_id,
+                                event_id=pending_view.event_id,
+                                path=pending_view.path,
+                                call_ordinal=pending_view.call_ordinal,
+                                event_ordinal=pending_view.event_ordinal,
+                                output_ordinal=ordinal,
+                                content_sha256=image.content_sha256,
+                                content_size_bytes=image.size_bytes,
+                            ))
+                            pending_view = None
+                        elif isinstance(output, list) and any(
+                            isinstance(block, dict) and block.get("type") == "input_image" for block in output
+                        ):
+                            raise CodexExecTelemetryError("image content is not bound to a successful view_image call")
                 if row["type"] == "event_msg" and isinstance(payload, dict) and isinstance(payload.get("item"), dict):
                     item = payload["item"]
-                    if item.get("type") == "Extension":
+                    if item.get("type") == "ImageView":
+                        if (
+                            pending_view is None or pending_view.event_id is not None
+                            or set(item) != {"id", "path", "type"}
+                        ):
+                            raise CodexExecTelemetryError("ImageView event has no exact pending view_image call")
+                        event_id = item.get("id")
+                        try:
+                            event_id_size = len(event_id.encode("utf-8", "strict")) if isinstance(event_id, str) else 0
+                        except UnicodeEncodeError:
+                            event_id_size = 161
+                        if not isinstance(event_id, str) or not event_id or event_id_size > 160:
+                            raise CodexExecTelemetryError("ImageView event lacks its exact bounded ID")
+                        if event_id in view_event_ids:
+                            raise CodexExecTelemetryError("ImageView event IDs are not unique")
+                        event_path = image_view_event_path(item.get("path"))
+                        if event_path != pending_view.path:
+                            raise CodexExecTelemetryError("ImageView event path differs from its exact source argument")
+                        pending_view.event_id = event_id
+                        pending_view.event_ordinal = ordinal
+                        view_event_ids.add(event_id)
+                    elif item.get("type") == "Extension":
+                        if pending_view is not None:
+                            raise CodexExecTelemetryError("ImageGen event arrived before the reference view result")
                         if item.get("kind") != "image_gen.generation" or not pending:
                             raise CodexExecTelemetryError("Codex extension event has no matching ImageGen tool call")
                         status = item.get("status")
                         if status not in {"in_progress", "completed", "failed"}:
                             raise CodexExecTelemetryError("Codex ImageGen event status is unsupported")
                         call = pending[0]
+                        if ordinal <= call.ordinal:
+                            raise CodexExecTelemetryError("Codex ImageGen event precedes its exact tool call")
                         event_id = item.get("id")
                         if not isinstance(event_id, str) or not event_id:
                             raise CodexExecTelemetryError("Codex ImageGen event lacks its exact event ID")
+                        try:
+                            event_id_size = len(event_id.encode("utf-8", "strict"))
+                        except UnicodeEncodeError:
+                            event_id_size = 161
+                        if event_id_size > 160 or event_id in view_event_ids:
+                            raise CodexExecTelemetryError("Codex ImageGen event ID is invalid or collides with a view event")
                         prior_event_id = event_ids_by_call.setdefault(call.call_id, event_id)
                         if prior_event_id != event_id:
                             raise CodexExecTelemetryError("Codex ImageGen progress changed its event identity")
@@ -366,6 +247,7 @@ def read_cli_session(session_path: Path, expected_session_id: UUID, *, max_event
                                 status=status,
                                 saved_path=saved_path,
                                 transparent_background=transparency,
+                                ordinal=ordinal,
                             ))
         final = os.fstat(descriptor)
         current = session_path.stat(follow_symlinks=False)
@@ -375,10 +257,14 @@ def read_cli_session(session_path: Path, expected_session_id: UUID, *, max_event
             raise CodexExecTelemetryError("Codex session changed during evidence inspection")
         if first:
             raise CodexExecTelemetryError("Codex session evidence is empty")
+        if pending_view is not None:
+            raise CodexExecTelemetryError("view_image call lacks its exact ImageView event and inline result")
         if pending:
             raise CodexExecTelemetryError("ImageGen call lacks its exact terminal extension event")
         if len({event.event_id for event in events}) != len(events):
             raise CodexExecTelemetryError("Codex ImageGen event IDs are not unique")
-        return CodexSessionEvidence(expected_session_id, tuple(calls), tuple(events), digest.hexdigest(), total)
+        return CodexSessionEvidence(
+            expected_session_id, tuple(calls), tuple(events), digest.hexdigest(), total, tuple(reference_views)
+        )
     finally:
         os.close(descriptor)

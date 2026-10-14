@@ -14,16 +14,16 @@ from .codex_exec_contracts import (
     image_arguments_hash,
 )
 from .codex_exec_files import scan_regular_tree
+from .codex_exec_telemetry import CodexSessionEvidence, ImageGenCall, ImageGenEvent
 from .creative_handoff_contracts import (
     CreativeDeliveryManifest,
     CreativeExecutorProvenance,
     CreativeHandoffRequest,
 )
 from .creative_handoff_exchange import canonical_json
-from .codex_exec_telemetry import CodexSessionEvidence, ImageGenCall, ImageGenEvent
 from .image_job_contracts import (
     ImageDeliveryManifest,
-    ImageExecutorProvenance as ImageExecutorProvenance,
+    ImageExecutorProvenance,
     ImageJobOutput,
     ImageReferenceUse,
     ImageToolEvidence,
@@ -146,7 +146,7 @@ def publish_image_completion(
     reference_hashes: tuple[str, ...],
     publish_marker: bool = True,
 ) -> ImageDeliveryManifest:
-    """Publish v4 image provenance from one exact built-in event and byte set."""
+    """Publish v5 image provenance from exact source-view and built-in event evidence."""
     assert_receipt_matches_attempt(attempt, receipt)
     if (
         attempt.domain != "image"
@@ -165,9 +165,51 @@ def publish_image_completion(
         raise ValueError("Codex Exec image delivery does not match its exact frozen attempt and session")
     package_references = request.get("references")
     if not isinstance(package_references, list):
-        raise ValueError("Codex Exec image package has no frozen reference inventory")
+        raise TypeError("Codex Exec image package has no frozen reference inventory")
     expected_hashes = tuple(item.get("sha256") for item in package_references if isinstance(item, dict))
-    if len(expected_hashes) != len(package_references) or set(reference_hashes) != set(expected_hashes):
+    expected_views = tuple(
+        (item["role"], item["filename"], item["sha256"])
+        for item in package_references
+        if isinstance(item, dict) and set(item) == {"role", "filename", "sha256"}
+    )
+    actual_views = tuple(
+        (item.role, item.package_relative_path, item.reference_hash)
+        for item in receipt.reference_views
+    )
+    package = job_root / "package"
+    session_views = tuple(
+        (
+            item.call_id,
+            item.event_id,
+            item.path,
+            item.call_ordinal,
+            item.event_ordinal,
+            item.output_ordinal,
+            item.content_sha256,
+            item.content_size_bytes,
+        )
+        for item in session.reference_views
+    )
+    receipt_views = tuple(
+        (
+            item.call_id,
+            item.event_id,
+            str((package / item.package_relative_path).resolve(strict=True)),
+            item.call_ordinal,
+            item.event_ordinal,
+            item.output_ordinal,
+            item.content_sha256,
+            item.content_size_bytes,
+        )
+        for item in receipt.reference_views
+    )
+    if (
+        len(expected_hashes) != len(package_references)
+        or len(expected_views) != len(package_references)
+        or tuple(reference_hashes) != expected_hashes
+        or actual_views != expected_views
+        or session_views != receipt_views
+    ):
         raise ValueError("actual ImageGen references differ from the exact frozen package bytes")
     image_evidence = receipt.image_evidence[0]
     expected_arguments = image_arguments_hash(
@@ -178,6 +220,7 @@ def publish_image_completion(
     )
     if (
         image_evidence.call_id != call.call_id
+        or image_evidence.call_ordinal != call.ordinal
         or image_evidence.event_id != event.event_id
         or image_evidence.arguments_hash != expected_arguments
         or image_evidence.prompt_hash != sha256(call.prompt.encode("utf-8")).hexdigest()
@@ -204,17 +247,13 @@ def publish_image_completion(
         else "refinement" if kind == "refinement"
         else "original"
     )
-    identity_hashes = tuple(
-        item["sha256"] for item in package_references
-        if isinstance(item, dict) and str(item.get("role", "")).startswith("character_identity")
-    )
     reference_use = ImageReferenceUse(
-        viewedReferenceHashes=list(identity_hashes),
+        viewedReferenceHashes=[item.reference_hash for item in receipt.reference_views],
         identityNotes=(
-            "The exact frozen character identity bytes were supplied to built-in ImageGen; creator visual review remains pending."
-            if identity_hashes else "No frozen character identity references were supplied to this image job."
+            "The trusted host records each exact frozen package reference emitted as image content before ImageGen; "
+            "this does not assert interpretation or approval."
         ),
-    ) if identity_hashes else None
+    ) if receipt.reference_views else None
     provenance = ImageExecutorProvenance(
         codeRevision=execution_pin["codeRevision"],
         skillVersion=execution_pin["skillVersion"],
@@ -223,7 +262,7 @@ def publish_image_completion(
         reasoningEffort=profile.reasoning_effort,
     )
     manifest = ImageDeliveryManifest(
-        schemaVersion=4,
+        schemaVersion=5,
         jobId=attempt.job_id,
         requestHash=attempt.request_hash,
         deliveryId=uuid4().hex,

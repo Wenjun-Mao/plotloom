@@ -10,9 +10,9 @@ class CodexExecSupervisorTerminalMixin:
     def _build_manifest_json(self, attempt, profile, package_request, job_root, terminal, receipt,
                              session, image_facts, image_call, image_event, reference_hashes):
         if attempt.domain == "text":
+            from plotloom.codex_exec_delivery import publish_creative_completion
             from plotloom.creative_handoff_contracts import CreativeHandoffRequest
             from plotloom.creative_handoff_exchange import canonical_json
-            from plotloom.codex_exec_delivery import publish_creative_completion
             raw_request = {
                 key: value for key, value in package_request.items()
                 if key not in {"packageVersion", "requestHash", "candidateFilename", "reportFilename",
@@ -58,7 +58,9 @@ class CodexExecSupervisorTerminalMixin:
             else "failed" if session and any(event.status == "failed" for event in session.image_events)
             else "not_applicable"
         )
-        if attempt.domain == "text" and session and (session.image_calls or session.image_events):
+        if attempt.domain == "text" and session and (
+            session.image_calls or session.image_events or session.reference_views
+        ):
             # A text job cannot settle native ImageGen proof. Preserve its exact
             # session identity and keep host capacity fenced for reconciliation.
             self._mark_unknown(current or attempt, session_id=session_id)

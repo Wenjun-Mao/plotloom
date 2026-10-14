@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from plotloom.codex_exec_profile import DISABLED_CLI_FEATURES, VALIDATOR_FILES
+import pytest
+
+from plotloom.codex_exec_profile import DISABLED_CLI_FEATURES, VALIDATOR_FILES, cli_feature_flags
 
 
 def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources() -> None:
@@ -14,6 +16,7 @@ def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources()
         "src/plotloom/codex_exec_prompts.py",
         "src/plotloom/codex_exec_runtime.py",
         "src/plotloom/codex_exec_telemetry.py",
+        "src/plotloom/codex_exec_tool_source.py",
         "src/plotloom/autopilot_exec.py",
         "src/plotloom/autopilot_image_controller.py",
         "src/plotloom/autopilot_text_controller.py",
@@ -55,6 +58,16 @@ def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources()
         "multi_agent",
         "multi_agent_v2",
         "tool_call_mcp_elicitation",
-        "view_image",
     } <= set(DISABLED_CLI_FEATURES)
+    assert "view_image" not in DISABLED_CLI_FEATURES
     assert not {"web_search_cached", "web_search_request"} & set(DISABLED_CLI_FEATURES)
+
+
+def test_cli_image_capabilities_are_enabled_only_for_image_attempts() -> None:
+    text_flags = cli_feature_flags("text")
+    image_flags = cli_feature_flags("image")
+
+    assert text_flags == ("--disable", "image_generation", "--disable", "view_image")
+    assert image_flags == ("--enable", "image_generation", "--enable", "view_image")
+    with pytest.raises(ValueError, match="supported delivery domain"):
+        cli_feature_flags("other")

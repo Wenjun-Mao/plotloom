@@ -17,6 +17,7 @@ ExecCapability = Literal[
     "exec_json_events_v1",
     "session_rollout_v1",
     "image_gen_event_v1",
+    "image_reference_view_v1",
     "delivery_directory_write_v1",
 ]
 
@@ -94,13 +95,14 @@ class CodexExecProfile(CamelModel):
 
     backend: Literal["codex_exec"] = "codex_exec"
     contract_version: Literal[
-        "plotloom.codex-exec.v1", "plotloom.codex-exec.v2", "plotloom.codex-exec.v3"
-    ] = "plotloom.codex-exec.v3"
+        "plotloom.codex-exec.v1", "plotloom.codex-exec.v2", "plotloom.codex-exec.v3",
+        "plotloom.codex-exec.v4",
+    ] = "plotloom.codex-exec.v4"
     executable_sha256: str = Field(pattern=HASH)
     cli_version: str = Field(min_length=1, max_length=80)
     model: str = Field(min_length=1, max_length=120)
     reasoning_effort: Literal["minimal", "low", "medium", "high", "xhigh", "max"]
-    capabilities: tuple[ExecCapability, ...] = Field(min_length=3, max_length=4)
+    capabilities: tuple[ExecCapability, ...] = Field(min_length=3, max_length=5)
     instruction_hash: str = Field(pattern=HASH)
     validator_hash: str = Field(pattern=HASH)
     # v1 recorded a label for the legacy --sandbox path. v2 names the
@@ -110,7 +112,7 @@ class CodexExecProfile(CamelModel):
     authentication_store: Literal["file"] | None = Field(default=None, exclude_if=lambda value: value is None)
     permission_profile: Literal["plotloom_autopilot_delivery_v2"] | None = Field(default=None, exclude_if=lambda value: value is None)
     tool_profile: Literal[
-        "plotloom_autopilot_tools_v2", "plotloom_autopilot_tools_v3"
+        "plotloom_autopilot_tools_v2", "plotloom_autopilot_tools_v3", "plotloom_autopilot_tools_v4"
     ] | None = Field(default=None, exclude_if=lambda value: value is None)
     max_runtime_seconds: int = Field(ge=30, le=7200)
     max_event_bytes: int = Field(ge=1024, le=50_000_000)
@@ -144,6 +146,13 @@ class CodexExecProfile(CamelModel):
             or self.tool_profile != "plotloom_autopilot_tools_v3"
         ):
             raise ValueError("Codex Exec v3 requires its pinned auth, permission and tool profiles")
+        elif self.contract_version == "plotloom.codex-exec.v4" and (
+            self.sandbox_profile is not None
+            or self.authentication_store != "file"
+            or self.permission_profile != "plotloom_autopilot_delivery_v2"
+            or self.tool_profile != "plotloom_autopilot_tools_v4"
+        ):
+            raise ValueError("Codex Exec v4 requires its pinned auth, permission and reference-view tool profile")
         selected = set(self.capabilities)
         if len(selected) != len(self.capabilities):
             raise ValueError("CLI capability pins must not contain duplicates")
@@ -151,6 +160,8 @@ class CodexExecProfile(CamelModel):
             raise ValueError("CLI profile lacks the serial executor evidence or delivery capability")
         if self.max_image_outputs and "image_gen_event_v1" not in selected:
             raise ValueError("image capacity requires the qualified native ImageGen event capability")
+        if self.contract_version == "plotloom.codex-exec.v4" and "image_reference_view_v1" not in selected:
+            raise ValueError("Codex Exec v4 requires typed reference-view evidence capability")
         payload = self.model_dump(mode="json", by_alias=True)
         if contains_secret_setting(payload) or contains_secret_value(payload):
             raise ValueError("CLI executor profiles cannot contain credentials")
@@ -376,6 +387,7 @@ class CodexExecImageEvidence(CamelModel):
     attempt_id: UUID
     session_id: UUID
     call_id: str = Field(min_length=1, max_length=160)
+    call_ordinal: int = Field(ge=1)
     event_id: str = Field(min_length=1, max_length=160)
     event_type: Literal["image_gen.generation"]
     event_status: Literal["completed"]
@@ -429,6 +441,36 @@ class CodexExecOutputEvidence(CamelModel):
         return self
 
 
+class CodexExecReferenceViewEvidence(CamelModel):
+    """One host-verified frozen package reference emitted as image input before ImageGen."""
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    role: str = Field(min_length=1, max_length=160)
+    package_relative_path: str = Field(min_length=1, max_length=512)
+    reference_hash: str = Field(pattern=HASH)
+    content_sha256: str = Field(pattern=HASH)
+    content_size_bytes: int = Field(ge=1, le=50_000_000)
+    call_id: str = Field(min_length=1, max_length=160)
+    event_id: str = Field(min_length=1, max_length=160)
+    call_ordinal: int = Field(ge=1)
+    event_ordinal: int = Field(ge=1)
+    output_ordinal: int = Field(ge=1)
+
+    @model_validator(mode="after")
+    def canonical_view_identity(self):
+        if "\\" in self.package_relative_path:
+            raise ValueError("reference-view package paths must use canonical POSIX separators")
+        parts = self.package_relative_path.split("/")
+        if len(parts) < 2 or parts[0] != "references" or any(
+            part in {"", ".", ".."} for part in parts
+        ):
+            raise ValueError("reference-view path must name one confined package reference")
+        if not self.call_ordinal < self.event_ordinal < self.output_ordinal:
+            raise ValueError("reference-view call, event and image output ordinals must be ordered")
+        return self
+
+
 class CodexExecReceipt(CamelModel):
     """Small settled proof copied from the private host evidence stream."""
 
@@ -449,6 +491,7 @@ class CodexExecReceipt(CamelModel):
     remote_output_hash: str | None = Field(default=None, pattern=HASH)
     outputs: tuple[CodexExecOutputEvidence, ...] = Field(min_length=1, max_length=128)
     image_evidence: tuple[CodexExecImageEvidence, ...] = Field(default_factory=tuple)
+    reference_views: tuple[CodexExecReferenceViewEvidence, ...] = Field(default_factory=tuple, max_length=24)
     remote_tool_state: Literal["not_applicable", "completed"]
 
     @model_validator(mode="after")
@@ -461,14 +504,41 @@ class CodexExecReceipt(CamelModel):
         if output_manifest_hash(self.outputs) != self.output_hash:
             raise ValueError("receipt output hash must bind the canonical output inventory")
         if self.expected_image_outputs == 0:
-            if self.image_evidence or self.remote_tool_state != "not_applicable" or self.remote_output_hash is not None:
-                raise ValueError("text receipts cannot claim ImageGen operations")
+            if self.image_evidence or self.reference_views or self.remote_tool_state != "not_applicable" or self.remote_output_hash is not None:
+                raise ValueError("text receipts cannot claim image or reference-view operations")
         elif len(self.image_evidence) != self.expected_image_outputs or self.remote_tool_state != "completed":
             raise ValueError("image receipt must prove every frozen ImageGen output")
         elif len(self.image_evidence) != 1 or self.remote_output_hash != self.image_evidence[0].output_hash:
             raise ValueError("serial image receipt must bind its exact remote output byte hash")
         if len({item.call_id for item in self.image_evidence}) != len(self.image_evidence):
             raise ValueError("ImageGen call IDs must be unique within one attempt")
+        view_paths = [item.package_relative_path for item in self.reference_views]
+        view_hashes = [item.reference_hash for item in self.reference_views]
+        view_call_ids = [item.call_id for item in self.reference_views]
+        view_event_ids = [item.event_id for item in self.reference_views]
+        view_call_ordinals = [item.call_ordinal for item in self.reference_views]
+        view_event_ordinals = [item.event_ordinal for item in self.reference_views]
+        view_output_ordinals = [item.output_ordinal for item in self.reference_views]
+        view_timeline = [
+            ordinal
+            for item in self.reference_views
+            for ordinal in (item.call_ordinal, item.event_ordinal, item.output_ordinal)
+        ]
+        if (
+            len(view_paths) != len(set(view_paths))
+            or len(view_hashes) != len(set(view_hashes))
+            or len(view_call_ids) != len(set(view_call_ids))
+            or len(view_event_ids) != len(set(view_event_ids))
+            or view_call_ordinals != sorted(view_call_ordinals)
+            or view_event_ordinals != sorted(view_event_ordinals)
+            or view_output_ordinals != sorted(view_output_ordinals)
+            or view_timeline != sorted(view_timeline)
+            or len(view_timeline) != len(set(view_timeline))
+            or any(len(values) != len(set(values)) for values in (
+                view_call_ordinals, view_event_ordinals, view_output_ordinals,
+            ))
+        ):
+            raise ValueError("reference-view receipt entries must be unique and ordered")
         if len({item.output_relative_path for item in self.image_evidence}) != len(self.image_evidence):
             raise ValueError("ImageGen output paths must be unique within one attempt")
         output_by_path = {item.output_relative_path: item for item in self.outputs}
@@ -478,6 +548,10 @@ class CodexExecReceipt(CamelModel):
             output = output_by_path.get(event.output_relative_path)
             if output is None or output.output_hash != event.output_hash:
                 raise ValueError("ImageGen event must bind an exact output path and byte hash")
+            if tuple(view.reference_hash for view in self.reference_views) != event.reference_hashes:
+                raise ValueError("ImageGen references must match the exact host-recorded view order")
+            if any(view.output_ordinal >= event.call_ordinal for view in self.reference_views):
+                raise ValueError("every frozen reference image must be emitted before its ImageGen call")
         if self.process_exit_code != 0:
             raise ValueError("successful execution receipt requires a zero process exit code")
         return self

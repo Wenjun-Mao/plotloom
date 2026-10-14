@@ -13,7 +13,7 @@ PACKAGE_VERSION = 3
 PINNED_PACKAGE_VERSION = 4
 PRESENTATION_PACKAGE_VERSION = 5
 IDENTITY_PACKAGE_VERSION = 6
-CODEX_EXEC_PACKAGE_VERSION = 7
+CODEX_EXEC_PACKAGE_VERSION = 8
 
 
 def presentation_amendment_instruction(request: dict) -> str:
@@ -80,6 +80,34 @@ def package_version(request: dict[str, Any]) -> int:
             return PRESENTATION_PACKAGE_VERSION
         return PINNED_PACKAGE_VERSION if preflight_version == "p1.5-pin.v1" else PACKAGE_VERSION
     raise ImageJobError("request_integrity", "frozen image request schema is unsupported")
+
+
+def codex_exec_reference_view_instruction(package: Path, references: list[dict[str, str]]) -> str:
+    """Bind each required source view to its exact package path and image emission call."""
+    if not references:
+        return (
+            "No frozen reference files are supplied. Do not call view_image and omit referenced_image_paths from ImageGen. "
+        )
+    entries = []
+    paths = []
+    for item in references:
+        if set(item) != {"role", "filename", "sha256"}:
+            raise ImageJobError("request_integrity", "Codex Exec package reference has an unsupported shape")
+        absolute = package / item["filename"]
+        paths.append(json.dumps(str(absolute), ensure_ascii=False))
+        entries.append(f"- {item['role']}: {absolute}\n")
+    calls = "".join(
+        f"{index}. `image((await tools.view_image({{path: {path}}})).image_url);`\n"
+        for index, path in enumerate(paths, 1)
+    )
+    return (
+        "Before ImageGen, emit every frozen reference as image content, once each and in this package order. "
+        "For each entry, make one separate exec call with the exact expression below, and wait for its result:\n"
+        + "".join(entries)
+        + calls
+        + "Pass these same absolute paths, in the same order, to ImageGen's referenced_image_paths argument. "
+        "A path argument alone is not a view; do not describe or print a reference instead of emitting its image. "
+    )
 
 
 def project_image_package(
@@ -179,6 +207,8 @@ def project_image_package(
              if version == CODEX_EXEC_PACKAGE_VERSION else
              "Read completion-manifest.example.json before preparing delivery. ")
             + (
+                codex_exec_reference_view_instruction(package, reference_entries)
+                if version == CODEX_EXEC_PACKAGE_VERSION else
                 "View every role-mapped character_identity reference before generation and report its hashes in referenceUse. "
                 if not proposal else
                 (
@@ -229,6 +259,8 @@ def project_image_package(
                 else ""
             )
             + f"Deliver only under: {job_root / 'delivery'}\n"
+            + (codex_exec_reference_view_instruction(package, reference_entries) + "\n"
+               if version == CODEX_EXEC_PACKAGE_VERSION else "")
             + (
                 "Use Codex built-in image generation. View every supplied character_identity reference and preserve "
                 "that person. When characterIdentity[].acceptedCast is present, preserve its appearance/image direction "

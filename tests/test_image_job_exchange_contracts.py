@@ -16,7 +16,7 @@ from plotloom.image_job_contracts import (
     ImageJobError,
     NativeTaskBinding,
 )
-from plotloom.image_job_exchange import ImageJobExchange
+from plotloom.image_job_exchange import ImageJobExchange, PackageReference
 from plotloom.image_job_package import package_version
 from plotloom.managed_media import ManagedMediaLimits
 
@@ -285,6 +285,55 @@ def test_codex_exec_image_package_leaves_delivery_writes_to_the_trusted_host(tmp
         assert "Do not write image files or completion markers into delivery." in instruction
         assert "trusted Codex Exec host copies the exact image bytes" in instruction
         assert "Write complete JPEG or PNG files to delivery/outputs" not in instruction
+    assert emitted["packageVersion"] == 8
+    assert "No frozen reference files are supplied" in assignment
+    assert "Do not call view_image" in assignment
+
+
+def test_codex_exec_image_package_pins_each_frozen_reference_view(tmp_path: Path) -> None:
+    first_content = b"synthetic frozen parent output bytes"
+    second_content = b"synthetic frozen character reference bytes"
+    request = {
+        "schemaVersion": 3,
+        "executionContract": "codex_exec.v1",
+        "jobId": "ij_" + "d" * 20,
+        "kind": "original",
+        "target": "image_job",
+        "specialistPreflight": {
+            "version": "p1.5-pin.v2",
+            "skillVersion": "plotloom-image-specialist.v4",
+            "executionContract": "codex_exec.v1",
+        },
+    }
+    request_hash = sha256(json.dumps(request, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    exchange = ImageJobExchange(tmp_path / "exchange", limits=ManagedMediaLimits())
+    copied = exchange.write_package(
+        job_id=request["jobId"],
+        request=request,
+        request_hash=request_hash,
+        references=[
+            PackageReference("parent_output", "source.png", sha256(first_content).hexdigest(), first_content),
+            PackageReference(
+                "character_identity:hero",
+                "identity.png",
+                sha256(second_content).hexdigest(),
+                second_content,
+            ),
+        ],
+    )
+    package = Path(copied["packagePath"])
+    emitted = json.loads((package / "request.json").read_text())
+    assignment = (package / "COPY_ASSIGNMENT.txt").read_text()
+    first_path = json.dumps(str(package / "references/source.png"))
+    second_path = json.dumps(str(package / "references/identity.png"))
+    first_view = f'image((await tools.view_image({{path: {first_path}}})).image_url);'
+    second_view = f'image((await tools.view_image({{path: {second_path}}})).image_url);'
+
+    assert emitted["packageVersion"] == 8
+    assert "one separate exec call with the exact expression" in assignment
+    assert first_view in assignment and second_view in assignment
+    assert assignment.index(first_view) < assignment.index(second_view)
+    assert "referenced_image_paths" in assignment
 
 
 def test_schema_v3_delivery_matches_native_uuid_to_pin_and_frozen_binding(

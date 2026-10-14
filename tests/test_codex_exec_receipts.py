@@ -9,6 +9,7 @@ from plotloom.codex_exec_contracts import (
     CodexExecImageEvidence,
     CodexExecOutputEvidence,
     CodexExecReceipt,
+    CodexExecReferenceViewEvidence,
     assert_receipt_matches_attempt,
     image_arguments_hash,
     output_manifest_hash,
@@ -19,6 +20,21 @@ HASH = "a" * 64
 
 def output_evidence(path="delivery/outputs/frame.png", digest="b" * 64):
     return CodexExecOutputEvidence(outputHash=digest, outputRelativePath=path, sizeBytes=128)
+
+
+def reference_view_evidence():
+    return CodexExecReferenceViewEvidence(
+        role="parent_output",
+        packageRelativePath="references/reference.png",
+        referenceHash="d" * 64,
+        contentSha256="e" * 64,
+        contentSizeBytes=64,
+        callId="view_call_1",
+        eventId="view_event_1",
+        callOrdinal=1,
+        eventOrdinal=2,
+        outputOrdinal=3,
+    )
 
 
 def image_args_hash(*, prompt_hash="c" * 64, reference_hashes=("d" * 64,), transparent=False, prior=0):
@@ -38,6 +54,7 @@ def test_image_event_and_receipt_bind_exact_attempt_session_and_bytes():
         attemptId=attempt_id,
         sessionId=session_id,
         callId="call_1",
+        callOrdinal=4,
         eventId="event_1",
         eventType="image_gen.generation",
         eventStatus="completed",
@@ -64,6 +81,7 @@ def test_image_event_and_receipt_bind_exact_attempt_session_and_bytes():
         outputHash=manifest_hash,
         outputs=[output],
         imageEvidence=[event],
+        referenceViews=[reference_view_evidence()],
         remoteOutputHash=output.output_hash,
         remoteToolState="completed",
     )
@@ -71,6 +89,10 @@ def test_image_event_and_receipt_bind_exact_attempt_session_and_bytes():
     with pytest.raises(ValidationError, match="serial image receipt must bind"):
         CodexExecReceipt.model_validate(
             receipt.model_dump(mode="python") | {"remote_output_hash": "e" * 64}
+        )
+    with pytest.raises(ValidationError, match="exact host-recorded view order"):
+        CodexExecReceipt.model_validate(
+            receipt.model_dump(by_alias=True) | {"referenceViews": []}
         )
     attempt = CodexExecAttempt(
         attemptId=attempt_id,
@@ -121,6 +143,7 @@ def test_image_event_and_receipt_bind_exact_attempt_session_and_bytes():
             outputHash=HASH,
             outputs=[output],
             imageEvidence=[event],
+            referenceViews=[reference_view_evidence()],
             remoteOutputHash=output.output_hash,
             remoteToolState="completed",
         )
@@ -141,6 +164,7 @@ def test_image_event_and_receipt_bind_exact_attempt_session_and_bytes():
             outputHash=output_manifest_hash([different_bytes]),
             outputs=[different_bytes],
             imageEvidence=[event],
+            referenceViews=[reference_view_evidence()],
             remoteOutputHash=event.output_hash,
             remoteToolState="completed",
         )
@@ -168,9 +192,31 @@ def test_image_event_and_receipt_bind_exact_attempt_session_and_bytes():
             outputHash=manifest_hash,
             outputs=[output],
             imageEvidence=[event],
+            referenceViews=[reference_view_evidence()],
             remoteOutputHash=output.output_hash,
             remoteToolState="completed",
         )
+
+    overlapped_second_view = reference_view_evidence().model_copy(update={
+        "package_relative_path": "references/other.png",
+        "reference_hash": "f" * 64,
+        "call_id": "view_call_2",
+        "event_id": "view_event_2",
+        "call_ordinal": 3,
+        "event_ordinal": 4,
+        "output_ordinal": 5,
+    })
+    later_image_event = event.model_copy(update={
+        "call_ordinal": 6,
+        "reference_hashes": ("d" * 64, "f" * 64),
+        "arguments_hash": image_args_hash(reference_hashes=("d" * 64, "f" * 64)),
+    })
+    invalid_timeline = receipt.model_dump(mode="python") | {
+        "image_evidence": (later_image_event,),
+        "reference_views": (reference_view_evidence(), overlapped_second_view),
+    }
+    with pytest.raises(ValidationError, match="unique and ordered"):
+        CodexExecReceipt.model_validate(invalid_timeline)
 
 
 @pytest.mark.parametrize(
@@ -187,6 +233,7 @@ def test_image_event_rejects_noncanonical_or_directory_only_output_paths(path):
             attemptId=uuid4(),
             sessionId=uuid4(),
             callId="call_1",
+            callOrdinal=1,
             eventId="event_1",
             eventType="image_gen.generation",
             eventStatus="completed",
@@ -206,6 +253,7 @@ def test_image_event_rejects_unhashed_or_credential_shaped_reference_evidence(va
             attemptId=uuid4(),
             sessionId=uuid4(),
             callId="call_1",
+            callOrdinal=1,
             eventId="event_1",
             eventType="image_gen.generation",
             eventStatus="completed",
@@ -224,6 +272,7 @@ def test_image_argument_hash_must_bind_normalized_actual_arguments():
             attemptId=uuid4(),
             sessionId=uuid4(),
             callId="call_1",
+            callOrdinal=1,
             eventId="event_1",
             eventType="image_gen.generation",
             eventStatus="completed",

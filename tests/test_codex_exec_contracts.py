@@ -82,6 +82,29 @@ def test_v3_profile_pins_the_corrected_tool_capability_contract():
     assert current.profile_hash != profile().profile_hash
 
 
+def test_v4_profile_requires_reference_view_capability_and_tool_profile():
+    value = profile().model_dump(mode="json", by_alias=True)
+    value.update({
+        "contractVersion": "plotloom.codex-exec.v4",
+        "sandboxProfile": None,
+        "authenticationStore": "file",
+        "permissionProfile": "plotloom_autopilot_delivery_v2",
+        "toolProfile": "plotloom_autopilot_tools_v4",
+        "capabilities": [
+            "exec_json_events_v1", "session_rollout_v1", "image_gen_event_v1",
+            "image_reference_view_v1", "delivery_directory_write_v1",
+        ],
+    })
+    current = CodexExecProfile.model_validate(value)
+
+    assert current.contract_version == "plotloom.codex-exec.v4"
+    assert current.tool_profile == "plotloom_autopilot_tools_v4"
+    with pytest.raises(ValidationError, match="reference-view evidence capability"):
+        CodexExecProfile.model_validate(value | {"capabilities": [
+            "exec_json_events_v1", "session_rollout_v1", "image_gen_event_v1", "delivery_directory_write_v1",
+        ]})
+
+
 def test_v2_profile_rejects_legacy_sandbox_and_missing_auth_binding():
     value = profile().model_dump(mode="json", by_alias=True)
     value.update({

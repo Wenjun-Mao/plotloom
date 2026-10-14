@@ -14,7 +14,7 @@ SUPPORTED_CLI_VERSION = "codex-cli 0.162.0-alpha.17.2"
 EXECUTION_MODEL = "gpt-6.1-sol"
 EXECUTION_REASONING_EFFORT = "medium"
 PERMISSION_PROFILE = "plotloom_autopilot_delivery_v2"
-TOOL_PROFILE = "plotloom_autopilot_tools_v3"
+TOOL_PROFILE = "plotloom_autopilot_tools_v4"
 DISABLED_CLI_FEATURES = (
     "apps",
     "browser_annotation_api",
@@ -28,7 +28,6 @@ DISABLED_CLI_FEATURES = (
     "skill_mcp_dependency_install",
     "standalone_web_search",
     "tool_call_mcp_elicitation",
-    "view_image",
 )
 INSTRUCTION_FILES = (
     "src/plotloom/codex_exec_prompts.py",
@@ -41,6 +40,7 @@ VALIDATOR_FILES = (
     "src/plotloom/codex_exec_contracts.py",
     "src/plotloom/codex_exec_files.py",
     "src/plotloom/codex_exec_telemetry.py",
+    "src/plotloom/codex_exec_tool_source.py",
     "src/plotloom/codex_exec_delivery.py",
     "src/plotloom/codex_exec_profile.py",
     "src/plotloom/codex_exec_resources.py",
@@ -97,6 +97,15 @@ VALIDATOR_FILES = (
 VALIDATOR_SOURCE_TREE = "src/plotloom"
 
 
+def cli_feature_flags(domain: str) -> tuple[str, ...]:
+    """Pin nonconflicting image-tool features for one execution domain."""
+    if domain not in {"text", "image"}:
+        raise ValueError("Codex CLI feature profile requires a supported delivery domain")
+    if domain == "text":
+        return ("--disable", "image_generation", "--disable", "view_image")
+    return ("--enable", "image_generation", "--enable", "view_image")
+
+
 def _hash_file(path: Path) -> str:
     digest = sha256()
     with path.open("rb") as source:
@@ -147,7 +156,7 @@ def build_codex_exec_profile(executable: Path, *, source_root: Path) -> CodexExe
     if version.returncode != 0 or version.stderr or version.stdout.decode("utf-8", "strict").strip() != SUPPORTED_CLI_VERSION:
         raise RuntimeError("installed Codex CLI version has no qualified execution evidence adapter")
     return CodexExecProfile(
-        contractVersion="plotloom.codex-exec.v3",
+        contractVersion="plotloom.codex-exec.v4",
         executable_sha256=_hash_file(executable),
         cli_version=SUPPORTED_CLI_VERSION,
         model=EXECUTION_MODEL,
@@ -156,6 +165,7 @@ def build_codex_exec_profile(executable: Path, *, source_root: Path) -> CodexExe
             "exec_json_events_v1",
             "session_rollout_v1",
             "image_gen_event_v1",
+            "image_reference_view_v1",
             "delivery_directory_write_v1",
         ),
         instruction_hash=_source_hash(source_root, INSTRUCTION_FILES),

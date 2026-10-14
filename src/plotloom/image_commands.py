@@ -113,7 +113,7 @@ def read_image(
             expected_codex_attempt=executor_attempt,
             expected_codex_profile=executor_profile,
             expected_codex_receipt=executor_receipt,
-            expected_codex_reference_hashes=all_reference_hashes,
+            expected_codex_references=tuple(frozen_references(context)),
             expected_codex_execution_pin=preflight,
             expected_codex_output_role=output_role,
         )

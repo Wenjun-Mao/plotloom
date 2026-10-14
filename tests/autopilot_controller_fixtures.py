@@ -13,6 +13,7 @@ from plotloom.codex_exec_contracts import (
     CodexExecAttempt,
     CodexExecImageEvidence,
     CodexExecHostStatus,
+    CodexExecReferenceViewEvidence,
     CodexExecReceipt,
     image_arguments_hash,
     output_manifest_hash,
@@ -20,7 +21,7 @@ from plotloom.codex_exec_contracts import (
 )
 from plotloom.codex_exec_delivery import publish_creative_completion, publish_image_completion
 from plotloom.codex_exec_files import output_evidence_for_tree, scan_regular_tree
-from plotloom.codex_exec_telemetry import CodexSessionEvidence, ImageGenCall, ImageGenEvent
+from plotloom.codex_exec_telemetry import CodexSessionEvidence, ImageGenCall, ImageGenEvent, ReferenceViewEvidence
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import CreativeHandoffExchange, canonical_json, request_hash
 from plotloom.image_job_contracts import ImageJobError
@@ -319,12 +320,42 @@ class FakeCodexExecHost:
         session_id = uuid5(NAMESPACE_URL, f"plotloom-test-session:{attempt.attempt_id}")
         call_id = f"fixture-call-{attempt.attempt_id.hex}"
         event_id = f"fixture-event-{attempt.attempt_id.hex}"
+        image_call_ordinal = len(reference_paths) * 3 + 1
+        session_views = tuple(
+            ReferenceViewEvidence(
+                call_id=f"fixture-view-call-{index}-{attempt.attempt_id.hex}",
+                event_id=f"fixture-view-event-{index}-{attempt.attempt_id.hex}",
+                path=reference_paths[index],
+                call_ordinal=index * 3 + 1,
+                event_ordinal=index * 3 + 2,
+                output_ordinal=index * 3 + 3,
+                content_sha256=sha256(reference_paths[index].encode()).hexdigest(),
+                content_size_bytes=128,
+            )
+            for index in range(len(reference_paths))
+        )
+        receipt_views = tuple(
+            CodexExecReferenceViewEvidence(
+                role=reference["role"],
+                packageRelativePath=reference["filename"],
+                referenceHash=reference["sha256"],
+                contentSha256=session_views[index].content_sha256,
+                contentSizeBytes=session_views[index].content_size_bytes,
+                callId=session_views[index].call_id,
+                eventId=session_views[index].event_id,
+                callOrdinal=session_views[index].call_ordinal,
+                eventOrdinal=session_views[index].event_ordinal,
+                outputOrdinal=session_views[index].output_ordinal,
+            )
+            for index, reference in enumerate(package_request.get("references", []))
+        )
         call = ImageGenCall(
             call_id=call_id,
             prompt=prompt,
             reference_paths=reference_paths,
             transparent_background=False,
             num_last_images_to_include=None,
+            ordinal=image_call_ordinal,
         )
         filenames = []
         for index in range(output_count):
@@ -372,6 +403,7 @@ class FakeCodexExecHost:
             status="completed",
             saved_path=f"/private/fixture/{session_id}/{event_id}.png",
             transparent_background=False,
+            ordinal=image_call_ordinal + 1,
         )
         prompt_hash = sha256(prompt.encode("utf-8")).hexdigest()
         argument_hash = image_arguments_hash(
@@ -384,6 +416,7 @@ class FakeCodexExecHost:
             attemptId=attempt.attempt_id,
             sessionId=session_id,
             callId=call_id,
+            callOrdinal=call.ordinal,
             eventId=event_id,
             eventType="image_gen.generation",
             eventStatus="completed",
@@ -412,6 +445,7 @@ class FakeCodexExecHost:
             outputHash=output_hash,
             outputs=output_evidence,
             imageEvidence=(image_evidence,),
+            referenceViews=receipt_views,
             remoteOutputHash=completed.remote_output_hash,
             remoteToolState="completed",
         )
@@ -422,6 +456,7 @@ class FakeCodexExecHost:
             image_events=(event,),
             transcript_sha256=sha256(transcript).hexdigest(),
             transcript_size_bytes=len(transcript),
+            reference_views=session_views,
         )
         publish_image_completion(
             request=package_request,

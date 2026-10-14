@@ -110,15 +110,10 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin):
             ),
             "--config", f'permissions.{profile.permission_profile}.network.enabled=false',
         ]
-        from plotloom.codex_exec_profile import DISABLED_CLI_FEATURES
+        from plotloom.codex_exec_profile import DISABLED_CLI_FEATURES, cli_feature_flags
         command.extend(flag for feature in DISABLED_CLI_FEATURES for flag in ("--disable", feature))
-        # The pinned CLI ignores tools.view_image; its stable `view_image`
-        # feature flag is the supported exact-version disable path.
+        command.extend(cli_feature_flags(attempt.domain))
         command.extend(("--config", 'web_search="disabled"'))
-        if attempt.domain == "text":
-            command.extend(("--disable", "image_generation"))
-        else:
-            command.extend(("--enable", "image_generation"))
         command.extend(("--ignore-user-config", "-"))
         environment = self._cli_environment(
             private_dir, source_root=self.source_root, domain=attempt.domain, source_resources=source_resources
@@ -304,7 +299,7 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin):
                 max_event_bytes=profile.max_event_bytes,
                 max_total_bytes=profile.max_output_bytes,
             )
-            if attempt.domain == "text" and (session.image_calls or session.image_events):
+            if attempt.domain == "text" and (session.image_calls or session.image_events or session.reference_views):
                 self._mark_unknown(current, session_id=stream.session_id)
                 return
             if exit_code != 0 or stream.terminal_event != "turn.completed" or stream.diagnostics:
@@ -328,6 +323,9 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin):
                     )
                     return
                 reference_hashes = self._match_image_references(job_root, package_request, image_call.reference_paths)
+                reference_views = self._match_image_reference_views(
+                    job_root, package_request, session.reference_views, image_call
+                )
                 from plotloom.codex_exec_runtime import read_generated_image
                 content, image_hash = read_generated_image(
                     Path(image_event.saved_path),
@@ -347,6 +345,7 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin):
                     attemptId=attempt.attempt_id,
                     sessionId=stream.session_id,
                     callId=image_call.call_id,
+                    callOrdinal=image_call.ordinal,
                     eventId=image_event.event_id,
                     eventType="image_gen.generation",
                     eventStatus="completed",
@@ -396,6 +395,7 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin):
                 outputHash=output_hash,
                 outputs=output_evidence,
                 imageEvidence=image_facts,
+                referenceViews=reference_views if attempt.domain == "image" else (),
                 remoteOutputHash=completed.remote_output_hash,
                 remoteToolState=remote_state,
             )
@@ -508,30 +508,76 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin):
 
     @staticmethod
     def _match_image_references(job_root, package_request, reference_paths):
+        from pathlib import PurePosixPath
+
         references = package_request.get("references")
         if not isinstance(references, list):
             raise CodexExecSupervisorError("Codex Exec image request has no typed frozen reference inventory")
-        by_path = {}
+        expected_paths = []
+        expected_hashes = []
         package = job_root / "package"
         for item in references:
             if not isinstance(item, dict) or set(item) != {"role", "filename", "sha256"}:
                 raise CodexExecSupervisorError("Codex Exec image reference has an unsupported package shape")
-            relative = Path(item["filename"])
-            if relative.is_absolute() or ".." in relative.parts or not item["filename"].startswith("references/"):
+            relative = PurePosixPath(item["filename"])
+            if (
+                relative.is_absolute() or relative.as_posix() != item["filename"]
+                or len(relative.parts) < 2 or relative.parts[0] != "references"
+                or any(part in {"", ".", ".."} for part in relative.parts)
+            ):
                 raise CodexExecSupervisorError("Codex Exec image reference is outside its frozen package")
-            by_path[str((package / relative).resolve(strict=True))] = item["sha256"]
-        hashes = []
-        for value in reference_paths:
-            path = Path(value)
-            if not path.is_absolute():
-                raise CodexExecSupervisorError("ImageGen reference arguments must be exact absolute package paths")
-            resolved = str(path.resolve(strict=True))
-            if resolved not in by_path:
-                raise CodexExecSupervisorError("ImageGen reference argument is not a frozen package attachment")
-            hashes.append(by_path[resolved])
-        if len(hashes) != len(set(hashes)) or set(hashes) != {item["sha256"] for item in references}:
+            path = (package / relative).resolve(strict=True)
+            if not path.is_relative_to(package.resolve(strict=True)):
+                raise CodexExecSupervisorError("Codex Exec image reference escapes its frozen package")
+            expected_paths.append(str(path))
+            expected_hashes.append(item["sha256"])
+        if tuple(reference_paths) != tuple(expected_paths):
             raise CodexExecSupervisorError("ImageGen references differ from the exact frozen package bytes")
-        return tuple(hashes)
+        if len(expected_hashes) != len(set(expected_hashes)):
+            raise CodexExecSupervisorError("Codex Exec frozen image references must have distinct byte hashes")
+        return tuple(expected_hashes)
+
+    @staticmethod
+    def _match_image_reference_views(job_root, package_request, reference_views, image_call):
+        from pathlib import PurePosixPath
+
+        from plotloom.codex_exec_contracts import CodexExecReferenceViewEvidence
+
+        references = package_request.get("references")
+        if not isinstance(references, list):
+            raise CodexExecSupervisorError("Codex Exec image request has no typed frozen reference inventory")
+        if len(reference_views) != len(references):
+            raise CodexExecSupervisorError("every frozen package reference must have one exact image view")
+        package = job_root / "package"
+        evidence = []
+        for reference, view in zip(references, reference_views, strict=True):
+            if not isinstance(reference, dict) or set(reference) != {"role", "filename", "sha256"}:
+                raise CodexExecSupervisorError("Codex Exec image reference has an unsupported package shape")
+            relative = PurePosixPath(reference["filename"])
+            if (
+                relative.is_absolute() or relative.as_posix() != reference["filename"]
+                or len(relative.parts) < 2 or relative.parts[0] != "references"
+                or any(part in {"", ".", ".."} for part in relative.parts)
+            ):
+                raise CodexExecSupervisorError("Codex Exec image reference is outside its frozen package")
+            absolute = (package / relative).resolve(strict=True)
+            if not absolute.is_relative_to(package.resolve(strict=True)) or view.path != str(absolute):
+                raise CodexExecSupervisorError("Codex Exec view path is not its exact frozen package reference")
+            if view.output_ordinal >= image_call.ordinal:
+                raise CodexExecSupervisorError("every frozen reference must be emitted before ImageGen")
+            evidence.append(CodexExecReferenceViewEvidence(
+                role=reference["role"],
+                packageRelativePath=reference["filename"],
+                referenceHash=reference["sha256"],
+                contentSha256=view.content_sha256,
+                contentSizeBytes=view.content_size_bytes,
+                callId=view.call_id,
+                eventId=view.event_id,
+                callOrdinal=view.call_ordinal,
+                eventOrdinal=view.event_ordinal,
+                outputOrdinal=view.output_ordinal,
+            ))
+        return tuple(evidence)
 
     @staticmethod
     def _copy_image_to_delivery(job_root, filename, content):

@@ -185,7 +185,7 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
                     or (exec_attempt is None and native_task_identity != frozen_policy["specialistBindings"]["image"])):
                 raise ValueError("retained image receipt differs from its frozen execution")
             if exec_attempt is not None and (
-                manifest.schema_version != 4 or manifest.executor_profile_hash != exec_attempt.profile_hash
+                manifest.schema_version != 5 or manifest.executor_profile_hash != exec_attempt.profile_hash
                 or manifest.tool_evidence is None
                 or manifest.tool_evidence.executor_attempt_id != exec_attempt.attempt_id
                 or manifest.tool_evidence.codex_session_id != exec_receipt.session_id

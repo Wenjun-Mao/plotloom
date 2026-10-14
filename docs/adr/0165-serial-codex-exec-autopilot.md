@@ -223,22 +223,22 @@ generated files in `delivery`.
    executable and runtime directory. The CLI keeps its working directory in
    `delivery`; source commands use `PLOTLOOM_SOURCE_ROOT` and Python validators
    run the pinned `PLOTLOOM_UV` with `--locked --no-sync` so validation cannot
-   update the source environment. Fresh profiles use tool contract v3. They
-   disable apps, browser, web-search and multi-agent features; the pinned CLI
-   uses `--disable view_image` because no frozen workflow needs local image
-   attachment. The documented `tools.view_image=false` setting was ignored by
-   the exact pinned binary and produced diagnostic items. Its local
-   `codex-cli 0.162.0-alpha.17.2 features list` reports `view_image` disabled
-   under `--disable`, which
-   qualifies this feature-selection route but does not by itself establish
-   actual filesystem/tool boundary enforcement. Deprecated
+   update the source environment. Fresh profiles use tool contract v4. They
+   disable apps, browser, web-search and multi-agent features. Text attempts
+   also disable both `image_generation` and `view_image`; image attempts enable
+   both with the exact pinned CLI feature flags, without a conflicting disable
+   for either feature. The documented `tools.view_image=false` setting was
+   ignored by the exact pinned binary and produced diagnostic items. Its local
+   `codex-cli 0.162.0-alpha.17.2 features list` reports the selected features
+   under command-line flags, which qualifies feature selection but does not by
+   itself establish actual filesystem/tool boundary enforcement. Deprecated
    `features.web_search_cached` and `features.web_search_request` toggles also
    produced diagnostics, so the invocation uses top-level
    `web_search="disabled"`. The documented setting is listed in the
    [Codex CLI config reference](https://learn.chatgpt.com/docs/config-file/config-reference);
    the [JSONL event reference](https://learn.chatgpt.com/docs/non-interactive-mode#make-output-machine-readable)
-   describes `codex exec --json` event output. User configuration is ignored, and ImageGen is
-   enabled only for an image attempt. The Codex client's own authentication
+   describes `codex exec --json` event output. User configuration is ignored,
+   and image tools are enabled only for an image attempt. The Codex client's own authentication
    and service traffic remains outside the local-command sandbox. The exact
    `exec` command flags and filesystem profile are frozen by the source-bound
    profile and must pass allow/deny probes before provider dispatch. Shell
@@ -279,6 +279,53 @@ generated files in `delivery`.
    narrower than parsing arbitrary JavaScript because the tested CLI event has
    no call-ID link to the source expression; templates, branches, helpers,
    multiple statements and multiple ImageGen calls fail closed.
+
+10. **Prove frozen reference viewing separately from ImageGen attachment.** The
+    source mismatch was concrete: the image package and pinned skill require
+    references to be viewed before generation, the current image tool profile
+    disabled `view_image`, and the host derived `viewedReferenceHashes` from
+    paths attached to ImageGen. The installed child declaration uses
+    `referenced_image_paths`, while the source prompt and telemetry parser used
+    `images`. A diagnostic path-loader probe established an allowed package
+    `ImageView` event and three explicit outside-path denials, but its paired
+    tool output was truncated text with no `input_image` content block. It
+    therefore did not qualify model-visible pixels or production behavior.
+
+    New Codex Exec image packages use package version 8 and manifest schema 5.
+    Every entry in the frozen package reference inventory must be viewed once,
+    in package order, before the ImageGen call. The current input roles are
+    `character_identity:<characterId>`, `parent_output`, and `source_keyframe`;
+    the latter occurs only for a keyframe adaptation. `art_reference` is an
+    output role for an exploratory art proposal, not an input-reference role.
+    Unknown future package-reference roles remain subject to the same required
+    view; they are not silently omitted. A package with no references needs no
+    view call and has no reference-use evidence.
+
+    Each view uses exactly one awaited expression per `exec` call:
+    `image((await tools.view_image({path: "<literal frozen package path>"})).image_url);`.
+    The host accepts a view only when that exact source is paired in the same
+    exact session with a native `ImageView` event for the decoded file URL and
+    the matching successful `exec` result contains one valid inline image
+    content block whose raster pixels fully decode under the byte and pixel
+    bounds, even when Pillow is configured to reject truncated images. A valid
+    container header or chunk checksum alone is insufficient. Calls, event,
+    and result must appear in that order. The path must identify the exact
+    frozen package file and SHA-256. Before
+    ImageGen, the host requires one successful view for every frozen reference,
+    in package order, with no duplicate, foreign, late, missing, failed,
+    malformed, or truncated evidence. Text claims, a native loader event alone,
+    and attached paths alone never create `viewedReferenceHashes`.
+
+    The trusted receipt records per-reference role, content hash, source call,
+    native event, and ordered transcript positions. It keeps these fields
+    separate from `referenceHashes`, which describe files supplied to
+    ImageGen's `referenced_image_paths` argument. Only validated receipt view
+    evidence can populate manifest `viewedReferenceHashes`; any note states
+    that the evidence proves image-content delivery, not model cognition,
+    identity recognition, adherence, or creator acceptance. The pinned
+    ImageGen declaration is followed exactly; unknown argument shapes fail
+    closed. The earlier Codex Exec package-v7/manifest-v4 contract is retired
+    for new validation and is not silently replayed under this contract.
 
 ## Alternatives rejected
 

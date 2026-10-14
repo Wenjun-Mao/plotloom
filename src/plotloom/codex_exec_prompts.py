@@ -1,8 +1,7 @@
 """Fixed, versioned instructions for one frozen Codex Exec assignment."""
 from pathlib import Path
 
-
-PROMPT_VERSION = "plotloom.codex-exec-assignment.v3"
+PROMPT_VERSION = "plotloom.codex-exec-assignment.v4"
 
 
 def assignment_prompt(*, job_id: str, package_path: Path, delivery_path: Path, domain: str) -> str:
@@ -19,10 +18,18 @@ def assignment_prompt(*, job_id: str, package_path: Path, delivery_path: Path, d
     )
     image_call_contract = (
         "Make exactly one ImageGen call for this serial attempt, as one direct top-level awaited expression: "
-        "`await tools.image_gen__imagegen({prompt: <literal string>, images: <literal package paths when needed>, "
+        "`await tools.image_gen__imagegen({prompt: <literal string>, referenced_image_paths: <literal package paths when needed>, "
         "transparent_background: <literal boolean>})`. Keep the call arguments literal. Do not put it in a branch, "
         "function, helper, template, conditional, or a JavaScript snippet containing other statements; the host "
         "can only bind the native completion event to this exact source shape. Stop if that shape cannot express the task. "
+        if domain == "image" else ""
+    )
+    reference_view_contract = (
+        "Before ImageGen, read every frozen package reference in the order listed by COPY_ASSIGNMENT.txt. For each "
+        "path, make one separate `exec` call with the exact expression `image((await tools.view_image({path: "
+        "<literal absolute package path>})).image_url);` and wait for its result. Pass every same path, in the same "
+        "order, through `referenced_image_paths`. Do not report or print a path or describe an image as a view. "
+        "When the package has no references, make no view_image calls and omit referenced_image_paths. "
         if domain == "image" else ""
     )
     source_runtime_contract = (
@@ -42,6 +49,7 @@ def assignment_prompt(*, job_id: str, package_path: Path, delivery_path: Path, d
         f"{package_path} and obey its COPY_ASSIGNMENT.txt and pinned source instructions. "
         + delivery_authority
         + image_call_contract
+        + reference_view_contract
         + source_runtime_contract
         + "Do not edit package files, project canon, approvals, selections, settings, or user data. "
         "Use only the built-in Codex tools enabled by this invocation. Do not start another job, "

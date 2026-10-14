@@ -2256,3 +2256,318 @@ raw pairs SHA-256 `534f10fbc3c75341c44556f4f071907fd0588b01c7ecb64305d95ef9664a2
 The rejected pre-collection serialization attempt is excluded, not a timing
 sample. These are subset measurements with host/cache/order limits, not a
 whole-suite or 85-percent result. Full qualification and integration remain open.
+
+## Serial Codex Exec synthetic patch boundary · 2026-10-14
+
+Scoped native evidence for the built-in patch path only; it does **not** establish a
+general filesystem boundary. One synthetic CLI turn ran at source `7c9d74a1956861d2d393638e875d5e4a2137d5f5`,
+CLI `0.162.0-alpha.17.2`, model `gpt-6.1-sol` / medium, profile
+`c291e28504980c8d6c6f39178f66d2d7386174c9db0da7c7edf8cecfa270682a`.
+The production permission/environment builders were used; reproduced argv SHA-256
+is `500d836696d3e3271841acdfce15d97f8f9da9fec9c5e2b093e3c8d6c024818b`.
+
+The typed session records a successful read of the package control, one successful
+built-in patch in delivery, and separate attempted patches to an outside absolute
+path, a traversal target and a delivery symlink. Each outside patch result reports
+`Operation not permitted`; all three outside sentinels and the symlink target kept
+their pre-run SHA-256 values. Exit code was 0, the exact turn completed, and the
+owned process group exited. The captured stream passes strict parsing with the
+probe's 16 MiB line and total limits.
+
+At this first probe, package-write denial was not attempted; the unchanged package
+file alone did not prove that case. A later, separately released turn covers it
+below. The initial raw result labels itself inconclusive because the harness
+supplied a 50 MiB event limit with a 16 MiB total limit; the captured stream was
+reconciled with valid 16 MiB/16 MiB limits without another CLI call.
+
+Private evidence: `.local/native-proof/patch-boundary-7c9d74a1/reconciliation.json`
+(SHA-256 `a3391f0105d0ac24beba63d67c8c488dd47394195548bf3ab0752f6519c0a422`),
+original `result.json` (SHA-256
+`1e345192a60414f7d65f730f0783615e3e102cd38337539f4702e280b9832298`),
+`stdout.jsonl` (SHA-256
+`63f5968e3302431a22c3388affe34d9faf2ef2c4317cfc7c1a4478cfa0f4691e`),
+and `stderr.log` (SHA-256
+`2df3061a9290049849d88a9eea0b62169a786ee2b0d1bd6f71b323604bb4d766`)
+in the same ignored root.
+Exact CLI session `01a138b3-1d95-76b1-97eb-81c48130c2c5` is
+`/Users/wjmao/.codex/sessions/2026/10/14/rollout-2026-10-14T00-37-05-01a138b3-1d95-76b1-97eb-81c48130c2c5.jsonl`
+(SHA-256 `a8b4abb73243983fb13e285d02528dd65e4614470ebbdd102e3d2ca094de4f1e`).
+No implementation source or tests changed; only this receipt was appended. No
+ImageGen call or creative canary ran.
+
+## Serial Codex Exec package-write refusal · 2026-10-14
+
+A separate native CLI turn at the same source and profile read a synthetic package
+sentinel successfully, then made one built-in `tools.apply_patch` attempt against
+that same readable sentinel. Its paired `custom_tool_call_output` says the patch
+was rejected because it was "writing outside of the project" under "user approval
+settings". The sentinel SHA-256 remained
+`80fa977775da36dc66fdf80b4e6c0c636a4c93a024e204b77a09f21c1cac279c`; there were no
+file-change events. The bounded stream strictly parsed, the turn completed with
+exit 0, and the owned process group exited. The manager accepted this scoped
+built-in patch package-write refusal case.
+
+The observed denial is at the built-in tool/project-approval boundary. It does not
+isolate the lower-level filesystem permission map from the project-root approval
+gate and does not establish general shell or operating-system write behavior.
+Together with the delivery success and outside absolute, traversal, and symlink
+denials above, this qualifies only the tested built-in patch path. ImageGen
+reference pre-read remains a separate, unqualified boundary.
+
+Private evidence: `.local/native-proof/package-write-7c9d74a1/reconciliation.json`
+(SHA-256 `c9836e2b34598ffaedb5f673fbb1a4069c215d4fac9394a14df2f10eb1e747da`),
+`stdout.jsonl` (SHA-256
+`5f56cd1d2fabb22289829bc6efa93bbefb7d7e360fff429e1badb826369dea19`), and
+`stderr.log` (SHA-256
+`b2bdea4ed8441e26433ed1a2152884feda187b170252cfc666bd756338f2005f`). Exact CLI
+session `01a138ba-6fea-7ef2-9b18-aae6b7c51cb1` has SHA-256
+`e0c6d4abbfdc4150405949bcc7a20e76b266c1c22c9c2e8fe08b0b193edb7346`. The matching
+attempted call and result are included in `reconciliation.json`.
+
+## ImageGen reference pre-read · prepared, not executed · 2026-10-14
+
+No ImageGen call, provider dispatch, or generated image was made in preparing this
+plan. The source/profile-bound image-domain invocation was assembled with the
+production permission and environment builders. Profile hash is
+`c291e28504980c8d6c6f39178f66d2d7386174c9db0da7c7edf8cecfa270682a`; the current
+`codex_exec_supervisor_process.py` file SHA-256 is
+`fb2035c83dcdc58fea9d9b030233513af9fdb5314954a5bc28e4bcc0b6c0a761`. The
+production-built filesystem config SHA-256 is
+`5876f2c818ef467757f4edab360d89cf5aab411366f770f5a1cbca401db1d156`; the mirrored
+image-branch argv SHA-256 is
+`dc4ccd0f7a27cfc9de0384c5e183d657e0bf512b6fccf88b89f54c1eaf041f9e`. The package
+is read-only, delivery is writable, the outside reference has no path grant under
+the root-deny policy, network is disabled, and the image-generation feature is
+enabled. The image-domain environment omits source-root and `PYTHONPATH` entries.
+
+The current connected outer-runtime callable is `image_gen__imagegen`, with this
+exposed argument schema:
+
+```text
+prompt: string (required)
+referenced_image_paths: string[] | null (optional)
+transparent_background: boolean (optional)
+num_last_images_to_include: number | null (optional)
+```
+
+Do not combine `referenced_image_paths` with `num_last_images_to_include`. The
+local `codex debug prompt-input` output has no tool schema, so this records the
+currently connected runtime declaration and does not claim that the local CLI
+printed its internal native-tool schema. Plotloom's Codex Exec prompt/parser source
+contract uses `images` as the literal reference-path list instead. The pinned
+CLI's native tool schema remains unobserved; a future native run must capture and
+inspect its actual typed call arguments and paired result. The machine plan records
+these as separate schema surfaces.
+
+The fresh ignored fixture root is
+`.local/native-proof/image-preread-7c9d74a1/`. It contains a valid synthetic 512 ×
+512 RGB PNG at `outputs/synthetic-project/jobs/ij_7c9d74a1imageprereadcontrol01/package/references/allowed-control.png`
+(297,411 bytes; SHA-256
+`62288ef413751389d27aa795aa2063e3e318357a679c9af9c49f51ac740945ab`) and a
+same-sized outside-package PNG at `outside-reference.png` (297,402 bytes; SHA-256
+`41f5efb374e391e7c671bda3c8cfcff0ac409cd4c88f966cea61ac7705c679c2`). The frozen
+synthetic request inventory names only the allowed package reference. Both images
+were checked for PNG chunk CRCs and successfully decompressed to the expected
+512 × 512 RGB byte count.
+
+The prepared sequence allows at most one outside-reference negative call and, only
+after a proven local pre-read denial plus a separate manager release, one allowed
+control call. Automatic retries are zero; current authorization, dispatches, and
+outputs are all zero. Reserve one output for each future call. If the negative
+call dispatches or produces an image, stop without running the positive control;
+the maximum generated images across the sequence is one.
+
+The negative case passes only if the exact typed call names the outside path once,
+its paired result explicitly identifies a local file-read or permission refusal
+for that path before provider submission, and the exact CLI session contains no
+`image_gen.generation` extension/event, remote operation ID, `savedPath`, or
+generated image. Inspect both bounded stdout JSONL and the exact session because
+stdout alone can omit extension records. Both fixture hashes and the owned process
+group must also verify. A generic failure, any provider-dispatch evidence, any
+generated output, a fixture change, or an unattempted/refused call is a stop result
+and is not evidence of pre-read denial. There are no retries.
+
+The machine-readable plan, exact argument candidates, package inventory, fixture
+metadata, and source/config/argv hashes are in
+`.local/native-proof/image-preread-7c9d74a1/plan.json` (SHA-256
+`619dfca606b5cc01bd46b78f8107a34af0e4f0c96a9c6071e9c56132d3831e1f`). It is
+preparation evidence only; execution remains held for manager review and a separate
+native authorization.
+
+### Reference-view contract finding and proposal
+
+Static source review found a contract mismatch. Frozen image package instructions
+require viewing each `character_identity` reference before generation and require
+viewing `parent_output` for character-reference proposals. The pinned profile
+unconditionally disables `view_image`, and the current session adapter records
+ImageGen calls/events but no typed local view operation. The delivery builder then
+sets `viewedReferenceHashes` from frozen `character_identity` references and writes
+that those bytes were supplied to built-in ImageGen. The generation receipt proves
+which references were attached to ImageGen; it does not prove a separate local
+viewing action. The project binder compares the resulting hash set to required
+identity hashes without checking view evidence. ADR 0165 currently says no frozen
+workflow needs local image attachment, which conflicts with those current package
+instructions. This is the root cause: prompt, enabled-tool profile, telemetry
+evidence, and delivery semantics disagree about whether the reference was viewed.
+
+The proposed resolution is to preserve the viewing obligation and qualify an
+image-domain-only `view_image` capability while keeping it disabled for text work.
+After manager review of the contract and a revised profile, first inspect the
+pinned child CLI's tools metadata API for the exact `view_image` callable schema,
+if it exposes one. A model description or the outer app-session schema is not
+schema evidence for the child CLI. If metadata is unavailable, capture the exact
+schema from a released native view operation. Then use the production
+package-read/delivery-write/root-deny filesystem profile to probe one allowed
+package reference plus outside absolute, traversal, and symlink-escape paths, with
+no ImageGen call. Any outside success, missing case, ambiguous error, or unbound
+result is a stop and leaves the reference unviewed. A successful allowed call must
+bind the exact frozen package path and pre-read content hash.
+
+If those probes establish an exact typed call/result contract, add separate
+trusted reference-read evidence to the host receipt. Derive
+`viewedReferenceHashes` only from successful validated local reads; keep
+`CodexExecImageEvidence.referenceHashes` as the distinct list of inputs attached to
+ImageGen. Cover every role whose prompt requires viewing, including
+`character_identity` and `parent_output`; explicitly settle `source_keyframe` and
+other reference roles before implementation. Do not infer visual understanding
+from a path read or generation attachment; any model-authored identity notes remain
+a separate untrusted statement. Amend ADR 0165 and the affected reference-use
+contract before source edits.
+
+This proposal is not implemented or accepted. The exact CLI reports the
+`view_image` feature as stable and the current profile disables it, but no allowed
+or denied native `view_image` call has been observed. The previous built-in patch
+probe does not qualify `view_image` confinement. The current connected callable's
+`referenced_image_paths` field also does not establish the Codex Exec CLI's
+`images` argument or native `view_image` schema. If a future exact schema and
+path/result binding cannot be established, keep the workflow fail-closed rather
+than claiming a reference was viewed.
+
+The proposed probe order is: at most four no-provider `view_image` boundary calls
+(one allowed package read and three denials), then at most one ImageGen
+outside-reference pre-read call, then at most one allowed ImageGen control after
+its own manager release. Total proposed native tool calls are at most six, with
+zero automatic retries and at most one generated image across the ImageGen phases.
+Current authorization, dispatches, and generated outputs remain zero.
+
+### Diagnostic child-runtime metadata probe · 2026-10-14
+
+One separately released, diagnostic-only native CLI session used the same pinned
+image-domain profile and production permission/environment builders, with the sole
+argv difference `--enable view_image`. Its runtime metadata query found no
+`view_image` entry in child `ALL_TOOLS`; the `image_gen__imagegen` entry contained
+only `name` and `description`, with no argument schema. Because no child-runtime
+`view_image` callable/argument shape was exposed, the allowed-package case was
+missing. The session stopped before any `view_image` call; no path was guessed and
+no retry or alternate metadata route was attempted.
+
+The exact session had one metadata `exec` call/result, zero `view_image` calls, zero
+ImageGen calls, no `image_gen.generation` event, and no `savedPath`. It ended with
+`turn.completed`, exit 0, in 13.413 seconds; the owned process group exited. The
+valid synthetic package PNG, outside PNG, package tree, empty delivery tree, and
+precreated symlink were unchanged. This result is
+`inconclusive_missing_child_runtime_view_image`, not a view boundary pass. It does
+not show whether a separate direct CLI-native feature call exists outside
+`ALL_TOOLS`.
+
+The diagnostic variant reused profile hash
+`c291e28504980c8d6c6f39178f66d2d7386174c9db0da7c7edf8cecfa270682a`, CLI
+`0.162.0-alpha.17.2`, `gpt-6.1-sol` / medium, and production image-domain argv plus
+the single `view_image` enable flag (argv SHA-256
+`d6f6182d4c04c81a859b8636e1bdef300fa10699463950ae372c891fc1640b99`). It was a
+diagnostic variant, not a newly qualified production profile.
+
+Private evidence: `.local/native-proof/view-image-diagnostic-7c9d74a1/reconciliation.json`
+(SHA-256 `e593a6f97c7c8d8a54c82e7409c04f6bcbdbe8cf08f76448977a02b8edc50137`),
+`result.json` (SHA-256
+`e6e9eb08f92a078ab669c321d83a51466c8d0f5411e38974339ded1fa6f78e0b`), and the
+single session `01a138c6-653b-7b60-b3a2-fed7caf890f0` at
+`/Users/wjmao/.codex/sessions/2026/10/14/rollout-2026-10-14T00-58-08-01a138c6-653b-7b60-b3a2-fed7caf890f0.jsonl`
+(SHA-256 `9bc9fa80019fd2003277caedd6499f2334411f4ef2411b0b9c35086e82382256`).
+The bounded stdout SHA-256 is
+`9f96dcab1e88dc24fc530e8fbf2f706344bde56f31f75946ee38d89a02eaad2a`; stderr was
+empty. No source implementation, tests, or provider dispatch ran.
+
+### Append-only correction: revised view-image loader probe · 2026-10-14
+
+The preceding diagnostic metadata conclusion is superseded. Its argv disabled and
+then enabled `view_image`, so the missing tool entry did not show that the pinned
+child lacked the callable. The corrected diagnostic omitted `view_image` from the
+disabled list and enabled it once. `features list` reported both `view_image` and
+`image_generation` stable and true. Child `ALL_TOOLS` exposed `view_image` and
+`image_gen__imagegen`; each entry's callable declaration is embedded in its
+description, rather than a separate schema field. The recorded declarations are
+in the private reconciliation. The image-generation declaration includes
+`referenced_image_paths`, while current source telemetry accepts `images`; resolve
+that contract before any production ImageGen dispatch.
+
+One diagnostic session made four typed `view_image` calls: the allowed synthetic
+package PNG, then outside absolute, traversal, and symlink aliases. The allowed
+call returned a 14,523-byte PNG data URL with MIME `application/octet-stream`
+(output SHA-256
+`0fae758f849f2f598ee99999d175dbcbb1aecaa7c89aa8d41b59deba60d2e005`). All three
+outside calls returned `Operation not permitted (os error 1)`. Fixture hashes,
+package tree, symlink, and empty delivery tree remained unchanged. This is scoped
+path-loader allow/deny evidence for the diagnostic profile only; production still
+disables `view_image`.
+
+The allowed result does not qualify model-visible image delivery. The harness
+checked `result.image_url.startsWith("data:image/")`, but the returned MIME was
+`application/octet-stream`; that branch therefore emitted the result object as
+text and did not call `image(result.image_url)`. The session separately contains
+native `ImageView` item `exec-0690c237-db6e-465b-927a-d1817a8c5a67` for the exact
+allowed file URL, but the paired `exec` output contains no `input_image` part.
+A later MIME-agnostic base64 check confirmed returned PNG bytes; it does not prove
+that the model received image pixels. Keep the visual-reference requirement
+unqualified until a released probe verifies a real image content block end to end.
+
+No ImageGen call, provider dispatch, generation extension, or `savedPath` occurred.
+The session was `01a138cb-c1bd-7db1-bdb6-5a355363ba4c`, CLI
+`0.162.0-alpha.17.2`, `gpt-6.1-sol` / medium, 87.764 seconds, exit 0, with owned
+process-group cleanup proven. Its source/profile hashes and typed call/result
+pairing are retained in `.local/native-proof/view-image-diagnostic-revised-7c9d74a1/reconciliation.json`
+(SHA-256 `3977aa3de427237c4e33481b46212df429de22200916973c02dfde84966ca244`).
+The original session output and earlier reconciliation remain unchanged.
+
+### Append-only correction: truncated view output · 2026-10-14
+
+A later inspection of the paired `exec` output found
+`Warning: truncated output (original token count: 99296)`. The 14,523 decoded
+bytes and SHA-256 recorded in the preceding correction are only the captured PNG
+prefix; they are not the complete `view_image` output length or identity, and they
+do not show that the viewer transformed the source. The frozen source fixture's
+independent hash remains `2f2cb5d3172b3d3757a635bd30226d14f29c50df97016ae1c13c244a065f10e`.
+The exact `ImageView` event and three path-specific permission denials remain
+valid scoped loader evidence. No `input_image` block was present in the paired
+`exec` result, so model-visible pixels remain unqualified.
+
+Private append-only correction:
+`.local/native-proof/view-image-diagnostic-revised-7c9d74a1/reconciliation-correction.json`
+(SHA-256 `ae8a676a030c996388dd47fe5ff87ccdf58aa9a7fc1f67341aca0855c44a5270`).
+The original session and CLI result were not changed; do not use the earlier
+captured-prefix hash as a complete returned-image identity.
+
+### Source candidate verification: complete reference raster decoding · 2026-10-14
+
+Independent review found that Pillow 11.3.0 `Image.verify()` could accept a
+reference-view result without decoding complete raster pixels: PNG container
+and CRC checks do not establish complete scanlines, while the base JPEG
+verifier only closes the stream. The source validator now preserves byte and
+pixel bounds, verifies the container, reopens the bytes and calls `load()` to
+decode pixels, and fails closed if `ImageFile.LOAD_TRUNCATED_IMAGES` is enabled.
+This keeps `viewedReferenceHashes` tied to complete image content in the exact
+paired `input_image` block.
+
+Regression cases cover the CRC-valid but incomplete PNG raster, a JPEG ending
+after a valid scan header without scan data, and Pillow's permissive truncated
+image setting. The independent read-only follow-up review found no further
+issues in the decoder, fixtures, or ADR wording.
+
+Local evidence for the reviewed source candidate: `verify.py focused
+--pytest tests/test_codex_exec_telemetry.py` passed all 22 tests; targeted Ruff
+on `codex_exec_tool_source.py` and `test_codex_exec_telemetry.py` passed;
+`git diff --check` passed. `verify.py quick` passed locked dependency, API
+unused-import, all 1,377 frontend unit tests, and frontend/browser-fixture type
+checks. Quick excludes Python integration, browser execution, bundle parity,
+wheel and installed-wheel smoke. No full gate or provider/native dispatch ran
+for this source candidate; those remain under manager review.

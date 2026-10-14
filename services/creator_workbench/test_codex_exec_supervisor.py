@@ -134,7 +134,7 @@ session_dir = Path(os.environ["CODEX_HOME"]) / "sessions" / f"{day.year:04d}" / 
 session_dir.mkdir(parents=True)
 timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
 (session_dir / f"rollout-{timestamp}-{session_id}.jsonl").write_text(
-    json.dumps({"type": "session_meta", "payload": {"id": str(session_id)}}) + "\n",
+    json.dumps({"type": "session_meta", "payload": {"id": str(session_id)}, "ordinal": 0}) + "\n",
     encoding="utf-8",
 )
 for event in (
@@ -234,7 +234,7 @@ session_dir = Path(os.environ["CODEX_HOME"]) / "sessions" / f"{day.year:04d}" / 
 session_dir.mkdir(parents=True)
 timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
 (session_dir / f"rollout-{timestamp}-{session_id}.jsonl").write_text(
-    json.dumps({"type": "session_meta", "payload": {"id": str(session_id)}}) + "\n",
+    json.dumps({"type": "session_meta", "payload": {"id": str(session_id)}, "ordinal": 0}) + "\n",
     encoding="utf-8",
 )
 for event in (
@@ -326,7 +326,7 @@ def test_cross_process_cancel_serializes_with_cli_spawn_boundary(supervisor, mon
         session_dir.mkdir(parents=True)
         rollout = session_dir / f"rollout-{now.strftime('%Y-%m-%dT%H-%M-%S')}-{session_id}.jsonl"
         rollout.write_text(
-            json.dumps({"type": "session_meta", "payload": {"id": str(session_id)}}) + "\n",
+            json.dumps({"type": "session_meta", "payload": {"id": str(session_id)}, "ordinal": 0}) + "\n",
             encoding="utf-8",
         )
         for event in (
@@ -419,7 +419,7 @@ session_dir = Path(os.environ["CODEX_HOME"]) / "sessions" / f"{day.year:04d}" / 
 session_dir.mkdir(parents=True)
 timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
 (session_dir / f"rollout-{timestamp}-{session_id}.jsonl").write_text(
-    json.dumps({"type": "session_meta", "payload": {"id": str(session_id)}}) + "\n",
+    json.dumps({"type": "session_meta", "payload": {"id": str(session_id)}, "ordinal": 0}) + "\n",
     encoding="utf-8",
 )
 for event in (
