@@ -228,3 +228,45 @@ match qualified `4bc1d62a`; a complete tracked diff contains only documentation.
 The actual main input/host fingerprints also match. The subsequent receipt
 updates are documentation-only and do not require another full run. Ordinary
 main publication does not dispatch hosted CI or activate CLI generation.
+
+The qualified integration was pushed as
+`e391b8b86e10a38b7193404060d6cefedbbc25ad`; remote `refs/heads/main` was read
+back at that exact SHA. The isolated profiling checkout and its raw evidence
+remain retained. Hosted qualification and the overall two-part goal are open.
+
+## Residual-cost investigation — not an approved implementation
+
+One fresh main-thread profile ran the unchanged complete-pack control at clean
+`3c3a025e` (the same executable inputs as the qualified/published candidate).
+It passed with all eight text stages, 29 images and 27 unique route frames;
+providers were fixture-backed. The profiled call took 55.536s, of which 54.982s
+was process CPU. These instrumented costs are attribution, not a speed
+benchmark or a comparison to the unprofiled full run.
+
+The largest relevant cumulative costs were `material_closure` (1,695 calls,
+20.708s), Bridge `get_state` (131 calls, 10.383s), and persisted-autopilot
+validation on project open (499 calls, 9.235s). They overlap and must not be
+added. Caller evidence assigns 308 closure calls / 4.396s to lifecycle
+before/after checks; source shows `claim` uses that lease even when updating
+only controller metadata. Other closure checks protect write admission,
+receipt reconciliation, cancellation and current views. Bridge still repeats
+upstream resolution inside its own read. These costs live in production
+authority owners, not pytest scheduling.
+
+Open questions for a separately scoped review are whether metadata-only claims
+can preserve lifecycle/ownership guarantees without a full material comparison,
+and which duplicate resolutions belong to one uninterrupted Bridge read.
+Do not use a session/global closure cache, skip ordinary-open corruption
+validation or reuse pre-write authority after mutation. Neither question is
+implemented or promoted to an adopted contract, and neither is evidence that
+85 percent is achievable. Broader production changes still need owner approval.
+
+Evidence: `.local/remaining-cost/complete-pack-o_v35lkn/attribution.json` in
+the profiling checkout, SHA-256
+`3be56242301e7077c8232ec8b513d8c08af300ac2a2765f9aa349f4bb511cb71`;
+`call.prof` SHA-256
+`0568761cd60476b78b42aa863676e969a53dc17ba9dd7a529a230df1e84fbee3`.
+Command: `uv run --locked --no-sync python .local/remaining-cost/profile_case.py complete-pack`;
+observer SHA-256
+`4fd3cb2fc79e81536e5746a68febc467de4a308e9984b6a782db6e7ef012885c`.
+Source remained clean and input/host fingerprints matched after completion.
