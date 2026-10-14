@@ -1496,6 +1496,95 @@ Evidence root `.local/remaining-cost/receipt-material-quiet-0jasxfgm/`, SHA-256:
 - observer `.local/remaining-cost/receipt_material_quiet_pair.py`:
   `a1becc448d09ca4c7b00b9ad6bd5a2cf81ea1f70fd9fc4f5ddb8b5bfdd5ff878`.
 
+### Current complete-Python capture failure and bounded repair
+
+The manager allocated one current Python-only observation at clean
+`bddb7cdf2d18ff924521dc6a3a14b4908e5ed83d` after CLI quiet ACK, using exactly
+`uv run --locked --no-sync python scripts/testing/run_python_suite.py` with the
+released default two workers. Native session 3882 ran once and exited one.
+Current collection retained **2,239 cases / 211 files**, fingerprint
+`cf44ff431a57ac8ab848124965921f73056fb33f7a1efe25d7dc0a9bf7340242`.
+The workers reported 1 failed / 1,140 passed and 8 failed / 1,090 passed; both
+completion markers correctly said `complete=false` and emitted no successful
+phase-row inventory. External command time **524.1386793749989s** and runner
+summary 518.081s are failed-run diagnostics, not qualified timing/coverage,
+before/after savings or the original target's achievement.
+
+The original manifest stayed byte-identical. Source/host probes stayed fixed,
+exact clean main was preserved, all observed owned groups were confirmed absent
+and the runner's temporary root was removed. The manager independently audited
+terminal evidence and released CLI. No automatic retry occurred.
+
+Read-only diagnosis identified two causes, then the owner approved only their
+bounded test/observer repair:
+
+- **Four observer-induced failures.** The failed observer placed child `TMPDIR`
+  beneath repository `.local`. The Codex runtime fixture cloned complete source
+  there; the extraction guard's repository filesystem scan found those copied
+  prompt templates. Synthetic nested runner projects also inherited the ancestor
+  repository `pyproject.toml`; installed pytest makes node IDs relative to that
+  root, whereas the native runner accepts only `tests/...` IDs. All three nested
+  failures reported no native case IDs. Their raw collector stdout was not
+  retained, so the exact failed IDs remain unobserved. The unchanged extraction,
+  four-worker isolation, fresh-ID success and old-ID refusal cases subsequently
+  passed together under an external system temporary root. No extraction,
+  native-ID, runner or fixture assertion was weakened.
+- **Five stale routing assertions.** The stage-routing test still parsed a
+  model-run shell block or expected adapter commands in model instructions.
+  ADR 0165's current package-v4 contract makes trusted code own validation and
+  report bytes. The repaired tests verify packages with
+  `validation_plan_from_package`, expand fixed argv with
+  `expand_validation_argv`, and execute real saved-Brief Cast/Art/Storyboard
+  examples without parsing model shell. They assert candidate-only instructions,
+  unchanged candidate bytes, exact host-captured report bytes and exact
+  preset/neutral source resources. All five native case IDs remain unchanged.
+  No production contract/runtime code changed or model execution was restored.
+
+Executed **focused** correctness: first the five repaired cases passed; then
+**37 distinct cases passed** in one union containing those five, complete
+`test_codex_exec_validation.py` and `test_codex_exec_prompts.py`, selected neutral,
+preset and mutated-contract resource guards, three current saved-Brief package
+guards, and the four unchanged failing consumers named above. The fresh-ID test
+asserts two successful native worker proofs; the old-ID test asserts refusal of
+the mismatched worker fingerprint. `TMPDIR` was a fresh absolute `/private/tmp/`
+child, removed after the command; its path/removal are retained in the log.
+The manager independently read the routing diff and actual exit-zero union log,
+finding no additional issue. F401 and whitespace checks passed. The untouched
+production tree and unchanged four-consumer/runner diff were verified.
+The tested executable-input fingerprint is
+`18155d64c943e12b03766f50cb9b80be7b3e4e25ab93200ff2c66d0dce7dc6f0`;
+the changed routing test's SHA-256 is
+`7af3d68c4b8bdd71eeff784ef37fb7c8f31031f97334cd2cf85694f3150fe0be`.
+
+Failed evidence root `.local/remaining-cost/python-current-two-i1jkshzz/`:
+
+- failed observer `.local/remaining-cost/current_python_capture.py` SHA-256:
+  `dfaa0c9a5d26908feb81d1bd3f25fa036023bef1ef158b673a3dce626894eb41`;
+- `result.json`: `e078579aba8ab876bdc3f9912fc43fa442ce796adbc3507fabfa712d70e6794a`;
+- `python-suite.log`: `592ec120f881f2dea2789b3092ff091026577eee2fceddbdb215c015b651f2a3`.
+
+Correctness logs under `.local/remaining-cost/`:
+
+- `stage-routing-current-contract-first.log`:
+  `3610631818929db4eb96c49bc286048acece0c8db14f65af982a5b3cdcf8b8c0`;
+- `stage-routing-external-focused.log`:
+  `42dc84f9639d9bbdd1dcbb82818d54466a7e17b6a8aa73381d1bebb09871b865`.
+
+A **new, unstarted** ignored `current_python_external_capture.py` preserves the
+failed observer/result/full-log hashes alongside all earlier completed observers.
+Measurement evidence stays repository-local; test execution uses a fresh
+absolute external system temporary parent, with canonical containment checks
+rejecting checkout-contained paths before any dispatch. After owned process
+cleanup, only that identified disposable external root is removed. The native
+runner, manifest, default worker count, exact worker proofs and phase-row checks
+stay unchanged. Independent stable read-only review (existing GPT-6.1 Sol /
+Medium reviewer; effective settings unverified) found no actionable findings in
+the tests, record or new observer, and ran no checks. The observer's placeholder
+HEAD is pinned only after the stable commit; root readiness review and a separate
+quiet allocation still precede any new complete capture. No broad run/profile/
+full/benchmark is allocated by this repair. Combined CLI/Python full
+qualification remains required after integration.
+
 ### Historical material-closure attribution — read-only extraction
 
 The manager extracted the existing main-thread complete-pack profile without

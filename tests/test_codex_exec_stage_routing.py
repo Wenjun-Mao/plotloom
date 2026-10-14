@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -16,7 +14,8 @@ from plotloom.autopilot_brief_style import (
     freeze_brief_style,
 )
 from plotloom.cast_style import freeze_cast_style
-from plotloom.codex_exec_resources import codex_exec_source_read_paths
+from plotloom.codex_exec_resources import codex_exec_source_resources
+from plotloom.codex_exec_validation import expand_validation_argv, validation_plan_from_package
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import CreativeHandoffExchange, canonical_json
 from tests.storyboard_brief_fixtures import real_example_request
@@ -68,7 +67,16 @@ def _saved_brief_example(stage: str) -> tuple[CreativeHandoffRequest, dict, str]
     return request, board, "storyboard.json"
 
 
-def _run_emitted_commands(tmp_path: Path, stage: str) -> str:
+def _assert_candidate_only_assignment(instructions: str) -> None:
+    assert "Write only the stage-shaped candidate JSON" in instructions
+    assert "Do not create report.html, completion.json, or any other output" in instructions
+    assert "do not run validators or renderers" in instructions
+    assert "trusted Codex Exec host validates the candidate and creates the report" in instructions
+    assert "From the delivery directory, run exactly:\n" not in instructions
+    assert "$PLOTLOOM_NODE" not in instructions
+
+
+def _run_frozen_plan(tmp_path: Path, stage: str) -> str:
     request, candidate, candidate_filename = _saved_brief_example(stage)
     exchange = CreativeHandoffExchange(tmp_path / "creative-handoff")
     pin = exchange.current_execution_pin(stage)
@@ -77,27 +85,42 @@ def _run_emitted_commands(tmp_path: Path, stage: str) -> str:
     package = Path(paths["packagePath"])
     delivery = Path(paths["deliveryPath"])
     delivery.mkdir()
-    (delivery / candidate_filename).write_bytes(canonical_json(candidate))
+    candidate_bytes = canonical_json(candidate)
+    (delivery / candidate_filename).write_bytes(candidate_bytes)
 
     instructions = (package / "COPY_ASSIGNMENT.txt").read_text(encoding="utf-8")
-    marker = "From the delivery directory, run exactly:\n"
-    assert instructions.count(marker) == 1
-    commands = [
-        line for line in instructions.split(marker, 1)[1].splitlines()
-        if line.startswith('"$PLOTLOOM_NODE" ')
-    ]
-    assert len(commands) == 2
-    assert " validate " in commands[0] and " render " in commands[1]
-
-    node = shutil.which("node")
-    assert node is not None
-    environment = os.environ | {"PLOTLOOM_SOURCE_ROOT": str(ROOT), "PLOTLOOM_NODE": node}
-    for command in commands:
-        subprocess.run(
-            ["bash", "-e", "-c", command], cwd=delivery, env=environment,
-            capture_output=True, text=True, check=True,
+    _assert_candidate_only_assignment(instructions)
+    package_request = json.loads((package / "request.json").read_text(encoding="utf-8"))
+    plan = validation_plan_from_package(package_request)
+    resources = codex_exec_source_resources(ROOT, package_request)
+    tools = dict(resources.tools)
+    adapter = f"scripts/brief-{'cast' if stage == 'characters' else stage}-style.mjs"
+    policy = "src/plotloom/storyboard_brief_style.py" if stage == "storyboard" else "src/plotloom/autopilot_brief_style.py"
+    assert plan.route == "saved_brief" and plan.candidate_filename == candidate_filename
+    assert plan.source_revision == PLOTLOOM_CODE_REVISION
+    assert set(resources.read_paths) == {
+        (EXAMPLES / f"novel-{stage}").resolve(), (ROOT / adapter).resolve(),
+        (ROOT / policy).resolve(), tools["node"].parent.parent,
+    }
+    assert tuple(step.step_id for step in plan.steps) == ("validate", "render")
+    assert tuple(step.stdout_is_report for step in plan.steps) == (False, True)
+    assert {path.name for path in delivery.iterdir()} == {candidate_filename}
+    report_path = delivery / plan.report_filename
+    for step in plan.steps:
+        argv = expand_validation_argv(
+            step, source_root=ROOT, submodule_root=ROOT / "third_party/shuohao-skills",
+            job_root=package.parent, candidate_filename=plan.candidate_filename, tool_paths=tools,
         )
-    report = (delivery / "report.html").read_text(encoding="utf-8")
+        assert argv[:2] == (str(tools["node"]), str(ROOT / adapter))
+        result = subprocess.run(argv, cwd=delivery, capture_output=True, check=True, timeout=30)
+        if step.stdout_is_report:
+            assert not report_path.exists()
+            report_path.write_bytes(result.stdout)
+            assert report_path.read_bytes() == result.stdout
+        else:
+            assert not report_path.exists()
+        assert (delivery / candidate_filename).read_bytes() == candidate_bytes
+    report = report_path.read_bytes().decode("utf-8")
     assert "<html" in report.lower()
     assert {path.name for path in delivery.iterdir()} == {candidate_filename, "report.html"}
     return report
@@ -105,7 +128,7 @@ def _run_emitted_commands(tmp_path: Path, stage: str) -> str:
 
 @pytest.mark.parametrize("stage", ["characters", "art", "storyboard"])
 def test_emitted_saved_brief_commands_validate_and_render_frozen_examples(tmp_path: Path, stage: str):
-    report = _run_emitted_commands(tmp_path, stage)
+    report = _run_frozen_plan(tmp_path, stage)
     assert "saved" in report.lower() or "storyboard" in report.lower()
 
 
@@ -141,9 +164,16 @@ def test_preset_control_keeps_existing_adapter_and_allowlist(
     package = Path(paths["packagePath"])
     instructions = (package / "COPY_ASSIGNMENT.txt").read_text(encoding="utf-8")
     package_request = json.loads((package / "request.json").read_text(encoding="utf-8"))
-    resources = set(codex_exec_source_read_paths(ROOT, package_request))
+    _assert_candidate_only_assignment(instructions)
+    plan = validation_plan_from_package(package_request)
+    resources = codex_exec_source_resources(ROOT, package_request)
+    tools = dict(resources.tools)
 
-    assert f'"$PLOTLOOM_SOURCE_ROOT/{adapter}"' in instructions
+    assert plan.route == "preset_style"
+    assert plan.source_revision == PLOTLOOM_CODE_REVISION
+    assert all(step.program == "node" and step.argv[0] == f"{{source}}/{adapter}" for step in plan.steps)
     assert neutral_adapter not in instructions
-    assert (ROOT / adapter).resolve() in resources
-    assert (ROOT / neutral_adapter).resolve() not in resources
+    assert set(resources.read_paths) == {
+        (EXAMPLES / f"novel-{stage}").resolve(), (ROOT / adapter).resolve(), tools["node"].parent.parent,
+    }
+    assert (ROOT / neutral_adapter).resolve() not in resources.read_paths
