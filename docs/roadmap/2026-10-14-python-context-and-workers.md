@@ -114,3 +114,58 @@ run test bodies. Both forthcoming worker measurements use the same committed
 candidate and unchanged timing input. The old timing manifest is ineligible;
 the explicit case-count fallback is the matched experimental basis. No full
 gate or whole-suite speed claim is established by this checkpoint.
+
+## Matched worker experiment — October 14
+
+Both complete runs at clean `656f5fcd5e4388d2e1a3b9745c06f6743565f64b`
+passed all 1,911 native cases / 185 files. Exact coordinator and worker case
+proofs passed. Source, toolchain, host and timing-manifest fingerprints stayed
+unchanged before/after each run and between runs. The common schedule was the
+explicit case-count fallback, not the previous release's duration schedule.
+
+| Workers | External wall | Worker elapsed times | Sampled aggregate RSS peak |
+| --- | --- | --- | --- |
+| 2 | 797.745s | 309.167s / 791.610s | 1.443 GiB |
+| 4 | 472.179s | 237.538s / 220.585s / 466.802s / 251.430s | 2.188 GiB |
+
+This one pair observed **40.81% less wall time with added compute**, not the
+original fixed-resource 85-percent target or a repeated-median result. External
+timing includes startup, collection, reporting and cleanup, with up to roughly
+one second of observer polling quantization. RSS is a one-second sampled sum of
+the owned process tree, including observed Node children, not an instantaneous
+maximum. Both runs left no observed owned processes/groups or runner temporary
+roots. Representative isolation and interruption guards are separate focused
+evidence, not implied by the speed result.
+
+The two-worker run's memory-pressure signal temporarily rose from 1 to 2 and
+returned to 1 before completion; swap use decreased from 3432.94 to 3424.94 MiB.
+The four-worker run started after pressure recovered, stayed at 1 in all
+samples, and swap use decreased to 3408.94 MiB. This difference limits how
+precisely the pair isolates concurrency. No eight-worker run was executed and
+the release default remains two.
+
+Retained command, observer, fingerprints, pressure samples and reports are in
+`.local/remaining-cost/worker-comparison-uQuPIx6t/`. Suite-log SHA-256 hashes:
+two `899c16f85213988cf593a056bf38e16f4649827682c83b54e9715b8f08ae94ab`;
+four `4d8c455300bf15647038eba92469c0526ab141daaa711acdf8a90ca108ff743f`.
+
+### Refresh the released two-worker schedule before qualification
+
+The complete two-worker report contains 185 unique timing rows covering all
+1,911 cases, totaling 1080.758s of pytest phase work. Case-count assignment put
+302.046s in one group and 778.712s in the other. Its largest indivisible file,
+`test_autopilot_geometry.py`, cost 161.077s. More workers do not eliminate that
+work. Restore current measured duration weights before considering another
+concurrency increase; eight-worker headroom alone would not fix this imbalance
+or establish the fixed-resource target.
+
+The refreshed `python_suite_timings.json` uses those complete rows, current
+native case IDs, host fingerprint, and executable-input fingerprint
+`ba57bfa2c56d911e1652eeb3e283440c1294285ec89f0bcd17df8a588810c20f`.
+A fresh native collection and the real scheduler accepted it with
+`schedule=duration`, no fallback, and exact 93/92-file coverage. Estimated phase
+loads are 540.379s each, **not measured wall time**. The final full gate will
+measure the default two-worker candidate and qualify all remaining release
+surfaces. The current 1,911-case measurements are not an exact-inventory speed
+comparison to the older 1,859-case / 633.23s release. No 85-percent or full
+release success is claimed here.

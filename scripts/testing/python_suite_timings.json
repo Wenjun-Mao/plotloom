@@ -1,1282 +1,1303 @@
 {
+  "schema_version": 1,
+  "native_case_ids_sha256": "6c202360bb4dea63a47ccfa1cd4539f5af6ae8bf529452f76fd911d2eedb61a1",
+  "input_fingerprint": "ba57bfa2c56d911e1652eeb3e283440c1294285ec89f0bcd17df8a588810c20f",
+  "host_fingerprint": "e157fcd2c8db7127845d443a20785aff48490f424fcbfe1eb56ec31bb040db92",
   "files": [
     {
-      "call_seconds": 0.0013651259996549925,
+      "call_seconds": 0.0015940410012262873,
       "case_count": 3,
       "path": "tests/backend_core/test_artifacts.py",
-      "setup_seconds": 0.0009785829997781548,
-      "teardown_seconds": 0.00012045800031046383
+      "setup_seconds": 0.0010480420023668557,
+      "teardown_seconds": 0.00011333300790283829
     },
     {
-      "call_seconds": 0.0024242480021712254,
+      "call_seconds": 0.027388998030801304,
       "case_count": 37,
       "path": "tests/backend_core/test_atlas_wan_transport.py",
-      "setup_seconds": 0.0026784569963638205,
-      "teardown_seconds": 0.0012770880002790364
+      "setup_seconds": 0.00257824899017578,
+      "teardown_seconds": 0.0011867070061271079
     },
     {
-      "call_seconds": 0.7730273749994012,
+      "call_seconds": 0.6554302909862599,
       "case_count": 14,
       "path": "tests/backend_core/test_config_and_boundaries.py",
-      "setup_seconds": 0.0032372080013374216,
-      "teardown_seconds": 0.0007064159999572439
+      "setup_seconds": 0.0031907080046948977,
+      "teardown_seconds": 0.0006977500015636906
     },
     {
-      "call_seconds": 0.0017770000004020403,
+      "call_seconds": 0.004309374016884249,
       "case_count": 6,
       "path": "tests/backend_core/test_domain.py",
-      "setup_seconds": 0.00033541600078024203,
-      "teardown_seconds": 0.0002262920006614877
+      "setup_seconds": 0.00047641700075473636,
+      "teardown_seconds": 0.00023091601178748533
     },
     {
-      "call_seconds": 0.0004400829993755906,
+      "call_seconds": 0.0004153749978286214,
       "case_count": 5,
       "path": "tests/backend_core/test_e2e_listener_ownership.py",
-      "setup_seconds": 0.0008349159998033429,
-      "teardown_seconds": 0.00014637399908679072
+      "setup_seconds": 0.0005929590042796917,
+      "teardown_seconds": 0.00013670900807483122
     },
     {
-      "call_seconds": 0.10770679100096459,
+      "call_seconds": 0.15141054400010034,
       "case_count": 8,
       "path": "tests/backend_core/test_jobs.py",
-      "setup_seconds": 0.311716708001768,
-      "teardown_seconds": 0.024771792001047288
+      "setup_seconds": 0.2699132499983534,
+      "teardown_seconds": 0.022298210009466857
     },
     {
-      "call_seconds": 0.0007437080003001029,
+      "call_seconds": 0.0007727499978500418,
       "case_count": 2,
       "path": "tests/backend_core/test_m15_config_profiles.py",
-      "setup_seconds": 0.00035883400050806813,
-      "teardown_seconds": 7.729100070719142e-05
+      "setup_seconds": 0.0003900419978890568,
+      "teardown_seconds": 0.00007791599637130275
     },
     {
-      "call_seconds": 0.10402058400086389,
+      "call_seconds": 0.055395459006831516,
       "case_count": 3,
       "path": "tests/backend_core/test_runtime_recovery.py",
-      "setup_seconds": 0.0003060830003960291,
-      "teardown_seconds": 0.0001178739994429634
+      "setup_seconds": 0.00034887600486399606,
+      "teardown_seconds": 0.00011500000255182385
     },
     {
-      "call_seconds": 0.0014652489990112372,
+      "call_seconds": 0.0014783340011490509,
       "case_count": 6,
       "path": "tests/generation/test_continuity_repair.py",
-      "setup_seconds": 0.0003458339988355874,
-      "teardown_seconds": 0.00016504100040037883
+      "setup_seconds": 0.0003184160086675547,
+      "teardown_seconds": 0.00017845800903160125
     },
     {
-      "call_seconds": 0.002072500997201132,
+      "call_seconds": 0.0021772109903395176,
       "case_count": 17,
       "path": "tests/generation/test_correction_directives.py",
-      "setup_seconds": 0.000786540000262903,
-      "teardown_seconds": 0.000512378000166791
+      "setup_seconds": 0.0007220420084195212,
+      "teardown_seconds": 0.00045700000191573054
     },
     {
-      "call_seconds": 0.001528000999314827,
+      "call_seconds": 0.0015231669967761263,
       "case_count": 7,
       "path": "tests/generation/test_correction_postconditions.py",
-      "setup_seconds": 0.00020024899913551053,
-      "teardown_seconds": 0.0001940829988598125
+      "setup_seconds": 0.00019120899378322065,
+      "teardown_seconds": 0.00018087399803334847
     },
     {
-      "call_seconds": 0.0020612909975170624,
+      "call_seconds": 0.0022070419872761704,
       "case_count": 12,
       "path": "tests/generation/test_correction_schema.py",
-      "setup_seconds": 0.0003306680018795305,
-      "teardown_seconds": 0.00032908299908740446
+      "setup_seconds": 0.00033300198992947116,
+      "teardown_seconds": 0.00033775099291233346
     },
     {
-      "call_seconds": 0.002379999999902793,
+      "call_seconds": 0.002461373995174654,
       "case_count": 7,
       "path": "tests/generation/test_dialogue_capacity.py",
-      "setup_seconds": 0.00022366699886333663,
-      "teardown_seconds": 0.0002044160009972984
+      "setup_seconds": 0.0002019159946939908,
+      "teardown_seconds": 0.00019850100943585858
     },
     {
-      "call_seconds": 0.0804517090000445,
+      "call_seconds": 0.0963752919997205,
       "case_count": 1,
       "path": "tests/generation/test_import_boundary.py",
-      "setup_seconds": 4.6041000132390764e-05,
-      "teardown_seconds": 6.304199996520765e-05
+      "setup_seconds": 0.00003833300434052944,
+      "teardown_seconds": 0.00005474999488797039
     },
     {
-      "call_seconds": 0.006697292998069315,
+      "call_seconds": 0.006483666023996193,
       "case_count": 12,
       "path": "tests/generation/test_join_state_values.py",
-      "setup_seconds": 0.00036149900279269787,
-      "teardown_seconds": 0.0003542080003171577
+      "setup_seconds": 0.0003408739939914085,
+      "teardown_seconds": 0.0003827090040431358
     },
     {
-      "call_seconds": 0.00023399999918183312,
+      "call_seconds": 0.00023799899645382538,
       "case_count": 3,
       "path": "tests/generation/test_json_schema.py",
-      "setup_seconds": 8.895899918570649e-05,
-      "teardown_seconds": 7.712499973422382e-05
+      "setup_seconds": 0.00008104200242087245,
+      "teardown_seconds": 0.00007383299816865474
     },
     {
-      "call_seconds": 0.15481424599875027,
+      "call_seconds": 0.15202983198832953,
       "case_count": 28,
       "path": "tests/generation/test_m12a_contracts.py",
-      "setup_seconds": 0.0011877079969053739,
-      "teardown_seconds": 0.0011844179998661275
+      "setup_seconds": 0.0011640409793471918,
+      "teardown_seconds": 0.0011078280003857799
     },
     {
-      "call_seconds": 0.020539167001516034,
+      "call_seconds": 0.01958833399839932,
       "case_count": 5,
       "path": "tests/generation/test_orchestration.py",
-      "setup_seconds": 0.0002563740008554305,
-      "teardown_seconds": 0.00022866599920234876
+      "setup_seconds": 0.00027845999284181744,
+      "teardown_seconds": 0.00022687500313622877
     },
     {
-      "call_seconds": 0.04958220899970911,
+      "call_seconds": 0.04895508399204118,
       "case_count": 8,
       "path": "tests/generation/test_planning_and_aggregation.py",
-      "setup_seconds": 0.0002978729989990825,
-      "teardown_seconds": 0.00036091700076212874
+      "setup_seconds": 0.00030000101105542853,
+      "teardown_seconds": 0.0003211670045857318
     },
     {
-      "call_seconds": 0.027736959000321804,
+      "call_seconds": 0.02508395900076721,
       "case_count": 5,
       "path": "tests/generation/test_prompts.py",
-      "setup_seconds": 0.00020645899985538563,
-      "teardown_seconds": 0.00022591599918087013
+      "setup_seconds": 0.00016041700291680172,
+      "teardown_seconds": 0.0001842499987105839
     },
     {
-      "call_seconds": 0.0009190829996441607,
+      "call_seconds": 0.0011061650002375245,
       "case_count": 10,
       "path": "tests/generation/test_provider_profiles.py",
-      "setup_seconds": 0.0004186669984846958,
-      "teardown_seconds": 0.0002767910009424668
+      "setup_seconds": 0.00044387700472725555,
+      "teardown_seconds": 0.0002763330121524632
     },
     {
-      "call_seconds": 0.0027353759987818194,
+      "call_seconds": 0.002170164974813815,
       "case_count": 21,
       "path": "tests/generation/test_providers.py",
-      "setup_seconds": 0.0008688319994689664,
-      "teardown_seconds": 0.0005954210009804228
+      "setup_seconds": 0.0008373749733436853,
+      "teardown_seconds": 0.0005853759939782321
     },
     {
-      "call_seconds": 0.0002444989995638025,
+      "call_seconds": 0.00024708300043130293,
       "case_count": 5,
       "path": "tests/generation/test_responses.py",
-      "setup_seconds": 0.00014324999938253313,
-      "teardown_seconds": 0.00011862400060635991
+      "setup_seconds": 0.00013862400373909622,
+      "teardown_seconds": 0.00011450199235696346
     },
     {
-      "call_seconds": 0.06947246000072482,
+      "call_seconds": 0.0680097080039559,
       "case_count": 7,
       "path": "tests/generation/test_scene_fragment_contracts.py",
-      "setup_seconds": 0.0002469160008331528,
-      "teardown_seconds": 0.0003495029986879672
+      "setup_seconds": 0.00024416900851065293,
+      "teardown_seconds": 0.0003433339952607639
     },
     {
-      "call_seconds": 0.03615541599901917,
+      "call_seconds": 0.03586037498462247,
       "case_count": 5,
       "path": "tests/generation/test_scene_timing_allocation.py",
-      "setup_seconds": 0.00014683300014439737,
-      "teardown_seconds": 0.0001592090002304758
+      "setup_seconds": 0.00013916501484345645,
+      "teardown_seconds": 0.00016858300659805536
     },
     {
-      "call_seconds": 0.00025479099986114306,
+      "call_seconds": 0.00022483299835585058,
       "case_count": 3,
       "path": "tests/generation/test_secrets.py",
-      "setup_seconds": 0.00010600000041449675,
-      "teardown_seconds": 8.404200070799561e-05
+      "setup_seconds": 0.00010024999210145324,
+      "teardown_seconds": 0.00009045799379236996
     },
     {
-      "call_seconds": 0.0541518760001054,
+      "call_seconds": 0.054153167984622996,
       "case_count": 18,
       "path": "tests/generation/test_story_graph_topology.py",
-      "setup_seconds": 0.0006170019987621345,
-      "teardown_seconds": 0.0005620439978883951
+      "setup_seconds": 0.0006185389793245122,
+      "teardown_seconds": 0.0005962890136288479
     },
     {
-      "call_seconds": 0.027051668001149665,
+      "call_seconds": 0.026378168004157487,
       "case_count": 5,
       "path": "tests/generation/test_storyboard_continuity_contracts.py",
-      "setup_seconds": 0.00017225099873030558,
-      "teardown_seconds": 0.00020187600057397503
+      "setup_seconds": 0.00016012400737963617,
+      "teardown_seconds": 0.0002057069941656664
     },
     {
-      "call_seconds": 0.03538887400100066,
+      "call_seconds": 0.036486291013716254,
       "case_count": 4,
       "path": "tests/generation/test_storyboard_fragment_contracts.py",
-      "setup_seconds": 0.00012712399893644033,
-      "teardown_seconds": 0.00015166699995461386
+      "setup_seconds": 0.000133000998175703,
+      "teardown_seconds": 0.0001728739880491048
     },
     {
-      "call_seconds": 0.007547126000645221,
+      "call_seconds": 0.007794748999003787,
       "case_count": 3,
       "path": "tests/generation/test_validation.py",
-      "setup_seconds": 9.129200043389574e-05,
-      "teardown_seconds": 8.92490006663138e-05
+      "setup_seconds": 0.00009875000250758603,
+      "teardown_seconds": 0.0001075409963959828
     },
     {
-      "call_seconds": 0.025047623999853386,
+      "call_seconds": 0.023381288985547144,
       "case_count": 12,
       "path": "tests/generation/test_work_unit_prompts.py",
-      "setup_seconds": 0.0006752920025974163,
-      "teardown_seconds": 0.000440374998106563
+      "setup_seconds": 0.0006275000050663948,
+      "teardown_seconds": 0.0003809179979725741
     },
     {
-      "call_seconds": 0.013478042000315327,
+      "call_seconds": 0.013780874993244652,
       "case_count": 15,
       "path": "tests/generation/test_work_unit_scene_facts.py",
-      "setup_seconds": 0.0007700390015088487,
-      "teardown_seconds": 0.0004813369996554684
+      "setup_seconds": 0.0007210410039988346,
+      "teardown_seconds": 0.00045925301674287766
     },
     {
-      "call_seconds": 0.09932408799977566,
+      "call_seconds": 0.15340141600609059,
       "case_count": 24,
       "path": "tests/services/creator_workbench/test_h3_runtime.py",
-      "setup_seconds": 0.10176945500279544,
-      "teardown_seconds": 0.0011781649973272579
+      "setup_seconds": 0.04753804099163972,
+      "teardown_seconds": 0.0010986280103679746
     },
     {
-      "call_seconds": 0.5942458739973517,
+      "call_seconds": 0.5664748749841237,
       "case_count": 22,
       "path": "tests/services/minimax_h3_gateway/test_app.py",
-      "setup_seconds": 0.004879916002209939,
-      "teardown_seconds": 0.0010888749984587776
+      "setup_seconds": 0.0048504570077057,
+      "teardown_seconds": 0.0010574579937383533
     },
     {
-      "call_seconds": 0.4506784579989471,
+      "call_seconds": 0.10871137500362238,
       "case_count": 3,
       "path": "tests/services/minimax_h3_gateway/test_image_intake.py",
-      "setup_seconds": 0.0009212089998982265,
-      "teardown_seconds": 0.0001770410008248291
+      "setup_seconds": 0.0009703329997137189,
+      "teardown_seconds": 0.00018783399718813598
     },
     {
-      "call_seconds": 0.007394416998067754,
+      "call_seconds": 0.007110374004696496,
       "case_count": 10,
       "path": "tests/services/minimax_h3_gateway/test_prompt_robustness_study.py",
-      "setup_seconds": 0.0005302489998939564,
-      "teardown_seconds": 0.0003805409987762687
+      "setup_seconds": 0.0005012919937144034,
+      "teardown_seconds": 0.00035370801924727857
     },
     {
-      "call_seconds": 0.21270137700048508,
+      "call_seconds": 0.2130778730061138,
       "case_count": 11,
       "path": "tests/services/minimax_h3_gateway/test_qwen_image.py",
-      "setup_seconds": 0.0033728330017765984,
-      "teardown_seconds": 0.0006386689992723404
+      "setup_seconds": 0.002901918014686089,
+      "teardown_seconds": 0.0006297519939835183
     },
     {
-      "call_seconds": 5.889658624997537,
+      "call_seconds": 5.559831374994246,
       "case_count": 10,
       "path": "tests/test_accepted_review_lifecycle.py",
-      "setup_seconds": 0.005427125001006061,
-      "teardown_seconds": 0.0016152919988599024
+      "setup_seconds": 0.004926250992866699,
+      "teardown_seconds": 0.0014852919994154945
     },
     {
-      "call_seconds": 0.0005170809999981429,
+      "call_seconds": 0.0005944590011495166,
       "case_count": 14,
       "path": "tests/test_accepted_review_state.py",
-      "setup_seconds": 0.0011505829988891492,
-      "teardown_seconds": 0.0004558729997370392
+      "setup_seconds": 0.0012979160019312985,
+      "teardown_seconds": 0.00046779300464550033
     },
     {
-      "call_seconds": 5.696614539999246,
+      "call_seconds": 5.648111082002288,
       "case_count": 7,
       "path": "tests/test_alpha_acceptance.py",
-      "setup_seconds": 0.0020580830014296225,
-      "teardown_seconds": 0.0003524170006130589
+      "setup_seconds": 0.001739293998980429,
+      "teardown_seconds": 0.00035904300602851436
     },
     {
-      "call_seconds": 5.822560499000247,
+      "call_seconds": 5.837566831993172,
       "case_count": 9,
       "path": "tests/test_alpha_qualification_contracts.py",
-      "setup_seconds": 0.0015725809998912155,
-      "teardown_seconds": 0.00048420700022688834
+      "setup_seconds": 0.0018542089965194464,
+      "teardown_seconds": 0.00047004299995023757
     },
     {
-      "call_seconds": 0.0007453750004060566,
+      "call_seconds": 0.0007194999998318963,
       "case_count": 2,
       "path": "tests/test_alpha_review_templates.py",
-      "setup_seconds": 0.0003389590001461329,
-      "teardown_seconds": 6.65419993310934e-05
+      "setup_seconds": 0.00027591699472395703,
+      "teardown_seconds": 0.00006608300463994965
     },
     {
-      "call_seconds": 0.018275581998750567,
+      "call_seconds": 0.018137582992494572,
       "case_count": 3,
       "path": "tests/test_application_profile_snapshot_contracts.py",
-      "setup_seconds": 0.0010160410001844866,
-      "teardown_seconds": 0.00018395799816062208
+      "setup_seconds": 0.0008729590044822544,
+      "teardown_seconds": 0.0001541259916848503
     },
     {
-      "call_seconds": 0.7277097500000309,
+      "call_seconds": 0.7096050840045791,
       "case_count": 1,
       "path": "tests/test_art_reference_additional_candidate.py",
-      "setup_seconds": 0.0003022499995495309,
-      "teardown_seconds": 7.062500026222551e-05
+      "setup_seconds": 0.0002592089949757792,
+      "teardown_seconds": 0.00007958400237839669
     },
     {
-      "call_seconds": 2.447870540997428,
+      "call_seconds": 2.6013594179967185,
       "case_count": 19,
       "path": "tests/test_art_style.py",
-      "setup_seconds": 0.006011168999066285,
-      "teardown_seconds": 0.004787460999978066
+      "setup_seconds": 0.005684251998900436,
+      "teardown_seconds": 0.0028993329833610915
     },
     {
-      "call_seconds": 0.9377022500011662,
+      "call_seconds": 0.5562245839973912,
       "case_count": 6,
       "path": "tests/test_authored_route_timing.py",
-      "setup_seconds": 1.9979060840005332,
-      "teardown_seconds": 0.013576458000898128
+      "setup_seconds": 1.9208348730098805,
+      "teardown_seconds": 0.01417254099942511
     },
     {
-      "call_seconds": 1.784586873997796,
+      "call_seconds": 1.691688708975562,
       "case_count": 20,
       "path": "tests/test_autopilot_authority.py",
-      "setup_seconds": 0.007756999998491665,
-      "teardown_seconds": 0.0015268309980456252
+      "setup_seconds": 0.00789129299664637,
+      "teardown_seconds": 0.0015490400037379004
     },
     {
-      "call_seconds": 0.4967364149979403,
+      "call_seconds": 0.5140110840075067,
       "case_count": 10,
       "path": "tests/test_autopilot_brief_style.py",
-      "setup_seconds": 0.002319541000360914,
-      "teardown_seconds": 0.000894126000275719
+      "setup_seconds": 0.0026587079992168583,
+      "teardown_seconds": 0.0008979589983937331
     },
     {
-      "call_seconds": 20.611128749999807,
+      "call_seconds": 19.87906416698388,
       "case_count": 22,
       "path": "tests/test_autopilot_controller_safety.py",
-      "setup_seconds": 0.00934579099794064,
-      "teardown_seconds": 0.0022494579998237896
+      "setup_seconds": 0.009712125000078231,
+      "teardown_seconds": 0.002295081976626534
     },
     {
-      "call_seconds": 75.94878933200107,
+      "call_seconds": 71.172052085014,
       "case_count": 16,
       "path": "tests/test_autopilot_creator_confirmation.py",
-      "setup_seconds": 0.0027631650009425357,
-      "teardown_seconds": 0.0009139590001723263
+      "setup_seconds": 0.0030124599870759994,
+      "teardown_seconds": 0.0009435410029254854
     },
     {
-      "call_seconds": 162.45867120599814,
+      "call_seconds": 161.06369949800137,
       "case_count": 26,
       "path": "tests/test_autopilot_geometry.py",
-      "setup_seconds": 0.009260835001441592,
-      "teardown_seconds": 0.002951918000690057
+      "setup_seconds": 0.010026084994024131,
+      "teardown_seconds": 0.002807914948789403
     },
     {
-      "call_seconds": 29.972232207998786,
+      "call_seconds": 25.589230416997452,
       "case_count": 3,
       "path": "tests/test_autopilot_geometry_publication.py",
-      "setup_seconds": 0.001520000999335025,
-      "teardown_seconds": 0.0007353319988396834
+      "setup_seconds": 0.0014287909943959676,
+      "teardown_seconds": 0.0004747499988297932
     },
     {
-      "call_seconds": 158.89967575099854,
+      "call_seconds": 139.48289537398523,
       "case_count": 12,
       "path": "tests/test_autopilot_handoff.py",
-      "setup_seconds": 0.006087710999963747,
-      "teardown_seconds": 0.0017627490015001968
+      "setup_seconds": 0.005627876984362956,
+      "teardown_seconds": 0.001502375009295065
     },
     {
-      "call_seconds": 26.11883695799952,
+      "call_seconds": 24.38962224900024,
       "case_count": 3,
       "path": "tests/test_autopilot_image_phase.py",
-      "setup_seconds": 0.0013098340004944475,
-      "teardown_seconds": 0.0004207089996270952
+      "setup_seconds": 0.0013286260000313632,
+      "teardown_seconds": 0.0003772919953917153
     },
     {
-      "call_seconds": 95.94539179400272,
+      "call_seconds": 101.56949837699358,
       "case_count": 19,
       "path": "tests/test_autopilot_image_safety.py",
-      "setup_seconds": 0.0075350840015744325,
-      "teardown_seconds": 0.005044914003519807
+      "setup_seconds": 0.009642377001000568,
+      "teardown_seconds": 0.0036854579957434908
     },
     {
-      "call_seconds": 112.51611116700042,
+      "call_seconds": 99.84562358298717,
       "case_count": 10,
       "path": "tests/test_autopilot_images.py",
-      "setup_seconds": 0.006060708999029885,
-      "teardown_seconds": 0.001818081999772403
+      "setup_seconds": 0.005103040995891206,
+      "teardown_seconds": 0.001836791001551319
     },
     {
-      "call_seconds": 19.692768335998153,
+      "call_seconds": 15.817811415989127,
       "case_count": 8,
       "path": "tests/test_autopilot_late_receipts.py",
-      "setup_seconds": 0.003938167000342219,
-      "teardown_seconds": 0.0009220400006597629
+      "setup_seconds": 0.0037116679959581234,
+      "teardown_seconds": 0.0008029990131035447
     },
     {
-      "call_seconds": 2.357509834000666,
+      "call_seconds": 2.5738462500085006,
       "case_count": 16,
       "path": "tests/test_autopilot_recovery.py",
-      "setup_seconds": 0.00786770900049305,
-      "teardown_seconds": 0.002261583999825234
+      "setup_seconds": 0.007153624013881199,
+      "teardown_seconds": 0.0019845849892590195
     },
     {
-      "call_seconds": 6.188655748000201,
+      "call_seconds": 4.710769125005754,
       "case_count": 9,
       "path": "tests/test_autopilot_review_readiness.py",
-      "setup_seconds": 0.0010148739984288113,
-      "teardown_seconds": 0.00035479200050758664
+      "setup_seconds": 0.00104120700416388,
+      "teardown_seconds": 0.00035287399805383757
     },
     {
-      "call_seconds": 0.6727337499987698,
+      "call_seconds": 0.6624759569967864,
       "case_count": 7,
       "path": "tests/test_autopilot_runtime_ownership.py",
-      "setup_seconds": 0.005017500999201729,
-      "teardown_seconds": 0.0005027920014981646
+      "setup_seconds": 0.0028127509940532036,
+      "teardown_seconds": 0.0005209179944358766
     },
     {
-      "call_seconds": 4.349728416000289,
+      "call_seconds": 4.271717582021665,
       "case_count": 16,
       "path": "tests/test_autopilot_schema_upgrade.py",
-      "setup_seconds": 0.007677332999264763,
-      "teardown_seconds": 0.0020581249982569716
+      "setup_seconds": 0.008118125006149057,
+      "teardown_seconds": 0.0024807509980746545
     },
     {
-      "call_seconds": 14.196020289999979,
+      "call_seconds": 13.043001085010474,
       "case_count": 14,
       "path": "tests/test_autopilot_text_controller.py",
-      "setup_seconds": 0.00653420799972082,
-      "teardown_seconds": 0.0012042070029565366
+      "setup_seconds": 0.006021207009325735,
+      "teardown_seconds": 0.0011130850107292645
     },
     {
-      "call_seconds": 0.7372957489978944,
+      "call_seconds": 0.6531797490097233,
       "case_count": 15,
       "path": "tests/test_candidate_asset_provenance.py",
-      "setup_seconds": 0.007595875998049451,
-      "teardown_seconds": 0.0011035419984182226
+      "setup_seconds": 0.007360166986472905,
+      "teardown_seconds": 0.00112629199429648
     },
     {
-      "call_seconds": 0.0007041669987302157,
+      "call_seconds": 0.0006810399863752536,
       "case_count": 14,
       "path": "tests/test_cast_design_validation.py",
-      "setup_seconds": 0.0008643330002087168,
-      "teardown_seconds": 0.0004238320007061702
+      "setup_seconds": 0.0008699169920873828,
+      "teardown_seconds": 0.00041241300641559064
     },
     {
-      "call_seconds": 1.726254792997679,
+      "call_seconds": 1.842621830990538,
       "case_count": 16,
       "path": "tests/test_cast_style.py",
-      "setup_seconds": 0.0038995400009298464,
-      "teardown_seconds": 0.002809168000567297
+      "setup_seconds": 0.004363877989817411,
+      "teardown_seconds": 0.002696959018066991
     },
     {
-      "call_seconds": 0.0005255000014585676,
+      "call_seconds": 0.0003514160052873194,
       "case_count": 9,
       "path": "tests/test_cast_writing_contract.py",
-      "setup_seconds": 0.0005597500021394808,
-      "teardown_seconds": 0.00037166599940974265
+      "setup_seconds": 0.00036374999035615474,
+      "teardown_seconds": 0.00023970800975803286
     },
     {
-      "call_seconds": 2.361227082001278,
+      "call_seconds": 0.7699973749913624,
       "case_count": 10,
       "path": "tests/test_character_reference_revision_refinement.py",
-      "setup_seconds": 2.948461583000608,
-      "teardown_seconds": 0.02957087300001149
+      "setup_seconds": 2.5769485019991407,
+      "teardown_seconds": 0.02872645898605697
     },
     {
-      "call_seconds": 8.19589995444403e-05,
+      "call_seconds": 0.00007724999886704609,
       "case_count": 1,
       "path": "tests/test_character_reference_selection_contract.py",
-      "setup_seconds": 5.9625000176311005e-05,
-      "teardown_seconds": 3.137499970762292e-05
+      "setup_seconds": 0.00006437500269385055,
+      "teardown_seconds": 0.00003362500137882307
     },
     {
-      "call_seconds": 0.016446957999505685,
+      "call_seconds": 0.016816085008031223,
       "case_count": 5,
       "path": "tests/test_ci_browser_contract.py",
-      "setup_seconds": 0.00018666599953576224,
-      "teardown_seconds": 0.000186167000720161
+      "setup_seconds": 0.0001660009875195101,
+      "teardown_seconds": 0.00016616599168628454
     },
     {
-      "call_seconds": 0.04414825099865993,
+      "call_seconds": 0.037651500017091166,
       "case_count": 21,
       "path": "tests/test_cleanup_imagegen_staging.py",
-      "setup_seconds": 0.011524001002726436,
-      "teardown_seconds": 0.001097252000363369
+      "setup_seconds": 0.011043627026083414,
+      "teardown_seconds": 0.0010687510221032426
     },
     {
-      "call_seconds": 0.003943624000385171,
+      "call_seconds": 0.004332833013904747,
       "case_count": 8,
       "path": "tests/test_codex_image_dispatch.py",
-      "setup_seconds": 0.002559209001447016,
-      "teardown_seconds": 0.00030895899726601783
+      "setup_seconds": 0.0025886250004987232,
+      "teardown_seconds": 0.00030125000193947926
     },
     {
-      "call_seconds": 2.817607166999551,
+      "call_seconds": 3.065419500002463,
       "case_count": 13,
       "path": "tests/test_conformance.py",
-      "setup_seconds": 0.0028262500009077485,
-      "teardown_seconds": 0.0007667099980608327
+      "setup_seconds": 0.0025500819974695332,
+      "teardown_seconds": 0.0007139160006772727
     },
     {
-      "call_seconds": 0.49766104299942526,
+      "call_seconds": 0.5175684169953456,
       "case_count": 11,
       "path": "tests/test_creative_handoff_exchange.py",
-      "setup_seconds": 0.005727541001760983,
-      "teardown_seconds": 0.0019573750005292823
+      "setup_seconds": 0.006075541976315435,
+      "teardown_seconds": 0.0018832089990610257
     },
     {
-      "call_seconds": 1.6564896690033493,
+      "call_seconds": 1.5152535840097698,
       "case_count": 17,
       "path": "tests/test_creator_branch_suggestions.py",
-      "setup_seconds": 1.9015240839980834,
-      "teardown_seconds": 0.04939575099888316
+      "setup_seconds": 1.6939113730259123,
+      "teardown_seconds": 0.048759417004475836
     },
     {
-      "call_seconds": 3.2569561250002153,
+      "call_seconds": 1.0168970419981633,
       "case_count": 1,
       "path": "tests/test_creator_general_journey.py",
-      "setup_seconds": 0.10322483299933083,
-      "teardown_seconds": 0.0033514160004415317
+      "setup_seconds": 0.1236382080023759,
+      "teardown_seconds": 0.0033351660022162832
     },
     {
-      "call_seconds": 0.0009202920000461745,
+      "call_seconds": 0.0007368320075329393,
       "case_count": 6,
       "path": "tests/test_current_stage_evidence.py",
-      "setup_seconds": 0.0005214590000832686,
-      "teardown_seconds": 0.00021600100080831908
+      "setup_seconds": 0.0004459159972611815,
+      "teardown_seconds": 0.0001922910159919411
     },
     {
-      "call_seconds": 0.4174194580000403,
+      "call_seconds": 0.8205922080014716,
       "case_count": 1,
       "path": "tests/test_dependency_boundary.py",
-      "setup_seconds": 3.7291999433364253e-05,
-      "teardown_seconds": 6.35839996903087e-05
+      "setup_seconds": 0.0000297920050797984,
+      "teardown_seconds": 0.00005787500413134694
     },
     {
-      "call_seconds": 1.2664954979991307,
+      "call_seconds": 1.2698154989993782,
       "case_count": 10,
       "path": "tests/test_direct_project_deletion.py",
-      "setup_seconds": 0.004964875000950997,
-      "teardown_seconds": 0.0007267099999808124
+      "setup_seconds": 0.005061916002887301,
+      "teardown_seconds": 0.0007136259882827289
     },
     {
-      "call_seconds": 1.4951826250007798,
+      "call_seconds": 1.5412865420003072,
       "case_count": 12,
       "path": "tests/test_extraction_contract.py",
-      "setup_seconds": 0.0013949159992989735,
-      "teardown_seconds": 0.0008381250008824281
+      "setup_seconds": 0.0014302499912446365,
+      "teardown_seconds": 0.0008269980316981673
     },
     {
-      "call_seconds": 0.005163586005437537,
+      "call_seconds": 0.005430917008197866,
       "case_count": 50,
       "path": "tests/test_frozen_video_integrity.py",
-      "setup_seconds": 0.0035069149989794823,
-      "teardown_seconds": 0.0016482080000059796
+      "setup_seconds": 0.003430871969612781,
+      "teardown_seconds": 0.0016254969741567038
     },
     {
-      "call_seconds": 0.10044841800026916,
+      "call_seconds": 0.10712570800387766,
       "case_count": 8,
       "path": "tests/test_graph_authoring_contract.py",
-      "setup_seconds": 0.8360113739990993,
-      "teardown_seconds": 0.02116225000099803
+      "setup_seconds": 0.8200913340042462,
+      "teardown_seconds": 0.021158960000320803
     },
     {
-      "call_seconds": 2.432779374999882,
+      "call_seconds": 2.334657249994052,
       "case_count": 2,
       "path": "tests/test_graph_authoring_production.py",
-      "setup_seconds": 0.0017295010002271738,
-      "teardown_seconds": 0.00037070799953653477
+      "setup_seconds": 0.0010807919970829971,
+      "teardown_seconds": 0.0002020009997067973
     },
     {
-      "call_seconds": 0.35392345899617794,
+      "call_seconds": 0.33108429298590636,
       "case_count": 20,
       "path": "tests/test_graph_commands.py",
-      "setup_seconds": 0.3465987080007835,
-      "teardown_seconds": 0.010875911999391974
+      "setup_seconds": 0.3078990409994731,
+      "teardown_seconds": 0.009533829987049103
     },
     {
-      "call_seconds": 0.17337183299878234,
+      "call_seconds": 0.1565069580101408,
       "case_count": 8,
       "path": "tests/test_graph_safety_diagnostics.py",
-      "setup_seconds": 0.8242961680007284,
-      "teardown_seconds": 0.021616207999613835
+      "setup_seconds": 0.7542777900016517,
+      "teardown_seconds": 0.018380498979240656
     },
     {
-      "call_seconds": 0.18124241699933918,
+      "call_seconds": 0.20570474999112776,
       "case_count": 4,
       "path": "tests/test_graph_workbench_api.py",
-      "setup_seconds": 0.29039108300094085,
-      "teardown_seconds": 0.00789220899969223
+      "setup_seconds": 0.3015511659978074,
+      "teardown_seconds": 0.008802791002381127
     },
     {
-      "call_seconds": 0.0015609589972882532,
+      "call_seconds": 0.001523335995443631,
       "case_count": 19,
       "path": "tests/test_h3_i2va_prompt.py",
-      "setup_seconds": 0.0008514980017935159,
-      "teardown_seconds": 0.000536084996383579
+      "setup_seconds": 0.0008210830055759288,
+      "teardown_seconds": 0.0005326670070644468
     },
     {
-      "call_seconds": 0.05415954099953524,
+      "call_seconds": 0.048097208004037384,
       "case_count": 2,
       "path": "tests/test_identity_review_refusal.py",
-      "setup_seconds": 0.0009561659999235417,
-      "teardown_seconds": 0.00013095800022711046
+      "setup_seconds": 0.0008532080028089695,
+      "teardown_seconds": 0.00010854099673451856
     },
     {
-      "call_seconds": 0.01766629199937597,
+      "call_seconds": 0.01784062599472236,
       "case_count": 14,
       "path": "tests/test_image_job_exchange_contracts.py",
-      "setup_seconds": 0.0053939590015943395,
-      "teardown_seconds": 0.0006112940000093658
+      "setup_seconds": 0.0052214159950381145,
+      "teardown_seconds": 0.0006587520401808433
     },
     {
-      "call_seconds": 0.006625626000641205,
+      "call_seconds": 0.0055444169920519926,
       "case_count": 4,
       "path": "tests/test_image_package_publication.py",
-      "setup_seconds": 0.0016208759998335154,
-      "teardown_seconds": 0.00019616700137703447
+      "setup_seconds": 0.0015550429961876944,
+      "teardown_seconds": 0.0001620010007172823
     },
     {
-      "call_seconds": 1.3103327079998053,
+      "call_seconds": 1.7930371670081513,
       "case_count": 2,
       "path": "tests/test_image_source_lineage.py",
-      "setup_seconds": 0.0009942500000761356,
-      "teardown_seconds": 0.00015791700025147293
+      "setup_seconds": 0.0009238329948857427,
+      "teardown_seconds": 0.00015483301103813574
     },
     {
-      "call_seconds": 17.22100703900105,
+      "call_seconds": 15.222963043001073,
       "case_count": 33,
       "path": "tests/test_image_terminal_settlement.py",
-      "setup_seconds": 0.018291713000508025,
-      "teardown_seconds": 0.005611372994280828
+      "setup_seconds": 0.016533705034817103,
+      "teardown_seconds": 0.005665381992002949
     },
     {
-      "call_seconds": 0.9530444580013864,
+      "call_seconds": 0.9715684580005473,
       "case_count": 9,
       "path": "tests/test_managed_asset_provenance.py",
-      "setup_seconds": 0.0027405000028011273,
-      "teardown_seconds": 0.0005027069992138422
+      "setup_seconds": 0.0026815439923666418,
+      "teardown_seconds": 0.0005063760108896531
     },
     {
-      "call_seconds": 0.007093709999026032,
+      "call_seconds": 0.005822832012199797,
       "case_count": 12,
       "path": "tests/test_media.py",
-      "setup_seconds": 0.0006377060017257463,
-      "teardown_seconds": 0.0004446640014066361
+      "setup_seconds": 0.0005907489830860868,
+      "teardown_seconds": 0.000372169008187484
     },
     {
-      "call_seconds": 7.042616668001756,
+      "call_seconds": 4.498765080985322,
       "case_count": 22,
       "path": "tests/test_native_bridge_intent.py",
-      "setup_seconds": 22.161646416999247,
-      "teardown_seconds": 0.002824373999828822
+      "setup_seconds": 19.514621461006755,
+      "teardown_seconds": 0.0026249170332448557
     },
     {
-      "call_seconds": 4.725577835999502,
+      "call_seconds": 2.2370718339807354,
       "case_count": 21,
       "path": "tests/test_native_bridge_presentation.py",
-      "setup_seconds": 26.426506709000023,
-      "teardown_seconds": 0.0025576249963705777
+      "setup_seconds": 23.47347812599037,
+      "teardown_seconds": 0.002477247006027028
     },
     {
-      "call_seconds": 0.49347395800032245,
+      "call_seconds": 2.8500337910008966,
       "case_count": 1,
       "path": "tests/test_native_wake_art.py",
-      "setup_seconds": 0.0005680829999619164,
-      "teardown_seconds": 0.0001253749996976694
+      "setup_seconds": 0.0004431670022313483,
+      "teardown_seconds": 0.0000809580014902167
     },
     {
-      "call_seconds": 1.8317930440016426,
+      "call_seconds": 1.6643951250298414,
       "case_count": 21,
       "path": "tests/test_outline_settings_entry.py",
-      "setup_seconds": 0.006750167001882801,
-      "teardown_seconds": 0.002042166996943706
+      "setup_seconds": 0.006900956999743357,
+      "teardown_seconds": 0.002156208996893838
     },
     {
-      "call_seconds": 6.58159154200257,
+      "call_seconds": 6.48291554399475,
       "case_count": 24,
       "path": "tests/test_pin_image_specialist.py",
-      "setup_seconds": 2.73325203999957,
-      "teardown_seconds": 0.005072961003861565
+      "setup_seconds": 2.654831665997335,
+      "teardown_seconds": 0.005235954995441716
     },
     {
-      "call_seconds": 11.845838040998387,
+      "call_seconds": 9.2343384989872,
       "case_count": 9,
       "path": "tests/test_production_bridge.py",
-      "setup_seconds": 0.005396582000685157,
-      "teardown_seconds": 0.001447791000828147
+      "setup_seconds": 0.0053161659961915575,
+      "teardown_seconds": 0.0015937910065986216
     },
     {
-      "call_seconds": 4.594000248999691,
+      "call_seconds": 4.043685415992513,
       "case_count": 4,
       "path": "tests/test_production_bridge_fresh_preinstall.py",
-      "setup_seconds": 0.002630750999742304,
-      "teardown_seconds": 0.0006488330000138376
+      "setup_seconds": 0.0026019159995485097,
+      "teardown_seconds": 0.0005572080044657923
     },
     {
-      "call_seconds": 12.76757962299962,
+      "call_seconds": 10.250625875007245,
       "case_count": 10,
       "path": "tests/test_production_bridge_intent.py",
-      "setup_seconds": 0.009062207999704697,
-      "teardown_seconds": 0.0014340009993247804
+      "setup_seconds": 0.0057524179719621316,
+      "teardown_seconds": 0.001178249018266797
     },
     {
-      "call_seconds": 0.04699595800047973,
+      "call_seconds": 0.05095608200645074,
       "case_count": 5,
       "path": "tests/test_production_bridge_runtime_capability.py",
-      "setup_seconds": 0.0005029169997214922,
-      "teardown_seconds": 0.00028508299874374643
+      "setup_seconds": 0.0005389170109992847,
+      "teardown_seconds": 0.00032374999864259735
     },
     {
-      "call_seconds": 2.0903767910003808,
+      "call_seconds": 1.6965325420023873,
       "case_count": 1,
       "path": "tests/test_production_bridge_runtime_http.py",
-      "setup_seconds": 0.0004854580001847353,
-      "teardown_seconds": 0.00012887499997304985
+      "setup_seconds": 0.0006210419960552827,
+      "teardown_seconds": 0.00011766699753934518
     },
     {
-      "call_seconds": 0.0017367499985994073,
+      "call_seconds": 0.0016964550304692239,
       "case_count": 28,
       "path": "tests/test_production_presentation.py",
-      "setup_seconds": 0.001493124997978157,
-      "teardown_seconds": 0.0008534159987902967
+      "setup_seconds": 0.0014541269920300692,
+      "teardown_seconds": 0.000834372011013329
     },
     {
-      "call_seconds": 6.010916751000877,
+      "call_seconds": 5.237686126987683,
       "case_count": 6,
       "path": "tests/test_production_presentation_integration.py",
-      "setup_seconds": 0.0036604169999918668,
-      "teardown_seconds": 0.000864040999658755
+      "setup_seconds": 0.003434499005379621,
+      "teardown_seconds": 0.0009180010019917972
     },
     {
-      "call_seconds": 4.014804376001848,
+      "call_seconds": 2.1215889989980496,
       "case_count": 7,
       "path": "tests/test_production_project_folder_runtime.py",
-      "setup_seconds": 0.0037630849992638105,
-      "teardown_seconds": 0.00044800000068789814
+      "setup_seconds": 0.0033674579972284846,
+      "teardown_seconds": 0.0004362940089777112
     },
     {
-      "call_seconds": 2.9851675410009193,
+      "call_seconds": 2.2644132479981636,
       "case_count": 7,
       "path": "tests/test_production_project_folder_runtime_boundaries.py",
-      "setup_seconds": 0.0035930430003645597,
-      "teardown_seconds": 0.00047079199885047274
+      "setup_seconds": 0.003622208983870223,
+      "teardown_seconds": 0.00048500100820092484
     },
     {
-      "call_seconds": 7.775938333998965,
+      "call_seconds": 7.121023875006358,
       "case_count": 6,
       "path": "tests/test_production_rebuild.py",
-      "setup_seconds": 0.004085959000803996,
-      "teardown_seconds": 0.0011067920004279586
+      "setup_seconds": 0.003924375014321413,
+      "teardown_seconds": 0.0008424579937127419
     },
     {
-      "call_seconds": 4.406564165999953,
+      "call_seconds": 3.408240292003029,
       "case_count": 3,
       "path": "tests/test_production_rebuild_dependencies.py",
-      "setup_seconds": 0.0017404170002919273,
-      "teardown_seconds": 0.0004965830003129668
+      "setup_seconds": 0.002149918000213802,
+      "teardown_seconds": 0.0004399999961606227
     },
     {
-      "call_seconds": 4.428777125001034,
+      "call_seconds": 6.0962125419973745,
       "case_count": 3,
       "path": "tests/test_production_rebuild_freshness.py",
-      "setup_seconds": 0.002006166999308334,
-      "teardown_seconds": 0.0004547500011540251
+      "setup_seconds": 0.0016363749964511953,
+      "teardown_seconds": 0.00037275000067893416
     },
     {
-      "call_seconds": 9.251452207999137,
+      "call_seconds": 8.347471500987012,
       "case_count": 8,
       "path": "tests/test_production_rebuild_guards.py",
-      "setup_seconds": 0.00511991699841019,
-      "teardown_seconds": 0.001317874998676416
+      "setup_seconds": 0.005073082997114398,
+      "teardown_seconds": 0.0010117929996340536
     },
     {
-      "call_seconds": 3.0569190820006042,
+      "call_seconds": 1.6340403750073165,
       "case_count": 3,
       "path": "tests/test_production_revision_publications.py",
-      "setup_seconds": 0.0019461250003587338,
-      "teardown_seconds": 0.00047175000054267
+      "setup_seconds": 0.0020074159983778372,
+      "teardown_seconds": 0.0004489170023589395
     },
     {
-      "call_seconds": 0.0759783339999558,
+      "call_seconds": 0.06573949900484877,
       "case_count": 25,
       "path": "tests/test_project_artifact_publication.py",
-      "setup_seconds": 0.013461957998515572,
-      "teardown_seconds": 0.0018285439982719254
+      "setup_seconds": 0.012670667987549677,
+      "teardown_seconds": 0.0016022930140024982
     },
     {
-      "call_seconds": 0.03596737599946209,
+      "call_seconds": 0.033153582000522874,
       "case_count": 5,
       "path": "tests/test_project_folder_native_dispatch_safety.py",
-      "setup_seconds": 0.00020450200008781394,
-      "teardown_seconds": 0.00024120800117088947
+      "setup_seconds": 0.00017870999727165326,
+      "teardown_seconds": 0.00020954099454684183
     },
     {
-      "call_seconds": 0.09148724999886326,
+      "call_seconds": 0.08701083299820311,
       "case_count": 5,
       "path": "tests/test_project_home_identity.py",
-      "setup_seconds": 0.1873610410002584,
-      "teardown_seconds": 0.00030883400086167967
+      "setup_seconds": 0.1688167509928462,
+      "teardown_seconds": 0.00029379199986578897
     },
     {
-      "call_seconds": 0.20701387499866541,
+      "call_seconds": 0.19779787501465762,
       "case_count": 6,
       "path": "tests/test_project_review_drafts.py",
-      "setup_seconds": 0.5108356680002544,
-      "teardown_seconds": 0.003386709000551491
+      "setup_seconds": 0.515428331993462,
+      "teardown_seconds": 0.003802708008151967
     },
     {
-      "call_seconds": 18.83907649900084,
+      "call_seconds": 20.237612790006096,
       "case_count": 22,
       "path": "tests/test_project_specialist_ownership.py",
-      "setup_seconds": 0.014898914999321278,
-      "teardown_seconds": 0.004592791002323793
+      "setup_seconds": 0.01477583000814775,
+      "teardown_seconds": 0.005432832018414047
     },
     {
-      "call_seconds": 5.226914503999069,
+      "call_seconds": 3.749569416999293,
       "case_count": 14,
       "path": "tests/test_project_storage.py",
-      "setup_seconds": 0.007936957998936123,
-      "teardown_seconds": 0.0011943320005229907
+      "setup_seconds": 0.007382959018286783,
+      "teardown_seconds": 0.0010987500136252493
     },
     {
-      "call_seconds": 3.8461219590008113,
+      "call_seconds": 3.0112400829966646,
       "case_count": 6,
       "path": "tests/test_project_storage_art.py",
-      "setup_seconds": 0.0038166259992067353,
-      "teardown_seconds": 0.0007115830012480728
+      "setup_seconds": 0.003560709003068041,
+      "teardown_seconds": 0.000705457990989089
     },
     {
-      "call_seconds": 1.8122984569981782,
+      "call_seconds": 2.357467416986765,
       "case_count": 11,
       "path": "tests/test_project_storage_authoring_control_contracts.py",
-      "setup_seconds": 0.007656710999071947,
-      "teardown_seconds": 0.0009029180000652559
+      "setup_seconds": 0.007243207001010887,
+      "teardown_seconds": 0.0008301679918076843
     },
     {
-      "call_seconds": 1.2389435859995501,
+      "call_seconds": 1.2406357070140075,
       "case_count": 6,
       "path": "tests/test_project_storage_cast.py",
-      "setup_seconds": 0.0037128320009287563,
-      "teardown_seconds": 0.0009452079993934603
+      "setup_seconds": 0.0036384160121087916,
+      "teardown_seconds": 0.0011408329955884255
     },
     {
-      "call_seconds": 1.8376164159963082,
+      "call_seconds": 1.8843004169975757,
       "case_count": 39,
       "path": "tests/test_project_storage_current_schema.py",
-      "setup_seconds": 0.023068542999681085,
-      "teardown_seconds": 0.002714705001380935
+      "setup_seconds": 0.02413174998946488,
+      "teardown_seconds": 0.0028538740079966374
     },
     {
-      "call_seconds": 1.0989920850006456,
+      "call_seconds": 1.0726639160056948,
       "case_count": 10,
       "path": "tests/test_project_storage_direct_generation_regressions.py",
-      "setup_seconds": 0.00610420899829478,
-      "teardown_seconds": 0.0007042480010568397
+      "setup_seconds": 0.006132541006081738,
+      "teardown_seconds": 0.0007107519995770417
     },
     {
-      "call_seconds": 0.4369926250001299,
+      "call_seconds": 0.3754174579953542,
       "case_count": 2,
       "path": "tests/test_project_storage_exact_generation_scenarios.py",
-      "setup_seconds": 0.0012664160003623692,
-      "teardown_seconds": 0.0001437500004612957
+      "setup_seconds": 0.0011240419917157851,
+      "teardown_seconds": 0.00013129099534125999
     },
     {
-      "call_seconds": 1.6691906230016684,
+      "call_seconds": 1.4286970000030124,
       "case_count": 5,
       "path": "tests/test_project_storage_exact_repair_pending_siblings.py",
-      "setup_seconds": 0.003390123999452044,
-      "teardown_seconds": 0.00037387599968496943
+      "setup_seconds": 0.002965790008602198,
+      "teardown_seconds": 0.0003333329877932556
     },
     {
-      "call_seconds": 0.490374167000482,
+      "call_seconds": 0.46364899999753106,
       "case_count": 1,
       "path": "tests/test_project_storage_exact_repair_recovery.py",
-      "setup_seconds": 0.0006437080000978312,
-      "teardown_seconds": 0.00010716700035118265
+      "setup_seconds": 0.0005855830022483133,
+      "teardown_seconds": 0.00008770800195634365
     },
     {
-      "call_seconds": 1.6818809590013188,
+      "call_seconds": 1.5814755849933135,
       "case_count": 12,
       "path": "tests/test_project_storage_exact_repair_regressions.py",
-      "setup_seconds": 0.007035709999399842,
-      "teardown_seconds": 0.0008233759990616818
+      "setup_seconds": 0.007349624997004867,
+      "teardown_seconds": 0.0008054590143729001
     },
     {
-      "call_seconds": 0.1192923750004411,
+      "call_seconds": 0.10834412500116741,
       "case_count": 1,
       "path": "tests/test_project_storage_generation_admission_contracts.py",
-      "setup_seconds": 0.0005627909995382652,
-      "teardown_seconds": 6.70830004310119e-05
+      "setup_seconds": 0.0005503749998752028,
+      "teardown_seconds": 0.00006629199924645945
     },
     {
-      "call_seconds": 2.3131181239996295,
+      "call_seconds": 0.7921629989941721,
       "case_count": 9,
       "path": "tests/test_project_storage_generation_contracts.py",
-      "setup_seconds": 0.005696125001122709,
-      "teardown_seconds": 0.0006249959997148835
+      "setup_seconds": 0.005550252019020263,
+      "teardown_seconds": 0.0006718340155202895
     },
     {
-      "call_seconds": 6.367933708999772,
+      "call_seconds": 6.324068584988709,
       "case_count": 10,
       "path": "tests/test_project_storage_image_delivery_contracts.py",
-      "setup_seconds": 0.0057470410010864725,
-      "teardown_seconds": 0.0006612070019400562
+      "setup_seconds": 0.005820749000122305,
+      "teardown_seconds": 0.0006592939971596934
     },
     {
-      "call_seconds": 2.1645522090002487,
+      "call_seconds": 4.211407708004117,
       "case_count": 1,
       "path": "tests/test_project_storage_image_identity_contracts.py",
-      "setup_seconds": 0.0006509579998237314,
-      "teardown_seconds": 8.2208000094397e-05
+      "setup_seconds": 0.00065441700280644,
+      "teardown_seconds": 0.00007345899939537048
     },
     {
-      "call_seconds": 0.5301417909995507,
+      "call_seconds": 0.5277008749981178,
       "case_count": 1,
       "path": "tests/test_project_storage_image_keyframe_acceptance.py",
-      "setup_seconds": 0.0005790829991383362,
-      "teardown_seconds": 7.48329994166852e-05
+      "setup_seconds": 0.0006356660014716908,
+      "teardown_seconds": 0.00006616699829464778
     },
     {
-      "call_seconds": 1.0592218329993557,
+      "call_seconds": 0.9864049999960116,
       "case_count": 1,
       "path": "tests/test_project_storage_image_workflow.py",
-      "setup_seconds": 0.0006793339998694137,
-      "teardown_seconds": 6.587499956367537e-05
+      "setup_seconds": 0.0005793749951408245,
+      "teardown_seconds": 0.000060375001339707524
     },
     {
-      "call_seconds": 4.343175462996442,
+      "call_seconds": 2.945375210008933,
       "case_count": 19,
       "path": "tests/test_project_storage_recovery.py",
-      "setup_seconds": 0.010992125999109703,
-      "teardown_seconds": 0.0013952530007372843
+      "setup_seconds": 0.01072924899199279,
+      "teardown_seconds": 0.0013546670088544488
     },
     {
-      "call_seconds": 0.46567179199973907,
+      "call_seconds": 0.45884733398997923,
       "case_count": 5,
       "path": "tests/test_project_storage_route_contracts.py",
-      "setup_seconds": 0.002824084000167204,
-      "teardown_seconds": 0.00032487499902345007
+      "setup_seconds": 0.0031873739935690537,
+      "teardown_seconds": 0.0003276249990449287
     },
     {
-      "call_seconds": 2.7386177489988768,
+      "call_seconds": 2.833717792003881,
       "case_count": 5,
       "path": "tests/test_project_storage_script.py",
-      "setup_seconds": 0.0034164159997089882,
-      "teardown_seconds": 0.0007107090004865313
+      "setup_seconds": 0.003034627006854862,
+      "teardown_seconds": 0.0007709599958616309
     },
     {
-      "call_seconds": 1.4862168750005367,
+      "call_seconds": 1.5315084569956525,
       "case_count": 11,
       "path": "tests/test_project_storage_source_outline.py",
-      "setup_seconds": 0.006798998999329342,
-      "teardown_seconds": 0.0016148730001077638
+      "setup_seconds": 0.007824125008482952,
+      "teardown_seconds": 0.0018421249915263616
     },
     {
-      "call_seconds": 0.687869873998352,
+      "call_seconds": 0.6254910429925076,
       "case_count": 5,
       "path": "tests/test_project_storage_source_outline_api.py",
-      "setup_seconds": 0.0021640410004692967,
-      "teardown_seconds": 0.0005361249995985418
+      "setup_seconds": 0.002060541999526322,
+      "teardown_seconds": 0.0004535829939413816
     },
     {
-      "call_seconds": 6.7345155000002705,
+      "call_seconds": 7.056509918009397,
       "case_count": 7,
       "path": "tests/test_project_storage_storyboard_review.py",
-      "setup_seconds": 0.005572790999394783,
-      "teardown_seconds": 0.0011082930004704394
+      "setup_seconds": 0.004678542994952295,
+      "teardown_seconds": 0.0011762509966501966
     },
     {
-      "call_seconds": 3.6711851250011023,
+      "call_seconds": 3.6127893750017392,
       "case_count": 5,
       "path": "tests/test_project_storage_video_dispatch.py",
-      "setup_seconds": 0.003676334999909159,
-      "teardown_seconds": 0.00038066599972808035
+      "setup_seconds": 0.0029825419915141538,
+      "teardown_seconds": 0.0003446670016273856
     },
     {
-      "call_seconds": 5.012959043001501,
+      "call_seconds": 5.1656372909928905,
       "case_count": 5,
       "path": "tests/test_project_storage_video_disposal.py",
-      "setup_seconds": 0.0035798329990939237,
-      "teardown_seconds": 0.0003558329999577836
+      "setup_seconds": 0.003188167007465381,
+      "teardown_seconds": 0.00032791798730613664
     },
     {
-      "call_seconds": 4.350119208000251,
+      "call_seconds": 2.6480288750026375,
       "case_count": 4,
       "path": "tests/test_project_storage_video_reconciliation.py",
-      "setup_seconds": 0.002463832000103139,
-      "teardown_seconds": 0.00025054199977603275
+      "setup_seconds": 0.0023320819964283146,
+      "teardown_seconds": 0.00022291600180324167
     },
     {
-      "call_seconds": 6.692312207999748,
+      "call_seconds": 5.917172336005024,
       "case_count": 6,
       "path": "tests/test_project_storage_video_recovery.py",
-      "setup_seconds": 0.0027119150008729775,
-      "teardown_seconds": 0.0005127499989612261
+      "setup_seconds": 0.0025065840090974234,
+      "teardown_seconds": 0.0005826669948874041
     },
     {
-      "call_seconds": 1.0861030409996602,
+      "call_seconds": 3.0767247090043384,
       "case_count": 3,
       "path": "tests/test_project_storage_video_review.py",
-      "setup_seconds": 0.0013177920000089216,
-      "teardown_seconds": 0.00016320799932145746
+      "setup_seconds": 0.001171500000054948,
+      "teardown_seconds": 0.00015033400268293917
     },
     {
-      "call_seconds": 2.424578167000618,
+      "call_seconds": 3.2504783339973073,
       "case_count": 4,
       "path": "tests/test_project_storage_video_submission.py",
-      "setup_seconds": 0.0025066659991352935,
-      "teardown_seconds": 0.0002629170012369286
+      "setup_seconds": 0.0025350010037072934,
+      "teardown_seconds": 0.0002563749876571819
     },
     {
-      "call_seconds": 0.3427926659987861,
+      "call_seconds": 0.35747008398902835,
       "case_count": 8,
       "path": "tests/test_project_storage_work_unit_contracts.py",
-      "setup_seconds": 0.005268290998174052,
-      "teardown_seconds": 0.0005176659997232491
+      "setup_seconds": 0.0047239990017260425,
+      "teardown_seconds": 0.0004733319947263226
     },
     {
-      "call_seconds": 1.2704323739981191,
+      "call_seconds": 1.53744037499564,
       "case_count": 7,
       "path": "tests/test_publish_image_completion.py",
-      "setup_seconds": 0.003115250001428649,
-      "teardown_seconds": 0.001042165000399109
+      "setup_seconds": 0.006148125001345761,
+      "teardown_seconds": 0.0015538750012638047
     },
     {
-      "call_seconds": 0.2546007940018171,
-      "case_count": 12,
+      "call_seconds": 0.3011751249941881,
+      "case_count": 13,
       "path": "tests/test_python_suite_cleanup.py",
-      "setup_seconds": 0.0013316649992702878,
-      "teardown_seconds": 0.0006607490022361162
+      "setup_seconds": 0.0016329179925378412,
+      "teardown_seconds": 0.0008372519951080903
     },
     {
-      "call_seconds": 0.029440876999615284,
-      "case_count": 8,
+      "call_seconds": 0.0011500410037115216,
+      "case_count": 24,
+      "path": "tests/test_python_suite_completion.py",
+      "setup_seconds": 0.0013584149855887517,
+      "teardown_seconds": 0.0007295409959624521
+    },
+    {
+      "call_seconds": 2.0230748760150163,
+      "case_count": 14,
+      "path": "tests/test_python_suite_experiment.py",
+      "setup_seconds": 0.0047029979978105985,
+      "teardown_seconds": 0.0008087480018730275
+    },
+    {
+      "call_seconds": 0.0373897090103128,
+      "case_count": 9,
       "path": "tests/test_python_suite_runner.py",
-      "setup_seconds": 0.004026418000648846,
-      "teardown_seconds": 0.0005536250000659493
+      "setup_seconds": 0.004084499989403412,
+      "teardown_seconds": 0.0004988330038031563
     },
     {
-      "call_seconds": 1.1119737500002884,
+      "call_seconds": 1.1044654579964117,
       "case_count": 1,
       "path": "tests/test_retained_runtime_coverage_inventory.py",
-      "setup_seconds": 3.5291999665787444e-05,
-      "teardown_seconds": 0.00016512500042153988
+      "setup_seconds": 0.000057332996220793575,
+      "teardown_seconds": 0.00013979199866298586
     },
     {
-      "call_seconds": 0.3548077479999847,
+      "call_seconds": 0.3092869580068509,
       "case_count": 4,
       "path": "tests/test_retained_video_evidence.py",
-      "setup_seconds": 4.32153983400076,
-      "teardown_seconds": 0.00042812600167962955
+      "setup_seconds": 3.819646373995056,
+      "teardown_seconds": 0.00036541499866871163
     },
     {
-      "call_seconds": 4.331250500998976,
+      "call_seconds": 2.6125971239962382,
       "case_count": 13,
       "path": "tests/test_review_context_diagnostics.py",
-      "setup_seconds": 0.005786750999504875,
-      "teardown_seconds": 0.001617623998754425
+      "setup_seconds": 0.005080291004560422,
+      "teardown_seconds": 0.0013813330078846775
     },
     {
-      "call_seconds": 1.3977510849999817,
+      "call_seconds": 1.3734212890049093,
       "case_count": 8,
       "path": "tests/test_review_seam_currentness.py",
-      "setup_seconds": 1.7147729159987648,
-      "teardown_seconds": 0.025241335000828258
+      "setup_seconds": 1.7267843349909526,
+      "teardown_seconds": 0.023918958999274764
     },
     {
-      "call_seconds": 0.12392025000008289,
+      "call_seconds": 0.1147467089976999,
       "case_count": 2,
       "path": "tests/test_runtime_capabilities.py",
-      "setup_seconds": 0.0015344579996963148,
-      "teardown_seconds": 0.00012658300056500593
+      "setup_seconds": 0.0013169990052119829,
+      "teardown_seconds": 0.00011766599345719442
     },
     {
-      "call_seconds": 0.17984279099982814,
+      "call_seconds": 0.173644291004166,
       "case_count": 5,
       "path": "tests/test_runtime_declared_text_preset.py",
-      "setup_seconds": 0.0030910010000297916,
-      "teardown_seconds": 0.0002745829997365945
+      "setup_seconds": 0.003077416004089173,
+      "teardown_seconds": 0.00028154200117569417
     },
     {
-      "call_seconds": 0.0006634180008404655,
+      "call_seconds": 0.0005311630084179342,
       "case_count": 15,
       "path": "tests/test_same_person_review_contract.py",
-      "setup_seconds": 0.0009865399997579516,
-      "teardown_seconds": 0.0004683319994001067
+      "setup_seconds": 0.0007896659953985363,
+      "teardown_seconds": 0.0004249580015311949
     },
     {
-      "call_seconds": 0.07232129299973167,
+      "call_seconds": 0.07731916500051739,
       "case_count": 4,
       "path": "tests/test_script_delivery_linkage.py",
-      "setup_seconds": 2.5624689160013077,
-      "teardown_seconds": 0.013012291999075387
+      "setup_seconds": 2.3535796649885015,
+      "teardown_seconds": 0.011707334000675473
     },
     {
-      "call_seconds": 0.03364104199681606,
+      "call_seconds": 0.02668499999708729,
       "case_count": 16,
       "path": "tests/test_script_report_presentation.py",
-      "setup_seconds": 0.0011180420015080017,
-      "teardown_seconds": 0.0006293320020631654
+      "setup_seconds": 0.001091791011276655,
+      "teardown_seconds": 0.0005824160107295029
     },
     {
-      "call_seconds": 3.133780500001194,
+      "call_seconds": 1.3769363329993212,
       "case_count": 5,
       "path": "tests/test_script_storyboard_diagnostics.py",
-      "setup_seconds": 0.0018097089987350046,
-      "teardown_seconds": 0.00047866800014162436
+      "setup_seconds": 0.00160595999477664,
+      "teardown_seconds": 0.00048429099842906
     },
     {
-      "call_seconds": 0.0004147520003243699,
+      "call_seconds": 0.00040150099084712565,
       "case_count": 9,
       "path": "tests/test_secret_value_contract.py",
-      "setup_seconds": 0.0005789569995613419,
-      "teardown_seconds": 0.0003183330009051133
+      "setup_seconds": 0.0005604989928542636,
+      "teardown_seconds": 0.0003041660020244308
     },
     {
-      "call_seconds": 0.025292209001236188,
+      "call_seconds": 0.029292125997017138,
       "case_count": 7,
       "path": "tests/test_service_source_contract.py",
-      "setup_seconds": 0.00664608300121472,
-      "teardown_seconds": 0.0003867920004267944
+      "setup_seconds": 0.006161373989016283,
+      "teardown_seconds": 0.0003623749944381416
     },
     {
-      "call_seconds": 0.0004822910004804726,
+      "call_seconds": 0.0002679169992916286,
       "case_count": 1,
       "path": "tests/test_shared_runtime_retirement.py",
-      "setup_seconds": 3.458299943304155e-05,
-      "teardown_seconds": 3.004199970746413e-05
+      "setup_seconds": 0.00003729199670488015,
+      "teardown_seconds": 0.00003166700480505824
     },
     {
-      "call_seconds": 0.20019616700028564,
+      "call_seconds": 0.17223766700044507,
       "case_count": 3,
       "path": "tests/test_shot_count_policy.py",
-      "setup_seconds": 0.0019986679990324774,
-      "teardown_seconds": 0.0002051250003205496
+      "setup_seconds": 0.0018536239949753508,
+      "teardown_seconds": 0.00019033200078411028
     },
     {
-      "call_seconds": 0.0012694970009761164,
+      "call_seconds": 0.0012022489827359095,
       "case_count": 16,
       "path": "tests/test_shot_presentation.py",
-      "setup_seconds": 0.000893209000423667,
-      "teardown_seconds": 0.0004836230000364594
+      "setup_seconds": 0.0008546680037397891,
+      "teardown_seconds": 0.0004944169922964647
     },
     {
-      "call_seconds": 2.559833792000063,
+      "call_seconds": 3.3289372500003083,
       "case_count": 1,
       "path": "tests/test_shot_presentation_integration.py",
-      "setup_seconds": 0.0006082909994802321,
-      "teardown_seconds": 0.00015395900027215248
+      "setup_seconds": 0.0005784579989267513,
+      "teardown_seconds": 0.00011612500384217128
     },
     {
-      "call_seconds": 4.651497292000386,
+      "call_seconds": 3.8957866250057123,
       "case_count": 4,
       "path": "tests/test_source_graph_installed_guards.py",
-      "setup_seconds": 0.0030082080002102884,
-      "teardown_seconds": 0.0006549170002472238
+      "setup_seconds": 0.002817207991029136,
+      "teardown_seconds": 0.0006149580076453276
     },
     {
-      "call_seconds": 0.16729399799896782,
+      "call_seconds": 0.16914025200821925,
       "case_count": 12,
       "path": "tests/test_specialist_routes.py",
-      "setup_seconds": 0.008045747998949082,
-      "teardown_seconds": 0.0009283360013796482
+      "setup_seconds": 0.008752708985412028,
+      "teardown_seconds": 0.000891414012585301
     },
     {
-      "call_seconds": 0.014770167000278889,
+      "call_seconds": 0.014024333009729162,
       "case_count": 11,
       "path": "tests/test_specialist_settings.py",
-      "setup_seconds": 0.0056991649989868165,
-      "teardown_seconds": 0.00046333400041476125
+      "setup_seconds": 0.005532917006348725,
+      "teardown_seconds": 0.00046737498632865027
     },
     {
-      "call_seconds": 24.98037037499944,
+      "call_seconds": 20.656338453998615,
       "case_count": 62,
       "path": "tests/test_specialist_terminal_reconciliation.py",
-      "setup_seconds": 38.00107758299873,
-      "teardown_seconds": 0.07114637599988782
+      "setup_seconds": 38.642409039974154,
+      "teardown_seconds": 0.06714970901521156
     },
     {
-      "call_seconds": 0.385514207999222,
+      "call_seconds": 0.4110781670024153,
       "case_count": 1,
       "path": "tests/test_specialist_workflow.py",
-      "setup_seconds": 0.0005121670001244638,
-      "teardown_seconds": 0.0001694170005066553
+      "setup_seconds": 0.0006229999999050051,
+      "teardown_seconds": 0.00015145799989113584
     },
     {
-      "call_seconds": 0.18677754199961782,
+      "call_seconds": 2.324393624003278,
       "case_count": 3,
       "path": "tests/test_static_asset_freshness.py",
-      "setup_seconds": 0.0021541659998547402,
-      "teardown_seconds": 0.00020649999896704685
+      "setup_seconds": 0.0021106249987496994,
+      "teardown_seconds": 0.00021099900914123282
     },
     {
-      "call_seconds": 4.749299956999494,
+      "call_seconds": 4.341248208002071,
       "case_count": 20,
       "path": "tests/test_storyboard_brief_style.py",
-      "setup_seconds": 0.010810372999912943,
-      "teardown_seconds": 0.003528667998580204
+      "setup_seconds": 0.009590540998033248,
+      "teardown_seconds": 0.0026889599903370254
     },
     {
-      "call_seconds": 0.6406972099985069,
+      "call_seconds": 0.6841697079871665,
+      "case_count": 12,
+      "path": "tests/test_storyboard_operation_context.py",
+      "setup_seconds": 0.013640708995808382,
+      "teardown_seconds": 0.0006386240129359066
+    },
+    {
+      "call_seconds": 0.6355227909953101,
       "case_count": 14,
       "path": "tests/test_storyboard_review_timing.py",
-      "setup_seconds": 0.5973247900010392,
-      "teardown_seconds": 0.0006472080003732117
+      "setup_seconds": 0.5837037489909562,
+      "teardown_seconds": 0.0006307079893304035
     },
     {
-      "call_seconds": 3.1564330419996622,
+      "call_seconds": 3.3022649160047877,
       "case_count": 10,
       "path": "tests/test_style_contract_cache.py",
-      "setup_seconds": 0.0028883759996460867,
-      "teardown_seconds": 0.0013969579995318782
+      "setup_seconds": 0.0026016239935415797,
+      "teardown_seconds": 0.001454332006687764
     },
     {
-      "call_seconds": 0.012634331000299426,
+      "call_seconds": 0.00860058500256855,
       "case_count": 20,
       "path": "tests/test_v2_authoring_domain.py",
-      "setup_seconds": 0.0006815399992774474,
-      "teardown_seconds": 0.0007511229978263145
+      "setup_seconds": 0.0006476220005424693,
+      "teardown_seconds": 0.0009352900087833405
     },
     {
-      "call_seconds": 0.14254566700037685,
+      "call_seconds": 0.1363827500026673,
       "case_count": 7,
       "path": "tests/test_verification_module_ownership.py",
-      "setup_seconds": 0.0025047509998330497,
-      "teardown_seconds": 0.00032766699769126717
+      "setup_seconds": 0.002528708013414871,
+      "teardown_seconds": 0.0002942910068668425
     },
     {
-      "call_seconds": 0.8454617510005846,
+      "call_seconds": 0.858766208992165,
       "case_count": 21,
       "path": "tests/test_verify_script.py",
-      "setup_seconds": 0.0024852520000422373,
-      "teardown_seconds": 0.0011309599995001918
+      "setup_seconds": 0.0025593769969418645,
+      "teardown_seconds": 0.0011623360114754178
     },
     {
-      "call_seconds": 0.5568909169996914,
+      "call_seconds": 0.5186717499964288,
       "case_count": 2,
       "path": "tests/test_video_review_reopen.py",
-      "setup_seconds": 0.0007380420011031674,
-      "teardown_seconds": 0.00010479199954716023
+      "setup_seconds": 0.000811873993370682,
+      "teardown_seconds": 0.00011683300544973463
     },
     {
-      "call_seconds": 6.5133499159992425,
+      "call_seconds": 6.439084418016137,
       "case_count": 9,
       "path": "tests/test_video_review_reopen_refusals.py",
-      "setup_seconds": 0.006455374998949992,
-      "teardown_seconds": 0.0012894190003862604
+      "setup_seconds": 0.006334417987091001,
+      "teardown_seconds": 0.0005976680040475912
     },
     {
-      "call_seconds": 1.9188692090001496,
+      "call_seconds": 1.900392625000677,
       "case_count": 1,
       "path": "tests/test_video_review_reopen_retention.py",
-      "setup_seconds": 0.0008091250001598382,
-      "teardown_seconds": 0.00014324999938253313
+      "setup_seconds": 0.0006457499985117465,
+      "teardown_seconds": 0.00012216599861858413
     },
     {
-      "call_seconds": 2.8993874580028205,
+      "call_seconds": 2.9154507080020267,
       "case_count": 20,
       "path": "tests/test_video_segments.py",
-      "setup_seconds": 0.21949133100042673,
-      "teardown_seconds": 0.0018240009994769935
+      "setup_seconds": 0.21433483497821726,
+      "teardown_seconds": 0.007069457984471228
     },
     {
-      "call_seconds": 0.002666501000931021,
+      "call_seconds": 0.0027442480059107766,
       "case_count": 31,
       "path": "tests/video_backends/minimax_h3/test_transport.py",
-      "setup_seconds": 0.0014114170007815119,
-      "teardown_seconds": 0.005773539995061583
+      "setup_seconds": 0.0015531269818893634,
+      "teardown_seconds": 0.0040085820146487094
     }
-  ],
-  "host_fingerprint": "e157fcd2c8db7127845d443a20785aff48490f424fcbfe1eb56ec31bb040db92",
-  "input_fingerprint": "6fb3ab50b61f70423cbcbd90db9d6a0b4c510a9a331f5a41c272b31d963ea8bf",
-  "native_case_ids_sha256": "a1343c056598ee64104953692ae334e2df8b8c073dead554accdadb875044ce6",
-  "schema_version": 1
+  ]
 }
