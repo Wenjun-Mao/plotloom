@@ -194,3 +194,28 @@ Each pair ran once with immutable refs, stable inputs, equal host/dependencies,
 fresh temporary roots and exact clean-checkout restoration. These scoped results
 do not establish whole-suite speed, the 85-percent target or full qualification.
 Frozen refs, exact values and evidence hashes live in the Python plan.
+
+## Text lifecycle-ownership consumers — October 14
+
+The next independent Sol/Medium read-only design review supports the same
+closed accepted Script seed for ten cancelled-text ownership/proof variants
+and four crash-window variants. Each test still prepares, exports, sends,
+cancels, restarts, checks and applies lifecycle actions to its own physical
+copy with fresh registry UUIDs/reservations. Preserve refusal reasons and
+unknown-dispatch semantics. Same project IDs are confined to independent
+output/application roots; snapshot paths stay copy-local. Accepted package
+evidence is retained without identity/path rewriting.
+
+Keep six image-owner cases and unsent-cancel/lock-order controls fresh. Extend
+the existing positive copied-runtime guard to close and snapshot its settled
+copy with the seed unavailable, while sibling database/lease and original seed
+remain intact. No new helper, production contract or active-work copying is
+needed. Freeze the affected 22-case inventory before changing consumers;
+performance needs a separately allocated quiet pair.
+
+The extension passed 23 focused lifecycle/seed/ownership checks and eight
+unchanged fresh controls (31 distinct cases). Independent Sol/Medium stable
+review found no actionable findings and ran no checks. The guard closed and
+snapshotted the settled copy with the seed unavailable, preserving sibling
+database/reservation and original seed bytes. Exact 22-case native inventory is
+unchanged; frozen refs and logs live in the Python plan. Speed is unmeasured.

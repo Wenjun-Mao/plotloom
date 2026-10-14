@@ -48,6 +48,7 @@ def test_fresh_copy_dispatch_and_terminal_proof_release_only_its_own_reservation
                 for runtime in (left, right):
                     assert runtime.dispatch_root().is_relative_to(runtime.registry_root)
                 lease = (right.dispatch_root() / "inflight.json").read_bytes()
+                sibling_database = snapshot_database(right.store)
                 unavailable = seed.home.with_name(seed.home.name + "-unavailable")
                 seed.home.rename(unavailable)
                 try:
@@ -60,6 +61,15 @@ def test_fresh_copy_dispatch_and_terminal_proof_release_only_its_own_reservation
                     assert snapshot_database(left.store) == before
                     assert snapshot_files(package) == frozen
                     assert len(left.calls) == len(right.calls) == 1
+                    left.store.close()
+                    left.storage.projects.close_project(left.project_id)
+                    snapshot = left.storage.recovery.create_snapshot(left.project_id)
+                    snapshot_path = Path(snapshot.location)
+                    assert snapshot_path.is_dir() and not seed.home.exists()
+                    assert snapshot_path.is_relative_to(left.storage.projects.outputs_root / ".snapshots" / left.project_id)
+                    assert snapshot_database(right.store) == sibling_database
+                    assert (right.dispatch_root() / "inflight.json").read_bytes() == lease
+                    assert right.registry.view()["busy"] and not left.registry.view()["busy"]
                 finally:
                     unavailable.rename(seed.home)
                 for relative, _digest in seed.files:

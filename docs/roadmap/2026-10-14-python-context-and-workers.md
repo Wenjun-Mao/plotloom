@@ -951,6 +951,67 @@ creative/product acceptance. No production/frontend/dependency/timing-manifest
 change, broad/full/module/profile/provider call, push or live-checkout write
 occurred during either comparison. Default workers remain two.
 
+## Text lifecycle-ownership seed — selected implementation
+
+The manager released the prior quiet window and authorized the independently
+reviewed next bounded consumer extension. Historical attribution for
+`test_project_specialist_ownership.py` is 22 cases / 20.238 call seconds;
+inspection shows the selected text cases repeatedly build the same accepted
+F4 Script project in `ReconciliationRuntime`. This setup duplication belongs
+in the existing optional seed path, preserving fresh dispatch/lifecycle work.
+No production optimization or authority change is required. ADR 0158 records
+the selected boundary; independent Sol/Medium design review found it safe and
+requested a close/snapshot proof with the original seed unavailable.
+
+Frozen before is `7fb557c96e11d02e8d175b33199659cc0f2574d5`.
+Seed only ten `test_cancelled_text_blocks_only_owner_until_exact_proof`
+variants and four `test_crash_windows_retain_owner_without_guessing_from_publication`
+variants. Preserve all refusal/settlement/restart/lifecycle assertions. The six
+`test_cancelled_images_are_project_owned_until_reviewed_terminal` variants,
+`test_unsent_cancel_does_not_invent_ownership` and
+`test_dispatch_and_lifecycle_use_project_before_registry_lock` keep fresh setup.
+The entire affected file is the frozen 22-case comparison. Native collection
+is retained at `.local/remaining-cost/ownership-seed-before-cases.txt` and
+`ownership-seed-before-native-cases.txt`; sorted fingerprint is
+`485f16674e0d55e7409c2d43a7d8e015c13b57fa9035e25e24a00bec35c0c86f`.
+The extended positive guard and ownership checks run separately. No timing,
+profile/module/full/provider work or moving CLI integration is authorized by
+this selection. Default workers and the original 85-percent target stay fixed.
+
+The implementation only adds the existing seed fixture argument and optional
+runtime keyword to the two selected test functions. Their lifecycle refusal,
+queued/unknown terminal proof, restart, settlement, close/snapshot and crash
+mutations are unchanged. All five test-function ASTs match baseline after
+normalizing those two setup arguments; the eight fresh controls are unchanged.
+No helper, application, registry, native execution or production code changed.
+The existing seed guard now closes its settled copied store and project, then
+creates a real copy-local snapshot while the original seed is unavailable.
+It proves the active sibling's exact database/lease and busy state remain
+unchanged, then restores the seed and verifies its complete inventory/hashes.
+
+**23 focused cases passed**: 14 selected lifecycle cases, two seed guards and
+seven ownership checks. All eight unchanged fresh controls passed separately
+(**31 distinct focused passes**). Exact 22 native IDs and sorted fingerprint
+match before/after; after inventory is
+`.local/remaining-cost/ownership-seed-after-native-cases.txt`.
+Scoped Ruff F401 and diff checks passed. Retained evidence under
+`.local/remaining-cost/`:
+
+- `ownership-seed-guards-first.log`, SHA-256
+  `93d73279a6231a29e5a9f9412a4319a07b8b437560ffe3b27782aa97a2aefd07`;
+- `ownership-seed-fresh-controls.log`, SHA-256
+  `c9d506b46c6bbdf537e720278d55d4067deecee057019c998b7e3024dc0db4da`.
+
+An attended independent Sol/Medium stable code review found no actionable
+finding and ran no checks; effective settings remain unverified. The existing
+Starlette/httpx warning appeared. Concurrent focused command times are not a
+performance comparison. No production/frontend/dependency/manifest changes,
+provider calls, broad/module/full/profile runs, moving CLI merges, push, live
+checkout writes or cleanup occurred. Implementation/focused readiness is
+separate from measured savings, combined full/hosted qualification and product
+acceptance. This 22-case speed comparison remains queued for a quiet allocation;
+prior accepted pair refs/results remain immutable.
+
 ## Residual-cost investigation — historical proposal, now separately scoped
 
 One fresh main-thread profile ran the unchanged complete-pack control at clean
