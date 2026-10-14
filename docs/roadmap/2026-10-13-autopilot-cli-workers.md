@@ -179,6 +179,19 @@ real serial package proof, concurrency and final qualification remain separate
 unfinished gates. Private probe artifacts and the tracked verification receipt
 remain in the existing `b30f` checkout; do not create a competing assignment.
 
+The first view diagnostic made no image calls: its argv contained both
+`--disable view_image` and `--enable view_image`. Independent non-generating
+checks of the pinned CLI show that disabling wins in either order, while
+enable alone reports true. This is a diagnostic composition error, not proof
+that the client lacks viewing support. Its retained child metadata also includes
+the ImageGen TypeScript declaration inside `description`, with
+`referenced_image_paths`; absence of a separate schema property does not mean
+absence of an argument declaration. Preserve that exact evidence and the
+inconclusive result. One corrected, nonconflicting diagnostic session is
+allocated with the same four synthetic view cases and zero ImageGen calls.
+Effective feature inspection must precede launch; production edits and
+generation remain held until the actual view results are reviewed.
+
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
 workers with 13.762 seconds of actual tool-interval overlap. All processes
