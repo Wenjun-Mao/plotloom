@@ -1858,3 +1858,14 @@ The manager released the test window to the CLI worker after the final sample;
 no Python check remained running. Further performance work must wait for that
 window's release. Full qualification, publication and a matched whole-Python
 measurement remain pending for this candidate.
+
+Read-only residual-cost review (requested GPT-6.1 Sol / Medium; effective
+settings unverified) estimates whole-file phase packing at 593.154s / 296.577s /
+162.471s for 2 / 4 / 8 workers from the retained 182-file gate. It did not run
+tests or measure concurrent performance. Geometry and handoff remain indivisible
+162.471s / 158.908s owners, and ideal eight-way aggregate work is 148.289s before
+overhead. The 18-core, 24-GiB host inventory is not evidence of safe memory use
+under more workers. Current evidence does not support achieving the fixed-two-
+worker 85-percent target through the remaining compact-fixture options. A
+separate bounded concurrency evaluation is proposed in the roadmap and awaits
+owner scope approval; no default, CI, worker count or production code changed.

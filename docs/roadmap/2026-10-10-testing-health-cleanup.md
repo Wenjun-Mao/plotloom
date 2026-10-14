@@ -1200,3 +1200,32 @@ Geometry compaction has limited leverage because most cases generate only one
 frame; retain the explicit portrait and complete handoff/full-pack controls.
 Before another implementation, compare this small-fixture strategy with the
 remaining execution/scheduling limits, without running competing benchmarks.
+
+### Remaining fixed-resource limit and separate concurrency proposal
+
+Independent read-only review of the retained 182 complete file weights gives
+ideal deterministic whole-file loads of 593.154s at two workers, 296.577s at
+four, and 162.471s at eight. These are estimates, not executed runs; they omit
+collection/startup/reporting and assume no slowdown from contention. Even
+perfect eight-way subdivision has a 148.289s aggregate-work floor, only 3.444s
+below the historical 151.733s target reference before overhead. Neither that
+reference nor this changed inventory is a new matched whole-suite comparison.
+
+At two workers, reaching that reference would require removing at least
+882.841s of the 1,186.308s phase work before overhead. Even unrealistically
+removing all geometry/publication work and all terminal setup removes only
+230.446s. The reviewed terminal/geometry fixture options do not offer a
+credible route to 85 percent within the current fixed-resource scope. Keep
+the target explicitly unmet; do not pursue many tiny changes as its proof.
+
+The manager asked the owner about a separate bounded 4–8-worker evaluation;
+approval is pending. The host reports 18 physical/logical CPUs and 24 GiB, but
+memory and subprocess contention still need measurement. If approved, retain
+the release default of two while evaluating four first: complete representative
+files for SQLite isolation, Node validators, crash descendants and cleanup,
+then a quiet matched whole-Python 2-versus-4 comparison with identical inputs,
+fresh roots, exact case coverage, peak memory and cleanup evidence. Consider
+eight only with measured headroom. No additional concurrency is implemented
+or authorized by this proposal, and extra compute cannot count as satisfying
+the original fixed-resource target. No test or native operation ran for this
+read-only feasibility review.
