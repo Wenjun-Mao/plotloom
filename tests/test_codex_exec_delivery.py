@@ -72,7 +72,7 @@ def _request_for_stage(stage: str) -> CreativeHandoffRequest:
 
 def _profile() -> CodexExecProfile:
     return CodexExecProfile(
-        contractVersion="plotloom.codex-exec.v6",
+        contractVersion="plotloom.codex-exec.v7",
         executableSha256="a" * 64,
         cliVersion="codex-cli 0.162.0-alpha.17.2",
         model="gpt-6.1-sol",
@@ -84,9 +84,9 @@ def _profile() -> CodexExecProfile:
         instructionHash="b" * 64,
         validatorHash="c" * 64,
         authenticationStore="file",
-        permissionProfile="plotloom_autopilot_delivery_v4",
+        permissionProfile="plotloom_autopilot_delivery_v5",
         toolProfile="plotloom_autopilot_tools_v4",
-        textValidatorRuntimeProfile="node_openssl_private_zsh_tmp_and_validator_aliases_v2",
+        textValidatorRuntimeProfile="node_openssl_private_zsh_tmp_and_checked_python_v3",
         maxRuntimeSeconds=1800,
         maxEventBytes=50_000_000,
         maxOutputBytes=20_000_000,

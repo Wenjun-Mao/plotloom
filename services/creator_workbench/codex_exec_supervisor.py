@@ -17,12 +17,14 @@ from codex_exec_supervisor_job import CodexExecSupervisorJobMixin
 from codex_exec_supervisor_ledger import CodexExecSupervisorLedgerMixin
 from codex_exec_supervisor_process import (
     CodexExecSupervisorProcessMixin,
-    _credential_free_environment,
 )
 
 from plotloom.codex_exec_auth import (
     check_codex_exec_readiness,
     resolve_codex_home,
+)
+from plotloom.codex_exec_auth import (
+    credential_free_environment as _credential_free_environment,
 )
 
 
@@ -70,6 +72,7 @@ class CodexExecSupervisor(
         environment["CODEX_HOME"] = str(self.codex_home)
         return check_codex_exec_readiness(
             self.executable,
+            source_root=self.source_root,
             environment=environment,
             forbidden_roots=(self.source_root, self.outputs_root, self.private_root),
         )

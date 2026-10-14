@@ -89,3 +89,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0162 Pre-video autopilot authority](0162-pre-video-autopilot-authority.md)
 - [0163 Autopilot inherits the saved Brief visual direction](0163-autopilot-brief-style-authority.md)
 - [0165 Serial Codex Exec for pre-video autopilot](0165-serial-codex-exec-autopilot.md)
+- [0169 Isolated Codex Python validator runtime](0169-isolated-codex-python-validator-runtime.md)

@@ -53,7 +53,7 @@ def reconcile_codex_exec(
     profile = CodexExecProfile.model_validate(registry.codex_exec_profile())
     if profile != view.policy.executor_binding:
         raise InvalidTransitionError("Codex Exec profile changed after the launch was frozen.")
-    if (profile.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6"}
+    if (profile.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}
             and not view.policy.code_revision):
         raise InvalidTransitionError("Codex Exec launch omits its frozen Plotloom source revision.")
     if evidence.job_id is None or evidence.request_hash is None:
@@ -69,7 +69,7 @@ def reconcile_codex_exec(
         package_root, max_total_bytes=profile.max_output_bytes
     )
     validation_plan_hash = None
-    if domain == "text" and profile.contract_version == "plotloom.codex-exec.v6":
+    if domain == "text" and profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}:
         try:
             package_request = json.loads(package_request_bytes)
             from .codex_exec_validation import validation_plan_from_package

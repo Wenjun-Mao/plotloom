@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from plotloom.autopilot_brief_style import freeze_brief_style
+from plotloom.codex_exec_python_environment import inspect_checked_python_environment
 from plotloom.codex_exec_resources import (
     CodexExecResourceError,
     codex_exec_source_read_paths,
@@ -57,18 +58,18 @@ def test_shuohao_source_allowlist_is_stage_bound_and_pinned():
     }
 
     paths = set(codex_exec_source_read_paths(ROOT, request))
-    python_runtime = (ROOT / ".venv" / "bin" / "python").resolve(strict=True)
+    python_environment = inspect_checked_python_environment(ROOT)
     uv_runtime = Path(shutil.which("uv")).resolve(strict=True)
 
     assert paths == {
         (ROOT / "third_party/shuohao-skills/skills/novel-outline").resolve(),
         (ROOT / "scripts/branch_suggestion.py").resolve(),
-        (ROOT / "src/plotloom").resolve(),
+        (ROOT / "src").resolve(),
         (ROOT / "pyproject.toml").resolve(),
         (ROOT / "uv.lock").resolve(),
-        (ROOT / ".venv").resolve(),
+        python_environment.root,
         uv_runtime,
-        python_runtime.parent.parent,
+        python_environment.runtime_root,
     }
     assert ROOT not in paths
     assert (ROOT / "third_party/shuohao-skills/skills/novel-storyboard").resolve() not in paths
@@ -82,18 +83,18 @@ def test_native_source_allowlist_uses_exact_document_and_validator():
     }
 
     paths = set(codex_exec_source_read_paths(ROOT, request))
-    python_runtime = (ROOT / ".venv" / "bin" / "python").resolve(strict=True)
+    python_environment = inspect_checked_python_environment(ROOT)
     uv_runtime = Path(shutil.which("uv")).resolve(strict=True)
 
     assert paths == {
         (ROOT / "docs/creative-workflow/native-bridge-intent.md").resolve(),
         (ROOT / "scripts/native_bridge_intent.py").resolve(),
-        (ROOT / "src/plotloom").resolve(),
+        (ROOT / "src").resolve(),
         (ROOT / "pyproject.toml").resolve(),
         (ROOT / "uv.lock").resolve(),
-        (ROOT / ".venv").resolve(),
+        python_environment.root,
         uv_runtime,
-        python_runtime.parent.parent,
+        python_environment.runtime_root,
     }
 
 

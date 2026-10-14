@@ -66,9 +66,9 @@ def _assert_exec_attempt_binding(connection, project_id, run_id, state, evidence
             or attempt.operation_key != operation_key or attempt.job_id != evidence.job_id
             or attempt.request_hash != evidence.request_hash or attempt.domain != expected_domain
             or attempt.profile_hash != profile.profile_hash
-            or (profile.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6"}
+            or (profile.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}
                 and attempt.plotloom_code_revision != json.loads(run["policy"])["codeRevision"])
-            or (profile.contract_version == "plotloom.codex-exec.v6" and expected_domain == "text"
+            or (profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7"} and expected_domain == "text"
                 and attempt.validation_plan_hash is None)
             or row["state"] != attempt.state or row["image_budget_state"] != attempt.image_budget_state
             or row["reserved_image_outputs"] != attempt.reserved_image_outputs):
@@ -163,7 +163,7 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
                 connection, "SELECT policy FROM v2_autopilot_runs WHERE id=?", (run_id,),
             )["policy"])
             executor_profile = CodexExecProfile.model_validate(frozen_policy.get("executorBinding", {}))
-            if executor_profile.contract_version == "plotloom.codex-exec.v6":
+            if executor_profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}:
                 from ...codex_exec_validation import build_text_validation_plan
                 plan = build_text_validation_plan(
                     request,

@@ -77,7 +77,7 @@ class CodexExecProfile(CamelModel):
     backend: Literal["codex_exec"] = "codex_exec"
     contract_version: Literal[
         "plotloom.codex-exec.v1", "plotloom.codex-exec.v2", "plotloom.codex-exec.v3",
-        "plotloom.codex-exec.v4", "plotloom.codex-exec.v5", "plotloom.codex-exec.v6",
+        "plotloom.codex-exec.v4", "plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7",
     ] = "plotloom.codex-exec.v4"
     executable_sha256: str = Field(pattern=HASH)
     cli_version: str = Field(min_length=1, max_length=80)
@@ -93,6 +93,7 @@ class CodexExecProfile(CamelModel):
     authentication_store: Literal["file"] | None = Field(default=None, exclude_if=lambda value: value is None)
     permission_profile: Literal[
         "plotloom_autopilot_delivery_v2", "plotloom_autopilot_delivery_v3", "plotloom_autopilot_delivery_v4",
+        "plotloom_autopilot_delivery_v5",
     ] | None = Field(default=None, exclude_if=lambda value: value is None)
     tool_profile: Literal[
         "plotloom_autopilot_tools_v2", "plotloom_autopilot_tools_v3", "plotloom_autopilot_tools_v4"
@@ -100,6 +101,7 @@ class CodexExecProfile(CamelModel):
     text_validator_runtime_profile: Literal[
         "node_openssl_and_private_zsh_tmp_v1",
         "node_openssl_private_zsh_tmp_and_validator_aliases_v2",
+        "node_openssl_private_zsh_tmp_and_checked_python_v3",
     ] | None = Field(default=None, exclude_if=lambda value: value is None)
     max_runtime_seconds: int = Field(ge=30, le=7200)
     max_event_bytes: int = Field(ge=1024, le=50_000_000)
@@ -157,6 +159,14 @@ class CodexExecProfile(CamelModel):
             or self.text_validator_runtime_profile != "node_openssl_private_zsh_tmp_and_validator_aliases_v2"
         ):
             raise ValueError("Codex Exec v6 requires its pinned validator evidence, runtime and permission profile")
+        elif self.contract_version == "plotloom.codex-exec.v7" and (
+            self.sandbox_profile is not None
+            or self.authentication_store != "file"
+            or self.permission_profile != "plotloom_autopilot_delivery_v5"
+            or self.tool_profile != "plotloom_autopilot_tools_v4"
+            or self.text_validator_runtime_profile != "node_openssl_private_zsh_tmp_and_checked_python_v3"
+        ):
+            raise ValueError("Codex Exec v7 requires its isolated checked-lock runtime and permission profile")
         selected = set(self.capabilities)
         if len(selected) != len(self.capabilities):
             raise ValueError("CLI capability pins must not contain duplicates")
@@ -164,8 +174,8 @@ class CodexExecProfile(CamelModel):
             raise ValueError("CLI profile lacks the serial executor evidence or delivery capability")
         if self.max_image_outputs and "image_gen_event_v1" not in selected:
             raise ValueError("image capacity requires the qualified native ImageGen event capability")
-        if self.contract_version in {"plotloom.codex-exec.v4", "plotloom.codex-exec.v5", "plotloom.codex-exec.v6"} and "image_reference_view_v1" not in selected:
-            raise ValueError("Codex Exec v4, v5 and v6 require typed reference-view evidence capability")
+        if self.contract_version in {"plotloom.codex-exec.v4", "plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7"} and "image_reference_view_v1" not in selected:
+            raise ValueError("Codex Exec v4 through v7 require typed reference-view evidence capability")
         payload = self.model_dump(mode="json", by_alias=True)
         if contains_secret_setting(payload) or contains_secret_value(payload):
             raise ValueError("CLI executor profiles cannot contain credentials")
@@ -184,7 +194,7 @@ class CodexExecProfile(CamelModel):
 
 
 class CodexExecReadiness(CamelModel):
-    """Dynamic local login readiness; it is deliberately outside the frozen profile."""
+    """Dynamic local runtime/login readiness, separate from the frozen profile."""
 
     state: Literal["ready", "not_authenticated", "unavailable"]
 

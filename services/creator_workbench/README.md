@@ -91,6 +91,26 @@ See [ADR 0095](../../docs/adr/0095-persistent-creator-workbench.md).
 
 ## Native specialist bridge
 
+Fresh Codex Exec jobs require explicit Python validator setup in this checkout.
+Use the physical versioned interpreter (every path component must be free of
+symlinks) and the installed uv executable:
+
+```sh
+uv run --locked --no-sync python -B scripts/provision_codex_exec_python.py \
+  --python /absolute/versioned-python/bin/python3.12 --uv /absolute/uv
+```
+
+Setup creates `.local/codex-exec/python-env` with copied interpreter/dependencies
+and the existing checked lock, using offline sync. It writes a receipt binding
+the environment, runtime, lock and dependency bytes. Existing or partial setup
+is refused; readiness and attempts only inspect it and cannot provision or
+repair it. If setup fails, preserve its evidence and diagnose the cause before
+an explicit operator reset of that disposable setup. Changing the lock,
+configuration, dependencies or versioned runtime requires a new reviewed
+setup and profile. Python validators use this exact environment through the
+unchanged `uv run --project … --locked --no-sync` plans. See
+[ADR 0169](../../docs/adr/0169-isolated-codex-python-validator-runtime.md).
+
 The text/image send buttons use the Mac Codex app's supported queue CLI. Linux
 cannot run that executable. `start` installs the separate user LaunchAgent
 `com.plotloom.creator-codex-bridge`, which starts at login and restarts if it

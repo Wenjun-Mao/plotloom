@@ -28,6 +28,9 @@ class _StageResources:
 class CodexExecSourceResources:
     read_paths: tuple[Path, ...]
     tools: tuple[tuple[str, Path], ...]
+    python_environment: Path | None = None
+    python_environment_hash: str | None = None
+    python_source_hash: str | None = None
 
 
 def _symlink_alias_chain(path: Path) -> tuple[tuple[Path, str], ...]:
@@ -185,24 +188,29 @@ def _tool_identity(name: str, executable: Path | None) -> dict[str, object]:
 
 def validator_toolchain_hash(source_root: Path) -> str:
     """Bind locally available validator runtimes into the profile identity."""
+    from .codex_exec_python_environment import inspect_checked_python_environment
+
     uv = shutil.which("uv")
     node = shutil.which("node")
-    python = source_root / ".venv" / "bin" / "python"
+    if uv is None or node is None:
+        raise CodexExecResourceError("the pinned validator toolchain requires uv and Node")
+    environment = inspect_checked_python_environment(source_root)
     entries = [
-        _tool_identity("uv", Path(uv) if uv else None),
-        _tool_identity("node", Path(node) if node else None),
-        _tool_identity("python", python if python.exists() else None),
+        _tool_identity("uv", Path(uv)),
+        _tool_identity("node", Path(node)),
+        _tool_identity("python", environment.interpreter),
+        {"checkedPythonEnvironment": environment.identity_hash},
     ]
     encoded = json.dumps(entries, separators=(",", ":"), ensure_ascii=False).encode()
     return hashlib.sha256(encoded).hexdigest()
 
 
-def _required_tool_paths(source_root: Path, plan: _StageResources) -> tuple[tuple[str, Path], ...]:
+def _required_tool_paths(plan: _StageResources, environment=None) -> tuple[tuple[str, Path], ...]:
     tool_names = ("uv", "python") if plan.python_project else ("node",)
     tools = []
     for name in tool_names:
         if name == "python":
-            raw_path = source_root / ".venv" / "bin" / "python"
+            raw_path = environment.interpreter
         else:
             discovered = shutil.which(name)
             raw_path = Path(discovered) if discovered else None
@@ -267,23 +275,31 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
         raise CodexExecResourceError("frozen saved-Brief contract does not match its source policy") from error
     validator_paths = saved_brief_route.source_paths if saved_brief_route else plan.validator_paths
     relative_paths = [plan.upstream_read_path, *validator_paths]
+    environment = None
+    source_hash = None
     if plan.python_project:
-        relative_paths.extend(("src/plotloom", "pyproject.toml", "uv.lock", ".venv"))
+        from .codex_exec_python_environment import inspect_checked_python_environment
+        from .codex_exec_runtime_tree import python_source_identity
+
+        environment = inspect_checked_python_environment(root)
+        _source_parent, source_hash = python_source_identity(root)
+        relative_paths.extend(("src", "pyproject.toml", "uv.lock"))
     paths = list(dict.fromkeys(_source_path(root, relative) for relative in relative_paths))
-    tools = _required_tool_paths(root, plan)
+    tools = _required_tool_paths(plan, environment)
     for name, executable in tools:
         if name == "uv":
             paths.append(executable)
-        else:
-            # Python and Node load their standard libraries beside the pinned binary.
+        elif name == "node":
+            # Node loads its standard libraries beside the pinned binary.
             paths.append(executable.parent.parent.resolve(strict=True))
-            if name == "python":
-                paths.extend(
-                    path for path, _target
-                    in _symlink_alias_chain(source_root / ".venv" / "bin" / "python")
-                )
-                paths.append((source_root / ".venv" / "bin" / "python").resolve(strict=True))
-    return CodexExecSourceResources(tuple(dict.fromkeys(paths)), tools)
+        else:
+            paths.extend((environment.root, environment.runtime_root))
+    return CodexExecSourceResources(
+        tuple(dict.fromkeys(paths)), tools,
+        environment.root if environment else None,
+        environment.identity_hash if environment else None,
+        source_hash,
+    )
 
 
 def codex_exec_source_read_paths(source_root: Path, package_request: dict) -> tuple[Path, ...]:

@@ -81,7 +81,7 @@ def publish_creative_completion(
         source_revision=code_revision,
     )
     validation = receipt.text_validation
-    if (profile.contract_version != "plotloom.codex-exec.v6"
+    if (profile.contract_version != "plotloom.codex-exec.v7"
             or attempt.validation_plan_hash != plan.plan_hash
             or receipt.validation_plan_hash != plan.plan_hash
             or validation is None

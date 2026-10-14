@@ -13,9 +13,9 @@ from .codex_exec_resources import validator_toolchain_hash
 SUPPORTED_CLI_VERSION = "codex-cli 0.162.0-alpha.17.2"
 EXECUTION_MODEL = "gpt-6.1-sol"
 EXECUTION_REASONING_EFFORT = "medium"
-PERMISSION_PROFILE = "plotloom_autopilot_delivery_v4"
+PERMISSION_PROFILE = "plotloom_autopilot_delivery_v5"
 TOOL_PROFILE = "plotloom_autopilot_tools_v4"
-TEXT_VALIDATOR_RUNTIME_PROFILE = "node_openssl_private_zsh_tmp_and_validator_aliases_v2"
+TEXT_VALIDATOR_RUNTIME_PROFILE = "node_openssl_private_zsh_tmp_and_checked_python_v3"
 NODE_OPENSSL_CONFIG = Path("/System/Library/OpenSSL/openssl.cnf")
 DISABLED_CLI_FEATURES = (
     "apps",
@@ -49,6 +49,9 @@ VALIDATOR_FILES = (
     "src/plotloom/codex_exec_delivery.py",
     "src/plotloom/codex_exec_profile.py",
     "src/plotloom/codex_exec_resources.py",
+    "src/plotloom/codex_exec_python_environment.py",
+    "src/plotloom/codex_exec_runtime_tree.py",
+    "scripts/provision_codex_exec_python.py",
     "src/plotloom/codex_exec_auth.py",
     "src/plotloom/codex_exec_prompts.py",
     "src/plotloom/codex_exec_runtime.py",
@@ -82,6 +85,7 @@ VALIDATOR_FILES = (
     "services/creator_workbench/codex_exec_supervisor_job.py",
     "services/creator_workbench/codex_exec_supervisor_ledger.py",
     "services/creator_workbench/codex_exec_supervisor_process.py",
+    "services/creator_workbench/codex_exec_supervisor_environment.py",
     "services/creator_workbench/codex_exec_supervisor_validation.py",
     "services/creator_workbench/codex_exec_supervisor_validation_process.py",
     "services/creator_workbench/codex_exec_supervisor_image.py",
@@ -103,9 +107,6 @@ VALIDATOR_FILES = (
     "pyproject.toml",
     "uv.lock",
 )
-
-VALIDATOR_SOURCE_TREE = "src/plotloom"
-
 
 def cli_feature_flags(domain: str) -> tuple[str, ...]:
     """Pin nonconflicting image-tool features for one execution domain."""
@@ -138,18 +139,10 @@ def _source_hash(source_root: Path, files: tuple[str, ...]) -> str:
 
 
 def _python_source_tree_hash(source_root: Path) -> str:
-    tree = source_root / VALIDATOR_SOURCE_TREE
-    if tree.is_symlink() or not tree.is_dir() or not tree.resolve(strict=True).is_relative_to(source_root):
-        raise RuntimeError("source-bound Codex Python runtime is unavailable")
-    entries = []
-    for path in sorted(tree.rglob("*.py")):
-        if path.is_symlink() or not path.resolve(strict=True).is_relative_to(source_root):
-            raise RuntimeError("source-bound Codex Python runtime contains an escaping file")
-        entries.append((path.relative_to(source_root).as_posix(), _hash_file(path)))
-    if not entries:
-        raise RuntimeError("source-bound Codex Python runtime is empty")
-    encoded = json.dumps(entries, separators=(",", ":"), ensure_ascii=False).encode()
-    return sha256(encoded).hexdigest()
+    from .codex_exec_runtime_tree import python_source_identity
+
+    _parent, identity = python_source_identity(source_root)
+    return identity
 
 
 def build_codex_exec_profile(executable: Path, *, source_root: Path) -> CodexExecProfile:
@@ -168,7 +161,7 @@ def build_codex_exec_profile(executable: Path, *, source_root: Path) -> CodexExe
     if version.returncode != 0 or version.stderr or version.stdout.decode("utf-8", "strict").strip() != SUPPORTED_CLI_VERSION:
         raise RuntimeError("installed Codex CLI version has no qualified execution evidence adapter")
     return CodexExecProfile(
-        contractVersion="plotloom.codex-exec.v6",
+        contractVersion="plotloom.codex-exec.v7",
         executable_sha256=_hash_file(executable),
         cli_version=SUPPORTED_CLI_VERSION,
         model=EXECUTION_MODEL,

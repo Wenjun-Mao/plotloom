@@ -69,11 +69,11 @@ def assert_autopilot_contracts(connection, *, asset_home=None):
                         policy.executor_binding is None or attempt.profile_hash != policy.executor_binding.profile_hash):
                     raise ValueError("project CLI attempt profile differs from its frozen launch")
                 if (policy.version == "plotloom.pre-video.v4"
-                        and policy.executor_binding.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6"}
+                        and policy.executor_binding.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}
                         and attempt.plotloom_code_revision != policy.code_revision):
                     raise ValueError("project CLI attempt Plotloom source revision differs from its frozen launch")
                 if (policy.version == "plotloom.pre-video.v4"
-                        and policy.executor_binding.contract_version == "plotloom.codex-exec.v6"
+                        and policy.executor_binding.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}
                         and attempt.domain == "text" and attempt.validation_plan_hash is None):
                     raise ValueError("fresh text CLI attempt omits its frozen trusted validation plan")
                 checkpoint = connection.execute(

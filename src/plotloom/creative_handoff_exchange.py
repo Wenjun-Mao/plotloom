@@ -379,7 +379,7 @@ class CreativeHandoffExchange(CreativeHandoffPackageExchangeMixin):
                     "delivery_executor_evidence_invalid", "Codex Exec package has no trusted validation plan",
                 ) from error
             text_validation = executor_receipt.text_validation
-            if (executor_profile.contract_version != "plotloom.codex-exec.v6"
+            if (executor_profile.contract_version != "plotloom.codex-exec.v7"
                     or executor_attempt.validation_plan_hash != validation_plan.plan_hash
                     or executor_receipt.validation_plan_hash != validation_plan.plan_hash
                     or text_validation is None

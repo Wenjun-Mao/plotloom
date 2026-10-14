@@ -68,6 +68,7 @@ class QueueBridge:
 
         readiness = check_codex_exec_readiness(
             self.executable,
+            source_root=self.source_root,
             environment=os.environ.copy(),
             forbidden_roots=(self.source_root, self.outputs_root, self.private_root),
         )

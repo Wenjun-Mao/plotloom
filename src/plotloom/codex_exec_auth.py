@@ -47,10 +47,17 @@ def check_codex_exec_readiness(
     *,
     environment: dict[str, str] | None = None,
     forbidden_roots: tuple[Path, ...] = (),
+    source_root: Path | None = None,
     timeout_seconds: float = 8.0,
 ) -> CodexExecReadiness:
     """Check the local login marker using the exact store/home used by exec."""
     try:
+        if source_root is not None:
+            from .codex_exec_resources import validator_toolchain_hash
+            from .codex_exec_runtime_tree import python_source_identity
+
+            validator_toolchain_hash(source_root)
+            python_source_identity(source_root)
         auth_home = resolve_codex_home(environment, forbidden_roots=forbidden_roots)
         child_environment = credential_free_environment(environment)
         child_environment["CODEX_HOME"] = str(auth_home)

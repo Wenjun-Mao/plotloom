@@ -20,6 +20,9 @@ def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources()
         "src/plotloom/codex_exec_files.py",
         "src/plotloom/codex_exec_profile.py",
         "src/plotloom/codex_exec_resources.py",
+        "src/plotloom/codex_exec_python_environment.py",
+        "src/plotloom/codex_exec_runtime_tree.py",
+        "scripts/provision_codex_exec_python.py",
         "src/plotloom/codex_exec_prompts.py",
         "src/plotloom/codex_exec_runtime.py",
         "src/plotloom/codex_exec_telemetry.py",
@@ -38,6 +41,7 @@ def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources()
         "services/creator_workbench/codex_exec_supervisor_job.py",
         "services/creator_workbench/codex_exec_supervisor_ledger.py",
         "services/creator_workbench/codex_exec_supervisor_process.py",
+        "services/creator_workbench/codex_exec_supervisor_environment.py",
         "services/creator_workbench/codex_exec_supervisor_validation.py",
         "services/creator_workbench/codex_exec_supervisor_validation_process.py",
         "services/creator_workbench/codex_exec_supervisor_image.py",
@@ -82,3 +86,27 @@ def test_cli_image_capabilities_are_enabled_only_for_image_attempts() -> None:
     assert image_flags == ("--enable", "image_generation", "--enable", "view_image")
     with pytest.raises(ValueError, match="supported delivery domain"):
         cli_feature_flags("other")
+
+
+def test_v7_requires_the_current_checked_python_and_permission_contracts():
+    from pydantic import ValidationError
+
+    from plotloom.codex_exec_contracts import CodexExecProfile
+    from tests.codex_exec_fixtures import PROFILE
+
+    value = PROFILE.model_dump(mode="json", by_alias=True)
+    current = CodexExecProfile.model_validate(value)
+    assert current.contract_version == "plotloom.codex-exec.v7"
+    for drift in (
+        {"permissionProfile": "plotloom_autopilot_delivery_v4"},
+        {"textValidatorRuntimeProfile": "node_openssl_private_zsh_tmp_and_validator_aliases_v2"},
+        {"textValidatorRuntimeProfile": None},
+    ):
+        with pytest.raises(ValidationError, match="isolated checked-lock runtime"):
+            CodexExecProfile.model_validate(value | drift)
+    retained_v6 = CodexExecProfile.model_validate(value | {
+        "contractVersion": "plotloom.codex-exec.v6",
+        "permissionProfile": "plotloom_autopilot_delivery_v4",
+        "textValidatorRuntimeProfile": "node_openssl_private_zsh_tmp_and_validator_aliases_v2",
+    })
+    assert retained_v6.profile_hash != current.profile_hash

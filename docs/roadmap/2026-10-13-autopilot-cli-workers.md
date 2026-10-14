@@ -20,36 +20,34 @@ Its still-open 85-percent stretch target is not an active predecessor.
 
 ### Current worker authority and checkpoint · 2026-10-14
 
-For the active text-completion repair, follow the manager's current allocation
-in the release checkout's `docs/roadmap/2026-10-13-autopilot-cli-workers.md`
-at `ee7d82363324545feb0c5576dfdaf71fddd5fc52`; its current-allocation section
-supersedes this plan's original queue timing. This source checkout is
-`codex/autopilot-cli-workers` at `4442331b5b4d1634f51151e78e59e1095cffb00f`.
-The package-directory reader defect is fixed; trusted validation, prompt
-ownership and lifecycle repairs remain uncommitted in this worktree.
+The current allocation is the manager's **Approved isolated runtime repair**
+subsection in the release checkout's same roadmap, recorded at `dab20f6f`.
+It supersedes this branch's original queue timing. The owner approved the
+follow-up and resumed `codex/autopilot-cli-workers` from source checkpoint
+`7b30ad3d8afeacd9aade11385e8b6bd41b8542e3` as the sole source/check owner.
+Manager-main files and the independently published Python changes remain
+outside this worker's integration authority.
 
-The first provider-free sandbox route passed Outline Node validation/rendering
-but Branches validation stopped at the uv-managed Python alias. A single
-follow-up diagnostic used a fresh `python -m venv --copies` environment and
-`uv sync --locked --offline --no-install-project`. The copied executable and
-`pyvenv.cfg` stayed bound directly to the versioned Python runtime before and
-after sync. The original uv alias, a synthetic sibling-runtime marker and a
-synthetic auth sentinel were denied under the production sandbox builder.
+Retained `.local/exec-validator-sandbox-probes/20261014-07/` evidence proves
+the copies-based environment and checked offline sync remained alias-free;
+original-alias and synthetic sibling/runtime/auth reads were denied. Its
+import control failed on the `src` parent and Branches did not execute.
+Preserve that root, the paused canary and the unknown art attempt unchanged.
 
-The follow-up did not reach Branches validation. Under the same exact read
-allowlist, `uv run --project … --locked --no-sync` failed importing `plotloom`:
-the CLI attempted to inspect the checkout's `src` parent, while the profile
-only grants `src/plotloom`. No broader path was granted. This is a separate
-source/runtime permission-contract question; the diagnostic does not authorize
-changing production permissions. Full details and immutable logs are in
-`.local/exec-validator-sandbox-probes/20261014-07/`.
+The approved repair is an explicitly provisioned checkout-owned environment,
+strict dependency/runtime identity checks and a validated `src` parent read
+for Python-backed plans only. Readiness and attempts cannot provision or repair
+an environment. ADR 0169 records this owning contract and the host-owned
+bytecode cache fence. Run narrow focused regressions and attend an independent
+stable-candidate review, then one fresh provider-free native preflight of all
+eleven trusted validator/render plans with preserved prelaunch pins and
+negative controls. Import success alone is insufficient. Stop and diagnose any
+unexplained native failure before changing or retrying the profile.
 
-The one diagnostic allocation is complete. After this source repair is
-committed, the shared source/check window is released; the two owner-approved
-Python work options may proceed under the manager's ordering. This does not
-qualify native generation or the complete 11-plan sandbox gate. A provider
-canary requires a new manager allocation after the unresolved `src` parent read
-contract is reviewed.
+This allocation excludes generation, provider calls, pool work, full/hosted
+gates, activation, merge, push and global settings. Return a reviewed committed
+checkpoint and explicitly release the source/check window; the manager owns
+subsequent Python work, integration and native-generation allocation.
 
 Start only when the preceding source writer is idle, required reviews are
 collected, and the manager has released the source and heavy-check windows.

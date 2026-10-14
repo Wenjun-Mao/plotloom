@@ -1,7 +1,6 @@
 """Process execution and private evidence handling for the Mac supervisor."""
 from __future__ import annotations
 
-import json
 import os
 import signal
 import subprocess
@@ -9,6 +8,7 @@ import time
 from contextlib import closing
 from pathlib import Path
 
+from codex_exec_supervisor_environment import CodexExecSupervisorEnvironmentMixin
 from codex_exec_supervisor_errors import CodexExecSupervisorError
 from codex_exec_supervisor_image import CodexExecSupervisorImageMixin
 from codex_exec_supervisor_terminal import CodexExecSupervisorTerminalMixin
@@ -17,12 +17,10 @@ from codex_exec_supervisor_validation import CodexExecSupervisorValidationMixin
 from plotloom.codex_exec_auth import (
     AUTHENTICATION_STORE,
 )
-from plotloom.codex_exec_auth import (
-    credential_free_environment as _credential_free_environment,
-)
 
 
 class CodexExecSupervisorProcessMixin(
+    CodexExecSupervisorEnvironmentMixin,
     CodexExecSupervisorValidationMixin,
     CodexExecSupervisorTerminalMixin,
     CodexExecSupervisorImageMixin,
@@ -413,86 +411,6 @@ class CodexExecSupervisorProcessMixin(
         if root != self.codex_home:
             raise CodexExecSupervisorError("Codex session evidence escaped its authenticated host home")
         return root
-
-    def _cli_environment(self, private_dir, *, source_root, domain, source_resources=None, profile=None):
-        """Keep inherited API tokens and bridge credentials out of the worker process."""
-        environment = _credential_free_environment()
-        (private_dir / "tmp").mkdir(mode=0o700, exist_ok=True)
-        (private_dir / "uv-cache").mkdir(mode=0o700, exist_ok=True)
-        environment["TMPDIR"] = str(private_dir / "tmp")
-        # zsh here-documents use TMPPREFIX, not TMPDIR, for their scratch file.
-        # Keep both mechanisms inside the same owner-only attempt directory.
-        environment["TMPPREFIX"] = str(private_dir / "tmp" / "zsh")
-        environment["CODEX_HOME"] = str(self.codex_home)
-        environment["UV_CACHE_DIR"] = str(private_dir / "uv-cache")
-        for name in (
-            "PLOTLOOM_SOURCE_ROOT", "PLOTLOOM_UV", "PLOTLOOM_NODE", "PLOTLOOM_PYTHON",
-            "PYTHONPATH", "NODE_PATH", "NODE_OPTIONS", "PYTHONHOME",
-            "PYTHONUSERBASE", "PYTHONSTARTUP", "PYTHONDONTWRITEBYTECODE", "PYTHONNOUSERSITE",
-            "VIRTUAL_ENV", "UV_PROJECT_ENVIRONMENT", "OPENSSL_CONF",
-        ):
-            environment.pop(name, None)
-        if domain == "text" and profile is not None and profile.contract_version in {
-            "plotloom.codex-exec.v5", "plotloom.codex-exec.v6",
-        }:
-            from plotloom.codex_exec_profile import NODE_OPENSSL_CONFIG, TEXT_VALIDATOR_RUNTIME_PROFILE
-            expected_runtime = (
-                "node_openssl_and_private_zsh_tmp_v1"
-                if profile.contract_version == "plotloom.codex-exec.v5"
-                else TEXT_VALIDATOR_RUNTIME_PROFILE
-            )
-            if profile.text_validator_runtime_profile != expected_runtime:
-                raise CodexExecSupervisorError("Codex Exec text validator runtime profile is unsupported")
-            if NODE_OPENSSL_CONFIG.is_symlink() or not NODE_OPENSSL_CONFIG.is_file():
-                raise CodexExecSupervisorError("Codex Exec Node validator OpenSSL configuration is unavailable")
-            environment["OPENSSL_CONF"] = str(NODE_OPENSSL_CONFIG)
-        if domain == "text":
-            environment["PLOTLOOM_SOURCE_ROOT"] = str(source_root)
-            environment["PYTHONPATH"] = str(source_root / "src")
-            environment["PYTHONDONTWRITEBYTECODE"] = "1"
-            environment["PYTHONNOUSERSITE"] = "1"
-            environment["UV_PROJECT_ENVIRONMENT"] = str(source_root / ".venv")
-            tool_paths = dict(source_resources.tools) if source_resources is not None else {}
-            if "uv" in tool_paths:
-                environment["PLOTLOOM_UV"] = str(tool_paths["uv"])
-            if "node" in tool_paths:
-                environment["PLOTLOOM_NODE"] = str(tool_paths["node"])
-            if "python" in tool_paths:
-                environment["PLOTLOOM_PYTHON"] = str(tool_paths["python"])
-        return environment
-
-    @staticmethod
-    def _permission_filesystem_config(
-        profile, job_root, delivery, private_dir, codex_home, source_read_paths=(), *, domain,
-        additional_write_paths=(),
-    ):
-        values = {
-            ":root": "deny",
-            ":minimal": "read",
-            ":tmpdir": "write",
-            ":slash_tmp": "deny",
-            str(codex_home): "deny",
-            str(job_root / "package"): "read",
-            str(delivery): "write",
-            str(private_dir / "tmp"): "write",
-            str(private_dir / "uv-cache"): "write",
-        }
-        values.update({str(path): "read" for path in source_read_paths})
-        values.update({str(path): "write" for path in additional_write_paths})
-        if profile.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6"} and domain == "text":
-            from plotloom.codex_exec_profile import NODE_OPENSSL_CONFIG, TEXT_VALIDATOR_RUNTIME_PROFILE
-            expected_runtime = (
-                "node_openssl_and_private_zsh_tmp_v1"
-                if profile.contract_version == "plotloom.codex-exec.v5"
-                else TEXT_VALIDATOR_RUNTIME_PROFILE
-            )
-            if profile.text_validator_runtime_profile != expected_runtime:
-                raise CodexExecSupervisorError("Codex Exec text validator runtime profile is unsupported")
-            if NODE_OPENSSL_CONFIG.is_symlink() or not NODE_OPENSSL_CONFIG.is_file():
-                raise CodexExecSupervisorError("Codex Exec Node validator OpenSSL configuration is unavailable")
-            values[str(NODE_OPENSSL_CONFIG)] = "read"
-        encoded = ",".join(f'{json.dumps(key)}={json.dumps(value)}' for key, value in values.items())
-        return f"permissions.{profile.permission_profile}.filesystem={{{encoded}}}"
 
     @staticmethod
     def _evidence_hash(stdout_path, stderr_path, transcript_hash, exit_code):

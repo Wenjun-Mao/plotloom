@@ -70,9 +70,9 @@ def test_exec_profile_is_host_observed_and_never_uses_project_or_user_config(
     assert profile["backend"] == "codex_exec"
     assert profile["cliVersion"] == "codex-cli 0.162.0-alpha.17.2"
     assert profile["model"] == "gpt-6.1-sol"
-    assert profile["contractVersion"] == "plotloom.codex-exec.v6"
+    assert profile["contractVersion"] == "plotloom.codex-exec.v7"
     assert profile["authenticationStore"] == "file"
-    assert profile["permissionProfile"] == "plotloom_autopilot_delivery_v4"
+    assert profile["permissionProfile"] == "plotloom_autopilot_delivery_v5"
     assert profile["toolProfile"] == "plotloom_autopilot_tools_v4"
     assert "sandboxProfile" not in profile
     assert profile["maxProcesses"] == 1
@@ -107,10 +107,12 @@ def test_readiness_uses_existing_file_store_without_exposing_cli_output(tmp_path
     )
 
     assert bridge.exec_readiness() == {"state": "ready"}
-    assert commands[0][0] == [
+    login_command = next(command for command, _options in commands if command[-2:] == ["login", "status"])
+    assert login_command == [
         str(executable), "--config", 'cli_auth_credentials_store="file"', "login", "status",
     ]
-    assert commands[0][1]["env"]["CODEX_HOME"] == str(codex_home)
+    login_options = next(options for command, options in commands if command == login_command)
+    assert login_options["env"]["CODEX_HOME"] == str(codex_home)
     assert "private login mode" not in json.dumps(bridge.exec_readiness())
 
 

@@ -95,7 +95,7 @@ def _retained_codex_request_projection(
     request, execution_pin, profile, projection_exchange, *, plotloom_code_revision=None
 ):
     """Project only the package request shapes admitted by retained launch profiles."""
-    if profile.contract_version == "plotloom.codex-exec.v6":
+    if profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}:
         projected, _instructions, _template, _members = projection_exchange._projection(
             request,
             execution_pin,
@@ -245,7 +245,7 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
             if raw != projected:
                 raise ProjectStorageCorruptionError("retained creative package differs from its frozen request/pin")
             if (codex_binding is not None and codex_binding["attempt"] is not None
-                    and codex_binding["profile"].contract_version == "plotloom.codex-exec.v6"
+                    and codex_binding["profile"].contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}
                     and codex_binding["attempt"].validation_plan_hash != projected.get("validationPlanHash")):
                 raise ProjectStorageCorruptionError("retained Codex attempt differs from its frozen validation plan")
         for name, payload in request.input_artifacts.items():
@@ -318,7 +318,7 @@ def _retained_codex_manifest_revision_matches(binding, execution_pin, attempt, r
             and receipt.plotloom_code_revision == frozen_revision
             and manifest.executor_provenance.code_revision == frozen_revision
         )
-    if profile.contract_version == "plotloom.codex-exec.v6":
+    if profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}:
         frozen_revision = binding["plotloom_code_revision"]
         return (
             attempt.plotloom_code_revision == frozen_revision

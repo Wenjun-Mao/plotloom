@@ -166,6 +166,13 @@ class CodexExecSupervisorValidationMixin(CodexExecSupervisorValidationProcessMix
 
         if package_tree_hash(job_root, max_total_bytes=profile.max_output_bytes) != attempt.package_hash:
             raise self._validation_failure("validation_final_package_changed", plan.plan_hash)
+        try:
+            final_profile = self.profile()
+            final_resources = codex_exec_source_resources(self.source_root, package_request)
+        except (OSError, ValueError, RuntimeError) as error:
+            raise self._validation_failure("validation_final_runtime_changed", plan.plan_hash) from error
+        if final_profile.profile_hash != profile.profile_hash or final_resources != source_resources:
+            raise self._validation_failure("validation_final_runtime_changed", plan.plan_hash)
         self._require_validation_not_cancelled(attempt, plan.plan_hash)
         final = scan_regular_tree(job_root, "delivery", max_total_bytes=profile.max_output_bytes)
         if {item.relative_path for item in final} != {plan.candidate_filename, plan.report_filename}:

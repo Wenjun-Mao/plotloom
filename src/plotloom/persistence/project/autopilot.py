@@ -223,10 +223,10 @@ class AutopilotPersistence:
                 raise InvalidTransitionError("only a frozen CLI executor launch can reserve this attempt")
             if attempt.profile_hash != policy.executor_binding.profile_hash:
                 raise InvalidTransitionError("CLI attempt profile differs from its frozen launch")
-            if (policy.executor_binding.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6"}
+            if (policy.executor_binding.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}
                     and attempt.plotloom_code_revision != policy.code_revision):
                 raise InvalidTransitionError("CLI attempt Plotloom source revision differs from its frozen launch")
-            if (policy.executor_binding.contract_version == "plotloom.codex-exec.v6"
+            if (policy.executor_binding.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}
                     and attempt.domain == "text" and attempt.validation_plan_hash is None):
                 raise InvalidTransitionError("fresh text CLI attempts require their frozen trusted validation plan")
             if str(attempt.run_id) != run.id or str(attempt.project_id) != run.project_id:

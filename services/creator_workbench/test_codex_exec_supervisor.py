@@ -12,7 +12,6 @@ from threading import Event, Thread
 from uuid import uuid4
 
 import pytest
-
 from codex_exec_supervisor import CodexExecSupervisor
 from codex_exec_supervisor_process import CodexExecSupervisorProcessMixin
 from codex_exec_supervisor_test_support import _attempt, _prepared_text_job
@@ -53,22 +52,33 @@ def test_worker_environment_does_not_inherit_credentials(monkeypatch, supervisor
 
 
 def test_cli_environment_uses_only_the_frozen_text_runtime(monkeypatch, supervisor, tmp_path):
-    from plotloom.codex_exec_resources import CodexExecSourceResources
-    from plotloom.codex_exec_profile import NODE_OPENSSL_CONFIG
     from codex_exec_supervisor_test_support import _write_fake_cli
+
+    from plotloom.codex_exec_profile import NODE_OPENSSL_CONFIG
+    from plotloom.codex_exec_python_environment import (
+        inspect_checked_python_environment,
+    )
+    from plotloom.codex_exec_resources import CodexExecSourceResources
+    from plotloom.codex_exec_runtime_tree import python_source_identity
 
     monkeypatch.setenv("PYTHONPATH", "/untrusted/python-path")
     monkeypatch.setenv("NODE_OPTIONS", "--require=/untrusted/hook.js")
     monkeypatch.setenv("PLOTLOOM_SOURCE_ROOT", "/untrusted/source")
     monkeypatch.setenv("OPENSSL_CONF", "/untrusted/openssl.cnf")
+    monkeypatch.setenv("UV_NO_MANAGED_PYTHON", "1")
+    monkeypatch.setenv("UV_PYTHON", "/untrusted/python")
     private_dir = tmp_path / "private-attempt"
     private_dir.mkdir()
+    checked = inspect_checked_python_environment(supervisor.source_root)
     source_resources = CodexExecSourceResources(
         read_paths=(),
         tools=(
             ("uv", tmp_path / "uv"),
-            ("python", tmp_path / "python"),
+            ("python", checked.interpreter),
         ),
+        python_environment=checked.root,
+        python_environment_hash=checked.identity_hash,
+        python_source_hash=python_source_identity(supervisor.source_root)[1],
     )
 
     profile = _write_fake_cli(supervisor, "raise SystemExit(0)\n")
@@ -82,10 +92,15 @@ def test_cli_environment_uses_only_the_frozen_text_runtime(monkeypatch, supervis
 
     assert text_environment["PLOTLOOM_SOURCE_ROOT"] == str(supervisor.source_root)
     assert text_environment["PYTHONPATH"] == str(supervisor.source_root / "src")
-    assert text_environment["UV_PROJECT_ENVIRONMENT"] == str(supervisor.source_root / ".venv")
+    assert text_environment["UV_PROJECT_ENVIRONMENT"] == str(checked.root)
+    assert text_environment["UV_PYTHON"] == str(checked.base_interpreter)
+    assert "UV_NO_MANAGED_PYTHON" not in text_environment
+    assert text_environment["PYTHONPYCACHEPREFIX"] == str(private_dir / "python-cache-disabled")
+    assert (private_dir / "python-cache-disabled").is_file()
+    assert text_environment["PYTHONDONTWRITEBYTECODE"] == "1"
     assert text_environment["PYTHONNOUSERSITE"] == "1"
     assert text_environment["PLOTLOOM_UV"] == str(tmp_path / "uv")
-    assert text_environment["PLOTLOOM_PYTHON"] == str(tmp_path / "python")
+    assert text_environment["PLOTLOOM_PYTHON"] == str(checked.interpreter)
     assert text_environment["UV_CACHE_DIR"] == str(private_dir / "uv-cache")
     assert text_environment["TMPDIR"] == str(private_dir / "tmp")
     assert text_environment["TMPPREFIX"] == str(private_dir / "tmp" / "zsh")
@@ -95,6 +110,12 @@ def test_cli_environment_uses_only_the_frozen_text_runtime(monkeypatch, supervis
     assert "PYTHONPATH" not in image_environment
     assert "NODE_OPTIONS" not in image_environment
     assert "OPENSSL_CONF" not in image_environment
+    node_environment = supervisor._cli_environment(
+        private_dir, source_root=supervisor.source_root, domain="text",
+        source_resources=CodexExecSourceResources((), (("node", tmp_path / "node"),)), profile=profile,
+    )
+    assert "PYTHONPATH" not in node_environment and "UV_PROJECT_ENVIRONMENT" not in node_environment
+    assert node_environment["OPENSSL_CONF"] == str(NODE_OPENSSL_CONFIG)
 
     text_filesystem = supervisor._permission_filesystem_config(
         profile, private_dir, private_dir / "delivery", private_dir, supervisor.codex_home,
@@ -135,8 +156,8 @@ def test_admission_persists_exact_spawn_intent_before_starting_private_worker(su
 def test_admission_rejects_missing_or_forged_plotloom_revision_before_reserving(
     supervisor, tmp_path, revision
 ):
-    from pydantic import ValidationError
     from codex_exec_supervisor_errors import CodexExecSupervisorError
+    from pydantic import ValidationError
 
     _exchange, _request, _pin, _job_root, attempt, _profile = _prepared_text_job(supervisor, tmp_path)
     unbound = attempt.model_copy(update={"plotloom_code_revision": revision})
@@ -222,8 +243,8 @@ time.sleep(0.2)
     assert "--ignore-user-config" in command and command[-1] == "-"
     config_values = [command[index + 1] for index, item in enumerate(command[:-1]) if item == "--config"]
     assert 'cli_auth_credentials_store="file"' in config_values
-    assert 'default_permissions="plotloom_autopilot_delivery_v4"' in config_values
-    filesystem = next(value for value in config_values if value.startswith("permissions.plotloom_autopilot_delivery_v4.filesystem="))
+    assert 'default_permissions="plotloom_autopilot_delivery_v5"' in config_values
+    filesystem = next(value for value in config_values if value.startswith("permissions.plotloom_autopilot_delivery_v5.filesystem="))
     assert 'web_search="disabled"' in config_values
     assert "tools.view_image=false" not in config_values
     assert any(
