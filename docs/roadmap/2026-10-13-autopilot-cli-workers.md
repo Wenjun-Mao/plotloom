@@ -137,6 +137,17 @@ further provider dispatch is held until the manager reviews the repaired
 authentication/confinement checkpoint. No live activation or global settings
 change is authorized by this repair.
 
+The owner subsequently answered the worker's earlier sign-in/canary question
+with Option 1. This authorizes necessary isolated sign-in and fresh bounded
+canaries, not a duplicate dispatch, credential copying, or mutation of the
+unknown attempt. Existing authenticated-context reuse remains preferred.
+Manager allocation still follows the repaired checkpoint and concrete proof
+plan. The collected tool-boundary review found that command sandbox probes
+do not establish native ImageGen reference pre-read enforcement; use harmless
+synthetic sentinels and count any possible generated outputs. The worker also
+must reconcile emitted repository-validator instructions with the frozen read
+allowlist before provider proof. Activation remains held pending qualification.
+
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
 workers with 13.762 seconds of actual tool-interval overlap. All processes
