@@ -1021,3 +1021,31 @@ claims; the explicit observed target, baseline and variance limits above address
 its measurement concern. No performance implementation or benchmark was started.
 
 Implementation approval: the owner authorized M6–M9 on October 12, 2026, to proceed in parallel with the completed pre-video autopilot. Stable starting base verified in the isolated implementation worktree: `c771cdd67eb8fd0925cdfe772c46ed85eeb51657`.
+
+### Resumed test-only M7 refinement — October 13
+
+The reactivated Goal retains the 85-percent target and the original scope
+boundary. A separate test-only branch, `codex/python85-handoff-fixtures`,
+starts from released `cf26b32d` in `python85-profiling`. Production-query
+proposals remain isolated in `python85-release` pending owner approval; they
+are not included in this refinement.
+
+Independent source review supports pairing four existing action beats into
+two five-second cuts for each handoff scene. Only the twelve handoff cases
+opt in; shared default consumers keep four cuts, while full-size all-route,
+geometry and recovery owners retain their source. The exact-frame invariant
+is six for the opt-in shape and twelve for the default. Retain both routes,
+all four beats, eight text stages, references, second-frame rollback, real
+derivatives and all case IDs/parameters. No prepared seeds, cached acceptance
+or production changes are allowed.
+
+The preselected slow comparison is missing-frame handoff refusal, late
+handoff rollback and derived-reference withdrawal. Unchanged controls are the
+27-frame complete-pack and derivative-handoff owners; include retained
+confirmation/recovery after an opt-in case to verify fixture isolation.
+Three baseline samples passed before editing. Focused correctness and static
+independent review have passed; candidate timing and final qualification are
+still pending. Keep raw logs/fingerprints in ignored checkout-local storage,
+coordinate quiet timing with the CLI worker, and report selected-case gains
+separately from whole-Python wall time. See the corresponding verification
+receipt for actual results and limits.

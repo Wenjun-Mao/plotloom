@@ -1525,3 +1525,53 @@ The completed software verification did not establish preservation of the
 active execution. The main publication bypassed the manager's integration
 hold. The incident note is retained in the isolated documentation checkpoint
 and remains unpublished pending manager integration.
+
+### Test-only handoff refinement — 2026-10-13
+
+This isolated follow-up starts from released `cf26b32d`, on branch
+`codex/python85-handoff-fixtures` in the retained `python85-profiling`
+checkout. The old profiling branch still retains `ce8bebdc`. Production
+source matches the released baseline exactly; the separate installation-reader
+and receipt-query proposals in `python85-release` are not included and remain
+pending explicit production-scope approval.
+
+The remaining handoff fixture generated one frame for each of four action
+beats in every scene. Handoff ownership needs complete routes and multiple
+frames, but does not require one frame per beat. The pinned storyboard
+validator accepts contiguous multi-beat cuts, and the production bridge maps
+every beat in the range. Two five-second cuts cover `[1,2]` and `[3,4]` while
+retaining all four script beats, ten seconds per scene, the same Brief,
+three mapped episodes, two routes, cast/art references, and eight real text
+stages. Their H3 alignment and cut timestamps use the same cut duration.
+
+Only `test_autopilot_handoff.py` opts into this six-frame shape through its
+local wrapper. The shared fixture keeps its four-cut default for geometry
+and creator-confirmation/recovery consumers. Full-size `image_environment`
+is unchanged. All twelve handoff cases and parameter rows remain; omitted
+frames, second-selection rollback, manual replacement/restore and derivative
+withdrawal retain their assertions. Pack checks now assert exactly six frames
+for the opt-in shape and twelve for the shared default, alongside exact
+unique-shot coverage and two routes. The local wrapper also asserts eight
+text deliveries.
+
+Before editing, three serial focused baseline samples ran the unchanged
+missing-frame, late-rollback and derived-reference-withdrawal selectors with
+fresh pytest case roots and locked installed dependencies. All passed;
+runner wall times were 72.958s, 69.802s and 68.629s (median 69.802s).
+The CLI worker explicitly held heavy checks and native probes for this window,
+then was released. These selected-case timings are not a whole-suite result.
+Ignored `.local/handoff-six-frame/` retains the sampling script, baseline
+metadata/input and host fingerprints, and hashed raw logs in this checkout.
+
+Independent read-only review (requested Sol/Medium; effective settings
+unverified) found no actionable gaps in the two-file candidate. Targeted
+Ruff, diff checks and the story-authoring ownership/module plan passed.
+The focused file run passed all twelve cases in 162.71s (168.738s including
+the verification runner); this correctness run was not an isolated performance
+sample. The existing Starlette/httpx deprecation warning remains. Unchanged
+full-size, derivative-geometry and retained-confirmation/recovery controls
+passed after an opt-in case in the same pytest process: four cases passed in
+111.04s (117.565s including the runner). `controls.log` retains that result;
+`correctness.log` retains the twelve-case run. No checks are still running.
+Candidate timing, broader qualification and publication remain pending; no
+speed improvement or 85-percent completion is claimed yet.
