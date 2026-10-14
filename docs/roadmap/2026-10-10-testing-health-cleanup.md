@@ -1230,6 +1230,24 @@ or authorized by this proposal, and extra compute cannot count as satisfying
 the original fixed-resource target. No test or native operation ran for this
 read-only feasibility review.
 
+### Remaining two-worker duration measurement
+
+The existing M8 scope can proceed independently of the concurrency decision.
+Read-only reconciliation verified the retained `full-e5876029-deps-ready.log`
+hash against the receipt: two successful complete worker captures contain
+182 unique file rows and all 1,859 cases. The current candidate differs from
+that executable base only in `tests/test_autopilot_image_safety.py` (19 cases);
+the pinned submodule is unchanged. The other 181 file weights are reusable
+subject to fresh native inventory and host/toolchain verification.
+
+After the CLI owner releases its focused-check window, refresh the changed
+whole file through the existing timing plugin, explicitly assemble and validate
+the complete manifest, and qualify the two-worker duration schedule on the
+stable candidate. Preserve the original fallback result and external timing
+boundary. This is measured scheduling qualification, not extra concurrency or
+evidence that scheduling can meet the 85-percent target. No timing capture or
+suite was started during this reconciliation.
+
 ### Unapproved production-context option — October 14
 
 Follow-up read-only review of the retained image-safety profile and owning
