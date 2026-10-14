@@ -1043,9 +1043,24 @@ The preselected slow comparison is missing-frame handoff refusal, late
 handoff rollback and derived-reference withdrawal. Unchanged controls are the
 27-frame complete-pack and derivative-handoff owners; include retained
 confirmation/recovery after an opt-in case to verify fixture isolation.
-Three baseline samples passed before editing. Focused correctness and static
-independent review have passed; candidate timing and final qualification are
-still pending. Keep raw logs/fingerprints in ignored checkout-local storage,
+Three baseline and three candidate samples passed. Their selected-case median
+fell from 69.802s to 41.206s (40.97 percent); focused correctness and static
+independent review passed. Unaffected-family timing and final qualification
+remain pending. Keep raw logs/fingerprints in ignored checkout-local storage,
 coordinate quiet timing with the CLI worker, and report selected-case gains
 separately from whole-Python wall time. See the corresponding verification
 receipt for actual results and limits.
+
+### Narrow production-query qualification — owner approved October 13
+
+The owner answered “Yes—proceed with verification” for the measured
+receipt-only snapshot query-placement optimization. Move only the two
+pre-mutation material reads used by receipt reconciliation into that scope;
+preserve fresh admission, post-write closure, transaction rollback and current
+versus stale receipt rebasing. No cross-command cache or validation bypass is
+authorized. Carry this change and its regressions onto the released baseline
+with the fixture refinement, independently review the stable composition,
+measure it without profiler overhead and run risk-proportional final gates.
+The older installation-reader candidate stays separate. Neither native
+generation nor live activation is needed for this optimization. The 85-percent
+whole-Python objective and original measurement/coverage requirements remain.

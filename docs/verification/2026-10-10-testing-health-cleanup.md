@@ -1573,5 +1573,23 @@ full-size, derivative-geometry and retained-confirmation/recovery controls
 passed after an opt-in case in the same pytest process: four cases passed in
 111.04s (117.565s including the runner). `controls.log` retains that result;
 `correctness.log` retains the twelve-case run. No checks are still running.
-Candidate timing, broader qualification and publication remain pending; no
-speed improvement or 85-percent completion is claimed yet.
+Three matched candidate samples at clean `3f9d57bb` passed in 39.300s,
+41.206s and 41.527s (median 41.206s), a 40.97-percent reduction from the
+69.802s selected-case baseline. Commands, selectors, host, Python and uv
+versions matched; both checkpoints were clean. All six raw log hashes were
+verified against `baseline.json` and `candidate.json`. The CLI worker held
+checks/probes during the timing window and was released afterward. This is
+a gain for those three handoff cases, not the whole Python suite. Unaffected
+family timing, broader qualification, publication and the 85-percent target
+remain open.
+
+### Receipt-query scope approval — 2026-10-13
+
+The owner explicitly approved verification and integration of the narrow
+production query-placement proposal. The next candidate will carry only that
+transaction-owner change and its regression guards onto the released baseline
+plus the test-only fixture refinement. The separate installation-reader
+proposal (ADR 0164) is not implicitly included in this approval. The original
+isolated proposal and profiled evidence remain in `python85-release`.
+Qualification must re-establish behavior on the new composition; previous
+focused results with the installation-reader change are not substituted for it.
