@@ -1,7 +1,9 @@
 # 0171 — Historical Python timings are scheduling predictions
 
 Status: accepted for the owner's October 14 scheduling preapproval, after an
-independent read-only design review. Implementation and qualification follow.
+independent read-only design review. Implementation, 141 affected focused checks
+and independent stable code review are complete. Full local qualification and
+fresh timing remain pending in the [Python plan](../roadmap/2026-10-14-python-context-and-workers.md).
 
 ## Root cause
 

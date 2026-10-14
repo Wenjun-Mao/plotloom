@@ -283,6 +283,76 @@ but do not integrate it into the CLI candidate or claim measured improvement.
 The earlier Bridge/claim code `d09322cb` has its own collected code review and
 matched focused evidence; its full qualification can be combined with CLI.
 
+## Separately requested Python coordinator — October 14
+
+The owner requested a separate GPT-6.1 Sol / High Python coordinator so this
+approved work can progress alongside higher-priority CLI generation. Native task
+`01a13bfd-1979-7b12-9f0d-54a80eeee329` registered Relay to manager
+`01a04525-e907-7630-9640-78790d69e8ae`; effective model/effort are unverified.
+This supersedes the held status above. The coordinator owns the sole writer in
+retained `autopilot-ux-release`, admitted clean at `6b6c2e09`; the manager is
+read-only there. The separate CLI coordinator owns its own checkout. No second
+source handoff is required.
+
+Source investigation, implementation, attended read-only reviews and small
+focused correctness checks may proceed concurrently. Full suites, broad module
+or profile sweeps, worker experiments and timing benchmarks require the
+manager's quiet-window allocation; CLI matched comparisons and final full gates
+have priority. Contended diagnostic timings cannot support speed claims. Keep
+default two, complete native coverage, fixture isolation, production validation
+and operation-local authority boundaries. No live checkout changes, provider
+generation, hosted CI, activation, global configuration or valued-data changes.
+The manager owns eventual integration/publication; retain scoped commits here.
+
+The first deliverable completes ADR 0171 real-runner history-reporting and
+changed-ID integration guards, affected completion/cleanup/experiment/ownership
+checks and independent stable code review. The diagnosed gap is integration
+proof, not a scheduler failure: historical weights already predict ordering,
+while fresh collection and worker case-ID proofs own execution coverage. Real
+subprocess regressions belong at the runner boundary, without relaxing proof
+validation or relabelling retained timing provenance. A ready-for-measurement
+checkpoint precedes broad qualification; no measured speed gain is claimed yet.
+
+### Reviewed historical-scheduler readiness checkpoint
+
+The real runner now has two disposable subprocess regressions: successful
+historical scheduling with changed source/IDs/counts/new/removed files, and
+refusal of a zero-exit worker proving equal-count obsolete parameter IDs. Both
+preserve timing-manifest bytes and verify distinct cleaned worker roots. Their
+synthetic weights are test inputs, not captured performance evidence.
+
+Focused verification passed **141 cases** across `test_python_suite_schedule`,
+`test_python_suite_history_integration`, `test_python_suite_runner`,
+`test_python_suite_completion`, `test_python_suite_cleanup`,
+`test_python_suite_experiment`, `test_verification_module_ownership` and
+`test_verify_script` (all `tests/*.py` through `verify.py focused --pytest`).
+Scoped Ruff F401 and `git diff --check` passed. Log:
+`.local/remaining-cost/historical-schedule-guards.log`, SHA-256
+`89e235791abe3e6612355b0cecb7034d61e0bf1a1d750ec170e160629b826b07`.
+The first two-case run exposed only a new test's incorrect expected diagnostic
+wording; its retained log is `historical-schedule-integration.log`. Correcting
+that assertion left production/runner code unchanged; the complete affected
+union above passed afterwards. Contended elapsed times are not benchmarks.
+
+Attended independent read-only review (requested GPT-6.1 Sol / Medium,
+effective settings unverified) found no actionable correctness, security or
+regression issues in `65cf84cd..6b6c2e09` plus the integration additions. The
+reviewer ran no checks. This closes scheduler guard/review readiness, not full
+local release qualification. No timing manifest was refreshed or relabelled.
+
+CLI integration `c5c2414d` retains Bridge/claim but intentionally omits historical
+scheduling and retires legacy schema2 image-receipt tests. Those removals cannot
+count as Python savings. Before a fresh full/profile/matched benchmark, the
+manager must reconcile current supported inventory and allocate a quiet window.
+The 578.639s earlier complete run and 65.21s Bridge pair retain their original
+scope; neither qualifies this checkpoint or establishes the 151.733s target.
+
+Read-only next-slice lead: the seven geometry-lineage corruption variants each
+build the same valid geometry-frame project before injecting their own fault.
+A real closed seed copied into isolated roots might avoid duplicate setup while
+preserving every ordinary-open corruption check. This is an unmeasured lead;
+no fixture change or new authority decision is implied by this observation.
+
 ## Residual-cost investigation — historical proposal, now separately scoped
 
 One fresh main-thread profile ran the unchanged complete-pack control at clean
