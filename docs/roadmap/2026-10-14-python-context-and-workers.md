@@ -1240,6 +1240,101 @@ speculative caching. The inspected one-case current-source attribution proposal
 is the next evidence need; it remains unexecuted pending a separate START.
 All earlier pair pins remain unchanged; combined full qualification stays open.
 
+### Current complete-pack attribution — one instrumentation-only observation
+
+After a separate manager START and CLI source-only quiet allocation, one
+prepared observer ran at exact clean `47921934650398fc6db2278f361702bf917c9ba8`
+(executable inputs unchanged from `5516f5a0`). Native session 22518 completed
+once, exit zero. Exact one-case collection and the existing completion marker
+proved execution of
+`tests/test_autopilot_images.py::test_complete_pack_selects_all_subjects_and_unique_route_frames_without_human_facts`,
+fingerprint `4a5688a8f77a9eefd4132e4753046ad0532ff693c4c84d60c8905ead6e1d6e55`.
+The case passed. Instrumented process plus immediate owned-group cleanup wall
+time was 68.57601454098767 seconds; pytest reported 66.76 seconds and cProfile
+recorded 67.189792731 total own seconds. These are instrumentation diagnostics,
+not a verify tier, benchmark, full gate, old/current timing comparison or CPU
+accounting. The profile includes imports/collection/setup/reporting, unlike the
+historical call-body profile; child-process CPU is not attributed internally.
+
+Fresh absolute evidence/tmp/pytest roots were used. Input fingerprint
+`8d4e31819de9b4ea9b6473ff0691a43e0afa741148c3596d3c9e011af58b056f`
+and host fingerprint
+`e157fcd2c8db7127845d443a20785aff48490f424fcbfe1eb56ec31bb040db92`
+stayed equal through preflight, collection, profiling and extraction, alongside
+interpreter/dependency/environment records. Ambient selectors/plugin overrides
+were refused. Owned groups 95995 and 96013 were settled at their subprocess
+boundaries and independently confirmed absent by the manager. Final branch/HEAD
+and clean status remained unchanged. The completed 37-case observer remained
+byte-identical; no other pair pin was changed.
+
+Current instrumented costs (nested and **nonadditive**):
+
+| Source owner | Calls | Cumulative seconds |
+| --- | ---: | ---: |
+| `material_closure` | 1,893 | 23.771952773 |
+| ordinary-open `assert_autopilot_contracts` | 499 | 22.257937291 |
+| `view_in_session` | 580 | 10.598581195 |
+| global `stable_hash` | 937,669 | 8.376394673 |
+| `initial_inventory` | 119 | 5.555415830 |
+| Bridge `get_state` | 131 | 2.800959918 |
+| Cast / Art / Script `_context` | 799 / 308 / 165 | 1.394033082 / 0.857814955 / 0.694213782 |
+
+Direct `material_closure` caller edges were view construction (580 calls /
+9.043170293 seconds), `autopilot_command` (650 / 6.366121430),
+`production_closure` (470 / 6.086276384), command validation (192 /
+2.268556541) and start (1 / 0.007828125). Direct callee edges include row
+iteration (942,031 / 6.105906277), Session execute (43,999 / 4.702106737),
+sorting (46,313 / 4.590567458), final closure hash (1,893 / 2.681738006),
+row-mapping items (899,189 / 1.321742894) and select construction (47,470 /
+0.104851798). Iterator/mapping counts are work-call counts, not per-table
+cumulative SQL row counts. This still does not support speculative plan caching.
+
+Within ordinary-open validation, the direct checkpoint-binding edge was
+26,115 calls / 13.523123488 seconds, and Bridge-adoption validation 499 /
+5.524274377. Checkpoint binding globally occurred 27,558 times / 15.904585684
+seconds, including those nested callers; it must not be added to their costs.
+Its direct execution-attempt helper edge was 19,643 / 6.238519702, and trusted
+text-plan construction 8,272 / 3.405148526. These identify possible future
+validation-layer investigations without authorizing skipped fresh-open checks.
+
+Post-profile read-only endpoint extraction found one awaiting-review/material-
+review run, 41 checkpoints, 37 attempts (8 text completed with no image budget;
+29 image completed/consumed), 27 frames/image jobs, 29 assets and 571 gate-result
+rows. The existing case asserts zero human facts/video jobs. Endpoint counts do
+not establish cumulative rows or growth causes. `gates.py` already reuses an
+exact immutable revision/gate-set evaluation and stores one row per gate; the
+571 rows are not evidence of repeated append-on-read behavior.
+
+The smallest evidence-backed next **investigation**, not an implemented or
+approved optimization, is receipt-command closure construction in
+`command_transactions.py:78`. Its pre-yield segment reads protected and full
+projections over overlapping rows; the separate post-yield segment checks the
+protected projection before constructing the full closure. A design review may
+examine one row construction per individual contiguous segment while preserving
+the exact full/protected hashes, protected-change refusal precedence, cancellation
+and geometry inputs, and backend/error behavior. No row/proof may survive a
+yield, mutation, commit, rollback, admission or fresh open. Preserve every
+existing validation call and its freshness; a Session is not a snapshot guarantee.
+ADR 0170 authorizes no broad material bypass. If these guarantees require a new
+contract, obtain the owner's decision before implementation. No gate pruning,
+cross-owner snapshot sharing, global/result cache or source change is selected.
+
+Evidence root `.local/remaining-cost/complete-pack-current-930944ps/`, SHA-256:
+
+- `main.prof`: `7ffca76f0b6c9cf024c5aa0ed2b552d98726eaa6fc37ce1071acc62062de411d`;
+- `attribution.json`: `eb1b33754e6085e5899863ffcbe59b1fc9b10dd2762b3d1a30c02762458fc58f`;
+- `cardinalities.json`: `60547e4b485ec4c2fd7b454b793c470ba732d6f2808d76e464eee5ba58d93ffc`;
+- `profile.log`: `7007093a85bf95704c99f8f038241f26a0cea82e0dc8a8b887db4e53f24bc845`;
+- `result.json`: `811c1eb116ad688f6ced30cd28bc2dd45200b62a740ca507edeabd3aeae3a9f7`;
+- observer `.local/remaining-cost/complete_pack_current_profile.py`:
+  `7b636035859c72e185c5cd700752589b6fcc4b7efddedc76f481cfdfd405f251`.
+
+The manager independently accepted result/hash/probe/native-case/cleanup facts
+and explicitly released the quiet allocation. All cost synthesis above was
+read-only on retained files. No retry/new measurement/full/provider work or
+production edit occurred. The existing warning remains. Whole-suite speed,
+85-percent achievement and combined full/hosted qualification remain open.
+
 ### Historical material-closure attribution — read-only extraction
 
 The manager extracted the existing main-thread complete-pack profile without
