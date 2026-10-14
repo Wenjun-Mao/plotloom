@@ -3,8 +3,9 @@
 Status: the first owner-approved slice was independently reviewed, locally
 full-qualified and integrated on October 14, 2026. The later historical-scheduler
 and geometry-fixture continuation is implemented with focused checks and
-independent review; scoped geometry measurement passed, while whole-suite
-measurement and combined full qualification remain open. This continues the
+independent review; scoped geometry measurement passed. A later current
+2,239-case Python-only observation passed, as recorded below; matched current
+whole-suite gains and combined full qualification remain open. This continues the
 [testing-health plan](2026-10-10-testing-health-cleanup.md),
 not a redefinition of its 85-percent complete-suite wall-time target.
 
@@ -1584,6 +1585,139 @@ HEAD is pinned only after the stable commit; root readiness review and a separat
 quiet allocation still precede any new complete capture. No broad run/profile/
 full/benchmark is allocated by this repair. Combined CLI/Python full
 qualification remains required after integration.
+
+### Current complete-Python observation and remaining-cost analysis
+
+After the bounded repair above, root approved the new observer's exact source
+pin/hash and allocated one separate quiet capture after fresh CLI ACK. Native
+session 31862 executed once at clean main
+`76389646780e2aadf92f1b8956d40f34073173f2`, using exactly
+`uv run --locked --no-sync python scripts/testing/run_python_suite.py` and the
+unchanged default **two** workers. It exited zero: **2,239 cases / 211 files**,
+native fingerprint
+`cf44ff431a57ac8ab848124965921f73056fb33f7a1efe25d7dc0a9bf7340242`.
+External whole-command time was **524.1615562500083s**; native runner time was
+518.212s. The timer includes immediate owned-group cleanup, excludes separate
+inventory collection/probes/extraction and final external-parent removal, and
+includes the observer's one-second process-tree observations.
+
+| Worker | Files / cases | Setup / call / teardown seconds | Phase sum | Native elapsed |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 105 / 1,141 | 66.011886 / 428.434773 / 0.282617 | 494.729276 | 506.370s |
+| 2 | 106 / 1,098 | 42.810008 / 463.794677 / 0.300258 | 506.904943 | 518.210s |
+
+Root independently verified fresh collection, disjoint exact worker case-ID
+proofs, all 211 positive-valid file rows against logs/report JSON, evidence
+hashes and protected earlier pins. Before/after-collection/after source/input/
+host probes agree; source remains clean and the manifest unchanged. Both owned
+process trees settled; an independent immediate process-group check found no
+owned survivors. External `/private/tmp/plotloom-python-current-zd8vzzy4` and
+its nested native runner root were absent. Terminal/cleanup evidence reached
+root before this receipt; root released CLI promptly. No retry occurred.
+
+Aggregate phase work is **1001.634219379s**: setup **108.821894499s (10.8644%)**,
+call **892.229449410s (89.0774%)**, teardown **0.582875470s (0.0582%)**. The
+worker phase imbalance is 12.175667s; perfect redistribution of these observed
+costs would reduce the larger phase sum by only 6.087833s. The ideal two-worker
+floor at **fixed observed costs** is **500.817109690s**. Even eliminating both
+imbalance and every other measured wall/phase gap leaves only 23.344447s
+(4.4537% of observed external wall) for scheduling/startup/cleanup improvement.
+This is a conditional packing bound, not an irreducible CPU cost or an absolute
+future bound: faster production or fixture construction can change the costs.
+Eliminating all recorded setup alone still leaves a 446.406162440s phase floor.
+
+The largest current files are below; times are mutually exclusive pytest
+phases, unlike nested profiler cumulative timings. All paths are under `tests/`.
+
+| File | Cases | Total seconds | Setup | Call | Teardown |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `test_autopilot_geometry.py` | 27 | 117.372771 | 9.565585 | 107.804944 | 0.002242 |
+| `test_autopilot_images.py` | 10 | 112.018829 | 0.006270 | 112.010933 | 0.001627 |
+| `test_autopilot_handoff.py` | 12 | 100.580598 | 11.391086 | 89.188458 | 0.001055 |
+| `test_autopilot_creator_confirmation.py` | 16 | 74.457998 | 0.002879 | 74.454212 | 0.000907 |
+| `test_autopilot_image_safety.py` | 11 | 64.676411 | 0.005754 | 64.669077 | 0.001580 |
+| `test_specialist_terminal_reconciliation.py` | 62 | 45.425618 | 18.487480 | 26.875625 | 0.062513 |
+| `test_autopilot_geometry_publication.py` | 3 | 28.357038 | 0.001486 | 28.355179 | 0.000373 |
+| `test_autopilot_image_phase.py` | 3 | 25.929671 | 0.001337 | 25.928049 | 0.000285 |
+| `test_native_bridge_intent.py` | 22 | 19.112112 | 13.991624 | 5.117918 | 0.002570 |
+| `test_image_terminal_settlement.py` | 33 | 18.346540 | 0.021715 | 18.318181 | 0.006643 |
+
+The top five total 469.106608s (46.8341%); the top ten 606.277587s (60.5288%).
+Even deleting the entire top fifteen costs would leave a 157.314865s ideal
+two-worker phase floor, above the original **151.73295s** reference
+(151.733s rounded). This counterfactual is a scale check, never a proposal to
+remove coverage. At perfect allocation, that target requires reducing current
+phase work by at least **698.168s / 69.70%**, before accounting for remaining
+wall overhead; the current external wall needs **71.05%** further reduction.
+
+Inventory changed from the historical manifest's 1,911 cases / 185 files:
+26 newly represented files contribute 333 current cases and 37.970836s of
+current phase work; six retained files changed counts from 97 to 92 (net -5),
+giving net +328 cases. No historical file disappeared. These are inventory
+facts, not speed savings. In particular the eight retired schema2 receipt
+variants and two replaced initial/final-admission variants retain the distinct
+contract explanation in `inventory_distinctions`; file-level phase rows cannot
+price removed individual cases. The manifest remains scheduling provenance
+(`historical-duration`, retained 179 / scaled 6 / estimated 26), not a current
+matched baseline. Neither the historical 578.639s / 1,911-case wall observation
+nor its 1110.509s phase total establishes a matched gain against this capture.
+
+**Next options, not implementation or measurement allocations:**
+
+- First review four post-generation creator-confirmation cases for reuse of the
+  existing closed six-frame `awaiting_handoff_seed`: the two variants of
+  `test_exact_choices_succeed_without_a_name_and_store_no_invented_actor_or_comment`
+  and the two of
+  `test_ordinary_validation_refuses_unnamed_fact_without_its_receipt`. Their
+  current bodies each call `handoff_image_environment(..., cuts_per_scene=2)`
+  and `run_pack` before the behavior under test. That preparation is charged to
+  **call**, not pytest setup. The seed already produces the same two-route /
+  six-frame / two-reference state through eight fixture-backed text and eight
+  fixture-backed image deliveries at real boundaries, then closes it. A bounded
+  design must preserve isolated files/DB/assets, fresh ordinary-open checks, exact receipt and
+  recovery assertions, native IDs and a fresh generation control. Do not resume
+  a copied closed seed or replace dispatch/admission/lifecycle scenarios with
+  snapshots. A seed is built per worker, so the net saving must include that
+  cost; 74.457998s is the whole file, not an estimated recoverable amount. Leave
+  the differently shaped retained-v1 control outside this first selection.
+- For production attribution, the next causal question is duplicate immutable
+  run/policy/attempt parsing and binding work **within one** ordinary-open
+  validation. Source currently checks checkpoints, typed attempts, decisions and
+  frames in separate passes, with checkpoint binding repeated for decisions.
+  The earlier source-bound complete-pack profile supports investigating this
+  path, but predates receipt projection and is not current attribution for
+  these top files. Any new diagnostic needs an explicit allocation and exact
+  integrated pin. Only a reviewed per-invocation construction context could fit
+  the current operation-local authority; retain every check, diagnostic/error
+  order, hash input, filesystem validation and direct standalone validator.
+  Discard all facts at return; each new open/admission/write remains fresh.
+  No cross-open cache, validation bypass or gate pruning is proposed.
+- Scheduling weight refresh may improve packing but cannot close this gap at
+  fixed observed costs. Further concurrency changes the resource comparison.
+  Small remaining context projections have no evidence of the required scale;
+  the last two scoped pairs observed no gain. Before another implementation,
+  the owner must choose a bounded seed-extension/design or diagnostic brief,
+  or explicitly fund a broader cost-reduction program / revise the target.
+  Current evidence cannot promise that safe remaining gains approach 151.733s.
+
+Evidence root `.local/remaining-cost/python-current-external-two-p3by4x5u/`:
+
+- `result.json`: `9043dfaddf48023e207d6f0dde87714ff533aaad92a0e5fa43b7324b76ba2b5c`;
+- `python-suite.log`: `bc7941773b2abb820d9050bc7848fbba41b13dac6be85909242917f4fb0c4369`;
+- `native-reports-and-phase-rows.json`: `28f32e9c6791fd3082b85390289bff2d67f510068c1ee7f102a65a5b45af4933`;
+- `native-cases.txt`: `e97b27cbf6417a7334ac6fa09cd1e732a229a001718ad3cf0bca33be96bbb003`;
+- observer `.local/remaining-cost/current_python_external_capture.py`:
+  `7ad3e54f17b18fb667db74c92a27e9a9202ee959bfa932be4eaaef54562e4658`.
+
+Executable input is
+`18155d64c943e12b03766f50cb9b80be7b3e4e25ab93200ff2c66d0dce7dc6f0`;
+host is `e157fcd2c8db7127845d443a20785aff48490f424fcbfe1eb56ec31bb040db92`.
+This single successful complete-Python observation is accepted scoped evidence,
+not a matched speed gain, repeated result, final full gate, hosted CI or product
+acceptance. Final combined CLI/Python full qualification remains required once
+integrated inputs stabilize. This analysis used only retained rows and source
+reads; no new test/profile/capture ran, no observer/result/log was edited, and
+no runtime or workflow contract changed, so no new ADR is needed.
 
 ### Historical material-closure attribution — read-only extraction
 
