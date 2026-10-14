@@ -6,6 +6,7 @@ import sqlite3
 
 from ..creative_handoff_contracts import CreativeHandoffRequest, CreativeDeliveryManifest
 from ..creative_handoff_exchange import CreativeHandoffExchange, canonical_json, request_hash, execution_pin_for_request
+from ..codex_exec_resources import upstream_skill_path_for_stage
 from .format import ProjectStorageCorruptionError
 from .snapshot_files import _safe_directory, _safe_regular, _assert_exchange_file_is_secret_free
 from ..creative_package_publication import PUBLICATION_LOCK
@@ -90,6 +91,35 @@ def _codex_creative_jobs(connection):
     return jobs
 
 
+def _retained_codex_request_projection(
+    request, execution_pin, profile, projection_exchange, *, plotloom_code_revision=None
+):
+    """Project only the package request shapes admitted by retained launch profiles."""
+    if profile.contract_version == "plotloom.codex-exec.v5":
+        projected, _instructions, _template, _members = projection_exchange._projection(
+            request,
+            execution_pin,
+            executor_backend="codex_exec",
+            plotloom_code_revision=plotloom_code_revision,
+        )
+        return projected
+    if profile.contract_version != "plotloom.codex-exec.v4":
+        raise ProjectStorageCorruptionError("retained Codex creative package profile is unsupported")
+
+    # v4 owns package v2, whose request omitted Plotloom source identity. Keep
+    # this projection in the read-only inventory owner; it never feeds dispatch
+    # or adoption and is bounded to immutable historical evidence inspection.
+    return request.model_dump(mode="json", by_alias=True) | {
+        "packageVersion": 2,
+        "requestHash": request_hash(request),
+        "candidateFilename": CreativeHandoffExchange._candidate_filename(request.stage),
+        "reportFilename": "report.html",
+        "upstreamSkillPath": upstream_skill_path_for_stage(request.stage),
+        "executionPin": execution_pin_for_request(request, execution_pin),
+        "executorBackend": "codex_exec",
+    }
+
+
 def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
     connection = sqlite3.connect(f"{database.as_uri()}?mode=ro", uri=True)
     try:
@@ -135,10 +165,18 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
         ):
             raise ProjectStorageCorruptionError("retained Codex creative checkpoint differs from its request")
         executor_backend = "codex_exec" if codex_binding is not None else "specialist_chat"
-        projected, _instructions, _template, _package_members = projection_exchange._projection(
-            request, execution_pin, executor_backend=executor_backend,
-            plotloom_code_revision=(codex_binding["plotloom_code_revision"] if codex_binding else None),
-        )
+        if codex_binding is None:
+            projected, _instructions, _template, _package_members = projection_exchange._projection(
+                request, execution_pin, executor_backend="specialist_chat"
+            )
+        else:
+            projected = _retained_codex_request_projection(
+                request,
+                execution_pin,
+                codex_binding["profile"],
+                projection_exchange,
+                plotloom_code_revision=codex_binding["plotloom_code_revision"],
+            )
         candidate_name = CreativeHandoffExchange._candidate_filename(request.stage)
         expected = {
             "package/request.json", "package/COPY_ASSIGNMENT.txt",
@@ -217,8 +255,9 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
                         or manifest.executor_attempt_id != attempt.attempt_id
                         or manifest.codex_session_id != receipt.session_id
                         or manifest.executor_profile_hash != attempt.profile_hash
-                        or attempt.plotloom_code_revision != codex_binding["plotloom_code_revision"]
-                        or manifest.executor_provenance.code_revision != attempt.plotloom_code_revision):
+                        or not _retained_codex_manifest_revision_matches(
+                            codex_binding, execution_pin, attempt, receipt, manifest
+                        )):
                     raise ProjectStorageCorruptionError("retained Codex creative manifest lost its exact attempt receipt")
                 try:
                     assert_receipt_matches_attempt(attempt, receipt)
@@ -241,3 +280,25 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
                 if f"delivery/{output.filename}" not in observed or sha256(path.read_bytes()).hexdigest() != output.sha256:
                     raise ProjectStorageCorruptionError("retained creative output bytes changed")
     return paths
+
+
+def _retained_codex_manifest_revision_matches(binding, execution_pin, attempt, receipt, manifest):
+    """Keep old v4 provenance inspectable without relaxing current adoption checks."""
+    profile = binding["profile"]
+    if profile.contract_version == "plotloom.codex-exec.v5":
+        frozen_revision = binding["plotloom_code_revision"]
+        return (
+            attempt.plotloom_code_revision == frozen_revision
+            and receipt.plotloom_code_revision == frozen_revision
+            and manifest.executor_provenance.code_revision == frozen_revision
+        )
+    if profile.contract_version == "plotloom.codex-exec.v4":
+        # The retained v4 publisher labelled upstreamRevision as codeRevision.
+        # This validates that exact historical receipt shape; it cannot authorize
+        # a new launch, change a package, or satisfy the current adoption owner.
+        return (
+            attempt.plotloom_code_revision is None
+            and receipt.plotloom_code_revision is None
+            and manifest.executor_provenance.code_revision == execution_pin["upstreamRevision"]
+        )
+    return False

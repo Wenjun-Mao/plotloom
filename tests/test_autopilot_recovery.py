@@ -7,11 +7,16 @@ import pytest
 
 from plotloom.autopilot_contracts import OperationScope
 from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.codex_exec_contracts import CodexExecProfile
+from plotloom.creative_handoff_exchange import CreativeHandoffExchange
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.project_storage import ProjectFolderStorage, ProjectBusyError, ProjectStorageCorruptionError, ProjectStorageConfinementError
+from plotloom.project_storage.creative_evidence_inventory import _retained_codex_request_projection
 from plotloom.project_storage.snapshot_contract import ProjectSnapshotManifest, SnapshotFile
 from plotloom.source_outline_contracts import OutlineAcceptRequest
+from tests.autopilot_controller_fixtures import UPSTREAM_PIN
 from tests.autopilot_fixtures import authority, make_prior_layout, start_run
+from tests.codex_exec_fixtures import PROFILE
 from tests.source_outline_fixtures import _deliver, _material, _request
 
 
@@ -72,6 +77,31 @@ def test_creative_evidence_inventory_remains_confined_and_secret_free(tmp_path, 
         missing[mutation].unlink()
     with pytest.raises((ProjectStorageCorruptionError, ProjectStorageConfinementError)):
         storage.recovery.create_snapshot(project_id)
+
+
+def test_retained_v4_codex_package_inventory_uses_revisionless_v2_shape(tmp_path):
+    value = PROFILE.model_dump(mode="json", by_alias=True)
+    value.update(
+        contractVersion="plotloom.codex-exec.v4",
+        permissionProfile="plotloom_autopilot_delivery_v2",
+        textValidatorRuntimeProfile=None,
+    )
+    profile = CodexExecProfile.model_validate(value)
+    storage = storage_at(tmp_path)
+    with closing(storage.projects.create(FIXED_CHINESE_BRIEF)) as store:
+        source = _material()
+        request = _request(str(store.manifest.project_id), source)
+        projection = _retained_codex_request_projection(
+            request,
+            UPSTREAM_PIN,
+            profile,
+            CreativeHandoffExchange(tmp_path / "creative-handoff"),
+        )
+
+    assert projection["packageVersion"] == 2
+    assert projection["executorBackend"] == "codex_exec"
+    assert projection["executionPin"]["upstreamRevision"] == UPSTREAM_PIN["upstreamRevision"]
+    assert "plotloomCodeRevision" not in projection
 
 
 def test_portable_autopilot_cannot_resume_after_acknowledgement(tmp_path):

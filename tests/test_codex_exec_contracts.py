@@ -214,6 +214,34 @@ def test_attempt_reserves_exact_domain_budget_and_process_group():
     assert attempt.process_group_id == 123
 
 
+def test_pre_revision_attempt_snapshot_round_trips_without_a_null_revision():
+    attempt = CodexExecAttempt(
+        attemptId=uuid4(),
+        runId=uuid4(),
+        projectId=uuid4(),
+        jobId="ch_" + "b" * 24,
+        operationKey="character-reference:keeper",
+        domain="image",
+        requestHash=HASH,
+        packageHash=HASH,
+        profileHash=HASH,
+        reservedImageOutputs=1,
+        imageBudgetState="reserved",
+        state="outcome_unknown",
+        processId=123,
+        processGroupId=123,
+        processBirthIdentity="pid-start-123",
+    )
+
+    snapshot = attempt.model_dump(mode="json", by_alias=True)
+    restored = CodexExecAttempt.model_validate(snapshot)
+
+    assert "plotloomCodeRevision" not in snapshot
+    assert snapshot["imageBudgetState"] == "reserved"
+    assert snapshot["reservedImageOutputs"] == 1
+    assert restored.model_dump(mode="json", by_alias=True) == snapshot
+
+
 def test_attempt_lifecycle_uses_validated_immutable_snapshots():
     attempt = CodexExecAttempt(
         attemptId=uuid4(),

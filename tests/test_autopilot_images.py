@@ -154,6 +154,9 @@ def test_pause_at_image_send_boundary_prevents_native_dispatch(tmp_path, monkeyp
 
 
 def test_native_unknown_image_restart_reconciles_original_identity_without_resend(tmp_path, monkeypatch):
+    import sqlite3
+    from pathlib import PurePosixPath
+
     storage, registry, service, view, calls, _text = image_environment(tmp_path, monkeypatch, auto_deliver=False)
     resumed = None
     try:
@@ -172,6 +175,60 @@ def test_native_unknown_image_restart_reconciles_original_identity_without_resen
         retained = current(storage, view)
         checkpoint = next(item for item in retained.checkpoints if item["evidence"]["owner"] == "character-reference")
         assert checkpoint["state"] == "outcome_unknown"
+        with closing(storage.projects.open(view.project_id)) as store:
+            unknown_attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
+                retained.id, checkpoint["operationKey"]
+            )
+            assert unknown_attempt.state == "outcome_unknown" and receipt is None
+            assert unknown_attempt.image_budget_state == "reserved"
+            with sqlite3.connect(store.database_path) as connection:
+                original_row = connection.execute(
+                    "SELECT snapshot,image_budget_state,reserved_image_outputs "
+                    "FROM v2_autopilot_exec_attempts WHERE id=?",
+                    (str(unknown_attempt.attempt_id),),
+                ).fetchone()
+            run_directory = next(
+                path for path in (store.home / "runs").iterdir()
+                if path.name.endswith("__" + unknown_attempt.job_id)
+            )
+            package_request = run_directory / "jobs" / unknown_attempt.job_id / "package" / "request.json"
+            original_package_request = package_request.read_bytes()
+
+        resumed.control(
+            view.project_id,
+            RunControlRequest(expected_revision=retained.revision, action="pause"),
+        )
+        resumed.step(view.project_id)
+        paused = current(storage, view)
+        assert paused.state == "paused"
+        from plotloom.project_storage.operational_state import ProjectBusyError
+        from plotloom.project_storage.recovery_validation import payload_inventory, payload_paths
+
+        # A retained unknown image attempt still owns an active publication
+        # lease, so snapshot creation must refuse it. Exercise the exact
+        # read-only payload inventory that snapshot creation uses after that
+        # gate, without bypassing the lease.
+        with pytest.raises(ProjectBusyError, match="character_reference_publication_active"):
+            storage.recovery.create_snapshot(view.project_id)
+        inventory_paths = payload_paths(store.home, store.database_path)
+        assert PurePosixPath("project.sqlite3") in inventory_paths
+        inventory = payload_inventory(store.home, inventory_paths)
+        assert inventory[PurePosixPath("project.sqlite3")].content_hash
+        with sqlite3.connect(store.database_path) as connection:
+            after_row = connection.execute(
+                "SELECT snapshot,image_budget_state,reserved_image_outputs "
+                "FROM v2_autopilot_exec_attempts WHERE id=?",
+                (str(unknown_attempt.attempt_id),),
+            ).fetchone()
+        assert after_row == original_row
+        assert original_row[1:] == ("reserved", 1)
+        assert package_request.read_bytes() == original_package_request
+
+        resumed.control(
+            view.project_id,
+            RunControlRequest(expected_revision=paused.revision, action="resume"),
+        )
+        resumed.step(view.project_id)
         with closing(storage.projects.open(view.project_id)) as store:
             deliver_image(store, retained, checkpoint, host=registry._codex_exec_test_host)
         resumed.step(view.project_id)

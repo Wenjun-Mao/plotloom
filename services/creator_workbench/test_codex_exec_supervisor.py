@@ -131,13 +131,16 @@ def test_admission_persists_exact_spawn_intent_before_starting_private_worker(su
             worker.wait(timeout=5)
 
 
-def test_admission_rejects_a_forged_plotloom_revision_before_reserving(supervisor, tmp_path):
+@pytest.mark.parametrize("revision", [None, "f" * 40], ids=["missing", "forged"])
+def test_admission_rejects_missing_or_forged_plotloom_revision_before_reserving(
+    supervisor, tmp_path, revision
+):
     from codex_exec_supervisor_errors import CodexExecSupervisorError
 
     _exchange, _request, _pin, _job_root, attempt, _profile = _prepared_text_job(supervisor, tmp_path)
-    forged = attempt.model_copy(update={"plotloom_code_revision": "f" * 40})
-    with pytest.raises(CodexExecSupervisorError, match="frozen Plotloom source revision"):
-        supervisor.admit(forged)
+    unbound = attempt.model_copy(update={"plotloom_code_revision": revision})
+    with pytest.raises(CodexExecSupervisorError, match="Plotloom source revision"):
+        supervisor.admit(unbound)
     assert supervisor._row(attempt.attempt_id) is None
     assert not supervisor._workers
 

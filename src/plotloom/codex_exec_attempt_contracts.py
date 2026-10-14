@@ -24,7 +24,11 @@ class CodexExecAttempt(CamelModel):
     request_hash: str = Field(pattern=HASH)
     package_hash: str = Field(pattern=HASH)
     profile_hash: str = Field(pattern=HASH)
-    plotloom_code_revision: str | None = Field(default=None, pattern=r"^[a-f0-9]{7,64}$")
+    plotloom_code_revision: str | None = Field(
+        default=None,
+        pattern=r"^[a-f0-9]{7,64}$",
+        exclude_if=lambda value: value is None,
+    )
     reserved_image_outputs: int = Field(ge=0, le=4)
     image_budget_state: Literal["none", "reserved", "consumed", "released"] = "none"
     state: Literal[

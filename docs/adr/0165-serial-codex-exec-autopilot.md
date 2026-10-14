@@ -426,3 +426,12 @@ contract so later probes can identify what was actually authorized. A native
 sandbox probe qualifies that exact shell/runtime boundary but does not prove
 the environment of the model's internal tool implementation; that remains a
 separate actual-path qualification gap.
+
+Retained v4 evidence remains inspectable through a read-only inventory branch:
+v4 owns package version 2 and its historical `codeRevision` label was the
+upstream skill revision. That projection is limited to storage validation and
+snapshot inventory; it does not populate new attempts, rewrite packages, or
+satisfy current adoption. Fresh execution and adoption use only v5's frozen
+Plotloom revision. Absent optional revision fields stay absent when old attempt
+and receipt snapshots are parsed and reserialized, so ordinary-open canonical
+checks do not rewrite historical state.

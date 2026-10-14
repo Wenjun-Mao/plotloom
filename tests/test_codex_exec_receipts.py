@@ -121,6 +121,17 @@ def test_image_event_and_receipt_bind_exact_attempt_session_and_bytes():
         remoteOutputHash=output.output_hash,
     )
     assert_receipt_matches_attempt(attempt, receipt)
+
+    retained_attempt_snapshot = attempt.model_dump(mode="json", by_alias=True)
+    retained_receipt_snapshot = receipt.model_dump(mode="json", by_alias=True)
+    retained_attempt_snapshot.pop("plotloomCodeRevision")
+    retained_receipt_snapshot.pop("plotloomCodeRevision")
+    retained_attempt = CodexExecAttempt.model_validate(retained_attempt_snapshot)
+    retained_receipt = CodexExecReceipt.model_validate(retained_receipt_snapshot)
+    assert "plotloomCodeRevision" not in retained_attempt.model_dump(mode="json", by_alias=True)
+    assert "plotloomCodeRevision" not in retained_receipt.model_dump(mode="json", by_alias=True)
+    assert_receipt_matches_attempt(retained_attempt, retained_receipt)
+
     with pytest.raises(ValueError, match="exact project attempt"):
         assert_receipt_matches_attempt(
             attempt.model_copy(update={"profile_hash": "c" * 64}), receipt

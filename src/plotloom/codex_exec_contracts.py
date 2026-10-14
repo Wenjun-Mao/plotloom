@@ -316,7 +316,11 @@ class CodexExecReceipt(CamelModel):
     profile_hash: str = Field(pattern=HASH)
     request_hash: str = Field(pattern=HASH)
     package_hash: str = Field(pattern=HASH)
-    plotloom_code_revision: str | None = Field(default=None, pattern=r"^[a-f0-9]{7,64}$")
+    plotloom_code_revision: str | None = Field(
+        default=None,
+        pattern=r"^[a-f0-9]{7,64}$",
+        exclude_if=lambda value: value is None,
+    )
     process_id: int = Field(ge=1)
     process_group_id: int = Field(ge=1)
     process_birth_identity: str = Field(min_length=1, max_length=160)
