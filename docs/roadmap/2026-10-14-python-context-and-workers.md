@@ -1012,6 +1012,11 @@ separate from measured savings, combined full/hosted qualification and product
 acceptance. This 22-case speed comparison remains queued for a quiet allocation;
 prior accepted pair refs/results remain immutable.
 
+Frozen executable after is `83e2275d04d3192c36162503a1e63751560cad55`;
+before remains `7fb557c96e11d02e8d175b33199659cc0f2574d5`. These refs qualify
+the bounded readiness above. A later docs-only receipt does not retarget this
+comparison or earlier accepted pairs.
+
 ## Residual-cost investigation — historical proposal, now separately scoped
 
 One fresh main-thread profile ran the unchanged complete-pack control at clean
