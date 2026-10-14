@@ -1,9 +1,7 @@
 """Stage validator routing from the frozen creative request's style authority."""
 from __future__ import annotations
 
-import shlex
 from dataclasses import dataclass
-from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -91,48 +89,24 @@ def codex_exec_saved_brief_route(stage: str, package_request: dict) -> CodexExec
 
 
 def saved_brief_codex_exec_instructions(route: CodexExecSavedBriefRoute) -> str:
-    """Map repository-root examples to the actual delivery working directory."""
-    commands = "\n".join(route.commands)
+    """Keep the selected authority explicit while reserving execution for the host."""
     return (
         f"The frozen inputs/{route.contract_filename} selects saved-Brief authority and its neutral Plotloom adapter. "
-        "Preserve every other requirement in this stage's pinned upstream skill and frozen request. Some source "
-        "instructions show their validator commands from the repository root; this CLI stays in the writable "
-        "delivery directory. For this Codex assignment, the commands below replace only that shell path base and "
-        "entrypoint syntax. They retain the same stage validator, frozen inputs, candidate and report. From the "
-        "delivery directory, run exactly:\n"
-        f"{commands}\n"
+        "Preserve every other requirement in this stage's pinned upstream skill and frozen request. The trusted "
+        "host applies this route from the frozen validation plan after the candidate is written; do not invoke the "
+        "adapter or write the report yourself. "
     )
 
 
-def codex_exec_stage_validator_instructions(stage: str, package_request: dict, job_root: Path) -> str:
-    """Build the delivery-CWD validator contract for visual style stages."""
+def codex_exec_stage_validator_instructions(stage: str, package_request: dict, job_root=None) -> str:
+    """Describe the frozen visual-style authority without asking the model to execute it."""
     route = codex_exec_saved_brief_route(stage, package_request)
     if route:
         return saved_brief_codex_exec_instructions(route)
-    package = job_root / "package"
-    delivery = job_root / "delivery"
-    request = shlex.quote(str(package / "request.json"))
-    report = shlex.quote(str(delivery / "report.html"))
     if stage == "characters":
-        candidate = shlex.quote(str(delivery / "cast.json"))
-        contract = shlex.quote(str(package / "inputs" / "cast-style-contract.json"))
-        runner = '"$PLOTLOOM_NODE" "$PLOTLOOM_SOURCE_ROOT/scripts/cast-style.mjs"'
-        return (
-            f"Validate with {runner} validate {candidate} --request {request} --contract {contract}, then "
-            f"render with the same arguments using render --html, redirecting to {report}. "
-        )
+        return "Follow the frozen preset style contract. The trusted host validates and renders through the plan after the candidate is written. "
     if stage == "art":
-        candidate = shlex.quote(str(delivery / "art.json"))
-        cast = shlex.quote(str(package / "inputs" / "cast.json"))
-        contract = shlex.quote(str(package / "inputs" / "art-style-contract.json"))
-        runner = '"$PLOTLOOM_NODE" "$PLOTLOOM_SOURCE_ROOT/scripts/art-style.mjs"'
-        return (
-            f"Validate with {runner} validate {candidate} --cast {cast} --contract {contract}, then "
-            f"render with the same arguments using render --html, redirecting to {report}. "
-        )
+        return "Follow the frozen art style and cast inputs. The trusted host validates and renders through the plan after the candidate is written. "
     if stage == "storyboard":
-        return (
-            "Run the stage skill's deterministic validate and render commands against the absolute "
-            "candidate/package paths. Do not change to the source checkout as the working directory. "
-        )
+        return "The trusted host validates and renders through the frozen plan after the candidate is written. "
     raise ValueError(f"stage {stage!r} has no Codex Exec visual-style validator instructions")

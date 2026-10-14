@@ -19,6 +19,11 @@ from plotloom.codex_exec_contracts import (
     output_manifest_hash,
     transition_exec_attempt,
 )
+from plotloom.codex_exec_validation import (
+    CodexExecTextValidationEvidence,
+    CodexExecValidationStepEvidence,
+    validation_plan_from_package,
+)
 from plotloom.codex_exec_delivery import publish_creative_completion, publish_image_completion
 from plotloom.codex_exec_files import output_evidence_for_tree
 from plotloom.codex_exec_telemetry import CodexSessionEvidence, ImageGenCall, ImageGenEvent, ReferenceViewEvidence
@@ -246,6 +251,34 @@ class FakeCodexExecHost:
             max_total_bytes=profile.max_output_bytes,
         )
         output_hash = output_manifest_hash(outputs)
+        package_request = json.loads((job_root / "package" / "request.json").read_bytes())
+        validation_plan = validation_plan_from_package(package_request)
+        text_validation = CodexExecTextValidationEvidence(
+            planHash=validation_plan.plan_hash,
+            profileHash=profile.profile_hash,
+            validatorHash=profile.validator_hash,
+            requestHash=attempt.request_hash,
+            packageHash=attempt.package_hash,
+            sourceRevision=attempt.plotloom_code_revision,
+            candidateFilename=candidate_filename,
+            candidateHash=sha256(content).hexdigest(),
+            candidateSizeBytes=len(content),
+            reportFilename="report.html",
+            reportHash=sha256(report).hexdigest(),
+            reportSizeBytes=len(report),
+            steps=(
+                CodexExecValidationStepEvidence(
+                    stepId="validate", argvHash="1" * 64, exitCode=0,
+                    stdoutHash="2" * 64, stdoutSizeBytes=0,
+                    stderrHash="3" * 64, stderrSizeBytes=0, durationMs=1,
+                ),
+                CodexExecValidationStepEvidence(
+                    stepId="render", argvHash="4" * 64, exitCode=0,
+                    stdoutHash=sha256(report).hexdigest(), stdoutSizeBytes=len(report),
+                    stderrHash="5" * 64, stderrSizeBytes=0, durationMs=1,
+                ),
+            ),
+        )
         session_id = uuid5(NAMESPACE_URL, f"plotloom-test-session:{attempt.attempt_id}")
         process_id = attempt.process_id or (40000 + len(self.calls))
         evidence_hash = sha256(
@@ -271,6 +304,7 @@ class FakeCodexExecHost:
             requestHash=completed.request_hash,
             packageHash=completed.package_hash,
             plotloomCodeRevision=completed.plotloom_code_revision,
+            validationPlanHash=completed.validation_plan_hash,
             processId=process_id,
             processGroupId=process_id,
             processBirthIdentity=completed.process_birth_identity,
@@ -279,6 +313,7 @@ class FakeCodexExecHost:
             evidenceHash=evidence_hash,
             outputHash=output_hash,
             outputs=outputs,
+            textValidation=text_validation,
             remoteToolState="not_applicable",
         )
         publish_creative_completion(

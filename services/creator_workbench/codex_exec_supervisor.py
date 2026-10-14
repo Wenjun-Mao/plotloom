@@ -12,11 +12,14 @@ from hashlib import sha256
 from pathlib import Path
 from uuid import UUID
 
-
 from codex_exec_supervisor_errors import CodexExecSupervisorError
 from codex_exec_supervisor_job import CodexExecSupervisorJobMixin
 from codex_exec_supervisor_ledger import CodexExecSupervisorLedgerMixin
-from codex_exec_supervisor_process import CodexExecSupervisorProcessMixin, _credential_free_environment
+from codex_exec_supervisor_process import (
+    CodexExecSupervisorProcessMixin,
+    _credential_free_environment,
+)
+
 from plotloom.codex_exec_auth import (
     check_codex_exec_readiness,
     resolve_codex_home,
@@ -147,8 +150,18 @@ class CodexExecSupervisor(
     def _refresh_active_attempt(self, row):
         from plotloom.codex_exec_contracts import CodexExecAttempt
         attempt = CodexExecAttempt.model_validate_json(row["status_json"])
+        if attempt.state == "outcome_unknown":
+            validation = self._active_validation_process(attempt.attempt_id)
+            if validation is not None and validation["spawn_state"] == "running" and self._owns_validation_process(validation):
+                self._terminate_active_validation(attempt.attempt_id, sig=signal.SIGKILL)
+            return attempt
         if attempt.state not in {"spawn_intent", "running", "cancel_requested"}:
             return attempt
+        validation = self._active_validation_process(attempt.attempt_id)
+        if validation is not None and not self._owns_worker(row):
+            if validation["spawn_state"] == "running" and self._owns_validation_process(validation):
+                self._terminate_active_validation(attempt.attempt_id, sig=signal.SIGKILL)
+            return self._mark_unknown(attempt)
         if row["worker_pid"] is None:
             if attempt.state == "spawn_intent":
                 self._start_worker(attempt.attempt_id)
@@ -341,7 +354,10 @@ class CodexExecSupervisor(
         }
 
     def cancel(self, raw_attempt):
-        from plotloom.codex_exec_contracts import CodexExecAttempt, transition_exec_attempt
+        from plotloom.codex_exec_contracts import (
+            CodexExecAttempt,
+            transition_exec_attempt,
+        )
         attempt = CodexExecAttempt.model_validate(raw_attempt)
         attempt_id = attempt.attempt_id
         with self._guard:
@@ -433,13 +449,22 @@ class CodexExecSupervisor(
                     connection.commit()
                     attempt = current
 
-            if attempt.process_id is not None:
-                if not self._owns_process(attempt):
-                    return self._load(self._row(attempt_id))
+            if attempt.process_id is not None and self._owns_process(attempt):
                 try:
                     os.killpg(attempt.process_group_id, signal.SIGTERM)
                 except ProcessLookupError:
                     pass
+            validation = self._active_validation_process(attempt_id)
+            if validation is not None:
+                worker_row = self._row(attempt_id)
+                if worker_row is None or not self._owns_worker(worker_row):
+                    self._mark_unknown(attempt)
+                    return self._load(self._row(attempt_id))
+                if validation["spawn_state"] == "running":
+                    if not self._owns_validation_process(validation):
+                        self._mark_unknown(attempt)
+                    else:
+                        self._terminate_active_validation(attempt_id, sig=signal.SIGTERM)
             return self._load(self._row(attempt_id))
 
     def _mark_unknown(self, attempt, *, session_id=None):

@@ -1,6 +1,6 @@
 import pytest
 
-from plotloom.codex_exec_prompts import PROMPT_VERSION, assignment_prompt
+from plotloom.codex_exec_prompts import IMAGE_PROMPT_VERSION, PROMPT_VERSION, assignment_prompt
 
 
 def test_text_prompt_assigns_candidate_files_and_leaves_completion_to_host(tmp_path):
@@ -11,13 +11,13 @@ def test_text_prompt_assigns_candidate_files_and_leaves_completion_to_host(tmp_p
         domain="text",
     )
 
-    assert PROMPT_VERSION.endswith("v4")
-    assert "Write only the requested candidate and report files" in prompt
-    assert "trusted host publishes the completion manifest" in prompt
-    assert "$PLOTLOOM_SOURCE_ROOT" in prompt
-    assert "$PLOTLOOM_UV" in prompt
-    assert "$PLOTLOOM_UV" in prompt
-    assert "--locked --no-sync" in prompt
+    assert PROMPT_VERSION.endswith("v5")
+    assert "Write only the requested candidate JSON" in prompt
+    assert "trusted host runs its exact frozen validation plan" in prompt
+    assert "request.creativeBrief" in prompt
+    assert "manual specialist-chat workflow" in prompt
+    assert "Do not invoke validators or renderers" in prompt
+    assert "do not claim trusted validation" in prompt
     assert "Do not `cd` into" in prompt
     assert "Do not write image files" not in prompt
 
@@ -32,9 +32,11 @@ def test_image_prompt_reserves_delivery_tree_for_trusted_host_copy(tmp_path):
 
     assert "Do not write image files or completion markers" in prompt
     assert "trusted host copies its exact completed session output" in prompt
+    assert IMAGE_PROMPT_VERSION.endswith("v4")
+    assert prompt.startswith(IMAGE_PROMPT_VERSION)
     assert "one direct top-level awaited expression" in prompt
     assert "Do not put it in a branch" in prompt
-    assert "Write only the requested candidate and report files" not in prompt
+    assert "Write only the requested candidate JSON" not in prompt
     assert "view_image" in prompt
     assert "referenced_image_paths" in prompt
 

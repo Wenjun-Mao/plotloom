@@ -30,6 +30,30 @@ class CodexExecSourceResources:
     tools: tuple[tuple[str, Path], ...]
 
 
+def _symlink_alias_chain(path: Path) -> tuple[tuple[Path, str], ...]:
+    """Return every symlink component without collapsing an intermediate alias."""
+    pending = list(Path(os.path.abspath(path)).parts[1:])
+    prefix = Path(Path(path).anchor)
+    aliases = []
+    traversals = 0
+    while pending:
+        part, *pending = pending
+        candidate = prefix / part
+        if candidate.is_symlink():
+            traversals += 1
+            if traversals > 32:
+                raise CodexExecResourceError("validator runtime symlink chain is too deep")
+            target = candidate.readlink()
+            aliases.append((candidate, str(target)))
+            expanded = target if target.is_absolute() else candidate.parent / target
+            prefix = Path(os.path.normpath(str(expanded)))
+            pending = list(prefix.parts[1:]) + pending
+            prefix = Path(prefix.anchor)
+        else:
+            prefix = candidate
+    return tuple(aliases)
+
+
 _STAGES = {
     "outline": _StageResources(
         "third_party/shuohao-skills/skills/novel-outline/SKILL.md",
@@ -128,7 +152,7 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _tool_identity(name: str, executable: Path | None) -> dict[str, str | None]:
+def _tool_identity(name: str, executable: Path | None) -> dict[str, object]:
     if executable is None:
         return {"name": name, "path": None, "version": None, "sha256": None}
     resolved = executable.resolve(strict=True)
@@ -150,6 +174,10 @@ def _tool_identity(name: str, executable: Path | None) -> dict[str, str | None]:
     return {
         "name": name,
         "path": str(resolved),
+        "aliases": [
+            {"path": str(path), "target": target}
+            for path, target in _symlink_alias_chain(executable)
+        ],
         "version": version,
         "sha256": _sha256_file(resolved),
     }
@@ -249,6 +277,12 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
         else:
             # Python and Node load their standard libraries beside the pinned binary.
             paths.append(executable.parent.parent.resolve(strict=True))
+            if name == "python":
+                paths.extend(
+                    path for path, _target
+                    in _symlink_alias_chain(source_root / ".venv" / "bin" / "python")
+                )
+                paths.append((source_root / ".venv" / "bin" / "python").resolve(strict=True))
     return CodexExecSourceResources(tuple(dict.fromkeys(paths)), tools)
 
 

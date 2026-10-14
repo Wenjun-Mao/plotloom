@@ -12,6 +12,7 @@ from plotloom.codex_exec_profile import (
 def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources() -> None:
     required = {
         "src/plotloom/codex_exec_contracts.py",
+        "src/plotloom/codex_exec_receipt_contracts.py",
         "src/plotloom/codex_exec_constants.py",
         "src/plotloom/codex_exec_attempt_contracts.py",
         "src/plotloom/codex_exec_auth.py",
@@ -37,6 +38,8 @@ def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources()
         "services/creator_workbench/codex_exec_supervisor_job.py",
         "services/creator_workbench/codex_exec_supervisor_ledger.py",
         "services/creator_workbench/codex_exec_supervisor_process.py",
+        "services/creator_workbench/codex_exec_supervisor_validation.py",
+        "services/creator_workbench/codex_exec_supervisor_validation_process.py",
         "services/creator_workbench/codex_exec_supervisor_image.py",
         "services/creator_workbench/codex_exec_supervisor_terminal.py",
         "services/creator_workbench/codex_exec_supervisor_worker.py",

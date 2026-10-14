@@ -15,6 +15,11 @@ from plotloom.codex_exec_contracts import (
     CodexExecReceipt,
     output_manifest_hash,
 )
+from plotloom.codex_exec_validation import (
+    CodexExecTextValidationEvidence,
+    CodexExecValidationStepEvidence,
+    validation_plan_from_package,
+)
 from plotloom.codex_exec_delivery import publish_creative_completion
 from plotloom.creative_handoff_contracts import (
     CreativeHandoffError,
@@ -46,17 +51,42 @@ def _request() -> CreativeHandoffRequest:
     })
 
 
+def _request_for_stage(stage: str) -> CreativeHandoffRequest:
+    artifacts = {
+        "characters": {"cast-style-contract.json": {"style": "live-action"}},
+        "art": {"cast.json": {"characters": []}, "art-style-contract.json": {"style": "live-action"}},
+        "script": {
+            "outline.json": {"episodes": []},
+            "art.json": {"scenes": []},
+            "cast.json": {"characters": []},
+        },
+        "storyboard": {
+            "script.json": {"episodes": []},
+            "outline.json": {"episodes": []},
+            "cast.json": {"characters": []},
+            "art.json": {"scenes": []},
+        },
+    }.get(stage, {})
+    return _request().model_copy(update={"stage": stage, "input_artifacts": artifacts})
+
+
 def _profile() -> CodexExecProfile:
     return CodexExecProfile(
-        contractVersion="plotloom.codex-exec.v1",
+        contractVersion="plotloom.codex-exec.v6",
         executableSha256="a" * 64,
         cliVersion="codex-cli 0.162.0-alpha.17.2",
         model="gpt-6.1-sol",
         reasoningEffort="medium",
-        capabilities=("exec_json_events_v1", "session_rollout_v1", "image_gen_event_v1", "delivery_directory_write_v1"),
+        capabilities=(
+            "exec_json_events_v1", "session_rollout_v1", "image_gen_event_v1",
+            "image_reference_view_v1", "delivery_directory_write_v1",
+        ),
         instructionHash="b" * 64,
         validatorHash="c" * 64,
-        sandboxProfile="read_only_with_delivery_write",
+        authenticationStore="file",
+        permissionProfile="plotloom_autopilot_delivery_v4",
+        toolProfile="plotloom_autopilot_tools_v4",
+        textValidatorRuntimeProfile="node_openssl_private_zsh_tmp_and_validator_aliases_v2",
         maxRuntimeSeconds=1800,
         maxEventBytes=50_000_000,
         maxOutputBytes=20_000_000,
@@ -79,6 +109,34 @@ def _text_receipt(job_root: Path, request: CreativeHandoffRequest, profile: Code
             outputHash=sha256(report).hexdigest(), outputRelativePath="delivery/report.html", sizeBytes=len(report),
         ),
     )
+    package_request = json.loads((job_root / "package" / "request.json").read_bytes())
+    plan = validation_plan_from_package(package_request)
+    validation = CodexExecTextValidationEvidence(
+        planHash=plan.plan_hash,
+        profileHash=profile.profile_hash,
+        validatorHash=profile.validator_hash,
+        requestHash=request_hash(request),
+        packageHash="d" * 64,
+        sourceRevision=PLOTLOOM_CODE_REVISION,
+        candidateFilename="outline.json",
+        candidateHash=sha256(candidate).hexdigest(),
+        candidateSizeBytes=len(candidate),
+        reportFilename="report.html",
+        reportHash=sha256(report).hexdigest(),
+        reportSizeBytes=len(report),
+        steps=(
+            CodexExecValidationStepEvidence(
+                stepId="validate", argvHash="1" * 64, exitCode=0,
+                stdoutHash="2" * 64, stdoutSizeBytes=0,
+                stderrHash="3" * 64, stderrSizeBytes=0, durationMs=1,
+            ),
+            CodexExecValidationStepEvidence(
+                stepId="render", argvHash="4" * 64, exitCode=0,
+                stdoutHash=sha256(report).hexdigest(), stdoutSizeBytes=len(report),
+                stderrHash="5" * 64, stderrSizeBytes=0, durationMs=1,
+            ),
+        ),
+    )
     session_id = uuid4()
     attempt_id = uuid4()
     receipt = CodexExecReceipt(
@@ -88,6 +146,7 @@ def _text_receipt(job_root: Path, request: CreativeHandoffRequest, profile: Code
         requestHash=request_hash(request),
         packageHash="d" * 64,
         plotloomCodeRevision=PLOTLOOM_CODE_REVISION,
+        validationPlanHash=plan.plan_hash,
         processId=123,
         processGroupId=123,
         processBirthIdentity="pid-start-123",
@@ -96,6 +155,7 @@ def _text_receipt(job_root: Path, request: CreativeHandoffRequest, profile: Code
         evidenceHash="e" * 64,
         outputHash=output_manifest_hash(outputs),
         outputs=outputs,
+        textValidation=validation,
         remoteToolState="not_applicable",
     )
     attempt = CodexExecAttempt(
@@ -109,6 +169,7 @@ def _text_receipt(job_root: Path, request: CreativeHandoffRequest, profile: Code
         packageHash="d" * 64,
         profileHash=profile.profile_hash,
         plotloomCodeRevision=PLOTLOOM_CODE_REVISION,
+        validationPlanHash=plan.plan_hash,
         reservedImageOutputs=0,
         imageBudgetState="none",
         state="completed",
@@ -151,7 +212,9 @@ def test_cli_creative_package_is_separate_and_host_publishes_completion(tmp_path
         profile=profile,
         receipt=receipt,
     )
-    assert manifest.schema_version == 2
+    assert manifest.schema_version == 3
+    assert manifest.validation_plan_hash == attempt.validation_plan_hash
+    assert manifest.validation_evidence_hash == receipt.text_validation.evidence_hash
     assert manifest.executor_attempt_id == attempt.attempt_id
     delivery = exchange.read_delivery(
         request,
@@ -187,22 +250,29 @@ def test_cli_creative_package_is_separate_and_host_publishes_completion(tmp_path
 
 
 def test_cli_branch_assignment_uses_pinned_read_only_source_paths(tmp_path: Path):
-    request = _request().model_copy(update={"stage": "branches"})
+    request = _request_for_stage("branches")
     exchange = CreativeHandoffExchange(tmp_path / "project" / "outputs" / "creative-handoff")
     pin = exchange.current_execution_pin(request.stage)
     paths = exchange.write_package(request, pin, executor_backend="codex_exec",
         plotloom_code_revision=PLOTLOOM_CODE_REVISION)
     package = Path(paths["packagePath"])
     instructions = (package / "COPY_ASSIGNMENT.txt").read_text(encoding="utf-8")
+    package_request = json.loads((package / "request.json").read_bytes())
+    plan = validation_plan_from_package(package_request)
 
-    assert '"$PLOTLOOM_UV" run --project "$PLOTLOOM_SOURCE_ROOT" --locked --no-sync python' in instructions
-    assert '"$PLOTLOOM_SOURCE_ROOT/scripts/branch_suggestion.py"' in instructions
+    assert plan.steps[0].program == "uv"
+    assert plan.steps[0].argv[:7] == (
+        "run", "--project", "{source}", "--locked", "--no-sync", "python",
+        "{source}/scripts/branch_suggestion.py",
+    )
+    assert plan.steps[1].argv[7] == "render"
     assert '`"$PLOTLOOM_SOURCE_ROOT/third_party/shuohao-skills/skills/novel-outline"`' in instructions
     assert "Output strictly inputs/branch-schema.json" in instructions
     assert "Preserve every planned node, choice-option and join ID" in instructions
     assert "Disclose ambiguous proposals in clarifications" in instructions
     assert "From the repository root" not in instructions
-    assert "trusted Codex Exec host publishes completion" in instructions
+    assert "do not run validators or renderers" in instructions
+    assert "branch_suggestion.py validate" not in instructions
 
 
 @pytest.mark.parametrize(
@@ -218,7 +288,7 @@ def test_cli_branch_assignment_uses_pinned_read_only_source_paths(tmp_path: Path
 def test_cli_assignment_maps_base_dir_to_the_pinned_skill_directory(
     tmp_path: Path, stage: str, skill_directory: str
 ):
-    request = _request().model_copy(update={"stage": stage})
+    request = _request_for_stage(stage)
     exchange = CreativeHandoffExchange(tmp_path / "project" / "outputs" / "creative-handoff")
     pin = exchange.current_execution_pin(request.stage)
     paths = exchange.write_package(request, pin, executor_backend="codex_exec",
@@ -258,33 +328,21 @@ def _saved_brief_request(stage: str) -> CreativeHandoffRequest:
 
 
 @pytest.mark.parametrize(
-    ("stage", "contract_filename", "adapter", "commands"),
+    ("stage", "contract_filename", "adapter"),
     [
         (
             "characters", "cast-style-contract.json", "brief-cast-style.mjs",
-            (
-                'validate cast.json --request ../package/request.json',
-                'render cast.json --request ../package/request.json > report.html',
-            ),
         ),
         (
             "art", "art-style-contract.json", "brief-art-style.mjs",
-            (
-                'validate art.json --cast ../package/inputs/cast.json',
-                'render art.json --cast ../package/inputs/cast.json > report.html',
-            ),
         ),
         (
             "storyboard", "storyboard-style-contract.json", "brief-storyboard-style.mjs",
-            (
-                'validate storyboard.json --request ../package/request.json',
-                'render storyboard.json --request ../package/request.json > report.html',
-            ),
         ),
     ],
 )
 def test_cli_saved_brief_package_routes_neutral_validator_from_delivery(
-    tmp_path: Path, stage: str, contract_filename: str, adapter: str, commands: tuple[str, str],
+    tmp_path: Path, stage: str, contract_filename: str, adapter: str,
 ):
     request = _saved_brief_request(stage)
     exchange = CreativeHandoffExchange(tmp_path / "project" / "outputs" / "creative-handoff")
@@ -294,13 +352,20 @@ def test_cli_saved_brief_package_routes_neutral_validator_from_delivery(
     package = Path(paths["packagePath"])
     instructions = (package / "COPY_ASSIGNMENT.txt").read_text(encoding="utf-8")
     package_request = json.loads((package / "request.json").read_text(encoding="utf-8"))
+    plan = validation_plan_from_package(package_request)
 
     assert package_request["inputArtifacts"][contract_filename] == request.input_artifacts[contract_filename]
     assert (package / "inputs" / contract_filename).is_file()
-    assert f'"$PLOTLOOM_SOURCE_ROOT/scripts/{adapter}"' in instructions
-    assert "replace only that shell path base and entrypoint syntax" in instructions
-    for command in commands:
-        assert command in instructions
+    assert plan.route == "saved_brief"
+    assert plan.steps[0].program == "node"
+    assert plan.steps[0].argv[0] == f"{{source}}/scripts/{adapter}"
+    assert "neutral Plotloom adapter" in instructions
+    assert "do not invoke the adapter or write the report yourself" in instructions
+    assert "request.creativeBrief supplies creative, style, source and candidate requirements" in instructions
+    assert "manual specialist-chat workflow only" in instructions
+    assert "host follows only the exact frozen validation plan" in instructions
+    assert "run exactly:" in request.creative_brief
+    assert "render " + stage + ".json" not in instructions
     if stage == "characters":
         assert "/scripts/cast-style.mjs" not in instructions
     elif stage == "art":

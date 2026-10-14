@@ -11,14 +11,11 @@ class CodexExecSupervisorTerminalMixin:
                              session, image_facts, image_call, image_event, reference_hashes):
         if attempt.domain == "text":
             from plotloom.codex_exec_delivery import publish_creative_completion
-            from plotloom.creative_handoff_contracts import CreativeHandoffRequest
+            from plotloom.creative_handoff_contracts import (
+                creative_handoff_request_from_package,
+            )
             from plotloom.creative_handoff_exchange import canonical_json
-            raw_request = {
-                key: value for key, value in package_request.items()
-                if key not in {"packageVersion", "requestHash", "candidateFilename", "reportFilename",
-                    "upstreamSkillPath", "executionPin", "executorBackend", "plotloomCodeRevision"}
-            }
-            request = CreativeHandoffRequest.model_validate(raw_request)
+            request = creative_handoff_request_from_package(package_request)
             manifest = publish_creative_completion(
                 request=request,
                 execution_pin=package_request["executionPin"],
@@ -49,7 +46,7 @@ class CodexExecSupervisorTerminalMixin:
 
     def _finish_failure(
         self, attempt, exit_code, session_id, session, stdout_path, stderr_path,
-        *, remote_state=None, max_output_bytes=500_000_000,
+        *, remote_state=None, max_output_bytes=500_000_000, extra_evidence_hash=None,
     ):
         from plotloom.codex_exec_contracts import transition_exec_attempt
         current = self._load(self._row(attempt.attempt_id)).attempt
@@ -91,6 +88,9 @@ class CodexExecSupervisorTerminalMixin:
                 return
         evidence = self._evidence_hash(stdout_path, stderr_path,
             session.transcript_sha256 if session else "unavailable", exit_code)
+        if extra_evidence_hash is not None:
+            from hashlib import sha256
+            evidence = sha256(f"{evidence}:{extra_evidence_hash}".encode("ascii")).hexdigest()
         changes = {
             "state": "failed",
             "session_id": session_id,

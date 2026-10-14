@@ -29,6 +29,11 @@ class CodexExecAttempt(CamelModel):
         pattern=r"^[a-f0-9]{7,64}$",
         exclude_if=lambda value: value is None,
     )
+    validation_plan_hash: str | None = Field(
+        default=None,
+        pattern=HASH,
+        exclude_if=lambda value: value is None,
+    )
     reserved_image_outputs: int = Field(ge=0, le=4)
     image_budget_state: Literal["none", "reserved", "consumed", "released"] = "none"
     state: Literal[
@@ -60,6 +65,10 @@ class CodexExecAttempt(CamelModel):
             raise ValueError("image attempts must reserve their frozen output count")
         if self.domain == "text" and self.image_budget_state != "none":
             raise ValueError("text attempts cannot reserve image output capacity")
+        if self.validation_plan_hash is not None and (
+            self.domain != "text" or self.plotloom_code_revision is None
+        ):
+            raise ValueError("trusted validation plans require a source-pinned text attempt")
         if self.domain == "image" and self.image_budget_state == "none":
             raise ValueError("image attempts must record their project budget disposition")
         if self.process_group_id is not None and self.process_id != self.process_group_id:
@@ -138,7 +147,7 @@ class CodexExecAttempt(CamelModel):
 _ATTEMPT_IDENTITY_FIELDS = (
     "attempt_id", "run_id", "project_id", "job_id", "operation_key", "domain",
     "request_hash", "package_hash", "profile_hash", "plotloom_code_revision",
-    "reserved_image_outputs",
+    "validation_plan_hash", "reserved_image_outputs",
 )
 _ATTEMPT_TRANSITIONS = {
     "reserved": {"spawn_intent", "settled"},

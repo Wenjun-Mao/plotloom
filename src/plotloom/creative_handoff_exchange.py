@@ -25,6 +25,7 @@ from .codex_exec_stage_routing import (
     codex_exec_stage_validator_instructions,
 )
 from .creative_handoff_contracts import (
+    CREATIVE_CANDIDATE_FILENAMES,
     CreativeDeliveryManifest,
     CreativeHandoffError,
     CreativeHandoffRequest,
@@ -126,7 +127,7 @@ class CreativeHandoffExchange(CreativeHandoffPackageExchangeMixin):
 
     @staticmethod
     def _candidate_filename(stage: str) -> str:
-        return {"branches": "branches.json", "outline": "outline.json", "characters": "cast.json", "art": "art.json", "script": "script.json", "storyboard": "storyboard.json", "bridge-intent": "intent.json", "bridge-presentation": "presentation.json"}[stage]
+        return CREATIVE_CANDIDATE_FILENAMES[stage]
 
     @staticmethod
     def _pinned_execution(stage: str) -> dict[str, str]:
@@ -214,7 +215,7 @@ class CreativeHandoffExchange(CreativeHandoffPackageExchangeMixin):
         frozen_hash = request_hash(request)
         candidate_filename = self._candidate_filename(request.stage)
         projected = request.model_dump(mode="json", by_alias=True) | {
-            "packageVersion": 3 if executor_backend == "codex_exec" else PACKAGE_VERSION,
+            "packageVersion": 4 if executor_backend == "codex_exec" else PACKAGE_VERSION,
             "requestHash": frozen_hash,
             "candidateFilename": candidate_filename,
             "reportFilename": "report.html",
@@ -222,8 +223,17 @@ class CreativeHandoffExchange(CreativeHandoffPackageExchangeMixin):
             "executionPin": execution_pin_for_request(request, execution_pin),
         }
         if executor_backend == "codex_exec":
+            from .codex_exec_validation import build_text_validation_plan
+
             projected["executorBackend"] = "codex_exec"
             projected["plotloomCodeRevision"] = plotloom_code_revision
+            validation_plan = build_text_validation_plan(
+                request,
+                execution_pin=projected["executionPin"],
+                source_revision=plotloom_code_revision,
+            )
+            projected["validationPlan"] = validation_plan.model_dump(mode="json", by_alias=True)
+            projected["validationPlanHash"] = validation_plan.plan_hash
         character_id_instruction = (
             "For characters, preserve established characters[].id values; every "
             "characters[].id must be unique and nonblank. "
@@ -262,8 +272,9 @@ class CreativeHandoffExchange(CreativeHandoffPackageExchangeMixin):
                 f"references. For any upstream command using `{{baseDir}}`, substitute "
                 f"`\"$PLOTLOOM_SOURCE_ROOT/{upstream_base_dir}\"` "
                 "for `{baseDir}`; this is the directory containing the pinned source file, not the checkout root. "
-                "Invoke Plotloom scripts by their absolute path under $PLOTLOOM_SOURCE_ROOT. "
-                "Keep all report redirection and validator side effects inside this delivery directory. "
+                "Use the frozen validation plan for awareness only. Write only the candidate JSON; do not run "
+                "validators or renderers, redirect command output, or create report.html. The trusted host runs "
+                "the exact validation plan and creates the HTML report after the CLI exits. "
             )
             if request.stage == "branches":
                 codex_validator_instruction += (
@@ -272,29 +283,12 @@ class CreativeHandoffExchange(CreativeHandoffPackageExchangeMixin):
                     "and order from source.topology. Do not emit an upstream outline or invent topology. "
                     "Disclose ambiguous proposals in clarifications. "
                 )
-                branch_runner = (
-                    '"$PLOTLOOM_UV" run --project "$PLOTLOOM_SOURCE_ROOT" --locked --no-sync python '
-                    '"$PLOTLOOM_SOURCE_ROOT/scripts/branch_suggestion.py"'
-                )
-                codex_validator_instruction += (
-                    f"Validate with {branch_runner} validate {branch_candidate} --request {branch_request}, then "
-                    f"render with the same command and arguments using render, redirecting to {branch_report}. "
-                    "This frozen branch contract replaces the upstream outline CLI for this task. "
-                )
+                codex_validator_instruction += "This frozen branch contract replaces upstream outline authoring for this task. "
             elif request.stage == "bridge-intent":
                 codex_validator_instruction += (
                     "For bridge-intent, the local native intent contract replaces upstream stage authoring. "
                     "Output exactly inputs/intent-schema.json: every frozen target exactly once, only id and "
                     "suggestedText. "
-                )
-                intent_candidate = shlex.quote(str(self._job_root(request.job_id) / "delivery" / "intent.json"))
-                intent_runner = (
-                    '"$PLOTLOOM_UV" run --project "$PLOTLOOM_SOURCE_ROOT" --locked --no-sync python '
-                    '"$PLOTLOOM_SOURCE_ROOT/scripts/native_bridge_intent.py"'
-                )
-                codex_validator_instruction += (
-                    f"Validate with {intent_runner} validate {intent_candidate} --request {branch_request}, then "
-                    f"render with the same command and arguments using render, redirecting to {branch_report}. "
                 )
             elif request.stage == "bridge-presentation":
                 codex_validator_instruction += (
@@ -303,30 +297,21 @@ class CreativeHandoffExchange(CreativeHandoffPackageExchangeMixin):
                     "Unicode-codepoint ownership spans, faithful rendering and required reasons. Suggestions "
                     "do not approve presentation or production. "
                 )
-                presentation_candidate = shlex.quote(str(self._job_root(request.job_id) / "delivery" / "presentation.json"))
-                presentation_runner = (
-                    '"$PLOTLOOM_UV" run --project "$PLOTLOOM_SOURCE_ROOT" --locked --no-sync python '
-                    '"$PLOTLOOM_SOURCE_ROOT/scripts/native_bridge_presentation.py"'
-                )
-                codex_validator_instruction += (
-                    f"Validate with {presentation_runner} validate {presentation_candidate} --request {branch_request}, then "
-                    f"render with the same command and arguments using render, redirecting to {branch_report}. "
-                )
             elif request.stage in {"characters", "art", "storyboard"}:
                 codex_validator_instruction += codex_exec_stage_validator_instructions(
                     request.stage, projected, self._job_root(request.job_id)
                 )
-            else:
-                codex_validator_instruction += (
-                    "Run the stage skill's deterministic validate and render commands against the absolute "
-                    "candidate/package paths. Do not change to the source checkout as the working directory. "
-                )
             instructions = (
-                "Read request.json, each inputs/*.json file, the pinned upstream source path and its referenced "
+                "Read request.json, each inputs/*.json file, the frozen validation plan, the pinned upstream source path and its referenced "
                 "stage-local resources. "
-                f"Write only the stage-shaped candidate JSON to ../delivery/{candidate_filename} and derive "
-                "../delivery/report.html from that candidate. Do not write completion.json or other files; "
-                "the trusted Codex Exec host publishes completion after the exact output inventory is checked. "
+                f"Write only the stage-shaped candidate JSON to ../delivery/{candidate_filename}. Do not create "
+                "report.html, completion.json, or any other output. The trusted Codex Exec host validates the "
+                "candidate and creates the report from the frozen plan after the CLI exits. "
+                "For this Codex Exec package v4, request.creativeBrief supplies creative, style, source and candidate "
+                "requirements. Any validator, renderer, report, or completion-manifest steps stated there, in the "
+                "pinned stage skill, or in referenced stage instructions describe the manual specialist-chat workflow "
+                "only; they are not executable by this CLI attempt. This precedence does not replace any substantive "
+                "candidate requirement. The host follows only the exact frozen validation plan. "
                 f"{character_id_instruction}{codex_validator_instruction}"
                 "This is a candidate only: do not edit project canon, approvals, selections, or request files.\n"
             ).encode()
@@ -386,10 +371,24 @@ class CreativeHandoffExchange(CreativeHandoffPackageExchangeMixin):
                 assert_receipt_matches_attempt(executor_attempt, executor_receipt)
             except (TypeError, ValueError) as error:
                 raise CreativeHandoffError("delivery_executor_evidence_invalid", "Codex Exec delivery receipt is invalid") from error
-            if (manifest.schema_version != 2 or manifest.executor_backend != "codex_exec"
+            from .codex_exec_validation import validation_plan_from_package
+            try:
+                validation_plan = validation_plan_from_package(projected)
+            except (KeyError, TypeError, ValueError) as error:
+                raise CreativeHandoffError(
+                    "delivery_executor_evidence_invalid", "Codex Exec package has no trusted validation plan",
+                ) from error
+            text_validation = executor_receipt.text_validation
+            if (executor_profile.contract_version != "plotloom.codex-exec.v6"
+                    or executor_attempt.validation_plan_hash != validation_plan.plan_hash
+                    or executor_receipt.validation_plan_hash != validation_plan.plan_hash
+                    or text_validation is None
+                    or manifest.schema_version != 3 or manifest.executor_backend != "codex_exec"
                     or manifest.executor_attempt_id != executor_attempt.attempt_id
                     or manifest.codex_session_id != executor_receipt.session_id
                     or manifest.executor_profile_hash != executor_profile.profile_hash
+                    or manifest.validation_plan_hash != validation_plan.plan_hash
+                    or manifest.validation_evidence_hash != text_validation.evidence_hash
                     or executor_attempt.profile_hash != executor_profile.profile_hash
                     or manifest.executor_provenance.model != executor_profile.model
                     or manifest.executor_provenance.reasoning_effort != executor_profile.reasoning_effort):

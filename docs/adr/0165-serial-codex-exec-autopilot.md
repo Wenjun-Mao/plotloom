@@ -435,3 +435,68 @@ satisfy current adoption. Fresh execution and adoption use only v5's frozen
 Plotloom revision. Absent optional revision fields stay absent when old attempt
 and receipt snapshots are parsed and reserialized, so ordinary-open canonical
 checks do not rewrite historical state.
+
+## Trusted text validation and report ownership
+
+The first fresh text canary exposed a completion-contract gap. The branches
+session's required `uv` validator failed while resolving the pinned
+`.venv/bin/python` alias (`Operation not permitted`); a later direct-Python
+render produced a report while explicitly leaving validation blocked. The CLI
+still exited successfully with a completed turn, so the Mac supervisor hashed
+the candidate and model-written report, published success, and the branch owner
+adopted it. Candidate-domain validation and topology checks remain authoritative
+for their own facts, but they cannot establish that the required stage validator
+or renderer ran. The missing proof belongs at the source-owned completion gate,
+before receipt and manifest publication, rather than in a relaxed adoption
+check or a post-hoc replay of the retained failed canary.
+
+Fresh Codex text jobs use a source-owned, frozen stage command plan for all
+eight stages and each preset or saved-Brief route. The model owns only candidate
+bytes. Trusted code owns validation and report production by invoking the
+existing pinned stage gates and deterministic renderers with fixed argument
+vectors. The plan and its source/runtime identity are bound to the frozen
+request, package and attempt. Successful typed evidence binds every required
+step result and the exact candidate and report bytes. The host cannot publish a
+successful receipt or completion manifest, and the project cannot adopt the
+delivery, when a step is missing, denied, timed out, failed, or when any bound
+input or output changes. Existing domain validation, currentness and compare-
+and-swap adoption continue after that gate. The model-written report is no
+longer an owned completion output for this contract.
+
+The trusted runner uses bounded subprocesses with exact argv, attempt-private
+temporary/output paths, existing cancellation and descendant cleanup, and the
+same frozen source/runtime restrictions as the CLI attempt. It does not parse
+arbitrary model shell or JavaScript and does not accept success text. The Python
+toolchain permission pins the complete required `.venv/bin/python` symlink
+chain and final executable target for Python-backed stages only; it grants no
+home-wide or sibling-runtime access. If the platform sandbox cannot express
+that exact read set, fresh Python-backed Codex text execution remains
+unavailable rather than broadening access.
+
+Each validator step commits a durable spawn intent before calling `Popen`,
+launches outside SQLite write transactions, and then records the exact process
+ID, group ID, and birth identity. Cancellation is checked again before launch;
+if it races with process creation, the durable intent prevents a false
+not-started settlement until the exact owner can be registered or the attempt
+is retained as unknown. A worker restart never replays an unresolved validator
+intent. This keeps process creation, cancellation and crash recovery under the
+same attempt-owned lifecycle instead of treating a database lock as a process
+launch fence.
+
+This is a future-only ownership change in the fresh Codex profile, creative
+package, attempt/receipt proof and completion manifest contracts. It does not
+rewrite, salvage, revalidate, or re-adopt retained v5 outputs, attempts, or
+receipts. The failed/unknown canary and all of its reservations remain evidence
+under the contract that produced them; portable inventory remains read-only.
+
+The primary assignment prompt (text prompt v5) and v4 Codex
+`COPY_ASSIGNMENT.txt` also make that ownership boundary explicit. The model
+receives only candidate-writing duties; validator, renderer, report, and
+manifest instructions embedded in a saved `creativeBrief` or pinned stage
+skill describe the manual specialist-chat workflow and are not executable by
+the Codex CLI attempt. Their substantive creative, style, source, schema, and
+candidate requirements remain in force. Manual packages retain their existing
+candidate, report, and manifest workflow. This prevents a prompt-layer
+instruction conflict from reintroducing model-owned reports or treating
+host-published completion evidence as a prerequisite for the model's own
+return.

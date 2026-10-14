@@ -12,6 +12,7 @@ from pathlib import Path
 from codex_exec_supervisor_errors import CodexExecSupervisorError
 from codex_exec_supervisor_image import CodexExecSupervisorImageMixin
 from codex_exec_supervisor_terminal import CodexExecSupervisorTerminalMixin
+from codex_exec_supervisor_validation import CodexExecSupervisorValidationMixin
 
 from plotloom.codex_exec_auth import (
     AUTHENTICATION_STORE,
@@ -21,7 +22,11 @@ from plotloom.codex_exec_auth import (
 )
 
 
-class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin, CodexExecSupervisorImageMixin):
+class CodexExecSupervisorProcessMixin(
+    CodexExecSupervisorValidationMixin,
+    CodexExecSupervisorTerminalMixin,
+    CodexExecSupervisorImageMixin,
+):
     def _run(self, attempt, profile, package_request, job_root, private_dir, source_resources=None):
         from plotloom.codex_exec_contracts import transition_exec_attempt
         try:
@@ -309,10 +314,23 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin, CodexExe
                 )
                 return
             if attempt.domain == "text":
+                from codex_exec_supervisor_errors import CodexExecValidationFailure
+                try:
+                    text_validation = self._validate_text_delivery(
+                        attempt, profile, package_request, job_root, private_dir, source_resources,
+                    )
+                except CodexExecValidationFailure as error:
+                    self._finish_failure(
+                        current, exit_code, stream.session_id, session, stdout_path, stderr_path,
+                        max_output_bytes=profile.max_output_bytes,
+                        extra_evidence_hash=error.evidence_hash,
+                    )
+                    return
                 outputs = scan_regular_tree(job_root, "delivery", max_total_bytes=profile.max_output_bytes)
                 image_facts = ()
                 remote_state = "not_applicable"
             else:
+                text_validation = None
                 completion = self._complete_image_attempt(
                     attempt, profile, package_request, job_root, environment, stream, session,
                     current, exit_code, stdout_path, stderr_path,
@@ -335,6 +353,11 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin, CodexExe
                 raise CodexExecRuntimeError("Codex Exec produced no delivery files")
             output_hash = output_manifest_hash(output_evidence)
             evidence_hash = self._evidence_hash(stdout_path, stderr_path, session.transcript_sha256, exit_code)
+            if text_validation is not None:
+                from hashlib import sha256
+                evidence_hash = sha256(
+                    f"{evidence_hash}:{text_validation.evidence_hash}".encode("ascii")
+                ).hexdigest()
             completed = transition_exec_attempt(
                 current,
                 state="completed",
@@ -364,6 +387,8 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin, CodexExe
                 outputs=output_evidence,
                 imageEvidence=image_facts,
                 referenceViews=reference_views if attempt.domain == "image" else (),
+                validationPlanHash=attempt.validation_plan_hash,
+                textValidation=text_validation,
                 remoteOutputHash=completed.remote_output_hash,
                 remoteToolState=remote_state,
             )
@@ -407,9 +432,16 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin, CodexExe
             "VIRTUAL_ENV", "UV_PROJECT_ENVIRONMENT", "OPENSSL_CONF",
         ):
             environment.pop(name, None)
-        if domain == "text" and profile is not None and profile.contract_version == "plotloom.codex-exec.v5":
+        if domain == "text" and profile is not None and profile.contract_version in {
+            "plotloom.codex-exec.v5", "plotloom.codex-exec.v6",
+        }:
             from plotloom.codex_exec_profile import NODE_OPENSSL_CONFIG, TEXT_VALIDATOR_RUNTIME_PROFILE
-            if profile.text_validator_runtime_profile != TEXT_VALIDATOR_RUNTIME_PROFILE:
+            expected_runtime = (
+                "node_openssl_and_private_zsh_tmp_v1"
+                if profile.contract_version == "plotloom.codex-exec.v5"
+                else TEXT_VALIDATOR_RUNTIME_PROFILE
+            )
+            if profile.text_validator_runtime_profile != expected_runtime:
                 raise CodexExecSupervisorError("Codex Exec text validator runtime profile is unsupported")
             if NODE_OPENSSL_CONFIG.is_symlink() or not NODE_OPENSSL_CONFIG.is_file():
                 raise CodexExecSupervisorError("Codex Exec Node validator OpenSSL configuration is unavailable")
@@ -431,7 +463,8 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin, CodexExe
 
     @staticmethod
     def _permission_filesystem_config(
-        profile, job_root, delivery, private_dir, codex_home, source_read_paths=(), *, domain
+        profile, job_root, delivery, private_dir, codex_home, source_read_paths=(), *, domain,
+        additional_write_paths=(),
     ):
         values = {
             ":root": "deny",
@@ -445,9 +478,15 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin, CodexExe
             str(private_dir / "uv-cache"): "write",
         }
         values.update({str(path): "read" for path in source_read_paths})
-        if profile.contract_version == "plotloom.codex-exec.v5" and domain == "text":
+        values.update({str(path): "write" for path in additional_write_paths})
+        if profile.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6"} and domain == "text":
             from plotloom.codex_exec_profile import NODE_OPENSSL_CONFIG, TEXT_VALIDATOR_RUNTIME_PROFILE
-            if profile.text_validator_runtime_profile != TEXT_VALIDATOR_RUNTIME_PROFILE:
+            expected_runtime = (
+                "node_openssl_and_private_zsh_tmp_v1"
+                if profile.contract_version == "plotloom.codex-exec.v5"
+                else TEXT_VALIDATOR_RUNTIME_PROFILE
+            )
+            if profile.text_validator_runtime_profile != expected_runtime:
                 raise CodexExecSupervisorError("Codex Exec text validator runtime profile is unsupported")
             if NODE_OPENSSL_CONFIG.is_symlink() or not NODE_OPENSSL_CONFIG.is_file():
                 raise CodexExecSupervisorError("Codex Exec Node validator OpenSSL configuration is unavailable")

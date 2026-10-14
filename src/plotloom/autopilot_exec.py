@@ -1,13 +1,14 @@
 """Project-owned reservation and receipt-only reconciliation for serial CLI jobs."""
 from pathlib import Path
 from uuid import uuid4
+import json
 
 from .autopilot_contracts import CheckpointEvidence, OperationScope
 from .codex_exec_contracts import (
     CodexExecAttempt,
     CodexExecProfile,
 )
-from .codex_exec_runtime import package_tree_hash
+from .codex_exec_runtime import frozen_package_snapshot
 from .exceptions import InvalidTransitionError
 
 _RECONCILED_FIELDS = (
@@ -52,7 +53,7 @@ def reconcile_codex_exec(
     profile = CodexExecProfile.model_validate(registry.codex_exec_profile())
     if profile != view.policy.executor_binding:
         raise InvalidTransitionError("Codex Exec profile changed after the launch was frozen.")
-    if (profile.contract_version == "plotloom.codex-exec.v5"
+    if (profile.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6"}
             and not view.policy.code_revision):
         raise InvalidTransitionError("Codex Exec launch omits its frozen Plotloom source revision.")
     if evidence.job_id is None or evidence.request_hash is None:
@@ -60,8 +61,21 @@ def reconcile_codex_exec(
 
     operation_key = checkpoint["operationKey"]
     machine_scope = operation_scope or (OperationScope.IMAGE if domain == "image" else OperationScope.TEXT)
-    package_root = Path(package_path).resolve(strict=True).parent
-    package_hash = package_tree_hash(package_root, max_total_bytes=profile.max_output_bytes)
+    package_directory = Path(package_path).resolve(strict=True)
+    if package_directory.name != "package":
+        raise InvalidTransitionError("prepared CLI package path is not the frozen package directory")
+    package_root = package_directory.parent
+    package_hash, package_request_bytes = frozen_package_snapshot(
+        package_root, max_total_bytes=profile.max_output_bytes
+    )
+    validation_plan_hash = None
+    if domain == "text" and profile.contract_version == "plotloom.codex-exec.v6":
+        try:
+            package_request = json.loads(package_request_bytes)
+            from .codex_exec_validation import validation_plan_from_package
+            validation_plan_hash = validation_plan_from_package(package_request).plan_hash
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
+            raise InvalidTransitionError("frozen text package has no valid trusted validation plan") from error
     attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(view.id, operation_key)
 
     if attempt is None:
@@ -81,6 +95,7 @@ def reconcile_codex_exec(
             packageHash=package_hash,
             profileHash=profile.profile_hash,
             plotloomCodeRevision=view.policy.code_revision,
+            validationPlanHash=validation_plan_hash,
             reservedImageOutputs=1 if domain == "image" else 0,
             imageBudgetState="reserved" if domain == "image" else "none",
             state="reserved",
@@ -100,7 +115,8 @@ def reconcile_codex_exec(
         if (attempt.job_id != evidence.job_id or attempt.request_hash != evidence.request_hash
                 or attempt.package_hash != package_hash or attempt.domain != domain
                 or attempt.operation_key != operation_key
-                or attempt.plotloom_code_revision != view.policy.code_revision):
+                or attempt.plotloom_code_revision != view.policy.code_revision
+                or attempt.validation_plan_hash != validation_plan_hash):
             raise InvalidTransitionError("retained CLI attempt differs from its frozen package or stage")
         if evidence.executor_attempt_id != attempt.attempt_id:
             raise InvalidTransitionError("checkpoint and project CLI attempt identities differ")
@@ -148,7 +164,7 @@ def _identity(attempt):
         attempt.attempt_id, attempt.run_id, attempt.project_id, attempt.job_id,
         attempt.operation_key, attempt.domain, attempt.request_hash,
         attempt.package_hash, attempt.profile_hash, attempt.plotloom_code_revision,
-        attempt.reserved_image_outputs,
+        attempt.validation_plan_hash, attempt.reserved_image_outputs,
     )
 
 

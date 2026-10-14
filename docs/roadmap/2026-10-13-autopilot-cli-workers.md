@@ -18,6 +18,39 @@ their recorded technical closeout. Integrate the completed first-pass Python
 speedup and its corrected receipt before taking the new source baseline.
 Its still-open 85-percent stretch target is not an active predecessor.
 
+### Current worker authority and checkpoint · 2026-10-14
+
+For the active text-completion repair, follow the manager's current allocation
+in the release checkout's `docs/roadmap/2026-10-13-autopilot-cli-workers.md`
+at `ee7d82363324545feb0c5576dfdaf71fddd5fc52`; its current-allocation section
+supersedes this plan's original queue timing. This source checkout is
+`codex/autopilot-cli-workers` at `4442331b5b4d1634f51151e78e59e1095cffb00f`.
+The package-directory reader defect is fixed; trusted validation, prompt
+ownership and lifecycle repairs remain uncommitted in this worktree.
+
+The first provider-free sandbox route passed Outline Node validation/rendering
+but Branches validation stopped at the uv-managed Python alias. A single
+follow-up diagnostic used a fresh `python -m venv --copies` environment and
+`uv sync --locked --offline --no-install-project`. The copied executable and
+`pyvenv.cfg` stayed bound directly to the versioned Python runtime before and
+after sync. The original uv alias, a synthetic sibling-runtime marker and a
+synthetic auth sentinel were denied under the production sandbox builder.
+
+The follow-up did not reach Branches validation. Under the same exact read
+allowlist, `uv run --project … --locked --no-sync` failed importing `plotloom`:
+the CLI attempted to inspect the checkout's `src` parent, while the profile
+only grants `src/plotloom`. No broader path was granted. This is a separate
+source/runtime permission-contract question; the diagnostic does not authorize
+changing production permissions. Full details and immutable logs are in
+`.local/exec-validator-sandbox-probes/20261014-07/`.
+
+The one diagnostic allocation is complete. After this source repair is
+committed, the shared source/check window is released; the two owner-approved
+Python work options may proceed under the manager's ordering. This does not
+qualify native generation or the complete 11-plan sandbox gate. A provider
+canary requires a new manager allocation after the unresolved `src` parent read
+contract is reviewed.
+
 Start only when the preceding source writer is idle, required reviews are
 collected, and the manager has released the source and heavy-check windows.
 Use a fresh isolated checkout of that released revision because the retained

@@ -2599,3 +2599,39 @@ method resolution, preserved behavior, receipt ordering, or validator ownership.
 Previously passed quick/frontend evidence was reused because those inputs did not
 change. No full gate, native CLI, provider dispatch, ImageGen, hosted CI, or live
 activation ran for this checkpoint.
+
+### Alias-free Python environment sandbox diagnostic · 2026-10-14
+
+One manager-authorized, provider-free diagnostic tested whether an alias-free
+disposable Python environment could run the frozen Branches validator under the
+production Codex sandbox. The evidence is preserved in
+`.local/exec-validator-sandbox-probes/20261014-07/`, including the prelaunch
+plan, exact sanitized argv/config, setup records, sandbox control results, and
+the final result. Source was `4442331b5b4d1634f51151e78e59e1095cffb00f`;
+profile SHA-256 was
+`1d1e3ce93d6574ccab521e5e0b45c1e4cd406f0162f9150530790b575c471976`, and
+validator SHA-256 was
+`4f1f1a305a7e42062e6c806dbc99babc522951cd97d0cea80a518dfb0a62ec94`.
+
+Using the pinned physical Python 3.12.13 runtime,
+`python -m venv --copies --without-pip` produced a regular `venv/bin/python`
+copy with `pyvenv.cfg` bound directly to the versioned runtime directory. The
+binary identity and configuration were unchanged after
+`uv sync --locked --offline --no-install-project`; the lockfile hash remained
+unchanged. The sandbox denied metadata access to the original `.venv` Python
+alias and its intermediate uv-managed alias directory. It also denied reads of
+synthetic sibling-runtime and sandbox-home credential sentinels.
+
+The subsequent, unchanged
+`uv run --project … --locked --no-sync` import control failed before the
+Branches validator ran. `uv` reported `ModuleNotFoundError: No module named
+plotloom`; the denial log records `file-read-data` on the checkout's `src`
+parent. The profile grants `src/plotloom`, while `PYTHONPATH=source/src`
+requires inspecting `src`. Thus the Python alias was removed in this diagnostic,
+but this result does not qualify Branches validation or establish a production
+permission change. It raises a separate permission-contract question; no broader
+path was granted and no additional probe is authorized by this checkpoint.
+
+No provider call, `codex exec`, or ImageGen dispatch occurred. Preserve the
+diagnostic root unchanged. The complete 11-plan sandbox gate and any subsequent
+provider canary remain unqualified and require separate manager allocation.

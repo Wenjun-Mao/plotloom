@@ -13,9 +13,9 @@ from .codex_exec_resources import validator_toolchain_hash
 SUPPORTED_CLI_VERSION = "codex-cli 0.162.0-alpha.17.2"
 EXECUTION_MODEL = "gpt-6.1-sol"
 EXECUTION_REASONING_EFFORT = "medium"
-PERMISSION_PROFILE = "plotloom_autopilot_delivery_v3"
+PERMISSION_PROFILE = "plotloom_autopilot_delivery_v4"
 TOOL_PROFILE = "plotloom_autopilot_tools_v4"
-TEXT_VALIDATOR_RUNTIME_PROFILE = "node_openssl_and_private_zsh_tmp_v1"
+TEXT_VALIDATOR_RUNTIME_PROFILE = "node_openssl_private_zsh_tmp_and_validator_aliases_v2"
 NODE_OPENSSL_CONFIG = Path("/System/Library/OpenSSL/openssl.cnf")
 DISABLED_CLI_FEATURES = (
     "apps",
@@ -40,6 +40,7 @@ INSTRUCTION_FILES = (
 )
 VALIDATOR_FILES = (
     "src/plotloom/codex_exec_contracts.py",
+    "src/plotloom/codex_exec_receipt_contracts.py",
     "src/plotloom/codex_exec_constants.py",
     "src/plotloom/codex_exec_attempt_contracts.py",
     "src/plotloom/codex_exec_files.py",
@@ -52,6 +53,7 @@ VALIDATOR_FILES = (
     "src/plotloom/codex_exec_prompts.py",
     "src/plotloom/codex_exec_runtime.py",
     "src/plotloom/codex_exec_stage_routing.py",
+    "src/plotloom/codex_exec_validation.py",
     "src/plotloom/autopilot_contracts.py",
     "src/plotloom/autopilot_exec.py",
     "src/plotloom/autopilot_image_controller.py",
@@ -80,6 +82,8 @@ VALIDATOR_FILES = (
     "services/creator_workbench/codex_exec_supervisor_job.py",
     "services/creator_workbench/codex_exec_supervisor_ledger.py",
     "services/creator_workbench/codex_exec_supervisor_process.py",
+    "services/creator_workbench/codex_exec_supervisor_validation.py",
+    "services/creator_workbench/codex_exec_supervisor_validation_process.py",
     "services/creator_workbench/codex_exec_supervisor_image.py",
     "services/creator_workbench/codex_exec_supervisor_terminal.py",
     "services/creator_workbench/codex_exec_supervisor_worker.py",
@@ -164,7 +168,7 @@ def build_codex_exec_profile(executable: Path, *, source_root: Path) -> CodexExe
     if version.returncode != 0 or version.stderr or version.stdout.decode("utf-8", "strict").strip() != SUPPORTED_CLI_VERSION:
         raise RuntimeError("installed Codex CLI version has no qualified execution evidence adapter")
     return CodexExecProfile(
-        contractVersion="plotloom.codex-exec.v5",
+        contractVersion="plotloom.codex-exec.v6",
         executable_sha256=_hash_file(executable),
         cli_version=SUPPORTED_CLI_VERSION,
         model=EXECUTION_MODEL,

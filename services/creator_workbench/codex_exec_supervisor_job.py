@@ -93,8 +93,15 @@ class CodexExecSupervisorJobMixin:
             raise CodexExecSupervisorError("Codex Exec attempt omits its frozen Plotloom source revision")
         if attempt.domain == "text":
             package_code_revision = package_request.get("plotloomCodeRevision")
-            if package_request.get("packageVersion") != 3 or package_code_revision != attempt.plotloom_code_revision:
+            if package_request.get("packageVersion") != 4 or package_code_revision != attempt.plotloom_code_revision:
                 raise CodexExecSupervisorError("Codex Exec text package does not bind the frozen Plotloom source revision")
+            from plotloom.codex_exec_validation import validation_plan_from_package
+            try:
+                plan = validation_plan_from_package(package_request)
+            except (KeyError, TypeError, ValueError) as error:
+                raise CodexExecSupervisorError("Codex Exec text package has no valid source-owned validation plan") from error
+            if attempt.validation_plan_hash != plan.plan_hash:
+                raise CodexExecSupervisorError("Codex Exec attempt differs from its frozen trusted validation plan")
         else:
             package_code_revision = package_request.get("specialistPreflight", {}).get("codeRevision")
             if package_code_revision != attempt.plotloom_code_revision:

@@ -12,7 +12,7 @@ from typing import Literal
 from uuid import UUID
 
 from .codex_exec_contracts import package_manifest_hash
-from .codex_exec_files import scan_regular_tree
+from .codex_exec_files import read_confined_regular_file, scan_regular_tree
 
 
 class CodexExecRuntimeError(ValueError):
@@ -60,6 +60,19 @@ MAX_EVENT_RECORDS = 100_000
 def package_tree_hash(job_root: Path, *, max_total_bytes: int) -> str:
     files = scan_regular_tree(job_root, "package", max_total_bytes=max_total_bytes)
     return package_manifest_hash(files)
+
+
+def frozen_package_snapshot(job_root: Path, *, max_total_bytes: int) -> tuple[str, bytes]:
+    """Return one package hash and its exact scanned request.json bytes."""
+    files = scan_regular_tree(job_root, "package", max_total_bytes=max_total_bytes)
+    request_file = next((item for item in files if item.relative_path == "request.json"), None)
+    if request_file is None:
+        raise CodexExecRuntimeError("frozen package has no request.json")
+    request_bytes = read_confined_regular_file(job_root, "package/request.json", max_bytes=max_total_bytes)
+    if (len(request_bytes) != request_file.size_bytes
+            or sha256(request_bytes).hexdigest() != request_file.sha256):
+        raise CodexExecRuntimeError("frozen package request changed after its tree scan")
+    return package_manifest_hash(files), request_bytes
 
 
 def read_exec_events(

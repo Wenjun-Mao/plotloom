@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import os
-import stat
 import sqlite3
+import stat
 import time
 from contextlib import closing
 from hashlib import sha256
@@ -49,6 +49,15 @@ class CodexExecSupervisorLedgerMixin:
                     updated_at REAL NOT NULL,
                     UNIQUE(project_id, job_id)
                 );
+                CREATE TABLE IF NOT EXISTS exec_validation_process (
+                    attempt_id TEXT PRIMARY KEY REFERENCES exec_attempts(attempt_id),
+                    step_id TEXT NOT NULL,
+                    spawn_state TEXT NOT NULL CHECK (spawn_state IN ('spawn_intent','running')),
+                    process_id INTEGER,
+                    process_group_id INTEGER,
+                    process_birth_identity TEXT,
+                    updated_at REAL NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS exec_slot (
                     slot_id INTEGER PRIMARY KEY CHECK (slot_id = 1),
                     attempt_id TEXT UNIQUE NOT NULL
@@ -72,7 +81,7 @@ class CodexExecSupervisorLedgerMixin:
             attempt.attempt_id, attempt.run_id, attempt.project_id, attempt.job_id,
             attempt.operation_key, attempt.domain, attempt.request_hash,
             attempt.package_hash, attempt.profile_hash, attempt.plotloom_code_revision,
-            attempt.reserved_image_outputs,
+            attempt.validation_plan_hash, attempt.reserved_image_outputs,
         )
 
     def _row(self, attempt_id):
@@ -108,6 +117,12 @@ class CodexExecSupervisorLedgerMixin:
                 connection.rollback()
                 raise CodexExecSupervisorError("Codex Exec host update changed immutable attempt identity")
             current = CodexExecAttempt.model_validate_json(row["status_json"])
+            if (current.state == "cancel_requested" and attempt.state == "completed"
+                    and attempt.validation_plan_hash is not None):
+                connection.rollback()
+                raise CodexExecSupervisorError(
+                    "cancelled trusted validation cannot publish a completed text attempt"
+                )
             if current.state in {"completed", "failed", "settled"}:
                 receipt_json = row["receipt_json"]
                 selected_manifest = row["manifest_json"]
@@ -179,6 +194,15 @@ class CodexExecSupervisorLedgerMixin:
         from plotloom.codex_exec_contracts import transition_exec_attempt
 
         if current.state not in {"reserved", "spawn_intent", "cancel_requested"}:
+            return current
+        validation = connection.execute(
+            "SELECT spawn_state FROM exec_validation_process WHERE attempt_id=?",
+            (str(current.attempt_id),),
+        ).fetchone()
+        if validation is not None:
+            # A validator intent is durable evidence that launch may already
+            # have crossed the process boundary. Never turn it into a
+            # not-started settlement or start a replacement worker.
             return current
         if current.process_id is not None:
             return current

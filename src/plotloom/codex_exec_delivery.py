@@ -21,6 +21,7 @@ from .creative_handoff_contracts import (
     CreativeHandoffRequest,
 )
 from .creative_handoff_exchange import canonical_json
+from .codex_exec_validation import build_text_validation_plan
 from .image_job_contracts import (
     ImageDeliveryManifest,
     ImageExecutorProvenance,
@@ -73,6 +74,21 @@ def publish_creative_completion(
             or code_revision != attempt.plotloom_code_revision
             or receipt.plotloom_code_revision != attempt.plotloom_code_revision):
         raise ValueError("Codex Exec completion does not match the frozen creative request or profile")
+    from .creative_handoff_exchange import execution_pin_for_request
+    plan = build_text_validation_plan(
+        request,
+        execution_pin=execution_pin_for_request(request, execution_pin),
+        source_revision=code_revision,
+    )
+    validation = receipt.text_validation
+    if (profile.contract_version != "plotloom.codex-exec.v6"
+            or attempt.validation_plan_hash != plan.plan_hash
+            or receipt.validation_plan_hash != plan.plan_hash
+            or validation is None
+            or validation.validator_hash != profile.validator_hash
+            or validation.candidate_filename != plan.candidate_filename
+            or validation.report_filename != plan.report_filename):
+        raise ValueError("Codex Exec completion lacks exact trusted validation and renderer proof")
     delivery = job_root / "delivery"
     files = scan_regular_tree(job_root, "delivery", max_total_bytes=profile.max_output_bytes)
     candidate_filename = {
@@ -115,11 +131,13 @@ def publish_creative_completion(
         reasoningEffort=profile.reasoning_effort,
     )
     manifest = CreativeDeliveryManifest(
-        schemaVersion=2,
+        schemaVersion=3,
         executorBackend="codex_exec",
         executorAttemptId=attempt.attempt_id,
         codexSessionId=receipt.session_id,
         executorProfileHash=profile.profile_hash,
+        validationPlanHash=plan.plan_hash,
+        validationEvidenceHash=validation.evidence_hash,
         jobId=request.job_id,
         requestHash=attempt.request_hash,
         deliveryId=uuid4().hex,

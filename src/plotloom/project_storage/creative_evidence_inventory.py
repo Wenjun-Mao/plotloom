@@ -95,7 +95,7 @@ def _retained_codex_request_projection(
     request, execution_pin, profile, projection_exchange, *, plotloom_code_revision=None
 ):
     """Project only the package request shapes admitted by retained launch profiles."""
-    if profile.contract_version == "plotloom.codex-exec.v5":
+    if profile.contract_version == "plotloom.codex-exec.v6":
         projected, _instructions, _template, _members = projection_exchange._projection(
             request,
             execution_pin,
@@ -103,6 +103,19 @@ def _retained_codex_request_projection(
             plotloom_code_revision=plotloom_code_revision,
         )
         return projected
+    if profile.contract_version == "plotloom.codex-exec.v5":
+        # v5 owns package v3, before the trusted validator plan became part of
+        # the frozen request. Keep that exact projection read-only.
+        return request.model_dump(mode="json", by_alias=True) | {
+            "packageVersion": 3,
+            "requestHash": request_hash(request),
+            "candidateFilename": CreativeHandoffExchange._candidate_filename(request.stage),
+            "reportFilename": "report.html",
+            "upstreamSkillPath": upstream_skill_path_for_stage(request.stage),
+            "executionPin": execution_pin_for_request(request, execution_pin),
+            "executorBackend": "codex_exec",
+            "plotloomCodeRevision": plotloom_code_revision,
+        }
     if profile.contract_version != "plotloom.codex-exec.v4":
         raise ProjectStorageCorruptionError("retained Codex creative package profile is unsupported")
 
@@ -231,6 +244,10 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
             raw = json.loads(package_request.read_text(encoding="utf-8"))
             if raw != projected:
                 raise ProjectStorageCorruptionError("retained creative package differs from its frozen request/pin")
+            if (codex_binding is not None and codex_binding["attempt"] is not None
+                    and codex_binding["profile"].contract_version == "plotloom.codex-exec.v6"
+                    and codex_binding["attempt"].validation_plan_hash != projected.get("validationPlanHash")):
+                raise ProjectStorageCorruptionError("retained Codex attempt differs from its frozen validation plan")
         for name, payload in request.input_artifacts.items():
             path = job / "package" / "inputs" / name
             if path.exists() and path.read_bytes() != canonical_json(payload):
@@ -244,7 +261,8 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
                 raise ProjectStorageCorruptionError("retained final creative manifest changed")
             if manifest.job_id != identifier or manifest.request_hash != request_hash(request) or manifest.stage != request.stage:
                 raise ProjectStorageCorruptionError("retained creative delivery identity changed")
-            if (executor_backend == "codex_exec") != (manifest.schema_version == 2):
+            expected_codex_schemas = {2, 3} if executor_backend == "codex_exec" else {1}
+            if manifest.schema_version not in expected_codex_schemas:
                 raise ProjectStorageCorruptionError("retained creative delivery backend differs from its frozen owner")
             if executor_backend == "codex_exec":
                 from ..codex_exec_contracts import assert_receipt_matches_attempt
@@ -274,6 +292,14 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
                     for declared in (manifest.candidate, manifest.report)
                 ):
                     raise ProjectStorageCorruptionError("retained Codex creative outputs differ from their attempt receipt")
+                if attempt.validation_plan_hash is None:
+                    if manifest.schema_version != 2:
+                        raise ProjectStorageCorruptionError("legacy Codex creative delivery claims new validation proof")
+                elif (manifest.schema_version != 3
+                        or manifest.validation_plan_hash != attempt.validation_plan_hash
+                        or receipt.text_validation is None
+                        or manifest.validation_evidence_hash != receipt.text_validation.evidence_hash):
+                    raise ProjectStorageCorruptionError("retained Codex validation manifest differs from its exact receipt")
             for output in (manifest.candidate, manifest.report):
                 path = job / "delivery" / output.filename
                 _safe_regular(path, label="retained creative output")
@@ -291,6 +317,18 @@ def _retained_codex_manifest_revision_matches(binding, execution_pin, attempt, r
             attempt.plotloom_code_revision == frozen_revision
             and receipt.plotloom_code_revision == frozen_revision
             and manifest.executor_provenance.code_revision == frozen_revision
+        )
+    if profile.contract_version == "plotloom.codex-exec.v6":
+        frozen_revision = binding["plotloom_code_revision"]
+        return (
+            attempt.plotloom_code_revision == frozen_revision
+            and receipt.plotloom_code_revision == frozen_revision
+            and manifest.executor_provenance.code_revision == frozen_revision
+            and attempt.validation_plan_hash is not None
+            and receipt.validation_plan_hash == attempt.validation_plan_hash
+            and manifest.validation_plan_hash == attempt.validation_plan_hash
+            and receipt.text_validation is not None
+            and manifest.validation_evidence_hash == receipt.text_validation.evidence_hash
         )
     if profile.contract_version == "plotloom.codex-exec.v4":
         # The retained v4 publisher labelled upstreamRevision as codeRevision.

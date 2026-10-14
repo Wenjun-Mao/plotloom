@@ -135,12 +135,17 @@ def test_admission_persists_exact_spawn_intent_before_starting_private_worker(su
 def test_admission_rejects_missing_or_forged_plotloom_revision_before_reserving(
     supervisor, tmp_path, revision
 ):
+    from pydantic import ValidationError
     from codex_exec_supervisor_errors import CodexExecSupervisorError
 
     _exchange, _request, _pin, _job_root, attempt, _profile = _prepared_text_job(supervisor, tmp_path)
     unbound = attempt.model_copy(update={"plotloom_code_revision": revision})
-    with pytest.raises(CodexExecSupervisorError, match="Plotloom source revision"):
-        supervisor.admit(unbound)
+    if revision is None:
+        with pytest.raises(ValidationError, match="source-pinned text attempt"):
+            supervisor.admit(unbound)
+    else:
+        with pytest.raises(CodexExecSupervisorError, match="Plotloom source revision"):
+            supervisor.admit(unbound)
     assert supervisor._row(attempt.attempt_id) is None
     assert not supervisor._workers
 
@@ -160,12 +165,17 @@ from datetime import date, datetime
 from pathlib import Path
 from uuid import UUID
 
+if len(sys.argv) > 1 and sys.argv[1] == "sandbox":
+    validator_argv = sys.argv[sys.argv.index("--") + 1:]
+    if "render" in validator_argv:
+        print("<!doctype html><html><body>trusted fake renderer</body></html>")
+    raise SystemExit(0)
+
 sys.stdin.read()
 Path(os.environ["PLOTLOOM_TEST_COMMAND_CAPTURE"]).write_text(json.dumps(sys.argv[1:]), encoding="utf-8")
 time.sleep(1)
 delivery = Path.cwd()
 (delivery / "outline.json").write_text(os.environ["PLOTLOOM_TEST_CANDIDATE_JSON"], encoding="utf-8")
-(delivery / "report.html").write_text("<!doctype html><html><body>fake CLI report</body></html>", encoding="utf-8")
 session_id = UUID(os.environ["PLOTLOOM_TEST_SESSION_ID"])
 day = date.today()
 session_dir = Path(os.environ["CODEX_HOME"]) / "sessions" / f"{day.year:04d}" / f"{day.month:02d}" / f"{day.day:02d}"
@@ -212,8 +222,8 @@ time.sleep(0.2)
     assert "--ignore-user-config" in command and command[-1] == "-"
     config_values = [command[index + 1] for index, item in enumerate(command[:-1]) if item == "--config"]
     assert 'cli_auth_credentials_store="file"' in config_values
-    assert 'default_permissions="plotloom_autopilot_delivery_v3"' in config_values
-    filesystem = next(value for value in config_values if value.startswith("permissions.plotloom_autopilot_delivery_v3.filesystem="))
+    assert 'default_permissions="plotloom_autopilot_delivery_v4"' in config_values
+    filesystem = next(value for value in config_values if value.startswith("permissions.plotloom_autopilot_delivery_v4.filesystem="))
     assert 'web_search="disabled"' in config_values
     assert "tools.view_image=false" not in config_values
     assert any(
@@ -245,6 +255,11 @@ time.sleep(0.2)
     assert status.receipt is not None
     assert status.receipt.session_id == session_id
     assert (job_root / "delivery" / "completion.json").is_file()
+    assert status.receipt.text_validation is not None
+    assert tuple(step.step_id for step in status.receipt.text_validation.steps) == ("validate", "render")
+    assert (job_root / "delivery" / "report.html").read_text(encoding="utf-8") == (
+        "<!doctype html><html><body>trusted fake renderer</body></html>\n"
+    )
     delivery = exchange.read_delivery(
         request,
         execution_pin,

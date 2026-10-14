@@ -98,6 +98,61 @@ def assert_empty_directory(confinement_root: Path, relative_directory: str) -> N
         os.close(root_fd)
 
 
+def read_confined_regular_file(confinement_root: Path, relative_path: str, *, max_bytes: int) -> bytes:
+    """Read one bounded file through no-follow directory descriptors."""
+    if max_bytes < 1:
+        raise ValueError("confined file limit must be positive")
+    parts = _parts(relative_path)
+    root_fd = _open_root(confinement_root)
+    opened: list[int] = []
+    try:
+        parent_fd = root_fd
+        for name in parts[:-1]:
+            parent_fd = _open_directory(parent_fd, name)
+            opened.append(parent_fd)
+        name = parts[-1]
+        try:
+            metadata = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+            if not stat.S_ISREG(metadata.st_mode):
+                raise CodexExecFileError("confined file must be a regular file")
+            descriptor = os.open(name, _FILE_FLAGS, dir_fd=parent_fd)
+        except OSError as error:
+            raise CodexExecFileError("confined file cannot be opened safely") from error
+        try:
+            initial = os.fstat(descriptor)
+            if (not stat.S_ISREG(initial.st_mode)
+                    or (initial.st_dev, initial.st_ino) != (metadata.st_dev, metadata.st_ino)):
+                raise CodexExecFileError("confined file identity changed during open")
+            chunks: list[bytes] = []
+            size = 0
+            while True:
+                chunk = os.read(descriptor, min(1024 * 1024, max_bytes - size + 1))
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                size += len(chunk)
+                if size > max_bytes:
+                    raise CodexExecFileError("confined file exceeds its byte limit")
+            final = os.fstat(descriptor)
+            current = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+            if (
+                (initial.st_dev, initial.st_ino, initial.st_size, initial.st_mtime_ns)
+                != (final.st_dev, final.st_ino, final.st_size, final.st_mtime_ns)
+                or (current.st_dev, current.st_ino) != (initial.st_dev, initial.st_ino)
+                or size != initial.st_size
+            ):
+                raise CodexExecFileError("confined file changed during read")
+            return b"".join(chunks)
+        except OSError as error:
+            raise CodexExecFileError("confined file could not be read") from error
+        finally:
+            os.close(descriptor)
+    finally:
+        for descriptor in reversed(opened):
+            os.close(descriptor)
+        os.close(root_fd)
+
+
 def scan_regular_tree(
     confinement_root: Path,
     relative_directory: str,

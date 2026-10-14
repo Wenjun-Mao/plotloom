@@ -9,6 +9,7 @@ from plotloom.codex_exec_files import (
     _assert_no_case_or_unicode_collisions,
     assert_empty_directory,
     output_evidence_for_tree,
+    read_confined_regular_file,
     scan_regular_tree,
 )
 
@@ -50,6 +51,26 @@ def test_empty_directory_gate_accepts_empty_delivery_and_rejects_retained_entrie
     (delivery / "partial-evidence").write_bytes(b"retained")
     with pytest.raises(CodexExecFileError, match="must be empty"):
         assert_empty_directory(tmp_path.resolve(), "delivery")
+
+
+def test_confined_file_reader_reads_only_stable_regular_files_within_root(tmp_path):
+    package = tmp_path / "package"
+    package.mkdir()
+    request = package / "request.json"
+    request.write_bytes(b'{"stage":"outline"}')
+    assert read_confined_regular_file(
+        tmp_path.resolve(), "package/request.json", max_bytes=1024
+    ) == b'{"stage":"outline"}'
+
+    outside = tmp_path / "outside.json"
+    outside.write_bytes(b"secret")
+    (package / "link.json").symlink_to(outside)
+    with pytest.raises(CodexExecFileError, match="regular file|safely"):
+        read_confined_regular_file(tmp_path.resolve(), "package/link.json", max_bytes=1024)
+    with pytest.raises(CodexExecFileError, match="traverse"):
+        read_confined_regular_file(tmp_path.resolve(), "../outside.json", max_bytes=1024)
+    with pytest.raises(CodexExecFileError, match="byte limit"):
+        read_confined_regular_file(tmp_path.resolve(), "outside.json", max_bytes=2)
 
 
 @pytest.mark.parametrize("relative", ["../outside", "package\\inputs", "/absolute"])

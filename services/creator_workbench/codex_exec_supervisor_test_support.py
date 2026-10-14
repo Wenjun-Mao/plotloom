@@ -1,6 +1,7 @@
 """Shared fixtures and builders for creator-workbench Codex Exec tests."""
 import time
 import subprocess
+import json
 from contextlib import closing
 from pathlib import Path
 from uuid import uuid4
@@ -12,6 +13,7 @@ from plotloom.creative_handoff_contracts import CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import request_hash
 from plotloom.project_storage import ProjectFolderStorage
 from plotloom.codex_exec_profile import SUPPORTED_CLI_VERSION, build_codex_exec_profile
+from plotloom.codex_exec_validation import validation_plan_from_package
 
 
 def _attempt(state="spawn_intent"):
@@ -96,6 +98,8 @@ def _prepared_text_job(supervisor, tmp_path, *, fake_cli_source=None):
     package = Path(paths["packagePath"])
     job_root = package.parent
     package_hash = package_tree_hash(job_root, max_total_bytes=profile.max_output_bytes)
+    package_request = json.loads((package / "request.json").read_bytes())
+    validation_plan = validation_plan_from_package(package_request)
     attempt = CodexExecAttempt(
         attemptId=uuid4(),
         runId=uuid4(),
@@ -107,6 +111,7 @@ def _prepared_text_job(supervisor, tmp_path, *, fake_cli_source=None):
         packageHash=package_hash,
         profileHash=profile.profile_hash,
         plotloomCodeRevision=code_revision,
+        validationPlanHash=validation_plan.plan_hash,
         reservedImageOutputs=0,
         state="spawn_intent",
     )
