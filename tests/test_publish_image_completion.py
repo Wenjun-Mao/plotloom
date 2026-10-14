@@ -152,7 +152,8 @@ def test_publisher_rejects_configured_binding_that_differs_from_the_pin(tmp_path
     ("native_id", "execution_id", "task_id"),
     [
         (IMAGEGEN_EXECUTION_ID, IMAGEGEN_EXECUTION_ID, NATIVE_TASK_ID),
-        (str(uuid4()), IMAGEGEN_EXECUTION_ID, NATIVE_TASK_ID),
+        # Keep the foreign UUID random without changing the native test inventory.
+        pytest.param(str(uuid4()), IMAGEGEN_EXECUTION_ID, NATIVE_TASK_ID, id="foreign-native-task"),
         (NATIVE_TASK_ID, NATIVE_TASK_ID, NATIVE_TASK_ID),
         (NATIVE_TASK_ID, IMAGEGEN_EXECUTION_ID, None),
     ],
