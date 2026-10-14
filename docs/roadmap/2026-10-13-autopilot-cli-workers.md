@@ -230,6 +230,18 @@ ImageGen-specific pre-read confinement, serial production execution, scheduling
 and activation remain separate pending gates. The original unknown attempt and
 all earlier diagnostic evidence remain unchanged.
 
+The first `ad3ccf58` proof harness stopped before creating a launch marker,
+stdout/stderr files or a CLI process: it used the nonempty execution-tree scanner
+to assert that delivery was empty. The manager verified the call chain and
+retained plan/runner hashes. This is a harness precondition mismatch, not a
+native tool failure. The same misuse existed in post-run reconciliation.
+The owner may correct both checks in a new isolated proof root, preserve the
+old failure artifacts, and validate explicit real-directory/empty semantics
+against populated, missing and symlink controls before one revised launch.
+Production scanning and all acceptance/permission/generation bounds stay
+unchanged. The single native session allowance was not consumed by preflight;
+any actual native failure still stops without automatic retry.
+
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
 workers with 13.762 seconds of actual tool-interval overlap. All processes
