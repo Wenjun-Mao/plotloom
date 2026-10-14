@@ -686,6 +686,100 @@ fresh end-to-end controls. It is not a repeated median, whole-suite saving,
 profiling, provider execution, push, live activation or data cleanup occurred.
 The manager retains final integration/publication and quiet-window allocation.
 
+### Terminal-reconciliation accepted-Script reuse — design selection
+
+Continue the owner's approved local fixture-reuse track from clean
+`4f6f6804438f346e50b920a69351602d68a550ae`. Retained schema-1 history records
+`tests/test_specialist_terminal_reconciliation.py` with 62 cases, 38.642s setup,
+20.656s call and 0.067s teardown (59.366s total). This is historical
+prioritization, not a fresh timing claim. That test file and its
+`specialist_reconciliation_support.py` are unchanged from `b4f831da`.
+`ReconciliationRuntime` source shows every case rebuilds the same real accepted
+Source/Cast/Art/Script precondition before creating fresh registry/dispatch state.
+This setup, unlike each case's terminal/refusal behavior, is repeated work.
+
+Bound the candidate to three failure matrices (38 cases):
+`test_missing_or_invalid_terminal_delivery_holds_all_stage_reservations` (18),
+`test_terminal_identity_and_pin_failures_never_release_or_relabel` (15), and
+`test_terminal_exchange_identity_and_provenance_failures_hold_reservation` (5),
+all in `tests/test_specialist_terminal_reconciliation.py`. Keep its six-case
+`test_cancelled_terminal_proof_survives_restart_and_never_changes_new_head_or_another_lease`
+control on the original fully fresh runtime. These exact **44 native IDs** are
+frozen before code in
+`.local/remaining-cost/reconciliation-seed-before-native-cases.txt`, sorted-ID
+fingerprint `0b834fbf99b6b8829b740ba7846f3c9cc53e4d3a1b0fe3a8d7a92e0a4dad9010`. All other runtime consumers
+retain their existing default fresh setup. No test selection/count is removed.
+
+Proposed new boundary for independent design review: build the exact real
+accepted F4 Script project once, validate accepted owners and absence of any
+active candidate, autopilot/native attempt or publication reservation, then
+close every handle and freeze its complete project home. Copy only that home
+physically into each selected case's fresh output root, re-open through normal
+admission and configure a completely new application/registry/task binding/
+dispatch tree for that case. Never copy active dispatch, queued/unknown work,
+registry roots or a controller. Keep per-case prepare/export/send/delivery/
+cancel/check and every reservation/database/file invariant unchanged.
+
+Reuse the already-reviewed pure complete-tree hash/regular-file/sidecar/link
+validation, and explicit physical-copy/inode/project-lock checks. The project
+has no autopilot controller, so do not create a fake lock or weaken the existing
+autopilot two-lock contract to fit it. Keep the new accepted-Script preconditions
+separate; no generic permissive seed state factory or production change.
+Positive isolation guards should prove independent registries/dispatch paths,
+projects/locks/files and mutation isolation with original seed unavailable and
+unchanged. Native sends stay fake, while actual package/terminal validation and
+OS/SQLite authority remain real. Stable code review and small focused checks
+precede the clean checkpoint; a matched pair needs a new manager quiet window.
+
+### Terminal-reconciliation implementation readiness
+
+The reviewed accepted-Script seed boundary is implemented only for the selected
+38 failure cases. The real builder verifies current accepted owners, all
+candidate rows terminal accepted, no close/publication blockers and absence of
+autopilot/native/media work, then closes the handle and freezes only the whole
+project home. Copies retain exact hashes/inodes and exclusive source project
+locking and enter normal admission. Application state, registry/task UUIDs,
+dispatch roots and queue-call lists are fresh per case. The default runtime and
+all other consumers retain their original fresh construction. Autopilot copy
+code/two-lock semantics are unchanged; only its pure file-validation function
+is reused with declared transitive ownership.
+
+**47 focused cases passed**: 38 selected refusal/identity/provenance variants,
+two new seed-isolation/proof guards and seven ownership checks. The six unchanged
+all-stage fresh controls passed separately (**53 distinct focused passes**).
+All failure-case bodies and the fresh control are AST-identical to baseline,
+except the explicit seeded-fixture argument/local alias. No assertion or case
+was removed. Native before/after collection retains the same 44 IDs and sorted
+fingerprint `0b834fbf99b6b8829b740ba7846f3c9cc53e4d3a1b0fe3a8d7a92e0a4dad9010`.
+Retained logs and SHA-256:
+
+- `.local/remaining-cost/reconciliation-seed-guards-first.log`:
+  `eb0bfcac85efe0ff6bf3126aba84454660f271611f45fc20cfeca21d9767e4c4`;
+- `.local/remaining-cost/reconciliation-seed-fresh-controls.log`:
+  `c5ce527e774a8b85f759b17b9ff1143b9caf348e76c8d8408a8c1400add66df0`.
+
+Scoped Ruff F401 and diff checks passed. The existing Starlette/httpx warning
+appeared; no selected case failed or was omitted. Focused elapsed times are
+concurrent correctness evidence, not a performance comparison.
+
+Attended independent Sol/Medium design and stable code reviews found no
+blocker/actionable finding; effective settings are unverified, and the reviewer
+ran no checks. New guards prove normal copied branch-package paths, fresh task
+UUIDs/registries/calls/jobs, independent inodes and reservations, terminal proof
+releasing only its own copy's lease while the original seed is unavailable,
+exact database/package preservation, separate project locks, refusal of an
+active seed and database/package mutation isolation. Seed hashes remain intact.
+Accepted package evidence is neither rewritten nor rebound. No parsed authority,
+registry reservation or active job is shared between cases.
+
+Before stays immutable `4f6f6804`; the ensuing scoped commit owns the executable
+after checkpoint. Production/frontend/dependencies/timing-manifest inputs have
+no diff from that baseline. This is reviewed implementation/focused readiness,
+not measured speed, full qualification, hosted CI or product acceptance. A
+quiet matched complete-command pair needs manager allocation. Keep default two,
+complete native coverage and the original 85-percent target open; no broad,
+module/full, profile, provider, moving-CLI merge, push, live or cleanup occurred.
+
 ## Residual-cost investigation — historical proposal, now separately scoped
 
 One fresh main-thread profile ran the unchanged complete-pack control at clean

@@ -46,3 +46,11 @@ def awaiting_handoff_seed(tmp_path_factory):
     from tests.autopilot_handoff_seed_fixtures import build_awaiting_handoff_seed
 
     return build_awaiting_handoff_seed(tmp_path_factory.mktemp("awaiting-handoff-seed"))
+
+
+@pytest.fixture(scope="session")
+def accepted_script_reconciliation_seed(tmp_path_factory):
+    """No registry/dispatch is copied; selected cases build those afresh."""
+    from tests.specialist_reconciliation_seed import build_accepted_script_seed
+
+    return build_accepted_script_seed(tmp_path_factory.mktemp("reconciliation-script-seed"))

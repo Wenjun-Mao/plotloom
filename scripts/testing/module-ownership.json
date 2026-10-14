@@ -491,6 +491,7 @@
           "tests/test_specialist_routes.py",
           "tests/test_specialist_settings.py",
           "tests/test_specialist_terminal_reconciliation.py",
+          "tests/test_specialist_reconciliation_seed.py",
           "tests/test_specialist_workflow.py",
           "tests/video_backends/minimax_h3/test_transport.py"
         ],
@@ -581,9 +582,15 @@
   "support_dependencies": [
     {
       "suite": "pytest",
+      "path": "tests/specialist_reconciliation_seed.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["media-lifecycle", "project-lifecycle", "shared-provider-dispatch"]
+    },
+    {
+      "suite": "pytest",
       "path": "tests/autopilot_seed_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["story-authoring"]
+      "consumers": ["media-lifecycle", "project-lifecycle", "shared-provider-dispatch", "story-authoring"]
     },
     {
       "suite": "pytest",
@@ -1132,6 +1139,7 @@
       "kind": "conftest",
       "consumers": [
         "graph",
+        "shared-provider-dispatch",
         "story-authoring"
       ]
     },

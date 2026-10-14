@@ -36,6 +36,15 @@ def runtime(tmp_path, monkeypatch):
         value.store.close()
 
 
+@pytest.fixture
+def seeded_runtime(tmp_path, monkeypatch, accepted_script_reconciliation_seed):
+    value = ReconciliationRuntime(tmp_path, monkeypatch, accepted_script_seed=accepted_script_reconciliation_seed)
+    try:
+        yield value
+    finally:
+        value.store.close()
+
+
 def dispatched(runtime, stage):
     candidate, request = prepare(runtime.store, stage)
     with runtime.client(raise_server_exceptions=True) as client:
@@ -82,7 +91,8 @@ def test_cancelled_terminal_proof_survives_restart_and_never_changes_new_head_or
 
 @pytest.mark.parametrize("stage", METHODS)
 @pytest.mark.parametrize("defect", ["absent", "partial", "tampered"])
-def test_missing_or_invalid_terminal_delivery_holds_all_stage_reservations(runtime, stage, defect):
+def test_missing_or_invalid_terminal_delivery_holds_all_stage_reservations(seeded_runtime, stage, defect):
+    runtime = seeded_runtime
     _candidate, request = dispatched(runtime, stage)
     job = request.job_id
     if defect != "absent":
@@ -133,7 +143,8 @@ def test_cancelled_unknown_dispatch_resolves_only_from_valid_terminal_proof(runt
     "context-project", "context-stage", "context-missing", "receipt-job", "receipt-task",
     "receipt-missing", "receipt-malformed", "lease-job", "lease-task", "duplicate-root",
 ])
-def test_terminal_identity_and_pin_failures_never_release_or_relabel(runtime, defect):
+def test_terminal_identity_and_pin_failures_never_release_or_relabel(seeded_runtime, defect):
+    runtime = seeded_runtime
     stage = "script"
     _candidate, request = dispatched(runtime, stage)
     job = request.job_id
@@ -228,7 +239,8 @@ def test_current_invalid_script_retains_reservation(runtime):
 
 
 @pytest.mark.parametrize("defect", ["manifest-job", "manifest-stage", "manifest-request", "provenance", "package"])
-def test_terminal_exchange_identity_and_provenance_failures_hold_reservation(runtime, defect):
+def test_terminal_exchange_identity_and_provenance_failures_hold_reservation(seeded_runtime, defect):
+    runtime = seeded_runtime
     _candidate, request = dispatched(runtime, "script")
     delivery(runtime.store, request)
     cancel(runtime.store, "script", request.job_id)

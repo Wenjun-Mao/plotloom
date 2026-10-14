@@ -135,12 +135,16 @@ def snapshot_database(store):
 
 
 class ReconciliationRuntime:
-    def __init__(self, root, monkeypatch):
+    def __init__(self, root, monkeypatch, *, accepted_script_seed=None):
         self.storage = ProjectFolderStorage(
             outputs_root=root / "outputs", application_data_root=root / "application"
         )
-        self.store = self.storage.projects.create(FIXED_CHINESE_BRIEF)
-        _accepted_f4_script(self.store)
+        if accepted_script_seed is None:
+            self.store = self.storage.projects.create(FIXED_CHINESE_BRIEF)
+            _accepted_f4_script(self.store)
+        else:
+            from tests.specialist_reconciliation_seed import open_accepted_script_copy
+            self.store = open_accepted_script_copy(self.storage, accepted_script_seed)
         self.project_id = self.store.manifest.project_id
         self.registry_root = self.storage.application.root
         self.registry, self.settings = configured(self.registry_root)

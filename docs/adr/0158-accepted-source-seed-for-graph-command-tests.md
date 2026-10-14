@@ -125,3 +125,37 @@ copy while original seed and sibling remain machine-only. The quiet matched eigh
 (46.34% less complete-command wall time). This scoped one-pair result preserves
 the fresh controls; whole-suite speed and combined full qualification remain
 open in the Python plan.
+
+## Terminal-reconciliation accepted Script consumers — October 14
+
+An independent Sol/Medium read-only design review supports copying only the
+closed real accepted F4 Script project for 38 selected terminal-reconciliation
+failure cases. Build current accepted source/outline/section map/graph, Cast,
+Art and Script through `_accepted_f4_script`; require no stale accepted owners,
+active candidates, autopilot/native/media work or publication blockers. Preserve
+accepted candidate rows, execution pins and completed package evidence.
+
+Freeze only the complete project home after all handles close. Share only the
+reviewed pure complete-tree file validation; hold the existing project lock
+exclusively through physical copying, check hashes/inodes and normal admission.
+Never create a fake autopilot lock or relax the two-lock autopilot contract.
+Create application state, registry/task UUIDs, dispatch roots and call lists
+fresh per runtime. No active/unknown reservation or registry path is copied.
+Each case still creates/exports/sends/cancels/checks its own job and preserves
+all original database, package, lease and refusal invariants. Retained accepted
+package bytes are evidence; fresh branch jobs generate copy-local absolute
+paths. Do not rewrite any retained identity or hashes.
+
+A separate seeded runtime fixture selects only the three recorded failure
+matrices. Default `ReconciliationRuntime` and six all-stage fresh controls keep
+the original full setup. Guard seed unavailability, new independent registry
+identities/paths, project locks and files, mutation isolation and successful
+terminal proof releasing only its own copy's reservation. Forty-four native
+cases are frozen against `4f6f6804`; performance needs a later quiet pair.
+
+The terminal-reconciliation implementation passed 47 focused failure/isolation/
+ownership checks and six unchanged fresh all-stage controls (53 distinct cases).
+Attended independent Sol/Medium design and stable code reviews found no
+blocker/actionable finding; the reviewer ran no checks. Exact 44 native IDs
+match before/after; terminal-reconciliation speed and combined full release
+qualification remain open. See the Python plan for frozen refs and log hashes.
