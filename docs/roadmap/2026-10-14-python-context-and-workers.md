@@ -858,6 +858,12 @@ push, live checkout changes or cleanup occurred. Scoped readiness does not claim
 full qualification, hosted CI, product acceptance, measured Bridge savings or
 achievement of the unchanged 85-percent target. Default workers remain two.
 
+Frozen executable after is `3c17594927cfb43ea65ef77ac31a08e41826d675`;
+before remains `99954dc584060266790d4df90825e8fd0c3a8312`. The retained
+checkout is clean at the local checkpoint, with no push. The earlier terminal
+pair remains bound to `4f6f6804` → `8aedede9`; do not silently retarget either
+comparison to a later source revision.
+
 ## Residual-cost investigation — historical proposal, now separately scoped
 
 One fresh main-thread profile ran the unchanged complete-pack control at clean
