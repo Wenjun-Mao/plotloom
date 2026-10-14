@@ -1,12 +1,8 @@
 # Parallel CLI workers for pre-video autopilot
 
-Status: **dispatched once through Relay Direct on 2026-10-13**, after the
-preceding technical closeout and publication. Registration and read-only
-admission passed and the sole implementation writer was released. The serial
-executor checkpoint and authentication/tool-profile repairs are committed in
-the isolated worker. Exact-tool boundary qualification passed at `ad3ccf58`;
-the first production serial canary blocked at adoption. The repaired source
-`4442331b` passed review; a fresh bounded serial canary precedes concurrency.
+Status: **dispatched once through Relay Direct on 2026-10-13**. Reviewed source
+`4442331b` exposed missing text-validator proof and a Python-alias denial in its
+fresh canary. The run is stopped; completion-contract repair precedes more proof.
 
 The outcome is faster preparation through dependency-ready text and image
 workers, including image work before all text is finished. Each worker uses
@@ -263,25 +259,19 @@ Session SHA-256 is
 This qualifies the scoped negative read boundary, not a production delivery;
 the production parser correctly refuses to turn it into a generation receipt.
 
-The subsequent positive control used one allowed package-local PNG, one session/
-call/image, a 600-second limit and no retry under the same v4 image configuration.
-Its fresh prelaunch record reflects delegated authorization, not an unperformed
-manager review of those hashes. Production delivery and concurrency stayed held.
-
-The positive control passed manager review in exact session
-`01a13a13-e1e4-7171-b344-142e76800366`, with one ordered reference view and one
-completed ImageGen event. The complete 1,367,056-byte, 1254×1254 PNG has SHA-256
-`9aac55e4ba70c9f7d193415f032581df2b6260f1447f5860bb9e00cb8d256002`.
-The manager independently ran production parsing and full raster decode,
-verified source/input/package/capture hashes and confirmed process-group absence.
-Session SHA-256 is
-`ebead789874cfc4e4c6cd963ff710b9a8fd9a0264c4e54bd22b5095c00568a28`.
-The runner's original `captured_inconclusive` result is preserved: its extra
-source-byte hash check rejected only a trailing LF; strict production parsing
-accepted exactly the frozen arguments. A separate evidence-only adjudication
-records acceptance without parser changes or retry. Prelaunch path-normalization
-and missing-import corrections are retained with their fingerprint lineage in
-`.local/native-proof/imagegen-preread-positive-ad3ccf58-20261014-02/`.
+The positive control used one allowed package PNG, one session/call/image and a
+600-second limit without retry. Manager review of session
+`01a13a13-e1e4-7171-b344-142e76800366` confirmed ordered reference viewing,
+ImageGen, production parsing, full raster decode, frozen hashes and process exit.
+PNG: 1,367,056 bytes, 1254×1254, SHA-256
+`9aac55e4ba70c9f7d193415f032581df2b6260f1447f5860bb9e00cb8d256002`;
+session SHA-256 `ebead789874cfc4e4c6cd963ff710b9a8fd9a0264c4e54bd22b5095c00568a28`.
+The original `captured_inconclusive` result remains: an extra raw-source check
+rejected a trailing LF, while strict production parsing accepted the frozen
+arguments. Evidence-only adjudication changed no parser and retried nothing.
+Delegated prelaunch authority and harness corrections remain in
+`.local/native-proof/imagegen-preread-positive-ad3ccf58-20261014-02/`;
+production delivery and concurrency were not qualified by this control.
 
 The serial allocation allowed eight prerequisite text jobs and the first two
 normally ordered images, with complete inventory bounded to 16 required images.
@@ -303,31 +293,43 @@ new findings. Old omitted revision fields remain omitted; historical package
 projection is read-only. Fresh v5 admission/adoption and unknown reservations
 remain strict. ADR 0165 records the ownership and inspection boundary.
 
-The correction passed 65 focused tests and two missing/forged-revision host
-admission cases. Manager read-only validation of the original canary passed
-canonicalization and its eight evidence paths without changing the database.
-Current v5 profile SHA-256 is
+The correction passed 65 focused tests, two revision-admission cases and read-only
+validation of the unchanged original canary/eight evidence paths. V5 profile:
 `df28b7edfed13fea85e53975f6a51957251fdb51159b331d5ccf1df62fa3b75d`.
 Prior sandbox receipts at profile `d31029a5` remain historical evidence for
 unchanged runtime behavior, not exact-profile or model-tool qualification.
 
-### Current fresh serial allocation
+### Current text-completion repair allocation
 
-The same worker may prepare and execute one fresh disposable canary at exact
-`4442331b`, after its new-profile non-generating sandbox/validator smoke passes.
-Use a new ignored proof root and the existing one-shot production runner;
-preserve every old attempt, package and receipt. Freeze source/profile/inputs
-and verify readiness before any provider admission. The fresh project uses
-normal production preparation, validation and adoption, without seeded outputs.
-Allow at most eight sequential text attempts, then the first two normally
-ordered image attempts; pause before a third. Keep normal launch ceilings
-`maxImages=16`, `maxJobs=24`, and require complete all-route inventory of at most
-16 images before admitting any image. Do not skip references to force a frame.
-Retain exact package/attempt/session/receipt/output identities, actual validator
-calls, deduplication, same-attempt reopen/adoption and process cleanup. A failed
-or ambiguous preflight/native result stops without retry or ad hoc environment
-overrides. No extra approval round is needed after passing this preflight.
-Pool/full/hosted qualification, merge and live activation remain held.
+The fresh canary passed exact-profile Node smoke and outline/adoption/reopen.
+Branches session
+`01a13a6f-bd1a-7583-97fb-5540b6799210` instead recorded required validator exit 2:
+`uv` could not traverse the pinned Python alias. A manual report followed without
+successful validation, yet the host published success and the owner adopted it.
+The owner's branch schema/topology checks passed; they do not prove the required
+validator/render workflow ran. Independent review confirmed both owning defects.
+
+Run `f6c62865-85ca-46d1-b75c-f2b672a6c3b8` is paused at art, revision 26, with
+four text attempts and no images. Art was admitted during stopping; its exact
+attempt `0d5b68d5-0002-43eb-ac48-726d843173da` remains host `outcome_unknown` and
+project `running`, without retry, reconciliation or reservation release. All
+known processes are absent. Retain `.local/native-proof/serial-production-canaries-4442331b-20261014/halt_record.json`
+(SHA-256 `b25bd3db9e638c61d6e081730c745b20150214c6425de06f4349755cab7d770d`)
+and every prior failed/unknown root unchanged; this canary is not qualified.
+
+Release the same sole worker for a bounded source repair, not another canary:
+record an explicit ADR/package/profile ownership change, then make a frozen,
+source-owned validator/render plan the trusted supervisor's primary completion
+gate. Typed proof must bind required successful steps to exact source, runtime,
+request, candidate and report bytes before publication/adoption. Keep independent
+domain checks. Pin the exact Python alias chain and target with minimal read
+access; preserve unrelated-root denial. Do not parse arbitrary model shell/JS
+as a substitute, accept self-reported success, or replay this failed canary.
+After two serial failures, qualify every frozen command plan on disposable
+inputs through the actual sandbox before more provider work: Node preset and
+saved-Brief routes, Python/uv routes, and failed/missing/changed evidence cases.
+Run focused regressions and independent review; preserve unknown/budget guards.
+Generation, pool/full/hosted checks, merge and live activation remain held.
 
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
