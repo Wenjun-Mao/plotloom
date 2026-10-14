@@ -365,12 +365,18 @@ deterministic bundle and parity check; wheel build and installed-wheel smoke.
 It refuses ambient diagnostic grep, shard, or pytest filter settings. The
 browser suite is local and unsharded; hosted CI runs four duration-balanced
 whole-spec shards with one worker per runner. The Python full step discovers
-the native case set and assigns whole test files across two processes using a
-complete, current timing manifest when eligible; otherwise it uses the
-deterministic case-count fallback and prints the reason. Timings include setup,
-call and teardown for every collected parameter row. Eligibility binds native
-case IDs, source/configuration/fixture inputs, Python toolchain and host. The
-timing plugin emits eligible rows only after a successful complete worker run.
+the native case set and assigns whole test files across two processes using
+captured duration predictions. A same-host manifest with overlapping files can
+still predict scheduling after source or inventory changes: changed-count rows
+are scaled and new files use the median overlapping per-case estimate. The log
+labels this `historical-duration`, lists every mismatch and reports retained,
+scaled, estimated and ignored file counts. Removed files never select tests.
+Only an exact provenance match is labelled `duration`; neither label is a fresh
+performance measurement. Missing history, host/Python drift, empty rows or no
+overlap use deterministic case-count allocation with an explicit reason.
+Malformed or numerically unsafe history fails before dispatch. Timings include
+setup, call and teardown; captured fingerprints remain unchanged. The timing
+plugin emits rows only after a successful complete worker run.
 The runner gives each process a separate temporary root, refuses ambient
 pytest options and fails if collection is empty, duplicated, unsafe, or either
 worker fails. SIGTERM and interruption clean up both worker process groups

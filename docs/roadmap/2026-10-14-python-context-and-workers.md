@@ -264,6 +264,25 @@ CI and no live activation**. This overrides earlier anticipated hosted/deploy
 steps for the current work. The CI workflow is dispatch-only; do not dispatch
 it. Leave valued projects, existing executors and old unknown attempts intact.
 
+### Priority change and held scheduler checkpoint
+
+The owner subsequently made parallel generation the higher priority and asked
+for a Sol coordinator to carry most of that work. Python optimization is now
+held, not a prerequisite to CLI progress. The manager releases the source/check
+window to the existing CLI assignment after this checkpoint; no Python full
+gate or further optimization runs while that window is held.
+
+The historical-scheduling implementation passed 60 focused schedule/runner
+cases, scoped F401 and diff checks. Its dedicated regression file owns the
+relocated timing tests. Log:
+`.local/remaining-cost/historical-schedule-checkpoint.log`. This is **not a
+reviewed release candidate**: real-runner historical reporting/changed-ID
+integration guards, broader completion/cleanup/ownership checks, independent
+code review and full local qualification remain pending. Preserve this work,
+but do not integrate it into the CLI candidate or claim measured improvement.
+The earlier Bridge/claim code `d09322cb` has its own collected code review and
+matched focused evidence; its full qualification can be combined with CLI.
+
 ## Residual-cost investigation — historical proposal, now separately scoped
 
 One fresh main-thread profile ran the unchanged complete-pack control at clean

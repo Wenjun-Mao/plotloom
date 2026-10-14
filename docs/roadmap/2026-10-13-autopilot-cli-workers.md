@@ -38,6 +38,32 @@ activation**. This latest instruction supersedes earlier future-launch
 activation language below. Preserve all old stopped/unknown runs and valued
 stories. A materially wider scope still needs an explained owner decision.
 
+### Priority and Sol coordinator handoff
+
+The owner explicitly prioritizes parallel generation over test speed and asks
+for a Sol coordinator to carry most of the implementation. Reuse native task
+`01a1373d-a71a-7270-8906-f6430ce855b3` and its retained `b30f` checkout/Relay
+route; do not create a duplicate assignment. Requested settings are GPT-6.1 Sol
+/ High; effective provider settings remain unverified until host confirmation.
+
+After the manager's held Python checkpoint, this task owns the sole source,
+focused/module and bounded native-proof windows through the parallel-generation
+deliverable. It may reconcile reviewed Python source through `65cf84cd` into
+the CLI candidate before new proof, preserving both roadmaps' current authority.
+Do not integrate the later unfinished historical-scheduler change. Changed
+inputs must be repinned and their affected checks qualified; unchanged native
+evidence is not replayed merely because time passed.
+
+Proceed from genuine serial production-supervisor delivery to the bounded fair
+pool, dependency-ready early references/frames and truthful concurrent progress.
+The native-generation preapproval above applies without per-batch permission
+requests; preserve exact frozen budgets, unknown outcomes and the two-failure
+reassessment rule. Obtain independent stable reviews and perform one combined
+full local gate at a stable candidate, then return the integrated evidence for
+manager review/publication. No hosted CI, live activation or old-run replay.
+The manager remains read-only while this source/check window is held. Python
+optimization is queued, not a gate ahead of parallel-generation delivery.
+
 ## Queue and start conditions
 
 The manager starts this assignment after the current autopilot UX repair,

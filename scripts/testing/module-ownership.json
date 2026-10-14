@@ -534,6 +534,7 @@
           "tests/test_python_suite_completion.py",
           "tests/test_python_suite_experiment.py",
           "tests/test_python_suite_runner.py",
+          "tests/test_python_suite_schedule.py",
           "tests/test_retained_runtime_coverage_inventory.py",
           "tests/test_shared_runtime_retirement.py",
           "tests/test_static_asset_freshness.py",
