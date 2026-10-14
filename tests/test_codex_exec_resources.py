@@ -15,8 +15,16 @@ from plotloom.codex_exec_resources import (
     upstream_skill_path_for_stage,
 )
 from plotloom.storyboard_brief_style import freeze_storyboard_brief_style
+from tests.codex_exec_runtime_fixtures import (
+    codex_exec_test_source as _codex_exec_test_source,  # noqa: F401
+)
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.fixture(autouse=True)
+def test_owned_source(monkeypatch, codex_exec_test_source):
+    monkeypatch.setattr(__import__(__name__, fromlist=["ROOT"]), "ROOT", codex_exec_test_source)
 
 
 def _sha256(path: Path) -> str:

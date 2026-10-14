@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 from dataclasses import replace
 from hashlib import sha256
 from types import SimpleNamespace
@@ -41,7 +42,9 @@ def test_trusted_python_ignores_valid_bytecode_seeded_in_the_old_cli_writable_ca
     os.utime(seed, ns=(metadata.st_atime_ns, metadata.st_mtime_ns))
     old_prefix = private / "tmp/python-bytecode"
     unsafe_environment = environment | {"PYTHONPYCACHEPREFIX": str(old_prefix)}
-    interpreter = dict(resources.tools)["python"]
+    # Cache semantics use the current test interpreter. The resource fixture is
+    # synthetic metadata; actual copied-runtime imports belong to the native gate.
+    interpreter = sys.executable
     compile_code = (
         "import importlib.util,pathlib,py_compile,sys; "
         "cache=importlib.util.cache_from_source(sys.argv[2]); pathlib.Path(cache).parent.mkdir(parents=True); "

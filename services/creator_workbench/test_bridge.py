@@ -4,7 +4,6 @@ import json
 import subprocess
 from http.server import ThreadingHTTPServer
 from io import BytesIO
-from pathlib import Path
 from threading import Thread
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -44,13 +43,13 @@ def bridge(tmp_path):
 
 
 def test_exec_profile_is_host_observed_and_never_uses_project_or_user_config(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, codex_exec_test_source
 ):
     executable = tmp_path / "codex"
     executable.write_bytes(b"qualified CLI executable")
     executable.chmod(0o700)
     settings = tmp_path / "settings.json"
-    source_root = Path(__file__).resolve().parents[2]
+    source_root = codex_exec_test_source
     monkeypatch.setattr(
         subprocess,
         "run",
@@ -80,10 +79,10 @@ def test_exec_profile_is_host_observed_and_never_uses_project_or_user_config(
     assert "token" not in json.dumps(profile).casefold()
 
 
-def test_readiness_uses_existing_file_store_without_exposing_cli_output(tmp_path, monkeypatch):
+def test_readiness_uses_existing_file_store_without_exposing_cli_output(tmp_path, monkeypatch, codex_exec_test_source):
     executable = tmp_path / "codex"
     executable.touch()
-    source_root = Path(__file__).resolve().parents[2]
+    source_root = codex_exec_test_source
     outputs_root = tmp_path / "outputs"
     outputs_root.mkdir()
     private_root = tmp_path / "private"

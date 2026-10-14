@@ -6,13 +6,17 @@ from pathlib import Path
 
 import pytest
 
+from tests.codex_exec_runtime_fixtures import (
+    codex_exec_test_source as _codex_exec_test_source,  # noqa: F401
+)
+
 sys.dont_write_bytecode = True
 SERVICE_SOURCE = Path(__file__).resolve().parents[3] / "services" / "creator_workbench"
 sys.path.insert(0, str(SERVICE_SOURCE))
 
 
 @pytest.fixture
-def supervisor(tmp_path, monkeypatch):
+def supervisor(tmp_path, monkeypatch, codex_exec_test_source):
     from codex_exec_supervisor import CodexExecSupervisor
 
     executable = tmp_path / "codex"
@@ -23,7 +27,7 @@ def supervisor(tmp_path, monkeypatch):
     codex_home = tmp_path / "codex-home"
     codex_home.mkdir(mode=0o700)
     monkeypatch.setenv("CODEX_HOME", str(codex_home))
-    source_root = Path(__file__).resolve().parents[3]
+    source_root = codex_exec_test_source
     return CodexExecSupervisor(
         executable,
         source_root=source_root,
