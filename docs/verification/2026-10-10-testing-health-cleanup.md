@@ -1869,3 +1869,34 @@ under more workers. Current evidence does not support achieving the fixed-two-
 worker 85-percent target through the remaining compact-fixture options. A
 separate bounded concurrency evaluation is proposed in the roadmap and awaits
 owner scope approval; no default, CI, worker count or production code changed.
+
+### Duration-weight refresh and native inventory drift — October 14
+
+At clean `e5959c73`, the manager borrowed and returned a short check window
+while the CLI source owner held checks. The complete safety file passed all
+19 cases with the existing timing plugin: 100.31s externally, 96.12s pytest,
+and the existing non-failing Starlette/httpx warning. Fresh native collection
+found 1,859 cases / 182 files. Executable, host and interpreter fingerprints
+matched the reviewed safety candidate before and after; no full suite or native
+generation ran. Both owned processes exited zero before the window was returned.
+
+Evidence under `.local/remaining-cost/duration-refresh-AHMmlW`:
+
+- `pytest.log`: `cf308a3564f7cedc90efd90606be733401cd7b5af67c7dec87a82d80d8c7bd6b`
+- `native-collection.log`: `fa4ea00fbab7832900349c0a9b1723b9deaa0a235e7ce873bf7e247fb2d47811`
+- `refresh-summary.json` retains exact commands, input/host fingerprints and
+  explicit single-process-refresh versus two-worker-base conditions.
+
+The initial proposed manifest was validated against that one captured inventory
+only. Its hash `a99a9cc176695aa1977c0f1cfc5c8655dfa03fbd7a2aa5bba7ad68802f403fd9`
+is retained, **not promoted**. Comparison to the prior native ownership hash
+exposed an import-time random UUID in the publisher's foreign-native-task
+parameter ID. This causes a new inventory fingerprint even without source
+changes, legitimately forcing the scheduler to fall back. The scoped fix gives
+only that row an explicit semantic pytest ID; its randomized foreign UUID,
+case count and rejection assertions are preserved. Independent read-only review
+(requested GPT-6.1 Sol / Medium; effective settings unverified) found no issue;
+the reviewer ran no tests. Repeated native collection and publisher execution
+are pending the CLI owner's check-window release. Refresh the changed publisher file before
+assembling new weights; do not weaken the native fingerprint guard or claim
+the provisional 579.075s phase-load estimates are executed wall time.

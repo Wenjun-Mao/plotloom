@@ -1240,13 +1240,24 @@ that executable base only in `tests/test_autopilot_image_safety.py` (19 cases);
 the pinned submodule is unchanged. The other 181 file weights are reusable
 subject to fresh native inventory and host/toolchain verification.
 
-After the CLI owner releases its focused-check window, refresh the changed
-whole file through the existing timing plugin, explicitly assemble and validate
-the complete manifest, and qualify the two-worker duration schedule on the
-stable candidate. Preserve the original fallback result and external timing
-boundary. This is measured scheduling qualification, not extra concurrency or
-evidence that scheduling can meet the 85-percent target. No timing capture or
-suite was started during this reconciliation.
+The CLI owner released a short window at `e5959c73`: all nineteen safety cases
+passed in 100.31s externally and fresh native collection found 1,859 cases. The
+window was immediately returned. The complete refresh row is retained under
+`.local/remaining-cost/duration-refresh-AHMmlW`; its single-process phase cost
+is an advisory weight, not a matched speed comparison with the two-worker base.
+
+Reconciliation then found native inventory drift: the publisher's foreign-task
+parameter evaluates `uuid4()` at import and includes that value in its pytest
+ID. An explicit semantic ID preserves the random foreign UUID and assertions
+while making the inventory stable. Independent read-only review found no issue
+in this test-only correction (requested GPT-6.1 Sol / Medium; effective settings
+unverified); execution verification is pending the CLI owner's check-window release.
+The initially assembled timing manifest remains unpromoted. Next refresh the
+publisher's complete timing row and verify two identical fresh native
+collections before explicitly promoting complete compatible weights. Run the
+two-worker duration qualification only on that stable candidate in a separately
+released window. Preserve the original fallback evidence; no extra concurrency
+or 85-percent success is implied.
 
 ### Unapproved production-context option — October 14
 
