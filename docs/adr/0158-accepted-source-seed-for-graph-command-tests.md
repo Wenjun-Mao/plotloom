@@ -117,7 +117,8 @@ new guards run separately. Handoff speed remains unmeasured until the manager
 allocates a quiet matched window; final combined full qualification is separate.
 
 The handoff implementation passed 23 focused isolation/invalid-case/ownership
-checks plus the three unchanged end-to-end controls. An attended independent
+checks, the three unchanged end-to-end controls and seven original geometry
+corruption consumers after shared-copy extraction (33 distinct cases). An attended independent
 Sol/Medium stable code review found no actionable issues and ran no checks.
 The positive-copy guard proves human handoff/video eligibility only in its
 copy while original seed and sibling remain machine-only. Actual handoff

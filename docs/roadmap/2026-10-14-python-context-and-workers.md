@@ -611,13 +611,35 @@ The seed's complete hashes stayed unchanged. A second guard rejects mixing the
 first-geometry and completed-handoff seed states. Production source, frontend,
 dependencies, ordinary-open validation, identity and rollback are unchanged.
 
-The before revision remains clean `140b4a31`; the ensuing scoped commit owns the
-after executable checkpoint. Handoff performance, full release qualification
+The before revision remains clean
+`140b4a3117d49908e761fe72925c24f14dd8bc2b`; the after executable checkpoint is
+`f1e72a3099ddc228c40fc1918512f9fd1470ba74`. Handoff performance, full release qualification
 and publication remain open pending manager allocation. The earlier geometry
 pair stays bound to its exact `e1a79830`/`b8b6b886` inputs; extracting common
 copy code does not relabel it as a fresh measurement of this newer candidate.
 No timing manifest rewrite, moving-CLI merge, provider call, broad/module/full
 run, push, activation or cleanup was performed for this slice.
+
+### Additional original geometry-consumer check
+
+The manager's read-only source audit found no concrete issue and requested the
+original seven geometry corruption cases in addition to the nine copy-isolation
+guards already run. On clean executable `f1e72a30`,
+`uv run --locked --no-sync python scripts/verify.py focused --pytest tests/test_autopilot_geometry.py::test_tampered_or_missing_lineage_refuses_ordinary_open`
+passed **all seven cases**. Log:
+`.local/remaining-cost/handoff-seed-geometry-consumers.log`, SHA-256
+`fea0ba239975d505f8c76d952c58a64e00217112d85fc42eec3cecc89190f72c`.
+This closes the affected consumer selection after extraction. Together with the
+23-case guard union and three fresh handoff controls, **33 distinct focused
+cases passed**. No failures or omitted selected cases remain. This additional
+check is correctness coverage, not another timing claim or full gate.
+
+The stable implementation remains `f1e72a30`; subsequent receipt changes are
+documentation-only. Before/after eight-case inventory and sorted native-ID
+fingerprint `25b6162b971cf349bb919944219bf3f8144401ef15d2b90d4ade0a9d0a9f254f`
+remain frozen. The clean reviewed checkpoint is ready for a separately allocated
+quiet matched pair; no handoff benchmark, combined full qualification, push or
+activation is claimed.
 
 ## Residual-cost investigation — historical proposal, now separately scoped
 
