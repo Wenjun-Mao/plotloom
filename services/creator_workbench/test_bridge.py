@@ -15,6 +15,7 @@ from host_bridge import QueueBridge, handler_for
 from plotloom.codex_exec_contracts import (
     CodexExecAttempt,
     CodexExecHostStatus,
+    CodexExecProfile,
     transition_exec_attempt,
 )
 from uuid import uuid4
@@ -61,25 +62,64 @@ def test_exec_profile_is_host_observed_and_never_uses_project_or_user_config(
         settings,
         "test-token" * 8,
         source_root=source_root,
+        outputs_root=tmp_path / "outputs",
+        private_root=tmp_path / "private",
     )
     profile = bridge.exec_profile()
     assert profile["backend"] == "codex_exec"
     assert profile["cliVersion"] == "codex-cli 0.162.0-alpha.17.2"
     assert profile["model"] == "gpt-6.1-sol"
-    assert profile["sandboxProfile"] == "read_only_with_delivery_write"
+    assert profile["contractVersion"] == "plotloom.codex-exec.v2"
+    assert profile["authenticationStore"] == "file"
+    assert profile["permissionProfile"] == "plotloom_autopilot_delivery_v2"
+    assert profile["toolProfile"] == "plotloom_autopilot_tools_v2"
+    assert "sandboxProfile" not in profile
     assert profile["maxProcesses"] == 1
     assert profile["apiFallback"] is False
     assert "token" not in json.dumps(profile).casefold()
 
 
-def test_client_emits_only_a_validated_profile(tmp_path, monkeypatch, capsys):
-    from plotloom.codex_exec_contracts import CodexExecProfile
+def test_readiness_uses_existing_file_store_without_exposing_cli_output(tmp_path, monkeypatch):
+    executable = tmp_path / "codex"
+    executable.touch()
+    source_root = Path(__file__).resolve().parents[2]
+    outputs_root = tmp_path / "outputs"
+    outputs_root.mkdir()
+    private_root = tmp_path / "private"
+    codex_home = tmp_path / "codex-home"
+    codex_home.mkdir(mode=0o700)
+    monkeypatch.setenv("CODEX_HOME", str(codex_home))
+    commands = []
 
+    def login_status(command, **options):
+        commands.append((command, options))
+        return subprocess.CompletedProcess(command, 0, b"private login mode", b"")
+
+    monkeypatch.setattr(subprocess, "run", login_status)
+    bridge = QueueBridge(
+        executable,
+        tmp_path / "settings.json",
+        "test-token" * 8,
+        source_root=source_root,
+        outputs_root=outputs_root,
+        private_root=private_root,
+    )
+
+    assert bridge.exec_readiness() == {"state": "ready"}
+    assert commands[0][0] == [
+        str(executable), "--config", 'cli_auth_credentials_store="file"', "login", "status",
+    ]
+    assert commands[0][1]["env"]["CODEX_HOME"] == str(codex_home)
+    assert "private login mode" not in json.dumps(bridge.exec_readiness())
+
+
+def test_client_emits_only_a_validated_profile(tmp_path, monkeypatch, capsys):
     token = tmp_path / "token"
     token.write_text("private-token")
     monkeypatch.setenv("PLOTLOOM_CODEX_BRIDGE_TOKEN_FILE", str(token))
     monkeypatch.setenv("PLOTLOOM_CODEX_BRIDGE_URL", "http://bridge")
     profile = CodexExecProfile(
+        contractVersion="plotloom.codex-exec.v1",
         executableSha256="a" * 64,
         cliVersion="codex-cli 0.162.0-alpha.17.2",
         model="gpt-6.1-sol",
@@ -105,6 +145,41 @@ def test_client_emits_only_a_validated_profile(tmp_path, monkeypatch, capsys):
     assert json.loads(output.out) == profile.model_dump(mode="json", by_alias=True)
     assert not output.err
     assert "private" not in output.out
+
+
+@pytest.mark.parametrize("state", ["ready", "not_authenticated", "unavailable"])
+def test_client_emits_only_a_validated_readiness_state(tmp_path, monkeypatch, capsys, state):
+    token = tmp_path / "token"
+    token.write_text("private-token")
+    monkeypatch.setenv("PLOTLOOM_CODEX_BRIDGE_TOKEN_FILE", str(token))
+    monkeypatch.setenv("PLOTLOOM_CODEX_BRIDGE_URL", "http://bridge")
+    monkeypatch.setattr(
+        codex_client,
+        "urlopen",
+        lambda *_args, **_kwargs: BytesIO(json.dumps({"state": state}).encode()),
+    )
+
+    assert codex_client.main(["exec-readiness"]) == 0
+    output = capsys.readouterr()
+    assert json.loads(output.out) == {"state": state}
+    assert not output.err and "private" not in output.out
+
+
+def test_client_rejects_unrecognized_readiness_fields(tmp_path, monkeypatch, capsys):
+    token = tmp_path / "token"
+    token.write_text("private-token")
+    monkeypatch.setenv("PLOTLOOM_CODEX_BRIDGE_TOKEN_FILE", str(token))
+    monkeypatch.setenv("PLOTLOOM_CODEX_BRIDGE_URL", "http://bridge")
+    monkeypatch.setattr(
+        codex_client,
+        "urlopen",
+        lambda *_args, **_kwargs: BytesIO(b'{"state":"ready","secret":"private"}'),
+    )
+
+    assert codex_client.main(["exec-readiness"]) == 1
+    output = capsys.readouterr()
+    assert not output.out
+    assert "invalid" in output.err and "private" not in output.err
 
 
 @pytest.mark.parametrize("task", [TEXT_TASK, IMAGE_TASK])

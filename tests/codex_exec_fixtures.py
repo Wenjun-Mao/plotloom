@@ -1,9 +1,10 @@
 """Synthetic source-bound profile for isolated orchestration tests only."""
 
-from plotloom.codex_exec_contracts import CodexExecProfile
+from plotloom.codex_exec_contracts import CodexExecProfile, CodexExecReadiness
 
 
 PROFILE = CodexExecProfile(
+    contractVersion="plotloom.codex-exec.v1",
     executableSha256="a" * 64,
     cliVersion="codex-cli test-fixture",
     model="gpt-6.1-sol",
@@ -27,4 +28,5 @@ PROFILE = CodexExecProfile(
 def install_profile(registry):
     """Inject a deterministic profile without contacting a host or provider."""
     registry.codex_exec_profile = lambda: PROFILE
+    registry.codex_exec_readiness = lambda: CodexExecReadiness(state="ready")
     return registry

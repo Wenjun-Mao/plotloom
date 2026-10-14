@@ -15,6 +15,7 @@ HASH = "a" * 64
 
 def profile(**changes):
     value = {
+        "contractVersion": "plotloom.codex-exec.v1",
         "executableSha256": HASH,
         "cliVersion": "0.162.0-alpha.17.2",
         "model": "test-model",
@@ -45,6 +46,35 @@ def test_profile_hash_is_stable_and_profile_is_immutable():
     with pytest.raises(ValidationError):
         one.model = "changed"
     assert one.profile_hash == two.profile_hash
+
+
+def test_v2_profile_binds_auth_and_invocation_local_permissions():
+    value = profile().model_dump(mode="json", by_alias=True)
+    value.update({
+        "contractVersion": "plotloom.codex-exec.v2",
+        "sandboxProfile": None,
+        "authenticationStore": "file",
+        "permissionProfile": "plotloom_autopilot_delivery_v2",
+        "toolProfile": "plotloom_autopilot_tools_v2",
+    })
+
+    current = CodexExecProfile.model_validate(value)
+
+    assert current.authentication_store == "file"
+    assert current.permission_profile == "plotloom_autopilot_delivery_v2"
+    assert current.profile_hash != profile().profile_hash
+
+
+def test_v2_profile_rejects_legacy_sandbox_and_missing_auth_binding():
+    value = profile().model_dump(mode="json", by_alias=True)
+    value.update({
+        "contractVersion": "plotloom.codex-exec.v2",
+        "authenticationStore": None,
+        "permissionProfile": "plotloom_autopilot_delivery_v2",
+        "toolProfile": "plotloom_autopilot_tools_v2",
+    })
+    with pytest.raises(ValidationError):
+        CodexExecProfile.model_validate(value)
 
 
 @pytest.mark.parametrize(

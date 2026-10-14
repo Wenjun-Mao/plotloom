@@ -55,6 +55,8 @@ def _write_fake_cli(supervisor, body):
         "if sys.argv[1:] == ['--version']:\n"
         f"    print({SUPPORTED_CLI_VERSION!r})\n"
         "    raise SystemExit(0)\n"
+        "if sys.argv[-2:] == ['login', 'status']:\n"
+        "    raise SystemExit(int(__import__('os').environ.get('PLOTLOOM_TEST_LOGIN_STATUS', '0')))\n"
         + body
     )
     executable.chmod(0o700)
@@ -80,12 +82,8 @@ def _prepared_text_job(supervisor, tmp_path, *, fake_cli_source=None):
             inputArtifacts={},
             creativeBrief="Create a one-episode outline candidate without claiming approval.",
         )
-        execution_pin = {
-            "upstreamRevision": "a" * 40,
-            "upstreamSkillHash": "b" * 64,
-            "specialistSkillHash": "c" * 64,
-        }
         exchange = store.creative_handoff_exchange()
+        execution_pin = exchange.current_execution_pin(request.stage)
         paths = exchange.write_package(request, execution_pin, executor_backend="codex_exec")
     package = Path(paths["packagePath"])
     job_root = package.parent

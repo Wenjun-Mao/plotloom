@@ -6,11 +6,31 @@ import subprocess
 from hashlib import sha256
 from pathlib import Path
 
+from .codex_exec_auth import AUTHENTICATION_STORE
 from .codex_exec_contracts import CodexExecProfile
+from .codex_exec_resources import validator_toolchain_hash
 
 SUPPORTED_CLI_VERSION = "codex-cli 0.162.0-alpha.17.2"
 EXECUTION_MODEL = "gpt-6.1-sol"
 EXECUTION_REASONING_EFFORT = "medium"
+PERMISSION_PROFILE = "plotloom_autopilot_delivery_v2"
+TOOL_PROFILE = "plotloom_autopilot_tools_v2"
+DISABLED_CLI_FEATURES = (
+    "apps",
+    "browser_annotation_api",
+    "browser_use",
+    "browser_use_external",
+    "browser_use_full_cdp_access",
+    "in_app_browser",
+    "mcp_2026_07_28",
+    "multi_agent",
+    "multi_agent_v2",
+    "skill_mcp_dependency_install",
+    "standalone_web_search",
+    "tool_call_mcp_elicitation",
+    "web_search_cached",
+    "web_search_request",
+)
 INSTRUCTION_FILES = (
     "src/plotloom/codex_exec_prompts.py",
     ".agents/skills/plotloom-shuohao-specialist/SKILL.md",
@@ -24,6 +44,8 @@ VALIDATOR_FILES = (
     "src/plotloom/codex_exec_telemetry.py",
     "src/plotloom/codex_exec_delivery.py",
     "src/plotloom/codex_exec_profile.py",
+    "src/plotloom/codex_exec_resources.py",
+    "src/plotloom/codex_exec_auth.py",
     "src/plotloom/codex_exec_prompts.py",
     "src/plotloom/codex_exec_runtime.py",
     "src/plotloom/autopilot_contracts.py",
@@ -60,7 +82,16 @@ VALIDATOR_FILES = (
     "services/creator_workbench/isolated.py",
     "services/creator_workbench/manage.py",
     "src/plotloom/specialist_settings.py",
+    "scripts/branch_suggestion.py",
+    "scripts/cast-style.mjs",
+    "scripts/art-style.mjs",
+    "scripts/native_bridge_intent.py",
+    "scripts/native_bridge_presentation.py",
+    "pyproject.toml",
+    "uv.lock",
 )
+
+VALIDATOR_SOURCE_TREE = "src/plotloom"
 
 
 def _hash_file(path: Path) -> str:
@@ -84,6 +115,21 @@ def _source_hash(source_root: Path, files: tuple[str, ...]) -> str:
     return sha256(encoded).hexdigest()
 
 
+def _python_source_tree_hash(source_root: Path) -> str:
+    tree = source_root / VALIDATOR_SOURCE_TREE
+    if tree.is_symlink() or not tree.is_dir() or not tree.resolve(strict=True).is_relative_to(source_root):
+        raise RuntimeError("source-bound Codex Python runtime is unavailable")
+    entries = []
+    for path in sorted(tree.rglob("*.py")):
+        if path.is_symlink() or not path.resolve(strict=True).is_relative_to(source_root):
+            raise RuntimeError("source-bound Codex Python runtime contains an escaping file")
+        entries.append((path.relative_to(source_root).as_posix(), _hash_file(path)))
+    if not entries:
+        raise RuntimeError("source-bound Codex Python runtime is empty")
+    encoded = json.dumps(entries, separators=(",", ":"), ensure_ascii=False).encode()
+    return sha256(encoded).hexdigest()
+
+
 def build_codex_exec_profile(executable: Path, *, source_root: Path) -> CodexExecProfile:
     """Fail closed unless this source checkout and the evaluated CLI are present."""
     executable = executable.expanduser().resolve(strict=True)
@@ -98,6 +144,7 @@ def build_codex_exec_profile(executable: Path, *, source_root: Path) -> CodexExe
     if version.returncode != 0 or version.stderr or version.stdout.decode("utf-8", "strict").strip() != SUPPORTED_CLI_VERSION:
         raise RuntimeError("installed Codex CLI version has no qualified execution evidence adapter")
     return CodexExecProfile(
+        contractVersion="plotloom.codex-exec.v2",
         executable_sha256=_hash_file(executable),
         cli_version=SUPPORTED_CLI_VERSION,
         model=EXECUTION_MODEL,
@@ -109,8 +156,14 @@ def build_codex_exec_profile(executable: Path, *, source_root: Path) -> CodexExe
             "delivery_directory_write_v1",
         ),
         instruction_hash=_source_hash(source_root, INSTRUCTION_FILES),
-        validator_hash=_source_hash(source_root, VALIDATOR_FILES),
-        sandbox_profile="read_only_with_delivery_write",
+        validator_hash=sha256(json.dumps({
+            "files": _source_hash(source_root, VALIDATOR_FILES),
+            "pythonSourceTree": _python_source_tree_hash(source_root),
+            "validatorToolchain": validator_toolchain_hash(source_root),
+        }, separators=(",", ":")).encode()).hexdigest(),
+        authentication_store=AUTHENTICATION_STORE,
+        permission_profile=PERMISSION_PROFILE,
+        tool_profile=TOOL_PROFILE,
         max_runtime_seconds=1800,
         # Session JSONL may embed ImageGen result bytes in one Extension record.
         max_event_bytes=50_000_000,

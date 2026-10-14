@@ -66,6 +66,7 @@ def reconcile_codex_exec(
             return None, None, profile
         if evidence.executor_attempt_id is not None:
             raise InvalidTransitionError("checkpoint names a CLI attempt absent from the project store")
+        registry.require_codex_exec_readiness()
         reserved = CodexExecAttempt(
             attemptId=uuid4(),
             runId=view.id,
@@ -101,6 +102,7 @@ def reconcile_codex_exec(
         if attempt.state == "reserved":
             if not allow_admission:
                 return attempt, receipt, profile
+            registry.require_codex_exec_readiness()
             current_checkpoint = _current_checkpoint(store, view.project_id, operation_key)
             with command_factory(store, view, claim, machine_scope):
                 if before_spawn is not None:

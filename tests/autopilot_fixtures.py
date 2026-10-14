@@ -6,7 +6,7 @@ from plotloom.source_outline_contracts import SourceMaterial
 
 
 def policy_for(store):
-    profile = CodexExecProfile(executable_sha256="0" * 64, cli_version="codex-cli test", model="gpt-6.1-sol",
+    profile = CodexExecProfile(contract_version="plotloom.codex-exec.v1", executable_sha256="0" * 64, cli_version="codex-cli test", model="gpt-6.1-sol",
         reasoning_effort="medium", capabilities=("exec_json_events_v1", "session_rollout_v1", "image_gen_event_v1", "delivery_directory_write_v1"),
         instruction_hash="1" * 64, validator_hash="2" * 64, sandbox_profile="read_only_with_delivery_write",
         max_runtime_seconds=1800, max_event_bytes=1_000_000, max_output_bytes=100_000_000, max_image_outputs=4)

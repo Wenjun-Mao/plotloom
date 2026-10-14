@@ -18,6 +18,27 @@ Its stdout also omitted ImageGen extension events. Treating process exit or a
 model assertion as ImageGen proof would therefore weaken the current delivery
 contract.
 
+The first isolated actual-path text attempt exposed an auth-boundary defect:
+the supervisor launched with a new per-attempt `CODEX_HOME` and forced the
+`keyring` store, while the existing signed-in CLI context used its ordinary
+home/default store. That attempt received repeated 401s and remains
+`outcome_unknown`; it was not resent. Separately, the invocation used legacy
+`--sandbox workspace-write` despite the profile's narrower label, so the
+label did not prove frozen-input-only confinement. A no-provider permission
+probe confirmed the CLI permission-profile semantics for sandboxed commands,
+but the exact `codex exec` invocation still requires local qualification.
+
+Source review also exposed two evidence-contract gaps. The telemetry adapter
+scanned JavaScript for a literal ImageGen call but did not establish that the
+call was the executed statement; a completion event could be assigned to a dead
+branch's arguments when an actual call was hidden in template interpolation.
+Separately, creative packages named checkout-owned skills and validators while
+the CLI profile denied the checkout and started in `delivery`, so its emitted
+repository-root commands could not reach those resources. The bounded repair
+is to accept only one direct awaited ImageGen statement and grant
+stage-specific read access to exact pinned source resources while keeping all
+generated files in `delivery`.
+
 ## Decision
 
 1. **Freeze a distinct executor contract for future runs.** A launch policy
@@ -166,6 +187,61 @@ contract.
    existing geometry lineage validation applies to v4 under the same policy
    hash and output-byte checks.
 
+9. **Bind authentication and model-command permissions to the invocation.**
+   Fresh profiles use the CLI's `file` credential store in the existing
+   installation `CODEX_HOME`; the host never creates a per-attempt auth home
+   or copies credentials. The selected store is non-secret and part of the
+   profile hash. A separate host readiness check runs `codex login status`
+   with that same home and store before launch policy freeze, project attempt
+   reservation, and CLI `exec` spawn. Readiness means only that local
+   credentials are present; it does not prove service entitlement or prevent
+   a later 401, which remains an unresolved remote outcome.
+
+   Model-generated commands use an invocation-local permission profile, not
+   legacy `--sandbox`: deny the filesystem root, allow minimal runtime reads,
+   the exact frozen package and delivery, and an attempt-scoped temporary area;
+   deny the auth home and system temp; disable command networking. Text stages
+   receive a stage-specific read allowlist for their pinned upstream skill and
+   validator entrypoints. Python validators additionally receive the
+   source-owned `src/plotloom`, `pyproject.toml`, `uv.lock`, and existing
+   `.venv` as read-only resources. The source root itself and unrelated stages
+   remain denied. The host verifies the package's stage/path/hash/revision pin,
+   requires the vendored stage tree to be clean, and hashes the complete local
+   Python source tree plus resolved validator toolchain identities into the
+   executor profile. Each stage receives only its pinned `uv`/Python or Node
+   executable and runtime directory. The CLI keeps its working directory in
+   `delivery`; source commands use `PLOTLOOM_SOURCE_ROOT` and Python validators
+   run the pinned `PLOTLOOM_UV` with `--locked --no-sync` so validation cannot
+   update the source environment. The run also disables apps, browser,
+   web-search and multi-agent features and sets `tools.view_image=false` for
+   every attempt because no frozen workflow needs local image attachment. User
+   configuration is ignored, and ImageGen is enabled only for an image attempt.
+   The Codex client's own authentication and service traffic remains outside
+   the local-command sandbox. The exact `exec` command flags and filesystem
+   profile are frozen by the source-bound profile and must pass allow/deny
+   probes before provider dispatch. Shell sandbox tests do not establish
+   confinement for the built-in patch tool or ImageGen reference pre-reads.
+   Those exact tools require allowed controls and denied absolute-path plus
+   symlink/traversal sentinels before any provider dispatch; post-delivery
+   package rejection is not pre-read protection.
+
+   Upstream skill commands bind `{baseDir}` to the directory containing the
+   exact pinned `upstreamSkillPath` in `request.json`.
+   `$PLOTLOOM_SOURCE_ROOT` remains the checkout root for Plotloom-owned
+   validators. Keeping these roots distinct preserves each Shuohao skill's
+   relative command paths without expanding the stage-specific read allowlist.
+
+   Session identity comes only from this process's first `thread.started`
+   event. The host then opens the uniquely named file for that UUID, verifies
+   its `session_meta` identity, and hashes the exact bounded file; it does not
+   inspect the contents of other sessions. The telemetry adapter dispatches
+   on the typed CLI tool name before interpreting tool input, and ImageGen
+   arguments still require one direct top-level awaited built-in call with
+   literal arguments and a supported extension event. This is intentionally
+   narrower than parsing arbitrary JavaScript because the tested CLI event has
+   no call-ID link to the source expression; templates, branches, helpers,
+   multiple statements and multiple ImageGen calls fail closed.
+
 ## Alternatives rejected
 
 - Replacing `codex queue` with `codex exec` inside the current one-shot
@@ -184,6 +260,18 @@ contract.
 - Switching to app-server now: the observed blocker concerns absent typed
   ImageGen evidence in the tested CLI surface; qualify an explicit capability
   adapter first and revisit only if the supported CLI cannot expose it.
+- Giving each attempt a new empty `CODEX_HOME` and forcing keyring: this
+  severed the already authenticated CLI context and was the observed cause of
+  the 401 canary. Copying or recreating credentials per attempt would add a
+  second credential owner and widen exposure.
+- Keeping `--sandbox workspace-write` under a narrower profile label: the
+  command-line legacy sandbox selects its own policy and cannot establish the
+  advertised read boundary. The profile must be applied in the actual `exec`
+  invocation.
+- Scanning arbitrary JavaScript for ImageGen call-shaped text: source syntax
+  alone does not prove a call executed, and the tested extension event has no
+  exact source call ID. Rejecting anything outside one direct awaited
+  statement prevents dead or ambiguous code from supplying event arguments.
 
 ## Consequences and guardrails
 

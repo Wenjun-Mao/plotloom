@@ -93,7 +93,7 @@ class CodexExecProfile(CamelModel):
     model_config = CamelModel.model_config | {"frozen": True}
 
     backend: Literal["codex_exec"] = "codex_exec"
-    contract_version: Literal["plotloom.codex-exec.v1"] = "plotloom.codex-exec.v1"
+    contract_version: Literal["plotloom.codex-exec.v1", "plotloom.codex-exec.v2"] = "plotloom.codex-exec.v2"
     executable_sha256: str = Field(pattern=HASH)
     cli_version: str = Field(min_length=1, max_length=80)
     model: str = Field(min_length=1, max_length=120)
@@ -101,7 +101,13 @@ class CodexExecProfile(CamelModel):
     capabilities: tuple[ExecCapability, ...] = Field(min_length=3, max_length=4)
     instruction_hash: str = Field(pattern=HASH)
     validator_hash: str = Field(pattern=HASH)
-    sandbox_profile: Literal["read_only_with_delivery_write"]
+    # v1 recorded a label for the legacy --sandbox path. v2 names the
+    # invocation-local permission and tool profiles that actually constrain
+    # model-generated commands and built-in capabilities.
+    sandbox_profile: Literal["read_only_with_delivery_write"] | None = Field(default=None, exclude_if=lambda value: value is None)
+    authentication_store: Literal["file"] | None = Field(default=None, exclude_if=lambda value: value is None)
+    permission_profile: Literal["plotloom_autopilot_delivery_v2"] | None = Field(default=None, exclude_if=lambda value: value is None)
+    tool_profile: Literal["plotloom_autopilot_tools_v2"] | None = Field(default=None, exclude_if=lambda value: value is None)
     max_runtime_seconds: int = Field(ge=30, le=7200)
     max_event_bytes: int = Field(ge=1024, le=50_000_000)
     max_output_bytes: int = Field(ge=1024, le=500_000_000)
@@ -113,6 +119,20 @@ class CodexExecProfile(CamelModel):
 
     @model_validator(mode="after")
     def supported_capability_set(self):
+        if self.contract_version == "plotloom.codex-exec.v1":
+            if self.sandbox_profile != "read_only_with_delivery_write" or any(
+                value is not None for value in (
+                    self.authentication_store, self.permission_profile, self.tool_profile,
+                )
+            ):
+                raise ValueError("legacy Codex Exec profiles must retain their original sandbox contract")
+        elif (
+            self.sandbox_profile is not None
+            or self.authentication_store != "file"
+            or self.permission_profile != "plotloom_autopilot_delivery_v2"
+            or self.tool_profile != "plotloom_autopilot_tools_v2"
+        ):
+            raise ValueError("Codex Exec v2 requires its pinned auth, permission and tool profiles")
         selected = set(self.capabilities)
         if len(selected) != len(self.capabilities):
             raise ValueError("CLI capability pins must not contain duplicates")
@@ -127,8 +147,24 @@ class CodexExecProfile(CamelModel):
 
     @property
     def profile_hash(self) -> str:
-        canonical = json.dumps(self.model_dump(mode="json", by_alias=True), sort_keys=True, separators=(",", ":"))
+        # Excluding null v2-only fields keeps retained v1 profile hashes stable
+        # while fresh profiles bind the actual auth and permission settings.
+        canonical = json.dumps(
+            self.model_dump(mode="json", by_alias=True, exclude_none=True),
+            sort_keys=True,
+            separators=(",", ":"),
+        )
         return sha256(canonical.encode()).hexdigest()
+
+
+class CodexExecReadiness(CamelModel):
+    """Dynamic local login readiness; it is deliberately outside the frozen profile."""
+
+    state: Literal["ready", "not_authenticated", "unavailable"]
+
+    @property
+    def ready(self) -> bool:
+        return self.state == "ready"
 
 
 ExecutorBinding = Annotated[

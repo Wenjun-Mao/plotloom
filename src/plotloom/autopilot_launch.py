@@ -46,6 +46,7 @@ def freeze_launch_policy(store, registry, request):
     code_revision = pins["bridge-intent"]["upstreamRevision"]
     if pins["bridge-presentation"]["upstreamRevision"] != code_revision:
         raise InvalidTransitionError("原生文字执行版本不一致。")
+    registry.require_codex_exec_readiness()
     profile = registry.codex_exec_profile()
     pins["image"] = image_execution_pin(code_revision, executor_backend="codex_exec")
     width, height = GEOMETRY[brief.aspect_ratio]

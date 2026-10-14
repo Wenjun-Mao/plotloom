@@ -16,9 +16,10 @@ from uuid import UUID
 from codex_exec_supervisor_errors import CodexExecSupervisorError
 from codex_exec_supervisor_job import CodexExecSupervisorJobMixin
 from codex_exec_supervisor_ledger import CodexExecSupervisorLedgerMixin
-from codex_exec_supervisor_process import (
-    CodexExecSupervisorProcessMixin,
-    _credential_free_environment,
+from codex_exec_supervisor_process import CodexExecSupervisorProcessMixin, _credential_free_environment
+from plotloom.codex_exec_auth import (
+    check_codex_exec_readiness,
+    resolve_codex_home,
 )
 
 
@@ -38,6 +39,14 @@ class CodexExecSupervisor(
         source_python = str(self.source_root / "src")
         if source_python not in sys.path:
             sys.path.insert(0, source_python)
+        try:
+            self.codex_home = resolve_codex_home(
+                forbidden_roots=(self.source_root, self.outputs_root, self.private_root)
+            )
+        except ValueError as error:
+            raise CodexExecSupervisorError(
+                "Codex Exec requires an existing user-owned authentication home outside project state"
+            ) from error
         self.private_root.mkdir(parents=True, exist_ok=True, mode=0o700)
         metadata = self.private_root.stat()
         if not stat.S_ISDIR(metadata.st_mode) or metadata.st_uid != os.getuid():
@@ -51,6 +60,16 @@ class CodexExecSupervisor(
     def profile(self):
         from plotloom.codex_exec_profile import build_codex_exec_profile
         return build_codex_exec_profile(self.executable, source_root=self.source_root)
+
+    def codex_exec_readiness(self):
+        """Probe local file-store login state without exposing CLI diagnostics."""
+        environment = _credential_free_environment()
+        environment["CODEX_HOME"] = str(self.codex_home)
+        return check_codex_exec_readiness(
+            self.executable,
+            environment=environment,
+            forbidden_roots=(self.source_root, self.outputs_root, self.private_root),
+        )
 
     def admit(self, raw_attempt):
         from plotloom.codex_exec_contracts import CodexExecAttempt, CodexExecProfile
@@ -97,7 +116,6 @@ class CodexExecSupervisor(
                     # path that can poison a later same-attempt admission.
                     private_dir.mkdir(mode=0o700)
                     private_dir_created = True
-                    (private_dir / "codex-home").mkdir(mode=0o700)
                     connection.execute(
                         "INSERT INTO exec_attempts "
                         "(attempt_id,project_id,job_id,attempt_json,status_json,receipt_json,manifest_json,"
@@ -146,9 +164,6 @@ class CodexExecSupervisor(
 
     @staticmethod
     def _remove_empty_private_attempt_dir(private_dir):
-        codex_home = private_dir / "codex-home"
-        if codex_home.is_dir() and not codex_home.is_symlink() and not any(codex_home.iterdir()):
-            codex_home.rmdir()
         if private_dir.is_dir() and not private_dir.is_symlink() and not any(private_dir.iterdir()):
             private_dir.rmdir()
 
@@ -223,6 +238,10 @@ class CodexExecSupervisor(
             profile = CodexExecProfile.model_validate(self.profile())
             _, job_root = self._resolve_job(attempt)
             package_request = self._verify_attempt_package(attempt, job_root, profile)
+            source_resources = None
+            if attempt.domain == "text":
+                from plotloom.codex_exec_resources import codex_exec_source_resources
+                source_resources = codex_exec_source_resources(self.source_root, package_request)
             private_dir = Path(row["private_dir"])
             if private_dir.is_symlink() or not private_dir.is_dir():
                 raise CodexExecSupervisorError("Codex Exec private attempt directory is unavailable")
@@ -235,7 +254,7 @@ class CodexExecSupervisor(
             elif current is not None and current.state not in {"completed", "failed", "settled", "outcome_unknown"}:
                 self._mark_unknown(current)
             raise
-        self._run(attempt, profile, package_request, job_root, private_dir)
+        self._run(attempt, profile, package_request, job_root, private_dir, source_resources)
 
     def _start_worker(self, attempt_id):
         """Start or reconnect to the one worker assigned to this durable attempt."""
@@ -313,12 +332,12 @@ class CodexExecSupervisor(
         if worker is not None and worker.poll() is not None:
             self._workers.pop(str(attempt_id), None)
 
-    @staticmethod
-    def _worker_environment():
+    def _worker_environment(self):
         import sys
         return _credential_free_environment() | {
             "PYTHONUNBUFFERED": "1",
             "PYTHONPATH": os.pathsep.join(sys.path),
+            "CODEX_HOME": str(self.codex_home),
         }
 
     def cancel(self, raw_attempt):

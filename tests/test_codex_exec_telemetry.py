@@ -30,7 +30,7 @@ def _image_call(call_id: str = "call-1") -> bytes:
     )
     return _record(
         "response_item",
-        {"type": "custom_tool_call", "call_id": call_id, "input": source},
+        {"type": "custom_tool_call", "name": "exec", "call_id": call_id, "input": source},
         ordinal=1,
     )
 
@@ -64,6 +64,33 @@ def test_parse_imagegen_tool_source_reads_only_literal_builtin_call():
         "transparent_background": True,
         "num_last_images_to_include": 0,
     }
+
+
+def test_parse_imagegen_tool_source_requires_one_direct_awaited_statement():
+    with pytest.raises(CodexExecTelemetryError, match="direct top-level awaited"):
+        parse_imagegen_tool_source(
+            'if (false) { await tools.image_gen__imagegen({prompt: "dead", '
+            'transparent_background: false}); }'
+        )
+
+    with pytest.raises(CodexExecTelemetryError, match="direct top-level awaited"):
+        parse_imagegen_tool_source(
+            'if (false) { await tools.image_gen__imagegen({prompt: "dead", '
+            'transparent_background: false}); } '
+            'await tools.exec_command({cmd: `run ${await tools.image_gen__imagegen({'
+            'prompt: "live", transparent_background: false})}`});'
+        )
+
+    with pytest.raises(CodexExecTelemetryError, match="cannot share an exec snippet"):
+        parse_imagegen_tool_source(
+            'await tools.image_gen__imagegen({prompt: "live", transparent_background: false}); '
+            'await tools.exec_command({cmd: "another statement"});'
+        )
+
+
+def test_parse_imagegen_tool_source_ignores_ordinary_javascript_syntax():
+    source = "await tools.exec_command({cmd: `printf '%s\\n' > ${outputPath}`});"
+    assert parse_imagegen_tool_source(source) is None
 
 
 @pytest.mark.parametrize(
@@ -108,6 +135,72 @@ def test_read_cli_session_hashes_each_bounded_record_once_and_correlates_image_e
     assert evidence.image_events[0].status == "completed"
     assert evidence.transcript_size_bytes == len(raw)
     assert evidence.transcript_sha256 == hashlib.sha256(raw).hexdigest()
+
+
+def test_read_cli_session_skips_non_image_exec_input_with_normal_javascript(tmp_path):
+    raw = _session_bytes(
+        _record(
+            "response_item",
+            {
+                "type": "custom_tool_call",
+                "name": "exec",
+                "call_id": "call-text-1",
+                "input": "await tools.exec_command({cmd: `printf '%s\\n' > ${outputPath}`});",
+            },
+            ordinal=1,
+        ),
+    )
+    session_path = tmp_path / "text-session.jsonl"
+    session_path.write_bytes(raw)
+
+    evidence = read_cli_session(
+        session_path,
+        SESSION_ID,
+        max_event_bytes=4096,
+        max_total_bytes=8192,
+    )
+
+    assert evidence.image_calls == ()
+    assert evidence.image_events == ()
+
+
+def test_read_cli_session_rejects_unrecognized_custom_tool_name(tmp_path):
+    raw = _session_bytes(
+        _record(
+            "response_item",
+            {"type": "custom_tool_call", "name": "other", "call_id": "call-1", "input": "{}"},
+            ordinal=1,
+        ),
+    )
+    session_path = tmp_path / "unexpected-tool.jsonl"
+    session_path.write_bytes(raw)
+
+    with pytest.raises(CodexExecTelemetryError, match="unsupported custom tool"):
+        read_cli_session(session_path, SESSION_ID, max_event_bytes=4096, max_total_bytes=8192)
+
+
+def test_read_cli_session_rejects_imagegen_hidden_in_template_interpolation(tmp_path):
+    raw = _session_bytes(
+        _record(
+            "response_item",
+            {
+                "type": "custom_tool_call",
+                "name": "exec",
+                "call_id": "call-template-image",
+                "input": (
+                    'await tools.exec_command({cmd: `run ${await tools.image_gen__imagegen('
+                    '{prompt: "hidden", transparent_background: false})}`});'
+                ),
+            },
+            ordinal=1,
+        ),
+        _extension("completed"),
+    )
+    session_path = tmp_path / "template-image-session.jsonl"
+    session_path.write_bytes(raw)
+
+    with pytest.raises(CodexExecTelemetryError, match="no matching ImageGen"):
+        read_cli_session(session_path, SESSION_ID, max_event_bytes=4096, max_total_bytes=8192)
 
 
 def test_read_cli_session_rejects_mismatched_session_and_oversized_record(tmp_path):

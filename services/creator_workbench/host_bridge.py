@@ -3,6 +3,7 @@
 import argparse
 import hmac
 import json
+import os
 import subprocess
 import sys
 import threading
@@ -55,6 +56,22 @@ class QueueBridge:
 
         profile = build_codex_exec_profile(self.executable, source_root=self.source_root)
         return profile.model_dump(mode="json", by_alias=True)
+
+    def exec_readiness(self):
+        """Return safe local login readiness without including CLI output."""
+        if any(root is None for root in (self.source_root, self.outputs_root, self.private_root)):
+            from plotloom.codex_exec_contracts import CodexExecReadiness
+            return CodexExecReadiness(state="unavailable").model_dump(mode="json", by_alias=True)
+        import sys
+        sys.path.insert(0, str(self.source_root / "src"))
+        from plotloom.codex_exec_auth import check_codex_exec_readiness
+
+        readiness = check_codex_exec_readiness(
+            self.executable,
+            environment=os.environ.copy(),
+            forbidden_roots=(self.source_root, self.outputs_root, self.private_root),
+        )
+        return readiness.model_dump(mode="json", by_alias=True)
 
     def queue(self, payload):
         if not isinstance(payload, dict) or set(payload) != {"thread", "message"}:
@@ -136,6 +153,12 @@ def handler_for(bridge: QueueBridge):
                         self.reply(200, bridge.exec_profile())
                     except (OSError, RuntimeError, ValueError, ImportError):
                         self.reply(503, {"error": "codex_exec_profile_unavailable"})
+                    return
+                if self.path == "/exec-readiness":
+                    try:
+                        self.reply(200, bridge.exec_readiness())
+                    except Exception:
+                        self.reply(200, {"state": "unavailable"})
                     return
                 if self.path.startswith("/exec-status/"):
                     try:

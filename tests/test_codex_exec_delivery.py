@@ -34,6 +34,7 @@ def _request() -> CreativeHandoffRequest:
 
 def _profile() -> CodexExecProfile:
     return CodexExecProfile(
+        contractVersion="plotloom.codex-exec.v1",
         executableSha256="a" * 64,
         cliVersion="codex-cli 0.162.0-alpha.17.2",
         model="gpt-6.1-sol",
@@ -140,6 +141,84 @@ def test_cli_creative_package_is_separate_and_host_publishes_completion(tmp_path
     )
     assert delivery is not None
     assert delivery.manifest == manifest
+
+
+def test_cli_branch_assignment_uses_pinned_read_only_source_paths(tmp_path: Path):
+    request = _request().model_copy(update={"stage": "branches"})
+    exchange = CreativeHandoffExchange(tmp_path / "project" / "outputs" / "creative-handoff")
+    pin = exchange.current_execution_pin(request.stage)
+    paths = exchange.write_package(request, pin, executor_backend="codex_exec")
+    package = Path(paths["packagePath"])
+    instructions = (package / "COPY_ASSIGNMENT.txt").read_text(encoding="utf-8")
+
+    assert '"$PLOTLOOM_UV" run --project "$PLOTLOOM_SOURCE_ROOT" --locked --no-sync python' in instructions
+    assert '"$PLOTLOOM_SOURCE_ROOT/scripts/branch_suggestion.py"' in instructions
+    assert '`"$PLOTLOOM_SOURCE_ROOT/third_party/shuohao-skills/skills/novel-outline"`' in instructions
+    assert "Output strictly inputs/branch-schema.json" in instructions
+    assert "Preserve every planned node, choice-option and join ID" in instructions
+    assert "Disclose ambiguous proposals in clarifications" in instructions
+    assert "From the repository root" not in instructions
+    assert "trusted Codex Exec host publishes completion" in instructions
+
+
+@pytest.mark.parametrize(
+    ("stage", "skill_directory"),
+    [
+        ("outline", "novel-outline"),
+        ("characters", "novel-characters"),
+        ("art", "novel-art"),
+        ("script", "novel-script"),
+        ("storyboard", "novel-storyboard"),
+    ],
+)
+def test_cli_assignment_maps_base_dir_to_the_pinned_skill_directory(
+    tmp_path: Path, stage: str, skill_directory: str
+):
+    request = _request().model_copy(update={"stage": stage})
+    exchange = CreativeHandoffExchange(tmp_path / "project" / "outputs" / "creative-handoff")
+    pin = exchange.current_execution_pin(request.stage)
+    paths = exchange.write_package(request, pin, executor_backend="codex_exec")
+    instructions = (Path(paths["packagePath"]) / "COPY_ASSIGNMENT.txt").read_text(encoding="utf-8")
+
+    expected = f'`"$PLOTLOOM_SOURCE_ROOT/third_party/shuohao-skills/skills/{skill_directory}"`'
+    assert expected in instructions
+    assert "substitute the checkout root for `{baseDir}`" not in instructions
+
+
+@pytest.mark.parametrize(
+    ("stage", "required_instructions"),
+    [
+        (
+            "bridge-intent",
+            (
+                "the local native intent contract replaces upstream stage authoring",
+                "every frozen target exactly once",
+                "only id and suggestedText",
+            ),
+        ),
+        (
+            "bridge-presentation",
+            (
+                "exhaustive ordered Unicode-codepoint ownership spans",
+                "faithful rendering and required reasons",
+                "Suggestions do not approve presentation or production",
+            ),
+        ),
+    ],
+)
+def test_codex_assignments_preserve_native_bridge_stage_contracts(
+    tmp_path: Path, stage: str, required_instructions: tuple[str, ...]
+):
+    request = _request().model_copy(update={"stage": stage})
+    exchange = CreativeHandoffExchange(tmp_path / "project" / "outputs" / "creative-handoff")
+    # This covers package text only; current_execution_pin correctly rejects
+    # uncommitted native bridge sources in a developer worktree.
+    pin = {"upstreamRevision": "a" * 40, "upstreamSkillHash": "b" * 64, "specialistSkillHash": "c" * 64}
+    paths = exchange.write_package(request, pin, executor_backend="codex_exec")
+    instructions = (Path(paths["packagePath"]) / "COPY_ASSIGNMENT.txt").read_text(encoding="utf-8")
+
+    for required in required_instructions:
+        assert required in instructions
 
 
 def test_cli_creative_delivery_requires_exact_project_receipt_and_inventory(tmp_path: Path):

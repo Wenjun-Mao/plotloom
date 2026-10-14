@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import json
 import signal
 import subprocess
 import time
@@ -11,22 +12,17 @@ from pathlib import Path
 
 from codex_exec_supervisor_errors import CodexExecSupervisorError
 from codex_exec_supervisor_terminal import CodexExecSupervisorTerminalMixin
-
-
-def _credential_free_environment():
-    environment = os.environ.copy()
-    secret_markers = ("API_KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL")
-    for name in tuple(environment):
-        if any(marker in name.upper() for marker in secret_markers):
-            environment.pop(name, None)
-    return environment
+from plotloom.codex_exec_auth import (
+    AUTHENTICATION_STORE,
+    credential_free_environment as _credential_free_environment,
+)
 
 
 class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin):
-    def _run(self, attempt, profile, package_request, job_root, private_dir):
+    def _run(self, attempt, profile, package_request, job_root, private_dir, source_resources=None):
         from plotloom.codex_exec_contracts import transition_exec_attempt
         try:
-            self._execute(attempt, profile, package_request, job_root, private_dir)
+            self._execute(attempt, profile, package_request, job_root, private_dir, source_resources)
         except BaseException:
             current = self._load(self._row(attempt.attempt_id)).attempt
             if current is not None and current.state not in {"completed", "failed", "settled", "outcome_unknown"}:
@@ -38,7 +34,7 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin):
         finally:
             self._workers.pop(str(attempt.attempt_id), None)
 
-    def _execute(self, attempt, profile, package_request, job_root, private_dir):
+    def _execute(self, attempt, profile, package_request, job_root, private_dir, source_resources=None):
         from plotloom.codex_exec_contracts import (
             CodexExecAttempt,
             CodexExecImageEvidence,
@@ -58,6 +54,33 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin):
         )
         from plotloom.codex_exec_telemetry import read_cli_session
 
+        if source_resources is None:
+            if attempt.domain == "text":
+                from plotloom.codex_exec_resources import codex_exec_source_resources
+                source_resources = codex_exec_source_resources(self.source_root, package_request)
+
+        try:
+            exact_profile = self.profile()
+        except Exception:
+            exact_profile = None
+        if exact_profile is None or exact_profile.profile_hash != profile.profile_hash:
+            current = self._load(self._row(attempt.attempt_id)).attempt
+            if current is not None and current.state in {"spawn_intent", "cancel_requested"}:
+                self._finish_not_started(
+                    current,
+                    worker_identity=self._registered_worker_identity(attempt.attempt_id),
+                )
+            return
+
+        if not self.codex_exec_readiness().ready:
+            current = self._load(self._row(attempt.attempt_id)).attempt
+            if current is not None and current.state in {"spawn_intent", "cancel_requested"}:
+                self._finish_not_started(
+                    current,
+                    worker_identity=self._registered_worker_identity(attempt.attempt_id),
+                )
+            return
+
         stdout_path = private_dir / "stdout.jsonl"
         stderr_path = private_dir / "stderr.log"
         for path in (stdout_path, stderr_path):
@@ -72,12 +95,28 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin):
         )
         command = [
             str(self.executable), "exec", "--json", "--cd", str(delivery),
-            "--sandbox", "workspace-write", "--model", profile.model,
+            "--model", profile.model,
             "--config", f'model_reasoning_effort="{profile.reasoning_effort}"',
-            "--config", 'cli_auth_credentials_store="keyring"',
-            "--ignore-user-config", "-",
+            "--config", f'cli_auth_credentials_store="{AUTHENTICATION_STORE}"',
+            "--config", f'default_permissions="{profile.permission_profile}"',
+            "--config", f'permissions.{profile.permission_profile}.extends=":workspace"',
+            "--config", self._permission_filesystem_config(
+                profile, job_root, delivery, private_dir, self.codex_home,
+                source_resources.read_paths if source_resources is not None else (),
+            ),
+            "--config", f'permissions.{profile.permission_profile}.network.enabled=false',
         ]
-        environment = self._cli_environment(private_dir)
+        from plotloom.codex_exec_profile import DISABLED_CLI_FEATURES
+        command.extend(flag for feature in DISABLED_CLI_FEATURES for flag in ("--disable", feature))
+        command.extend(("--config", "tools.view_image=false"))
+        if attempt.domain == "text":
+            command.extend(("--disable", "image_generation"))
+        else:
+            command.extend(("--enable", "image_generation"))
+        command.extend(("--ignore-user-config", "-"))
+        environment = self._cli_environment(
+            private_dir, source_root=self.source_root, domain=attempt.domain, source_resources=source_resources
+        )
         process = None
         try:
             with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
@@ -369,21 +408,60 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin):
                 self._mark_unknown(current)
             raise
 
-    @staticmethod
-    def _codex_home(environment):
-        root = Path(environment.get("CODEX_HOME") or (Path.home() / ".codex")).expanduser().absolute()
-        if root.is_symlink() or not root.is_dir():
-            raise CodexExecSupervisorError("attempt-owned Codex private state root is unavailable")
+    def _codex_home(self, environment):
+        root = Path(environment.get("CODEX_HOME", "")).expanduser().resolve(strict=True)
+        if root != self.codex_home:
+            raise CodexExecSupervisorError("Codex session evidence escaped its authenticated host home")
         return root
 
-    @staticmethod
-    def _cli_environment(private_dir):
+    def _cli_environment(self, private_dir, *, source_root, domain, source_resources=None):
         """Keep inherited API tokens and bridge credentials out of the worker process."""
         environment = _credential_free_environment()
         (private_dir / "tmp").mkdir(mode=0o700, exist_ok=True)
+        (private_dir / "uv-cache").mkdir(mode=0o700, exist_ok=True)
         environment["TMPDIR"] = str(private_dir / "tmp")
-        environment["CODEX_HOME"] = str(private_dir / "codex-home")
+        environment["CODEX_HOME"] = str(self.codex_home)
+        environment["UV_CACHE_DIR"] = str(private_dir / "uv-cache")
+        for name in (
+            "PLOTLOOM_SOURCE_ROOT", "PLOTLOOM_UV", "PLOTLOOM_NODE", "PLOTLOOM_PYTHON",
+            "PYTHONPATH", "NODE_PATH", "NODE_OPTIONS", "PYTHONHOME",
+            "PYTHONUSERBASE", "PYTHONSTARTUP", "PYTHONDONTWRITEBYTECODE", "PYTHONNOUSERSITE",
+            "VIRTUAL_ENV", "UV_PROJECT_ENVIRONMENT",
+        ):
+            environment.pop(name, None)
+        if domain == "text":
+            environment["PLOTLOOM_SOURCE_ROOT"] = str(source_root)
+            environment["PYTHONPATH"] = str(source_root / "src")
+            environment["PYTHONDONTWRITEBYTECODE"] = "1"
+            environment["PYTHONNOUSERSITE"] = "1"
+            environment["UV_PROJECT_ENVIRONMENT"] = str(source_root / ".venv")
+            tool_paths = dict(source_resources.tools) if source_resources is not None else {}
+            if "uv" in tool_paths:
+                environment["PLOTLOOM_UV"] = str(tool_paths["uv"])
+            if "node" in tool_paths:
+                environment["PLOTLOOM_NODE"] = str(tool_paths["node"])
+            if "python" in tool_paths:
+                environment["PLOTLOOM_PYTHON"] = str(tool_paths["python"])
         return environment
+
+    @staticmethod
+    def _permission_filesystem_config(
+        profile, job_root, delivery, private_dir, codex_home, source_read_paths=()
+    ):
+        values = {
+            ":root": "deny",
+            ":minimal": "read",
+            ":tmpdir": "write",
+            ":slash_tmp": "deny",
+            str(codex_home): "deny",
+            str(job_root / "package"): "read",
+            str(delivery): "write",
+            str(private_dir / "tmp"): "write",
+            str(private_dir / "uv-cache"): "write",
+        }
+        values.update({str(path): "read" for path in source_read_paths})
+        encoded = ",".join(f'{json.dumps(key)}={json.dumps(value)}' for key, value in values.items())
+        return f"permissions.{profile.permission_profile}.filesystem={{{encoded}}}"
 
     @staticmethod
     def _evidence_hash(stdout_path, stderr_path, transcript_hash, exit_code):

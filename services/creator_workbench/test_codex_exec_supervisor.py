@@ -2,6 +2,7 @@
 import json
 import os
 import signal
+import shutil
 import subprocess
 import time
 from contextlib import closing
@@ -49,6 +50,42 @@ def test_worker_environment_does_not_inherit_credentials(monkeypatch, supervisor
     assert environment["PYTHONUNBUFFERED"] == "1"
 
 
+def test_cli_environment_uses_only_the_frozen_text_runtime(monkeypatch, supervisor, tmp_path):
+    from plotloom.codex_exec_resources import CodexExecSourceResources
+
+    monkeypatch.setenv("PYTHONPATH", "/untrusted/python-path")
+    monkeypatch.setenv("NODE_OPTIONS", "--require=/untrusted/hook.js")
+    monkeypatch.setenv("PLOTLOOM_SOURCE_ROOT", "/untrusted/source")
+    private_dir = tmp_path / "private-attempt"
+    private_dir.mkdir()
+    source_resources = CodexExecSourceResources(
+        read_paths=(),
+        tools=(
+            ("uv", tmp_path / "uv"),
+            ("python", tmp_path / "python"),
+        ),
+    )
+
+    text_environment = supervisor._cli_environment(
+        private_dir, source_root=supervisor.source_root, domain="text", source_resources=source_resources
+    )
+    image_environment = supervisor._cli_environment(
+        private_dir, source_root=supervisor.source_root, domain="image"
+    )
+
+    assert text_environment["PLOTLOOM_SOURCE_ROOT"] == str(supervisor.source_root)
+    assert text_environment["PYTHONPATH"] == str(supervisor.source_root / "src")
+    assert text_environment["UV_PROJECT_ENVIRONMENT"] == str(supervisor.source_root / ".venv")
+    assert text_environment["PYTHONNOUSERSITE"] == "1"
+    assert text_environment["PLOTLOOM_UV"] == str(tmp_path / "uv")
+    assert text_environment["PLOTLOOM_PYTHON"] == str(tmp_path / "python")
+    assert text_environment["UV_CACHE_DIR"] == str(private_dir / "uv-cache")
+    assert "NODE_OPTIONS" not in text_environment
+    assert "PLOTLOOM_SOURCE_ROOT" not in image_environment
+    assert "PYTHONPATH" not in image_environment
+    assert "NODE_OPTIONS" not in image_environment
+
+
 def test_admission_persists_exact_spawn_intent_before_starting_private_worker(supervisor, tmp_path):
     _exchange, _request, _pin, _job_root, attempt, _profile = _prepared_text_job(
         supervisor, tmp_path, fake_cli_source="import sys, time\nsys.stdin.read()\ntime.sleep(30)\n"
@@ -77,6 +114,8 @@ def test_fake_cli_process_publishes_exact_terminal_receipt_and_delivery(supervis
         json.dumps({"source": "The Ferryman", "params": {"episodes": 1}, "episodes": []}),
     )
     monkeypatch.setenv("PLOTLOOM_TEST_SESSION_ID", str(session_id))
+    captured_command = tmp_path / "captured-command.json"
+    monkeypatch.setenv("PLOTLOOM_TEST_COMMAND_CAPTURE", str(captured_command))
     fake_cli = r'''#!/usr/bin/env python3
 import json, os, sys, time
 from datetime import date, datetime
@@ -84,6 +123,7 @@ from pathlib import Path
 from uuid import UUID
 
 sys.stdin.read()
+Path(os.environ["PLOTLOOM_TEST_COMMAND_CAPTURE"]).write_text(json.dumps(sys.argv[1:]), encoding="utf-8")
 time.sleep(1)
 delivery = Path.cwd()
 (delivery / "outline.json").write_text(os.environ["PLOTLOOM_TEST_CANDIDATE_JSON"], encoding="utf-8")
@@ -128,6 +168,36 @@ time.sleep(0.2)
         time.sleep(0.05)
 
     assert status.state == "completed", status
+    command = json.loads(captured_command.read_text(encoding="utf-8"))
+    assert command[0] == "exec"
+    assert "--sandbox" not in command
+    assert "--ignore-user-config" in command and command[-1] == "-"
+    config_values = [command[index + 1] for index, item in enumerate(command[:-1]) if item == "--config"]
+    assert 'cli_auth_credentials_store="file"' in config_values
+    assert 'default_permissions="plotloom_autopilot_delivery_v2"' in config_values
+    filesystem = next(value for value in config_values if value.startswith("permissions.plotloom_autopilot_delivery_v2.filesystem="))
+    assert "tools.view_image=false" in config_values
+    assert '":root"="deny"' in filesystem
+    assert '":minimal"="read"' in filesystem
+    assert '":tmpdir"="write"' in filesystem
+    assert '":slash_tmp"="deny"' in filesystem
+    assert f'{json.dumps(str(supervisor.codex_home))}="deny"' in filesystem
+    source_root = supervisor.source_root
+    outline_resources = (
+        source_root / "third_party" / "shuohao-skills" / "skills" / "novel-outline"
+    ).resolve()
+    node_runtime_root = Path(shutil.which("node")).resolve().parent.parent
+    assert f'{json.dumps(str(outline_resources))}="read"' in filesystem
+    assert f'{json.dumps(str(node_runtime_root))}="read"' in filesystem
+    assert f'{json.dumps(str(source_root / "src" / "plotloom"))}="read"' not in filesystem
+    assert f'{json.dumps(str(source_root / "uv.lock"))}="read"' not in filesystem
+    assert f'{json.dumps(str(source_root))}=' not in filesystem
+    assert "novel-storyboard" not in filesystem
+    assert any(
+        command[index:index + 2] == ["--disable", "image_generation"]
+        for index, item in enumerate(command[:-1])
+        if item == "--disable"
+    )
     assert status.receipt is not None
     assert status.receipt.session_id == session_id
     assert (job_root / "delivery" / "completion.json").is_file()
@@ -145,9 +215,13 @@ time.sleep(0.2)
 
 def test_cross_process_cancel_serializes_with_cli_spawn_boundary(supervisor, monkeypatch, tmp_path):
     import codex_exec_supervisor_process as process_module
+    from plotloom.codex_exec_contracts import CodexExecReadiness
 
     _exchange, _request, _pin, job_root, attempt, profile = _prepared_text_job(
         supervisor, tmp_path, fake_cli_source="import sys\nsys.stdin.read()\n"
+    )
+    monkeypatch.setattr(
+        supervisor, "codex_exec_readiness", lambda: CodexExecReadiness(state="ready")
     )
     monkeypatch.setattr(supervisor, "_start_worker", lambda _attempt_id: None)
     assert supervisor.admit(attempt).state == "spawn_intent"
@@ -155,6 +229,10 @@ def test_cross_process_cancel_serializes_with_cli_spawn_boundary(supervisor, mon
     monkeypatch.setattr(supervisor, "_process_identity", lambda pid: (pid, "fixture-birth"))
     assert supervisor._register_worker(attempt.attempt_id)
     package_request = json.loads((job_root / "package" / "request.json").read_text())
+
+    from plotloom.codex_exec_resources import codex_exec_source_resources
+
+    source_resources = codex_exec_source_resources(supervisor.source_root, package_request)
 
     session_id = uuid4()
     process_id = 887766
@@ -215,6 +293,10 @@ def test_cross_process_cancel_serializes_with_cli_spawn_boundary(supervisor, mon
         elif signal_number in {signal.SIGTERM, signal.SIGKILL}:
             process.returncode = -signal_number
 
+    # This test isolates the spawn/cancel transaction; the profile was already
+    # qualified by the fixture, so its --version probe must not look like the
+    # owned exec process being intercepted here.
+    monkeypatch.setattr(supervisor, "profile", lambda: profile)
     monkeypatch.setattr(process_module.subprocess, "Popen", fake_popen)
     monkeypatch.setattr(process_module.os, "killpg", fake_killpg)
     bridge = CodexExecSupervisor(
@@ -227,7 +309,9 @@ def test_cross_process_cancel_serializes_with_cli_spawn_boundary(supervisor, mon
 
     def run_worker():
         try:
-            supervisor._execute(attempt, profile, package_request, job_root, private_dir)
+            supervisor._execute(
+                attempt, profile, package_request, job_root, private_dir, source_resources
+            )
         except BaseException as error:
             worker_errors.append(error)
 
@@ -331,17 +415,26 @@ time.sleep(0.2)
 
 def test_broken_pipe_wait_obeys_runtime_watchdog_and_retains_unknown(supervisor, monkeypatch, tmp_path):
     import codex_exec_supervisor_process as process_module
+    from plotloom.codex_exec_contracts import CodexExecReadiness
 
     _exchange, _request, _pin, job_root, attempt, profile = _prepared_text_job(
         supervisor, tmp_path, fake_cli_source="import sys\nsys.stdin.read()\n"
+    )
+    monkeypatch.setattr(
+        supervisor, "codex_exec_readiness", lambda: CodexExecReadiness(state="ready")
     )
     monkeypatch.setattr(supervisor, "_start_worker", lambda _attempt_id: None)
     monkeypatch.setattr(supervisor, "_process_identity", lambda pid: (pid, "fixture-worker" if pid == os.getpid() else "fixture-birth"))
     status = supervisor.admit(attempt)
     assert supervisor._register_worker(attempt.attempt_id)
     package_request = json.loads((job_root / "package" / "request.json").read_text())
+
+    from plotloom.codex_exec_resources import codex_exec_source_resources
+
+    source_resources = codex_exec_source_resources(supervisor.source_root, package_request)
     private_dir = Path(supervisor._row(attempt.attempt_id)["private_dir"])
     profile = profile.model_copy(update={"max_runtime_seconds": 0})
+    monkeypatch.setattr(supervisor, "profile", lambda: profile)
 
     class BrokenPipeStdin:
         def write(self, _payload):
@@ -386,7 +479,9 @@ def test_broken_pipe_wait_obeys_runtime_watchdog_and_retains_unknown(supervisor,
     monkeypatch.setattr(process_module.time, "sleep", lambda _seconds: None)
     monkeypatch.setattr(supervisor, "_wait_for_process_group_exit", lambda _group_id: True)
 
-    supervisor._execute(attempt, profile, package_request, job_root, private_dir)
+    supervisor._execute(
+        attempt, profile, package_request, job_root, private_dir, source_resources
+    )
 
     current = supervisor.status(attempt.attempt_id)
     assert status.state == "spawn_intent"

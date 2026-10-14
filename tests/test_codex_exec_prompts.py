@@ -11,9 +11,14 @@ def test_text_prompt_assigns_candidate_files_and_leaves_completion_to_host(tmp_p
         domain="text",
     )
 
-    assert PROMPT_VERSION.endswith("v2")
+    assert PROMPT_VERSION.endswith("v3")
     assert "Write only the requested candidate and report files" in prompt
     assert "trusted host publishes the completion manifest" in prompt
+    assert "$PLOTLOOM_SOURCE_ROOT" in prompt
+    assert "$PLOTLOOM_UV" in prompt
+    assert "$PLOTLOOM_UV" in prompt
+    assert "--locked --no-sync" in prompt
+    assert "Do not `cd` into" in prompt
     assert "Do not write image files" not in prompt
 
 
@@ -27,6 +32,8 @@ def test_image_prompt_reserves_delivery_tree_for_trusted_host_copy(tmp_path):
 
     assert "Do not write image files or completion markers" in prompt
     assert "trusted host copies its exact completed session output" in prompt
+    assert "one direct top-level awaited expression" in prompt
+    assert "Do not put it in a branch" in prompt
     assert "Write only the requested candidate and report files" not in prompt
 
 

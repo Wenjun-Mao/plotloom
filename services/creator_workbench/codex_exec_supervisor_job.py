@@ -89,4 +89,10 @@ class CodexExecSupervisorJobMixin:
             or package_request.get("executorBackend") != "codex_exec"
         ):
             raise CodexExecSupervisorError("Codex Exec package does not bind the exact project attempt")
+        if attempt.domain == "text":
+            from plotloom.codex_exec_resources import codex_exec_source_read_paths
+            try:
+                codex_exec_source_read_paths(self.source_root, package_request)
+            except ValueError as error:
+                raise CodexExecSupervisorError("Codex Exec source resources do not match the frozen package") from error
         return package_request

@@ -23,6 +23,7 @@ from .codex_exec_contracts import (
     CodexExecReceipt,
     assert_receipt_matches_attempt,
 )
+from .codex_exec_resources import upstream_skill_path_for_stage
 
 
 PACKAGE_VERSION = 1
@@ -141,7 +142,8 @@ class CreativeHandoffExchange:
             }
         submodule = repository / "third_party" / "shuohao-skills"
         stage = "outline" if stage == "branches" else stage
-        upstream_skill = repository / "third_party" / "shuohao-skills" / "skills" / f"novel-{stage}" / "SKILL.md"
+        upstream_skill_relative = upstream_skill_path_for_stage(stage)
+        upstream_skill = repository / upstream_skill_relative
         specialist_skill = repository / ".agents" / "skills" / "plotloom-shuohao-specialist" / "SKILL.md"
         if not upstream_skill.is_file() or not specialist_skill.is_file():
             raise CreativeHandoffError(
@@ -169,6 +171,18 @@ class CreativeHandoffExchange:
                 "execution_pin_missing",
                 "checked-out Shuohao revision does not match the repository-recorded submodule gitlink",
             )
+        stage_root = Path(upstream_skill_relative).parent.relative_to("third_party/shuohao-skills")
+        dirty_stage = subprocess.run(
+            ["git", "-C", str(submodule), "status", "--porcelain", "--untracked-files=all", "--", str(stage_root)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if dirty_stage.returncode != 0 or dirty_stage.stdout.strip():
+            raise CreativeHandoffError(
+                "execution_pin_missing",
+                "pinned Shuohao stage resources must match their recorded submodule revision",
+            )
         return {
             "upstreamRevision": recorded_revision,
             "upstreamSkillHash": sha256(upstream_skill.read_bytes()).hexdigest(),
@@ -192,7 +206,7 @@ class CreativeHandoffExchange:
             "requestHash": frozen_hash,
             "candidateFilename": candidate_filename,
             "reportFilename": "report.html",
-            "upstreamSkillPath": f"docs/creative-workflow/native-{request.stage}.md" if request.stage in {"bridge-intent", "bridge-presentation"} else f"third_party/shuohao-skills/skills/novel-{'outline' if request.stage == 'branches' else request.stage}/SKILL.md",
+            "upstreamSkillPath": upstream_skill_path_for_stage(request.stage),
             "executionPin": execution_pin_for_request(request, execution_pin),
         }
         if executor_backend == "codex_exec":
@@ -228,17 +242,97 @@ class CreativeHandoffExchange:
             if request.stage == "bridge-presentation" else ""
         )
         if executor_backend == "codex_exec":
+            upstream_base_dir = Path(projected["upstreamSkillPath"]).parent.as_posix()
+            codex_validator_instruction = (
+                "The CLI remains in the writable delivery directory. Read the exact stage source named by "
+                "request.json's upstreamSkillPath under $PLOTLOOM_SOURCE_ROOT, including only its stage-local "
+                f"references. For any upstream command using `{{baseDir}}`, substitute "
+                f"`\"$PLOTLOOM_SOURCE_ROOT/{upstream_base_dir}\"` "
+                "for `{baseDir}`; this is the directory containing the pinned source file, not the checkout root. "
+                "Invoke Plotloom scripts by their absolute path under $PLOTLOOM_SOURCE_ROOT. "
+                "Keep all report redirection and validator side effects inside this delivery directory. "
+            )
+            if request.stage == "branches":
+                codex_validator_instruction += (
+                    "For branches, upstream outline is narrative guidance only. Output strictly "
+                    "inputs/branch-schema.json. Preserve every planned node, choice-option and join ID "
+                    "and order from source.topology. Do not emit an upstream outline or invent topology. "
+                    "Disclose ambiguous proposals in clarifications. "
+                )
+                branch_runner = (
+                    '"$PLOTLOOM_UV" run --project "$PLOTLOOM_SOURCE_ROOT" --locked --no-sync python '
+                    '"$PLOTLOOM_SOURCE_ROOT/scripts/branch_suggestion.py"'
+                )
+                codex_validator_instruction += (
+                    f"Validate with {branch_runner} validate {branch_candidate} --request {branch_request}, then "
+                    f"render with the same command and arguments using render, redirecting to {branch_report}. "
+                    "This frozen branch contract replaces the upstream outline CLI for this task. "
+                )
+            elif request.stage == "bridge-intent":
+                codex_validator_instruction += (
+                    "For bridge-intent, the local native intent contract replaces upstream stage authoring. "
+                    "Output exactly inputs/intent-schema.json: every frozen target exactly once, only id and "
+                    "suggestedText. "
+                )
+                intent_candidate = shlex.quote(str(self._job_root(request.job_id) / "delivery" / "intent.json"))
+                intent_runner = (
+                    '"$PLOTLOOM_UV" run --project "$PLOTLOOM_SOURCE_ROOT" --locked --no-sync python '
+                    '"$PLOTLOOM_SOURCE_ROOT/scripts/native_bridge_intent.py"'
+                )
+                codex_validator_instruction += (
+                    f"Validate with {intent_runner} validate {intent_candidate} --request {branch_request}, then "
+                    f"render with the same command and arguments using render, redirecting to {branch_report}. "
+                )
+            elif request.stage == "bridge-presentation":
+                codex_validator_instruction += (
+                    "For bridge-presentation, use the local presentation contract and "
+                    "inputs/presentation-schema.json. Return every frozen source ID with exhaustive ordered "
+                    "Unicode-codepoint ownership spans, faithful rendering and required reasons. Suggestions "
+                    "do not approve presentation or production. "
+                )
+                presentation_candidate = shlex.quote(str(self._job_root(request.job_id) / "delivery" / "presentation.json"))
+                presentation_runner = (
+                    '"$PLOTLOOM_UV" run --project "$PLOTLOOM_SOURCE_ROOT" --locked --no-sync python '
+                    '"$PLOTLOOM_SOURCE_ROOT/scripts/native_bridge_presentation.py"'
+                )
+                codex_validator_instruction += (
+                    f"Validate with {presentation_runner} validate {presentation_candidate} --request {branch_request}, then "
+                    f"render with the same command and arguments using render, redirecting to {branch_report}. "
+                )
+            elif request.stage == "characters":
+                cast_candidate = shlex.quote(str(self._job_root(request.job_id) / "delivery" / "cast.json"))
+                cast_contract = shlex.quote(str(self._job_root(request.job_id) / "package" / "inputs" / "cast-style-contract.json"))
+                cast_runner = '"$PLOTLOOM_NODE" "$PLOTLOOM_SOURCE_ROOT/scripts/cast-style.mjs"'
+                codex_validator_instruction += (
+                    f"Validate with {cast_runner} validate {cast_candidate} --request {branch_request} --contract {cast_contract}, then "
+                    f"render with the same arguments using render --html, redirecting to {branch_report}. "
+                )
+            elif request.stage == "art":
+                art_candidate = shlex.quote(str(self._job_root(request.job_id) / "delivery" / "art.json"))
+                cast_input = shlex.quote(str(self._job_root(request.job_id) / "package" / "inputs" / "cast.json"))
+                art_contract = shlex.quote(str(self._job_root(request.job_id) / "package" / "inputs" / "art-style-contract.json"))
+                art_runner = '"$PLOTLOOM_NODE" "$PLOTLOOM_SOURCE_ROOT/scripts/art-style.mjs"'
+                codex_validator_instruction += (
+                    f"Validate with {art_runner} validate {art_candidate} --cast {cast_input} --contract {art_contract}, then "
+                    f"render with the same arguments using render --html, redirecting to {branch_report}. "
+                )
+            else:
+                codex_validator_instruction += (
+                    "Run the stage skill's deterministic validate and render commands against the absolute "
+                    "candidate/package paths. Do not change to the source checkout as the working directory. "
+                )
             instructions = (
-                "Read request.json, each inputs/*.json file, and the pinned upstream skill path. "
+                "Read request.json, each inputs/*.json file, the pinned upstream source path and its referenced "
+                "stage-local resources. "
                 f"Write only the stage-shaped candidate JSON to ../delivery/{candidate_filename} and derive "
                 "../delivery/report.html from that candidate. Do not write completion.json or other files; "
                 "the trusted Codex Exec host publishes completion after the exact output inventory is checked. "
-                f"{character_id_instruction}{branch_instruction}{intent_instruction}{presentation_instruction}"
+                f"{character_id_instruction}{codex_validator_instruction}"
                 "This is a candidate only: do not edit project canon, approvals, selections, or request files.\n"
             ).encode()
             return projected, instructions, b"", {"request.json", "COPY_ASSIGNMENT.txt", "inputs"}
         instructions = (
-            "Read request.json, each inputs/*.json file, and the pinned upstream skill path. "
+            "Read request.json, each inputs/*.json file, and the pinned upstream source path. "
             f"Write the stage-shaped candidate JSON to the sibling ../delivery/{candidate_filename}, then derive "
             "../delivery/report.html from that candidate. Never create package/delivery. Finally publish "
             "../delivery/completion.json once. "

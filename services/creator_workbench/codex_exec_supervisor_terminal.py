@@ -78,7 +78,7 @@ class CodexExecSupervisorTerminalMixin:
                 from plotloom.codex_exec_runtime import read_generated_image
                 _content, remote_output_hash = read_generated_image(
                     Path(event.saved_path),
-                    codex_home=stdout_path.parent / "codex-home",
+                    codex_home=self.codex_home,
                     session_id=session.session_id,
                     max_bytes=max_output_bytes,
                 )

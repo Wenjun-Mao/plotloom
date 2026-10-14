@@ -46,7 +46,7 @@ class CodexSessionEvidence:
     transcript_size_bytes: int
 
 
-def _tokens(source: str) -> tuple[_Token, ...]:
+def _tokens(source: str, *, allow_unrelated_syntax: bool = False) -> tuple[_Token, ...]:
     values: list[_Token] = []
     index = 0
     while index < len(source):
@@ -85,10 +85,32 @@ def _tokens(source: str) -> tuple[_Token, ...]:
             try:
                 value = json.loads(literal) if quote == '"' else ast.literal_eval(literal)
             except (ValueError, SyntaxError, json.JSONDecodeError) as error:
+                if allow_unrelated_syntax:
+                    values.append(_Token("opaque_string", None))
+                    continue
                 raise CodexExecTelemetryError("tool source string is not a supported literal") from error
             if not isinstance(value, str):
                 raise CodexExecTelemetryError("tool source string is not text")
             values.append(_Token("string", value))
+            continue
+        if char == "`":
+            # The qualified ImageGen source shape does not use templates. Keep
+            # them opaque for unrelated exec snippets; if an ImageGen call is
+            # also present, the exact whole-source grammar below rejects it.
+            index += 1
+            escaped = False
+            while index < len(source):
+                current = source[index]
+                index += 1
+                if escaped:
+                    escaped = False
+                elif current == "\\":
+                    escaped = True
+                elif current == "`":
+                    break
+            if not allow_unrelated_syntax:
+                raise CodexExecTelemetryError("ImageGen arguments cannot use template strings")
+            values.append(_Token("opaque_string", None))
             continue
         if char.isalpha() or char in "_$":
             start = index
@@ -106,6 +128,10 @@ def _tokens(source: str) -> tuple[_Token, ...]:
             continue
         if char in "{}[]():,.;=":
             values.append(_Token(char, char))
+            index += 1
+            continue
+        if allow_unrelated_syntax:
+            values.append(_Token("other", char))
             index += 1
             continue
         raise CodexExecTelemetryError("tool source contains unsupported syntax")
@@ -182,8 +208,15 @@ class _ObjectParser:
 
 
 def parse_imagegen_tool_source(source: str) -> dict[str, Any] | None:
-    """Parse one literal built-in ImageGen call; never execute or regex-match it."""
-    tokens = _tokens(source)
+    """Parse the sole supported, awaited top-level ImageGen expression.
+
+    The CLI transcript records JavaScript source and a separate extension
+    event, but does not bind that event to the source call's arguments. Only
+    accepting one direct statement prevents a dead branch, helper function,
+    template interpolation, or unrelated call from donating arguments to an
+    observed event.
+    """
+    tokens = _tokens(source, allow_unrelated_syntax=True)
     matches = []
     imagegen_names = [index for index, token in enumerate(tokens)
                       if token.kind == "identifier" and token.value == "image_gen__imagegen"]
@@ -202,7 +235,28 @@ def parse_imagegen_tool_source(source: str) -> dict[str, Any] | None:
         return None
     if len(matches) != 1:
         raise CodexExecTelemetryError("one CLI tool invocation cannot contain multiple ImageGen calls")
-    return _ObjectParser(tokens, matches[0]).imagegen_arguments()
+    index = matches[0] - 1
+    expected_prefix = (
+        _Token("identifier", "await"),
+        _Token("identifier", "tools"),
+        _Token(".", "."),
+    )
+    if index != len(expected_prefix) or tokens[:index] != expected_prefix:
+        raise CodexExecTelemetryError(
+            "ImageGen evidence requires one direct top-level awaited built-in call"
+        )
+    parser = _ObjectParser(tokens, matches[0])
+    arguments = parser.imagegen_arguments()
+    suffix = tokens[parser.index:]
+    if suffix not in {(), (_Token(";", ";"),)}:
+        raise CodexExecTelemetryError(
+            "ImageGen evidence cannot share an exec snippet with other JavaScript"
+        )
+    if any(token.kind == "opaque_string" for token in tokens):
+        raise CodexExecTelemetryError(
+            "ImageGen evidence cannot share an exec snippet with opaque template code"
+        )
+    return arguments
 
 
 def read_cli_session(session_path: Path, expected_session_id: UUID, *, max_event_bytes: int, max_total_bytes: int) -> CodexSessionEvidence:
@@ -259,6 +313,9 @@ def read_cli_session(session_path: Path, expected_session_id: UUID, *, max_event
                     last_ordinal = ordinal
                 payload = row.get("payload")
                 if row["type"] == "response_item" and isinstance(payload, dict) and payload.get("type") == "custom_tool_call":
+                    tool_name = payload.get("name")
+                    if tool_name != "exec":
+                        raise CodexExecTelemetryError("Codex session contains an unsupported custom tool")
                     source = payload.get("input")
                     call_id = payload.get("call_id")
                     if not isinstance(source, str) or not isinstance(call_id, str) or not call_id:

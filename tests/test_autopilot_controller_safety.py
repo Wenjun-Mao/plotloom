@@ -17,6 +17,44 @@ def _current(storage, view):
         return store.repository.autopilot.current(view.project_id)
 
 
+def test_launch_requires_usable_cli_login_before_creating_frozen_run(tmp_path, monkeypatch):
+    from plotloom.autopilot_contracts import LaunchRequest
+    from plotloom.autopilot_service import AutopilotService
+    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+    from plotloom.image_job_contracts import ImageJobError
+    from plotloom.codex_exec_contracts import CodexExecReadiness
+    from plotloom.project_storage import ProjectFolderStorage
+    from tests.autopilot_controller_fixtures import PIN
+    from tests.codex_exec_fixtures import install_profile
+    from tests.test_specialist_settings import configured
+
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    with closing(storage.projects.create(FIXED_CHINESE_BRIEF)) as store:
+        project_id = store.manifest.project_id
+    registry, _settings = configured(storage.application.root)
+    install_profile(registry)
+    registry.codex_exec_readiness = lambda: CodexExecReadiness(state="not_authenticated")
+    monkeypatch.setattr(CreativeHandoffExchange, "current_execution_pin", lambda *_: PIN)
+    service = AutopilotService(storage, registry)
+    request = LaunchRequest(
+        expected_brief_revision=1,
+        render_style="realistic",
+        art_render_style="realistic",
+    )
+    try:
+        with pytest.raises(ImageJobError) as error:
+            service.launch(project_id, request)
+        assert error.value.code == "codex_exec_not_ready"
+        with closing(storage.projects.open(project_id)) as store:
+            assert store.repository.autopilot.current(project_id) is None
+    finally:
+        service.close()
+
+
 @pytest.mark.parametrize("stage", ["outline", "bridge-intent"])
 @pytest.mark.parametrize("drift", ["pin", "profile"])
 def test_frozen_cli_configuration_rechecked_at_final_spawn_gate(tmp_path, monkeypatch, stage, drift):
@@ -72,6 +110,40 @@ def test_frozen_cli_configuration_rechecked_at_final_spawn_gate(tmp_path, monkey
         assert calls == calls_before
         assert registry._codex_exec_test_host.admissions == admissions_before
         assert attempt is None
+    finally:
+        service.close()
+
+
+def test_lost_cli_login_readiness_does_not_reserve_or_admit_prepared_job(tmp_path, monkeypatch):
+    from plotloom.codex_exec_contracts import CodexExecReadiness
+
+    storage, registry, service, view, calls = environment(tmp_path, monkeypatch, auto_deliver=True)
+    try:
+        assert service.acquire_controller()
+        for _ in range(80):
+            service.step(view.project_id)
+            current = _current(storage, view)
+            checkpoint = next((item for item in current.checkpoints if item["operationKey"] == "outline"), None)
+            if checkpoint is not None and checkpoint["state"] == "prepared":
+                break
+        assert checkpoint is not None and checkpoint["state"] == "prepared"
+
+        admissions_before = registry._codex_exec_test_host.admissions
+        calls_before = list(calls)
+        registry.codex_exec_readiness = lambda: CodexExecReadiness(state="not_authenticated")
+        service.step(view.project_id)
+
+        current = _current(storage, view)
+        retained = next(item for item in current.checkpoints if item["operationKey"] == "outline")
+        with closing(storage.projects.open(view.project_id)) as store:
+            attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
+                current.id, "outline"
+            )
+        assert current.state == "blocked" and current.blocker["code"] == "codex_exec_not_ready"
+        assert retained["state"] == "prepared" and retained["evidence"].get("executorAttemptId") is None
+        assert attempt is None and receipt is None
+        assert registry._codex_exec_test_host.admissions == admissions_before
+        assert calls == calls_before
     finally:
         service.close()
 

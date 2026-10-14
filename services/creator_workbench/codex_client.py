@@ -13,7 +13,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "command",
-        choices=["queue", "bridge-health", "exec-profile", "exec-admit", "exec-status", "exec-cancel"],
+        choices=["queue", "bridge-health", "exec-profile", "exec-readiness", "exec-admit", "exec-status", "exec-cancel"],
     )
     parser.add_argument("--thread")
     parser.add_argument("--message")
@@ -53,6 +53,7 @@ def main(argv=None):
         "queue": "/queue",
         "bridge-health": "/healthz",
         "exec-profile": "/exec-profile",
+        "exec-readiness": "/exec-readiness",
         "exec-admit": "/exec-admit",
         "exec-status": f"/exec-status/{args.attempt_id}" if args.attempt_id else "",
         "exec-cancel": (
@@ -88,6 +89,15 @@ def main(argv=None):
             print("Codex Exec profile acknowledgement is invalid.", file=sys.stderr)
             return 1
         print(profile.model_dump_json(by_alias=True))
+        return 0
+    if args.command == "exec-readiness":
+        try:
+            from plotloom.codex_exec_contracts import CodexExecReadiness
+            readiness = CodexExecReadiness.model_validate(result)
+        except (ImportError, TypeError, ValueError):
+            print("Codex Exec readiness acknowledgement is invalid.", file=sys.stderr)
+            return 1
+        print(readiness.model_dump_json(by_alias=True))
         return 0
     if args.command in {"exec-admit", "exec-status", "exec-cancel"}:
         try:
