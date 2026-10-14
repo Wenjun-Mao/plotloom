@@ -331,6 +331,66 @@ saved-Brief routes, Python/uv routes, and failed/missing/changed evidence cases.
 Run focused regressions and independent review; preserve unknown/budget guards.
 Generation, pool/full/hosted checks, merge and live activation remain held.
 
+#### Released source/diagnostic checkpoint · 2026-10-14
+
+The worker committed the trusted text-validation repair as
+`7b30ad3d8afeacd9aade11385e8b6bd41b8542e3` in
+`/Users/wjmao/.codex/worktrees/b30f/plotloom` on
+`codex/autopilot-cli-workers`. A focused controller case exposed a package
+boundary defect: `packagePath` is the package directory, while the new trusted
+plan reader treated it as a file. That defect, the shared package/request
+projection and candidate-only prompt ownership are repaired. Focused checks
+passed and independent read-only review found no concrete blockers. The
+complete 11-plan native sandbox gate remains unqualified. The paused run and its
+unknown art attempt above remain untouched; no provider work or replay is part
+of this allocation.
+
+The owner approved both operation-local Script/Storyboard context reuse and a
+bounded four-worker Python experiment on October 14 (eight only after measured
+headroom; the release default stays two). The CLI worker released source/check
+ownership at this checkpoint and is idle. The manager now owns the Python
+implementation and quiet timing window in `python85-profiling`; CLI source
+changes, additional probes and generation remain held during that window.
+
+The first all-route sandbox probe passed the Outline Node validate/render pair
+but the Branches Python/uv validator stopped before validation:
+`uv` could not canonicalize `.venv/bin/python`. No provider was called and no
+candidate was accepted. The retained probe and denial logs are in
+`.local/exec-validator-sandbox-probes/20261014-02/` in the worker checkout.
+Under the exact profile, Python `lstat`/`readlink` of `.venv/bin/python` pass,
+while following it with `stat`/`realpath` is denied. `codex sandbox
+--log-denials` records `file-read-metadata` denied on the intermediate uv
+runtime alias `~/.local/share/uv/python/cpython-3.12-macos-aarch64-none`, even
+though the profile lists that exact alias path. Operation and uv logs are in
+`.local/exec-validator-sandbox-probes/20261014-03/`.
+
+Private-venv diagnostics in `20261014-04/`, `20261014-05/` and `20261014-06/`
+did not test an alias-free runtime: each venv's raw `bin/python` link points to
+`~/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12`, and
+that intermediate directory is itself a symlink to
+`cpython-3.12.13-macos-aarch64-none`. Each `pyvenv.cfg` sets `home` to the
+mutable `cpython-3.12-macos-aarch64-none/bin` alias, `implementation = CPython`,
+`uv = 0.12.19`, `version_info = 3.12`, and
+`include-system-site-packages = false`. All three therefore reproduced the
+alias metadata denial. Their recorded argv hashes are respectively
+`b7e70a5a`, `159ea621` and `6777e562`; filesystem-config hashes are
+`94d61cce`, `6af00b1a` and `578f31b7`. The scratch script was edited between
+runs rather than snapshotted with each result, so these hashes distinguish the
+captured commands/maps but do not substitute for contemporaneous script
+snapshots. Future probe roots must save the exact script and argv before launch.
+
+The single alias-free diagnostic in `20261014-07/` used the exact versioned
+interpreter through supported `venv --copies`, followed by locked offline sync.
+The copied executable and `pyvenv.cfg` remained alias-free. Original aliases
+and synthetic sibling-runtime/credential sentinels were denied. The subsequent
+`uv run --project … --locked --no-sync` import control failed because the
+sandbox denied reading `src` while granting `src/plotloom`; the Branches
+validator did not run. Its exact script, argv/config and results are retained.
+This diagnostic did not approve a production provisioning or permission change.
+All owned diagnostic processes exited. No retry, provider call, full gate,
+activation, merge or push was performed. Decide the CLI runtime/import contract
+from this checkpoint before allocating further native proof.
+
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
 workers with 13.762 seconds of actual tool-interval overlap. All processes
