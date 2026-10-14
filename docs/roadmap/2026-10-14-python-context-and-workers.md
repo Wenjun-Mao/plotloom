@@ -1808,6 +1808,67 @@ dispatch until root reviews the concrete new observer and allocates CLI quiet.
 No timing gain, final full qualification, hosted CI, push or product acceptance
 is established by this implementation checkpoint.
 
+### Creator-confirmation seed matched whole-file result
+
+Root reviewed the concrete new 374-line observer, successful syntax/static/
+canonical-path preflight and actual independent no-findings review, then gave
+one START after fresh CLI quiet ACK. Native session 18844 ran once and exited
+zero. Before was clean `245975b51840b388a3a08a59d6ff020de6a130e1`; after was
+clean `8fef5a2f5db3ddf868025ce7e817f9a4754a9c96`. Each side ran the exact whole-
+file focused command proposed above, with no seed prewarming. External complete
+command time includes immediate owned cleanup, wrapper startup/selector
+collection, imports, actual seed construction/copies, call/teardown/reporting
+and the observer's one-second process observations. Separate native collection,
+identity probes, extraction and final external-root removal are excluded.
+
+| Side | External wall seconds | Setup | Call | Teardown | Phase sum |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| before | 74.18319450000126 | 0.007142456 | 70.746272126 | 0.000872126 | 70.754286708 |
+| after | 40.7252597080078 | 10.076479999 | 28.088784249 | 0.000685165 | 38.165949413 |
+
+Phase seconds are rounded to nine decimal places here; full precision is in
+`result.json`. Both actual executions passed **all 16 cases**. The after-side
+10.076480s setup includes real session-seed construction, rather than removing
+it from the comparison. Observed complete-command reduction is
+**33.457934791993466s / 45.10177138838757%** in this single pair. This is scoped
+file evidence, not a repeated/statistical result, whole-suite gain or an amount
+to add to earlier pairs or subtract from the separate 524.161556s capture. The
+unchanged fixed-resource **151.73295s** target and combined full qualification
+remain open; no production parsing-context work is allocated by this result.
+
+Both sides retained the same ordered 16 native IDs, file SHA-256
+`e9d2689866e678ff3c4255264df633d25f807de1464e5478368ec399f85110cc` and
+native fingerprint
+`628c63d3757606ff9845972bc59cef9a5cdaa14c760a02fe1f1d6e31056e68c2`.
+The wrapper's collection-only marker correctly reports `complete=false` /
+zero files and is separated from the actual successful 16-case / one-file
+completion proof. Each execution has exactly one valid 16-case phase row.
+Before/after-collection/after probes agree within each pin, with the previously
+recorded distinct executable inputs, matching dependency/manifest/host identity,
+and unchanged protected completed observers/results/logs/phase/native-ID bytes.
+
+Observed owned groups 64377, 64399, 65080 and 65102 settled; an immediate
+independent process-group filter found no survivors. The fresh external roots
+`/private/tmp/plotloom-creator-pair-before-652_ps3o` and
+`/private/tmp/plotloom-creator-pair-after-38btfqu1` were removed after their
+device/inode ownership checks. Exact clean main `8fef5a2f` was restored;
+`result.json` records `complete=true`. Root independently confirmed terminal /
+cleanup / restoration and released CLI before this documentation-only receipt.
+No retry, extra pair, profile, broader/full capture, hosted CI or push occurred.
+
+Evidence root `.local/remaining-cost/creator-confirmation-seed-quiet-0j8wvh0b/`:
+
+- `result.json`: `21e50c843668203040fc345193e1dcf5119143dce584e74bfe1116c70ac88843`;
+- `before/focused.log`: `efcf89a59b591ed7ebababecd1af5137b41c08fd6cb98c09fdf75a87bbfa3331`;
+- `after/focused.log`: `49ed6f732cc60e6b185148653cab6bbcaa46d84f2563f20d60ea3168004f98d1`;
+- observer `.local/remaining-cost/creator_confirmation_seed_quiet_pair.py`:
+  `a5605b992d1e165868ffe76664aee3b572bb3107dbe35cd29ea1925ac17f7dc2`.
+
+All retained pair artifact hashes still match. This receipt changes only the
+plan, does not retarget the now-completed observer and establishes no new
+runtime/workflow contract or product acceptance. No checks were rerun solely
+for documentation; diff/command consistency and immutable hashes were reviewed.
+
 ### Historical material-closure attribution — read-only extraction
 
 The manager extracted the existing main-thread complete-pack profile without
