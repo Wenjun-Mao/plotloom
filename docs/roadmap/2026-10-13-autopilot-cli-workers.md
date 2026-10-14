@@ -49,6 +49,16 @@ gates, activation, merge, push and global settings. Return a reviewed committed
 checkpoint and explicitly release the source/check window; the manager owns
 subsequent Python work, integration and native-generation allocation.
 
+The repair is committed at `e24cb80e`; the test-owned runtime fixture follow-up
+is `7685a868` and changes no production qualification inputs. All eleven native
+validate/render pairs and seven controls passed once (29 commands), with exact
+prelaunch plans and unchanged output/input inventories. Independent source and
+fixture reviews found no blockers; a fresh checkout without ignored runtime
+setup passed 34 focused and 49 service checks. See the
+[bounded verification receipt](../verification/2026-10-14-codex-exec-checked-python-runtime.md)
+for qualified revisions, fingerprints and limits. This checkpoint returns the
+source/check window to the manager; it does not release generation or activation.
+
 Start only when the preceding source writer is idle, required reviews are
 collected, and the manager has released the source and heavy-check windows.
 Use a fresh isolated checkout of that released revision because the retained
