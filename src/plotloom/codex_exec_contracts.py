@@ -9,10 +9,9 @@ from uuid import UUID
 
 from pydantic import Field, model_validator
 
+from .codex_exec_constants import HASH, JOB_ID as JOB_ID
 from .domain import CamelModel, contains_secret_setting, contains_secret_value
 
-HASH = r"^[a-f0-9]{64}$"
-JOB_ID = r"^(?:ch_[a-z0-9]{20,64}|ij_[a-z0-9]{20,64})$"
 ExecCapability = Literal[
     "exec_json_events_v1",
     "session_rollout_v1",
@@ -96,7 +95,7 @@ class CodexExecProfile(CamelModel):
     backend: Literal["codex_exec"] = "codex_exec"
     contract_version: Literal[
         "plotloom.codex-exec.v1", "plotloom.codex-exec.v2", "plotloom.codex-exec.v3",
-        "plotloom.codex-exec.v4",
+        "plotloom.codex-exec.v4", "plotloom.codex-exec.v5",
     ] = "plotloom.codex-exec.v4"
     executable_sha256: str = Field(pattern=HASH)
     cli_version: str = Field(min_length=1, max_length=80)
@@ -110,9 +109,14 @@ class CodexExecProfile(CamelModel):
     # model-generated commands and built-in capabilities.
     sandbox_profile: Literal["read_only_with_delivery_write"] | None = Field(default=None, exclude_if=lambda value: value is None)
     authentication_store: Literal["file"] | None = Field(default=None, exclude_if=lambda value: value is None)
-    permission_profile: Literal["plotloom_autopilot_delivery_v2"] | None = Field(default=None, exclude_if=lambda value: value is None)
+    permission_profile: Literal[
+        "plotloom_autopilot_delivery_v2", "plotloom_autopilot_delivery_v3",
+    ] | None = Field(default=None, exclude_if=lambda value: value is None)
     tool_profile: Literal[
         "plotloom_autopilot_tools_v2", "plotloom_autopilot_tools_v3", "plotloom_autopilot_tools_v4"
+    ] | None = Field(default=None, exclude_if=lambda value: value is None)
+    text_validator_runtime_profile: Literal[
+        "node_openssl_and_private_zsh_tmp_v1",
     ] | None = Field(default=None, exclude_if=lambda value: value is None)
     max_runtime_seconds: int = Field(ge=30, le=7200)
     max_event_bytes: int = Field(ge=1024, le=50_000_000)
@@ -151,8 +155,17 @@ class CodexExecProfile(CamelModel):
             or self.authentication_store != "file"
             or self.permission_profile != "plotloom_autopilot_delivery_v2"
             or self.tool_profile != "plotloom_autopilot_tools_v4"
+            or self.text_validator_runtime_profile is not None
         ):
             raise ValueError("Codex Exec v4 requires its pinned auth, permission and reference-view tool profile")
+        elif self.contract_version == "plotloom.codex-exec.v5" and (
+            self.sandbox_profile is not None
+            or self.authentication_store != "file"
+            or self.permission_profile != "plotloom_autopilot_delivery_v3"
+            or self.tool_profile != "plotloom_autopilot_tools_v4"
+            or self.text_validator_runtime_profile != "node_openssl_and_private_zsh_tmp_v1"
+        ):
+            raise ValueError("Codex Exec v5 requires its exact Node and private zsh runtime profile")
         selected = set(self.capabilities)
         if len(selected) != len(self.capabilities):
             raise ValueError("CLI capability pins must not contain duplicates")
@@ -160,8 +173,8 @@ class CodexExecProfile(CamelModel):
             raise ValueError("CLI profile lacks the serial executor evidence or delivery capability")
         if self.max_image_outputs and "image_gen_event_v1" not in selected:
             raise ValueError("image capacity requires the qualified native ImageGen event capability")
-        if self.contract_version == "plotloom.codex-exec.v4" and "image_reference_view_v1" not in selected:
-            raise ValueError("Codex Exec v4 requires typed reference-view evidence capability")
+        if self.contract_version in {"plotloom.codex-exec.v4", "plotloom.codex-exec.v5"} and "image_reference_view_v1" not in selected:
+            raise ValueError("Codex Exec v4 and v5 require typed reference-view evidence capability")
         payload = self.model_dump(mode="json", by_alias=True)
         if contains_secret_setting(payload) or contains_secret_value(payload):
             raise ValueError("CLI executor profiles cannot contain credentials")
@@ -195,188 +208,10 @@ ExecutorBinding = Annotated[
 ]
 
 
-class CodexExecAttempt(CamelModel):
-    """Project-owned identity and state for exactly one initial host attempt."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    attempt_id: UUID
-    run_id: UUID
-    project_id: UUID
-    job_id: str = Field(pattern=JOB_ID, max_length=64)
-    operation_key: str = Field(min_length=1, max_length=160)
-    domain: Literal["text", "image"]
-    request_hash: str = Field(pattern=HASH)
-    package_hash: str = Field(pattern=HASH)
-    profile_hash: str = Field(pattern=HASH)
-    reserved_image_outputs: int = Field(ge=0, le=4)
-    image_budget_state: Literal["none", "reserved", "consumed", "released"] = "none"
-    state: Literal[
-        "reserved",
-        "spawn_intent",
-        "running",
-        "outcome_unknown",
-        "cancel_requested",
-        "completed",
-        "failed",
-        "settled",
-    ]
-    session_id: UUID | None = None
-    process_id: int | None = Field(default=None, ge=1)
-    process_group_id: int | None = Field(default=None, ge=1)
-    process_birth_identity: str | None = Field(default=None, min_length=1, max_length=160)
-    process_exit_code: int | None = None
-    terminal_result: Literal["success", "failure", "not_started"] | None = None
-    remote_tool_state: Literal["not_applicable", "completed", "failed"] | None = None
-    evidence_hash: str | None = Field(default=None, pattern=HASH)
-    output_hash: str | None = Field(default=None, pattern=HASH)
-    remote_output_hash: str | None = Field(default=None, pattern=HASH)
-
-    @model_validator(mode="after")
-    def owned_process_and_terminal_facts(self):
-        if self.domain == "text" and self.reserved_image_outputs != 0:
-            raise ValueError("text attempts cannot reserve image output capacity")
-        if self.domain == "image" and self.reserved_image_outputs < 1:
-            raise ValueError("image attempts must reserve their frozen output count")
-        if self.domain == "text" and self.image_budget_state != "none":
-            raise ValueError("text attempts cannot reserve image output capacity")
-        if self.domain == "image" and self.image_budget_state == "none":
-            raise ValueError("image attempts must record their project budget disposition")
-        if self.process_group_id is not None and self.process_id != self.process_group_id:
-            raise ValueError("isolated Codex executions require their leader PID as process-group ID")
-        if self.process_birth_identity is not None and self.process_id is None:
-            raise ValueError("process birth identity requires a recorded process ID")
-        process_facts = (self.process_id, self.process_group_id, self.process_birth_identity)
-        if any(value is not None for value in process_facts) and any(value is None for value in process_facts):
-            raise ValueError("process ownership requires PID, process group and birth identity together")
-        if self.state in {"reserved", "spawn_intent"} and any(
-            value is not None for value in (*process_facts, self.session_id)
-        ):
-            raise ValueError("pre-spawn attempts cannot claim a process or session identity")
-        if self.state in {"completed", "failed", "settled"}:
-            if self.terminal_result is None or self.evidence_hash is None or self.remote_tool_state is None:
-                raise ValueError("terminal attempts require typed terminal, remote and evidence facts")
-        elif any(
-            value is not None
-            for value in (
-                self.terminal_result, self.remote_tool_state, self.process_exit_code,
-                self.output_hash, self.remote_output_hash,
-            )
-        ):
-            raise ValueError("nonterminal attempts cannot contain terminal settlement facts")
-        if self.domain == "image":
-            if self.state not in {"completed", "failed", "settled"} and self.image_budget_state != "reserved":
-                raise ValueError("unsettled image attempts must retain their project budget reservation")
-            if self.state in {"completed", "failed", "settled"}:
-                expected_budget_state = "consumed" if self.remote_tool_state == "completed" else "released"
-                if self.image_budget_state != expected_budget_state:
-                    raise ValueError("terminal image outcome must settle its reserved project budget")
-        if self.domain == "text" and self.remote_tool_state not in {None, "not_applicable"}:
-            raise ValueError("text attempts cannot claim a remote ImageGen operation")
-        if self.domain == "text" and self.remote_output_hash is not None:
-            raise ValueError("text attempts cannot claim a remote image byte hash")
-        if self.remote_tool_state in {"completed", "failed"} and self.session_id is None:
-            raise ValueError("a confirmed remote operation requires its exact Codex session identity")
-        if self.remote_output_hash is not None and (
-            self.domain != "image" or self.remote_tool_state != "completed"
-        ):
-            raise ValueError("remote image bytes require a confirmed completed ImageGen event")
-        if self.terminal_result == "not_started":
-            if any(value is not None for value in (
-                *process_facts, self.session_id, self.process_exit_code,
-                self.output_hash, self.remote_output_hash,
-            )):
-                raise ValueError("an attempt proven not started cannot contain process, session or output facts")
-            if self.remote_tool_state != "not_applicable":
-                raise ValueError("an attempt proven not started cannot claim a remote tool outcome")
-        if self.terminal_result == "failure":
-            if any(value is None for value in process_facts) or self.process_exit_code is None:
-                raise ValueError("failed work requires exact process ownership and an exit code")
-        if self.state == "failed" and self.terminal_result not in {"failure", "not_started"}:
-            raise ValueError("failed attempts require proof of failure or that work never started")
-        if self.terminal_result == "success":
-            if any(
-                value is None
-                for value in (*process_facts, self.session_id, self.process_exit_code, self.output_hash)
-            ) or self.process_exit_code != 0:
-                raise ValueError("completed attempts require exact successful process, session, evidence and output identities")
-            if (self.reserved_image_outputs > 0) != (self.remote_tool_state == "completed"):
-                raise ValueError("successful terminal outcome must match the reserved image operation")
-            if self.domain == "image" and self.remote_output_hash is None:
-                raise ValueError("successful ImageGen requires its exact remote output byte hash")
-        if (self.remote_tool_state == "completed" and self.output_hash is None
-                and self.terminal_result != "failure"):
-            raise ValueError("completed remote work requires a hash of its retained output bytes")
-        if (self.state in {"failed", "settled"} and self.terminal_result == "failure"
-                and self.remote_tool_state == "completed" and self.remote_output_hash is None):
-            raise ValueError("failed CLI work must retain confirmed remote ImageGen byte provenance")
-        if self.state == "completed":
-            if self.terminal_result != "success":
-                raise ValueError("completed attempts require a successful terminal result")
-        return self
-
-
-_ATTEMPT_IDENTITY_FIELDS = (
-    "attempt_id",
-    "run_id",
-    "project_id",
-    "job_id",
-    "operation_key",
-    "domain",
-    "request_hash",
-    "package_hash",
-    "profile_hash",
-    "reserved_image_outputs",
+from .codex_exec_attempt_contracts import (
+    CodexExecAttempt as CodexExecAttempt,
+    transition_exec_attempt as transition_exec_attempt,
 )
-_ATTEMPT_TRANSITIONS = {
-    "reserved": {"spawn_intent", "settled"},
-    # The project poller can first observe the host after its short CLI process
-    # has already terminally completed; terminal host proof may skip an unseen
-    # running snapshot without changing attempt identity.
-    "spawn_intent": {"running", "outcome_unknown", "cancel_requested", "completed", "failed", "settled"},
-    "running": {"outcome_unknown", "cancel_requested", "completed", "failed"},
-    "outcome_unknown": {"running", "cancel_requested", "completed", "failed", "settled"},
-    "cancel_requested": {"outcome_unknown", "completed", "failed", "settled"},
-    "completed": {"settled"},
-    "failed": {"settled"},
-    "settled": set(),
-}
-_ATTEMPT_MUTABLE_FIELDS = {
-    "state",
-    "session_id",
-    "process_id",
-    "process_group_id",
-    "process_birth_identity",
-    "process_exit_code",
-    "terminal_result",
-    "remote_tool_state",
-    "evidence_hash",
-    "output_hash",
-    "remote_output_hash",
-    "image_budget_state",
-}
-_ATTEMPT_TERMINAL_FIELDS = _ATTEMPT_MUTABLE_FIELDS - {"state"}
-
-
-def transition_exec_attempt(attempt: CodexExecAttempt, **changes) -> CodexExecAttempt:
-    """Create a new validated snapshot without permitting identity replacement."""
-    current = CodexExecAttempt.model_validate(attempt.model_dump(mode="python"))
-    if not changes or changes.keys() - _ATTEMPT_MUTABLE_FIELDS:
-        raise ValueError("attempt transitions may update only lifecycle and terminal facts")
-    candidate = CodexExecAttempt.model_validate(
-        current.model_dump(mode="python") | changes
-    )
-    for field in _ATTEMPT_IDENTITY_FIELDS:
-        if getattr(candidate, field) != getattr(current, field):
-            raise ValueError("attempt job identity is immutable across transitions")
-    if current.state in {"completed", "failed", "settled"} and any(
-        getattr(candidate, field) != getattr(current, field)
-        for field in _ATTEMPT_TERMINAL_FIELDS
-    ):
-        raise ValueError("terminal attempt evidence cannot be rewritten")
-    if candidate.state != current.state and candidate.state not in _ATTEMPT_TRANSITIONS[current.state]:
-        raise ValueError("attempt lifecycle transition is not allowed")
-    return candidate
 
 
 class CodexExecImageEvidence(CamelModel):
@@ -481,6 +316,7 @@ class CodexExecReceipt(CamelModel):
     profile_hash: str = Field(pattern=HASH)
     request_hash: str = Field(pattern=HASH)
     package_hash: str = Field(pattern=HASH)
+    plotloom_code_revision: str | None = Field(default=None, pattern=r"^[a-f0-9]{7,64}$")
     process_id: int = Field(ge=1)
     process_group_id: int = Field(ge=1)
     process_birth_identity: str = Field(min_length=1, max_length=160)
@@ -601,6 +437,7 @@ def assert_receipt_matches_attempt(attempt: CodexExecAttempt, receipt: CodexExec
         "profile_hash": attempt.profile_hash,
         "request_hash": attempt.request_hash,
         "package_hash": attempt.package_hash,
+        "plotloom_code_revision": attempt.plotloom_code_revision,
         "process_id": attempt.process_id,
         "process_group_id": attempt.process_group_id,
         "process_birth_identity": attempt.process_birth_identity,

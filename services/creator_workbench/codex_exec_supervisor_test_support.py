@@ -1,5 +1,6 @@
 """Shared fixtures and builders for creator-workbench Codex Exec tests."""
 import time
+import subprocess
 from contextlib import closing
 from pathlib import Path
 from uuid import uuid4
@@ -84,7 +85,14 @@ def _prepared_text_job(supervisor, tmp_path, *, fake_cli_source=None):
         )
         exchange = store.creative_handoff_exchange()
         execution_pin = exchange.current_execution_pin(request.stage)
-        paths = exchange.write_package(request, execution_pin, executor_backend="codex_exec")
+        code_revision = subprocess.run(
+            ["git", "-C", str(supervisor.source_root), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+        paths = exchange.write_package(
+            request, execution_pin, executor_backend="codex_exec",
+            plotloom_code_revision=code_revision,
+        )
     package = Path(paths["packagePath"])
     job_root = package.parent
     package_hash = package_tree_hash(job_root, max_total_bytes=profile.max_output_bytes)
@@ -98,6 +106,7 @@ def _prepared_text_job(supervisor, tmp_path, *, fake_cli_source=None):
         requestHash=request_hash(request),
         packageHash=package_hash,
         profileHash=profile.profile_hash,
+        plotloomCodeRevision=code_revision,
         reservedImageOutputs=0,
         state="spawn_intent",
     )

@@ -16,13 +16,13 @@ class CodexExecSupervisorTerminalMixin:
             raw_request = {
                 key: value for key, value in package_request.items()
                 if key not in {"packageVersion", "requestHash", "candidateFilename", "reportFilename",
-                    "upstreamSkillPath", "executionPin", "executorBackend"}
+                    "upstreamSkillPath", "executionPin", "executorBackend", "plotloomCodeRevision"}
             }
             request = CreativeHandoffRequest.model_validate(raw_request)
             manifest = publish_creative_completion(
                 request=request,
                 execution_pin=package_request["executionPin"],
-                code_revision=package_request["executionPin"]["upstreamRevision"],
+                code_revision=attempt.plotloom_code_revision,
                 job_root=job_root,
                 attempt=terminal,
                 profile=profile,

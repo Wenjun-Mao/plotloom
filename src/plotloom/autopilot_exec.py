@@ -52,6 +52,9 @@ def reconcile_codex_exec(
     profile = CodexExecProfile.model_validate(registry.codex_exec_profile())
     if profile != view.policy.executor_binding:
         raise InvalidTransitionError("Codex Exec profile changed after the launch was frozen.")
+    if (profile.contract_version == "plotloom.codex-exec.v5"
+            and not view.policy.code_revision):
+        raise InvalidTransitionError("Codex Exec launch omits its frozen Plotloom source revision.")
     if evidence.job_id is None or evidence.request_hash is None:
         raise InvalidTransitionError("prepared CLI checkpoint has no frozen job identity")
 
@@ -77,6 +80,7 @@ def reconcile_codex_exec(
             requestHash=evidence.request_hash,
             packageHash=package_hash,
             profileHash=profile.profile_hash,
+            plotloomCodeRevision=view.policy.code_revision,
             reservedImageOutputs=1 if domain == "image" else 0,
             imageBudgetState="reserved" if domain == "image" else "none",
             state="reserved",
@@ -95,7 +99,8 @@ def reconcile_codex_exec(
     else:
         if (attempt.job_id != evidence.job_id or attempt.request_hash != evidence.request_hash
                 or attempt.package_hash != package_hash or attempt.domain != domain
-                or attempt.operation_key != operation_key):
+                or attempt.operation_key != operation_key
+                or attempt.plotloom_code_revision != view.policy.code_revision):
             raise InvalidTransitionError("retained CLI attempt differs from its frozen package or stage")
         if evidence.executor_attempt_id != attempt.attempt_id:
             raise InvalidTransitionError("checkpoint and project CLI attempt identities differ")
@@ -142,7 +147,8 @@ def _identity(attempt):
     return (
         attempt.attempt_id, attempt.run_id, attempt.project_id, attempt.job_id,
         attempt.operation_key, attempt.domain, attempt.request_hash,
-        attempt.package_hash, attempt.profile_hash, attempt.reserved_image_outputs,
+        attempt.package_hash, attempt.profile_hash, attempt.plotloom_code_revision,
+        attempt.reserved_image_outputs,
     )
 
 

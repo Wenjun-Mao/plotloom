@@ -1,5 +1,6 @@
 """Durable automatic text path and original dispatch identities, no real calls."""
 from contextlib import closing
+import json
 import pytest
 
 from plotloom.autopilot_contracts import RunControlRequest
@@ -22,6 +23,20 @@ def test_one_start_installs_complete_text_without_human_flags_or_video(tmp_path,
             assert bridge.proposal.presentation.reviewed is False
             assert bridge.proposal.presentation.machine_adoption is not None
             assert store.source_outline_state().source.material.text == store.project().brief.synopsis
+            run = store.repository.autopilot.current(view.project_id)
+            outline_checkpoint = next(item for item in run.checkpoints if item["operationKey"] == "outline")
+            assert outline_checkpoint["state"] == "adopted"
+            attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(run.id, "outline")
+            job_root = store.creative_handoff_exchange().root / "jobs" / attempt.job_id
+            package_request = json.loads((job_root / "package" / "request.json").read_text(encoding="utf-8"))
+            manifest = json.loads((job_root / "delivery" / "completion.json").read_text(encoding="utf-8"))
+            assert attempt.plotloom_code_revision == run.policy.code_revision == "a" * 40
+            assert receipt.plotloom_code_revision == run.policy.code_revision
+            assert package_request["plotloomCodeRevision"] == run.policy.code_revision
+            assert package_request["executionPin"]["upstreamRevision"] == "d" * 40
+            assert manifest["executorProvenance"]["codeRevision"] == run.policy.code_revision
+            assert manifest["executorProvenance"]["upstreamRevision"] == "d" * 40
+            assert manifest["executorProvenance"]["codeRevision"] != manifest["executorProvenance"]["upstreamRevision"]
             with store.repository.engine.connect() as connection:
                 for table in ("v2_approval_decisions", "v2_visual_intents", "v2_reviewed_shot_bindings", "v2_same_person_reviews", "v2_video_jobs"):
                     assert connection.exec_driver_sql(f'SELECT count(*) FROM "{table}"').scalar() == 0

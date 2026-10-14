@@ -12,6 +12,8 @@ from plotloom.codex_exec_profile import (
 def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources() -> None:
     required = {
         "src/plotloom/codex_exec_contracts.py",
+        "src/plotloom/codex_exec_constants.py",
+        "src/plotloom/codex_exec_attempt_contracts.py",
         "src/plotloom/codex_exec_auth.py",
         "src/plotloom/codex_exec_delivery.py",
         "src/plotloom/codex_exec_files.py",
@@ -24,6 +26,7 @@ def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources()
         "src/plotloom/autopilot_exec.py",
         "src/plotloom/autopilot_image_controller.py",
         "src/plotloom/autopilot_text_controller.py",
+        "src/plotloom/creative_handoff_package_exchange.py",
         "src/plotloom/persistence/project/autopilot.py",
         "src/plotloom/persistence/project/autopilot_bindings.py",
         "src/plotloom/persistence/project/image_source_lineage.py",

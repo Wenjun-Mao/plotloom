@@ -33,7 +33,7 @@ def missing_completed_jobs(root, database):
 
 
 def _codex_creative_jobs(connection):
-    """Bind CLI package shape to the v4 checkpoint and its project attempt."""
+    """Bind CLI package shape to the frozen checkpoint and its project attempt."""
     from ..autopilot_contracts import LaunchPolicy, POLICY_VERSION
     from ..codex_exec_contracts import CodexExecAttempt, CodexExecReceipt
 
@@ -48,7 +48,7 @@ def _codex_creative_jobs(connection):
             policy = json.loads(raw_policy)
             if policy.get("version") == POLICY_VERSION:
                 parsed_policy = LaunchPolicy.model_validate(policy)
-                v4_runs[run_id] = (project_id, parsed_policy.executor_binding)
+                v4_runs[run_id] = (project_id, parsed_policy.executor_binding, parsed_policy.code_revision)
 
     jobs = {}
     if "v2_autopilot_checkpoints" in tables:
@@ -65,6 +65,7 @@ def _codex_creative_jobs(connection):
                     "project_id": project_id,
                     "operation_key": operation_key,
                     "profile": run_binding[1],
+                    "plotloom_code_revision": run_binding[2],
                     "attempt": None,
                     "receipt": None,
                 }
@@ -135,7 +136,8 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
             raise ProjectStorageCorruptionError("retained Codex creative checkpoint differs from its request")
         executor_backend = "codex_exec" if codex_binding is not None else "specialist_chat"
         projected, _instructions, _template, _package_members = projection_exchange._projection(
-            request, execution_pin, executor_backend=executor_backend
+            request, execution_pin, executor_backend=executor_backend,
+            plotloom_code_revision=(codex_binding["plotloom_code_revision"] if codex_binding else None),
         )
         candidate_name = CreativeHandoffExchange._candidate_filename(request.stage)
         expected = {
@@ -214,7 +216,9 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
                         or attempt.terminal_result != "success"
                         or manifest.executor_attempt_id != attempt.attempt_id
                         or manifest.codex_session_id != receipt.session_id
-                        or manifest.executor_profile_hash != attempt.profile_hash):
+                        or manifest.executor_profile_hash != attempt.profile_hash
+                        or attempt.plotloom_code_revision != codex_binding["plotloom_code_revision"]
+                        or manifest.executor_provenance.code_revision != attempt.plotloom_code_revision):
                     raise ProjectStorageCorruptionError("retained Codex creative manifest lost its exact attempt receipt")
                 try:
                     assert_receipt_matches_attempt(attempt, receipt)

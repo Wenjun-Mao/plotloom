@@ -66,6 +66,8 @@ def _assert_exec_attempt_binding(connection, project_id, run_id, state, evidence
             or attempt.operation_key != operation_key or attempt.job_id != evidence.job_id
             or attempt.request_hash != evidence.request_hash or attempt.domain != expected_domain
             or attempt.profile_hash != profile.profile_hash
+            or (profile.contract_version == "plotloom.codex-exec.v5"
+                and attempt.plotloom_code_revision != json.loads(run["policy"])["codeRevision"])
             or row["state"] != attempt.state or row["image_budget_state"] != attempt.image_budget_state
             or row["reserved_image_outputs"] != attempt.reserved_image_outputs):
         raise ValueError("Codex Exec checkpoint differs from its immutable project attempt")

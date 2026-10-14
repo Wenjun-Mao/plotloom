@@ -511,6 +511,7 @@ class ImageJobExchange(ImagePackageCommands):
             or attempt.job_id != job_id
             or attempt.request_hash != request_hash
             or attempt.profile_hash != profile.profile_hash
+            or attempt.plotloom_code_revision != (execution_pin or {}).get("codeRevision")
             or manifest.executor_profile_hash != profile.profile_hash
             or tool.executor_attempt_id != attempt.attempt_id
             or tool.codex_session_id != receipt.session_id

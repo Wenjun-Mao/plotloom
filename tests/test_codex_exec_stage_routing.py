@@ -24,6 +24,7 @@ from tests.storyboard_brief_fixtures import real_example_request
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / "third_party/shuohao-skills/skills"
 BRIEF_DIRECTION = "2D animation; hand-cut paper collage; muted watercolor"
+PLOTLOOM_CODE_REVISION = "f" * 40
 
 
 def _saved_brief_cast_and_art() -> tuple[dict, dict, str]:
@@ -71,7 +72,8 @@ def _run_emitted_commands(tmp_path: Path, stage: str) -> str:
     request, candidate, candidate_filename = _saved_brief_example(stage)
     exchange = CreativeHandoffExchange(tmp_path / "creative-handoff")
     pin = exchange.current_execution_pin(stage)
-    paths = exchange.write_package(request, pin, executor_backend="codex_exec")
+    paths = exchange.write_package(request, pin, executor_backend="codex_exec",
+        plotloom_code_revision=PLOTLOOM_CODE_REVISION)
     package = Path(paths["packagePath"])
     delivery = Path(paths["deliveryPath"])
     delivery.mkdir()
@@ -132,7 +134,10 @@ def test_preset_control_keeps_existing_adapter_and_allowlist(
         "creativeBrief": "Keep the frozen preset authority.",
     })
     exchange = CreativeHandoffExchange(tmp_path / "creative-handoff")
-    paths = exchange.write_package(request, exchange.current_execution_pin(stage), executor_backend="codex_exec")
+    paths = exchange.write_package(
+        request, exchange.current_execution_pin(stage), executor_backend="codex_exec",
+        plotloom_code_revision=PLOTLOOM_CODE_REVISION,
+    )
     package = Path(paths["packagePath"])
     instructions = (package / "COPY_ASSIGNMENT.txt").read_text(encoding="utf-8")
     package_request = json.loads((package / "request.json").read_text(encoding="utf-8"))

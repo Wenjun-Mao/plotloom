@@ -392,3 +392,37 @@ observed arguments, then checked against the frozen package references. This
 ownership mapping is the contract for the next CLI-specific package and binder
 changes; it does not rewrite retained specialist receipts or relax their
 validators.
+
+## Frozen source revision and validator runtime repair
+
+The first isolated actual-path text canary exposed two separate contract
+failures. Its trusted completion publisher labeled the Shuohao
+`executionPin.upstreamRevision` as the executor's `codeRevision`, while
+adoption compares that field with the Plotloom checkout revision frozen by the
+launch. The validator also used shell heredocs whose zsh temporary files follow
+`TMPPREFIX`, even though the supervisor had isolated only `TMPDIR`; Node's
+default OpenSSL initialization additionally needed its exact system config
+file readable in the sandbox. The observed failure therefore belongs in the
+frozen source and runtime contracts, not in adoption tolerances or delivery
+repair.
+
+Fresh creative Codex packages use version 3 and carry `plotloomCodeRevision`
+beside the unchanged upstream skill pin. The immutable attempt and its receipt
+repeat that Plotloom revision; supervisor admission, terminal manifest
+publication, persistence validation, and owner adoption require it to match the
+launch. Terminal code never derives a replacement revision from the current
+checkout or from the upstream pin. This preserves the distinct owners and
+makes missing, forged, or mismatched source identity fail closed.
+The attempt lifecycle model imports shared identifiers from a constants-only
+leaf so either public contract module can be imported first. Cold-start imports
+in both orders remain a regression guard for this dependency boundary.
+
+Fresh Codex profiles use contract v5 and permission profile v3. Text attempts
+set `TMPPREFIX` beneath their private attempt directory, discard inherited
+`OPENSSL_CONF`, then bind it to the qualified system OpenSSL config. Only text
+attempts receive read access to that exact config; image attempts do not. The
+existing `/tmp` denial remains in force. This profile records the runtime
+contract so later probes can identify what was actually authorized. A native
+sandbox probe qualifies that exact shell/runtime boundary but does not prove
+the environment of the model's internal tool implementation; that remains a
+separate actual-path qualification gap.

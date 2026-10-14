@@ -72,6 +72,7 @@ def test_image_event_and_receipt_bind_exact_attempt_session_and_bytes():
         profileHash=HASH,
         requestHash=HASH,
         packageHash=HASH,
+        plotloomCodeRevision="1" * 40,
         processId=321,
         processGroupId=321,
         processBirthIdentity="pid-start-321",
@@ -104,6 +105,7 @@ def test_image_event_and_receipt_bind_exact_attempt_session_and_bytes():
         requestHash=HASH,
         packageHash=HASH,
         profileHash=HASH,
+        plotloomCodeRevision="1" * 40,
         reservedImageOutputs=1,
         imageBudgetState="consumed",
         state="completed",
@@ -122,6 +124,10 @@ def test_image_event_and_receipt_bind_exact_attempt_session_and_bytes():
     with pytest.raises(ValueError, match="exact project attempt"):
         assert_receipt_matches_attempt(
             attempt.model_copy(update={"profile_hash": "c" * 64}), receipt
+        )
+    with pytest.raises(ValueError, match="exact project attempt"):
+        assert_receipt_matches_attempt(
+            attempt.model_copy(update={"plotloom_code_revision": "2" * 40}), receipt
         )
     with pytest.raises(ValidationError, match="process ownership"):
         assert_receipt_matches_attempt(

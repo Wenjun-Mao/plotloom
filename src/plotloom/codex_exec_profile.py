@@ -13,8 +13,10 @@ from .codex_exec_resources import validator_toolchain_hash
 SUPPORTED_CLI_VERSION = "codex-cli 0.162.0-alpha.17.2"
 EXECUTION_MODEL = "gpt-6.1-sol"
 EXECUTION_REASONING_EFFORT = "medium"
-PERMISSION_PROFILE = "plotloom_autopilot_delivery_v2"
+PERMISSION_PROFILE = "plotloom_autopilot_delivery_v3"
 TOOL_PROFILE = "plotloom_autopilot_tools_v4"
+TEXT_VALIDATOR_RUNTIME_PROFILE = "node_openssl_and_private_zsh_tmp_v1"
+NODE_OPENSSL_CONFIG = Path("/System/Library/OpenSSL/openssl.cnf")
 DISABLED_CLI_FEATURES = (
     "apps",
     "browser_annotation_api",
@@ -38,6 +40,8 @@ INSTRUCTION_FILES = (
 )
 VALIDATOR_FILES = (
     "src/plotloom/codex_exec_contracts.py",
+    "src/plotloom/codex_exec_constants.py",
+    "src/plotloom/codex_exec_attempt_contracts.py",
     "src/plotloom/codex_exec_files.py",
     "src/plotloom/codex_exec_telemetry.py",
     "src/plotloom/codex_exec_tool_source.py",
@@ -55,6 +59,7 @@ VALIDATOR_FILES = (
     "src/plotloom/autopilot_text_controller.py",
     "src/plotloom/creative_handoff_contracts.py",
     "src/plotloom/creative_handoff_exchange.py",
+    "src/plotloom/creative_handoff_package_exchange.py",
     "src/plotloom/image_commands.py",
     "src/plotloom/image_job_contracts.py",
     "src/plotloom/image_job_exchange.py",
@@ -151,13 +156,15 @@ def build_codex_exec_profile(executable: Path, *, source_root: Path) -> CodexExe
         raise RuntimeError("Codex Exec requires its qualified executable and source checkout")
     if not executable.stat().st_mode & 0o111:
         raise RuntimeError("qualified Codex CLI is not executable")
+    if NODE_OPENSSL_CONFIG.is_symlink() or not NODE_OPENSSL_CONFIG.is_file():
+        raise RuntimeError("the pinned Node validator OpenSSL configuration is unavailable")
     version = subprocess.run(
         [str(executable), "--version"], capture_output=True, timeout=5, check=False
     )
     if version.returncode != 0 or version.stderr or version.stdout.decode("utf-8", "strict").strip() != SUPPORTED_CLI_VERSION:
         raise RuntimeError("installed Codex CLI version has no qualified execution evidence adapter")
     return CodexExecProfile(
-        contractVersion="plotloom.codex-exec.v4",
+        contractVersion="plotloom.codex-exec.v5",
         executable_sha256=_hash_file(executable),
         cli_version=SUPPORTED_CLI_VERSION,
         model=EXECUTION_MODEL,
@@ -178,6 +185,7 @@ def build_codex_exec_profile(executable: Path, *, source_root: Path) -> CodexExe
         authentication_store=AUTHENTICATION_STORE,
         permission_profile=PERMISSION_PROFILE,
         tool_profile=TOOL_PROFILE,
+        text_validator_runtime_profile=TEXT_VALIDATOR_RUNTIME_PROFILE,
         max_runtime_seconds=1800,
         # Session JSONL may embed ImageGen result bytes in one Extension record.
         max_event_bytes=50_000_000,

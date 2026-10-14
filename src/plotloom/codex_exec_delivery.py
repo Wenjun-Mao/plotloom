@@ -68,7 +68,10 @@ def publish_creative_completion(
         raise ValueError("Codex Exec completion requires its exact validated project attempt") from error
     if (attempt.domain != "text" or attempt.job_id != request.job_id
             or attempt.request_hash != sha256(canonical_json(request.model_dump(mode="json", by_alias=True))).hexdigest()
-            or attempt.profile_hash != profile.profile_hash):
+            or attempt.profile_hash != profile.profile_hash
+            or attempt.plotloom_code_revision is None
+            or code_revision != attempt.plotloom_code_revision
+            or receipt.plotloom_code_revision != attempt.plotloom_code_revision):
         raise ValueError("Codex Exec completion does not match the frozen creative request or profile")
     delivery = job_root / "delivery"
     files = scan_regular_tree(job_root, "delivery", max_total_bytes=profile.max_output_bytes)
@@ -153,6 +156,9 @@ def publish_image_completion(
         or attempt.job_id != request.get("jobId")
         or attempt.request_hash != request.get("requestHash")
         or attempt.profile_hash != profile.profile_hash
+        or attempt.plotloom_code_revision is None
+        or attempt.plotloom_code_revision != execution_pin.get("codeRevision")
+        or receipt.plotloom_code_revision != attempt.plotloom_code_revision
         or attempt.reserved_image_outputs != 1
         or session.session_id != receipt.session_id
         or len(session.image_calls) != 1

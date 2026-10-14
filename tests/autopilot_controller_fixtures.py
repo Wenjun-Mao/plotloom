@@ -20,10 +20,10 @@ from plotloom.codex_exec_contracts import (
     transition_exec_attempt,
 )
 from plotloom.codex_exec_delivery import publish_creative_completion, publish_image_completion
-from plotloom.codex_exec_files import output_evidence_for_tree, scan_regular_tree
+from plotloom.codex_exec_files import output_evidence_for_tree
 from plotloom.codex_exec_telemetry import CodexSessionEvidence, ImageGenCall, ImageGenEvent, ReferenceViewEvidence
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
-from plotloom.creative_handoff_exchange import CreativeHandoffExchange, canonical_json, request_hash
+from plotloom.creative_handoff_exchange import CreativeHandoffExchange, canonical_json
 from plotloom.image_job_contracts import ImageJobError
 from plotloom.native_bridge_intent_contract import render_native_intent_report
 from plotloom.native_bridge_presentation_contract import render_native_presentation_report
@@ -37,6 +37,7 @@ from tests.test_specialist_settings import configured
 
 FIXTURES = Path(__file__).resolve().parents[1] / "frontend/e2e/fixtures/f5a"
 PIN = {"upstreamRevision": "a" * 40, "upstreamSkillHash": "b" * 64, "specialistSkillHash": "c" * 64}
+UPSTREAM_PIN = {"upstreamRevision": "d" * 40, "upstreamSkillHash": "e" * 64, "specialistSkillHash": "f" * 64}
 
 
 def candidate(store, request):
@@ -218,9 +219,11 @@ class FakeCodexExecHost:
         if attempt.domain == "image":
             return self.complete_image(store, request, attempt, output_count=1)
         profile = self.registry.codex_exec_profile()
+        run = store.repository.autopilot.current(request.project_id)
         pin = store.creative_handoff_exchange().current_execution_pin(request.stage)
         paths = store.creative_handoff_exchange().write_package(
-            request, pin, executor_backend="codex_exec"
+            request, pin, executor_backend="codex_exec",
+            plotloom_code_revision=run.policy.code_revision,
         )
         job_root = Path(paths["packagePath"]).parent
         delivery = Path(paths["deliveryPath"])
@@ -267,6 +270,7 @@ class FakeCodexExecHost:
             profileHash=completed.profile_hash,
             requestHash=completed.request_hash,
             packageHash=completed.package_hash,
+            plotloomCodeRevision=completed.plotloom_code_revision,
             processId=process_id,
             processGroupId=process_id,
             processBirthIdentity=completed.process_birth_identity,
@@ -280,7 +284,7 @@ class FakeCodexExecHost:
         publish_creative_completion(
             request=request,
             execution_pin=pin,
-            code_revision=PIN["upstreamRevision"],
+            code_revision=completed.plotloom_code_revision,
             job_root=job_root,
             attempt=completed,
             profile=profile,
@@ -436,6 +440,7 @@ class FakeCodexExecHost:
             profileHash=completed.profile_hash,
             requestHash=completed.request_hash,
             packageHash=completed.package_hash,
+            plotloomCodeRevision=completed.plotloom_code_revision,
             processId=process_id,
             processGroupId=process_id,
             processBirthIdentity=completed.process_birth_identity,
@@ -490,7 +495,11 @@ def environment(tmp_path, monkeypatch, *, auto_deliver=True, brief=None, limits=
     registry, _settings = configured(storage.application.root)
     from tests.codex_exec_fixtures import install_profile
     install_profile(registry)
-    monkeypatch.setattr(CreativeHandoffExchange, "current_execution_pin", lambda _self, _stage: PIN)
+    monkeypatch.setattr(
+        CreativeHandoffExchange,
+        "current_execution_pin",
+        lambda _self, stage: PIN if stage in {"bridge-intent", "bridge-presentation"} else UPSTREAM_PIN,
+    )
     host = FakeCodexExecHost(storage, registry, auto_deliver=auto_deliver)
     registry.codex_exec_admit = host.admit
     registry.codex_exec_status = host.status

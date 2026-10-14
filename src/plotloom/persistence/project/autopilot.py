@@ -223,6 +223,9 @@ class AutopilotPersistence:
                 raise InvalidTransitionError("only a frozen CLI executor launch can reserve this attempt")
             if attempt.profile_hash != policy.executor_binding.profile_hash:
                 raise InvalidTransitionError("CLI attempt profile differs from its frozen launch")
+            if (policy.executor_binding.contract_version == "plotloom.codex-exec.v5"
+                    and attempt.plotloom_code_revision != policy.code_revision):
+                raise InvalidTransitionError("CLI attempt Plotloom source revision differs from its frozen launch")
             if str(attempt.run_id) != run.id or str(attempt.project_id) != run.project_id:
                 raise InvalidTransitionError("CLI attempt belongs to another frozen project run")
             checkpoint = session.scalar(select(AutopilotCheckpointRow).where(

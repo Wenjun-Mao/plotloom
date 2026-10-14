@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shlex
 import stat
 import subprocess
@@ -29,6 +30,7 @@ from .creative_handoff_contracts import (
     CreativeHandoffRequest,
     is_creative_job_id,
 )
+from .creative_handoff_package_exchange import CreativeHandoffPackageExchangeMixin
 
 PACKAGE_VERSION = 1
 COMPLETION_FILENAME = "completion.json"
@@ -94,7 +96,7 @@ def _write_once(path: Path, content: bytes) -> None:
         os.fsync(handle.fileno())
 
 
-class CreativeHandoffExchange:
+class CreativeHandoffExchange(CreativeHandoffPackageExchangeMixin):
     """Packages immutable requests and reads untrusted specialist candidates."""
 
     def __init__(self, root: Path) -> None:
@@ -199,14 +201,20 @@ class CreativeHandoffExchange:
         return self._pinned_execution(stage)
 
     def _projection(
-        self, request: CreativeHandoffRequest, execution_pin: dict[str, str], *, executor_backend: str = "specialist_chat"
+        self, request: CreativeHandoffRequest, execution_pin: dict[str, str], *,
+        executor_backend: str = "specialist_chat", plotloom_code_revision: str | None = None,
     ) -> tuple[dict[str, Any], bytes, bytes, set[str]]:
         if executor_backend not in {"specialist_chat", "codex_exec"}:
             raise CreativeHandoffError("execution_backend_invalid", "creative package execution backend is unsupported")
+        if executor_backend == "codex_exec" and (
+            not isinstance(plotloom_code_revision, str)
+            or re.fullmatch(r"[a-f0-9]{7,64}", plotloom_code_revision) is None
+        ):
+            raise CreativeHandoffError("executor_revision_missing", "Codex Exec packages require the frozen Plotloom source revision")
         frozen_hash = request_hash(request)
         candidate_filename = self._candidate_filename(request.stage)
         projected = request.model_dump(mode="json", by_alias=True) | {
-            "packageVersion": 2 if executor_backend == "codex_exec" else PACKAGE_VERSION,
+            "packageVersion": 3 if executor_backend == "codex_exec" else PACKAGE_VERSION,
             "requestHash": frozen_hash,
             "candidateFilename": candidate_filename,
             "reportFilename": "report.html",
@@ -215,6 +223,7 @@ class CreativeHandoffExchange:
         }
         if executor_backend == "codex_exec":
             projected["executorBackend"] = "codex_exec"
+            projected["plotloomCodeRevision"] = plotloom_code_revision
         character_id_instruction = (
             "For characters, preserve established characters[].id values; every "
             "characters[].id must be unique and nonblank. "
@@ -345,66 +354,17 @@ class CreativeHandoffExchange:
         })
         return projected, instructions, template, {"request.json", "COPY_ASSIGNMENT.txt", TEMPLATE_FILENAME, "inputs"}
 
-    def _verify_frozen_package(
-        self, request: CreativeHandoffRequest, execution_pin: dict[str, str], *, executor_backend: str = "specialist_chat"
-    ) -> tuple[Path, dict[str, Any]]:
-        """Confirm every specialist-consumed package file still matches its projection."""
-
-        job_root = self._job_root(request.job_id)
-        package = job_root / "package"
-        projected, instructions, template, expected = self._projection(request, execution_pin, executor_backend=executor_backend)
-        names = self._names(package, package=True)
-        if names != expected:
-            raise CreativeHandoffError("package_conflict", "existing package has unexpected entries")
-        if _read_regular(package / "request.json", max_bytes=1_000_000, package=True) != canonical_json(projected):
-            raise CreativeHandoffError("package_conflict", "existing package differs from frozen request")
-        if _read_regular(package / "COPY_ASSIGNMENT.txt", max_bytes=20_000, package=True) != instructions:
-            raise CreativeHandoffError("package_conflict", "existing package instructions differ from frozen request")
-        if executor_backend == "specialist_chat" and _read_regular(package / TEMPLATE_FILENAME, max_bytes=20_000, package=True) != template:
-            raise CreativeHandoffError("package_conflict", "existing package template differs from frozen request")
-        inputs = package / "inputs"
-        if self._names(inputs, package=True) != set(request.input_artifacts):
-            raise CreativeHandoffError("package_conflict", "existing package inputs differ from frozen request")
-        for filename, payload in request.input_artifacts.items():
-            if _read_regular(inputs / filename, max_bytes=1_000_000, package=True) != canonical_json(payload):
-                raise CreativeHandoffError("package_conflict", "existing package input differs from frozen request")
-        return job_root, projected
-
-    def verified_package_paths(
-        self, request: CreativeHandoffRequest, execution_pin: dict[str, str], *, executor_backend: str = "specialist_chat"
-    ) -> dict[str, str]:
-        """Recover an existing handoff without creating or repairing frozen files."""
-        request.assert_secret_free()
-        job_root, _ = self._verify_frozen_package(request, execution_pin, executor_backend=executor_backend)
-        return {"packagePath": str(job_root / "package"), "deliveryPath": str(job_root / "delivery")}
-
-    def write_package(
-        self, request: CreativeHandoffRequest, execution_pin: dict[str, str], *, executor_backend: str = "specialist_chat"
-    ) -> dict[str, str]:
-        request.assert_secret_free()
-        job_root = self._job_root(request.job_id)
-        package = job_root / "package"
-        projected, instructions, template, _expected = self._projection(request, execution_pin, executor_backend=executor_backend)
-        self._names(package, package=True)
-        if package.exists():
-            self._verify_frozen_package(request, execution_pin, executor_backend=executor_backend)
-            return {"packagePath": str(package), "deliveryPath": str(job_root / "delivery")}
-        from .creative_package_publication import publish_package
-        files = {**{f"inputs/{filename}": canonical_json(payload) for filename, payload in request.input_artifacts.items()},
-            "request.json": canonical_json(projected), "COPY_ASSIGNMENT.txt": instructions}
-        if executor_backend == "specialist_chat":
-            files[TEMPLATE_FILENAME] = template
-        publish_package(package, digest=request_hash(request), files=files, write_once=_write_once)
-        self._verify_frozen_package(request, execution_pin, executor_backend=executor_backend)
-        return {"packagePath": str(package), "deliveryPath": str(job_root / "delivery")}
-
     def read_delivery(
         self, request: CreativeHandoffRequest, execution_pin: dict[str, str], *,
         executor_backend: str = "specialist_chat", executor_attempt: CodexExecAttempt | None = None,
         executor_profile: CodexExecProfile | None = None, executor_receipt: CodexExecReceipt | None = None,
+        plotloom_code_revision: str | None = None,
     ) -> ValidatedCreativeDelivery | None:
         request.assert_secret_free()
-        job_root, projected = self._verify_frozen_package(request, execution_pin, executor_backend=executor_backend)
+        job_root, projected = self._verify_frozen_package(
+            request, execution_pin, executor_backend=executor_backend,
+            plotloom_code_revision=plotloom_code_revision,
+        )
         delivery = job_root / "delivery"
         names = self._names(delivery)
         if not names:
@@ -434,6 +394,10 @@ class CreativeHandoffExchange:
                     or manifest.executor_provenance.model != executor_profile.model
                     or manifest.executor_provenance.reasoning_effort != executor_profile.reasoning_effort):
                 raise CreativeHandoffError("delivery_execution_mismatch", "creative delivery differs from its exact Codex Exec host receipt")
+            if (executor_attempt.plotloom_code_revision != plotloom_code_revision
+                    or executor_receipt.plotloom_code_revision != plotloom_code_revision
+                    or manifest.executor_provenance.code_revision != plotloom_code_revision):
+                raise CreativeHandoffError("delivery_execution_mismatch", "creative delivery differs from the frozen Plotloom source revision")
             receipt_outputs = {item.output_relative_path: item for item in executor_receipt.outputs}
             if any(
                 (output := receipt_outputs.get(f"delivery/{declared.filename}")) is None

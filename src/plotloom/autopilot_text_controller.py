@@ -173,7 +173,10 @@ class AutopilotTextController:
         """Publish the package format selected by the frozen executor contract."""
         exchange = store.creative_handoff_exchange()
         if view.policy.version == POLICY_VERSION:
-            return exchange.write_package(request, execution_pin, executor_backend="codex_exec")
+            return exchange.write_package(
+                request, execution_pin, executor_backend="codex_exec",
+                plotloom_code_revision=view.policy.code_revision,
+            )
         return exchange.write_package(request, execution_pin)
 
     def codex_exec_step(self, store, view, claim, stage, checkpoint, evidence, *, bridge, service):
@@ -184,7 +187,8 @@ class AutopilotTextController:
             request = (service._request(store, view.project_id, evidence.job_id)[0] if bridge else
                 store.repository.creative_terminal.run_request(view.project_id, stage, evidence.job_id))
         paths = store.creative_handoff_exchange().write_package(
-            request, evidence.execution_pin, executor_backend="codex_exec"
+            request, evidence.execution_pin, executor_backend="codex_exec",
+            plotloom_code_revision=view.policy.code_revision,
         )
         def before_spawn():
             # The earlier controller gate can be separated from host admission
@@ -345,7 +349,8 @@ class AutopilotTextController:
                 request = (service._request(store, view.project_id, evidence.job_id)[0] if bridge else
                     store.repository.creative_terminal.run_request(view.project_id, evidence.owner, evidence.job_id))
             paths = store.creative_handoff_exchange().write_package(
-                request, evidence.execution_pin, executor_backend="codex_exec"
+                request, evidence.execution_pin, executor_backend="codex_exec",
+                plotloom_code_revision=view.policy.code_revision,
             )
             attempt, _receipt, _profile = reconcile_codex_exec(
                 store, self.registry, view, claim, checkpoint,
@@ -388,6 +393,7 @@ class AutopilotTextController:
             delivery = store.creative_handoff_exchange().read_delivery(
                 request, view.policy.execution_pins[stage], executor_backend="codex_exec",
                 executor_attempt=attempt, executor_profile=profile, executor_receipt=receipt,
+                plotloom_code_revision=view.policy.code_revision,
             )
         else:
             delivery = service._delivery(store, request) if service else read_creative_delivery(store, request)

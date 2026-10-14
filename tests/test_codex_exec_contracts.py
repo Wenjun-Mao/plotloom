@@ -1,3 +1,6 @@
+from pathlib import Path
+import subprocess
+import sys
 from uuid import uuid4
 
 import pytest
@@ -11,6 +14,25 @@ from plotloom.codex_exec_contracts import (
 )
 
 HASH = "a" * 64
+
+
+@pytest.mark.parametrize(
+    ("first", "second"),
+    [
+        ("codex_exec_attempt_contracts", "codex_exec_contracts"),
+        ("codex_exec_contracts", "codex_exec_attempt_contracts"),
+    ],
+)
+def test_contract_entry_points_import_cold_in_either_order(first, second):
+    root = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        [sys.executable, "-B", "-c", f"import plotloom.{first}; import plotloom.{second}"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def profile(**changes):
@@ -103,6 +125,27 @@ def test_v4_profile_requires_reference_view_capability_and_tool_profile():
         CodexExecProfile.model_validate(value | {"capabilities": [
             "exec_json_events_v1", "session_rollout_v1", "image_gen_event_v1", "delivery_directory_write_v1",
         ]})
+
+
+def test_v5_profile_binds_text_validator_runtime_and_permission_scope():
+    value = profile().model_dump(mode="json", by_alias=True)
+    value.update({
+        "contractVersion": "plotloom.codex-exec.v5",
+        "sandboxProfile": None,
+        "authenticationStore": "file",
+        "permissionProfile": "plotloom_autopilot_delivery_v3",
+        "toolProfile": "plotloom_autopilot_tools_v4",
+        "textValidatorRuntimeProfile": "node_openssl_and_private_zsh_tmp_v1",
+        "capabilities": [
+            "exec_json_events_v1", "session_rollout_v1", "image_gen_event_v1",
+            "image_reference_view_v1", "delivery_directory_write_v1",
+        ],
+    })
+    current = CodexExecProfile.model_validate(value)
+    assert current.contract_version == "plotloom.codex-exec.v5"
+    assert current.text_validator_runtime_profile == "node_openssl_and_private_zsh_tmp_v1"
+    with pytest.raises(ValidationError, match="exact Node and private zsh runtime profile"):
+        CodexExecProfile.model_validate(value | {"permissionProfile": "plotloom_autopilot_delivery_v2"})
 
 
 def test_v2_profile_rejects_legacy_sandbox_and_missing_auth_binding():

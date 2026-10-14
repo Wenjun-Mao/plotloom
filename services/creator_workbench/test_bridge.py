@@ -70,9 +70,9 @@ def test_exec_profile_is_host_observed_and_never_uses_project_or_user_config(
     assert profile["backend"] == "codex_exec"
     assert profile["cliVersion"] == "codex-cli 0.162.0-alpha.17.2"
     assert profile["model"] == "gpt-6.1-sol"
-    assert profile["contractVersion"] == "plotloom.codex-exec.v4"
+    assert profile["contractVersion"] == "plotloom.codex-exec.v5"
     assert profile["authenticationStore"] == "file"
-    assert profile["permissionProfile"] == "plotloom_autopilot_delivery_v2"
+    assert profile["permissionProfile"] == "plotloom_autopilot_delivery_v3"
     assert profile["toolProfile"] == "plotloom_autopilot_tools_v4"
     assert "sandboxProfile" not in profile
     assert profile["maxProcesses"] == 1

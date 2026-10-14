@@ -71,7 +71,8 @@ class CodexExecSupervisorLedgerMixin:
         return (
             attempt.attempt_id, attempt.run_id, attempt.project_id, attempt.job_id,
             attempt.operation_key, attempt.domain, attempt.request_hash,
-            attempt.package_hash, attempt.profile_hash, attempt.reserved_image_outputs,
+            attempt.package_hash, attempt.profile_hash, attempt.plotloom_code_revision,
+            attempt.reserved_image_outputs,
         )
 
     def _row(self, attempt_id):

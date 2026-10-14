@@ -105,6 +105,7 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin, CodexExe
             "--config", self._permission_filesystem_config(
                 profile, job_root, delivery, private_dir, self.codex_home,
                 source_resources.read_paths if source_resources is not None else (),
+                domain=attempt.domain,
             ),
             "--config", f'permissions.{profile.permission_profile}.network.enabled=false',
         ]
@@ -114,7 +115,8 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin, CodexExe
         command.extend(("--config", 'web_search="disabled"'))
         command.extend(("--ignore-user-config", "-"))
         environment = self._cli_environment(
-            private_dir, source_root=self.source_root, domain=attempt.domain, source_resources=source_resources
+            private_dir, source_root=self.source_root, domain=attempt.domain,
+            source_resources=source_resources, profile=profile,
         )
         process = None
         try:
@@ -351,6 +353,7 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin, CodexExe
                 profileHash=profile.profile_hash,
                 requestHash=attempt.request_hash,
                 packageHash=attempt.package_hash,
+                plotloomCodeRevision=attempt.plotloom_code_revision,
                 processId=current.process_id,
                 processGroupId=current.process_group_id,
                 processBirthIdentity=current.process_birth_identity,
@@ -386,21 +389,31 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin, CodexExe
             raise CodexExecSupervisorError("Codex session evidence escaped its authenticated host home")
         return root
 
-    def _cli_environment(self, private_dir, *, source_root, domain, source_resources=None):
+    def _cli_environment(self, private_dir, *, source_root, domain, source_resources=None, profile=None):
         """Keep inherited API tokens and bridge credentials out of the worker process."""
         environment = _credential_free_environment()
         (private_dir / "tmp").mkdir(mode=0o700, exist_ok=True)
         (private_dir / "uv-cache").mkdir(mode=0o700, exist_ok=True)
         environment["TMPDIR"] = str(private_dir / "tmp")
+        # zsh here-documents use TMPPREFIX, not TMPDIR, for their scratch file.
+        # Keep both mechanisms inside the same owner-only attempt directory.
+        environment["TMPPREFIX"] = str(private_dir / "tmp" / "zsh")
         environment["CODEX_HOME"] = str(self.codex_home)
         environment["UV_CACHE_DIR"] = str(private_dir / "uv-cache")
         for name in (
             "PLOTLOOM_SOURCE_ROOT", "PLOTLOOM_UV", "PLOTLOOM_NODE", "PLOTLOOM_PYTHON",
             "PYTHONPATH", "NODE_PATH", "NODE_OPTIONS", "PYTHONHOME",
             "PYTHONUSERBASE", "PYTHONSTARTUP", "PYTHONDONTWRITEBYTECODE", "PYTHONNOUSERSITE",
-            "VIRTUAL_ENV", "UV_PROJECT_ENVIRONMENT",
+            "VIRTUAL_ENV", "UV_PROJECT_ENVIRONMENT", "OPENSSL_CONF",
         ):
             environment.pop(name, None)
+        if domain == "text" and profile is not None and profile.contract_version == "plotloom.codex-exec.v5":
+            from plotloom.codex_exec_profile import NODE_OPENSSL_CONFIG, TEXT_VALIDATOR_RUNTIME_PROFILE
+            if profile.text_validator_runtime_profile != TEXT_VALIDATOR_RUNTIME_PROFILE:
+                raise CodexExecSupervisorError("Codex Exec text validator runtime profile is unsupported")
+            if NODE_OPENSSL_CONFIG.is_symlink() or not NODE_OPENSSL_CONFIG.is_file():
+                raise CodexExecSupervisorError("Codex Exec Node validator OpenSSL configuration is unavailable")
+            environment["OPENSSL_CONF"] = str(NODE_OPENSSL_CONFIG)
         if domain == "text":
             environment["PLOTLOOM_SOURCE_ROOT"] = str(source_root)
             environment["PYTHONPATH"] = str(source_root / "src")
@@ -418,7 +431,7 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin, CodexExe
 
     @staticmethod
     def _permission_filesystem_config(
-        profile, job_root, delivery, private_dir, codex_home, source_read_paths=()
+        profile, job_root, delivery, private_dir, codex_home, source_read_paths=(), *, domain
     ):
         values = {
             ":root": "deny",
@@ -432,6 +445,13 @@ class CodexExecSupervisorProcessMixin(CodexExecSupervisorTerminalMixin, CodexExe
             str(private_dir / "uv-cache"): "write",
         }
         values.update({str(path): "read" for path in source_read_paths})
+        if profile.contract_version == "plotloom.codex-exec.v5" and domain == "text":
+            from plotloom.codex_exec_profile import NODE_OPENSSL_CONFIG, TEXT_VALIDATOR_RUNTIME_PROFILE
+            if profile.text_validator_runtime_profile != TEXT_VALIDATOR_RUNTIME_PROFILE:
+                raise CodexExecSupervisorError("Codex Exec text validator runtime profile is unsupported")
+            if NODE_OPENSSL_CONFIG.is_symlink() or not NODE_OPENSSL_CONFIG.is_file():
+                raise CodexExecSupervisorError("Codex Exec Node validator OpenSSL configuration is unavailable")
+            values[str(NODE_OPENSSL_CONFIG)] = "read"
         encoded = ",".join(f'{json.dumps(key)}={json.dumps(value)}' for key, value in values.items())
         return f"permissions.{profile.permission_profile}.filesystem={{{encoded}}}"
 

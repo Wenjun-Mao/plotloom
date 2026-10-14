@@ -30,6 +30,8 @@ from plotloom.storyboard_brief_style import (
     storyboard_brief_instructions,
 )
 
+PLOTLOOM_CODE_REVISION = "e" * 40
+
 
 def _request() -> CreativeHandoffRequest:
     return CreativeHandoffRequest.model_validate({
@@ -85,6 +87,7 @@ def _text_receipt(job_root: Path, request: CreativeHandoffRequest, profile: Code
         profileHash=profile.profile_hash,
         requestHash=request_hash(request),
         packageHash="d" * 64,
+        plotloomCodeRevision=PLOTLOOM_CODE_REVISION,
         processId=123,
         processGroupId=123,
         processBirthIdentity="pid-start-123",
@@ -105,6 +108,7 @@ def _text_receipt(job_root: Path, request: CreativeHandoffRequest, profile: Code
         requestHash=request_hash(request),
         packageHash="d" * 64,
         profileHash=profile.profile_hash,
+        plotloomCodeRevision=PLOTLOOM_CODE_REVISION,
         reservedImageOutputs=0,
         imageBudgetState="none",
         state="completed",
@@ -126,16 +130,22 @@ def test_cli_creative_package_is_separate_and_host_publishes_completion(tmp_path
     profile = _profile()
     exchange = CreativeHandoffExchange(tmp_path / "project" / "outputs" / "creative-handoff")
     pin = exchange.current_execution_pin(request.stage)
-    paths = exchange.write_package(request, pin, executor_backend="codex_exec")
+    paths = exchange.write_package(
+        request, pin, executor_backend="codex_exec",
+        plotloom_code_revision=PLOTLOOM_CODE_REVISION,
+    )
     package = Path(paths["packagePath"])
-    assert json.loads((package / "request.json").read_text())["executorBackend"] == "codex_exec"
+    package_request = json.loads((package / "request.json").read_text())
+    assert package_request["executorBackend"] == "codex_exec"
+    assert package_request["plotloomCodeRevision"] == PLOTLOOM_CODE_REVISION
+    assert package_request["executionPin"]["upstreamRevision"] != PLOTLOOM_CODE_REVISION
     assert not (package / "completion-manifest.example.json").exists()
 
     attempt, receipt = _text_receipt(package.parent, request, profile)
     manifest = publish_creative_completion(
         request=request,
         execution_pin=pin,
-        code_revision="5add328ff8423f0e4ab31cce1459e208712ff20f",
+        code_revision=PLOTLOOM_CODE_REVISION,
         job_root=package.parent,
         attempt=attempt,
         profile=profile,
@@ -150,16 +160,38 @@ def test_cli_creative_package_is_separate_and_host_publishes_completion(tmp_path
         executor_attempt=attempt,
         executor_profile=profile,
         executor_receipt=receipt,
+        plotloom_code_revision=PLOTLOOM_CODE_REVISION,
     )
     assert delivery is not None
     assert delivery.manifest == manifest
+    assert delivery.manifest.executor_provenance.code_revision == PLOTLOOM_CODE_REVISION
+    assert delivery.manifest.executor_provenance.upstream_revision == pin["upstreamRevision"]
+    assert delivery.manifest.executor_provenance.code_revision != delivery.manifest.executor_provenance.upstream_revision
+    with pytest.raises(ValueError, match="frozen creative request or profile"):
+        publish_creative_completion(
+            request=request,
+            execution_pin=pin,
+            code_revision="f" * 40,
+            job_root=package.parent,
+            attempt=attempt,
+            profile=profile,
+            receipt=receipt,
+            publish_marker=False,
+        )
+    with pytest.raises(CreativeHandoffError, match="existing package differs"):
+        exchange.read_delivery(
+            request, pin, executor_backend="codex_exec", executor_attempt=attempt,
+            executor_profile=profile, executor_receipt=receipt,
+            plotloom_code_revision="f" * 40,
+        )
 
 
 def test_cli_branch_assignment_uses_pinned_read_only_source_paths(tmp_path: Path):
     request = _request().model_copy(update={"stage": "branches"})
     exchange = CreativeHandoffExchange(tmp_path / "project" / "outputs" / "creative-handoff")
     pin = exchange.current_execution_pin(request.stage)
-    paths = exchange.write_package(request, pin, executor_backend="codex_exec")
+    paths = exchange.write_package(request, pin, executor_backend="codex_exec",
+        plotloom_code_revision=PLOTLOOM_CODE_REVISION)
     package = Path(paths["packagePath"])
     instructions = (package / "COPY_ASSIGNMENT.txt").read_text(encoding="utf-8")
 
@@ -189,7 +221,8 @@ def test_cli_assignment_maps_base_dir_to_the_pinned_skill_directory(
     request = _request().model_copy(update={"stage": stage})
     exchange = CreativeHandoffExchange(tmp_path / "project" / "outputs" / "creative-handoff")
     pin = exchange.current_execution_pin(request.stage)
-    paths = exchange.write_package(request, pin, executor_backend="codex_exec")
+    paths = exchange.write_package(request, pin, executor_backend="codex_exec",
+        plotloom_code_revision=PLOTLOOM_CODE_REVISION)
     instructions = (Path(paths["packagePath"]) / "COPY_ASSIGNMENT.txt").read_text(encoding="utf-8")
 
     expected = f'`"$PLOTLOOM_SOURCE_ROOT/third_party/shuohao-skills/skills/{skill_directory}"`'
@@ -256,7 +289,8 @@ def test_cli_saved_brief_package_routes_neutral_validator_from_delivery(
     request = _saved_brief_request(stage)
     exchange = CreativeHandoffExchange(tmp_path / "project" / "outputs" / "creative-handoff")
     pin = exchange.current_execution_pin(request.stage)
-    paths = exchange.write_package(request, pin, executor_backend="codex_exec")
+    paths = exchange.write_package(request, pin, executor_backend="codex_exec",
+        plotloom_code_revision=PLOTLOOM_CODE_REVISION)
     package = Path(paths["packagePath"])
     instructions = (package / "COPY_ASSIGNMENT.txt").read_text(encoding="utf-8")
     package_request = json.loads((package / "request.json").read_text(encoding="utf-8"))
@@ -302,7 +336,8 @@ def test_codex_assignments_preserve_native_bridge_stage_contracts(
     # This covers package text only; current_execution_pin correctly rejects
     # uncommitted native bridge sources in a developer worktree.
     pin = {"upstreamRevision": "a" * 40, "upstreamSkillHash": "b" * 64, "specialistSkillHash": "c" * 64}
-    paths = exchange.write_package(request, pin, executor_backend="codex_exec")
+    paths = exchange.write_package(request, pin, executor_backend="codex_exec",
+        plotloom_code_revision=PLOTLOOM_CODE_REVISION)
     instructions = (Path(paths["packagePath"]) / "COPY_ASSIGNMENT.txt").read_text(encoding="utf-8")
 
     for required in required_instructions:
@@ -314,23 +349,26 @@ def test_cli_creative_delivery_requires_exact_project_receipt_and_inventory(tmp_
     profile = _profile()
     exchange = CreativeHandoffExchange(tmp_path / "project" / "outputs" / "creative-handoff")
     pin = exchange.current_execution_pin(request.stage)
-    paths = exchange.write_package(request, pin, executor_backend="codex_exec")
+    paths = exchange.write_package(request, pin, executor_backend="codex_exec",
+        plotloom_code_revision=PLOTLOOM_CODE_REVISION)
     attempt, receipt = _text_receipt(Path(paths["packagePath"]).parent, request, profile)
     publish_creative_completion(
         request=request,
         execution_pin=pin,
-        code_revision="5add328ff8423f0e4ab31cce1459e208712ff20f",
+        code_revision=PLOTLOOM_CODE_REVISION,
         job_root=Path(paths["packagePath"]).parent,
         attempt=attempt,
         profile=profile,
         receipt=receipt,
     )
     with pytest.raises(CreativeHandoffError, match="exact project attempt"):
-        exchange.read_delivery(request, pin, executor_backend="codex_exec")
+        exchange.read_delivery(request, pin, executor_backend="codex_exec",
+            plotloom_code_revision=PLOTLOOM_CODE_REVISION)
 
     altered_receipt = receipt.model_copy(update={"profile_hash": "f" * 64})
     with pytest.raises(CreativeHandoffError, match="receipt is invalid"):
         exchange.read_delivery(
             request, pin, executor_backend="codex_exec", executor_attempt=attempt,
             executor_profile=profile, executor_receipt=altered_receipt,
+            plotloom_code_revision=PLOTLOOM_CODE_REVISION,
         )

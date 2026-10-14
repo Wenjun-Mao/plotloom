@@ -89,6 +89,16 @@ class CodexExecSupervisorJobMixin:
             or package_request.get("executorBackend") != "codex_exec"
         ):
             raise CodexExecSupervisorError("Codex Exec package does not bind the exact project attempt")
+        if attempt.plotloom_code_revision is None:
+            raise CodexExecSupervisorError("Codex Exec attempt omits its frozen Plotloom source revision")
+        if attempt.domain == "text":
+            package_code_revision = package_request.get("plotloomCodeRevision")
+            if package_request.get("packageVersion") != 3 or package_code_revision != attempt.plotloom_code_revision:
+                raise CodexExecSupervisorError("Codex Exec text package does not bind the frozen Plotloom source revision")
+        else:
+            package_code_revision = package_request.get("specialistPreflight", {}).get("codeRevision")
+            if package_code_revision != attempt.plotloom_code_revision:
+                raise CodexExecSupervisorError("Codex Exec image package does not bind the frozen Plotloom source revision")
         if attempt.domain == "text":
             from plotloom.codex_exec_resources import codex_exec_source_read_paths
             try:
