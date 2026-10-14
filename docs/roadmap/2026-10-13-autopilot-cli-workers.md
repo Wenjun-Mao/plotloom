@@ -2,8 +2,9 @@
 
 Status: **dispatched once through Relay Direct on 2026-10-13**, after the
 preceding technical closeout and publication. Registration and read-only
-admission passed; the manager releases the sole implementation writer after
-recording this dispatch. The original Relay Brainstorm and Plan checkpoint
+admission passed and the sole implementation writer was released. The serial
+executor checkpoint is now committed; native proof is in progress as recorded
+below. The original Relay Brainstorm and Plan checkpoint
 contained no pool implementation or live executor change.
 
 The outcome is faster preparation through dependency-ready text and image
@@ -67,6 +68,36 @@ dispatching the new assignment early or reporting unchanged state.
   the active Goal and Relay route carry this assignment forward.
 
 ## Established feasibility and remaining proof
+
+### Serial checkpoint and resumed proof allocation
+
+The existing worker committed `181a8edf` on `codex/autopilot-cli-workers` in
+the recorded `b30f` checkout. The manager verified its clean checkout and
+collected its actual completion response. Its focused verification and
+independent review are checkpoint evidence; real CLI/ImageGen execution,
+release qualification and concurrency remain unqualified.
+
+The manager resumed that same native task for a disposable serial production-
+supervisor proof, initially bounded to a text package and at most two new
+images. The task acknowledged the allocation and is active. It must verify
+the installed profile and sandbox, exact typed evidence, validated delivery
+and adoption, duplicate refusal and restart reconciliation before concurrent
+scheduling. Keep private proof artifacts in ignored checkout-local storage.
+The existing Relay route was independently read back and remains registered.
+Full/browser qualification remains manager-owned; live activation is not part
+of this allocation.
+
+The optional Python-speed qualification at `76d6a916` has no recoverable final
+result at this checkpoint: the original execution handle and temporary log
+are unavailable, and process inspection found no running verification suite.
+Do not infer success or restart generation from this loss of test evidence.
+Recover retained evidence or allocate fresh qualification after the current
+native proof window. This optional work does not block CLI development.
+
+The current Goal API reports no active goal despite the earlier dispatch
+record's expectation. Continuation currently uses the explicitly resumed
+worker and its verified Relay completion route; do not report Goal mode as
+active without a new runtime confirmation.
 
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
