@@ -1064,3 +1064,19 @@ measure it without profiler overhead and run risk-proportional final gates.
 The older installation-reader candidate stays separate. Neither native
 generation nor live activation is needed for this optimization. The 85-percent
 whole-Python objective and original measurement/coverage requirements remain.
+
+Checkpoint `d8c73828` passed 54 scoped cases and independent review. Three
+matched selected-case samples show an additional 11.62-percent median reduction
+over the fixture-only checkpoint, or 47.83 percent against `cf26b32d` for those
+three handoff cases. This does not establish the whole-suite target. Before
+final qualification, retain unaffected-family comparisons and complete coverage.
+
+A bounded read-only follow-up identified one further test-only candidate:
+the two comment rows of creator confirmation and the two unnamed-fact corruption
+rows can explicitly use the same six-frame, four-beat, two-route fixture.
+Keep real handoff, eight-stage setup, receipt hashing, reopen and snapshot/
+restore/acknowledgement paths. Do not change the shared default or remaining
+geometry cases. Preselect named-v1 receipt recovery and derivative-handoff
+geometry as unchanged controls, retaining the 27-frame complete-pack owner.
+This shortlist is not implemented or measured; compare before/after on the
+same host under coordinated quiet windows before claiming a benefit.

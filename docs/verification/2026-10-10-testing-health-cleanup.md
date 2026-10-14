@@ -1608,5 +1608,16 @@ correctness run is not a performance measurement.
 Independent read-only review of this exact composition (requested Sol/Medium;
 effective settings unverified) found no actionable findings and no dependency
 on the installation-reader proposal. Targeted Ruff and diff checks passed.
-Unprofiled measurement, broader final qualification and publication remain
-pending; no whole-suite improvement or 85-percent completion is claimed.
+Three unprofiled samples at clean `d8c73828` passed in 36.419s, 36.333s
+and 36.752s (median 36.419s), using the same three handoff selectors and
+command. Compared with fixture-only `3f9d57bb` (41.206s), the query change
+reduced that median by 11.62 percent. Compared with released `cf26b32d`
+(69.802s), the combined reduction is 47.83 percent. All nine retained raw
+log hashes and matching host, Python, uv, command and selector metadata were
+checked. `query-candidate.json` and its three logs join the earlier samples
+in `.local/handoff-six-frame/`. The CLI worker explicitly held checks and
+native probes during this window and was released immediately afterward.
+
+These are selected-case medians, not whole-suite results. Unaffected-family
+timing, broader final qualification and publication remain pending; the
+85-percent whole-Python target is not achieved.
