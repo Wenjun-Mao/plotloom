@@ -96,6 +96,11 @@ class ProjectScriptPersistence:
     def _stale(self, session: Any, project_id: str, binding: ScriptBinding) -> list[ReviewContextDiagnostic]:
         try: current, *_ = self._context(session, project_id)
         except ReviewContextError as error: return [error.diagnostic]
+        return self._binding_diagnostics(current, binding)
+
+    @staticmethod
+    def _binding_diagnostics(current: ScriptBinding, binding: ScriptBinding) -> list[ReviewContextDiagnostic]:
+        """Compare resolved inputs without resolving or retaining read authority."""
         fields = ("source_revision", "source_content_hash", "outline_revision", "outline_content_hash", "section_map_revision", "section_map_content_hash", "graph_revision", "graph_content_hash", "cast_revision", "cast_content_hash", "art_revision", "art_content_hash", "target_playthrough_seconds", "route_budget_hash", "section_bindings", "complete_route_section_ids", "route_only_section_ids")
         reasons = review_binding_diagnostics(current, binding, fields)
         return reasons + ([ReviewContextDiagnostic(code="section_context_changed", owner="source", technical_message="section context changed")] if current.section_ids != binding.section_ids else [])

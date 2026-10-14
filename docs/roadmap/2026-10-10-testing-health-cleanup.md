@@ -1292,16 +1292,16 @@ The measured phase total is still 1,185.146s, with geometry the longest file at
 174.850s. At that observed cost, ideal two-worker phase packing alone still needs
 592.573s before overhead. The historical 151.733s stretch reference is not
 attainable by scheduling alone, and the original 85-percent target remains open.
-Do not silently increase workers or extend production scope. The separate
-concurrency and production-context options remain owner decisions; publish the
-qualified partial improvement without calling the stretch goal complete.
+Do not silently increase workers or extend production scope. The owner later
+approved the two bounded follow-ups below; the qualified partial improvement
+still does not complete the stretch goal.
 
 Publication: the manager merged and pushed this qualified partial improvement
 as `c9781b95678dc871c0a79ac1501ab489bfe554fe`, with exact remote readback and
 unchanged qualified executable trees. The 85-percent stretch objective and
 separate scope decisions remain open; hosted qualification remains unconfirmed.
 
-### Unapproved production-context option — October 14
+### Approved production-context and concurrency follow-up — October 14
 
 Follow-up read-only review of the retained image-safety profile and owning
 source found duplicate upstream resolution inside a single owner operation:
@@ -1321,7 +1321,9 @@ stale/missing bindings, render modes and error equivalence, followed by matched
 measurement. No validation may be skipped and no installation/global cache or
 already-validated flag is proposed.
 
-This differs from the earlier narrow production-query placement approval and
-is not authorized for implementation. It is an evidence-backed open option,
-not an adopted architecture or a claim that 85 percent is achievable. No new
-profile, test, native call or production edit was run for this review.
+The owner explicitly approved this operation-local production slice and a
+bounded four-worker experiment on October 14; eight workers require measured
+headroom, and the release default remains two. Implementation, precise
+boundaries, matched measurements and release status now belong to the
+[cohesive follow-up plan](2026-10-14-python-context-and-workers.md) and ADR 0167.
+Approval is not a claim that 85 percent is achievable or already measured.

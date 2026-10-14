@@ -1,5 +1,11 @@
 # Plotloom roadmap entrypoint
 
+The owner-approved [Python context and worker follow-up](2026-10-14-python-context-and-workers.md)
+owns operation-local Script/Storyboard read reuse and the bounded four-worker
+experiment (eight only after measured headroom; released default two). The CLI
+worker's diagnostic checkpoint is committed and its source/check window is
+released to this Python slice. The 85-percent complete-suite target remains open.
+
 The owner-approved [parallel CLI workers for pre-video autopilot](2026-10-13-autopilot-cli-workers.md)
 assignment was dispatched once through Relay Direct after the preceding
 technical release and first-pass Python speedup integration. Implementation
