@@ -90,6 +90,11 @@ supported full-gate target.
 
 ## Duration-aware whole-file allocation
 
+The strict freshness eligibility below is superseded by
+[ADR 0171](0171-historical-python-scheduling-predictions.md): same-host historical
+rows may predict current scheduling with explicit provenance, never execution
+coverage or new performance evidence. The original capture contract remains.
+
 The full runner may use a checked-in duration manifest only when it covers the
 exact native case fingerprint and every collected test file and parameter row,
 and its source, configuration, fixture, Python and host fingerprints match the

@@ -253,6 +253,12 @@ weights eligible. Run focused regressions and independently review the stable
 candidate before one final local full gate; report observed time and remaining
 distance to the target, not an estimated speedup.
 
+The attended design review (requested GPT-6.1 Sol / High, effective settings
+unverified) is collected with no implementation or checks by the reviewer.
+[ADR 0171](../adr/0171-historical-python-scheduling-predictions.md) records the
+selected minimal contract and edge-case guards. Keep this scheduling change
+separate from the Bridge/claim production change when reporting evidence.
+
 The latest release instruction is **local verification and push only: no hosted
 CI and no live activation**. This overrides earlier anticipated hosted/deploy
 steps for the current work. The CI workflow is dispatch-only; do not dispatch
