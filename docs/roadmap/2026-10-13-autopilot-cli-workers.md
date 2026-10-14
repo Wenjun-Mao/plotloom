@@ -315,15 +315,18 @@ records acceptance without parser changes or retry. Prelaunch path-normalization
 and missing-import corrections are retained with their fingerprint lineage in
 `.local/native-proof/imagegen-preread-positive-ad3ccf58-20261014-02/`.
 
-The same idle worker is now allocated the next serial production-supervisor
-window at unchanged `ad3ccf58`: prepare and execute one fresh disposable text
-job, then at most two image jobs, each with one immutable production package
-and one durable attempt. No repeat of the old unknown attempt is permitted.
-Require actual validated delivery/adoption, exact native provenance, duplicate
-refusal and restart reconciliation; a referenced image must use its current
-canonical bytes. Preserve failures and unknown reservations without resend.
-This is not the later matched serial/parallel pack comparison. Source changes,
-pool implementation, full qualification and activation wait for checkpoint review.
+Serial preflight found that one text job cannot reach image adoption: the
+supported fresh launch requires six creative stages, two bridge stages and
+current installation. No dispatch or project mutation occurred. The corrected
+window at unchanged `ad3ccf58` permits those eight sequential text jobs and the
+first two image jobs in normal scheduler order, then pauses before a third.
+Keep complete-inventory policy ceilings distinct from this two-image dispatch
+allowance; never skip prerequisites or fabricate checkpoints. Every job needs
+one immutable package/attempt, actual validated delivery/adoption, exact native
+provenance, duplicate refusal and same-attempt restart reconciliation. Referenced
+images use current canonical bytes. Preserve failures and unknown reservations
+without resend, including the old unknown attempt. This is not the later matched
+pack comparison. Source changes, pool/full qualification and activation stay held.
 
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
