@@ -57,6 +57,8 @@ VALIDATOR_FILES = (
     "services/creator_workbench/codex_exec_supervisor_worker.py",
     "services/creator_workbench/host_bridge.py",
     "services/creator_workbench/codex_client.py",
+    "services/creator_workbench/isolated.py",
+    "services/creator_workbench/manage.py",
     "src/plotloom/specialist_settings.py",
 )
 

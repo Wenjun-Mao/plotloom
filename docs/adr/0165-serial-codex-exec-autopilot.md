@@ -143,10 +143,10 @@ contract.
    cannot reacquire authority to resume a host attempt.
 
 7. **Keep source-only native capabilities explicit.** Native execution pins
-   currently depend on checkout-owned skills and validators. The executor may
-   run only when those resources are resolved from a validated source
-   installation and match the frozen pins. Installed-wheel startup is not
-   evidence that CLI worker capabilities or those resources are available.
+   currently depend on checkout-owned skills, validators and host composition.
+   The executor may run only when those resources are resolved from a validated
+   source installation and match the frozen pins. Installed-wheel startup is
+   not evidence that CLI worker capabilities or those resources are available.
    No arbitrary current-directory fallback is permitted.
 
 8. **Keep author, model and trusted-executor fields separate.** The author and

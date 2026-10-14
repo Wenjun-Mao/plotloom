@@ -22,6 +22,8 @@ def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources()
         "src/plotloom/project_storage/creative_evidence_inventory.py",
         "services/creator_workbench/codex_exec_supervisor.py",
         "services/creator_workbench/codex_exec_supervisor_process.py",
+        "services/creator_workbench/isolated.py",
+        "services/creator_workbench/manage.py",
     }
     source_root = Path(__file__).resolve().parents[1]
 
