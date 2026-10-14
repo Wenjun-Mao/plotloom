@@ -162,6 +162,7 @@
           "tests/test_shot_count_policy.py",
           "tests/test_shot_presentation.py",
           "tests/test_shot_presentation_integration.py",
+          "tests/test_storyboard_operation_context.py",
           "tests/test_storyboard_review_timing.py"
         ],
         "vitest": [
@@ -528,6 +529,8 @@
           "tests/test_dependency_boundary.py",
           "tests/test_extraction_contract.py",
           "tests/test_python_suite_cleanup.py",
+          "tests/test_python_suite_completion.py",
+          "tests/test_python_suite_experiment.py",
           "tests/test_python_suite_runner.py",
           "tests/test_retained_runtime_coverage_inventory.py",
           "tests/test_shared_runtime_retirement.py",
@@ -587,6 +590,18 @@
     {
       "suite": "pytest",
       "path": "scripts/testing/python_suite_schedule.py",
+      "kind": "runner-support",
+      "consumers": ["verification-tooling"]
+    },
+    {
+      "suite": "pytest",
+      "path": "scripts/testing/python_suite_completion.py",
+      "kind": "runner-support",
+      "consumers": ["verification-tooling"]
+    },
+    {
+      "suite": "pytest",
+      "path": "scripts/testing/experiment_python_workers.py",
       "kind": "runner-support",
       "consumers": ["verification-tooling"]
     },

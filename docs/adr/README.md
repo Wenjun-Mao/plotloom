@@ -90,3 +90,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0163 Autopilot inherits the saved Brief visual direction](0163-autopilot-brief-style-authority.md)
 - [0166 Receipt-scoped authority snapshots](0166-receipt-scoped-authority-snapshots.md)
 - [0167 Operation-local Storyboard context](0167-operation-local-storyboard-context.md)
+- [0168 Exact Python worker completion](0168-exact-python-worker-completion.md)

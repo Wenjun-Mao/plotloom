@@ -94,3 +94,23 @@ focused pair, not a whole-suite or repeated-median speed claim. Logs are in
 `.local/remaining-cost/operation-context-after-JDkaf0/focused.log`.
 No full gate, new complete-suite measurement or worker-count experiment has
 run on this slice yet. The two/four experiment remains the next deliverable.
+
+## Runner checkpoint
+
+The same runner now supports explicit experimental counts while its release
+entrypoint remains two. Exact native case proofs and four-worker startup,
+failure, interruption and representative SQLite/Storyboard/Node/image isolation
+guards passed: 88 focused checks across completion, runner, experiment, cleanup,
+module ownership and verify-command tests. The first preflight caught a marker
+line-boundary defect in the producer; ADR 0168 records its root-cause repair.
+Independent read-only review (requested GPT-6.1 Sol / Medium; effective settings
+unverified) found no correctness issue. Its support-dependency registration
+suggestion is included.
+
+Native ownership discovery passed with 1,911 Python cases / 185 files
+(`6c202360bb4dea63a47ccfa1cd4539f5af6ae8bf529452f76fd911d2eedb61a1`),
+1,377 Vitest / 158 files and 318 Playwright / 93 files. This discovery did not
+run test bodies. Both forthcoming worker measurements use the same committed
+candidate and unchanged timing input. The old timing manifest is ineligible;
+the explicit case-count fallback is the matched experimental basis. No full
+gate or whole-suite speed claim is established by this checkpoint.

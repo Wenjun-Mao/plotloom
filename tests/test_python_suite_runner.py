@@ -13,7 +13,8 @@ from unittest.mock import patch
 import pytest
 
 from scripts.testing import python_suite_timing_plugin
-from tests.python_suite_runner_support import RUNNER
+from scripts.testing.python_suite_completion import RUN_MARKER, validate_worker_completion
+from tests.python_suite_runner_support import RUNNER, completion_proof
 
 
 def test_collector_accepts_native_rows_and_rejects_duplicate_or_unsafe_cases(tmp_path):
@@ -162,7 +163,7 @@ def test_worker_command_keeps_results_isolated_and_durations_visible(capsys):
     )
     plugin.pytest_sessionfinish(SimpleNamespace(), 0)
     output = capsys.readouterr().out
-    assert 'PYTHON_SUITE_TIMING_RUN {"complete":true' in output
+    assert validate_worker_completion(output, [item.nodeid])
     assert '"case_count":1' in output
 
     failed = python_suite_timing_plugin.FilePhaseTotals()
@@ -172,7 +173,8 @@ def test_worker_command_keeps_results_isolated_and_durations_visible(capsys):
     )
     failed.pytest_sessionfinish(SimpleNamespace(), 1)
     output = capsys.readouterr().out
-    assert 'PYTHON_SUITE_TIMING_RUN {"complete":false' in output
+    marker = next(line[len(RUN_MARKER):] for line in output.splitlines() if line.startswith(RUN_MARKER))
+    assert json.loads(marker)["complete"] is False
     assert "PYTHON_SUITE_FILE_TIMING" not in output
 
 
@@ -227,6 +229,7 @@ def test_runner_reports_each_worker_and_fails_if_either_worker_fails(
         def __init__(self, command, *, stdout, **_kwargs):
             commands.append(command)
             stdout.write("captured worker report\n")
+            stdout.write(completion_proof((f"{command[-1]}::{Path(command[-1]).stem}",)) + "\n")
             stdout.flush()
             self.returncode = next(outcomes)
             self.pid = len(commands) + 100
@@ -269,12 +272,13 @@ def test_runner_reports_each_worker_and_fails_if_either_worker_fails(
     assert commands[1][-1] == "tests/test_b.py"
 
 
-def test_sigterm_stops_running_worker_groups(tmp_path, monkeypatch, capsys):
+@pytest.mark.parametrize("worker_count", [2, 4])
+def test_sigterm_stops_running_worker_groups(tmp_path, monkeypatch, capsys, worker_count):
     tests = tmp_path / "tests"
     tests.mkdir()
-    for name in ("test_a.py", "test_b.py"):
+    for name in (f"test_{index}.py" for index in range(worker_count)):
         (tests / name).touch()
-    collection = "tests/test_a.py::test_a\ntests/test_b.py::test_b\n"
+    collection = "\n".join(f"tests/test_{index}.py::test_case" for index in range(worker_count))
     original_signal = RUNNER.signal.signal
     handlers = {}
 
@@ -316,7 +320,7 @@ def test_sigterm_stops_running_worker_groups(tmp_path, monkeypatch, capsys):
             self.pid = 100 + len(processes)
             self.returncode = None
             processes.append(self)
-            if len(processes) == 2:
+            if len(processes) == worker_count:
                 handlers[signal.SIGTERM](signal.SIGTERM, None)
 
         def poll(self):
@@ -338,11 +342,11 @@ def test_sigterm_stops_running_worker_groups(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(RUNNER.subprocess, "Popen", start_process)
 
     assert (
-        RUNNER.run_python_suite(root=tmp_path, environment={}) == 128 + signal.SIGTERM
+        RUNNER.run_python_suite(root=tmp_path, environment={}, worker_count=worker_count) == 128 + signal.SIGTERM
     )
     output = capsys.readouterr().out
     assert "TERMINATED signal=15" in output
-    assert len(processes) == 2
+    assert len(processes) == worker_count
     assert all(process.returncode is not None for process in processes)
     if os.name == "posix":
         assert killed_groups == [

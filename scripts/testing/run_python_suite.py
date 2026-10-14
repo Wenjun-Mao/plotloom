@@ -1,4 +1,4 @@
-"""Run the complete Python suite in two isolated, case-balanced processes."""
+"""Run the complete Python suite in isolated processes (release default: two)."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from scripts.testing import python_suite_schedule
+from scripts.testing.python_suite_completion import CompletionError, validate_worker_completion
 
 WORKER_COUNT = 2
 WORKER_SHUTDOWN_GRACE_SECONDS = 5.0
@@ -173,7 +174,8 @@ def _stop_processes(processes: Sequence[subprocess.Popen[str]]) -> None:
 
 
 def run_python_suite(
-    *, root: Path = ROOT, environment: dict[str, str] | None = None
+    *, root: Path = ROOT, environment: dict[str, str] | None = None,
+    worker_count: int = WORKER_COUNT,
 ) -> int:
     received_sigterm: int | None = None
 
@@ -192,6 +194,9 @@ def run_python_suite(
 
     try:
         env = os.environ.copy() if environment is None else environment.copy()
+        if type(worker_count) is not int or worker_count not in {2, 4, 8}:
+            print("Python suite supports explicit worker counts 2, 4 or 8", file=sys.stderr, flush=True)
+            return 2
         if env.get("PYTEST_ADDOPTS"):
             print(
                 "Python suite refuses ambient PYTEST_ADDOPTS",
@@ -272,7 +277,7 @@ def run_python_suite(
                 timing_text,
                 cases=cases,
                 root=root,
-                worker_count=WORKER_COUNT,
+                worker_count=worker_count,
             )
             assignments = schedule.assignments
         except (OSError, SuiteError, python_suite_schedule.TimingManifestError) as error:
@@ -289,10 +294,11 @@ def run_python_suite(
         ]
         print(
             f"[python-suite] native_cases={len(cases)} files={len(file_case_counts)} "
-            f"workers={WORKER_COUNT} shard_cases={'/'.join(map(str, shard_case_counts))} "
+            f"workers={worker_count} shard_cases={'/'.join(map(str, shard_case_counts))} "
             f"shard_files={'/'.join(str(len(shard)) for shard in assignments)} "
             f"schedule={schedule.basis}"
-            f"{f' fallback={schedule.fallback_reason}' if schedule.fallback_reason else ''}",
+            f"{f' fallback={schedule.fallback_reason}' if schedule.fallback_reason else ''} "
+            f"native_case_ids_sha256={python_suite_schedule.native_case_fingerprint(cases)}",
             flush=True,
         )
         flattened = [path for assignment in assignments for path in assignment]
@@ -307,6 +313,11 @@ def run_python_suite(
                 flush=True,
             )
             return 2
+
+        assigned_cases = [
+            tuple(case for case in cases if case.split("::", 1)[0] in files)
+            for files in map(frozenset, assignments)
+        ]
 
         with tempfile.TemporaryDirectory(prefix="plotloom-python-suite-") as directory:
             temporary_root = Path(directory)
@@ -360,11 +371,20 @@ def run_python_suite(
                             f"exit_code={exit_code}",
                             flush=True,
                         )
-                        print(
-                            logs[index].read_text(encoding="utf-8"),
-                            end="",
-                            flush=True,
-                        )
+                        report = logs[index].read_text(encoding="utf-8")
+                        print(report, end="", flush=True)
+                        if exit_code == 0:
+                            try:
+                                fingerprint = validate_worker_completion(report, assigned_cases[index])
+                            except CompletionError as error:
+                                print(f"[python-suite] REFUSED worker={index + 1} completion: {error}", flush=True)
+                                exit_code = 1
+                            else:
+                                print(
+                                    f"[python-suite] COMPLETE worker={index + 1} "
+                                    f"cases={len(assigned_cases[index])} native_case_ids_sha256={fingerprint}",
+                                    flush=True,
+                                )
                         exit_codes.append(exit_code)
                         remaining.remove(index)
                     if received_sigterm is not None:

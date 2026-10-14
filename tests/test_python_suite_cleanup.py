@@ -182,10 +182,11 @@ def test_two_owned_groups_share_the_original_shutdown_deadline(monkeypatch, firs
 
 
 @pytest.mark.skipif(os.name != "posix", reason="requires POSIX process groups")
-def test_stop_processes_reaps_two_running_owned_groups():
+@pytest.mark.parametrize("worker_count", [2, 4])
+def test_stop_processes_reaps_running_owned_groups(worker_count):
     workers = []
     try:
-        for _ in range(2):
+        for _ in range(worker_count):
             process = subprocess.Popen([sys.executable, "-c", "import time; print('ready', flush=True); time.sleep(30)"],
                 stdout=subprocess.PIPE, text=True, start_new_session=True)
             workers.append(process)

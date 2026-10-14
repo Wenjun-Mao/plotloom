@@ -5,6 +5,9 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 
+from scripts.testing.python_suite_completion import COMPLETION_SCHEMA_VERSION, RUN_MARKER
+from scripts.testing.python_suite_schedule import native_case_fingerprint
+
 
 class FilePhaseTotals:
     def __init__(self) -> None:
@@ -12,10 +15,10 @@ class FilePhaseTotals:
             lambda: {"setup": 0.0, "call": 0.0, "teardown": 0.0}
         )
         self.case_ids: dict[str, set[str]] = defaultdict(set)
-        self.collected_case_ids: set[str] = set()
+        self.collected_case_ids: tuple[str, ...] = ()
 
     def pytest_collection_finish(self, session) -> None:
-        self.collected_case_ids = {item.nodeid for item in session.items}
+        self.collected_case_ids = tuple(item.nodeid for item in session.items)
 
     def pytest_runtest_logreport(self, report) -> None:
         if report.when not in {"setup", "call", "teardown"}:
@@ -26,12 +29,26 @@ class FilePhaseTotals:
 
     def pytest_sessionfinish(self, session, exitstatus) -> None:
         observed_case_ids = set().union(*self.case_ids.values()) if self.case_ids else set()
-        complete = exitstatus == 0 and observed_case_ids == self.collected_case_ids
+        complete = (
+            exitstatus == 0
+            and bool(self.collected_case_ids)
+            and len(self.collected_case_ids) == len(set(self.collected_case_ids))
+            and observed_case_ids == set(self.collected_case_ids)
+        )
         rows = self.case_ids if complete else {}
         print(
-            "PYTHON_SUITE_TIMING_RUN "
+            # pytest's progress renderer can leave the current line open.
+            # The machine-readable protocol always owns its full line.
+            "\n" + RUN_MARKER
             + json.dumps(
-                {"complete": complete, "exitstatus": int(exitstatus), "files": len(rows)},
+                {
+                    "schema_version": COMPLETION_SCHEMA_VERSION,
+                    "complete": complete,
+                    "exitstatus": int(exitstatus),
+                    "files": len(rows),
+                    "case_count": len(self.collected_case_ids),
+                    "native_case_ids_sha256": native_case_fingerprint(self.collected_case_ids),
+                },
                 sort_keys=True,
                 separators=(",", ":"),
             ),
