@@ -1970,3 +1970,10 @@ can be published; broader concurrency or production-context changes remain
 separate owner scope decisions. Unchanged frontend/browser/type/build/wheel
 evidence from `e5876029` is reused as justified above. No hosted CI, native
 generation, live restart or creative acceptance was performed.
+
+The manager merged the reviewed follow-up into clean `main` and pushed
+`c9781b95678dc871c0a79ac1501ab489bfe554fe`; remote `refs/heads/main` was read
+back at that exact SHA. Its source, scripts, tests, frontend, dependency and
+submodule trees match the qualified `bafb1587` candidate; the intervening
+integration includes only the already published CLI roadmap notes and receipt
+documentation. No force push, live checkout change or hosted dispatch occurred.

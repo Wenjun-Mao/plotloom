@@ -1296,6 +1296,11 @@ Do not silently increase workers or extend production scope. The separate
 concurrency and production-context options remain owner decisions; publish the
 qualified partial improvement without calling the stretch goal complete.
 
+Publication: the manager merged and pushed this qualified partial improvement
+as `c9781b95678dc871c0a79ac1501ab489bfe554fe`, with exact remote readback and
+unchanged qualified executable trees. The 85-percent stretch objective and
+separate scope decisions remain open; hosted qualification remains unconfirmed.
+
 ### Unapproved production-context option — October 14
 
 Follow-up read-only review of the retained image-safety profile and owning
