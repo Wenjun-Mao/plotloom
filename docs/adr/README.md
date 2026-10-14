@@ -95,3 +95,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0169 Isolated Codex Python validator runtime](0169-isolated-codex-python-validator-runtime.md)
 - [0170 Operation-local Bridge and controller claim](0170-operation-local-bridge-and-controller-claim.md)
 - [0171 Historical Python scheduling predictions](0171-historical-python-scheduling-predictions.md)
+- [0176 Receipt-command-local material projections](0176-receipt-command-local-material-projections.md)

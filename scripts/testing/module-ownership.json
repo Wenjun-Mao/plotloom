@@ -30,6 +30,7 @@
           "tests/test_project_storage_work_unit_contracts.py",
           "tests/test_v2_authoring_domain.py",
           "tests/test_autopilot_authority.py",
+          "tests/test_receipt_material_projections.py",
           "tests/test_autopilot_claim_transactions.py",
           "tests/test_autopilot_text_controller.py",
           "tests/test_autopilot_controller_safety.py",
