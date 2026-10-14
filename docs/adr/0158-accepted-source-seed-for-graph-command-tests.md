@@ -219,3 +219,28 @@ review found no actionable findings and ran no checks. The guard closed and
 snapshotted the settled copy with the seed unavailable, preserving sibling
 database/reservation and original seed bytes. Exact 22-case native inventory is
 unchanged; frozen refs and logs live in the Python plan. Speed is unmeasured.
+
+## Fake API Bridge failure consumers — October 14
+
+An independent Sol/Medium design review supports the same exact nine-shot
+pending Bridge seed for five fake API invalid/unknown/late/stale cases. Fresh
+adapters, resolver, secret broker, profile, service/executor and jobs remain
+case-local; preserve every sequencing, cancellation and mutation assertion.
+The other five cases in the original file stay fresh, including explicit
+installation, reinference, unknown-restart and credential nonpersistence.
+
+Add a fake API positive-copy guard that starts its job after the seed becomes
+unavailable, proves text-API/profile identity and ready model advice without
+installation, and preserves a sibling's complete database/proposal. Release
+the held adapter before executor shutdown even on failure, then restore/check
+seed bytes. Existing guards own physical files/locks; no copy framework or
+production authority change is needed. Declare creative-production transitive
+support ownership. Freeze the ten original native cases before changing them;
+speed requires its own quiet allocation.
+
+The implementation passed 16 focused failures/API-and-native copy/ownership
+checks and five unchanged fresh controls (21 distinct cases). Independent
+Sol/Medium stable review found no actionable findings and ran no checks. The
+API guard created/admitted a fresh job with the seed unavailable, preserved
+sibling database/proposal and closed its held worker safely. Exact ten-case
+inventory is unchanged. The Python plan binds refs/logs; speed is unmeasured.

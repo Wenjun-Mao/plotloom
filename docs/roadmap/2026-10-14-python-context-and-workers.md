@@ -1017,6 +1017,70 @@ before remains `7fb557c96e11d02e8d175b33199659cc0f2574d5`. These refs qualify
 the bounded readiness above. A later docs-only receipt does not retarget this
 comparison or earlier accepted pairs.
 
+## Fake API Bridge seed — selected implementation
+
+The next reviewed lead reuses the already qualified exact 9/9 pending Bridge
+seed for five fake API failures. Inspection of
+`tests/test_production_bridge_intent.py` shows identical `_pending_project`
+construction; historical ten-case call cost was 10.251 seconds, used only for
+prioritization. Copying closed state belongs in test setup; fresh worker/profile/
+service/job authority and all original assertions remain per case. Independent
+Sol/Medium read-only design review found no mismatch and selected an API-specific
+seed-unavailable positive guard. ADR 0158 records this boundary.
+
+Frozen before is `2f57f598f9bdac67f6bce10012b351344b4bf7a3`. Select three
+`test_invalid_or_unknown_result_never_mutates_proposal` variants,
+`test_late_model_result_cannot_replace_author_edit_or_cancellation` and
+`test_stale_brief_cannot_admit_late_inference`. All five remaining native
+cases stay fresh. The complete original file is the frozen ten-case comparison;
+before collection/native IDs live at
+`.local/remaining-cost/api-bridge-seed-before-{cases,native-cases}.txt`, sorted
+fingerprint `ffc5c5553ba6c48263cbddbcb8422cec3b43a398467a8bc9ef05f2969f9cc0ca`.
+New positive/affected copy guards and ownership checks run separately. No
+benchmark, broad/module/full/profile/provider run or production change is
+authorized by this selection; prior timing refs remain frozen and default
+workers stay two.
+
+Only the three selected test functions acquire a complete physical pending
+project copy; fake adapter/resolver/broker/profile/service/thread/job creation
+and all original sequencing/assertions remain unchanged. All eight original
+test-function ASTs match baseline after normalizing those three setup arguments
+and project-acquisition statements. The five remaining native cases stay fresh,
+including installation, author edit/reinference, target binding, unknown restart
+and secret nonpersistence. Existing seed/copy helpers are unchanged; declared
+creative-production ownership covers the new/transitive support dependencies.
+
+The new API-specific guard opens two normal copies, freezes sibling database/
+proposal, then renames the original seed unavailable before constructing its
+fresh fake API service and creating a job. It proves dispatched text-API/profile
+ownership, one adapter call, ready model advice, exact expected revision and job
+provenance, no installation, and unchanged sibling database/proposal. Cleanup
+releases the held adapter before executor shutdown, restores the seed even if
+shutdown fails, and verifies its full original inventory/hashes. Existing native
+guards continue to prove locks, complete copies, independent inodes and leases.
+
+**16 focused cases passed**: five selected failures, the new API guard, three
+native seed guards and seven ownership checks. Five unchanged fresh controls
+passed separately (**21 distinct focused passes**). Exact ten native IDs and
+the recorded sorted fingerprint match before/after; after inventory is
+`.local/remaining-cost/api-bridge-seed-after-native-cases.txt`. Retained logs
+under `.local/remaining-cost/` and SHA-256:
+
+- `api-bridge-seed-guards-first.log`:
+  `ca46b037243d79bbb1354f01e44294ecca55203cf804851ced18316a943a5558`;
+- `api-bridge-seed-fresh-controls.log`:
+  `d5776c269ac05058fe35a0c336c12770bfb13e89a735a75517bbd8f07844dae2`.
+
+Scoped Ruff F401 and diff checks passed. Attended independent Sol/Medium stable
+code review found no actionable finding and ran no checks; effective settings
+remain unverified. The existing Starlette/httpx warning appeared in the union
+that imports route helpers. Concurrent focused results establish scoped
+correctness, not speed. No helper/production/frontend/dependency/timing-manifest
+changes, real provider calls, broad/module/full/profile checks, moving CLI merge,
+push, live checkout write or cleanup occurred. This ten-case comparison needs
+its own quiet allocation. Combined full/hosted qualification, creative/product
+acceptance, whole-suite speed and the original 85-percent target remain open.
+
 ## Residual-cost investigation — historical proposal, now separately scoped
 
 One fresh main-thread profile ran the unchanged complete-pack control at clean

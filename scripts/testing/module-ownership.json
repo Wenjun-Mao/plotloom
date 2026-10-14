@@ -148,6 +148,7 @@
           "tests/test_production_bridge.py",
           "tests/test_production_bridge_fresh_preinstall.py",
           "tests/test_production_bridge_intent.py",
+          "tests/test_production_bridge_seed.py",
           "tests/test_production_bridge_runtime_capability.py",
           "tests/test_production_bridge_runtime_http.py",
           "tests/test_production_presentation.py",
@@ -585,7 +586,7 @@
       "suite": "pytest",
       "path": "tests/native_bridge_seed_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch", "story-authoring"]
+      "consumers": ["creative-production", "shared-provider-dispatch", "story-authoring"]
     },
     {
       "suite": "pytest",
@@ -597,13 +598,13 @@
       "suite": "pytest",
       "path": "tests/specialist_reconciliation_seed.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["media-lifecycle", "project-lifecycle", "shared-provider-dispatch", "story-authoring"]
+      "consumers": ["creative-production", "media-lifecycle", "project-lifecycle", "shared-provider-dispatch", "story-authoring"]
     },
     {
       "suite": "pytest",
       "path": "tests/autopilot_seed_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["media-lifecycle", "project-lifecycle", "shared-provider-dispatch", "story-authoring"]
+      "consumers": ["creative-production", "media-lifecycle", "project-lifecycle", "shared-provider-dispatch", "story-authoring"]
     },
     {
       "suite": "pytest",
@@ -1312,6 +1313,7 @@
       "path": "tests/specialist_reconciliation_support.py",
       "kind": "shared-fixture-or-helper",
       "consumers": [
+        "creative-production",
         "media-lifecycle",
         "project-lifecycle",
         "shared-provider-dispatch"
