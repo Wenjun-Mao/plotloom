@@ -2,8 +2,8 @@
 
 Status: owner-authorized October 14, 2026; independently design-reviewed and
 implemented, with independent stable-candidate review finding no actionable
-issue. Focused qualification is recorded in the plan. No performance result or
-release qualification.
+issue. Focused qualification and one matched one-case pair with no observed
+speed gain are recorded in the plan. No release qualification.
 Tracked in the [Python optimization plan](../roadmap/2026-10-14-python-context-and-workers.md).
 
 ## Problem and evidence

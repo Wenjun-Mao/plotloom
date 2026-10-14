@@ -1444,8 +1444,57 @@ separately; only the execution block's successful exact-ID marker establishes
 completion. Both wrapper steps and its final summary must succeed. The manager
 caught and corrected the initially prepared direct-pytest timer path before any
 launch; the production runner was not changed. No cProfile instrumentation or
-alternative test path. No pair has run or performance result is available at
-this checkpoint.
+alternative test path. At this preparation checkpoint no pair had run or
+performance result was available; the separately allocated result follows.
+
+### Receipt-command one-case matched measurement — completed
+
+The manager explicitly allocated one quiet source-only pair after CLI ACK,
+independently checking the observer and exact clean restore pin. Native session
+15336 executed it once and exited zero. Both sides used the established focused
+complete-command path above, unchanged exact fresh complete-pack case, existing
+completion plugin and fresh per-side temporary roots. No profile, extra test,
+full gate, provider work or retry ran in this allocation.
+
+| Side | Exact revision | External complete-command seconds | Pytest seconds | Result |
+| --- | --- | ---: | ---: | --- |
+| before | `04f6002a01d42660af5f7b174c0ef144bc9b90f0` | 46.383018082997296 | 44.22 | 1 passed |
+| after | `a2436d78b18f3e6e05a380c85181208c920275aa` | 46.415397459000815 | 44.25 | 1 passed |
+
+Wall-time reduction was **-0.06980868719146383%**: this pair observed no speed
+gain. Its approximately 0.032-second difference does not establish a statistical
+regression. It does not establish whole-suite speed or the original 85-percent
+target. The 84 distinct focused correctness checks and independent source review
+remain separate evidence; combined full/hosted qualification is still pending.
+
+Both actual execution markers proved native fingerprint
+`4a5688a8f77a9eefd4132e4753046ad0532ff693c4c84d60c8905ead6e1d6e55`;
+wrapper collection-only markers were checked separately. Source-input probes
+remained fixed at `8d4e31819de9b4ea9b6473ff0691a43e0afa741148c3596d3c9e011af58b056f`
+before and `042db77ea0d1c709cab7d75e7c64e7e4b5eb7b69a1b22655c6715e0c8b9b226d`
+after; host `e157fcd2c8db7127845d443a20785aff48490f424fcbfe1eb56ec31bb040db92`,
+interpreter/dependency identities and both observer-owned execution environment
+values matched across sides. Ambient overrides were refused. The existing
+Starlette warning appeared on both sides.
+
+The observer restored exact clean `main` at
+`463697dc37a515f4ccf0d4b0b8f4a12170fe0126`. Owned groups 9998, 10006, 10337 and
+10360 were immediately settled absent; a post-terminal process-group inventory
+also found none. `result.json` records `complete=true`. The terminal receipt was
+sent promptly to the manager for CLI-window release. This subsequent docs-only
+receipt does not retarget the now-completed observer or invalidate its runtime
+inputs. All three completed observers retain their original bytes and pins.
+
+Evidence root `.local/remaining-cost/receipt-material-quiet-0jasxfgm/`, SHA-256:
+
+- `before/focused.log`:
+  `92f46742f24be3cdb52b5292ba8092004f1314fce53ac9ee9e6d999b983a75ef`;
+- `after/focused.log`:
+  `204fcb62a7f58e540d2b5eefcfc56a2acd38732aedddff7af26a6722d63914a8`;
+- `result.json`:
+  `9144012689ee4dc3f6243c7abcebbb73b9c67f095564d9401ae0050b21866dea`;
+- observer `.local/remaining-cost/receipt_material_quiet_pair.py`:
+  `a1becc448d09ca4c7b00b9ad6bd5a2cf81ea1f70fd9fc4f5ddb8b5bfdd5ff878`.
 
 ### Historical material-closure attribution — read-only extraction
 
