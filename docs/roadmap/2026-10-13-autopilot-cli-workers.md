@@ -3,7 +3,8 @@
 Status: **dispatched once through Relay Direct on 2026-10-13**, after the
 preceding technical closeout and publication. Registration and read-only
 admission passed and the sole implementation writer was released. The serial
-executor checkpoint is now committed; native proof is in progress as recorded
+executor checkpoint is now committed; the first native proof exposed an
+authentication-composition failure and repair is in progress as recorded
 below. The original Relay Brainstorm and Plan checkpoint
 contained no pool implementation or live executor change.
 
@@ -99,6 +100,42 @@ generation and Python test-speed improvement toward 85 percent. The manager
 verified its active runtime status. Both tracks continue concurrently in
 separate checkouts, with one source owner per checkout and allocated checks;
 the existing worker and verified Relay route are retained.
+
+### Native authentication and confinement repair
+
+The composition follow-up is committed at `a2979fc4` in the same worker
+checkout. The first production-supervisor attempt,
+`95ab2970-1f85-4db7-89cb-ae4a11cb9b82`, received HTTP 401 and remains
+`outcome_unknown` without delivery. Its exact retained session contains no
+tool calls or ImageGen events. Do not retry or release its reservation based
+on this diagnosis.
+
+Read-only checks found two incorrect runtime assumptions: each attempt used
+a fresh `CODEX_HOME`, relocating authentication, and execution forced the
+`keyring` credential backend. With the ordinary home, `login status` reports
+an existing ChatGPT login, whereas the same command with forced `keyring`
+reports no login. No credentials were read or copied and no new login was
+started. Separately, the generic `workspace-write` invocation does not prove
+the frozen profile's restricted-read claim.
+
+The manager collected an independent read-only architecture review
+(requested Sol/High; effective settings unverified) and released the existing
+sole writer for a durable repair: retain the working authenticated CLI
+boundary, freeze only non-secret host composition, check authentication
+readiness before reservation and again before spawn, and qualify actual
+invocation-local permission/tool restrictions with harmless probes. Preserve
+private, exact-session evidence and unknown-dispatch safety. A stable separate
+auth home requiring owner sign-in is a fallback only if safe existing-auth
+reuse cannot be established; per-attempt login and credential copying are not
+the selected design.
+
+The worker must also investigate the independent telemetry parser issue:
+ordinary custom-tool syntax must not be parsed as ImageGen evidence. This did
+not cause the 401 attempt. Strict ImageGen identity and argument validation
+must remain intact. Focused checks and stable independent review are released;
+further provider dispatch is held until the manager reviews the repaired
+authentication/confinement checkpoint. No live activation or global settings
+change is authorized by this repair.
 
 The local evaluation on `codex-cli 0.162.0-alpha.17.2` completed four distinct
 sessions: structured text, built-in ImageGen, reference editing, and two image
