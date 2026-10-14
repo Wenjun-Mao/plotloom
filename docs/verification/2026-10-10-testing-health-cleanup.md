@@ -1621,3 +1621,35 @@ native probes during this window and was released immediately afterward.
 These are selected-case medians, not whole-suite results. Unaffected-family
 timing, broader final qualification and publication remain pending; the
 85-percent whole-Python target is not achieved.
+
+### Creator-confirmation fixture refinement — October 13
+
+The next test-only slice starts at clean `734624b8` on the retained
+`python85-query-qualification` branch. Four creator-confirmation rows still
+built twelve frames although their contracts concern unnamed attribution,
+optional authored comments, receipt binding and orphan-fact refusal, not the
+number of cuts. They now explicitly request two cuts per scene from the
+existing shared fixture. Each case asserts eight real text deliveries, six
+frames, complete unique-shot coverage and two routes. Existing handoff,
+receipt/hash, reopen and snapshot/restore/acknowledgement assertions remain.
+The shared four-cut default, named-v1 recovery control, derivative-geometry
+control and full 27-frame owner are unchanged. No additional production
+change is included in this slice.
+
+Before editing, three quiet baseline runs at `734624b8` passed all six selected
+cases: the four target rows followed by those two unchanged controls. External
+wall times were 125.984s, 125.863s and 127.701s (median 125.984s). These samples
+use direct native `uv run --locked --no-sync pytest -q --durations=0
+--durations-min=0` with explicit selectors, not the `verify.py focused` wrapper;
+the same command will measure the candidate. Raw logs, rounded pytest phase
+durations, fingerprints and exact commands are retained in ignored
+`.local/creator-confirmation/`. The CLI worker held tests/native probes for
+this window and was explicitly released. Independent read-only review of the
+one-file delta (requested Sol/Medium, effective settings unverified) found no
+actionable gaps: all prior assertions and parameter rows remain, with
+function-scoped fixture isolation. Targeted Ruff, compile and diff checks
+passed. The established focused runner passed all sixteen creator-confirmation
+cases plus the unchanged derivative-geometry and full 27-frame pack controls:
+18 passed in 132.11s, 137.855s including selector checks and runner overhead.
+The existing Starlette/httpx warning remains. `correctness.log` retains the
+result. Candidate timing, full qualification and publication remain pending.

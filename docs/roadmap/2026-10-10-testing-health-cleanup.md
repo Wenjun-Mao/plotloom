@@ -1078,5 +1078,10 @@ Keep real handoff, eight-stage setup, receipt hashing, reopen and snapshot/
 restore/acknowledgement paths. Do not change the shared default or remaining
 geometry cases. Preselect named-v1 receipt recovery and derivative-handoff
 geometry as unchanged controls, retaining the 27-frame complete-pack owner.
-This shortlist is not implemented or measured; compare before/after on the
-same host under coordinated quiet windows before claiming a benefit.
+The four-row opt-in is implemented locally with exact eight-stage/six-frame
+guards. Three six-case baseline samples (including both unchanged controls)
+passed at clean `734624b8`, median 125.984s. Independent read-only review found
+no actionable gaps; focused verification passed all sixteen creator cases
+plus the unchanged geometry and 27-frame controls (18 total). Matched candidate
+timing and final qualification remain pending. Compare on the same host under
+coordinated quiet windows before claiming a benefit.
