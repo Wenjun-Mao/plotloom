@@ -23,7 +23,7 @@ from ..schema import (
     AutopilotFrameRow,
     AutopilotRunRow,
 )
-from .autopilot_activity import run_activities
+from .autopilot_activity import _project_checkpoints, run_activities
 from .autopilot_closure import material_closure
 from .autopilot_exec_attempts import AutopilotExecPersistence
 from .autopilot_freshness import assert_fresh
@@ -84,9 +84,8 @@ class AutopilotPersistence(AutopilotExecPersistence):
             state="stale" if stale and row.state not in {"cancelled", "taken_over", "stale"} else row.state,
             phase=row.phase, policy=LaunchPolicy.model_validate(row.policy),
             blocker={"code": "material_changed", "message": "项目素材已改变，请接管并继续手动编辑。"} if stale else row.blocker,
-            checkpoints=[{"id": item.id, "operationKey": item.operation_key, "revision": item.revision,
-                "state": item.state, "evidence": CheckpointEvidence.model_validate(item.evidence).model_dump(mode="json", by_alias=True)} for item in checkpoints],
-            activities=run_activities(session, row.id, checkpoints), material_current=not stale,
+            checkpoints=(projected_checkpoints := _project_checkpoints(checkpoints)).public,
+            activities=run_activities(session, row.id, projected_checkpoints), material_current=not stale,
             frames=[ProvisionalFrame.model_validate(item.frame) for item in frames],
             bundle=row.bundle, bundle_hash=row.bundle_hash, handoff=row.handoff, created_at=row.created_at, updated_at=row.updated_at)
 

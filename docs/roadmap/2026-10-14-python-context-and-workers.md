@@ -2547,3 +2547,74 @@ Allocation `root-current-python-f5e729d7-20261015-01` is spent; Root released qu
 This proves the current Python lane, not matched 85%, frontend/full release or CI.
 Old **591.4420814999903s** remains historical `b0ed49f3`; the **151.73295s** target
 is still unmet. This docs-only receipt does not create a new measured revision.
+
+### RunView-local checkpoint evidence — bounded implementation brief
+
+Root authorized one source slice on `fea83fd2`: remove the second validation of
+the same loaded checkpoint evidence inside one RunView construction. The root
+cause is duplicated derivation between public checkpoint serialization and durable
+activity projection; the loaded rows are neither refreshed nor mutated between
+those sites. The composition layer owns a private typed projection, retaining each
+row's parse-then-dump order and the subsequent fresh attempt query/validation.
+[ADR 0179](../adr/0179-run-view-local-checkpoint-evidence.md) records the contract.
+
+Deliver only the two persistence owners, focused regression owner/ownership entry
+and this decision/receipt. Preserve all SQL, closures, authority, ordinary-open,
+corruption, policy/frame validation, claim and following-read boundaries. Closure
+reuse was rejected because these checks cover distinct state/authority/read
+boundaries. No cross-view/session/global cache or weaker projection is allowed.
+Run the new focused guards first, then full bounded activity, claim transactions,
+authority, geometry and receipt-projection owners. Preserve historical whole-run
+identities/artifacts; new source deltas do not retarget that measured evidence.
+Stop with an uncommitted stable diff and actual functional evidence for Root's
+review. No full/module/whole gate, measurement/profile, provider/native work,
+actors, push or merge is authorized. No speed gain or 85% conclusion follows.
+
+#### Functional checkpoint — awaiting Root review
+
+The two persistence owners now share one private RunView-local derivation;
+no other `AutopilotPersistence` method changed. Fresh attempt SQL/parsing and the
+activity body remain unchanged apart from typed iteration/removal of the second
+evidence parse. The 247-line new regression owner delegates real SQLite queries,
+Pydantic parsing and serialization, covering exact output, one parse for every
+loaded row including no-job/geometry, policy/row-dump/attempt/frame order,
+malformed evidence, serialization failure, failed-view isolation, changed evidence
+and attempt state across views, and reentrant views.
+
+The first attempt failed collection because an assignment expression was illegal
+inside a comprehension iterable. The private aggregate now exposes its public
+list directly, preserving keyword evaluation order. The second attempt collected
+nine cases but its fixture job ID violated the real attempt schema; it now uses
+the established UUID-derived job identity. Both failed receipts remain immutable.
+The corrected nine guards passed; scoped Ruff F/I then identified only import
+ordering in the new owner, corrected before final qualification. Its failed lint
+receipt is also retained. No validator, assertion or existing owner was weakened.
+
+Native `verify.py focused` then passed **99 cases / 6 files**, including all nine
+new guards and the complete activity, claim-transactions, authority, geometry and
+receipt-projection files. The existing 90 native IDs match the accepted whole
+inventory; no skips/xfails. Fingerprint
+`e5bbc827daf7feddd35656868593e5bd1fc8341429c3cff23cfed1a4e644d708`;
+tested input `eeb0037ca05eec3ae60a5c7d6beb67b69d552811630ab938c30a37798dd68590`.
+Native session `72948` genuinely exited 0. The [functional result](../../.local/remaining-cost/run-view-checkpoint-evidence-20261015/affected-owner-union/result.json),
+SHA `d602a66a3d11f28465726380be9827110ff3f29bed83379608786dd97f982617`,
+contains exact commands, native IDs/markers, source pins and environment checks.
+Scoped Ruff F/I passed on the same executable input. One Starlette/httpx test-client
+deprecation warning remains outside this slice. Across all six launches, source,
+index, environment, host, tools, cache and 123 protected artifacts (including all
+108 prior whole-run artifacts) stayed unchanged; all owned groups and inode-bound
+temporary roots were removed. The historical 28 identities remain sealed at their
+measured revision; authorized new source/docs deltas are separate. These are
+contended functional timings only. Changes remain uncommitted for Root review;
+no whole/full/module gate, hosted CI, provider/native campaign, performance gain,
+85% conclusion, release or product acceptance is established.
+
+Root accepted the stable candidate for functional correctness in independent
+audits `ab9aaa`, `04ac6c` and `baaf6e`, reconstructing native 9/99-case completion,
+all 90 retained IDs, six launch receipts, source pins, preservation and cleanup.
+Root authorized one local commit of exactly these six reviewed paths; only this
+receipt and ADR status changed afterward. Executable input remains
+`eeb0037ca05eec3ae60a5c7d6beb67b69d552811630ab938c30a37798dd68590`.
+No retest, push, merge or measurement is authorized. Historical whole-Python
+`f5e729d7` predates this change; new whole qualification and any measured gain
+remain open, and the 151.73295-second target is unmet.
