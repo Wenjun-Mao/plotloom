@@ -2444,3 +2444,43 @@ remain open. This receipt-only clarification does not change tested executable
 inputs. No new profile, benchmark,
 whole/full gate, hosted CI, provider/native campaign or product acceptance was run.
 The **151.73295s / 85%** target and larger attribution ideas remain open.
+
+### F5 accepted-F4 seed reuse — bounded functional checkpoint
+
+Root authorized the test-only slice on `412b3bbd`: 72 prepared F5 cases now copy
+five closed accepted-Script variants using the existing `AcceptedScriptSeed`
+freeze/open contract. The creation Brief, accepted topology, 8–9-shot bounds,
+script language `en`, narration/split/action variants and realistic/saved-Brief
+style contracts are checked. Seeds contain no F5 candidates, revisions or F5
+execution pins; legitimate upstream pins remain. Each case opens an independent
+physical home with fresh application storage, then prepares its own F5 job/pin.
+All original F5 test bodies/decorators/assertions remain unchanged; six pure
+projection cases have no seed dependency. No production/shared-seed code changed.
+
+The first five isolation guards failed because the new test applied the strict
+closed-file inventory to an open sibling database. Its sidecar refusal correctly
+fired. The guard now compares whole-file inventories only after handles close;
+no filtering/tolerance or shared-helper change was added. The failed
+[result](../../.local/remaining-cost/f5-script-seed-20261015/result.json) remains
+failed/immutable, and its owned group/root were cleaned.
+
+After that lifecycle correction, native `verify.py focused` passed **5 new
+guards**, then **85 cases / 3 files**: the original F5 file, new variant/isolation
+owner and existing specialist-seed guards, included because their strict
+freeze/copy mechanics are reused. Native session `32964` genuinely exited 0;
+the true execution fingerprint is
+`9b144348097f2a96913a3cf73ff5fac38052ddf484e9cbe272b07de39604ed2d`,
+with no skips/xfails. All **78** retained F5 IDs match the pinned native inventory;
+the **72** prepared subset retains fingerprint
+`6302bc0e47d4e93e8d7dc65b5ff85745880034043d1cece21d3e2ad5ebb76f51`.
+The [functional result](../../.local/remaining-cost/f5-script-seed-20261015/corrected/result.json)
+(`ae65796d44886ca4acaf9d88db05da93c447ea90571acfb8718c408663ecd04e`)
+records commands, source pins and tested input
+`1defe3bd1be032df6414bfe43d6ee45f2122149cd741e4d6fb8ebcb306cc255f`.
+It confirms unchanged source/index/environment/host/tools/cache and 60 protected
+artifacts during checks; owned groups and inode-bound external roots were removed.
+Scoped Ruff F/I passed. Root accepted the bounded functional source checkpoint
+after independent audit `683cf7`, authorizing a local scoped commit. This
+receipt-only clarification does not change tested executable inputs. No performance
+comparison, profile, whole/full gate, hosted CI, provider/native campaign or
+product acceptance was run. The original 85% target remains open.

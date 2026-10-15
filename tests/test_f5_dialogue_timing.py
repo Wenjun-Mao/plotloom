@@ -12,7 +12,6 @@ import pytest
 
 from plotloom.authored_route_timing import route_budget_hash
 from plotloom.codex_exec_validation import build_text_validation_plan
-from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_exchange import canonical_json
 from plotloom.domain import StageName
 from plotloom.persistence.project.storyboard_review import (
@@ -34,10 +33,14 @@ from plotloom.production_dialogue_timing import (
     freeze_f5_dialogue_timing,
     projected_dialogue_timing,
 )
-from plotloom.project_storage import ProjectFolderStorage
 from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
-from tests import creative_delivery_fixtures
-from tests.creative_delivery_fixtures import _accepted_f4_script
+from tests.f5_dialogue_timing_fixtures import (
+    LINE,
+    NOTES,
+    open_f5_script_copy,
+    variant_for,
+)
+from tests.f5_dialogue_timing_fixtures import f5_script_seeds as f5_script_seeds
 from tests.production_bridge_fixtures import (
     _review_fixture_presentation,
     _source_shaped_review_board,
@@ -45,8 +48,6 @@ from tests.production_bridge_fixtures import (
 from tests.storyboard_brief_fixtures import brief_board
 
 ROOT = Path(__file__).resolve().parents[1]
-LINE = "她私封暗渠。交钥，过错公开；留钥，居民可能被困。"
-NOTES = "简短客观叙述，普通话，平稳清楚。"
 
 
 @pytest.mark.parametrize("text,language,delivery,expected", [
@@ -68,20 +69,10 @@ def test_shared_projection_uses_spoken_language_pace_and_unicode(text, language,
 
 
 @pytest.fixture
-def prepared(tmp_path, monkeypatch, request):
+def prepared(tmp_path, request, f5_script_seeds):
     configuration = getattr(request, "param", "realistic")
-    style = configuration if isinstance(configuration, str) else configuration["style"]
-    source = creative_delivery_fixtures._pilot_script()
-    source["lang"] = "en"
-    if not isinstance(configuration, dict) or configuration.get("dialogue", True):
-        source["episodes"][0]["scenes"][0]["flow"][3] = {"speaker": "VO", "line": LINE, "delivery": NOTES}
-    if isinstance(configuration, dict) and configuration.get("multi"):
-        source["episodes"][0]["scenes"][0]["flow"][3]["line"] = LINE[:12]
-        source["episodes"][0]["scenes"][0]["flow"][4] = {"speaker": "VO", "line": LINE[12:], "delivery": NOTES}
-    monkeypatch.setattr(creative_delivery_fixtures, "_pilot_script", lambda: deepcopy(source))
-    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
-    with closing(storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 8, "shots_per_scene_max": 9}))) as store:
-        _accepted_f4_script(store, render_style=style)
+    storage, store = open_f5_script_copy(tmp_path, f5_script_seeds[variant_for(configuration)])
+    with closing(store):
         candidate, frozen = store.prepare_storyboard_review_candidate("ch_" + "t" * 32)
         yield storage, store, candidate, frozen
 

@@ -153,6 +153,7 @@
           "tests/test_cast_writing_contract.py",
           "tests/test_creative_handoff_exchange.py",
           "tests/test_f5_dialogue_timing.py",
+          "tests/test_f5_dialogue_timing_seed.py",
           "tests/test_current_stage_evidence.py",
           "tests/test_identity_review_refusal.py",
           "tests/test_native_wake_art.py",
