@@ -2484,3 +2484,24 @@ after independent audit `683cf7`, authorizing a local scoped commit. This
 receipt-only clarification does not change tested executable inputs. No performance
 comparison, profile, whole/full gate, hosted CI, provider/native campaign or
 product acceptance was run. The original 85% target remains open.
+
+### Accepted scoped F5 observation — October 15
+
+Root independently accepted the original-78 pair in audit `3b2a98`: before
+`412b3bbd` and after `ac73d635`, one measured pytest process per arm, sequentially.
+Both real collections matched; executions each proved 78 passed, no skips/xfails:
+`b3c34bdca66036580a49485d60e3414aac3470e4a39e86b1bc6fcf8667be6e2a`.
+Measured command wall was **45.23837783301133s → 14.546578707988374s**:
+observed reduction **30.691799125022953s / 67.84460583073019%** for this owner only.
+Native setup work was **38.216601003921824s → 7.897962494957028s**; call work
+**5.3209375778678805s → 5.4965840411314275s**; teardown
+**0.2397347498626914s → 0.0804937499051448s**. Phase work is elapsed, not CPU.
+The [actual result](../../.local/remaining-cost/f5-original78-pair-ac73d635-prep-20261015/run-y_2odn0e/result.json),
+SHA `e6c9bdb7f5625b868a63e3db0bb8da141ea78f43181f2da0336226f1d6117f06`,
+records exact argv, timing boundaries and runtime/source bindings. Native handle
+`24515` / execution `10da31ae` exited 0; all 12 owned groups and registered root
+were absent, with 79 protected/common identities and environment/cache preserved.
+Quiet `root-f5-original78-pair-ac73d635-20261015-01` is spent; Root released CLI priority.
+One ordered pair retains host/order noise; no default-two-worker/whole/85% conclusion.
+The five new guards remain required whole coverage. Whole `b0ed49f3` and profile
+`ff822895` retain original scopes; this docs-only receipt is not a new measured revision.
