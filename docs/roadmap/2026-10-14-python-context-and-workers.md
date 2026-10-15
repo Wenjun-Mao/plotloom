@@ -2199,3 +2199,79 @@ that changes executable inputs/inventory invalidates current-source reuse and
 needs fresh measurement/relevant qualification. Whole-Python success would
 still leave combined full, hosted CI, CLI, publication and product acceptance
 separate. No 85-percent promise follows from the scoped five-second observation.
+
+### Current whole-Python observation failed — October 15
+
+The separately allocated observation at clean
+`bab6bc0809cc9b271e46a5a18e705340477b3fdd` genuinely terminated with exit 1.
+Fresh native inventory contained **2,375 cases / 226 files**, fingerprint
+`dca02467c486f4f961684426a3ed90c04ed7718d9d8c541adea8e8fa6716f713`.
+Worker 1 reported 1,232 passed / 1 failed; worker 2 reported 1,141 passed /
+1 failed: **2,373 passed / 2 failed** overall. Both actual timing markers were
+incomplete, with zero per-file phase rows. External failed-command wall was
+**701.227730750019s**; native coordinator wall was **694.223s**. This is failed
+current-source evidence, not successful qualification, matched whole-suite gain,
+or achievement of the 85-percent target. No phase bottleneck ranking is possible.
+
+Evidence remains immutable under
+`.local/remaining-cost/current-python-bab6bc08-ifyzlug_/`:
+
+- Result: `f2513267cd33aa5cde0dfa800f5081cc484f044a33f82d11aeec74a845adb0e3`.
+- Sealed plan: `fe170078f415fd08983ab6a851835914644778853c54af9a34ac3979869185c6`.
+- Consumed START: `7099ca4ca997c5f8034d18043335f9deb5ac41a6ca6381b91fadfa50eb31bdd4`.
+
+Initial/final source, environment and protected-artifact identities matched;
+tracked source remained clean. All owned process groups and the exact external
+parent/nested temporary roots were absent after cleanup. Root independently
+accepted the failed-run closure and released its quiet window; that allocation
+is spent and permits no retry.
+
+Reviewed diagnosis traces both failures to the earlier `e71e537f` F5 timing
+change, not the latest profile-construction optimization. The lifecycle test in
+`test_project_storage_storyboard_review.py` retained an obsolete five-artifact
+expectation. ADR 0173 requires the sixth timing artifact even for action-only
+Script (`lines: []`), bound to accepted Script identity, saved language and the
+canonical timing profile. The bounded repair updates that exact expectation and
+checks the full timing payload/digest against its serialized candidate binding;
+all lifecycle, cancellation, late-delivery and recovery assertions remain.
+
+**Open precision decision — human answer pending.** The other failure,
+`test_raw_f5_accepts_submillisecond_time_but_production_conflicts_explicitly`,
+exposes a contract conflict: ADR 0100 places exact integer-millisecond conversion
+at Bridge/provenance and leaves raw F5 admission unchanged, whereas the new
+receiving adapter rejects every fractional-millisecond cut before dialogue
+assignment, including action-only Script. ADR 0173 authorizes canonical minima
+and route checks without explicitly superseding that precision boundary.
+Upstream-library versus receiving-adapter terminology does not resolve it.
+The choices are to preserve raw precision with exact decimal comparisons against
+minima/route ceilings while keeping Bridge conversion strict, or explicitly
+authorize earlier precision rejection and reconcile the owning ADRs. Neither
+rounding nor skipping empty-dialogue timing checks is an acceptable resolution.
+No precision production code, owning ADR or second-test expectation is changed
+by this first-failure repair. A precision repair, its affected qualification and
+any fresh whole-Python run require the decision and a new allocation. The
+separately authorized first-failure correctness window is recorded below;
+combined full, hosted CI, CLI and product acceptance remain open.
+
+The first-failure repair's separately allocated focused check executed once:
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest tests/test_project_storage_storyboard_review.py::test_f5a_freezes_current_f4_identity_blocks_lifecycle_and_refuses_late_delivery
+```
+
+Native session `76888` exited 0: **1 passed**, with the existing Starlette/httpx
+deprecation warning. Native collection and true execution completion matched the
+exact one-case fingerprint
+`aa8cc6e7be4e089679beb7e123527baa0dc6cd57429223abe19e1c2b7e7e8382`.
+The fixed existing environment ran offline/no-sync with cacheprovider disabled,
+fresh external TMPDIR/uv cache and the established owned-group cleanup. Initial
+and final candidate/environment/cache/protected-evidence probes matched; the
+owned group and inode-bound temporary root were absent. Evidence is
+`.local/remaining-cost/f5-artifact-lifecycle-correctness-li9lgi_j/`, result
+`a76baeb96b57f973fdbc8bb5b065e1f76d7a6686bf50b2f5c62c8855e824d6f6`, log
+`5a6b8c5a14b29a21ebe714a904dbb67ea6b1cdaa03bc3b5985de000ed97a0907`.
+The measured whole-run revision remains `bab6bc08`; this later test-only repair
+is not a relabelled whole-suite result. The subsequent receipt-only docs
+update does not change the executed test bytes. No second precision case,
+affected union, module, whole suite or full release check ran in this allocation.

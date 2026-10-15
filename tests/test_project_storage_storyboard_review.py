@@ -1,5 +1,6 @@
 """F5A source storyboard review lifecycle and admission contracts."""
 
+from hashlib import sha256
 from pathlib import Path
 
 import pytest
@@ -7,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.creative_handoff_exchange import canonical_json
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.project_storage.operational_state import (
     ProjectBusyError, close_blockers, specialist_publication_blockers,
@@ -25,7 +27,24 @@ def test_f5a_freezes_current_f4_identity_blocks_lifecycle_and_refuses_late_deliv
         candidate, request = store.prepare_storyboard_review_candidate("ch_" + "s" * 32)
         assert candidate.binding.script_revision == 1
         assert candidate.binding.script_content_hash == store.script_state().accepted_script.content_hash  # type: ignore[union-attr]
-        assert request.input_artifacts.keys() == {"script.json", "outline.json", "cast.json", "art.json", "storyboard-admission.json"}
+        assert request.input_artifacts.keys() == {
+            "script.json", "outline.json", "cast.json", "art.json",
+            "storyboard-admission.json", "dialogue-timing-contract.json",
+        }
+        timing_payload = {
+            "version": "plotloom.f5-dialogue-timing.v1",
+            "scriptContentHash": candidate.binding.script_content_hash,
+            "language": "zh-CN",
+            "profileVersion": "dialogue.default.v1",
+            "lines": [],
+        }
+        assert request.input_artifacts["dialogue-timing-contract.json"] == timing_payload | {
+            "contentHash": sha256(canonical_json(timing_payload)).hexdigest(),
+        }
+        assert candidate.binding.dialogue_timing_contract is not None
+        assert request.input_artifacts["dialogue-timing-contract.json"] == (
+            candidate.binding.dialogue_timing_contract.model_dump(mode="json", by_alias=True)
+        )
         assert request.input_artifacts["storyboard-admission.json"]["sectionBindings"] == [
             {"sectionId": "opening", "episode": 1}, {"sectionId": "ending-a", "episode": 2}, {"sectionId": "ending-b", "episode": 3},
         ]
