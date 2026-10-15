@@ -380,6 +380,12 @@ destination validation uses copied assets. Missing/changed source or output is a
 refusal, not a transient imported source. Canonical JSON hashing lives in a small
 dependency-free contract module (persistence reexports the identical function),
 so standalone transform imports cannot cycle through repository composition.
+Material model imports follow the same boundary: they use the canonical hash
+owner directly, while complete inventory loads its persistence closure inside
+the inventory operation for every caller. Shared schema imports must not
+initialize repository composition. Cold isolated-process regressions protect
+this boundary alongside ordinary persistence and complete-inventory consumers;
+model identity, JSON/schema shape and inventory calculations remain unchanged.
 
 Refinement currentness distinguishes immutable generated-source context from
 selection position. Before selection the frozen parent must remain selected;

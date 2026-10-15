@@ -38,6 +38,7 @@
           "tests/test_autopilot_runtime_ownership.py",
           "tests/test_autopilot_late_receipts.py",
           "tests/test_autopilot_images.py",
+          "tests/test_autopilot_material_imports.py",
           "tests/test_autopilot_image_safety.py",
           "tests/test_autopilot_image_phase.py",
           "tests/test_autopilot_review_readiness.py",

@@ -4,10 +4,9 @@ from typing import Literal
 from pydantic import Field, model_validator
 
 from .autopilot_contracts import ProvisionalFrame
+from .contract_hash import stable_hash
 from .domain import CamelModel, StageName
 from .exceptions import InvalidTransitionError
-from .persistence.codec import stable_hash
-from .persistence.project.autopilot_closure import production_closure
 from .source_structures import complete_routes
 
 
@@ -56,6 +55,10 @@ def cast_reference_subjects(cast):
 
 
 def initial_inventory(store, policy, *, enforce_limits=True):
+    # Complete inventory owns persistence; importing shared material models must
+    # not initialize the repository that also consumes those models.
+    from .persistence.project.autopilot_closure import production_closure
+
     cast = store.cast_state().accepted_cast
     art = store.art_state().accepted_art
     readiness_error = "complete material inventory requires current accepted text and installation"
