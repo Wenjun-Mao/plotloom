@@ -38,7 +38,8 @@ class CodexExecSupervisorProcessMixin(
                 except Exception:
                     pass
         finally:
-            self._workers.pop(str(attempt.attempt_id), None)
+            # The launching parent reaps this helper. This process owns only
+            # its durable attempt finalization and one FIFO continuation.
             current = self._load(self._row(attempt.attempt_id)).attempt
             if current is not None and current.state in {"completed", "failed", "settled"}:
                 self._drain_queue()

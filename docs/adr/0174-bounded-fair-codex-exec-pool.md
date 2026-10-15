@@ -67,6 +67,16 @@ activity. Increasing a process count alone would preserve those defects.
   Current Cast → Art → Script → Storyboard and Bridge bindings stay intact.
   Two text slots require genuinely independent frozen jobs, initially from
   different projects.
+- The process that launches a helper owns an autonomous waiter for that exact
+  `Popen`, independent of future RPCs and terminal ledger fast paths. Allocate
+  its thread before creating a child, release it on failed creation, and forget
+  only the same reaped map object under synchronization. A failed wait retains
+  the handle and reports the failure; it never proves absence or settles work.
+  Reaping does not cancel on bridge close, release reservations, drain queues
+  or interpret provider outcomes. A restarted/non-parent host cannot wait for
+  another process's child. The native `4525e3e0` pack completed all material but
+  exposed 22 unreaped helper zombies; its failed in-process cleanup result stays
+  unchanged, with separate post-parent-exit absence evidence.
 
 ## Rejected alternatives and consequences
 

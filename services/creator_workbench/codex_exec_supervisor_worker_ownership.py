@@ -1,17 +1,50 @@
 """Attempt-scoped worker claims, process ownership and launch."""
 from __future__ import annotations
 
+import logging
 import os
 import subprocess
 import time
 from contextlib import closing
 from pathlib import Path
+from queue import Queue
+from threading import Thread
 
 from codex_exec_supervisor_errors import CodexExecSupervisorError
 
 from plotloom.codex_exec_auth import (
     credential_free_environment as _credential_free_environment,
 )
+
+logger = logging.getLogger(__name__)
+
+
+class _WorkerExitReaper:
+    """Allocate the waiter before a child can exist; wait only for that Popen."""
+
+    def __init__(self, on_exit):
+        self._spawn_result = Queue(maxsize=1)
+        self._on_exit = on_exit
+        self._thread = Thread(target=self._wait, name="plotloom-codex-helper-reaper", daemon=True)
+
+    def start(self):
+        self._thread.start()
+
+    def spawned(self, worker):
+        self._spawn_result.put(worker)
+
+    def _wait(self):
+        worker = self._spawn_result.get()
+        if worker is None:
+            return
+        try:
+            worker.wait()
+        except OSError as error:
+            # Failed wait is not absence. Keep the exact child handle and all
+            # durable attempt facts; the failure must remain visible.
+            logger.error("Codex Exec helper wait failed (%s); exact child handle retained", type(error).__name__)
+            return
+        self._on_exit(worker)
 
 
 class CodexExecSupervisorWorkerOwnershipMixin:
@@ -134,17 +167,24 @@ class CodexExecSupervisorWorkerOwnershipMixin:
                 "--outputs-root", str(self.outputs_root),
                 "--private-root", str(self.private_root),
             ]
-            worker = subprocess.Popen(
-                command,
-                cwd=self.source_root,
-                env=self._worker_environment(),
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                close_fds=True,
-                start_new_session=True,
-            )
-            self._workers[str(attempt.attempt_id)] = worker
+            reaper = self._start_worker_reaper(attempt.attempt_id)
+            worker = None
+            try:
+                worker = subprocess.Popen(
+                    command,
+                    cwd=self.source_root,
+                    env=self._worker_environment(),
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    close_fds=True,
+                    start_new_session=True,
+                )
+                self._workers[str(attempt.attempt_id)] = worker
+            finally:
+                # Popen failure must also release the preallocated waiter.
+                # Success keeps reaping independent of bridge/RPC lifetime.
+                reaper.spawned(worker)
             deadline = time.monotonic() + 10
             while time.monotonic() < deadline:
                 current = self._row(attempt_id)
@@ -182,10 +222,17 @@ class CodexExecSupervisorWorkerOwnershipMixin:
                     worker.wait(timeout=2)
                 self._workers.pop(str(attempt.attempt_id), None)
 
-    def _reap_worker(self, attempt_id):
-        worker = self._workers.get(str(attempt_id))
-        if worker is not None and worker.poll() is not None:
-            self._workers.pop(str(attempt_id), None)
+    def _start_worker_reaper(self, attempt_id):
+        reaper = _WorkerExitReaper(lambda worker: self._forget_reaped_worker(attempt_id, worker))
+        reaper.start()
+        return reaper
+
+    def _forget_reaped_worker(self, attempt_id, worker):
+        if worker.returncode is None:
+            raise CodexExecSupervisorError("cannot forget an un-reaped helper")
+        with self._guard:
+            if self._workers.get(str(attempt_id)) is worker:
+                self._workers.pop(str(attempt_id))
 
     def _worker_environment(self):
         import sys

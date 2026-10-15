@@ -123,9 +123,6 @@ class CodexExecSupervisorAdmissionMixin:
             return CodexExecAttempt.model_validate_json(self._row(attempt.attempt_id)["status_json"])
         if not self._owns_worker(row):
             return self._mark_unknown(attempt)
-        worker = self._workers.get(str(attempt.attempt_id))
-        if worker is not None and worker.poll() is not None:
-            self._workers.pop(str(attempt.attempt_id), None)
         return attempt
 
     @staticmethod

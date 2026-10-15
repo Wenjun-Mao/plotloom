@@ -494,6 +494,7 @@
           "tests/services/creator_workbench/test_codex_exec_supervisor_pool.py",
           "tests/services/creator_workbench/test_codex_exec_pool_profile.py",
           "tests/services/creator_workbench/test_codex_exec_supervisor_validation_lifecycle.py",
+          "tests/services/creator_workbench/test_codex_exec_helper_reaping.py",
           "tests/services/minimax_h3_gateway/test_app.py",
           "tests/services/minimax_h3_gateway/test_prompt_robustness_study.py",
           "tests/test_codex_image_dispatch.py",
