@@ -189,27 +189,25 @@ def test_manual_import_replaces_one_frame_and_can_receive_fresh_human_handoff(tm
         service.close()
 
 
-def test_mid_handoff_failure_rolls_back_all_native_human_rows(tmp_path, monkeypatch):
-    storage, _registry, service, view, calls, _text = handoff_image_environment(tmp_path, monkeypatch)
-    try:
-        complete = run_pack(storage, service, view)
-        assert_compact_handoff_pack(storage, view, complete, calls)
-        with closing(storage.projects.open(view.project_id)) as store:
-            request = HumanHandoffRequest.model_validate(observation(review_material(store)))
-            original = store.repository._media.keyframes.select_reviewed_keyframe
-            attempts = []
-            def fail_after_first(*args, **kwargs):
-                attempts.append(kwargs["shot_id"])
-                if len(attempts) == 2: raise RuntimeError("fixture late admission failure")
-                return original(*args, **kwargs)
-            monkeypatch.setattr(store.repository._media.keyframes, "select_reviewed_keyframe", fail_after_first)
-            with pytest.raises(RuntimeError, match="late admission"): record_handoff(store, request)
-            with store.repository.engine.connect() as connection:
-                for table in ("v2_approval_decisions", "v2_visual_intents", "v2_reviewed_shot_bindings", "v2_same_person_reviews", "v2_autopilot_handoffs"):
-                    assert connection.exec_driver_sql(f'SELECT count(*) FROM "{table}"').scalar() == 0
-            assert store.repository.autopilot.current(view.project_id).state == "awaiting_review"
-    finally:
-        service.close()
+def test_mid_handoff_failure_rolls_back_all_native_human_rows(tmp_path, monkeypatch, awaiting_handoff_seed):
+    storage, view, calls = copy_awaiting_handoff_seed(awaiting_handoff_seed, tmp_path / "handoff-copy")
+    complete = view
+    assert_compact_handoff_pack(storage, view, complete, calls)
+    with closing(storage.projects.open(view.project_id)) as store:
+        request = HumanHandoffRequest.model_validate(observation(review_material(store)))
+        original = store.repository._media.keyframes.select_reviewed_keyframe
+        attempts = []
+        def fail_after_first(*args, **kwargs):
+            attempts.append(kwargs["shot_id"])
+            if len(attempts) == 2: raise RuntimeError("fixture late admission failure")
+            return original(*args, **kwargs)
+        monkeypatch.setattr(store.repository._media.keyframes, "select_reviewed_keyframe", fail_after_first)
+        with pytest.raises(RuntimeError, match="late admission"): record_handoff(store, request)
+        assert len(attempts) == 2
+        with store.repository.engine.connect() as connection:
+            for table in ("v2_approval_decisions", "v2_visual_intents", "v2_reviewed_shot_bindings", "v2_same_person_reviews", "v2_autopilot_handoffs"):
+                assert connection.exec_driver_sql(f'SELECT count(*) FROM "{table}"').scalar() == 0
+        assert store.repository.autopilot.current(view.project_id).state == "awaiting_review"
 
 
 def test_manual_multiview_reference_set_is_fully_displayed_and_endorsed(tmp_path, monkeypatch):

@@ -2505,3 +2505,23 @@ Quiet `root-f5-original78-pair-ac73d635-20261015-01` is spent; Root released CLI
 One ordered pair retains host/order noise; no default-two-worker/whole/85% conclusion.
 The five new guards remain required whole coverage. Whole `b0ed49f3` and profile
 `ff822895` retain original scopes; this docs-only receipt is not a new measured revision.
+
+### Rollback consumer seed reuse — functional checkpoint
+
+On `5f3d78ad`, only the mid-handoff rollback case now uses the existing guarded
+awaiting-handoff copy instead of rebuilding its prerequisite pack. Its fresh
+request, real first selection, injected second failure, zero-human-row and
+awaiting-review assertions remain; an explicit two-attempt assertion was added.
+All other test/helper ASTs and the 12 original handoff IDs remain unchanged.
+Focused correctness passed the changed case (**1**), then both full handoff and
+handoff-seed files (**14 / 2 files**, no skips/xfails), native `14867` exit 0,
+fingerprint `08be854b5eadae720307a9987e2d2229fbdb41885cb6535ccae6d6e0a5976f3f`.
+The [functional result](../../.local/remaining-cost/handoff-rollback-seed-20261015/result.json),
+SHA `7979b2f4296d2cbd5de8ecb52a1870f928d227c11bada64560d6e5ab08566553`,
+binds input `63831e592a96008bbf9fcf28c651ca06c77fb29b368da2a347ba9b851513779f`.
+Source/index/environment/host/tools/cache and 101 protected artifacts were
+preserved during checks; both owned groups and inode-bound roots were cleaned.
+No shared helper, production, dependency, ownership or workflow-proof case changed.
+Root accepted this functional checkpoint in audit `3c4e24`, authorizing a local
+scoped commit. No timing comparison or broader
+qualification ran; all earlier F5 observations/pins retain their historical scope.
