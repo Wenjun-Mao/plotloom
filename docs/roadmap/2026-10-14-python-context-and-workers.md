@@ -2525,3 +2525,25 @@ No shared helper, production, dependency, ownership or workflow-proof case chang
 Root accepted this functional checkpoint in audit `3c4e24`, authorizing a local
 scoped commit. No timing comparison or broader
 qualification ran; all earlier F5 observations/pins retain their historical scope.
+
+### Accepted current whole-Python qualification — October 15
+
+Root audit `e7dba5` independently accepted measured revision `f5e729d7`:
+**2,440 passed / 227 files**, unchanged default two workers, exact fingerprint
+`bdf8ee1fdbba737719efd728baa249203d9bd73b8d43ed8ba3964d657af19f80`.
+Worker 1 proved 1,235 cases / 113 files; worker 2 proved 1,205 / 114, with
+true exhaustive/disjoint completion records and no skips/xfails.
+External whole-command wall was **577.8609485409979s**. Runtime binding and the
+standalone collection were outside its timer; native collection, both workers
+and immediate owned-group settlement were inside; extraction/root removal outside.
+Aggregate native phase work **1086.9134571815666s** is elapsed work, not CPU or
+a non-contention floor. The [actual result](../../.local/remaining-cost/current-python-f5e729d7-prep-20261015/run-fi4oe26i/result.json),
+SHA `08c665a1b10e1885e0c1c1162a2155c857dc755370073557ee6a56aaab12dee2`,
+binds actual argv, runtime/source/input, worker reports and all finite phase rows.
+Native handle `40794` exited 0; all 14 recorded groups and the inode-bound parent
+and native nested root were absent. All 28 identities, 108 prior artifacts and
+runtime/environment/host/tools/cache stayed unchanged during the observation.
+Allocation `root-current-python-f5e729d7-20261015-01` is spent; Root released quiet.
+This proves the current Python lane, not matched 85%, frontend/full release or CI.
+Old **591.4420814999903s** remains historical `b0ed49f3`; the **151.73295s** target
+is still unmet. This docs-only receipt does not create a new measured revision.
