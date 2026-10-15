@@ -91,6 +91,23 @@ and checked-runtime/resource/child-environment contracts). Bind the changed sour
 new disposable production-supervisor generation. No replay of old attempts or
 the completed eleven-plan gate is allocated merely by integration.
 
+### Parallel Python checkout and frozen local integration
+
+The owner later requested a separate Python coordinator, native task
+`01a13bfd-1979-7b12-9f0d-54a80eeee329`, as the sole retained
+`autopilot-ux-release` writer; the CLI coordinator keeps its independent `b30f`
+writer. This supersedes the queued/serial ownership statements above. The
+manager is read-only in both checkouts. Small focused correctness work and
+attended read-only reviews may overlap; broad runs, profiling and benchmarks
+require a manager-allocated quiet window and CLI has priority.
+
+The manager explicitly released frozen CLI `c5c2414d` for local integration
+into Python checkpoint `0a515687`, preserving historical scheduling and all
+current CLI contracts. This is separate from the CLI checkpoint's deliberate
+scheduler exclusion above. Do not merge moving CLI HEAD or edit its checkout.
+This unpushed integration is not full release qualification, native generation
+proof, hosted CI or live activation. The manager owns publication.
+
 ## Queue and start conditions
 
 ### Current serial proof and receiving boundary

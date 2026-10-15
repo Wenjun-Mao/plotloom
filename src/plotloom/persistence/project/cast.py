@@ -127,6 +127,10 @@ class ProjectCastPersistence:
             current, *_ = self._context(session, project_id)
         except ReviewContextError as error:
             return [error.diagnostic]
+        return self._stale_against(session, project_id, current, binding)
+
+    def _stale_against(self, session: Any, project_id: str, current: CastBinding, binding: CastBinding) -> list[ReviewContextDiagnostic]:
+        """Compare this operation's inputs; never resolve or retain context."""
         fields = (("source_revision", "source"), ("outline_revision", "accepted outline"), ("section_map_revision", "section map"), ("graph_revision", "installed graph"), ("source_content_hash", "source"), ("outline_content_hash", "accepted outline"), ("section_map_content_hash", "section map"), ("graph_content_hash", "installed graph"))
         reasons = binding_diagnostics(current, binding, fields)
         direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction

@@ -26,6 +26,7 @@ from tests.production_bridge_intent_fixtures import (
     _profile,
     _wait_for_job,
 )
+from tests.native_bridge_seed_fixtures import pending_bridge_project
 
 
 def test_model_result_creates_only_reviewable_bridge_revision_then_explicit_install(
@@ -195,9 +196,9 @@ def test_model_edit_save_reload_and_reinfer_keep_source_suggestion_and_author_te
     [("duplicate", "failed"), ("unknown", "outcome_unknown"), ("not_sent", "failed")],
 )
 def test_invalid_or_unknown_result_never_mutates_proposal(
-    tmp_path: Path, mode: str, expected: str
+    tmp_path: Path, pending_native_bridge_seed, mode: str, expected: str
 ) -> None:
-    storage, project_id, revision, digest = _pending_project(tmp_path)
+    storage, project_id, revision, digest = pending_bridge_project(tmp_path, pending_native_bridge_seed)
     adapter = FakeAdapter(mode, held=True)
     service = ProductionBridgeIntentService(
         storage, resolver=FakeResolver(adapter), secrets=RunSecretBroker()
@@ -226,9 +227,9 @@ def test_invalid_or_unknown_result_never_mutates_proposal(
 
 
 def test_late_model_result_cannot_replace_author_edit_or_cancellation(
-    tmp_path: Path,
+    tmp_path: Path, pending_native_bridge_seed,
 ) -> None:
-    storage, project_id, revision, digest = _pending_project(tmp_path)
+    storage, project_id, revision, digest = pending_bridge_project(tmp_path, pending_native_bridge_seed)
     adapter = FakeAdapter(held=True)
     service = ProductionBridgeIntentService(
         storage, resolver=FakeResolver(adapter), secrets=RunSecretBroker()
@@ -309,8 +310,8 @@ def test_exact_target_contract_rejects_missing_extra_duplicate_and_blank() -> No
             bind_intent_suggestions(value, ["a", "b"])
 
 
-def test_stale_brief_cannot_admit_late_inference(tmp_path: Path) -> None:
-    storage, project_id, revision, digest = _pending_project(tmp_path)
+def test_stale_brief_cannot_admit_late_inference(tmp_path: Path, pending_native_bridge_seed) -> None:
+    storage, project_id, revision, digest = pending_bridge_project(tmp_path, pending_native_bridge_seed)
     adapter = FakeAdapter(held=True)
     service = ProductionBridgeIntentService(
         storage, resolver=FakeResolver(adapter), secrets=RunSecretBroker()

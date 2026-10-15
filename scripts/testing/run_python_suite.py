@@ -298,6 +298,7 @@ def run_python_suite(
             f"shard_files={'/'.join(str(len(shard)) for shard in assignments)} "
             f"schedule={schedule.basis}"
             f"{f' fallback={schedule.fallback_reason}' if schedule.fallback_reason else ''} "
+            f"{schedule.history.describe() + ' ' if schedule.history else ''}"
             f"native_case_ids_sha256={python_suite_schedule.native_case_fingerprint(cases)}",
             flush=True,
         )

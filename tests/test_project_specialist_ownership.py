@@ -28,8 +28,8 @@ def refuse_lifecycle(storage, project_id):
 
 @pytest.mark.parametrize("stage", ["outline", "characters", "art", "script", "storyboard"])
 @pytest.mark.parametrize("receipt_state", ["queued", "outcome_unknown"])
-def test_cancelled_text_blocks_only_owner_until_exact_proof(tmp_path, monkeypatch, stage, receipt_state):
-    rt = ReconciliationRuntime(tmp_path, monkeypatch)
+def test_cancelled_text_blocks_only_owner_until_exact_proof(tmp_path, monkeypatch, accepted_script_reconciliation_seed, stage, receipt_state):
+    rt = ReconciliationRuntime(tmp_path, monkeypatch, accepted_script_seed=accepted_script_reconciliation_seed)
     _, request = prepare(rt.store, stage)
     client = rt.client(raise_server_exceptions=True)
     assert client.post(rt.url(stage, request.job_id) + "/send").status_code == 200
@@ -70,8 +70,8 @@ def test_cancelled_images_are_project_owned_until_reviewed_terminal(tmp_path, mo
 
 
 @pytest.mark.parametrize("defect", ["missing-receipt", "lease-unlinked", "reservation-only", "missing-context"])
-def test_crash_windows_retain_owner_without_guessing_from_publication(tmp_path, monkeypatch, defect):
-    rt = ReconciliationRuntime(tmp_path, monkeypatch)
+def test_crash_windows_retain_owner_without_guessing_from_publication(tmp_path, monkeypatch, accepted_script_reconciliation_seed, defect):
+    rt = ReconciliationRuntime(tmp_path, monkeypatch, accepted_script_seed=accepted_script_reconciliation_seed)
     _, request = prepare(rt.store, "outline")
     assert rt.client().post(rt.url("outline", request.job_id) + "/send").status_code == 200
     cancel(rt.store, "outline", request.job_id)

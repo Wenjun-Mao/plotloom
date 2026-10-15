@@ -10,6 +10,7 @@ from plotloom.geometry_preparation import prepare_geometry
 from plotloom.geometry_preparation_contracts import GeometryRecipe
 from plotloom.persistence.project.image_source_lineage import source_in_session
 from tests.autopilot_image_fixtures import image_environment
+from tests.autopilot_geometry_fixtures import copy_geometry_frame_seed, first_geometry_frame, mismatch
 from tests.test_autopilot_images import current
 
 
@@ -25,20 +26,6 @@ def test_recipe_is_exif_transposed_centered_cover_at_exact_dimensions():
     assert source.getvalue() == raw and output != raw
     with pytest.raises(ValueError):
         GeometryRecipe.model_validate(recipe.model_dump() | {"crop_box": (0, 0, 941, 1672)})
-
-
-def first_geometry_frame(storage, service, view):
-    for _ in range(30):
-        service.step(view.project_id)
-        result = current(storage, view)
-        if result.frames:
-            return result
-        assert result.state in {"running", "waiting"}, result.blocker
-    raise AssertionError("first geometry frame not selected")
-
-
-def mismatch(*, context):
-    return (941, 1672) if "shot" in context["request"]["frozenSnapshot"] else None
 
 
 @pytest.mark.parametrize("version", ["plotloom.pre-video.v2", "plotloom.pre-video.v3", "plotloom.pre-video.v4"])
@@ -140,7 +127,6 @@ def test_concurrent_local_preparation_is_idempotent_and_does_not_dispatch(tmp_pa
 @pytest.mark.parametrize("failure", ["transaction", "selection"])
 def test_failure_then_restart_reuses_local_identity_without_regeneration(tmp_path, monkeypatch, failure):
     import plotloom.autopilot_geometry_preparation as geometry
-    from plotloom.autopilot_contracts import RunControlRequest
     from plotloom.autopilot_service import AutopilotService
     from plotloom.persistence.project.autopilot import AutopilotPersistence
     storage, registry, service, view, calls, _ = image_environment(tmp_path, monkeypatch, geometry=mismatch)
@@ -181,41 +167,37 @@ def test_failure_then_restart_reuses_local_identity_without_regeneration(tmp_pat
 
 
 @pytest.mark.parametrize("defect", ["source", "candidate", "recipe", "output", "missing-decision", "missing-source", "missing-output"])
-def test_tampered_or_missing_lineage_refuses_ordinary_open(tmp_path, monkeypatch, defect):
+def test_tampered_or_missing_lineage_refuses_ordinary_open(tmp_path, geometry_frame_seed, defect):
     from copy import deepcopy
-    from pathlib import Path
 
     from plotloom.persistence.schema import AutopilotCheckpointRow, ManagedAssetRow
     from plotloom.project_storage import (
         ProjectStorageConfinementError,
         ProjectStorageCorruptionError,
     )
-    storage, _registry, service, view, _calls, _ = image_environment(tmp_path, monkeypatch, geometry=mismatch)
-    try:
-        result = first_geometry_frame(storage, service, view); frame = result.frames[0]; record = frame.geometry_preparation
-        with closing(storage.projects.open(view.project_id)) as store:
-            with store.repository._write() as session:
-                if defect.startswith("missing-") and defect != "missing-decision":
-                    asset = session.get(ManagedAssetRow, record.source.asset.asset_id if defect == "missing-source" else frame.asset_id)
-                    (store.home / asset.original_uri.removeprefix("project-file:")).unlink()
-                elif defect == "missing-decision":
-                    from sqlalchemy import delete
+    storage, view = copy_geometry_frame_seed(geometry_frame_seed, tmp_path / "geometry-copy")
+    frame = view.frames[0]; record = frame.geometry_preparation
+    with closing(storage.projects.open(view.project_id)) as store:
+        with store.repository._write() as session:
+            if defect.startswith("missing-") and defect != "missing-decision":
+                asset = session.get(ManagedAssetRow, record.source.asset.asset_id if defect == "missing-source" else frame.asset_id)
+                (store.home / asset.original_uri.removeprefix("project-file:")).unlink()
+            elif defect == "missing-decision":
+                from sqlalchemy import delete
 
-                    from plotloom.persistence.schema import AutopilotDecisionRow
-                    session.execute(delete(AutopilotDecisionRow).where(AutopilotDecisionRow.scope == "geometry_preparation"))
-                else:
-                    from sqlalchemy import select
-                    row = session.scalar(select(AutopilotCheckpointRow).where(AutopilotCheckpointRow.run_id == view.id, AutopilotCheckpointRow.operation_key.like("%:geometry")))
-                    evidence = deepcopy(row.evidence); value = evidence["geometryPreparation"]
-                    if defect == "source": value["source"]["jobId"] = "foreign-job"
-                    elif defect == "candidate": value["source"]["candidateId"] = "foreign-candidate"
-                    elif defect == "recipe": value["recipe"]["cropBox"] = [0, 0, 941, 1672]
-                    else: value["output"]["originalHash"] = "a"*64
-                    row.evidence = evidence
-        with pytest.raises((ProjectStorageCorruptionError, ProjectStorageConfinementError)):
-            with closing(storage.projects.open(view.project_id)): pass
-    finally:
-        service.close()
+                from plotloom.persistence.schema import AutopilotDecisionRow
+                session.execute(delete(AutopilotDecisionRow).where(AutopilotDecisionRow.scope == "geometry_preparation"))
+            else:
+                from sqlalchemy import select
+                row = session.scalar(select(AutopilotCheckpointRow).where(AutopilotCheckpointRow.run_id == view.id, AutopilotCheckpointRow.operation_key.like("%:geometry")))
+                evidence = deepcopy(row.evidence); value = evidence["geometryPreparation"]
+                if defect == "source": value["source"]["jobId"] = "foreign-job"
+                elif defect == "candidate": value["source"]["candidateId"] = "foreign-candidate"
+                elif defect == "recipe": value["recipe"]["cropBox"] = [0, 0, 941, 1672]
+                else: value["output"]["originalHash"] = "a"*64
+                row.evidence = evidence
+    with pytest.raises((ProjectStorageCorruptionError, ProjectStorageConfinementError)):
+        with closing(storage.projects.open(view.project_id)): pass
 
 
 @pytest.mark.parametrize("action", ["pause", "cancel", "takeover"])

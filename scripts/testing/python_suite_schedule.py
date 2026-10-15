@@ -23,10 +23,26 @@ class TimingManifestError(ValueError):
 
 
 @dataclass(frozen=True)
+class HistoricalPrediction:
+    changes: tuple[str, ...]
+    retained: int
+    scaled: int
+    estimated: int
+    ignored: int
+
+    def describe(self) -> str:
+        return (
+            f"changes={','.join(self.changes)} retained={self.retained} "
+            f"scaled={self.scaled} estimated={self.estimated} ignored={self.ignored}"
+        )
+
+
+@dataclass(frozen=True)
 class Schedule:
     assignments: tuple[tuple[str, ...], ...]
     basis: str
     fallback_reason: str | None = None
+    history: HistoricalPrediction | None = None
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -138,6 +154,63 @@ def _safe_test_path(path: object) -> bool:
     )
 
 
+def _positive_total(weights: Sequence[float], label: str) -> float:
+    try:
+        total = math.fsum(weights)
+    except OverflowError as error:
+        raise TimingManifestError(f"out-of-range {label}") from error
+    if not math.isfinite(total) or total <= 0:
+        raise TimingManifestError(f"nonfinite or nonpositive {label}")
+    return total
+
+
+def _historical_schedule(
+    weights: Mapping[str, float],
+    row_counts: Mapping[str, int],
+    counts: Mapping[str, int],
+    worker_count: int,
+    changes: tuple[str, ...],
+) -> Schedule:
+    overlap = sorted(set(weights) & set(counts))
+    if not overlap:
+        return Schedule(
+            _count_partition(counts, worker_count), "case-count", "timing-history-no-overlap"
+        )
+    try:
+        rates = sorted(weights[path] / row_counts[path] for path in overlap)
+        if any(not math.isfinite(rate) or rate <= 0 for rate in rates):
+            raise TimingManifestError("nonfinite or nonpositive historical per-case prediction")
+        middle = len(rates) // 2
+        median = rates[middle]
+        if len(rates) % 2 == 0:
+            median = rates[middle - 1] + (median - rates[middle - 1]) / 2
+        predictions = {}
+        retained = scaled = estimated = 0
+        for path, count in counts.items():
+            if path not in weights:
+                prediction = median * count
+                estimated += 1
+            elif count == row_counts[path]:
+                prediction = weights[path]
+                retained += 1
+            else:
+                prediction = weights[path] * (count / row_counts[path])
+                scaled += 1
+            if not math.isfinite(prediction) or prediction <= 0:
+                raise TimingManifestError(f"nonfinite or nonpositive prediction for file: {path}")
+            predictions[path] = prediction
+    except OverflowError as error:
+        raise TimingManifestError("out-of-range historical prediction") from error
+    _positive_total(list(predictions.values()), "predicted suite duration")
+    return Schedule(
+        _duration_partition(predictions, worker_count),
+        "historical-duration",
+        history=HistoricalPrediction(
+            changes, retained, scaled, estimated, len(set(weights) - set(counts))
+        ),
+    )
+
+
 def schedule_from_timing_text(
     text: str | None,
     *,
@@ -145,7 +218,7 @@ def schedule_from_timing_text(
     root: Path,
     worker_count: int = 2,
 ) -> Schedule:
-    """Use timings only for a complete, current native file set; otherwise count."""
+    """Predict ordering from timings; only the fresh native cases select files."""
     if worker_count < 1 or not cases or len(cases) != len(set(cases)):
         raise TimingManifestError("worker count and native case collection must be valid")
     counts = _case_counts(cases)
@@ -223,18 +296,26 @@ def schedule_from_timing_text(
         weights[path] = total_seconds
         row_counts[path] = count
 
-    if value["native_case_ids_sha256"] != native_case_fingerprint(cases):
-        reason = "native-case-inventory-changed"
-    elif value["input_fingerprint"] != input_fingerprint(root):
-        reason = "executable-inputs-changed"
-    elif value["host_fingerprint"] != host_fingerprint():
-        reason = "host-or-python-changed"
-    elif set(weights) != set(counts):
-        reason = "timing-file-coverage-changed"
-    elif row_counts != dict(counts):
-        reason = "timing-case-counts-changed"
-    else:
-        reason = None
-    if reason:
-        return Schedule(_count_partition(counts, worker_count), "case-count", reason)
+    if weights:
+        _positive_total(list(weights.values()), "historical suite duration")
+    if value["host_fingerprint"] != host_fingerprint():
+        return Schedule(
+            _count_partition(counts, worker_count), "case-count", "host-or-python-changed"
+        )
+    if not weights:
+        return Schedule(
+            _count_partition(counts, worker_count), "case-count", "timing-history-empty"
+        )
+    changes = tuple(
+        reason
+        for changed, reason in (
+            (value["native_case_ids_sha256"] != native_case_fingerprint(cases), "native-case-inventory-changed"),
+            (value["input_fingerprint"] != input_fingerprint(root), "executable-inputs-changed"),
+            (set(weights) != set(counts), "timing-file-coverage-changed"),
+            (row_counts != dict(counts), "timing-case-counts-changed"),
+        )
+        if changed
+    )
+    if changes:
+        return _historical_schedule(weights, row_counts, counts, worker_count, changes)
     return Schedule(_duration_partition(weights, worker_count), "duration")

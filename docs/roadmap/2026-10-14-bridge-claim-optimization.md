@@ -31,6 +31,16 @@ records their root cause, boundaries, rejected alternatives and guardrails.
 Keep the claim return and following service read; do not expand into isolation,
 ordinary-open validation, broader caching or default-concurrency changes.
 
+## Current parallel ownership — October 14
+
+The separately requested Python coordinator now owns the retained
+`autopilot-ux-release` writer; the manager is read-only there and owns final
+integration/publication. This supersedes the earlier serial window above.
+The [Python plan](2026-10-14-python-context-and-workers.md#separately-requested-python-coordinator--october-14)
+records task identity, resource allocation and exclusions. CLI work has priority;
+no broad qualification or benchmark starts without a manager-allocated quiet
+window. Existing Bridge/claim evidence stays scoped and unchanged.
+
 ## Matched measurement selected before code changes
 
 Run the existing `verify.py focused` command with exactly these selectors before

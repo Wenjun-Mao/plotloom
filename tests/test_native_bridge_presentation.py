@@ -18,35 +18,17 @@ from plotloom.native_bridge_intent_service import NativeBridgeIntentService
 from plotloom.native_bridge_presentation_contract import native_presentation_suggestions, render_native_presentation_report
 from plotloom.native_bridge_presentation_service import NativeBridgePresentationService
 from plotloom.production_bridge_contracts import ProductionBridgeIntentUpdateRequest
-from tests.production_bridge_intent_fixtures import _pending_project
-from tests.test_specialist_settings import configured
+from tests.native_bridge_runtime_fixtures import create_native_presentation_runtime
 
 
 @pytest.fixture
 def presentation(tmp_path, monkeypatch):
-    storage, project, _revision, _digest = _pending_project(tmp_path)
-    with closing(storage.projects.open(project)) as store:
-        proposal = store.prepare_production_bridge(store.production_bridge_state().preparation.request).proposal
-        proposal = store.update_production_bridge_intent_package(ProductionBridgeIntentUpdateRequest(
-            expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash,
-            entries=[{"id": entry.id, "text": "作者已保存的戏剧目的"} for entry in proposal.intent_package.entries],
-        )).proposal
-    registry, _ = configured(storage.application.root)
-    service = NativeBridgePresentationService(storage, registry)
-    checkout = Path(__file__).resolve().parents[1]
-    pin = {"upstreamRevision": subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip(),
-        "upstreamSkillHash": sha256((checkout / "docs/creative-workflow/native-bridge-presentation.md").read_bytes()).hexdigest(),
-        "specialistSkillHash": sha256((checkout / ".agents/skills/plotloom-presentation-specialist/SKILL.md").read_bytes()).hexdigest()}
-    monkeypatch.setattr(CreativeHandoffExchange, "current_execution_pin", lambda _self, stage: pin)
-    calls, real_run = [], subprocess.run
-    def send(command, **kwargs):
-        if len(command) > 1 and command[1] == "queue":
-            calls.append(command)
-            return subprocess.CompletedProcess(command, 0, "queued")
-        return real_run(command, **kwargs)
-    monkeypatch.setattr(subprocess, "run", send)
-    job = service.create(project, expected_revision=proposal.revision, expected_hash=proposal.content_hash)
-    return storage, project, proposal, service, job, calls
+    return create_native_presentation_runtime(tmp_path, monkeypatch)
+
+
+@pytest.fixture
+def seeded_presentation(tmp_path, monkeypatch, pending_native_bridge_seed):
+    return create_native_presentation_runtime(tmp_path, monkeypatch, pending_native_bridge_seed)
 
 
 def candidate_for(request):
@@ -161,7 +143,8 @@ def test_late_delivery_preserves_saved_content_and_report(presentation, change):
 
 
 @pytest.mark.parametrize("invalid", ["omitted", "duplicate", "gap", "unassigned", "extra", "rewrite", "rendering", "reason"])
-def test_complete_span_binder_rejects_invalid_candidate(presentation, invalid):
+def test_complete_span_binder_rejects_invalid_candidate(seeded_presentation, invalid):
+    presentation = seeded_presentation
     storage, project, before, service, job, _ = presentation
     with closing(storage.projects.open(project)) as store:
         request, _ = service._request(store, project, job)
@@ -182,7 +165,8 @@ def test_complete_span_binder_rejects_invalid_candidate(presentation, invalid):
 
 
 @pytest.mark.parametrize("invalid", ["partial", "candidate", "report", "pin", "hash"])
-def test_invalid_delivery_cannot_release_reservation(presentation, invalid):
+def test_invalid_delivery_cannot_release_reservation(seeded_presentation, invalid):
+    presentation = seeded_presentation
     _storage, project, _before, service, job, _ = presentation
     service.send(project, job)
     deliver(presentation, partial=invalid == "partial", different_report=invalid == "report",

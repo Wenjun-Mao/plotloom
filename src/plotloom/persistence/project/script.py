@@ -61,13 +61,23 @@ class ProjectScriptPersistence:
     def _context(self, session: Any, project_id: str) -> tuple[ScriptBinding, dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
         art_head = self._art._head(session, project_id)
         accepted = session.scalar(select(ArtRevisionRow).where(ArtRevisionRow.project_id == project_id, ArtRevisionRow.revision == art_head.revision)) if art_head.revision else None
-        if art_head.status != "accepted" or accepted is None or self._art._stale(session, project_id, ArtBinding.model_validate(accepted.binding)):
+        if art_head.status != "accepted" or accepted is None:
+            raise ReviewContextError(ReviewContextDiagnostic(code="accepted_art_not_current", owner="art", technical_message="a current accepted art revision is required before preparing script"))
+        inherited = ArtBinding.model_validate(accepted.binding)
+        context = None
+        try:
+            context = self._art._context(session, project_id)
+        except ReviewContextError:
+            # The former stale check mapped only resolution errors, without
+            # attaching that upstream exception to the generic Art diagnostic.
+            pass
+        if context is None or self._art._stale_against(session, project_id, context[0], inherited):
             raise ReviewContextError(ReviewContextDiagnostic(code="accepted_art_not_current", owner="art", technical_message="a current accepted art revision is required before preparing script"))
         project = self._access.rows.project(session, project_id)
         target_seconds = int(project.brief.get("target_playthrough_seconds", 0))
         if target_seconds < 3:
             raise ReviewContextError(ReviewContextDiagnostic(code="playthrough_target_missing", owner="brief", technical_message="project playthrough target is required for script preparation"))
-        art_binding, source, outline, mapping, cast = self._art._context(session, project_id)
+        art_binding, source, outline, mapping, cast = context
         section_map = SectionMap.model_validate(mapping)
         graph = compile_section_map_graph(section_map)
         section_bindings = [
