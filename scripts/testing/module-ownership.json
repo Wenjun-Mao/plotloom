@@ -149,6 +149,7 @@
           "tests/test_cast_writing_contract.py",
           "tests/test_creative_handoff_exchange.py",
           "tests/test_f5_dialogue_timing.py",
+          "tests/test_f5_decimal_timing.py",
           "tests/test_current_stage_evidence.py",
           "tests/test_identity_review_refusal.py",
           "tests/test_native_wake_art.py",
@@ -564,6 +565,7 @@
           "tests/test_ci_browser_contract.py",
           "tests/test_dependency_boundary.py",
           "tests/test_extraction_contract.py",
+          "tests/test_extraction_worktree_paths.py",
           "tests/test_python_suite_cleanup.py",
           "tests/test_python_suite_completion.py",
           "tests/test_python_suite_experiment.py",
@@ -611,6 +613,12 @@
     }
   },
   "support_dependencies": [
+    {
+      "suite": "pytest",
+      "path": "tests/extraction_worktree_paths.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["verification-tooling"]
+    },
     {
       "suite": "pytest",
       "path": "tests/native_bridge_seed_fixtures.py",

@@ -7,9 +7,12 @@ from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.production_dialogue_timing import TIMING_FILENAME
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.project_storage.operational_state import (
-    ProjectBusyError, close_blockers, specialist_publication_blockers,
+    ProjectBusyError,
+    close_blockers,
+    specialist_publication_blockers,
 )
 from plotloom.script_contracts import ScriptReopenRequest, ScriptSectionSaveRequest
 from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
@@ -25,7 +28,13 @@ def test_f5a_freezes_current_f4_identity_blocks_lifecycle_and_refuses_late_deliv
         candidate, request = store.prepare_storyboard_review_candidate("ch_" + "s" * 32)
         assert candidate.binding.script_revision == 1
         assert candidate.binding.script_content_hash == store.script_state().accepted_script.content_hash  # type: ignore[union-attr]
-        assert request.input_artifacts.keys() == {"script.json", "outline.json", "cast.json", "art.json", "storyboard-admission.json"}
+        assert request.input_artifacts.keys() == {"script.json", "outline.json", "cast.json", "art.json", "storyboard-admission.json", TIMING_FILENAME}
+        timing = candidate.binding.dialogue_timing_contract
+        assert timing is not None
+        assert request.input_artifacts[TIMING_FILENAME] == timing.model_dump(mode="json", by_alias=True)
+        assert timing.script_content_hash == candidate.binding.script_content_hash
+        assert request.source["acceptedScriptRevision"] == candidate.binding.script_revision
+        assert request.source["acceptedScriptContentHash"] == timing.script_content_hash
         assert request.input_artifacts["storyboard-admission.json"]["sectionBindings"] == [
             {"sectionId": "opening", "episode": 1}, {"sectionId": "ending-a", "episode": 2}, {"sectionId": "ending-b", "episode": 3},
         ]
@@ -76,7 +85,9 @@ def test_f5a_rejects_delivery_timing_that_raises_frozen_limits_before_upstream_v
             {"ep": 3, "segments": [{"cuts": [{"seconds": 3}]}]},
         ]}
         with pytest.raises(ValueError, match="frozen review timing limits"):
-            from plotloom.persistence.project.storyboard_review import ProjectStoryboardReviewPersistence
+            from plotloom.persistence.project.storyboard_review import (
+                ProjectStoryboardReviewPersistence,
+            )
             ProjectStoryboardReviewPersistence._validate(board, candidate.binding, {}, {}, {})
         assert called is False
     finally:

@@ -11,16 +11,28 @@ function sort(value) {
 }
 const coordinate = (ep, scene, flow) => `${ep}/${scene}/${flow}`;
 
-export function sourceSecondsToMilliseconds(seconds) {
+function sourceDuration(seconds) {
   assert(typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0, 'Source cut seconds must be finite and positive');
+  assert(!Number.isInteger(seconds) || Number.isSafeInteger(seconds), 'Source cut seconds exceed exact integer capacity');
   const [, whole, fraction = '', exponent = '0'] = String(seconds).match(/^(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/) ?? [];
   assert(whole !== undefined, 'Source cut seconds cannot be represented exactly');
-  const digits = BigInt(whole + fraction), power = 3 + Number(exponent) - fraction.length;
-  const divisor = power < 0 ? 10n ** BigInt(-power) : 1n;
-  assert(digits % divisor === 0n, 'Source cut seconds must be exactly representable as integer milliseconds');
-  const result = power < 0 ? digits / divisor : digits * 10n ** BigInt(power);
-  assert(result <= BigInt(Number.MAX_SAFE_INTEGER), 'Source cut milliseconds exceed exact integer capacity');
-  return Number(result);
+  const power = 3 + Number(exponent) - fraction.length;
+  const coefficient = BigInt(whole + fraction);
+  // Raw F5 retains decimal precision. Bridge alone owns integer-ms conversion.
+  return { coefficient: coefficient * 10n ** BigInt(Math.max(power, 0)), scale: Math.max(-power, 0) };
+}
+
+const integerDuration = coefficient => ({ coefficient, scale: 0 });
+function alignedCoefficient(duration, scale) {
+  return duration.coefficient * 10n ** BigInt(scale - duration.scale);
+}
+function addDuration(left, right) {
+  const scale = Math.max(left.scale, right.scale);
+  return { coefficient: alignedCoefficient(left, scale) + alignedCoefficient(right, scale), scale };
+}
+function fitsDuration(minimum, available) {
+  const scale = Math.max(minimum.scale, available.scale);
+  return alignedCoefficient(minimum, scale) <= alignedCoefficient(available, scale);
 }
 
 export function validateF5ReceivingTiming(board, request) {
@@ -49,34 +61,36 @@ export function validateF5ReceivingTiming(board, request) {
     assert(['measured', 'natural', 'brisk'].includes(line.delivery) && Number.isSafeInteger(line.minimumDurationUnits) && line.minimumDurationUnits > 0, 'Canonical dialogue timing minimum/pace is invalid');
     const key = coordinate(line.episode, line.sceneIndex, line.flowIndex);
     assert(!minima.has(key), 'Canonical dialogue timing source coordinates repeat');
-    minima.set(key, line.minimumDurationUnits);
+    minima.set(key, BigInt(line.minimumDurationUnits));
   });
   const mapping = admission.sectionBindings;
   assert(Array.isArray(mapping) && canonical(board.episodes?.map(ep => ep.ep)) === canonical(mapping.map(item => item.episode)), 'Storyboard episodes must exactly match frozen F4 mapping');
   assert(admission.reviewTiming && Object.entries(admission.reviewTiming).every(([key, value]) => board.params?.[key] === value), 'Storyboard params must match frozen review timing');
   const assigned = new Map(), durations = new Map();
   board.episodes.forEach((episode, index) => {
-    let episodeUnits = 0;
+    let episodeUnits = integerDuration(0n);
     for (const segment of episode.segments ?? []) {
       for (const cut of segment.cuts ?? []) {
-        const units = sourceSecondsToMilliseconds(cut.seconds);
-        episodeUnits += units;
+        const units = sourceDuration(cut.seconds);
+        episodeUnits = addDuration(episodeUnits, units);
         const [start, end] = cut.beats ?? [];
         assert(Number.isInteger(start) && Number.isInteger(end) && start >= 1 && end >= start, 'Cut beats must identify an ordered source range');
-        let total = 0;
+        let total = 0n;
         for (let flow = start; flow <= end; flow++) {
           const key = coordinate(episode.ep, segment.sceneIndex, flow);
           if (!minima.has(key)) continue;
           total += minima.get(key);
           assigned.set(key, (assigned.get(key) ?? 0) + 1);
         }
-        assert(total <= units, 'Canonical dialogue minima must fit their owning cut duration');
+        assert(fitsDuration(integerDuration(total), units), 'Canonical dialogue minima must fit their owning cut duration');
       }
     }
     durations.set(mapping[index].sectionId, episodeUnits);
   });
   assert([...minima.keys()].every(key => assigned.get(key) === 1), 'Every canonical dialogue line must belong to exactly one cut');
   const footage = new Set(admission.completeRouteSectionIds.flat().filter(id => !admission.routeOnlySectionIds.includes(id)));
-  assert(footage.size === durations.size && [...durations].every(([id, units]) => footage.has(id) && Number.isSafeInteger(units) && units > 0), 'Storyboard timing must cover every footage section exactly');
-  assert(admission.completeRouteSectionIds.every(route => route.reduce((sum, id) => sum + (durations.get(id) ?? 0), 0) <= admission.targetPlaythroughSeconds * 1000), 'Complete storyboard route exceeds author playthrough maximum');
+  assert(footage.size === durations.size && [...durations].every(([id, units]) => footage.has(id) && units.coefficient > 0n), 'Storyboard timing must cover every footage section exactly');
+  assert(Number.isSafeInteger(admission.targetPlaythroughSeconds) && admission.targetPlaythroughSeconds > 0, 'Author playthrough maximum must be a safe positive integer');
+  const maximum = integerDuration(BigInt(admission.targetPlaythroughSeconds) * 1000n);
+  assert(admission.completeRouteSectionIds.every(route => fitsDuration(route.reduce((sum, id) => addDuration(sum, durations.get(id) ?? integerDuration(0n)), integerDuration(0n)), maximum)), 'Complete storyboard route exceeds author playthrough maximum');
 }

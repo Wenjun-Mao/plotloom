@@ -40,6 +40,13 @@ owned dialogue minima, matching canonical cue assignment. Missing, changed
 or malformed timing inputs fail closed. An individual line that cannot fit
 the chosen maximum is rejected before fresh F5 dispatch.
 
+Canonical dialogue minima are integer milliseconds; raw F5 cut durations retain
+their exact decimal value, including fractions of a millisecond. Receiving
+compares cuts and complete-route sums using decimal coefficient/scale arithmetic,
+without rounding, per-cut flooring or tolerance. ADR 0100 continues to own the
+later Bridge requirement that production cuts be exactly representable as integer
+milliseconds. Raw review admission must not import that production restriction.
+
 F4's upstream JSON, configurable estimator and independent creative validation
 remain unchanged. Their estimate does not replace the canonical receiving
 minimum. Canonical rates, pace rules, exact source text, timings and route
@@ -61,3 +68,7 @@ both validator routes and real proposal/install/reopen admission. Qualify the
 changed F5 command plans in the actual provider-free sandbox before a new
 disposable provider proof. Preserve the stopped proof and old native evidence
 under their original pins.
+
+Regressions preserve raw submillisecond acceptance followed by an explicit Bridge
+conflict, exact minima and route boundaries on both receiving routes, and unsafe
+numeric-input refusal.

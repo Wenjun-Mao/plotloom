@@ -2637,3 +2637,54 @@ path was granted and no additional probe is authorized by this checkpoint.
 No provider call, `codex exec`, or ImageGen dispatch occurred. Preserve the
 diagnostic root unchanged. The complete 11-plan sandbox gate and any subsequent
 provider canary remain unqualified and require separate manager allocation.
+
+### CLI full-gate failure repairs · 2026-10-14
+
+The manager-owned full run on `8ab58839` retained 2,321 passes and three failures;
+its downstream bundle/browser/wheel steps did not run. This local repair restores
+ADR 0100's raw F5 precision boundary: shared receiving compares decimal cut times,
+canonical dialogue minima and complete-route sums exactly with BigInt coefficient/
+scale arithmetic. Both upstream validator routes, canonical rates and the later
+strict Bridge integer-millisecond conversion remain unchanged. ADR 0173 records
+the distinction. New cases cover both real validate/render/server routes, minima
+and route boundaries, multiline sums, unsafe/nonfinite inputs and exact sums
+beyond Number's integer capacity.
+
+The other failures were verification-contract drift: extraction's named-file
+walk did not apply its declared root-local runtime exclusions, and the F5 request
+test still expected five artifacts after the frozen timing input became required.
+The extracted path policy now serves both root checks and named-file discovery;
+nested product `.local`, undeclared/hidden duplicates, tracked local state and
+forbidden roots remain observable. The request test retains exact six-artifact
+equality and verifies the entire frozen timing payload and accepted Script identity.
+
+Executed from the reviewed repair tree based on `8ab58839`:
+
+- Focused first pass: the three failed cases plus both new regression files,
+  **38 passed** (11.280 seconds including selector validation), before eight
+  further decimal numeric cases were added. The affected union below covers
+  the final 34 decimal and nine extraction-path regression cases.
+- Focused affected union: `test_f5_decimal_timing`, `test_f5_dialogue_timing`,
+  `test_storyboard_brief_style`, `test_storyboard_review_timing`,
+  `test_production_presentation_integration`, `test_project_storage_storyboard_review`,
+  `test_extraction_worktree_paths`, `test_extraction_contract`, and
+  `test_codex_exec_validation`: **139 passed** (37.629 seconds). This includes
+  the actual wheel extraction check and preserves the original submillisecond
+  raw-admission/Bridge-conflict regression.
+- Ownership regression: `test_verification_module_ownership`, **7 passed**.
+  Full native ownership discovery passed without executing test bodies; both new
+  files and the extracted helper have existing module owners.
+- Scoped Ruff import/undefined-name checks and `git diff --check` passed.
+  The existing independent reader found no code-review findings.
+
+Exact commands and retained logs are under
+`.local/native-proof/cli-release-repair-design-20261015/` (`failed-new-focused.log`,
+`affected-focused.log`, `owner-focused.log`, `owner-discovery.log`). The initial
+scoped lint caught the still-required outer `os` import after extraction; it was
+restored before the affected wheel test passed.
+
+These are focused local repair results. The failed full run and all historical
+observation/paid-campaign evidence retain their original pins. The changed validator
+bytes require fresh current-source/profile pins. No full rerun, provider dispatch,
+campaign preparation, hosted CI, publication, live activation or creative acceptance
+is established here; Python optimization remains paused.
