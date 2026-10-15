@@ -99,6 +99,7 @@ class CodexExecSupervisorPoolMixin:
             WHERE q.enabled=1 AND json_extract(a.status_json,'$.state')='queued'""").fetchone()[0]
 
     def _grant_one_in_transaction(self, connection):
+        self._namespace_assert_connection(connection)
         counts = self._capacity_counts(connection)
         if sum(counts.values()) >= self.pool_limits.max_processes:
             return None
@@ -117,6 +118,7 @@ class CodexExecSupervisorPoolMixin:
         return None
 
     def _drain_queue(self):
+        self._namespace_assert_attempt(check_profile=True)
         with self._guard:
             with closing(self._connect()) as connection:
                 connection.execute("BEGIN IMMEDIATE")

@@ -15,6 +15,7 @@ from codex_exec_supervisor_errors import (
 
 class CodexExecSupervisorValidationProcessMixin:
     def _spawn_validation_process(self, attempt, step_id, command, environment, cwd, stdout, stderr):
+        self._namespace_assert_attempt(attempt, check_profile=True)
         self._record_validation_spawn_intent(attempt, step_id)
         if not self._validation_launch_is_allowed(attempt, step_id):
             raise self._validation_failure(
@@ -22,6 +23,7 @@ class CodexExecSupervisorValidationProcessMixin:
             )
 
         try:
+            self._namespace_assert_attempt(attempt, check_profile=True)
             process = subprocess.Popen(
                 command,
                 cwd=cwd,

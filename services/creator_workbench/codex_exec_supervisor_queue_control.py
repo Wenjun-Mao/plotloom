@@ -18,6 +18,7 @@ class CodexExecSupervisorQueueControlMixin:
 
     def _set_queue_authorization(self, raw_attempt, *, enabled):
         attempt = CodexExecAttempt.model_validate(raw_attempt)
+        self._namespace_assert_attempt(attempt, check_profile=enabled)
         granted = None
         if not enabled and self._row(attempt.attempt_id) is None and attempt.state == "spawn_intent":
             # Fence an in-flight initial admission by retaining this exact

@@ -22,16 +22,17 @@ from plotloom.codex_exec_python_environment import (
 )
 
 
-def _clone(source: Path, destination: Path) -> None:
-    subprocess.run(
+def _clone(source: Path, destination: Path, *, run=None) -> None:
+    run = run or subprocess.run
+    run(
         ["git", "clone", "--shared", "--no-hardlinks", "--quiet", str(source), str(destination)],
         check=True, capture_output=True, timeout=30,
     )
-    revision = subprocess.run(
+    revision = run(
         ["git", "-C", str(source), "rev-parse", "HEAD"],
         check=True, capture_output=True, text=True, timeout=5,
     ).stdout.strip()
-    subprocess.run(
+    run(
         ["git", "-C", str(destination), "checkout", "--quiet", "--detach", revision],
         check=True, capture_output=True, timeout=30,
     )
@@ -40,12 +41,18 @@ def _clone(source: Path, destination: Path) -> None:
 @pytest.fixture(scope="session", name="codex_exec_test_source")
 def codex_exec_test_source(tmp_path_factory):
     """Clone Git identity, then copy current owned source and synthetic runtime."""
+    return build_codex_exec_test_source(tmp_path_factory)
+
+
+def build_codex_exec_test_source(tmp_path_factory, *, run=None):
+    """Build a new independent metadata-only fixture; never mutate another one."""
+    run = run or subprocess.run
     original = Path(__file__).resolve().parents[1]
     fixture_root = tmp_path_factory.mktemp("codex-exec-source").resolve()
     source = fixture_root / "checkout"
-    _clone(original, source)
-    _clone(original / "third_party/shuohao-skills", source / "third_party/shuohao-skills")
-    tracked = subprocess.run(["git", "-C", str(original), "ls-files", "-z"],
+    _clone(original, source, run=run)
+    _clone(original / "third_party/shuohao-skills", source / "third_party/shuohao-skills", run=run)
+    tracked = run(["git", "-C", str(original), "ls-files", "-z"],
                              check=True, capture_output=True, timeout=10).stdout.decode().split("\0")
     # Development checks must inspect the same source bytes that the parent
     # imports. A committed-only clone silently omits newly owned validators.

@@ -92,6 +92,7 @@ def environment(tmp_path, monkeypatch, *, auto_deliver=True, brief=None, limits=
     registry.codex_exec_admit = host.admit
     registry.codex_exec_status = host.status
     registry.codex_exec_cancel = host.cancel
+    registry.codex_exec_suspend = host.suspend
     registry._codex_exec_test_host = host
     service = AutopilotService(storage, registry)
     request = LaunchRequest(expected_brief_revision=1, render_style="realistic", art_render_style="realistic", **(limits or {}))

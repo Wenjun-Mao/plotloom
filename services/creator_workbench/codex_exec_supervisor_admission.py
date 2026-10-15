@@ -20,6 +20,7 @@ class CodexExecSupervisorAdmissionMixin:
             transition_exec_attempt,
         )
         attempt = CodexExecAttempt.model_validate(raw_attempt)
+        self._namespace_assert_attempt(attempt, check_profile=True)
         if attempt.state != "spawn_intent":
             raise CodexExecSupervisorError("Codex Exec admission requires the persisted spawn-intent snapshot")
         with self._guard:
@@ -88,6 +89,7 @@ class CodexExecSupervisorAdmissionMixin:
             return self._load(self._row(attempt.attempt_id))
 
     def status(self, attempt_id):
+        self._namespace_assert_attempt(attempt_id=attempt_id, check_profile=True)
         row = self._row(UUID(str(attempt_id)))
         if row is None:
             return self._status()
@@ -103,6 +105,7 @@ class CodexExecSupervisorAdmissionMixin:
     def _refresh_active_attempt(self, row):
         from plotloom.codex_exec_contracts import CodexExecAttempt
         attempt = CodexExecAttempt.model_validate_json(row["status_json"])
+        self._namespace_assert_attempt(attempt, check_profile=True)
         if attempt.state == "outcome_unknown":
             validation = self._active_validation_process(attempt.attempt_id)
             if validation is not None and validation["spawn_state"] == "running" and self._owns_validation_process(validation):

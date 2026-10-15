@@ -128,6 +128,7 @@ class CodexExecSupervisorProcessMixin(
                 with self._guard:
                     with closing(self._connect()) as connection:
                         connection.execute("BEGIN IMMEDIATE")
+                        self._namespace_assert_connection(connection)
                         row = connection.execute(
                             "SELECT * FROM exec_attempts WHERE attempt_id=?",
                             (str(attempt.attempt_id),),
@@ -182,6 +183,7 @@ class CodexExecSupervisorProcessMixin(
                         # exact running identity; it cannot settle a child as
                         # not-started in this interval.
                         try:
+                            self._namespace_assert_attempt(attempt, check_profile=True)
                             process = subprocess.Popen(
                                 command,
                                 cwd=delivery,

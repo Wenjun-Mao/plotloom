@@ -19,6 +19,7 @@ class CodexExecSupervisorControlMixin:
             transition_exec_attempt,
         )
         attempt = CodexExecAttempt.model_validate(raw_attempt)
+        self._namespace_assert_attempt(attempt)
         attempt_id = attempt.attempt_id
         with self._guard:
             with closing(self._connect()) as connection:

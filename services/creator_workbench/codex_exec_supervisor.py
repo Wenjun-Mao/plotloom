@@ -12,6 +12,7 @@ from codex_exec_supervisor_control import CodexExecSupervisorControlMixin
 from codex_exec_supervisor_errors import CodexExecSupervisorError
 from codex_exec_supervisor_job import CodexExecSupervisorJobMixin
 from codex_exec_supervisor_ledger import CodexExecSupervisorLedgerMixin
+from codex_exec_supervisor_namespace import CodexExecSupervisorNamespaceMixin
 from codex_exec_supervisor_pool import CodexExecSupervisorPoolMixin
 from codex_exec_supervisor_process import CodexExecSupervisorProcessMixin
 from codex_exec_supervisor_queue_control import CodexExecSupervisorQueueControlMixin
@@ -26,6 +27,7 @@ from plotloom.codex_exec_auth import (
 
 
 class CodexExecSupervisor(
+    CodexExecSupervisorNamespaceMixin,
     CodexExecSupervisorAdmissionMixin,
     CodexExecSupervisorPoolMixin,
     CodexExecSupervisorQueueControlMixin,
@@ -35,7 +37,8 @@ class CodexExecSupervisor(
     CodexExecSupervisorJobMixin,
     CodexExecSupervisorLedgerMixin,
 ):
-    def __init__(self, executable: Path, *, source_root: Path, outputs_root: Path, private_root: Path, pool_limits=None):
+    def __init__(self, executable: Path, *, source_root: Path, outputs_root: Path, private_root: Path,
+            pool_limits=None, namespace_binding_sha256=None):
         self.executable = executable.expanduser().resolve(strict=True)
         self.source_root = source_root.expanduser().resolve(strict=True)
         self.outputs_root = outputs_root.expanduser().resolve(strict=True)
@@ -46,6 +49,8 @@ class CodexExecSupervisor(
         source_python = str(self.source_root / "src")
         if source_python not in sys.path:
             sys.path.insert(0, source_python)
+        self._requested_pool_limits = pool_limits
+        self._configure_namespace(namespace_binding_sha256)
         try:
             self.codex_home = resolve_codex_home(
                 forbidden_roots=(self.source_root, self.outputs_root, self.private_root)
@@ -62,7 +67,6 @@ class CodexExecSupervisor(
         self.database = self.private_root / "supervisor.sqlite3"
         self._guard = threading.RLock()
         self._workers: dict[str, subprocess.Popen] = {}
-        self._requested_pool_limits = pool_limits
         self._initialize()
 
     def profile(self):

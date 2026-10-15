@@ -1,0 +1,47 @@
+{
+  "kind": "plotloom.qa-project-interpreter.v1",
+  "projectRoot": "/Users/wjmao/.codex/worktrees/b30f/plotloom",
+  "entrypoint": "/Users/wjmao/.codex/worktrees/b30f/plotloom/.venv/bin/python",
+  "prefix": "/Users/wjmao/.codex/worktrees/b30f/plotloom/.venv",
+  "physicalBasePrefix": "/Users/wjmao/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none",
+  "physicalExecutable": "/Users/wjmao/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/bin/python3.12",
+  "implementation": "cpython",
+  "majorMinor": [
+    3,
+    12
+  ],
+  "allowedInnerExecutables": [
+    "/Users/wjmao/.codex/worktrees/b30f/plotloom/.venv/bin/python",
+    "/Users/wjmao/.codex/worktrees/b30f/plotloom/.venv/bin/python3",
+    "/Users/wjmao/.codex/worktrees/b30f/plotloom/.venv/bin/python3.12"
+  ],
+  "identities": {
+    "/Users/wjmao/.codex/worktrees/b30f/plotloom/.venv/pyvenv.cfg": {
+      "kind": "regular",
+      "sha256": "9758915b539f3bd4747630b670219d18b756f2deeef545b285360831b7b9e81f",
+      "bytes": 192
+    },
+    "/Users/wjmao/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/bin/python3.12": {
+      "kind": "regular",
+      "sha256": "7b05d803bbc1bbfc81644af4faf2b88f0a37b8de96b9f42c1e08033e2cd0848a",
+      "bytes": 18073888
+    },
+    "/Users/wjmao/.codex/worktrees/b30f/plotloom/.venv/bin/python": {
+      "kind": "symlink",
+      "target": "/Users/wjmao/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12"
+    },
+    "/Users/wjmao/.codex/worktrees/b30f/plotloom/.venv/bin/python3": {
+      "kind": "symlink",
+      "target": "python"
+    },
+    "/Users/wjmao/.codex/worktrees/b30f/plotloom/.venv/bin/python3.12": {
+      "kind": "symlink",
+      "target": "python"
+    },
+    "/Users/wjmao/.local/share/uv/python/cpython-3.12-macos-aarch64-none": {
+      "kind": "symlink",
+      "target": "/Users/wjmao/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none"
+    }
+  },
+  "qualification": "File/config metadata only; no interpreter invocation or probe in static allocation. Production checked environment is separate and unchanged."
+}

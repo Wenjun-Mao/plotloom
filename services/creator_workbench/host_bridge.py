@@ -23,6 +23,7 @@ class QueueBridge:
         outputs_root: Path | None = None,
         private_root: Path | None = None,
         pool_limits=None,
+        namespace_binding_sha256=None,
     ):
         self.executable = executable
         self.settings = settings
@@ -31,6 +32,7 @@ class QueueBridge:
         self.outputs_root = outputs_root
         self.private_root = private_root
         self._exec_pool_limits = pool_limits
+        self._exec_namespace_binding_sha256 = namespace_binding_sha256
         self._exec_supervisor = None
         self._exec_supervisor_lock = threading.Lock()
 
@@ -47,6 +49,7 @@ class QueueBridge:
                     outputs_root=self.outputs_root,
                     private_root=self.private_root,
                     pool_limits=self._exec_pool_limits,
+                    namespace_binding_sha256=self._exec_namespace_binding_sha256,
                 )
             return self._exec_supervisor
 

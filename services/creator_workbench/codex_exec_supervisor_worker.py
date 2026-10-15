@@ -13,6 +13,7 @@ def main(argv=None):
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument("--outputs-root", type=Path, required=True)
     parser.add_argument("--private-root", type=Path, required=True)
+    parser.add_argument("--namespace-binding-sha256")
     args = parser.parse_args(argv)
 
     from codex_exec_supervisor import CodexExecSupervisor
@@ -22,6 +23,7 @@ def main(argv=None):
         source_root=args.source_root,
         outputs_root=args.outputs_root,
         private_root=args.private_root,
+        namespace_binding_sha256=args.namespace_binding_sha256,
     )
     supervisor.run_worker(UUID(args.attempt_id))
 

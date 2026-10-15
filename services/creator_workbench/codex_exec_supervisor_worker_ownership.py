@@ -50,12 +50,14 @@ class _WorkerExitReaper:
 class CodexExecSupervisorWorkerOwnershipMixin:
     def _register_worker(self, attempt_id):
         """Persist the attempt-scoped worker identity before it can launch Codex."""
+        self._namespace_assert_attempt(attempt_id=attempt_id, check_profile=True)
         pid = os.getpid()
         group_id, birth_identity = self._process_identity(pid)
         if group_id != pid:
             raise CodexExecSupervisorError("Codex Exec worker must own its isolated process group")
         with closing(self._connect()) as connection:
             connection.execute("BEGIN IMMEDIATE")
+            self._namespace_assert_connection(connection)
             row = connection.execute(
                 "SELECT status_json,worker_pid,worker_group_id,worker_birth_identity "
                 "FROM exec_attempts WHERE attempt_id=?", (str(attempt_id),)
@@ -103,6 +105,7 @@ class CodexExecSupervisorWorkerOwnershipMixin:
 
     def run_worker(self, attempt_id):
         """Execute the one durable host attempt inside its attempt-scoped process."""
+        self._namespace_assert_attempt(attempt_id=attempt_id, check_profile=True)
         if not self._register_worker(attempt_id):
             return
         row = self._row(attempt_id)
@@ -139,6 +142,7 @@ class CodexExecSupervisorWorkerOwnershipMixin:
 
     def _start_worker(self, attempt_id):
         """Start or reconnect to the one worker assigned to this durable attempt."""
+        self._namespace_assert_attempt(attempt_id=attempt_id, check_profile=True)
         with self._guard:
             row = self._row(attempt_id)
             if row is None:
@@ -167,6 +171,8 @@ class CodexExecSupervisorWorkerOwnershipMixin:
                 "--outputs-root", str(self.outputs_root),
                 "--private-root", str(self.private_root),
             ]
+            if self._namespace is not None:
+                command.extend(["--namespace-binding-sha256", self._namespace_sha256])
             reaper = self._start_worker_reaper(attempt.attempt_id)
             worker = None
             try:

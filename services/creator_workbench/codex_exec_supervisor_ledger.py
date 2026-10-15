@@ -13,8 +13,15 @@ from codex_exec_supervisor_errors import CodexExecSupervisorError
 
 class CodexExecSupervisorLedgerMixin:
     def _connect(self):
+        self._namespace_before_connect()
         connection = sqlite3.connect(self.database, timeout=5, isolation_level=None)
         connection.row_factory = sqlite3.Row
+        if not self._namespace_initializing:
+            try:
+                self._namespace_assert_connection(connection)
+            except BaseException:
+                connection.close()
+                raise
         connection.execute("PRAGMA journal_mode=DELETE")
         connection.execute("PRAGMA synchronous=FULL")
         connection.execute("PRAGMA foreign_keys=ON")
@@ -60,6 +67,7 @@ class CodexExecSupervisorLedgerMixin:
                 );
             """)
             self._initialize_pool(connection)
+            self._namespace_finish_initialization(connection)
 
     @staticmethod
     def _status(attempt=None, receipt=None, *, capacity_deferred=False, dispatch_enabled=None):

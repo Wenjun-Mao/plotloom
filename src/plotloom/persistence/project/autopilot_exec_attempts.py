@@ -138,6 +138,20 @@ class AutopilotExecPersistence:
             return attempt
 
     def mark_exec_spawn_intent(self, attempt_id, *, expected_checkpoint_revision: int):
+        return self._mark_exec_spawn_intent(attempt_id,
+            expected_checkpoint_revision=expected_checkpoint_revision)
+
+    def consume_reserved_exec_attempt_once(self, expected_attempt: CodexExecAttempt, *,
+            expected_checkpoint_revision: int, expected_run_revision: int):
+        """Spend one exact reservation atomically; never recover an old intent."""
+        if expected_attempt.state != "reserved":
+            raise InvalidTransitionError("strict CLI consumption requires a reserved snapshot")
+        return self._mark_exec_spawn_intent(expected_attempt.attempt_id,
+            expected_checkpoint_revision=expected_checkpoint_revision,
+            expected_attempt=expected_attempt, expected_run_revision=expected_run_revision)
+
+    def _mark_exec_spawn_intent(self, attempt_id, *, expected_checkpoint_revision,
+            expected_attempt=None, expected_run_revision=None):
         authority = self.access.authority()
         if authority is None:
             raise InvalidTransitionError("CLI spawn intent requires exact text or image machine authority")
@@ -147,6 +161,11 @@ class AutopilotExecPersistence:
             if row is None or row.run_id != run.id or row.project_id != run.project_id:
                 raise InvalidTransitionError("CLI attempt identity is not owned by this project run")
             attempt = CodexExecAttempt.model_validate(row.snapshot)
+            if expected_attempt is not None:
+                if run.revision != expected_run_revision:
+                    raise InvalidTransitionError("strict CLI consumption run revision changed")
+                if attempt != expected_attempt or attempt.state != "reserved":
+                    raise InvalidTransitionError("strict CLI reservation changed or was already spent")
             expected_scope = (
                 OperationScope.IMAGE if attempt.domain == "image"
                 else OperationScope.INSTALL if attempt.operation_key in {"bridge-intent", "bridge-presentation"}

@@ -1,5 +1,9 @@
 # Plotloom roadmap entrypoint
 
+The owner released the [CLI capsule handoff checkpoint](2026-10-15-cli-capsule-handoff.md)
+for implementation and bounded provider-free capability/synthetic checks. Real
+handoff proof, paid generation and product acceptance remain separate releases.
+
 The owner-requested Python coordinator continues the approved
 [Python speed track](2026-10-14-python-context-and-workers.md) in retained
 `autopilot-ux-release`, separately from higher-priority

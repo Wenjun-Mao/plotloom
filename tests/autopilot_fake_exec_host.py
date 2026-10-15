@@ -99,6 +99,21 @@ class FakeCodexExecHost(FakeCodexImageReceipts):
                 return self.complete(store, request, attempt)
         return retained or CodexExecHostStatus(state="not_found")
 
+    def suspend(self, attempt):
+        """Typed remote control stand-in; never poll, complete or dispatch."""
+        from plotloom.autopilot_exec import _identity
+
+        retained = self.statuses.get(str(attempt.attempt_id))
+        if retained is None:
+            return CodexExecHostStatus(state="not_found")
+        if retained.attempt is None or _identity(retained.attempt) != _identity(attempt):
+            raise AssertionError("fixture suspension must use the exact frozen attempt")
+        if retained.state in {"queued", "spawn_intent"}:
+            current = transition_exec_attempt(retained.attempt, state="queued")
+            retained = CodexExecHostStatus(state="queued", attempt=current, dispatchEnabled=False)
+            self.statuses[str(attempt.attempt_id)] = retained
+        return retained
+
     def cancel(self, attempt):
         attempt = CodexExecAttempt.model_validate(attempt.model_dump(mode="python"))
         key = str(attempt.attempt_id)

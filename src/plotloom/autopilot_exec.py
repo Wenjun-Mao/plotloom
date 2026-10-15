@@ -1,14 +1,10 @@
 """Project-owned reservation and receipt-only reconciliation for serial CLI jobs."""
-import json
-from pathlib import Path
-from uuid import uuid4
-
-from .autopilot_contracts import CheckpointEvidence, OperationScope
-from .codex_exec_contracts import (
-    CodexExecAttempt,
-    CodexExecProfile,
+from .autopilot_contracts import OperationScope
+from .autopilot_exec_reservation import (
+    assert_prepared_attempt,
+    new_reserved_attempt,
+    prepared_exec_inputs,
 )
-from .codex_exec_runtime import frozen_package_snapshot
 from .exceptions import InvalidTransitionError
 from .image_job_contracts import ImageJobError
 
@@ -45,10 +41,13 @@ def suspend_pending_codex_exec(store, registry, view):
         attempt, _receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(view.id, checkpoint["operationKey"])
         if attempt is None:
             raise InvalidTransitionError("pause checkpoint has no retained Codex Exec identity")
-        if attempt.state in {"spawn_intent", "queued"}:
+        # Losing admission acknowledgment makes the project UNKNOWN even when
+        # the exact host still has an enabled, unstarted intent. Only its typed
+        # suspend owner can distinguish that from running or unknown host work.
+        if attempt.state in {"spawn_intent", "queued", "outcome_unknown"}:
             status = registry.codex_exec_suspend(attempt)
             if status.attempt is None or _identity(status.attempt) != _identity(attempt):
-                raise InvalidTransitionError("pause was not acknowledged for the exact unstarted job")
+                raise InvalidTransitionError("pause was not acknowledged for the exact retained job")
             if status.state in {"queued", "spawn_intent"} and status.dispatch_enabled is not False:
                 raise InvalidTransitionError("pause did not fence unstarted host dispatch")
 
@@ -69,33 +68,10 @@ def reconcile_codex_exec(
     on_settlement=None,
 ):
     """Reserve one exact package, dispatch its immutable ID once, and poll only that ID."""
-    evidence = CheckpointEvidence.model_validate(checkpoint["evidence"])
-    profile = CodexExecProfile.model_validate(registry.codex_exec_profile())
-    if profile != view.policy.executor_binding:
-        raise InvalidTransitionError("Codex Exec profile changed after the launch was frozen.")
-    if (profile.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}
-            and not view.policy.code_revision):
-        raise InvalidTransitionError("Codex Exec launch omits its frozen Plotloom source revision.")
-    if evidence.job_id is None or evidence.request_hash is None:
-        raise InvalidTransitionError("prepared CLI checkpoint has no frozen job identity")
-
+    inputs = prepared_exec_inputs(registry, view, checkpoint, domain=domain, package_path=package_path)
+    evidence, profile, _package_hash, _validation_hash = inputs
     operation_key = checkpoint["operationKey"]
     machine_scope = operation_scope or (OperationScope.IMAGE if domain == "image" else OperationScope.TEXT)
-    package_directory = Path(package_path).resolve(strict=True)
-    if package_directory.name != "package":
-        raise InvalidTransitionError("prepared CLI package path is not the frozen package directory")
-    package_root = package_directory.parent
-    package_hash, package_request_bytes = frozen_package_snapshot(
-        package_root, max_total_bytes=profile.max_output_bytes
-    )
-    validation_plan_hash = None
-    if domain == "text" and profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}:
-        try:
-            package_request = json.loads(package_request_bytes)
-            from .codex_exec_validation import validation_plan_from_package
-            validation_plan_hash = validation_plan_from_package(package_request).plan_hash
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
-            raise InvalidTransitionError("frozen text package has no valid trusted validation plan") from error
     attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(view.id, operation_key)
 
     if attempt is None:
@@ -104,22 +80,7 @@ def reconcile_codex_exec(
         if evidence.executor_attempt_id is not None:
             raise InvalidTransitionError("checkpoint names a CLI attempt absent from the project store")
         registry.require_codex_exec_readiness()
-        reserved = CodexExecAttempt(
-            attemptId=uuid4(),
-            runId=view.id,
-            projectId=view.project_id,
-            jobId=evidence.job_id,
-            operationKey=operation_key,
-            domain=domain,
-            requestHash=evidence.request_hash,
-            packageHash=package_hash,
-            profileHash=profile.profile_hash,
-            plotloomCodeRevision=view.policy.code_revision,
-            validationPlanHash=validation_plan_hash,
-            reservedImageOutputs=1 if domain == "image" else 0,
-            imageBudgetState="reserved" if domain == "image" else "none",
-            state="reserved",
-        )
+        reserved = new_reserved_attempt(view, checkpoint, domain, inputs)
         with command_factory(store, view, claim, machine_scope):
             attempt = store.repository.autopilot.reserve_exec_attempt(
                 reserved, expected_checkpoint_revision=checkpoint["revision"]
@@ -132,14 +93,7 @@ def reconcile_codex_exec(
             )
         host_status = registry.codex_exec_admit(attempt)
     else:
-        if (attempt.job_id != evidence.job_id or attempt.request_hash != evidence.request_hash
-                or attempt.package_hash != package_hash or attempt.domain != domain
-                or attempt.operation_key != operation_key
-                or attempt.plotloom_code_revision != view.policy.code_revision
-                or attempt.validation_plan_hash != validation_plan_hash):
-            raise InvalidTransitionError("retained CLI attempt differs from its frozen package or stage")
-        if evidence.executor_attempt_id != attempt.attempt_id:
-            raise InvalidTransitionError("checkpoint and project CLI attempt identities differ")
+        assert_prepared_attempt(attempt, view, checkpoint, domain, inputs)
         if attempt.state == "reserved":
             if not allow_admission:
                 return attempt, receipt, profile
@@ -169,6 +123,15 @@ def reconcile_codex_exec(
             if allow_admission and host_status.state == "not_found" and attempt.state == "spawn_intent":
                 host_status = registry.codex_exec_admit(attempt)
 
+    return settle_exec_status(store, view, claim, attempt, receipt, profile, host_status,
+        command_factory=command_factory, allow_admission=allow_admission,
+        machine_scope=machine_scope, on_settlement=on_settlement)
+
+
+def settle_exec_status(store, view, claim, attempt, receipt, profile, host_status, *,
+        command_factory, allow_admission=False, machine_scope=None, on_settlement=None):
+    """Persist only typed host facts; no dispatch or creative adoption here."""
+    operation_key = attempt.operation_key
     host_attempt = host_status.attempt
     if host_status.state == "not_found":
         if host_status.capacity_deferred:
