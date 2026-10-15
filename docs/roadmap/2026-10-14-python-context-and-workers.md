@@ -2405,3 +2405,42 @@ observation and all original pins/STARTs remain failed/immutable. This later
 docs-only receipt does not relabel measured revision `b0ed49f3` or its inputs.
 Unstable source-attribution candidates remain temporary pending Root review;
 this receipt authorizes no implementation, profile or further execution.
+
+### Accepted diagnostic and bounded local derivations — October 15
+
+Root accepted the one-case instrumentation diagnostic at clean `ff822895`
+(executable input `c1dce293a0e3d514c52ba850be0f843a5a61bae1b708dc5dccb9c80890c9da01`).
+Its [raw profile and attribution](../../.local/remaining-cost/complete-pack-ff822895-profile-wedls046/result.json)
+remain immutable diagnostic evidence, separate from the whole-Python observation
+at `b0ed49f3`. Nested elapsed costs are not additive savings or a speed comparison.
+
+Root then authorized only three equivalent, call-local derivations: one saved-route
+request export, one canonical byte encoding per artifact for SHA/UTF-8 size, and
+one hash of each freshly constructed binding plan for both comparisons. The
+candidate preserves routing, canonical JSON, F5 admission, request-hash ownership,
+SQL/JSON/model checks and their ordering; it adds no cross-call cache or observation
+reuse. Non-timing guards delegate real behavior and cover all eight stage routes,
+nested Unicode/escaped/numeric artifacts, exact plan hashes, one derivation per
+construction, fresh subsequent bindings and changed-request rejection.
+
+Native `verify.py focused` passed the two changed owners (**33 cases**), then the
+four requested owners plus existing profile-receipt tests (**97 cases / 5 files**).
+Receipt coverage was included because the local plan hash feeds the receipt
+comparison; transaction code is unchanged. After correcting only two test import
+orders found by scoped Ruff, the final union passed again: native session `55520`,
+exit 0, true exact-completion fingerprint
+`f2d10a99911b98ccc4d9ab7fa2ea32a049e4bb20fda039fb3fc991e86c3e6d95`,
+no skips/xfails. Scoped Ruff F/I and candidate AST checks passed.
+The [final result](../../.local/remaining-cost/local-derivations-20261015/final/result.json)
+(`1bed2e3f79df0e27895d3cc6754c94c1fbadd149c357f9d80ee6e69479745e54`)
+records exact commands, file/diff pins and tested executable input
+`4bd3555a6c79ab04304627b539ed0ee739bedcbe814e2193fe01763b7162ceec`.
+It confirms unchanged index/environment/host/tools/cache/protected evidence and
+cleanup of owned groups and inode-bound external roots. Checks used the fixed
+environment, offline/no-sync, explicit retained src/root and disabled source cache.
+The candidate was checked as an uncommitted diff on `ff822895`. Root accepted the
+bounded source/focused checkpoint after independent audit `e0625d`; broad gates
+remain open. This receipt-only clarification does not change tested executable
+inputs. No new profile, benchmark,
+whole/full gate, hosted CI, provider/native campaign or product acceptance was run.
+The **151.73295s / 85%** target and larger attribution ideas remain open.
