@@ -275,4 +275,3 @@ def test_record_rejects_second_marker_during_actual_payload_read(receiver_contex
     with pytest.raises(RuntimeError, match="authority set changed"):
         c["files"].read_record(c["root"], "synthetic-record.json")
     assert not (c["root"] / "receiver-accepted.json").exists()
-
