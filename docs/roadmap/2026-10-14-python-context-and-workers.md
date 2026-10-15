@@ -2364,3 +2364,44 @@ test file; there is no new file or allowlist expansion. Node syntax and scoped
 Ruff F/I checks passed; AST/diff consistency was checked. These scoped results
 leave a fresh whole-Python observation, combined full qualification, actual
 changed-command sandbox qualification, hosted CI and product acceptance open.
+
+### Successful current whole-Python observation — October 15
+
+Measured clean revision **`b0ed49f3b81bd66fb090586e15f0530b217dd362`** passed
+the unchanged default-two-worker native Python command: **2,433 cases / 226
+files**, exact inventory fingerprint
+`2c06e3d99bdb1d9433879631b9ef420d43518ebfb3a1123c1b91da92d5f44642`.
+Both actual completion markers are true: worker 1 covers 1,286 cases / 112 files;
+worker 2 covers 1,147 / 114, with disjoint exhaustive coverage and 226 finite
+per-file phase rows. Native session `7173`, command execution
+`exec-8208372a-3e53-4cef-b0aa-0b432f34b2e6`, genuinely terminated with exit 0.
+
+External whole-command wall was **591.4420814999903s**, native coordinator wall
+**584.771s**. Phase **work** totals were setup **174.38635409012204s**, call
+**963.4108807064476s**, teardown **0.9395840348443016s**, aggregate
+**1138.736818831414s**; these are not parallel wall or production-only time.
+See the retained [result](../../.local/remaining-cost/current-python-b0ed49f3-tidx1h3k/result.json),
+[raw log](../../.local/remaining-cost/current-python-b0ed49f3-tidx1h3k/python-suite.log)
+and [phase ledger](../../.local/remaining-cost/current-python-b0ed49f3-tidx1h3k/native-reports-and-phase-rows.json).
+Their SHA-256 pins are respectively
+`90c1ea3823fe912613a82ea5c6cea494ba4da3644022c7ece2a224075e79908b`,
+`93c946cfb40152f464232fadfa6e930cb4c1de0c6dfeb3f83419e370ca5395db`,
+`dba4b90f9d17d2970273756c2f850cee36a0eab3db81bb15683e170cd3eef529`.
+
+Source/environment/cache and all protected identities were preserved. All 14
+owned groups, inode-bound parent root `151225105` and nested runner root were
+absent; the quiet window was released and the allocation is spent. Root audit
+`a51639` independently accepted raw coverage, exact canonical phase rows,
+hashes and cleanup; `641b10` independently rechecked the fresh input/environment/
+host/cache identity. Root's earlier extra auditor concatenated worker-grouped
+rows against a path-sorted ledger; inspection `40047d` identified that ordering
+assumption, and `a51639` verified exact canonical equality. No product failure,
+weaker row check, changed input or rerun resulted from that auditor correction.
+
+This is successful current whole-Python evidence, not `verify.py full`, hosted
+CI, CLI/sandbox qualification, product acceptance or a matched speed comparison.
+The original **151.73295s / 85%** target remains unmet. The failed `bab6bc08`
+observation and all original pins/STARTs remain failed/immutable. This later
+docs-only receipt does not relabel measured revision `b0ed49f3` or its inputs.
+Unstable source-attribution candidates remain temporary pending Root review;
+this receipt authorizes no implementation, profile or further execution.
