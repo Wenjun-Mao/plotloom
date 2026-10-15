@@ -2618,3 +2618,30 @@ receipt and ADR status changed afterward. Executable input remains
 No retest, push, merge or measurement is authorized. Historical whole-Python
 `f5e729d7` predates this change; new whole qualification and any measured gain
 remain open, and the 151.73295-second target is unmet.
+
+### Accepted current-f1 whole-Python qualification — October 15
+
+Root independently accepted measured `f1a3333a` in audit `f62b13`:
+**2,449 passed / 228 files**, unchanged default two workers, exact fingerprint
+`6e37bb05af3a274a6420ba805b1cb73e48f39500d584724a09d646b3af240396`.
+Both true worker completions proved exhaustive/disjoint coverage: 1,212 / 1,237
+passed across 114 / 114 files, no skips/xfails. Original native session `28745`,
+execution `exec-c6523084-82d2-41cd-b470-bd46df47a9e5`, genuinely exited 0.
+Observed whole-command wall was **557.6845981249935s**; runtime binding and
+standalone collection were outside the timer, native whole/default-two-worker
+execution and immediate owned-group settlement inside, extraction/root removal
+outside. All 228 finite phase rows total **1050.6278429156519s elapsed work**,
+not CPU or a non-contention/avoided-work floor. The [bound result](../../.local/remaining-cost/current-python-f1a3333a-prep-20261015/run-b4cdp1sx/result.json),
+SHA `a15eb821b6eff95f4f77abd73debe54c75003712953952eda464a48f5f395888`,
+preserves commands, source/runtime bindings, native IDs, raw reports and phase rows.
+All 16 known owned groups, parent root inode `151988797` and nested runner root
+were absent; all 33 identities and 141 prior artifact pins stayed unchanged
+during the run. Allocation `root-current-python-f1a3333a-20261015-01` is spent;
+Root released its quiet hold after independent audit. The allocated plan retains
+the CLI receipt-retention limitation: shared pytest retention removed per-case
+settlement JSON, so fresh independent CLI PID/group reconciliation was unavailable.
+No recovered records or matched performance isolation are claimed. This qualifies
+current whole Python, not attributable gain, 85%, full release, hosted CI or
+product acceptance. The **151.73295s target remains unmet**; prior `f5`, `b0`,
+pairs and profiles retain their original scopes. This docs-only receipt does not
+retarget any measured plan, observer, START, result or historical identity map.
