@@ -12,6 +12,19 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     const prepared = await prepare(page, panel, id);
     const frozen = await readFile(path.join(prepared.packagePath, "request.json"));
     const admission = JSON.parse(await readFile(path.join(prepared.packagePath, "inputs/storyboard-admission.json"), "utf8"));
+    const acceptedScript = (await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/script`))).acceptedScript;
+    expect(prepared.binding.dialogueTimingContract.language).toBe("en");
+    expect(prepared.binding.scriptRevision).toBe(acceptedScript.revision);
+    expect(prepared.binding.scriptContentHash).toBe(acceptedScript.contentHash);
+    expect(prepared.binding.dialogueTimingContract.scriptContentHash).toBe(acceptedScript.contentHash);
+    expect(prepared.binding).toMatchObject({
+      reviewMinCutSeconds: 2, reviewMaxCutSeconds: 8, reviewMaxSegmentSeconds: 15,
+      targetPlaythroughSeconds: 180, routeOnlySectionIds: ["power-choice"],
+      completeRouteSectionIds: [["opening", "power-choice", "beacon"], ["opening", "power-choice", "dock"]],
+    });
+    const timing = JSON.parse(await readFile(path.join(prepared.packagePath, "inputs/dialogue-timing-contract.json"), "utf8"));
+    expect(timing).toEqual(prepared.binding.dialogueTimingContract);
+    expect(timing.lines).toHaveLength(22);
     expect(admission.reviewTiming).toEqual({ minCutSeconds: 2, maxCutSeconds: 8, maxSegmentSeconds: 15 });
     expect(admission.sectionBindings.map((entry: any) => entry.sectionId)).toEqual(["opening", "beacon", "dock"]);
     await page.reload();
@@ -25,7 +38,7 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     expect(await readFile(path.join(prepared.packagePath, "request.json"))).toEqual(frozen);
     await expect(panel.getByLabel("分镜完整任务")).toHaveValue(prepared.assignment);
     await writeDelivery(prepared);
-    expect(hash(await readFile(path.join(prepared.deliveryPath, "storyboard.json")))).toBe("50165863d45e678c28bcf794c6f9f5444b6aa45eef2caa446595dd638313578a");
+    expect(hash(await readFile(path.join(prepared.deliveryPath, "storyboard.json")))).toBe("c3961f73e063aeb361ec44c8a86d8215d6b0f118bd608e867a2b60d60923eb63");
     await refresh(page, panel, id, prepared.jobId);
     await panel.getByText("查看待审阅分镜", { exact: true }).click();
     await expect(panel.getByTestId("storyboard-cut").first()).toContainText("wide shot of a lone beacon keeper");
@@ -36,7 +49,7 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     const script = await fixture("script.json");
     const lines = script.episodes.flatMap((episode: any) => episode.scenes.flatMap((scene: any) => scene.flow.filter((beat: any) => beat.line).map((beat: any) => ({ ...beat, ep: episode.ep }))));
     expect(lines).toHaveLength(22);
-    for (const line of lines) await expect(panel.locator(`[data-episode="${line.ep}"]`).getByTestId("storyboard-h3-direction").filter({ hasText: `<d>[Chinese] ${line.line}</d>` })).toHaveCount(1);
+    for (const line of lines) await expect(panel.locator(`[data-episode="${line.ep}"]`).getByTestId("storyboard-h3-direction").filter({ hasText: `<d>[English] ${line.line}</d>` })).toHaveCount(1);
     await panel.getByRole("button", { name: "确认此分镜评审方案" }).click();
     await expect(panel).toContainText("已确认评审 r1");
     await panel.getByText("查看当前已确认分镜", { exact: true }).click();
@@ -53,7 +66,7 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     await workbench.restartBackend(); await page.reload();
     await expect(panel).toContainText("已确认评审 r1");
     await panel.getByText("查看当前已确认分镜", { exact: true }).click();
-    for (const line of lines) await expect(panel.locator(`[data-episode="${line.ep}"]`).getByTestId("storyboard-h3-direction").filter({ hasText: `<d>[Chinese] ${line.line}</d>` })).toHaveCount(1);
+    for (const line of lines) await expect(panel.locator(`[data-episode="${line.ep}"]`).getByTestId("storyboard-h3-direction").filter({ hasText: `<d>[English] ${line.line}</d>` })).toHaveCount(1);
     expect((await json(request.get(endpoint(workbench.apiOrigin, id)))).acceptedReview).toEqual(state.acceptedReview);
     const stages = await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/stages`));
     expect(stages.stages.filter((stage: any) => stage.payload).map((stage: any) => stage.head.stage)).toEqual(["story_graph"]);
@@ -158,10 +171,17 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     for (const changed of [
       (board: any) => { board.params.maxCutSeconds = 9; },
       (board: any) => { board.params.minCutSeconds = 1; },
-      (board: any) => { board.episodes[0].segments[0].h3Prompt = board.episodes[0].segments[0].h3Prompt.replace("<d>[Chinese] One cable. Two places need it.</d>", ""); },
+      (board: any) => {
+        const block = "<d>[English] One cable. Two places need it.</d>";
+        const segment = board.episodes[0].segments[0];
+        expect(segment.h3Prompt).toContain(block);
+        segment.h3Prompt = segment.h3Prompt.replace(block, "");
+        expect(segment.h3Prompt).not.toContain(block);
+      },
     ]) {
       const board = JSON.parse(original.toString()); changed(board);
       const content = Buffer.from(JSON.stringify(board)); await writeFile(file, content);
+      expect(content).not.toEqual(original);
       await writeFile(manifestFile, JSON.stringify({ ...manifest, candidate: { ...manifest.candidate, sha256: hash(content) } }));
       const response = await request.post(`${root}/candidates/${prepared.jobId}/refresh`);
       expect(response.ok(), await response.text()).toBeFalsy();

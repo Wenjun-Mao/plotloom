@@ -11,6 +11,7 @@ import { styledCastFixture } from "./fixtures/cast-style";
 import { expect } from "./fixture";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
+const fixtureSpokenLanguage: ProjectBrief["language"] = "en";
 export const fixtureDirectory = path.join(directory, "fixtures/f5a");
 const validator = path.resolve(directory, "../../third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs");
 export type Preparation = { jobId: string; packagePath: string; deliveryPath: string; assignment: string; binding: any; expectedReviewRevision: number };
@@ -46,7 +47,7 @@ export function endpoint(origin: string, projectId: string): string {
 }
 export async function createScriptProject(request: APIRequestContext, origin: string, label: string, candidates: Partial<Record<"cast" | "art" | "script", unknown>> = {}, stages: readonly ("cast" | "art" | "script")[] = ["cast", "art", "script"], options: ScriptProjectOptions = {}): Promise<string> {
   const root = `${origin}/api/v2/projects`;
-  const created = await json(request.post(root, { headers: { "Idempotency-Key": `f5a-${label}-${Date.now()}` }, data: { brief: { ...demoProject.brief, decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, title: `F5A ${label}`, targetPlaythroughSeconds: 180, ...options.briefOverrides }, initialStages: options.initialStages ?? [] } }));
+  const created = await json(request.post(root, { headers: { "Idempotency-Key": `f5a-${label}-${Date.now()}` }, data: { brief: { ...demoProject.brief, language: fixtureSpokenLanguage, decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, title: `F5A ${label}`, targetPlaythroughSeconds: 180, ...options.briefOverrides }, initialStages: options.initialStages ?? [] } }));
   const id = created.id;
   const url = `${root}/${id}`;
   const source = await json(request.put(`${url}/source-outline/source`, { data: { expectedSourceRevision: 0, material: {

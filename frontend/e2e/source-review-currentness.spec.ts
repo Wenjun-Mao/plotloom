@@ -262,7 +262,11 @@ test("failed post-mutation refresh disables old successful authority until expli
   const panel = page.getByTestId("storyboard-review");
   await expect(panel.getByRole("button", { name: "准备分镜任务" })).toBeEnabled();
   await page.route(`**/api/v2/projects/${id}/storyboard-source-review`, route => route.fulfill({ status: 503, body: JSON.stringify({ detail: "post-mutation read failed" }) }));
+  const prepared = page.waitForResponse(response => response.request().method() === "POST"
+    && new URL(response.url()).pathname === `/api/v2/projects/${id}/storyboard-source-review/candidates`);
   await panel.getByRole("button", { name: "准备分镜任务" }).click();
+  const preparation = await prepared;
+  expect(preparation.status(), await preparation.text()).toBe(201);
   await expect(panel).toContainText("无法刷新");
   await captureDesktopState(page, test.info(), "storyboard-post-mutation-read-failed", panel.getByRole("button", { name: "重试加载分镜评审" }));
   await expect(panel.getByRole("button", { name: "准备分镜任务" })).toBeDisabled();
