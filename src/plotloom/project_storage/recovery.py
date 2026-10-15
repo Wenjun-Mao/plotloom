@@ -9,20 +9,19 @@ made discoverable under ``outputs``.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import os
-from pathlib import Path, PurePosixPath
 import shutil
 import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path, PurePosixPath
 from typing import Any
 from uuid import uuid4
 
 from .format import (
     PROJECT_DATABASE_RELATIVE_PATH,
     PROJECT_MANIFEST_FILENAME,
-    ProjectManifest,
-    ProjectStorageConflictError,
     ProjectStorageConfinementError,
+    ProjectStorageConflictError,
     ProjectStorageCorruptionError,
     ProjectStorageError,
     _canonical_json,
@@ -51,6 +50,16 @@ from .recovery_validation import (
     snapshot_inventory,
     validate_snapshot_payloads,
 )
+from .snapshot_contract import (
+    SNAPSHOT_FORMAT_VERSION as SNAPSHOT_FORMAT_VERSION,
+)
+from .snapshot_contract import (
+    SNAPSHOT_MANIFEST_FILENAME,
+    ProjectSnapshotManifest,
+    ProjectSnapshotReceipt,
+    SnapshotFile,
+    _Payload,
+)
 from .snapshot_files import (
     _assert_closed_project_tree,
     _assert_snapshot_tree,
@@ -58,14 +67,6 @@ from .snapshot_files import (
     _safe_directory,
     _safe_regular,
     _sha256_path,
-)
-from .snapshot_contract import (
-    SNAPSHOT_FORMAT_VERSION,
-    SNAPSHOT_MANIFEST_FILENAME,
-    ProjectSnapshotManifest,
-    ProjectSnapshotReceipt,
-    SnapshotFile,
-    _Payload,
 )
 
 
@@ -252,7 +253,9 @@ class ProjectRecoveryService:
                     from .schema_upgrade import classify_layout
                     with sqlite3.connect(root / PROJECT_DATABASE_RELATIVE_PATH) as connection:
                         if classify_layout(connection) == "prior":
-                            from .creative_evidence_inventory import missing_completed_jobs
+                            from .creative_evidence_inventory import (
+                                missing_completed_jobs,
+                            )
                             prior_omissions = missing_completed_jobs(root, root / PROJECT_DATABASE_RELATIVE_PATH)
             else:
                 # A closed direct project remains an active local filesystem
@@ -315,8 +318,11 @@ class ProjectRecoveryService:
             if set(files) != expected:
                 raise ProjectStorageCorruptionError("restore source omits referenced project bytes")
             if upgrade_previous:
+                from .schema_transition import (
+                    RestoredSchemaTransition,
+                    write_schema_transition,
+                )
                 from .schema_upgrade import upgrade_database
-                from .schema_transition import RestoredSchemaTransition, write_schema_transition
                 connection = sqlite3.connect(destination_database)
                 try:
                     transition = upgrade_database(connection, manifest.project_id, require_idle=False)
@@ -324,6 +330,7 @@ class ProjectRecoveryService:
                     connection.close()
                 if transition["changed"]:
                     write_schema_transition(temporary, RestoredSchemaTransition(project_id=manifest.project_id,
+                        prior_layout_hash=transition["priorLayoutHash"],
                         source_database_hash=frozen_inventory[PurePosixPath(PROJECT_DATABASE_RELATIVE_PATH)].content_hash,
                         current_layout_hash=transition["currentLayoutHash"], retained_rows_hash=transition["retainedRowsHash"],
                         omitted_creative_manifests=prior_omissions or {}))

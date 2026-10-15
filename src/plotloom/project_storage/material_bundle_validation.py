@@ -1,5 +1,6 @@
 """Historical bundle bytes bind exact native evidence; currentness is separate."""
 import json
+
 from ..autopilot_materials import AutomaticMaterialBundle
 from ..keyframe_preparation import has_matching_aspect
 
@@ -8,19 +9,25 @@ def assert_material_bundle(connection, run_id, project_id, policy_hash, policy, 
     bundle = AutomaticMaterialBundle.model_validate(raw)
     if bundle.run_id != run_id or bundle.policy_hash != policy_hash:
         raise ValueError("bundle policy identity changed")
-    from ..persistence.project.autopilot_inventory_validation import assert_inventory_binding
-    assert_inventory_binding(connection, project_id, raw["inventory"])
+    from ..persistence.project.autopilot_inventory_validation import (
+        assert_inventory_binding,
+    )
+    assert_inventory_binding(connection, project_id, raw["inventory"],
+        executor_contract=policy.executor_binding.contract_version if policy.executor_binding is not None else None)
     revision = connection.execute("SELECT project_id,revision,content_hash FROM v2_entity_revisions WHERE id=?", (bundle.inventory.entity_revision_id,)).fetchone()
     if revision != (project_id, bundle.inventory.storyboard_revision, bundle.inventory.storyboard_hash):
         raise ValueError("bundle canonical inventory owner changed")
     for reference in bundle.references:
+        subject = next(item for item in bundle.inventory.subjects
+            if (item.owner, item.subject_type, item.id) == (reference.owner, reference.subject_type, reference.id))
+        native_subject = subject.consumer_character_id if reference.owner == "character-reference" and bundle.inventory.version == "pre-video.inventory.v2" else reference.id
         checkpoint = connection.execute("SELECT id,state,evidence FROM v2_autopilot_checkpoints WHERE run_id=? AND project_id=? AND json_extract(evidence,'$.jobId')=?",
             (run_id, project_id, reference.job_id)).fetchone()
         if checkpoint is None or checkpoint[1] != "adopted":
             raise ValueError("bundle reference lacks its exact adopted operation")
         evidence = json.loads(checkpoint[2])
         result = evidence["result"]
-        if (evidence["owner"] != reference.owner or evidence["subjectId"] != reference.id
+        if (evidence["owner"] != reference.owner or evidence["subjectId"] != native_subject
                 or evidence["requestHash"] != reference.request_hash or evidence["deliveryHash"] != reference.delivery_hash
                 or result.get("referenceDecisionId") != reference.reference_decision_id
                 or result.get("assetId") != reference.asset_id or result.get("originalHash") != reference.original_hash
@@ -30,9 +37,15 @@ def assert_material_bundle(connection, run_id, project_id, policy_hash, policy, 
         if asset != (project_id, reference.original_hash, reference.width, reference.height):
             raise ValueError("bundle reference bytes changed")
         if reference.owner == "character-reference":
-            decision = connection.execute("SELECT project_id,character_id,primary_asset_id,asset_hashes FROM v2_character_reference_decisions WHERE id=?", (reference.reference_decision_id,)).fetchone()
-            if decision is None or decision[:3] != (project_id, reference.id, reference.asset_id) or {"assetId": reference.asset_id, "originalHash": reference.original_hash} not in json.loads(decision[3]):
+            decision = connection.execute("SELECT project_id,character_id,primary_asset_id,asset_hashes,character_context_hash,character_context FROM v2_character_reference_decisions WHERE id=?", (reference.reference_decision_id,)).fetchone()
+            if decision is None or decision[:3] != (project_id, native_subject, reference.asset_id) or {"assetId": reference.asset_id, "originalHash": reference.original_hash} not in json.loads(decision[3]):
                 raise ValueError("bundle character decision owner changed")
+            if bundle.inventory.version == "pre-video.inventory.v2" and (
+                result.get("consumerCharacterId") != native_subject
+                or result.get("canonicalCharacterContextHash") != decision[4]
+                or json.loads(decision[5]).get("authority") != "story_bible"
+            ):
+                raise ValueError("current bundle character selection requires its exact canonical context")
         else:
             decision = connection.execute("SELECT project_id,subject_type,subject_id,asset_id,asset_hash,proposal_id FROM v2_art_reference_decisions WHERE id=?", (reference.reference_decision_id,)).fetchone()
             if decision != (project_id, reference.subject_type, reference.id, reference.asset_id, reference.original_hash, reference.job_id):

@@ -71,7 +71,7 @@ class CodexExecSupervisorValidationProcessMixin:
             ) from error
 
         identity = (process.pid, group_id, birth_identity)
-        if state != "running":
+        if state != "validating":
             # Cancellation may have committed after the launch fence and
             # before registration. The intent retained the race; now that the
             # exact process is durable, stop that exact group immediately.
@@ -95,7 +95,7 @@ class CodexExecSupervisorValidationProcessMixin:
                 connection.rollback()
                 raise CodexExecSupervisorError("validator spawn changed immutable attempt identity")
             expected_worker = (row["worker_pid"], row["worker_group_id"], row["worker_birth_identity"])
-            if (current.state != "running" or expected_worker != (
+            if (current.state != "validating" or expected_worker != (
                     os.getpid(), *self._process_identity(os.getpid()))):
                 connection.rollback()
                 raise self._validation_failure(
@@ -132,7 +132,7 @@ class CodexExecSupervisorValidationProcessMixin:
                 raise CodexExecSupervisorError("trusted validator lost its durable spawn intent")
             from plotloom.codex_exec_contracts import CodexExecAttempt
             current = CodexExecAttempt.model_validate_json(row["status_json"]) if row else None
-            if current is not None and current.state == "running":
+            if current is not None and current.state == "validating":
                 connection.commit()
                 return True
             # No child has been started on this path, so the exact intent can

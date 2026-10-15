@@ -32,7 +32,7 @@ class CodexExecSupervisorWorkerOwnershipMixin:
                 raise CodexExecSupervisorError("Codex Exec worker has no durable attempt reservation")
             from plotloom.codex_exec_contracts import CodexExecAttempt
             attempt = CodexExecAttempt.model_validate_json(row["status_json"])
-            if attempt.state not in {"spawn_intent", "running", "cancel_requested"}:
+            if attempt.state not in {"spawn_intent", "running", "validating", "cancel_requested"}:
                 connection.rollback()
                 return False
             facts = (row["worker_pid"], row["worker_group_id"], row["worker_birth_identity"])
@@ -114,6 +114,8 @@ class CodexExecSupervisorWorkerOwnershipMixin:
             attempt = CodexExecAttempt.model_validate_json(row["status_json"])
             if attempt.state != "spawn_intent":
                 return
+            if not self._dispatch_enabled(attempt_id):
+                return
             if row["worker_pid"] is not None:
                 if self._owns_worker(row):
                     return
@@ -153,6 +155,9 @@ class CodexExecSupervisorWorkerOwnershipMixin:
                     return
                 if worker.poll() is not None:
                     self._workers.pop(str(attempt.attempt_id), None)
+                    current_attempt = self._load(current).attempt
+                    if current_attempt.state == "queued":
+                        return
                     settled = self._finish_not_started(attempt)
                     latest = self._load(self._row(attempt_id)).attempt
                     if (settled is not None and settled.state != "settled"
@@ -165,6 +170,8 @@ class CodexExecSupervisorWorkerOwnershipMixin:
             # registered itself. If registration won the database race, leave
             # that exact owner running so it can either spawn under the same
             # transaction fence or reconcile cancellation.
+            if self._load(self._row(attempt_id)).state == "queued":
+                return
             settled = self._finish_not_started(attempt)
             if settled is not None and settled.state == "settled":
                 worker.terminate()

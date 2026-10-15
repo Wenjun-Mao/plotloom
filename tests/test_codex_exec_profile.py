@@ -88,7 +88,7 @@ def test_cli_image_capabilities_are_enabled_only_for_image_attempts() -> None:
         cli_feature_flags("other")
 
 
-def test_v7_requires_the_current_checked_python_and_permission_contracts():
+def test_v8_requires_the_current_checked_python_permission_and_capacity_contracts():
     from pydantic import ValidationError
 
     from plotloom.codex_exec_contracts import CodexExecProfile
@@ -96,7 +96,7 @@ def test_v7_requires_the_current_checked_python_and_permission_contracts():
 
     value = PROFILE.model_dump(mode="json", by_alias=True)
     current = CodexExecProfile.model_validate(value)
-    assert current.contract_version == "plotloom.codex-exec.v7"
+    assert current.contract_version == "plotloom.codex-exec.v8"
     for drift in (
         {"permissionProfile": "plotloom_autopilot_delivery_v4"},
         {"textValidatorRuntimeProfile": "node_openssl_private_zsh_tmp_and_validator_aliases_v2"},
@@ -106,6 +106,7 @@ def test_v7_requires_the_current_checked_python_and_permission_contracts():
             CodexExecProfile.model_validate(value | drift)
     retained_v6 = CodexExecProfile.model_validate(value | {
         "contractVersion": "plotloom.codex-exec.v6",
+        "maxProcesses": 1, "maxTextProcesses": None, "maxImageProcesses": None, "maxQueuedJobs": None,
         "permissionProfile": "plotloom_autopilot_delivery_v4",
         "textValidatorRuntimeProfile": "node_openssl_private_zsh_tmp_and_validator_aliases_v2",
     })

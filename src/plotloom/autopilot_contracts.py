@@ -11,11 +11,10 @@ from pydantic import Field, model_validator
 
 from .art_style import ArtRenderStyle
 from .cast_style import CastRenderStyle
-from .domain import CamelModel, contains_secret_setting, contains_secret_value
 from .codex_exec_contracts import CodexExecProfile, ExecutorBinding
-
-from .geometry_preparation_contracts import GeometryPolicy, GeometryPreparation
+from .domain import CamelModel, contains_secret_setting, contains_secret_value
 from .geometry_preparation import geometry_policy
+from .geometry_preparation_contracts import GeometryPolicy, GeometryPreparation
 
 POLICY_VERSION = "plotloom.pre-video.v4"
 PREVIOUS_POLICY_VERSION = "plotloom.pre-video.v3"
@@ -53,6 +52,7 @@ class LaunchPolicy(CamelModel):
     art_render_style: ArtRenderStyle | None = None
     max_images: int = Field(default=80, ge=1, le=256)
     max_jobs: int = Field(default=96, ge=9, le=288)
+    early_reference_limit: int | None = Field(default=None, ge=0, le=4, strict=True, exclude_if=lambda value: value is None)
     image_width: int = Field(ge=64, le=4096)
     image_height: int = Field(ge=64, le=4096)
     code_revision: str = Field(pattern=r"^[a-f0-9]{7,64}$")
@@ -80,6 +80,11 @@ class LaunchPolicy(CamelModel):
 
     @model_validator(mode="after")
     def validate_frozen_authority(self):
+        if self.early_reference_limit is not None and (
+            self.version != POLICY_VERSION or self.executor_binding is None
+            or self.executor_binding.contract_version != "plotloom.codex-exec.v8"
+        ):
+            raise ValueError("early reference permission requires the current bounded CLI pool")
         if (self.version in {"plotloom.pre-video.v2", PREVIOUS_POLICY_VERSION, POLICY_VERSION}) != (self.geometry_preparation is not None):
             raise ValueError("geometry preparation permission belongs only to policy v2, v3 or v4")
         if self.version not in {PREVIOUS_POLICY_VERSION, POLICY_VERSION} and self.effective_style_authority != "preset":
@@ -162,6 +167,16 @@ class ProvisionalFrame(CamelModel):
     character_identity: list[dict[str, Any]]
 
 
+class RunActivity(CamelModel):
+    """Public job progress; process, session and private storage facts stay host-owned."""
+    operation_key: str
+    owner: str
+    subject_id: str
+    job_id: str
+    domain: Literal["text", "image"]
+    state: Literal["waiting", "queued", "generating", "validating", "unknown", "cancelling", "delivered", "adopted", "failed"]
+
+
 class RunView(CamelModel):
     id: str
     project_id: str
@@ -171,6 +186,8 @@ class RunView(CamelModel):
     policy: LaunchPolicy
     blocker: dict[str, str] | None
     checkpoints: list[dict[str, Any]]
+    activities: list[RunActivity] = Field(default_factory=list)
+    material_current: bool = True
     frames: list[ProvisionalFrame]
     bundle: dict[str, Any] | None
     bundle_hash: str | None

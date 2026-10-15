@@ -2,9 +2,8 @@
 
 from plotloom.codex_exec_contracts import CodexExecProfile, CodexExecReadiness
 
-
 PROFILE = CodexExecProfile(
-    contractVersion="plotloom.codex-exec.v7",
+    contractVersion="plotloom.codex-exec.v8",
     executableSha256="a" * 64,
     cliVersion="codex-cli test-fixture",
     model="gpt-6.1-sol",
@@ -26,6 +25,7 @@ PROFILE = CodexExecProfile(
     maxEventBytes=50_000_000,
     maxOutputBytes=500_000_000,
     maxImageOutputs=4,
+    maxProcesses=4, maxTextProcesses=2, maxImageProcesses=2, maxQueuedJobs=4,
 )
 
 

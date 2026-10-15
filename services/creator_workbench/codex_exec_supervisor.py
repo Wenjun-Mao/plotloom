@@ -12,7 +12,9 @@ from codex_exec_supervisor_control import CodexExecSupervisorControlMixin
 from codex_exec_supervisor_errors import CodexExecSupervisorError
 from codex_exec_supervisor_job import CodexExecSupervisorJobMixin
 from codex_exec_supervisor_ledger import CodexExecSupervisorLedgerMixin
+from codex_exec_supervisor_pool import CodexExecSupervisorPoolMixin
 from codex_exec_supervisor_process import CodexExecSupervisorProcessMixin
+from codex_exec_supervisor_queue_control import CodexExecSupervisorQueueControlMixin
 from codex_exec_supervisor_worker_ownership import (
     CodexExecSupervisorWorkerOwnershipMixin,
 )
@@ -25,13 +27,15 @@ from plotloom.codex_exec_auth import (
 
 class CodexExecSupervisor(
     CodexExecSupervisorAdmissionMixin,
+    CodexExecSupervisorPoolMixin,
+    CodexExecSupervisorQueueControlMixin,
     CodexExecSupervisorWorkerOwnershipMixin,
     CodexExecSupervisorControlMixin,
     CodexExecSupervisorProcessMixin,
     CodexExecSupervisorJobMixin,
     CodexExecSupervisorLedgerMixin,
 ):
-    def __init__(self, executable: Path, *, source_root: Path, outputs_root: Path, private_root: Path):
+    def __init__(self, executable: Path, *, source_root: Path, outputs_root: Path, private_root: Path, pool_limits=None):
         self.executable = executable.expanduser().resolve(strict=True)
         self.source_root = source_root.expanduser().resolve(strict=True)
         self.outputs_root = outputs_root.expanduser().resolve(strict=True)
@@ -58,11 +62,12 @@ class CodexExecSupervisor(
         self.database = self.private_root / "supervisor.sqlite3"
         self._guard = threading.RLock()
         self._workers: dict[str, subprocess.Popen] = {}
+        self._requested_pool_limits = pool_limits
         self._initialize()
 
     def profile(self):
         from plotloom.codex_exec_profile import build_codex_exec_profile
-        return build_codex_exec_profile(self.executable, source_root=self.source_root)
+        return build_codex_exec_profile(self.executable, source_root=self.source_root, pool_limits=self.pool_limits)
 
     def codex_exec_readiness(self):
         """Probe local file-store login state without exposing CLI diagnostics."""

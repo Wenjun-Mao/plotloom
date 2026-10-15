@@ -1,6 +1,24 @@
 import { test, expect } from "./vite-only-fixture";
 import type { Handoff } from "../src/features/autopilot/contracts";
 
+test("concurrent preparation shows durable states, retained count and unknown inventory at desktop sizes", async ({ page, frontendOrigin }, info) => {
+  for (const height of [900, 600]) {
+    await page.setViewportSize({ width: 1440, height });
+    await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html?state=concurrent`);
+    const activity = page.getByRole("region", { name: "当前素材任务" });
+    await expect(activity.getByText("正在生成", { exact: true })).toBeVisible();
+    await expect(activity.getByText("正在校验", { exact: true })).toBeVisible();
+    await expect(activity.getByText("排队", { exact: true })).toBeVisible();
+    await expect(activity.getByText("结果待核对", { exact: true })).toBeVisible();
+    await expect(page.getByText("本次生成：Codex · gpt-6.1-sol · 最多同时运行 4 项任务", { exact: true })).toBeVisible();
+    const sticky = page.locator(".autopilot-progress");
+    await expect(sticky).toContainText("候选已保留 1 张 · 图片总量待完整发现 · 生成 1 · 校验 1 · 排队 1");
+    await expect(page.getByRole("button", { name: "接管手动编辑", exact: true })).toBeVisible();
+    await page.screenshot({ path: info.outputPath(`concurrent-progress-${height}.png`), fullPage: true });
+    expect(await page.locator("#fixture-writes").textContent()).toBe("[]");
+  }
+});
+
 for (const height of [900, 600]) {
   test(`complete review displays source-bound limitations and separate adaptation history at 1440x${height}`, async ({ page, frontendOrigin }, info) => {
     await page.setViewportSize({ width: 1440, height });
@@ -43,7 +61,7 @@ test.beforeEach(async ({ page }) => {
 test("one saved-Brief Start freezes explicit styles and ceilings without videos", async ({ page, frontendOrigin }) => {
   await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html?state=fresh`);
   await page.getByRole("button", { name: "自动准备素材", exact: true }).click();
-  await expect(page.getByText("文字助手：文字测试助手", { exact: false })).toBeVisible();
+  await expect(page.getByText("由 Codex 执行文字与图片任务", { exact: false })).toBeVisible();
   await expect(page.getByText("2D 动画；水彩；低饱和", { exact: true })).toBeVisible();
   await page.getByLabel("最多图片数").fill("40"); await page.getByLabel("最多任务数").fill("56");
   await page.getByRole("button", { name: "开始准备已保存简报的素材" }).click();

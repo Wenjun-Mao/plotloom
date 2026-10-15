@@ -1,12 +1,16 @@
 """Admission, settlement and cancellation regressions for the host ledger."""
-import time
 from contextlib import closing
 from hashlib import sha256
 from uuid import UUID, uuid4
 
 import pytest
-
 from codex_exec_supervisor_errors import CodexExecSupervisorError
+from codex_exec_supervisor_test_support import (
+    _attempt,
+    _insert_attempt_row,
+    _prepared_text_job,
+)
+
 from plotloom.codex_exec_contracts import (
     CodexExecAttempt,
     CodexExecOutputEvidence,
@@ -14,39 +18,11 @@ from plotloom.codex_exec_contracts import (
     output_manifest_hash,
     transition_exec_attempt,
 )
-from plotloom.codex_exec_telemetry import CodexSessionEvidence, ImageGenCall, ImageGenEvent
-from codex_exec_supervisor_test_support import _attempt, _insert_attempt_row, _prepared_text_job
-
-
-def test_busy_host_slot_refusal_leaves_same_attempt_admissible_after_release(supervisor, tmp_path):
-    _exchange, _request, _pin, job_root, attempt, _profile = _prepared_text_job(
-        supervisor, tmp_path, fake_cli_source="import sys\nsys.stdin.read()\n"
-    )
-    private_attempt = supervisor.private_root / "attempts" / str(attempt.attempt_id)
-    with closing(supervisor._connect()) as connection:
-        connection.execute("INSERT INTO exec_slot VALUES (1,?)", (str(uuid4()),))
-
-    with pytest.raises(CodexExecSupervisorError, match="slot is already occupied"):
-        supervisor.admit(attempt)
-    assert supervisor._row(attempt.attempt_id) is None
-    assert not private_attempt.exists()
-    assert not any((job_root / "delivery").iterdir())
-
-    with closing(supervisor._connect()) as connection:
-        connection.execute("DELETE FROM exec_slot WHERE slot_id=1")
-    status = supervisor.admit(attempt)
-    assert status.state in {"spawn_intent", "running", "outcome_unknown"}
-    assert supervisor._row(attempt.attempt_id) is not None
-    assert private_attempt.is_dir()
-    deadline = time.monotonic() + 5
-    while time.monotonic() < deadline:
-        status = supervisor.status(attempt.attempt_id)
-        if status.state in {"completed", "failed", "settled", "outcome_unknown"}:
-            break
-        time.sleep(0.05)
-    worker = supervisor._workers.get(str(attempt.attempt_id))
-    if worker is not None:
-        worker.wait(timeout=5)
+from plotloom.codex_exec_telemetry import (
+    CodexSessionEvidence,
+    ImageGenCall,
+    ImageGenEvent,
+)
 
 
 def test_cancelled_job_tombstone_prevents_a_second_host_attempt(supervisor, tmp_path):
@@ -200,7 +176,7 @@ def test_failed_text_turn_with_imagegen_evidence_remains_unknown(supervisor, tmp
     )
     _insert_attempt_row(supervisor, initial, running)
     with closing(supervisor._connect()) as connection:
-        connection.execute("INSERT INTO exec_slot VALUES (1,?)", (str(initial.attempt_id),))
+        connection.execute("INSERT INTO exec_slot(attempt_id,domain) VALUES (?,?)", (str(initial.attempt_id), initial.domain))
     private_dir = supervisor.private_root / "attempts" / str(initial.attempt_id)
     private_dir.mkdir(parents=True)
     stdout_path = private_dir / "stdout.jsonl"
@@ -224,4 +200,4 @@ def test_failed_text_turn_with_imagegen_evidence_remains_unknown(supervisor, tmp
     assert status.attempt.process_id == running.process_id
     assert status.receipt is None
     with closing(supervisor._connect()) as connection:
-        assert connection.execute("SELECT attempt_id FROM exec_slot WHERE slot_id=1").fetchone()[0] == str(initial.attempt_id)
+        assert connection.execute("SELECT attempt_id FROM exec_slot").fetchone()[0] == str(initial.attempt_id)

@@ -1,23 +1,37 @@
-"""Explicit, idle, preserving transition from the single frozen prior layout."""
-from importlib.resources import files
+"""Explicit, idle, preserving transitions from exact frozen project layouts."""
 import json
-from pathlib import Path
 import sqlite3
+from importlib.resources import files
+from pathlib import Path
 
 from ..persistence.codec import stable_hash
-from .current_schema import assert_current_review_bindings, expected_project_schema_objects, schema_objects
-from .format import PROJECT_MANIFEST_FILENAME, ProjectStorageError, ProjectStorageCorruptionError, _read_json, parse_project_manifest
+from .current_schema import (
+    assert_current_review_bindings,
+    expected_project_schema_objects,
+    schema_objects,
+)
+from .format import (
+    PROJECT_MANIFEST_FILENAME,
+    ProjectStorageCorruptionError,
+    ProjectStorageError,
+    _read_json,
+    parse_project_manifest,
+)
 from .operational_state import ProjectAccessLease, ProjectBusyError
 from .snapshot_files import _safe_directory, _safe_regular
 
 PRIOR_LAYOUT_HASH = "ea9facef83198e8b5abdd8693923f51add1376c0b416041dbfa245b92011b825"
+SERIAL_EXEC_LAYOUT_HASH = "a6e41b2a3ab1745521886f8db4b2a16e57bc2562835f2af4689be8d424a1a0e6"
+PRIOR_LAYOUTS = {"prior": ("pre_autopilot.json", PRIOR_LAYOUT_HASH),
+    "serial_exec": ("pre_pool_exec.json", SERIAL_EXEC_LAYOUT_HASH)}
 
 
-def prior_schema_objects():
+def prior_schema_objects(layout="prior"):
     """Packaged immutable authority; never inferred by subtracting new tables."""
-    raw = files("plotloom.project_storage").joinpath("schema_layouts/pre_autopilot.json").read_text(encoding="utf-8")
+    filename, expected_hash = PRIOR_LAYOUTS[layout]
+    raw = files("plotloom.project_storage").joinpath(f"schema_layouts/{filename}").read_text(encoding="utf-8")
     objects = tuple(tuple(item) for item in json.loads(raw))
-    if stable_hash(objects) != PRIOR_LAYOUT_HASH:
+    if stable_hash(objects) != expected_hash:
         raise ProjectStorageCorruptionError("frozen prior schema authority is corrupt")
     return objects
 
@@ -26,7 +40,7 @@ def classify_layout(connection):
     actual = schema_objects(connection)
     if actual == expected_project_schema_objects():
         return "current"
-    return "prior" if actual == prior_schema_objects() else "unsupported"
+    return next((layout for layout in PRIOR_LAYOUTS if actual == prior_schema_objects(layout)), "unsupported")
 
 
 def inventory_layouts(outputs_root: Path):
@@ -68,8 +82,8 @@ def logical_inventory(connection, objects):
     return result
 
 
-def assert_prior_database(connection, project_id):
-    if schema_objects(connection) != prior_schema_objects():
+def assert_prior_database(connection, project_id, *, layout="prior"):
+    if layout not in PRIOR_LAYOUTS or schema_objects(connection) != prior_schema_objects(layout):
         raise ProjectStorageCorruptionError("explicit upgrade requires the exact immediate-prior layout")
     assert_current_review_bindings(connection)
     assert_integrity_identity(connection, project_id)
@@ -86,6 +100,15 @@ def assert_integrity_identity(connection, project_id):
 
 
 def assert_idle_prior(connection):
+    tables = {name for kind, name, _table, _sql in schema_objects(connection) if kind == "table"}
+    if "v2_autopilot_exec_attempts" in tables and connection.execute(
+        "SELECT 1 FROM v2_autopilot_exec_attempts WHERE state NOT IN ('completed','failed','settled') LIMIT 1"
+    ).fetchone():
+        raise ProjectBusyError("upgrade refuses unresolved Codex Exec attempts")
+    if "v2_autopilot_runs" in tables and connection.execute(
+        "SELECT 1 FROM v2_autopilot_runs WHERE state IN ('running','waiting') LIMIT 1"
+    ).fetchone():
+        raise ProjectBusyError("upgrade requires an explicitly paused or stopped autopilot run")
     for table, column, states in (
         ("v2_generation_runs", "status", "'queued','running','cancel_requested'"),
         ("v2_media_tasks", "status", "'queued','running'"),
@@ -110,10 +133,11 @@ def upgrade_database(connection, project_id, *, after_ddl=None, require_idle=Tru
     if layout == "current":
         assert_integrity_identity(connection, project_id)
         return {"layout": "current", "changed": False}
-    assert_prior_database(connection, project_id)
+    assert_prior_database(connection, project_id, layout=layout)
     if require_idle:
         assert_idle_prior(connection)
-    before = logical_inventory(connection, prior_schema_objects())
+    prior = prior_schema_objects(layout)
+    before = logical_inventory(connection, prior)
     for name, inventory in before.items():
         for row in connection.execute(f'SELECT * FROM "{name}"'):
             for value in row:
@@ -125,27 +149,28 @@ def upgrade_database(connection, project_id, *, after_ddl=None, require_idle=Tru
                     if contains_secret_value(value) or _contains_forbidden_database_setting(value):
                         raise ProjectStorageCorruptionError("upgrade refuses forbidden secret material")
     current = expected_project_schema_objects()
-    prior_names = {item[1] for item in prior_schema_objects()}
+    prior_names = {item[1] for item in prior}
     connection.execute("PRAGMA foreign_keys=OFF")
     try:
         connection.execute("BEGIN IMMEDIATE")
         # Recheck under the write lock, so a stale preflight cannot admit a
         # concurrent layout/state/content change.
-        assert_prior_database(connection, project_id)
+        assert_prior_database(connection, project_id, layout=layout)
         if require_idle:
             assert_idle_prior(connection)
-        if logical_inventory(connection, prior_schema_objects()) != before:
+        if logical_inventory(connection, prior) != before:
             raise ProjectStorageCorruptionError("upgrade inputs changed before write admission")
         for kind, name, _table, sql in current:
             if kind == "table" and name not in prior_names:
                 connection.execute(sql)
-        unit_columns = before["v2_production_units"]["columns"]
-        projection = ",".join(f'"{column}"' for column in unit_columns)
-        connection.execute("CREATE TEMP TABLE autopilot_unit_transfer AS SELECT * FROM v2_production_units")
-        connection.execute("DROP TABLE v2_production_units")
-        connection.execute(next(sql for kind, name, _, sql in current if kind == "table" and name == "v2_production_units"))
-        connection.execute(f"INSERT INTO v2_production_units ({projection}) SELECT {projection} FROM autopilot_unit_transfer")
-        connection.execute("DROP TABLE autopilot_unit_transfer")
+        changed_table = "v2_production_units" if layout == "prior" else "v2_autopilot_exec_attempts"
+        columns = before[changed_table]["columns"]
+        projection = ",".join(f'"{column}"' for column in columns)
+        connection.execute(f'CREATE TEMP TABLE project_schema_transfer AS SELECT * FROM "{changed_table}"')
+        connection.execute(f'DROP TABLE "{changed_table}"')
+        connection.execute(next(sql for kind, name, _, sql in current if kind == "table" and name == changed_table))
+        connection.execute(f'INSERT INTO "{changed_table}" ({projection}) SELECT {projection} FROM project_schema_transfer')
+        connection.execute("DROP TABLE project_schema_transfer")
         existing = {item[1] for item in schema_objects(connection)}
         for kind, name, _table, sql in current:
             if kind == "index" and name not in existing:
@@ -170,7 +195,7 @@ def upgrade_database(connection, project_id, *, after_ddl=None, require_idle=Tru
         raise
     finally:
         connection.execute("PRAGMA foreign_keys=ON")
-    return {"layout": "current", "changed": True, "priorLayoutHash": PRIOR_LAYOUT_HASH,
+    return {"layout": "current", "changed": True, "priorLayoutHash": PRIOR_LAYOUTS[layout][1],
             "currentLayoutHash": stable_hash(current), "retainedRowsHash": stable_hash(before)}
 
 
@@ -188,17 +213,21 @@ def upgrade_project(home: Path, registry, *, after_ddl=None):
             with sqlite3.connect(f"{database.as_uri()}?mode=ro", uri=True) as admitted:
                 admitted.execute("PRAGMA trusted_schema=OFF")
                 layout = classify_layout(admitted)
-                if layout == "prior":
-                    assert_prior_database(admitted, manifest.project_id)
+                if layout in PRIOR_LAYOUTS:
+                    assert_prior_database(admitted, manifest.project_id, layout=layout)
                 elif layout == "current":
                     assert_integrity_identity(admitted, manifest.project_id)
                 else:
                     raise ProjectStorageCorruptionError("explicit upgrade requires the exact immediate-prior layout")
-            from .recovery_validation import payload_paths, payload_inventory, assert_payload_inventory
-            from .recovery_validation import assert_database_contract
+            from .recovery_validation import (
+                assert_database_contract,
+                assert_payload_inventory,
+                payload_inventory,
+                payload_paths,
+            )
             assert_database_contract(database, manifest, allow_previous=True)
-            from .snapshot_files import _assert_exchange_file_is_secret_free
             from .recovery_validation import referenced_asset_paths
+            from .snapshot_files import _assert_exchange_file_is_secret_free
             inventory = payload_inventory(home, payload_paths(home, database))
             for relative in inventory:
                 if relative.parts[:1] in {("runs",), ("outputs",)}:

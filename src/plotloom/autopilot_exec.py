@@ -1,7 +1,7 @@
 """Project-owned reservation and receipt-only reconciliation for serial CLI jobs."""
+import json
 from pathlib import Path
 from uuid import uuid4
-import json
 
 from .autopilot_contracts import CheckpointEvidence, OperationScope
 from .codex_exec_contracts import (
@@ -10,6 +10,7 @@ from .codex_exec_contracts import (
 )
 from .codex_exec_runtime import frozen_package_snapshot
 from .exceptions import InvalidTransitionError
+from .image_job_contracts import ImageJobError
 
 _RECONCILED_FIELDS = (
     "state", "session_id", "process_id", "process_group_id", "process_birth_identity",
@@ -34,6 +35,24 @@ def cancel_codex_exec(store, registry, run_id, checkpoint):
     return host_status
 
 
+def suspend_pending_codex_exec(store, registry, view):
+    """Acknowledge pause only after every retained unstarted identity is fenced."""
+    if view.policy.executor_binding is None or view.policy.executor_binding.contract_version != "plotloom.codex-exec.v8":
+        return
+    for checkpoint in view.checkpoints:
+        if checkpoint["evidence"].get("executorAttemptId") is None:
+            continue
+        attempt, _receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(view.id, checkpoint["operationKey"])
+        if attempt is None:
+            raise InvalidTransitionError("pause checkpoint has no retained Codex Exec identity")
+        if attempt.state in {"spawn_intent", "queued"}:
+            status = registry.codex_exec_suspend(attempt)
+            if status.attempt is None or _identity(status.attempt) != _identity(attempt):
+                raise InvalidTransitionError("pause was not acknowledged for the exact unstarted job")
+            if status.state in {"queued", "spawn_intent"} and status.dispatch_enabled is not False:
+                raise InvalidTransitionError("pause did not fence unstarted host dispatch")
+
+
 def reconcile_codex_exec(
     store,
     registry,
@@ -47,13 +66,14 @@ def reconcile_codex_exec(
     allow_admission: bool = True,
     before_spawn=None,
     operation_scope: OperationScope | None = None,
+    on_settlement=None,
 ):
     """Reserve one exact package, dispatch its immutable ID once, and poll only that ID."""
     evidence = CheckpointEvidence.model_validate(checkpoint["evidence"])
     profile = CodexExecProfile.model_validate(registry.codex_exec_profile())
     if profile != view.policy.executor_binding:
         raise InvalidTransitionError("Codex Exec profile changed after the launch was frozen.")
-    if (profile.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}
+    if (profile.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}
             and not view.policy.code_revision):
         raise InvalidTransitionError("Codex Exec launch omits its frozen Plotloom source revision.")
     if evidence.job_id is None or evidence.request_hash is None:
@@ -69,7 +89,7 @@ def reconcile_codex_exec(
         package_root, max_total_bytes=profile.max_output_bytes
     )
     validation_plan_hash = None
-    if domain == "text" and profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}:
+    if domain == "text" and profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}:
         try:
             package_request = json.loads(package_request_bytes)
             from .codex_exec_validation import validation_plan_from_package
@@ -133,7 +153,16 @@ def reconcile_codex_exec(
                 )
             host_status = registry.codex_exec_admit(attempt)
         else:
-            host_status = registry.codex_exec_status(attempt.attempt_id)
+            if not allow_admission and attempt.state in {"queued", "spawn_intent"} and profile.contract_version == "plotloom.codex-exec.v8":
+                host_status = registry.codex_exec_suspend(attempt)
+            else:
+                host_status = registry.codex_exec_status(attempt.attempt_id)
+            if allow_admission and host_status.dispatch_enabled is False:
+                # Keep the project command fence across exact queue resume.
+                # A concurrent pause cannot acknowledge before this grant,
+                # then lose to an already stale controller authorization.
+                with command_factory(store, view, claim, machine_scope):
+                    host_status = registry.codex_exec_resume(attempt)
             # A host admission is durable before process start and idempotent by
             # attempt ID. Reconcile an absent record only with the same frozen
             # spawn-intent snapshot; never construct a replacement attempt.
@@ -142,19 +171,32 @@ def reconcile_codex_exec(
 
     host_attempt = host_status.attempt
     if host_status.state == "not_found":
+        if host_status.capacity_deferred:
+            raise ImageJobError("codex_exec_capacity_deferred", "Codex Exec capacity is full; the original job is waiting for a known admission slot.")
         return attempt, receipt, profile
     if host_attempt is None:
         raise InvalidTransitionError("Mac supervisor status omitted its typed attempt snapshot")
     if _identity(host_attempt) != _identity(attempt):
         raise InvalidTransitionError("Mac supervisor returned a different frozen CLI attempt")
+    if host_status.capacity_deferred:
+        raise ImageJobError("codex_exec_capacity_deferred", "Codex Exec capacity is full; the original job is waiting for a known admission slot.")
+    if (allow_admission and host_status.state != "outcome_unknown" and view.blocker
+            and view.blocker.get("code") == "codex_exec_capacity_deferred"):
+        # An exact admission acknowledgement resolves this capacity wait. The
+        # phase stays unchanged; no receipt or creative adoption is implied.
+        with command_factory(store, view, claim, machine_scope):
+            store.repository.autopilot.progress(view.phase)
     changes = {field: getattr(host_attempt, field) for field in _RECONCILED_FIELDS}
-    if changes != {field: getattr(attempt, field) for field in _RECONCILED_FIELDS} or host_status.receipt != receipt:
+    terminal_callback = on_settlement is not None and host_attempt.state in {"completed", "failed", "settled"}
+    if changes != {field: getattr(attempt, field) for field in _RECONCILED_FIELDS} or host_status.receipt != receipt or terminal_callback:
         with command_factory(store, view, claim, OperationScope.EVIDENCE):
-            store.repository.autopilot.update_exec_attempt(
+            updated = store.repository.autopilot.update_exec_attempt(
                 attempt.attempt_id,
                 receipt=host_status.receipt,
                 **changes,
             )
+            if terminal_callback:
+                on_settlement(updated)
         attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(view.id, operation_key)
     return attempt, receipt, profile
 

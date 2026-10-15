@@ -6,13 +6,23 @@ from pathlib import Path
 import pytest
 
 from plotloom.autopilot_contracts import OperationScope
-from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.codex_exec_contracts import CodexExecProfile
+from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_exchange import CreativeHandoffExchange
 from plotloom.exceptions import InvalidTransitionError
-from plotloom.project_storage import ProjectFolderStorage, ProjectBusyError, ProjectStorageCorruptionError, ProjectStorageConfinementError
-from plotloom.project_storage.creative_evidence_inventory import _retained_codex_request_projection
-from plotloom.project_storage.snapshot_contract import ProjectSnapshotManifest, SnapshotFile
+from plotloom.project_storage import (
+    ProjectBusyError,
+    ProjectFolderStorage,
+    ProjectStorageConfinementError,
+    ProjectStorageCorruptionError,
+)
+from plotloom.project_storage.creative_evidence_inventory import (
+    _retained_codex_request_projection,
+)
+from plotloom.project_storage.snapshot_contract import (
+    ProjectSnapshotManifest,
+    SnapshotFile,
+)
 from plotloom.source_outline_contracts import OutlineAcceptRequest
 from tests.autopilot_controller_fixtures import UPSTREAM_PIN
 from tests.autopilot_fixtures import authority, make_prior_layout, start_run
@@ -83,6 +93,7 @@ def test_retained_v4_codex_package_inventory_uses_revisionless_v2_shape(tmp_path
     value = PROFILE.model_dump(mode="json", by_alias=True)
     value.update(
         contractVersion="plotloom.codex-exec.v4",
+        maxProcesses=1, maxTextProcesses=None, maxImageProcesses=None, maxQueuedJobs=None,
         permissionProfile="plotloom_autopilot_delivery_v2",
         textValidatorRuntimeProfile=None,
     )
@@ -192,8 +203,8 @@ def test_prior_snapshot_package_omission_is_explicit_and_not_a_current_snapshot_
 
 
 def test_completed_branch_package_restores_original_location_sensitive_bytes(tmp_path):
-    from tests.test_creator_branch_suggestions import proposal
     from tests.creative_delivery_fixtures import _deliver_stage
+    from tests.test_creator_branch_suggestions import proposal
     storage = storage_at(tmp_path / "source")
     project_id, home = accepted_outline(storage)
     with closing(storage.projects.open(project_id)) as store:

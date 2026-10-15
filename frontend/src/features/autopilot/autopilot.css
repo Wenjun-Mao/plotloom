@@ -37,3 +37,7 @@
 .autopilot-delivery-disclosure li { white-space: pre-wrap; }
 .autopilot-delivery-disclosure .autopilot-evidence-original { display: block; width: 100%; max-height: 160px; object-fit: contain; }
 @media (max-width: 700px) { .autopilot-frame-layout { grid-template-columns: 1fr; } .autopilot-status { margin: 8px; } .autopilot-review-dialog { padding: 14px; } .autopilot-launch-choice { align-items: stretch; } .autopilot-launch-choice .button-row { flex-wrap: wrap; } }
+.autopilot-concurrent { width: 100%; }
+.autopilot-concurrent ul { display: grid; gap: .4rem; padding: 0; margin: .5rem 0; list-style: none; }
+.autopilot-concurrent li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .4rem 1rem; padding: .45rem .65rem; border: 1px solid var(--line, #ccd4dc); border-radius: .4rem; }
+.autopilot-concurrent li strong { font-size: .85rem; }

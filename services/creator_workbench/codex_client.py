@@ -13,7 +13,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "command",
-        choices=["queue", "bridge-health", "exec-profile", "exec-readiness", "exec-admit", "exec-status", "exec-cancel"],
+        choices=["queue", "bridge-health", "exec-profile", "exec-readiness", "exec-admit", "exec-status", "exec-cancel", "exec-suspend", "exec-resume"],
     )
     parser.add_argument("--thread")
     parser.add_argument("--message")
@@ -24,11 +24,11 @@ def main(argv=None):
         parser.error("queue requires --thread and --message")
     if args.command != "queue" and (args.thread or args.message):
         parser.error("thread and message are only valid for queue")
-    if args.command in {"exec-admit", "exec-cancel"} and (not args.attempt_json or args.attempt_id):
+    if args.command in {"exec-admit", "exec-cancel", "exec-suspend", "exec-resume"} and (not args.attempt_json or args.attempt_id):
         parser.error(f"{args.command} requires --attempt-json")
     if args.command == "exec-status" and (not args.attempt_id or args.attempt_json):
         parser.error("exec-status requires --attempt-id")
-    if args.command not in {"exec-admit", "exec-status", "exec-cancel"} and (args.attempt_json or args.attempt_id):
+    if args.command not in {"exec-admit", "exec-status", "exec-cancel", "exec-suspend", "exec-resume"} and (args.attempt_json or args.attempt_id):
         parser.error("attempt arguments are only valid for Codex Exec commands")
     token = Path(os.environ["PLOTLOOM_CODEX_BRIDGE_TOKEN_FILE"]).read_text().strip()
     url = os.environ["PLOTLOOM_CODEX_BRIDGE_URL"].rstrip("/")
@@ -40,32 +40,28 @@ def main(argv=None):
             payload = {"attempt": json.loads(args.attempt_json)}
         except json.JSONDecodeError:
             parser.error("--attempt-json must be valid JSON")
-    elif args.command == "exec-cancel":
+    elif args.command in {"exec-cancel", "exec-suspend", "exec-resume"}:
         try:
             from plotloom.codex_exec_contracts import CodexExecAttempt
             attempt = CodexExecAttempt.model_validate_json(args.attempt_json)
             payload = {"attempt": attempt.model_dump(mode="json", by_alias=True)}
         except (ImportError, TypeError, ValueError):
             parser.error("--attempt-json must be a valid Codex Exec attempt")
-    elif args.command == "exec-cancel":
-        payload = {}
-    endpoint = {
-        "queue": "/queue",
-        "bridge-health": "/healthz",
-        "exec-profile": "/exec-profile",
-        "exec-readiness": "/exec-readiness",
-        "exec-admit": "/exec-admit",
-        "exec-status": f"/exec-status/{args.attempt_id}" if args.attempt_id else "",
-        "exec-cancel": (
-            f"/exec-cancel/{payload['attempt'].get('attemptId')}"
-            if isinstance(payload, dict) and isinstance(payload.get("attempt"), dict)
-            else ""
-        ),
-    }[args.command]
+    if args.command in {"exec-cancel", "exec-suspend", "exec-resume"}:
+        endpoint = f"/{args.command}/{payload['attempt']['attemptId']}"
+    else:
+        endpoint = {
+            "queue": "/queue",
+            "bridge-health": "/healthz",
+            "exec-profile": "/exec-profile",
+            "exec-readiness": "/exec-readiness",
+            "exec-admit": "/exec-admit",
+            "exec-status": f"/exec-status/{args.attempt_id}" if args.attempt_id else "",
+        }[args.command]
     request = Request(
         url + endpoint,
         data=json.dumps(payload).encode() if payload is not None else None,
-        method="POST" if args.command in {"queue", "exec-admit", "exec-cancel"} else "GET",
+        method="POST" if args.command in {"queue", "exec-admit", "exec-cancel", "exec-suspend", "exec-resume"} else "GET",
         headers={
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
@@ -99,7 +95,7 @@ def main(argv=None):
             return 1
         print(readiness.model_dump_json(by_alias=True))
         return 0
-    if args.command in {"exec-admit", "exec-status", "exec-cancel"}:
+    if args.command in {"exec-admit", "exec-status", "exec-cancel", "exec-suspend", "exec-resume"}:
         try:
             from plotloom.codex_exec_contracts import CodexExecHostStatus
             status = CodexExecHostStatus.model_validate(result)

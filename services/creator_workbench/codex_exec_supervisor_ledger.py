@@ -58,21 +58,20 @@ class CodexExecSupervisorLedgerMixin:
                     process_birth_identity TEXT,
                     updated_at REAL NOT NULL
                 );
-                CREATE TABLE IF NOT EXISTS exec_slot (
-                    slot_id INTEGER PRIMARY KEY CHECK (slot_id = 1),
-                    attempt_id TEXT UNIQUE NOT NULL
-                );
             """)
+            self._initialize_pool(connection)
 
     @staticmethod
-    def _status(attempt=None, receipt=None):
+    def _status(attempt=None, receipt=None, *, capacity_deferred=False, dispatch_enabled=None):
         from plotloom.codex_exec_contracts import CodexExecHostStatus
         if attempt is None:
-            return CodexExecHostStatus(state="not_found")
+            return CodexExecHostStatus(state="not_found", capacityDeferred=capacity_deferred)
         return CodexExecHostStatus(
             state=attempt.state,
             attempt=attempt,
             receipt=receipt,
+            capacityDeferred=capacity_deferred,
+            dispatchEnabled=dispatch_enabled,
         )
 
     @staticmethod
@@ -96,7 +95,8 @@ class CodexExecSupervisorLedgerMixin:
             return self._status()
         attempt = CodexExecAttempt.model_validate_json(row["status_json"])
         receipt = CodexExecReceipt.model_validate_json(row["receipt_json"]) if row["receipt_json"] else None
-        return self._status(attempt, receipt)
+        enabled = self._dispatch_enabled(attempt.attempt_id) if attempt.state in {"queued", "spawn_intent"} else None
+        return self._status(attempt, receipt, dispatch_enabled=enabled)
 
     def _store(self, attempt, *, receipt=None, manifest_json=None, preserve_manifest=True):
         from plotloom.codex_exec_contracts import (
@@ -159,7 +159,7 @@ class CodexExecSupervisorLedgerMixin:
             # A cancellation may win the race after Popen but before the worker
             # stores its process identity. Persist that identity while keeping
             # the cancellation fence visible to the worker.
-            if current.state == "cancel_requested" and attempt.state == "running":
+            if current.state == "cancel_requested" and attempt.state in {"running", "validating"}:
                 changes.pop("state", None)
             updated = transition_exec_attempt(current, **changes) if changes else current
             receipt_json = receipt.model_dump_json(by_alias=True) if receipt is not None else row["receipt_json"]
@@ -179,6 +179,7 @@ class CodexExecSupervisorLedgerMixin:
             )
             if updated.state in {"completed", "failed", "settled"}:
                 connection.execute("DELETE FROM exec_slot WHERE attempt_id=?", (str(attempt.attempt_id),))
+                self._forget_terminal_queue(connection, attempt.attempt_id)
             connection.commit()
             return updated
 
@@ -189,11 +190,12 @@ class CodexExecSupervisorLedgerMixin:
         )
         if attempt.state in {"completed", "failed", "settled"}:
             connection.execute("DELETE FROM exec_slot WHERE attempt_id=?", (str(attempt.attempt_id),))
+            self._forget_terminal_queue(connection, attempt.attempt_id)
 
     def _settle_not_started_in_transaction(self, connection, row, current, *, worker_identity=None):
         from plotloom.codex_exec_contracts import transition_exec_attempt
 
-        if current.state not in {"reserved", "spawn_intent", "cancel_requested"}:
+        if current.state not in {"reserved", "queued", "spawn_intent", "cancel_requested"}:
             return current
         validation = connection.execute(
             "SELECT spawn_state FROM exec_validation_process WHERE attempt_id=?",

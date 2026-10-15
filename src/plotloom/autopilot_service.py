@@ -1,19 +1,21 @@
 """Application-owned serial controller; browser presence is not execution."""
-from contextlib import closing, contextmanager
 import fcntl
+import logging
 import os
 import stat
-import logging
-from threading import Event, Thread, RLock, Lock
+from contextlib import closing, contextmanager
+from threading import Event, Lock, RLock, Thread
 from uuid import uuid4
+
 from sqlalchemy.exc import SQLAlchemyError
 
-from .autopilot_launch import freeze_launch_policy, assert_frozen_execution
-from .autopilot_text_controller import AutopilotTextController
+from .autopilot_exec import suspend_pending_codex_exec
 from .autopilot_image_controller import AutopilotImageController
+from .autopilot_launch import assert_frozen_execution, freeze_launch_policy
+from .autopilot_text_controller import AutopilotTextController
 from .exceptions import InvalidTransitionError
 from .image_job_contracts import ImageJobError
-from .project_storage import ProjectStorageError, ProjectBusyError, ProjectClosedError
+from .project_storage import ProjectBusyError, ProjectClosedError, ProjectStorageError
 
 logger = logging.getLogger(__name__)
 STORAGE_FAILURE_MESSAGE = "自动素材因存储错误暂停。请检查磁盘空间和项目存储，再恢复原运行；不要重复发送任务。"
@@ -58,6 +60,8 @@ class AutopilotService:
             with store.repository.manual_command():
                 store.repository.autopilot.control(project_id,
                     expected_revision=request.expected_revision, action=request.action)
+                if request.action == "pause":
+                    suspend_pending_codex_exec(store, self.registry, view)
                 if request.action in {"cancel", "takeover"}:
                     self.controller.cancel_pending(store, view)
                     self.image_controller.cancel_pending(store, view)
@@ -149,9 +153,17 @@ class AutopilotService:
                 if any(item["operationKey"] == "installation" for item in view.checkpoints):
                     self.image_controller.advance(store, view, self.claim)
                 else:
+                    if view.state in {"running", "waiting"}:
+                        from .autopilot_early_references import advance_early_references
+                        assert_frozen_execution(store, self.registry, view.policy)
+                        advance_early_references(self.image_controller, store, view, self.claim)
+                        view = store.repository.autopilot.current(project_id)
+                    else:
+                        self.image_controller.reconcile_inactive(store, view, self.claim)
+                        view = store.repository.autopilot.current(project_id)
                     self.controller.advance(store, view, self.claim)
             except ImageJobError as error:
-                waiting = error.code in {"specialist_busy", "image_dispatch_busy", "image_dispatch_outcome_unknown", "specialist_already_sent", "codex_exec_outcome_unknown"}
+                waiting = error.code in {"specialist_busy", "image_dispatch_busy", "image_dispatch_outcome_unknown", "specialist_already_sent", "codex_exec_outcome_unknown", "codex_exec_capacity_deferred"}
                 store.repository.autopilot.blocker(project_id, code=error.code, message=str(error), waiting=waiting)
             except (InvalidTransitionError, ValueError) as error:
                 store.repository.autopilot.blocker(project_id, code="contract_blocked", message=str(error))

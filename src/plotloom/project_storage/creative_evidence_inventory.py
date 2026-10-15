@@ -1,15 +1,27 @@
 """Confined retained creative evidence, derived from typed request/pin owners."""
-from hashlib import sha256
 import json
-from pathlib import PurePosixPath
 import sqlite3
+from hashlib import sha256
+from pathlib import PurePosixPath
 
-from ..creative_handoff_contracts import CreativeHandoffRequest, CreativeDeliveryManifest
-from ..creative_handoff_exchange import CreativeHandoffExchange, canonical_json, request_hash, execution_pin_for_request
 from ..codex_exec_resources import upstream_skill_path_for_stage
-from .format import ProjectStorageCorruptionError
-from .snapshot_files import _safe_directory, _safe_regular, _assert_exchange_file_is_secret_free
+from ..creative_handoff_contracts import (
+    CreativeDeliveryManifest,
+    CreativeHandoffRequest,
+)
+from ..creative_handoff_exchange import (
+    CreativeHandoffExchange,
+    canonical_json,
+    execution_pin_for_request,
+    request_hash,
+)
 from ..creative_package_publication import PUBLICATION_LOCK
+from .format import ProjectStorageCorruptionError
+from .snapshot_files import (
+    _assert_exchange_file_is_secret_free,
+    _safe_directory,
+    _safe_regular,
+)
 
 
 def retained_requests(connection):
@@ -35,7 +47,7 @@ def missing_completed_jobs(root, database):
 
 def _codex_creative_jobs(connection):
     """Bind CLI package shape to the frozen checkpoint and its project attempt."""
-    from ..autopilot_contracts import LaunchPolicy, POLICY_VERSION
+    from ..autopilot_contracts import POLICY_VERSION, LaunchPolicy
     from ..codex_exec_contracts import CodexExecAttempt, CodexExecReceipt
 
     tables = {row[0] for row in connection.execute(
@@ -95,7 +107,7 @@ def _retained_codex_request_projection(
     request, execution_pin, profile, projection_exchange, *, plotloom_code_revision=None
 ):
     """Project only the package request shapes admitted by retained launch profiles."""
-    if profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}:
+    if profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}:
         projected, _instructions, _template, _members = projection_exchange._projection(
             request,
             execution_pin,
@@ -245,7 +257,7 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
             if raw != projected:
                 raise ProjectStorageCorruptionError("retained creative package differs from its frozen request/pin")
             if (codex_binding is not None and codex_binding["attempt"] is not None
-                    and codex_binding["profile"].contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}
+                    and codex_binding["profile"].contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}
                     and codex_binding["attempt"].validation_plan_hash != projected.get("validationPlanHash")):
                 raise ProjectStorageCorruptionError("retained Codex attempt differs from its frozen validation plan")
         for name, payload in request.input_artifacts.items():
@@ -318,7 +330,7 @@ def _retained_codex_manifest_revision_matches(binding, execution_pin, attempt, r
             and receipt.plotloom_code_revision == frozen_revision
             and manifest.executor_provenance.code_revision == frozen_revision
         )
-    if profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}:
+    if profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}:
         frozen_revision = binding["plotloom_code_revision"]
         return (
             attempt.plotloom_code_revision == frozen_revision

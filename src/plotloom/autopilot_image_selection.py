@@ -1,12 +1,18 @@
 """Technical provisional selection; never supplies human review observations."""
 from sqlalchemy import select
+
 from .autopilot_contracts import CheckpointEvidence, ProvisionalFrame
+from .autopilot_materials import AutomaticMaterialBundle, GalleryMaterial
 from .domain import StageName
 from .exceptions import InvalidTransitionError
-from .keyframe_preparation import has_matching_aspect
-from .persistence.schema import AutopilotCheckpointRow, ManagedAssetRow, ProductionUnitRow, ImageJobRow
-from .autopilot_materials import AutomaticMaterialBundle, GalleryMaterial
 from .image_commands import image_context
+from .keyframe_preparation import has_matching_aspect
+from .persistence.schema import (
+    AutopilotCheckpointRow,
+    ImageJobRow,
+    ManagedAssetRow,
+    ProductionUnitRow,
+)
 
 
 def select_image(store, view, subject, checkpoint, inventory):
@@ -29,13 +35,23 @@ def select_image(store, view, subject, checkpoint, inventory):
             "width": asset.width, "height": asset.height, "geometryCompatible": compatible}
         if subject.owner == "character-reference":
             bible = repository._canonical._load_stage_payload(session, view.project_id, StageName.STORY_BIBLE)
-            reference_authority = "story_bible" if any(item.id == subject.id for item in bible.characters) else "cast"
+            cast = store.cast_state().accepted_cast
+            if cast is None or cast.revision != inventory.cast_revision:
+                raise InvalidTransitionError("reference selection requires the frozen accepted Cast mapping")
+            character_id = next((item.consumer_character_id for item in cast.consumer_mappings
+                if item.cast_character_id == subject.id), None)
+            if character_id is None or not any(item.id == character_id for item in bible.characters):
+                raise InvalidTransitionError("reference selection requires its explicit current canonical character")
+            if character_id != subject.consumer_character_id or character_id != evidence.subject_id:
+                raise InvalidTransitionError("reference selection consumer differs from its frozen inventory and proposal")
             values = store.media.list_character_reference_decisions(view.project_id)
-            current = next((item for item in values["decisions"] if item["characterId"] == subject.id and item["current"]), None)
-            decision = store.media.create_character_reference_decision(view.project_id, character_id=subject.id,
-                primary_asset_id=asset.id, complementary_asset_ids=[], expected_reference_revision=current["referenceRevision"] if current else 0,
-                reviewer=None, notes="AI 暂选；待完整素材包人类审阅。", authority=reference_authority)
+            current = next((item for item in values["states"] if item["characterId"] == character_id), None)
+            decision = store.media.create_character_reference_decision(view.project_id, character_id=character_id,
+                primary_asset_id=asset.id, complementary_asset_ids=[], expected_reference_revision=current["revision"] if current else 0,
+                reviewer=None, notes="AI 暂选；待完整素材包人类审阅。", authority="story_bible")
             result["referenceDecisionId"] = decision["id"]
+            result["consumerCharacterId"] = character_id
+            result["canonicalCharacterContextHash"] = decision["characterContextHash"]
         elif subject.owner == "art-reference":
             values = store.media.list_art_reference_decisions(view.project_id)
             current = next((item for item in values["decisions"] if item["subjectType"] == subject.subject_type and item["subjectId"] == subject.id and item["current"]), None)

@@ -38,8 +38,10 @@ class CodexExecAttempt(CamelModel):
     image_budget_state: Literal["none", "reserved", "consumed", "released"] = "none"
     state: Literal[
         "reserved",
+        "queued",
         "spawn_intent",
         "running",
+        "validating",
         "outcome_unknown",
         "cancel_requested",
         "completed",
@@ -78,10 +80,15 @@ class CodexExecAttempt(CamelModel):
         process_facts = (self.process_id, self.process_group_id, self.process_birth_identity)
         if any(value is not None for value in process_facts) and any(value is None for value in process_facts):
             raise ValueError("process ownership requires PID, process group and birth identity together")
-        if self.state in {"reserved", "spawn_intent"} and any(
+        if self.state in {"reserved", "queued", "spawn_intent"} and any(
             value is not None for value in (*process_facts, self.session_id)
         ):
             raise ValueError("pre-spawn attempts cannot claim a process or session identity")
+        if self.state == "validating" and (
+            self.domain != "text" or self.validation_plan_hash is None
+            or self.session_id is None or any(value is None for value in process_facts)
+        ):
+            raise ValueError("validating requires completed native text identity and a frozen validation plan")
         if self.state in {"completed", "failed", "settled"}:
             if self.terminal_result is None or self.evidence_hash is None or self.remote_tool_state is None:
                 raise ValueError("terminal attempts require typed terminal, remote and evidence facts")
@@ -151,9 +158,13 @@ _ATTEMPT_IDENTITY_FIELDS = (
 )
 _ATTEMPT_TRANSITIONS = {
     "reserved": {"spawn_intent", "settled"},
-    "spawn_intent": {"running", "outcome_unknown", "cancel_requested", "completed", "failed", "settled"},
-    "running": {"outcome_unknown", "cancel_requested", "completed", "failed"},
-    "outcome_unknown": {"running", "cancel_requested", "completed", "failed", "settled"},
+    # Project reconciliation can observe a host after intermediate states have
+    # already committed. Every observed snapshot still requires exact facts.
+    "queued": {"spawn_intent", "running", "validating", "outcome_unknown", "cancel_requested", "completed", "failed", "settled"},
+    "spawn_intent": {"queued", "running", "validating", "outcome_unknown", "cancel_requested", "completed", "failed", "settled"},
+    "running": {"validating", "outcome_unknown", "cancel_requested", "completed", "failed"},
+    "validating": {"outcome_unknown", "cancel_requested", "completed", "failed"},
+    "outcome_unknown": {"running", "validating", "cancel_requested", "completed", "failed", "settled"},
     "cancel_requested": {"outcome_unknown", "completed", "failed", "settled"},
     "completed": {"settled"},
     "failed": {"settled"},

@@ -40,6 +40,7 @@ INSTRUCTION_FILES = (
 )
 VALIDATOR_FILES = (
     "src/plotloom/codex_exec_contracts.py",
+    "src/plotloom/codex_exec_pool_contracts.py",
     "src/plotloom/codex_exec_receipt_contracts.py",
     "src/plotloom/codex_exec_constants.py",
     "src/plotloom/codex_exec_attempt_contracts.py",
@@ -60,6 +61,9 @@ VALIDATOR_FILES = (
     "src/plotloom/autopilot_contracts.py",
     "src/plotloom/autopilot_exec.py",
     "src/plotloom/autopilot_image_controller.py",
+    "src/plotloom/autopilot_early_references.py",
+    "src/plotloom/autopilot_image_selection.py",
+    "src/plotloom/autopilot_materials.py",
     "src/plotloom/autopilot_launch.py",
     "src/plotloom/autopilot_text_controller.py",
     "src/plotloom/creative_handoff_contracts.py",
@@ -71,6 +75,12 @@ VALIDATOR_FILES = (
     "src/plotloom/image_job_package.py",
     "src/plotloom/persistence/schema/project_autopilot.py",
     "src/plotloom/persistence/project/autopilot.py",
+    "src/plotloom/persistence/project/autopilot_exec_attempts.py",
+    "src/plotloom/persistence/project/autopilot_activity.py",
+    "src/plotloom/persistence/project/autopilot_inventory_validation.py",
+    "src/plotloom/persistence/project/first_install_references.py",
+    "src/plotloom/persistence/project/production_rebuild_quiescence.py",
+    "src/plotloom/persistence/project/media_character_references.py",
     "src/plotloom/persistence/project/autopilot_bindings.py",
     "src/plotloom/persistence/project/autopilot_checkpoints.py",
     "src/plotloom/persistence/project/image_preflight.py",
@@ -80,7 +90,11 @@ VALIDATOR_FILES = (
     "src/plotloom/persistence/project/media_art_reference_proposals.py",
     "src/plotloom/project_storage/autopilot_validation.py",
     "src/plotloom/project_storage/creative_evidence_inventory.py",
+    "src/plotloom/project_storage/material_bundle_validation.py",
+    "src/plotloom/project_storage/handoff_validation.py",
     "services/creator_workbench/codex_exec_supervisor.py",
+    "services/creator_workbench/codex_exec_supervisor_pool.py",
+    "services/creator_workbench/codex_exec_supervisor_queue_control.py",
     "services/creator_workbench/codex_exec_supervisor_admission.py",
     "services/creator_workbench/codex_exec_supervisor_control.py",
     "services/creator_workbench/codex_exec_supervisor_worker_ownership.py",
@@ -151,7 +165,7 @@ def _python_source_tree_hash(source_root: Path) -> str:
     return identity
 
 
-def build_codex_exec_profile(executable: Path, *, source_root: Path) -> CodexExecProfile:
+def build_codex_exec_profile(executable: Path, *, source_root: Path, pool_limits=None) -> CodexExecProfile:
     """Fail closed unless this source checkout and the evaluated CLI are present."""
     executable = executable.expanduser().resolve(strict=True)
     source_root = source_root.expanduser().resolve(strict=True)
@@ -166,8 +180,10 @@ def build_codex_exec_profile(executable: Path, *, source_root: Path) -> CodexExe
     )
     if version.returncode != 0 or version.stderr or version.stdout.decode("utf-8", "strict").strip() != SUPPORTED_CLI_VERSION:
         raise RuntimeError("installed Codex CLI version has no qualified execution evidence adapter")
+    from .codex_exec_pool_contracts import CodexExecPoolLimits
+    limits = CodexExecPoolLimits.model_validate(pool_limits or CodexExecPoolLimits())
     return CodexExecProfile(
-        contractVersion="plotloom.codex-exec.v7",
+        contractVersion="plotloom.codex-exec.v8",
         executable_sha256=_hash_file(executable),
         cli_version=SUPPORTED_CLI_VERSION,
         model=EXECUTION_MODEL,
@@ -194,4 +210,8 @@ def build_codex_exec_profile(executable: Path, *, source_root: Path) -> CodexExe
         max_event_bytes=50_000_000,
         max_output_bytes=500_000_000,
         max_image_outputs=4,
+        max_processes=limits.max_processes,
+        max_text_processes=limits.max_text_processes,
+        max_image_processes=limits.max_image_processes,
+        max_queued_jobs=limits.max_queued_jobs,
     )

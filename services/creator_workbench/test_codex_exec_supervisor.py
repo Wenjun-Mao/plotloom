@@ -527,7 +527,7 @@ time.sleep(0.2)
         assert supervisor._row(attempt.attempt_id)["attempt_id"] == str(attempt.attempt_id)
         with closing(supervisor._connect()) as connection:
             assert connection.execute(
-                "SELECT attempt_id FROM exec_slot WHERE slot_id=1"
+                "SELECT attempt_id FROM exec_slot"
             ).fetchone()[0] == str(attempt.attempt_id)
     finally:
         if group_id is not None:

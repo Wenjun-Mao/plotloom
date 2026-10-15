@@ -16,7 +16,7 @@ def _text_openssl_config(profile):
         TEXT_VALIDATOR_RUNTIME_PROFILE,
     )
 
-    if (profile.contract_version != "plotloom.codex-exec.v7"
+    if (profile.contract_version != "plotloom.codex-exec.v8"
             or profile.text_validator_runtime_profile != TEXT_VALIDATOR_RUNTIME_PROFILE):
         raise CodexExecSupervisorError("Codex Exec text validator runtime profile is unsupported")
     if NODE_OPENSSL_CONFIG.is_symlink() or not NODE_OPENSSL_CONFIG.is_file():

@@ -5,9 +5,15 @@ from typing import Literal
 from pydantic import Field
 
 from ..domain import CamelModel
-from .format import ProjectStorageCorruptionError, _read_json, _write_new_file, _canonical_json, parse_project_manifest
+from .format import (
+    ProjectStorageCorruptionError,
+    _canonical_json,
+    _read_json,
+    _write_new_file,
+    parse_project_manifest,
+)
+from .schema_upgrade import PRIOR_LAYOUT_HASH, SERIAL_EXEC_LAYOUT_HASH
 from .snapshot_files import _safe_regular
-from .schema_upgrade import PRIOR_LAYOUT_HASH
 
 FILENAME = "schema-transition.json"
 
@@ -16,7 +22,7 @@ class RestoredSchemaTransition(CamelModel):
     version: Literal[1] = 1
     origin: Literal["verified_restore_destination"] = "verified_restore_destination"
     project_id: str
-    prior_layout_hash: Literal[PRIOR_LAYOUT_HASH] = PRIOR_LAYOUT_HASH
+    prior_layout_hash: Literal[PRIOR_LAYOUT_HASH, SERIAL_EXEC_LAYOUT_HASH] = PRIOR_LAYOUT_HASH
     source_database_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     current_layout_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     retained_rows_hash: str = Field(pattern=r"^[a-f0-9]{64}$")

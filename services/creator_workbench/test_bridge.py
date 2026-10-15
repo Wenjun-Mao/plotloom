@@ -50,6 +50,10 @@ def test_exec_profile_is_host_observed_and_never_uses_project_or_user_config(
     executable.chmod(0o700)
     settings = tmp_path / "settings.json"
     source_root = codex_exec_test_source
+    (tmp_path / "outputs").mkdir()
+    codex_home = tmp_path / "codex-home"
+    codex_home.mkdir(mode=0o700)
+    monkeypatch.setenv("CODEX_HOME", str(codex_home))
     monkeypatch.setattr(
         subprocess,
         "run",
@@ -69,12 +73,14 @@ def test_exec_profile_is_host_observed_and_never_uses_project_or_user_config(
     assert profile["backend"] == "codex_exec"
     assert profile["cliVersion"] == "codex-cli 0.162.0-alpha.17.2"
     assert profile["model"] == "gpt-6.1-sol"
-    assert profile["contractVersion"] == "plotloom.codex-exec.v7"
+    assert profile["contractVersion"] == "plotloom.codex-exec.v8"
     assert profile["authenticationStore"] == "file"
     assert profile["permissionProfile"] == "plotloom_autopilot_delivery_v5"
     assert profile["toolProfile"] == "plotloom_autopilot_tools_v4"
     assert "sandboxProfile" not in profile
-    assert profile["maxProcesses"] == 1
+    assert profile["maxProcesses"] == 4
+    assert profile["maxTextProcesses"] == profile["maxImageProcesses"] == 2
+    assert profile["maxQueuedJobs"] == 4
     assert profile["apiFallback"] is False
     assert "token" not in json.dumps(profile).casefold()
 
@@ -431,7 +437,8 @@ def _spawn_intent_attempt():
     )
 
 
-def test_cancel_endpoint_passes_the_exact_attempt_snapshot_to_the_supervisor(bridge, monkeypatch):
+@pytest.mark.parametrize("control", ["cancel", "suspend", "resume"])
+def test_control_endpoint_passes_the_exact_attempt_snapshot_to_the_supervisor(bridge, monkeypatch, control):
     attempt = _spawn_intent_attempt()
     cancelled = transition_exec_attempt(
         attempt,
@@ -447,6 +454,7 @@ def test_cancel_endpoint_passes_the_exact_attempt_snapshot_to_the_supervisor(bri
             observed.append(CodexExecAttempt.model_validate(snapshot))
             return CodexExecHostStatus(state="settled", attempt=cancelled)
 
+    setattr(Supervisor, control, Supervisor.cancel)
     bridge.exec_supervisor = lambda: Supervisor()
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(bridge))
     thread = Thread(target=server.serve_forever, daemon=True)
@@ -454,7 +462,7 @@ def test_cancel_endpoint_passes_the_exact_attempt_snapshot_to_the_supervisor(bri
     try:
         payload = json.dumps({"attempt": attempt.model_dump(mode="json", by_alias=True)}).encode()
         request = Request(
-            f"http://127.0.0.1:{server.server_port}/exec-cancel/{attempt.attempt_id}",
+            f"http://127.0.0.1:{server.server_port}/exec-{control}/{attempt.attempt_id}",
             data=payload,
             headers={
                 "Authorization": f"Bearer {bridge.token}",
@@ -471,7 +479,8 @@ def test_cancel_endpoint_passes_the_exact_attempt_snapshot_to_the_supervisor(bri
         thread.join(timeout=3)
 
 
-def test_client_sends_frozen_attempt_for_cancel_and_never_retries(tmp_path, monkeypatch, capsys):
+@pytest.mark.parametrize("control", ["cancel", "suspend", "resume"])
+def test_client_sends_frozen_attempt_for_control_and_never_retries(tmp_path, monkeypatch, capsys, control):
     attempt = _spawn_intent_attempt()
     cancelled = transition_exec_attempt(
         attempt,
@@ -488,7 +497,7 @@ def test_client_sends_frozen_attempt_for_cancel_and_never_retries(tmp_path, monk
 
     def response(request, **_kwargs):
         requests.append(request)
-        assert request.full_url.endswith(f"/exec-cancel/{attempt.attempt_id}")
+        assert request.full_url.endswith(f"/exec-{control}/{attempt.attempt_id}")
         assert request.get_method() == "POST"
         assert json.loads(request.data) == {
             "attempt": attempt.model_dump(mode="json", by_alias=True)
@@ -499,7 +508,7 @@ def test_client_sends_frozen_attempt_for_cancel_and_never_retries(tmp_path, monk
 
     monkeypatch.setattr(codex_client, "urlopen", response)
     assert codex_client.main([
-        "exec-cancel",
+        f"exec-{control}",
         "--attempt-json",
         attempt.model_dump_json(by_alias=True),
     ]) == 0

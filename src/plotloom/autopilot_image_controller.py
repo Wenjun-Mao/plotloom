@@ -1,15 +1,32 @@
 """Serial native initial images and separately authorized local geometry."""
 from sqlalchemy import select
-from .autopilot_contracts import CheckpointEvidence, CommandAuthority, OperationScope, POLICY_VERSION
-from .autopilot_launch import assert_frozen_execution, assert_frozen_pins, require_job_capacity
-from .autopilot_exec import cancel_codex_exec, reconcile_codex_exec
-from .autopilot_materials import MaterialInventory, initial_inventory, inventory_hash
-from .autopilot_image_selection import select_image, publish_bundle
-from .exceptions import InvalidTransitionError
-from .image_commands import IMAGE_METHODS, image_context, image_package, read_image, send_image, ingest_image
-from .image_job_contracts import ImageJobError, NativeTaskBinding
-from .brief_contracts import ProjectBrief
+
 from .autopilot_brief_style import image_style_guidance
+from .autopilot_contracts import (
+    POLICY_VERSION,
+    CheckpointEvidence,
+    CommandAuthority,
+    OperationScope,
+)
+from .autopilot_exec import cancel_codex_exec, reconcile_codex_exec
+from .autopilot_image_selection import publish_bundle, select_image
+from .autopilot_launch import (
+    assert_frozen_execution,
+    assert_frozen_pins,
+    require_job_capacity,
+)
+from .autopilot_materials import MaterialInventory, initial_inventory, inventory_hash
+from .brief_contracts import ProjectBrief
+from .exceptions import InvalidTransitionError
+from .image_commands import (
+    IMAGE_METHODS,
+    image_context,
+    image_package,
+    ingest_image,
+    read_image,
+    send_image,
+)
+from .image_job_contracts import ImageJobError, NativeTaskBinding
 from .persistence.schema import AutopilotCheckpointRow
 
 
@@ -48,14 +65,28 @@ class AutopilotImageController:
         frozen = MaterialInventory.model_validate(prior["evidence"]["result"]["inventory"])
         if inventory != frozen:
             raise InvalidTransitionError("frozen complete image inventory changed")
+        incomplete = False
         for subject in inventory.subjects:
             checkpoint = self.checkpoint(view, subject.operation_key)
             if checkpoint is None:
+                if subject.owner == "image" and not self.frame_references_ready(store, view, subject):
+                    incomplete = True
+                    continue
                 self.prepare(store, view, claim, subject, inventory, subject.operation_key)
                 return
             if checkpoint["state"] != "adopted":
-                self.native_step(store, view, claim, subject, inventory, checkpoint)
-                return
+                incomplete = True
+                try:
+                    self.native_step(store, view, claim, subject, inventory, checkpoint)
+                except ImageJobError as error:
+                    if error.code not in {"codex_exec_outcome_unknown", "codex_exec_capacity_deferred"}:
+                        raise
+                current = store.repository.autopilot.current(view.project_id)
+                if self.checkpoint(current, subject.operation_key) != checkpoint:
+                    return
+                # A pending unrelated reference does not hold the first ready
+                # frame. Every subsequent operation still rechecks authority.
+                continue
             if subject.owner == "image" and not checkpoint["evidence"]["result"].get("geometryCompatible") and not any(frame.shot_id == subject.id for frame in view.frames):
                 from .autopilot_geometry_preparation import prepare_first_frame_geometry
                 prepare_first_frame_geometry(store, view, claim, subject, inventory, checkpoint)
@@ -63,10 +94,18 @@ class AutopilotImageController:
                 # step revalidates authority before preparing another native job.
                 return
 
-        with self.command(store, view, claim, OperationScope.SELECT):
-            publish_bundle(store, view, inventory)
+        if not incomplete:
+            with self.command(store, view, claim, OperationScope.SELECT):
+                publish_bundle(store, view, inventory)
 
-    def prepare(self, store, view, claim, subject, inventory, key):
+    @staticmethod
+    def frame_references_ready(store, view, subject):
+        decisions = store.media.list_character_reference_decisions(view.project_id)["decisions"]
+        ready = {item["characterId"] for item in decisions
+            if item["current"] and item["characterContext"].get("authority") == "story_bible"}
+        return set(subject.character_ids) <= ready
+
+    def prepare(self, store, view, claim, subject, inventory, key, *, initial_result=None):
         require_job_capacity(view)
         image_count = sum(item["evidence"]["owner"] in IMAGE_METHODS for item in view.checkpoints)
         if image_count >= view.policy.max_images:
@@ -76,7 +115,9 @@ class AutopilotImageController:
             direction = frozen_brief.visual_direction
             style_guidance = image_style_guidance(direction, follows_brief=view.policy.effective_style_authority == "brief")
             if subject.owner == "character-reference":
-                context = store.media.prepare_character_reference_proposal(view.project_id, character_id=subject.id,
+                if subject.consumer_character_id is None:
+                    raise InvalidTransitionError("Cast reference preparation requires its explicit consumer character")
+                context = store.media.prepare_character_reference_proposal(view.project_id, character_id=subject.consumer_character_id,
                     cast_revision=inventory.cast_revision, visual_direction="按冻结人物形象生成一张清晰身份参考图；" + style_guidance,
                     parent_candidate_asset_id=None)["proposal"]
             elif subject.owner == "art-reference":
@@ -92,9 +133,10 @@ class AutopilotImageController:
                 context = store.media.prepare_image_job(view.project_id, machine_decision_id=decision, shot_id=subject.id,
                     storyboard_revision=inventory.storyboard_revision,
                     presentation_change="按冻结镜头动作与构图生成一张首帧；" + style_guidance, contract_version=3)["job"]
-            evidence = CheckpointEvidence(owner=subject.owner, subject_id=subject.id, job_id=context["id"],
+            evidence = CheckpointEvidence(owner=subject.owner,
+                subject_id=subject.consumer_character_id if subject.owner == "character-reference" else subject.id, job_id=context["id"],
                 request_hash=context["requestHash"], execution_pin=context["request"]["specialistPreflight"],
-                result={})
+                result=initial_result or {})
             if evidence.execution_pin != view.policy.execution_pins["image"]:
                 raise InvalidTransitionError("prepared image execution differs from launch")
             store.repository.autopilot.checkpoint(key, state="prepared", evidence=evidence)
@@ -240,15 +282,23 @@ class AutopilotImageController:
     def reconcile_codex_inactive(self, store, view, claim):
         for checkpoint in view.checkpoints:
             evidence = CheckpointEvidence.model_validate(checkpoint["evidence"])
-            if (evidence.owner not in IMAGE_METHODS or checkpoint["state"] in {"delivered", "adopted"}
+            if (evidence.owner not in IMAGE_METHODS or checkpoint["state"] in {"failed", "delivered", "adopted"}
                     or evidence.executor_attempt_id is None):
                 continue
             context = image_context(store, evidence.owner, evidence.job_id)
             paths = image_package(store, evidence.owner, evidence.job_id)
+            def settle_stopped_proposal(attempt):
+                if attempt.terminal_result != "not_started" or view.state not in {"cancelled", "taken_over", "stale"}:
+                    return
+                if context["state"] in {"prepared", "exported"}:
+                    name = IMAGE_METHODS[evidence.owner][0]
+                    getattr(store.media, f"cancel_{name}")(view.project_id, evidence.job_id,
+                        "原运行已停止，主机证明此冻结任务未启动。")
             attempt, receipt, profile = reconcile_codex_exec(
                 store, self.registry, view, claim, checkpoint,
                 domain="image", package_path=paths["packagePath"], command_factory=self.command,
                 allow_admission=False,
+                on_settlement=settle_stopped_proposal,
             )
             if attempt is None or attempt.state not in {"completed", "settled"} or receipt is None:
                 continue

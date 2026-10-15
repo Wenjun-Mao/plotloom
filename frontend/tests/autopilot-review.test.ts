@@ -214,9 +214,7 @@ it("withdraws a previously eligible launch while a newer mutation observation is
 it("submits explicit Brief authority by default and blocks a duplicate slow Start", async () => {
   vi.spyOn(autopilotApi, "current").mockResolvedValue(null);
   vi.spyOn(autopilotApi, "launchContext").mockResolvedValue({ eligible: true, briefRevision: 1 });
-  vi.spyOn(specialistsApi, "settings").mockResolvedValue({
-    text: { name: "文字助手", taskId: "text-task" }, image: { name: "图像助手", taskId: "image-task" }, busy: false,
-  });
+  const manualSettings = vi.spyOn(specialistsApi, "settings").mockRejectedValue(new Error("manual chat slots are not configured"));
   let release!: (value: typeof fixtureRun) => void;
   const start = vi.spyOn(autopilotApi, "start").mockImplementation(() => new Promise(resolve => { release = resolve; }));
   await act(async () => root.render(createElement(AutopilotWorkspace, { projectId: "disposable", revision: 1,
@@ -227,6 +225,8 @@ it("submits explicit Brief authority by default and blocks a duplicate slow Star
   await act(async () => host.querySelector<HTMLButtonElement>('button')!.click());
   await act(async () => { await Promise.resolve(); await Promise.resolve(); });
   expect(host.textContent).toContain("2D 动画；水彩；低饱和；保留细节");
+  expect(host.textContent).toContain("由 Codex 执行文字与图片任务");
+  expect(manualSettings).not.toHaveBeenCalled();
   const submit = [...host.querySelectorAll<HTMLButtonElement>("button")].find(item => item.textContent === "开始准备已保存简报的素材")!;
   await act(async () => submit.click());
   const pending = [...host.querySelectorAll<HTMLButtonElement>("button")].find(item => item.textContent === "正在开始自动准备…")!;

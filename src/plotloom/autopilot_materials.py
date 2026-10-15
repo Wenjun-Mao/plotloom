@@ -1,8 +1,10 @@
 """Complete initial inventory and source-bound material bundle contracts."""
 from typing import Literal
+
 from pydantic import Field, model_validator
-from .domain import CamelModel, StageName
+
 from .autopilot_contracts import ProvisionalFrame
+from .domain import CamelModel, StageName
 from .exceptions import InvalidTransitionError
 from .persistence.codec import stable_hash
 from .persistence.project.autopilot_closure import production_closure
@@ -15,6 +17,7 @@ class MaterialSubject(CamelModel):
     subject_type: Literal["scene", "prop"] | None = None
     scene_id: str | None = None
     character_ids: list[str] = Field(default_factory=list)
+    consumer_character_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @property
     def operation_key(self):
@@ -22,7 +25,7 @@ class MaterialSubject(CamelModel):
 
 
 class MaterialInventory(CamelModel):
-    version: Literal["pre-video.inventory.v1"] = "pre-video.inventory.v1"
+    version: Literal["pre-video.inventory.v1", "pre-video.inventory.v2"] = "pre-video.inventory.v2"
     entity_revision_id: str
     storyboard_revision: int
     storyboard_hash: str
@@ -37,7 +40,19 @@ class MaterialInventory(CamelModel):
         keys = [item.operation_key for item in self.subjects]
         if len(keys) != len(set(keys)):
             raise ValueError("material inventory identities must be unique")
+        for subject in self.subjects:
+            needs_consumer = self.version == "pre-video.inventory.v2" and subject.owner == "character-reference"
+            if needs_consumer != (subject.consumer_character_id is not None):
+                raise ValueError("current Cast inventory requires explicit consumer identity; other subjects and retained v1 do not")
         return self
+
+
+def cast_reference_subjects(cast):
+    consumers = {item.cast_character_id: item.consumer_character_id for item in cast.consumer_mappings}
+    if set(consumers) != {item["id"] for item in cast.cast["characters"]}:
+        raise InvalidTransitionError("every Cast reference requires its explicit accepted consumer mapping")
+    return [MaterialSubject(owner="character-reference", id=item["id"], consumer_character_id=consumers[item["id"]])
+        for item in cast.cast["characters"]]
 
 
 def initial_inventory(store, policy, *, enforce_limits=True):
@@ -49,7 +64,7 @@ def initial_inventory(store, policy, *, enforce_limits=True):
     installation = store.production_bridge_state().installation
     if installation is None or installation.status != "current":
         raise InvalidTransitionError(readiness_error)
-    subjects = [MaterialSubject(owner="character-reference", id=item["id"]) for item in cast.cast["characters"]]
+    subjects = cast_reference_subjects(cast)
     for kind, key in (("scene", "scenes"), ("prop", "props")):
         subjects.extend(MaterialSubject(owner="art-reference", subject_type=kind, id=item["id"]) for item in art.art[key])
     repository = store.repository
@@ -71,7 +86,7 @@ def initial_inventory(store, policy, *, enforce_limits=True):
             storyboard_hash=head.content_hash, production_hash=production_closure(session, store.manifest.project_id),
             cast_revision=cast.revision, art_revision=art.revision, subjects=subjects, route_count=len(routes))
     if enforce_limits and (len(subjects) > policy.max_images or len(subjects) + 8 > policy.max_jobs):
-        raise InvalidTransitionError("完整素材包超过冻结图片或任务上限；未发送图片，请接管检查范围。")
+        raise InvalidTransitionError("完整素材包超过冻结图片或任务上限；停止新增任务，已保留参考候选供你接管检查范围。")
     return inventory
 
 

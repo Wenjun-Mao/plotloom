@@ -31,6 +31,7 @@
           "tests/test_v2_authoring_domain.py",
           "tests/test_autopilot_authority.py",
           "tests/test_autopilot_claim_transactions.py",
+          "tests/test_autopilot_exec_pool.py",
           "tests/test_autopilot_text_controller.py",
           "tests/test_autopilot_controller_safety.py",
           "tests/test_autopilot_runtime_ownership.py",
@@ -44,7 +45,10 @@
           "tests/test_autopilot_creator_confirmation.py",
           "tests/test_autopilot_geometry.py",
           "tests/test_autopilot_geometry_publication.py",
-          "tests/test_autopilot_brief_style.py"
+          "tests/test_autopilot_brief_style.py",
+          "tests/test_autopilot_activity.py",
+          "tests/test_autopilot_early_references.py",
+          "tests/test_autopilot_early_reference_limits.py"
         ],
         "vitest": [
           "frontend/tests/authoring-autosave-admission.test.ts",
@@ -69,7 +73,8 @@
           "frontend/tests/autopilot-delivery-evidence.test.ts",
           "frontend/tests/autopilot-delivery-reader.test.ts",
           "frontend/tests/autopilot-presentation.test.ts",
-          "frontend/tests/autopilot-reference-provenance.test.ts"
+          "frontend/tests/autopilot-reference-provenance.test.ts",
+          "frontend/tests/autopilot-concurrent.test.ts"
         ],
         "playwright": [
           "frontend/e2e/branch-suggestion-recovery.spec.ts",
@@ -361,6 +366,8 @@
           "tests/test_project_storage_storyboard_review.py",
           "tests/test_storyboard_brief_style.py",
           "tests/test_autopilot_schema_upgrade.py",
+          "tests/test_codex_exec_pool_project_upgrade.py",
+          "tests/test_codex_exec_pool_migration.py",
           "tests/test_autopilot_recovery.py"
         ],
         "vitest": [
@@ -479,6 +486,8 @@
           "tests/backend_core/test_jobs.py",
           "tests/backend_core/test_m15_config_profiles.py",
           "tests/services/creator_workbench/test_codex_exec_supervisor_environment.py",
+          "tests/services/creator_workbench/test_codex_exec_supervisor_pool.py",
+          "tests/services/creator_workbench/test_codex_exec_pool_profile.py",
           "tests/services/creator_workbench/test_codex_exec_supervisor_validation_lifecycle.py",
           "tests/services/minimax_h3_gateway/test_app.py",
           "tests/services/minimax_h3_gateway/test_prompt_robustness_study.py",
@@ -596,7 +605,9 @@
       "suite": "pytest",
       "path": "tests/autopilot_image_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["story-authoring"]
+      "consumers": [
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
@@ -610,25 +621,33 @@
       "suite": "pytest",
       "path": "scripts/testing/python_suite_schedule.py",
       "kind": "runner-support",
-      "consumers": ["verification-tooling"]
+      "consumers": [
+        "verification-tooling"
+      ]
     },
     {
       "suite": "pytest",
       "path": "scripts/testing/python_suite_completion.py",
       "kind": "runner-support",
-      "consumers": ["verification-tooling"]
+      "consumers": [
+        "verification-tooling"
+      ]
     },
     {
       "suite": "pytest",
       "path": "scripts/testing/experiment_python_workers.py",
       "kind": "runner-support",
-      "consumers": ["verification-tooling"]
+      "consumers": [
+        "verification-tooling"
+      ]
     },
     {
       "suite": "pytest",
       "path": "scripts/testing/python_suite_timing_plugin.py",
       "kind": "runner-support",
-      "consumers": ["verification-tooling"]
+      "consumers": [
+        "verification-tooling"
+      ]
     },
     {
       "suite": "playwright",

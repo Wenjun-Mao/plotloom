@@ -5,11 +5,11 @@ from contextlib import closing
 import pytest
 from codex_exec_supervisor_test_support import _attempt, _insert_attempt_row
 
-from plotloom.codex_exec_contracts import transition_exec_attempt
+from plotloom.codex_exec_contracts import CodexExecAttempt, transition_exec_attempt
 
 
 def _owned_running_attempt(supervisor):
-    reserved = _attempt()
+    reserved = CodexExecAttempt.model_validate(_attempt().model_dump(mode="python") | {"plotloom_code_revision": "a" * 40, "validation_plan_hash": "b" * 64})
     running = transition_exec_attempt(
         reserved,
         state="running",
@@ -17,6 +17,8 @@ def _owned_running_attempt(supervisor):
         process_group_id=43210,
         process_birth_identity="fixture-cli-process",
     )
+    from uuid import uuid4
+    running = transition_exec_attempt(running, state="validating", session_id=uuid4())
     _insert_attempt_row(supervisor, reserved, running)
     worker_group, worker_birth = supervisor._process_identity(os.getpid())
     with closing(supervisor._connect()) as connection:

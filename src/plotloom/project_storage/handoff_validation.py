@@ -16,7 +16,11 @@ def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw,
     bundle = receipt.bundle.model_dump(mode="json", by_alias=True)
     if stable_hash(bundle) != receipt.bundle_hash or receipt.observation.bundle_hash != receipt.bundle_hash or receipt.bundle.run_id != run_id:
         raise ValueError("human review bundle changed")
-    assert_inventory_binding(connection, project_id, bundle["inventory"])
+    run_policy = connection.execute("SELECT policy FROM v2_autopilot_runs WHERE id=? AND project_id=?", (run_id, project_id)).fetchone()
+    if run_policy is None:
+        raise ValueError("human handoff has no exact frozen run")
+    contract = json.loads(run_policy[0]).get("executorBinding", {}).get("contractVersion")
+    assert_inventory_binding(connection, project_id, bundle["inventory"], executor_contract=contract)
     canonical = connection.execute("SELECT payload,input_revisions FROM v2_entity_revisions WHERE id=?", (receipt.bundle.inventory.entity_revision_id,)).fetchone()
     board = StoryboardV2.model_validate_json(canonical[0]).model_dump(mode="json", by_alias=True)
     shots_by_id = {item["id"]: item for item in board["shots"]}

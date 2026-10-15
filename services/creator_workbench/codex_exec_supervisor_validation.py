@@ -11,7 +11,9 @@ from codex_exec_supervisor_errors import (
     CodexExecValidationFailure,
     CodexExecValidationOwnershipUnknown,
 )
-from codex_exec_supervisor_validation_process import CodexExecSupervisorValidationProcessMixin
+from codex_exec_supervisor_validation_process import (
+    CodexExecSupervisorValidationProcessMixin,
+)
 
 
 class CodexExecSupervisorValidationMixin(CodexExecSupervisorValidationProcessMixin):
@@ -199,7 +201,7 @@ class CodexExecSupervisorValidationMixin(CodexExecSupervisorValidationProcessMix
 
     def _require_validation_not_cancelled(self, attempt, plan_hash):
         latest = self._load(self._row(attempt.attempt_id)).attempt
-        if latest is None or latest.state != "running":
+        if latest is None or latest.state != "validating":
             raise self._validation_failure("validation_cancelled", plan_hash)
 
     def _validate_plan_inputs(self, plan, job_root):

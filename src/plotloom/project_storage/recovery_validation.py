@@ -10,6 +10,7 @@ from typing import Any
 
 from ..domain import contains_secret_value, is_secret_setting_name
 from ..persistence.schema import PROJECT_TEXT_PIPELINE_TABLE_NAMES
+from .current_schema import assert_current_review_bindings, assert_current_schema
 from .format import (
     PROJECT_DATABASE_RELATIVE_PATH,
     PROJECT_MANIFEST_FILENAME,
@@ -26,7 +27,6 @@ from .snapshot_files import (
     _sha256_path,
     _source_file,
 )
-from .current_schema import assert_current_schema, assert_current_review_bindings
 
 _ASSET_PREFIX = PurePosixPath("assets")
 
@@ -70,10 +70,16 @@ def assert_database_contract(path: Path, manifest: ProjectManifest, *, allow_pre
     try:
         connection = database_connection(path)
         try:
-            from .schema_upgrade import classify_layout, prior_schema_objects, assert_prior_database
-            previous = allow_previous and classify_layout(connection) == "prior"
+            from .schema_upgrade import (
+                PRIOR_LAYOUTS,
+                assert_prior_database,
+                classify_layout,
+                prior_schema_objects,
+            )
+            layout = classify_layout(connection)
+            previous = allow_previous and layout in PRIOR_LAYOUTS
             if previous:
-                assert_prior_database(connection, manifest.project_id)
+                assert_prior_database(connection, manifest.project_id, layout=layout)
             else:
                 assert_current_schema(connection)
             assert_current_review_bindings(connection, asset_home=asset_home)
@@ -86,7 +92,7 @@ def assert_database_contract(path: Path, manifest: ProjectManifest, *, allow_pre
                     (manifest.project_id,),
                 )
             )
-            table_names = {name for kind, name, _, _ in prior_schema_objects() if kind == "table"} if previous else PROJECT_TEXT_PIPELINE_TABLE_NAMES
+            table_names = {name for kind, name, _, _ in prior_schema_objects(layout) if kind == "table"} if previous else PROJECT_TEXT_PIPELINE_TABLE_NAMES
             values = list(_database_strings(connection, table_names))
         finally:
             connection.close()

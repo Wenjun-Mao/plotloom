@@ -27,7 +27,7 @@ class CodexExecSupervisorControlMixin:
                     "SELECT * FROM exec_attempts WHERE attempt_id=?", (str(attempt_id),)
                 ).fetchone()
                 if row is None:
-                    if attempt.state in {"reserved", "spawn_intent"}:
+                    if attempt.state in {"reserved", "queued", "spawn_intent"}:
                         status_attempt = transition_exec_attempt(
                             attempt,
                             state="settled",
@@ -38,7 +38,7 @@ class CodexExecSupervisorControlMixin:
                             ).hexdigest(),
                             image_budget_state="released" if attempt.domain == "image" else "none",
                         )
-                    elif attempt.state in {"running", "outcome_unknown", "cancel_requested"}:
+                    elif attempt.state in {"running", "validating", "outcome_unknown", "cancel_requested"}:
                         # Missing host state cannot prove that a process or
                         # remote operation never started.
                         status_attempt = transition_exec_attempt(attempt, state="outcome_unknown")
@@ -70,15 +70,7 @@ class CodexExecSupervisorControlMixin:
                         ),
                     )
                     if status_attempt.state == "outcome_unknown":
-                        slot = connection.execute(
-                            "SELECT attempt_id FROM exec_slot WHERE slot_id=1"
-                        ).fetchone()
-                        if slot is not None:
-                            connection.rollback()
-                            raise CodexExecSupervisorError(
-                                "Mac Codex Exec process slot is occupied while an unrecorded attempt is unknown"
-                            )
-                        connection.execute("INSERT INTO exec_slot VALUES (1,?)", (str(attempt_id),))
+                        self._reserve_unknown_capacity(connection, status_attempt)
                     connection.commit()
                     return self._status(status_attempt)
 

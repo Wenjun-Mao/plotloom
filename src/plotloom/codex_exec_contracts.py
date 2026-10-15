@@ -8,7 +8,8 @@ from uuid import UUID
 
 from pydantic import Field, model_validator
 
-from .codex_exec_constants import HASH, JOB_ID as JOB_ID
+from .codex_exec_constants import HASH
+from .codex_exec_constants import JOB_ID as JOB_ID
 from .domain import CamelModel, contains_secret_setting, contains_secret_value
 
 ExecCapability = Literal[
@@ -77,7 +78,7 @@ class CodexExecProfile(CamelModel):
     backend: Literal["codex_exec"] = "codex_exec"
     contract_version: Literal[
         "plotloom.codex-exec.v1", "plotloom.codex-exec.v2", "plotloom.codex-exec.v3",
-        "plotloom.codex-exec.v4", "plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7",
+        "plotloom.codex-exec.v4", "plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8",
     ] = "plotloom.codex-exec.v4"
     executable_sha256: str = Field(pattern=HASH)
     cli_version: str = Field(min_length=1, max_length=80)
@@ -107,7 +108,10 @@ class CodexExecProfile(CamelModel):
     max_event_bytes: int = Field(ge=1024, le=50_000_000)
     max_output_bytes: int = Field(ge=1024, le=500_000_000)
     max_image_outputs: int = Field(ge=0, le=4)
-    max_processes: Literal[1] = 1
+    max_processes: int = Field(default=1, ge=1, le=4, strict=True)
+    max_text_processes: int | None = Field(default=None, ge=1, le=2, strict=True, exclude_if=lambda value: value is None)
+    max_image_processes: int | None = Field(default=None, ge=1, le=2, strict=True, exclude_if=lambda value: value is None)
+    max_queued_jobs: int | None = Field(default=None, ge=1, le=4, strict=True, exclude_if=lambda value: value is None)
     api_fallback: Literal[False] = False
     external_mcp_servers: Literal[False] = False
     nested_dispatch: Literal[False] = False
@@ -159,14 +163,22 @@ class CodexExecProfile(CamelModel):
             or self.text_validator_runtime_profile != "node_openssl_private_zsh_tmp_and_validator_aliases_v2"
         ):
             raise ValueError("Codex Exec v6 requires its pinned validator evidence, runtime and permission profile")
-        elif self.contract_version == "plotloom.codex-exec.v7" and (
+        elif self.contract_version in {"plotloom.codex-exec.v7", "plotloom.codex-exec.v8"} and (
             self.sandbox_profile is not None
             or self.authentication_store != "file"
             or self.permission_profile != "plotloom_autopilot_delivery_v5"
             or self.tool_profile != "plotloom_autopilot_tools_v4"
             or self.text_validator_runtime_profile != "node_openssl_private_zsh_tmp_and_checked_python_v3"
         ):
-            raise ValueError("Codex Exec v7 requires its isolated checked-lock runtime and permission profile")
+            raise ValueError("Codex Exec v7/v8 require the isolated checked-lock runtime and permission profile")
+        if self.contract_version == "plotloom.codex-exec.v8":
+            from .codex_exec_pool_contracts import CodexExecPoolLimits
+            CodexExecPoolLimits(maxProcesses=self.max_processes, maxTextProcesses=self.max_text_processes,
+                maxImageProcesses=self.max_image_processes, maxQueuedJobs=self.max_queued_jobs)
+        elif self.max_processes != 1 or any(value is not None for value in (
+            self.max_text_processes, self.max_image_processes, self.max_queued_jobs,
+        )):
+            raise ValueError("retained serial profiles cannot contain pool capacity")
         selected = set(self.capabilities)
         if len(selected) != len(self.capabilities):
             raise ValueError("CLI capability pins must not contain duplicates")
@@ -174,8 +186,8 @@ class CodexExecProfile(CamelModel):
             raise ValueError("CLI profile lacks the serial executor evidence or delivery capability")
         if self.max_image_outputs and "image_gen_event_v1" not in selected:
             raise ValueError("image capacity requires the qualified native ImageGen event capability")
-        if self.contract_version in {"plotloom.codex-exec.v4", "plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7"} and "image_reference_view_v1" not in selected:
-            raise ValueError("Codex Exec v4 through v7 require typed reference-view evidence capability")
+        if self.contract_version in {"plotloom.codex-exec.v4", "plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"} and "image_reference_view_v1" not in selected:
+            raise ValueError("Codex Exec v4 through v8 require typed reference-view evidence capability")
         payload = self.model_dump(mode="json", by_alias=True)
         if contains_secret_setting(payload) or contains_secret_value(payload):
             raise ValueError("CLI executor profiles cannot contain credentials")
@@ -211,17 +223,31 @@ ExecutorBinding = Annotated[
 
 from .codex_exec_attempt_contracts import (
     CodexExecAttempt as CodexExecAttempt,
+)
+from .codex_exec_attempt_contracts import (
     transition_exec_attempt as transition_exec_attempt,
 )
-
-
 from .codex_exec_receipt_contracts import (
     CodexExecHostStatus as CodexExecHostStatus,
+)
+from .codex_exec_receipt_contracts import (
     CodexExecImageEvidence as CodexExecImageEvidence,
+)
+from .codex_exec_receipt_contracts import (
     CodexExecOutputEvidence as CodexExecOutputEvidence,
+)
+from .codex_exec_receipt_contracts import (
     CodexExecReceipt as CodexExecReceipt,
+)
+from .codex_exec_receipt_contracts import (
     CodexExecReferenceViewEvidence as CodexExecReferenceViewEvidence,
+)
+from .codex_exec_receipt_contracts import (
     assert_receipt_matches_attempt as assert_receipt_matches_attempt,
+)
+from .codex_exec_receipt_contracts import (
     image_arguments_hash as image_arguments_hash,
+)
+from .codex_exec_receipt_contracts import (
     output_manifest_hash as output_manifest_hash,
 )

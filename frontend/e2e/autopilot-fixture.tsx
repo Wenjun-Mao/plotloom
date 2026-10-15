@@ -4,7 +4,7 @@ import { AutopilotWorkspace, AutopilotLaunch, AutopilotProgress } from "../src/f
 import { autopilotApi } from "../src/features/autopilot/api";
 import { specialistsApi } from "../src/features/specialists/api";
 import { fixtureMaterial, fixtureRun } from "../tests/autopilot-fixture";
-import type { Handoff } from "../src/features/autopilot/contracts";
+import type { AutopilotRun, Handoff } from "../src/features/autopilot/contracts";
 import { plotloomApi } from "../src/api";
 import { evidenceReadsFixture, geometryReadsFixture } from "../tests/autopilot-delivery-fixture";
 import "../src/styles.css";
@@ -23,6 +23,22 @@ const longBlocker = "The saved project contains a retained manual edit that no l
 let current = initial?.startsWith("fresh") ? null : initial === "blocked-long"
   ? { ...fixtureRun, state: "blocked" as const, blocker: { code: "source_context_changed", message: longBlocker } }
   : { ...fixtureRun, state: initial?.startsWith("running") ? "running" as const : fixtureRun.state };
+if (initial === "concurrent") {
+  const concurrent: AutopilotRun = { ...fixtureRun, state: "running", phase: "script", bundle: null, materialCurrent: true,
+    policy: { ...fixtureRun.policy, version: "plotloom.pre-video.v4", executorBinding: {
+      backend: "codex_exec", model: "gpt-6.1-sol", reasoningEffort: "medium", maxProcesses: 4, maxTextProcesses: 2, maxImageProcesses: 2,
+    } },
+    checkpoints: [...fixtureRun.checkpoints, { operationKey: "character-reference:keeper", state: "delivered",
+      evidence: { owner: "character-reference", jobId: "retained-reference", result: { candidateAssetIds: ["retained-reference-image"] } } }],
+    activities: [
+      { operationKey: "script", owner: "script", subjectId: "script", jobId: "script-job", domain: "text", state: "validating" },
+      { operationKey: "art-reference:scene:tower", owner: "art-reference", subjectId: "tower", jobId: "tower-job", domain: "image", state: "generating" },
+      { operationKey: "art-reference:prop:lamp", owner: "art-reference", subjectId: "lamp", jobId: "lamp-job", domain: "image", state: "queued" },
+      { operationKey: "art-reference:prop:bell", owner: "art-reference", subjectId: "bell", jobId: "bell-job", domain: "image", state: "unknown" },
+    ],
+  };
+  current = concurrent;
+}
 let progressReads = 0;
 let handoffReadFailed = false;
 const writes: unknown[] = [];

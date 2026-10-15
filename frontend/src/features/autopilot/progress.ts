@@ -37,14 +37,25 @@ export function projectAutopilotProgress(run: AutopilotRun) {
     .filter(item => item.state === "adopted" && ["character-reference", "art-reference"].includes(item.evidence.owner))
     .map(item => item.operationKey)
     .filter(key => references.has(key)));
-  const materialStale = run.state === "stale" || run.blocker?.code === "material_changed";
+  const materialStale = run.materialCurrent === false || run.state === "stale" || run.blocker?.code === "material_changed";
   const provisionalFrames = materialStale ? new Set<string>() : new Set((run.frames ?? [])
     .map(item => item.shotId)
     .filter(shotId => shots.has(shotId)));
+  const retainedCandidates = new Set(run.checkpoints
+    .filter(item => ["image", "character-reference", "art-reference"].includes(item.evidence.owner))
+    .flatMap(item => Array.isArray(item.evidence.result.candidateAssetIds)
+      ? item.evidence.result.candidateAssetIds.filter((id): id is string => typeof id === "string") : []));
+  const activities = (run.activities ?? []).filter(item =>
+    ["waiting", "queued", "generating", "validating", "unknown", "cancelling"].includes(item.state));
   return {
     textAdopted,
     textRequired: textStages.length,
     imagesSelected: materialStale ? 0 : adoptedReferences.size + provisionalFrames.size,
     imagesRequired: subjects?.length ?? null,
+    imagesRetained: retainedCandidates.size,
+    activities,
+    generating: activities.filter(item => item.state === "generating").length,
+    validating: activities.filter(item => item.state === "validating").length,
+    queued: activities.filter(item => item.state === "queued").length,
   };
 }

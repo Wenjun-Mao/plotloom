@@ -15,13 +15,13 @@ from .codex_exec_contracts import (
 )
 from .codex_exec_files import scan_regular_tree
 from .codex_exec_telemetry import CodexSessionEvidence, ImageGenCall, ImageGenEvent
+from .codex_exec_validation import build_text_validation_plan
 from .creative_handoff_contracts import (
     CreativeDeliveryManifest,
     CreativeExecutorProvenance,
     CreativeHandoffRequest,
 )
 from .creative_handoff_exchange import canonical_json
-from .codex_exec_validation import build_text_validation_plan
 from .image_job_contracts import (
     ImageDeliveryManifest,
     ImageExecutorProvenance,
@@ -81,7 +81,7 @@ def publish_creative_completion(
         source_revision=code_revision,
     )
     validation = receipt.text_validation
-    if (profile.contract_version != "plotloom.codex-exec.v7"
+    if (profile.contract_version != "plotloom.codex-exec.v8"
             or attempt.validation_plan_hash != plan.plan_hash
             or receipt.validation_plan_hash != plan.plan_hash
             or validation is None

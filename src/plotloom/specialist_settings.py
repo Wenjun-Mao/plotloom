@@ -11,13 +11,13 @@ from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
 
-from .codex_image_dispatch import NativeCodexImageDispatcher
 from .codex_exec_contracts import (
     CodexExecAttempt,
     CodexExecHostStatus,
     CodexExecProfile,
     CodexExecReadiness,
 )
+from .codex_image_dispatch import NativeCodexImageDispatcher
 from .domain import CamelModel
 from .image_job_contracts import ImageJobError, NativeTaskBinding
 
@@ -192,6 +192,17 @@ class SpecialistRegistry:
             "--attempt-json",
             json.dumps(attempt.model_dump(mode="json", by_alias=True), separators=(",", ":")),
         )
+
+    def codex_exec_suspend(self, attempt: CodexExecAttempt) -> CodexExecHostStatus:
+        return self._codex_exec_authorize("exec-suspend", attempt)
+
+    def codex_exec_resume(self, attempt: CodexExecAttempt) -> CodexExecHostStatus:
+        return self._codex_exec_authorize("exec-resume", attempt)
+
+    def _codex_exec_authorize(self, command, attempt):
+        attempt = CodexExecAttempt.model_validate(attempt.model_dump(mode="python"))
+        return self._codex_exec_request(command, "--attempt-json",
+            json.dumps(attempt.model_dump(mode="json", by_alias=True), separators=(",", ":")))
 
     def _codex_exec_request(self, command: str, *arguments: str) -> CodexExecHostStatus:
         if not self.executable:

@@ -18,8 +18,8 @@ owners provide useful independent image work without changing text dependencies.
   then current Art subjects using their exact revision/hash, saved Brief and
   package pins. Keep provisional discovery distinct from complete inventory.
   Initially offer at most two Cast subjects, reserving opportunity for Art;
-  once Art is current, use remaining allowance for available subjects in
-  deterministic order. A prepared subject owns one operation/job identity.
+  once Art is current, offer its scenes and props before any remaining Cast
+  subjects, in deterministic order. A prepared subject owns one operation/job identity.
 - Before early admission, reject a demonstrated lower bound that cannot fit
   the frozen ceilings: known required references, reachable filmed material
   and the eight text jobs. Reserve each actual job/image atomically. If later
@@ -40,11 +40,37 @@ owners provide useful independent image work without changing text dependencies.
   owner transaction. Schedule only newly ready independent work through ADR
   0174's finite pool. Preserve source currentness, visible-character limits,
   frame geometry, manual takeover and genuine human review.
+- First-install reference independence is an owning production-quiescence
+  contract. At preparation, state and acceptance boundaries, only the same
+  active frozen run's explicitly early Cast/Art proposals may remain unresolved
+  through its first installation. Check their exact checkpoint/job/request,
+  current Cast/Art inputs, saved Brief and run closure; the installation must
+  leave those exploratory inputs unchanged. No caller supplies skipped job IDs.
+  Manual, foreign, non-early, shot and video work still blocks, as does any
+  replacement/rebuild or changed source. Unknown early outcomes retain their
+  original reservations and cannot acquire canonical selection authority.
+- Inventory retains each raw Cast subject ID and carries its explicit consumer
+  character ID separately. Proposals and checkpoint subject identity use that
+  consumer namespace; operation keys and gallery identities retain the Cast
+  subject. Current inventory `pre-video.inventory.v2` requires that explicit
+  consumer field; retained v1 inventory remains byte-stable historical evidence.
+  Canonical selection resolves the exact frozen mapping after install.
 - Derive concurrent activities from durable attempts and checkpoints: waiting,
   queued, generating, validating and unknown outcomes. Show actual adopted and
   retained counts; total image inventory remains unknown until complete
   discovery. Keep the visible run indicator and Brief authority. No fabricated
   percentage, ETA, process-launch internals or human approval enters the UI.
+  The read-only RunView adds `activities` and `materialCurrent`; currentness
+  follows the owner's dependency closure, including after manual takeover.
+  Retained candidate counts use actual unique managed asset identities.
+  The current launch form follows CLI launch authority: Start performs the
+  existing trusted runtime/login/profile checks. Manual specialist-chat slots
+  are not a precondition for this executor; their independent workflows retain
+  their own settings. The model shown after launch comes from the frozen policy.
+- Keep immutable CLI reservations/settlement in a dedicated persistence mixin;
+  run lifecycle and material decisions remain in their existing owner. Text
+  reservations retain the unadopted-text barrier; independent image reservations
+  use the frozen image budget and host pool instead of a project-wide barrier.
 
 ## Rejected alternatives and consequences
 

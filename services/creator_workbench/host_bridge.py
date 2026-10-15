@@ -22,6 +22,7 @@ class QueueBridge:
         source_root: Path | None = None,
         outputs_root: Path | None = None,
         private_root: Path | None = None,
+        pool_limits=None,
     ):
         self.executable = executable
         self.settings = settings
@@ -29,6 +30,7 @@ class QueueBridge:
         self.source_root = source_root
         self.outputs_root = outputs_root
         self.private_root = private_root
+        self._exec_pool_limits = pool_limits
         self._exec_supervisor = None
         self._exec_supervisor_lock = threading.Lock()
 
@@ -44,17 +46,13 @@ class QueueBridge:
                     source_root=self.source_root,
                     outputs_root=self.outputs_root,
                     private_root=self.private_root,
+                    pool_limits=self._exec_pool_limits,
                 )
             return self._exec_supervisor
 
     def exec_profile(self):
-        """Return host-observed CLI and source capabilities without dispatch."""
-        if self.source_root is None:
-            raise RuntimeError("Codex Exec source root is not configured")
-        sys.path.insert(0, str(self.source_root / "src"))
-        from plotloom.codex_exec_profile import build_codex_exec_profile
-
-        profile = build_codex_exec_profile(self.executable, source_root=self.source_root)
+        """Observe the exact persisted installation capacity without dispatch."""
+        profile = self.exec_supervisor().profile()
         return profile.model_dump(mode="json", by_alias=True)
 
     def exec_readiness(self):
@@ -194,9 +192,10 @@ def handler_for(bridge: QueueBridge):
                 except Exception:
                     self.reply(503, {"error": "codex_exec_admission_unavailable"})
                 return
-            if self.path.startswith("/exec-cancel/"):
+            control = next((name for name in ("cancel", "suspend", "resume") if self.path.startswith(f"/exec-{name}/")), None)
+            if control is not None:
                 try:
-                    attempt_id = UUID(self.path.removeprefix("/exec-cancel/"))
+                    attempt_id = UUID(self.path.removeprefix(f"/exec-{control}/"))
                     length = int(self.headers.get("Content-Length", "0"))
                     if not 1 <= length <= 1048576:
                         raise ValueError("cancel request has an invalid size")
@@ -207,12 +206,12 @@ def handler_for(bridge: QueueBridge):
                     attempt = payload["attempt"]
                     if not isinstance(attempt, dict) or str(UUID(str(attempt.get("attemptId")))) != str(attempt_id):
                         raise ValueError("cancel route and attempt identity differ")
-                    status = bridge.exec_supervisor().cancel(attempt)
+                    status = getattr(bridge.exec_supervisor(), control)(attempt)
                     self.reply(200, status.model_dump(mode="json", by_alias=True))
                 except (TypeError, ValueError):
-                    self.reply(400, {"error": "invalid_codex_exec_cancel_request"})
+                    self.reply(400, {"error": f"invalid_codex_exec_{control}_request"})
                 except Exception:
-                    self.reply(503, {"error": "codex_exec_cancel_unavailable"})
+                    self.reply(503, {"error": f"codex_exec_{control}_unavailable"})
                 return
             if self.path != "/queue":
                 self.reply(404, {"error": "not_found"})

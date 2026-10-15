@@ -2,12 +2,19 @@ import type { GeometryPreparation } from "./geometryContracts";
 import type { ArtRenderStyle, VisualIntent, ScriptBinding } from "../../types";
 import type { SamePersonComparison, SamePersonComparisonDraft } from "../../same-person-review-types";
 
+export type AutopilotActivity = {
+  operationKey: string; owner: string; subjectId: string; jobId: string;
+  domain: "text" | "image";
+  state: "waiting" | "queued" | "generating" | "validating" | "unknown" | "cancelling" | "delivered" | "adopted" | "failed";
+};
 export type AutopilotRun = {
   id: string; projectId: string; revision: number;
   state: "running" | "waiting" | "paused" | "blocked" | "cancelled" | "stale" | "taken_over" | "awaiting_review" | "handed_off";
   frames?: Array<{ shotId: string; geometryPreparation?: GeometryPreparation }>;
   phase: string; blocker: { code: string; message: string } | null;
-  policy: { version?: string; geometryPreparation?: { recipeVersion: string }; styleAuthority?: "preset" | "brief"; renderStyle?: ArtRenderStyle | null; artRenderStyle?: ArtRenderStyle | null; maxImages: number; maxJobs: number };
+  materialCurrent?: boolean; activities?: AutopilotActivity[];
+  policy: { version?: string; geometryPreparation?: { recipeVersion: string }; styleAuthority?: "preset" | "brief"; renderStyle?: ArtRenderStyle | null; artRenderStyle?: ArtRenderStyle | null; maxImages: number; maxJobs: number;
+    executorBinding?: { backend: "codex_exec"; model: string; reasoningEffort: string; maxProcesses: number; maxTextProcesses?: number; maxImageProcesses?: number } };
   checkpoints: Array<{ operationKey: string; state: string; evidence: { owner: string; jobId?: string; result: Record<string, unknown> } }>;
   bundle: { inventory: { subjects: Array<{ owner: string; id: string; subjectType?: "scene" | "prop" | null }> }; frames: unknown[]; references: unknown[] } | null;
   handoff: { receiptId: string } | null;

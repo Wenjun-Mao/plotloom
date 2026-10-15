@@ -251,14 +251,20 @@ class CodexExecHostStatus(CamelModel):
     model_config = CamelModel.model_config | {"frozen": True}
 
     state: Literal[
-        "not_found", "spawn_intent", "running", "outcome_unknown", "cancel_requested",
+        "not_found", "queued", "spawn_intent", "running", "validating", "outcome_unknown", "cancel_requested",
         "completed", "failed", "settled",
     ]
     attempt: CodexExecAttempt | None = None
     receipt: CodexExecReceipt | None = None
+    capacity_deferred: bool = Field(default=False, exclude_if=lambda value: value is False)
+    dispatch_enabled: bool | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def terminal_receipt_is_exact(self):
+        if self.capacity_deferred and (self.state not in {"not_found", "queued", "spawn_intent"} or self.receipt is not None):
+            raise ValueError("capacity deferral cannot claim running or terminal work")
+        if self.dispatch_enabled is not None and self.state not in {"queued", "spawn_intent"}:
+            raise ValueError("dispatch authorization belongs only to unstarted host work")
         if self.state == "not_found":
             if self.attempt is not None or self.receipt is not None:
                 raise ValueError("not-found host status cannot contain attempt evidence")

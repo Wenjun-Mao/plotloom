@@ -5,7 +5,7 @@ import os
 import signal
 import subprocess
 import time
-from contextlib import closing
+from contextlib import ExitStack, closing
 from pathlib import Path
 
 from codex_exec_supervisor_environment import CodexExecSupervisorEnvironmentMixin
@@ -39,6 +39,9 @@ class CodexExecSupervisorProcessMixin(
                     pass
         finally:
             self._workers.pop(str(attempt.attempt_id), None)
+            current = self._load(self._row(attempt.attempt_id)).attempt
+            if current is not None and current.state in {"completed", "failed", "settled"}:
+                self._drain_queue()
 
     def _execute(self, attempt, profile, package_request, job_root, private_dir, source_resources=None):
         from plotloom.codex_exec_contracts import (
@@ -88,9 +91,6 @@ class CodexExecSupervisorProcessMixin(
 
         stdout_path = private_dir / "stdout.jsonl"
         stderr_path = private_dir / "stderr.log"
-        for path in (stdout_path, stderr_path):
-            descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
-            os.close(descriptor)
         delivery = job_root / "delivery"
         prompt = assignment_prompt(
             job_id=attempt.job_id,
@@ -123,7 +123,7 @@ class CodexExecSupervisorProcessMixin(
         )
         process = None
         try:
-            with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
+            with ExitStack() as streams:
                 with self._guard:
                     with closing(self._connect()) as connection:
                         connection.execute("BEGIN IMMEDIATE")
@@ -155,6 +155,25 @@ class CodexExecSupervisorProcessMixin(
                         if latest.state != "spawn_intent":
                             connection.rollback()
                             return
+                        grant = connection.execute("SELECT domain FROM exec_slot WHERE attempt_id=?", (str(attempt.attempt_id),)).fetchone()
+                        authorization = connection.execute("SELECT enabled FROM exec_queue WHERE attempt_id=?", (str(attempt.attempt_id),)).fetchone()
+                        if grant is None or grant["domain"] != latest.domain or authorization is None:
+                            connection.rollback()
+                            raise CodexExecSupervisorError("Codex Exec spawn has no exact capacity and queue authorization")
+                        if self._park_before_spawn_in_transaction(
+                            connection, row, latest, worker_identity=worker_identity,
+                        ):
+                            connection.commit()
+                            return
+
+                        # Create native evidence only after the worker's final
+                        # authorization fence. A proven parked job can later
+                        # resume without replacing earlier execution evidence.
+                        for path in (stdout_path, stderr_path):
+                            descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+                            os.close(descriptor)
+                        stdout = streams.enter_context(stdout_path.open("wb"))
+                        stderr = streams.enter_context(stderr_path.open("wb"))
 
                         # The durable SQLite write lock spans the final cancel
                         # check, Popen and process-identity commit. A bridge in
@@ -184,6 +203,7 @@ class CodexExecSupervisorProcessMixin(
                                 process_birth_identity=birth_identity,
                             )
                             self._persist_status_in_transaction(connection, running)
+                            connection.execute("DELETE FROM exec_queue WHERE attempt_id=?", (str(attempt.attempt_id),))
                             connection.commit()
                         except BaseException:
                             if process is None:
@@ -313,6 +333,10 @@ class CodexExecSupervisorProcessMixin(
                 return
             if attempt.domain == "text":
                 from codex_exec_supervisor_errors import CodexExecValidationFailure
+                if attempt.validation_plan_hash is not None:
+                    current = self._store(transition_exec_attempt(
+                        current, state="validating", session_id=stream.session_id,
+                    ))
                 try:
                     text_validation = self._validate_text_delivery(
                         attempt, profile, package_request, job_root, private_dir, source_resources,

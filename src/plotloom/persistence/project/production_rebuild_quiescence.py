@@ -14,6 +14,7 @@ from ..schema import (
     StoryboardReviewCandidateRow,
     VideoJobRow,
 )
+from .first_install_references import first_install_reference_is_independent
 
 
 def assert_production_quiescent(access, session, project_id):
@@ -31,10 +32,12 @@ def assert_production_quiescent(access, session, project_id):
         )),
     )
     for owner, field, states in owners:
-        if session.scalar(select(owner).where(
+        pending = session.scalars(select(owner).where(
             owner.project_id == project_id, getattr(owner, field).in_(states),
-        ).limit(1)) is not None:
-            raise InvalidTransitionError("unresolved publication or execution prevents production rebuild")
+        )).all()
+        for proposal in pending:
+            if not first_install_reference_is_independent(access, session, project_id, proposal):
+                raise InvalidTransitionError("unresolved publication or execution prevents production rebuild")
     if session.scalar(select(ProductionBridgeIntentJobRow).where(
         ProductionBridgeIntentJobRow.project_id == project_id,
         ProductionBridgeIntentJobRow.transport == "codex_native",

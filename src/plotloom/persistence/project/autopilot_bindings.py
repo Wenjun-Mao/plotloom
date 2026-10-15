@@ -5,10 +5,6 @@ and on ordinary folder reads. Historical rows need not remain currently usable.
 """
 import json
 
-from ...creative_handoff_contracts import CREATIVE_CANDIDATE_FILENAMES, CreativeHandoffRequest
-from ...creative_handoff_exchange import request_hash, execution_pin_for_request
-from ..codec import stable_hash
-from ...source_outline_contracts import SourceMaterial
 from ...autopilot_contracts import POLICY_VERSION
 from ...codex_exec_contracts import (
     CodexExecAttempt,
@@ -16,6 +12,13 @@ from ...codex_exec_contracts import (
     CodexExecReceipt,
     assert_receipt_matches_attempt,
 )
+from ...creative_handoff_contracts import (
+    CREATIVE_CANDIDATE_FILENAMES,
+    CreativeHandoffRequest,
+)
+from ...creative_handoff_exchange import execution_pin_for_request, request_hash
+from ...source_outline_contracts import SourceMaterial
+from ..codec import stable_hash
 
 CREATIVE_OWNERS = {
     "outline": "v2_source_outline_candidates", "branches": "v2_source_outline_candidates",
@@ -66,18 +69,18 @@ def _assert_exec_attempt_binding(connection, project_id, run_id, state, evidence
             or attempt.operation_key != operation_key or attempt.job_id != evidence.job_id
             or attempt.request_hash != evidence.request_hash or attempt.domain != expected_domain
             or attempt.profile_hash != profile.profile_hash
-            or (profile.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}
+            or (profile.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}
                 and attempt.plotloom_code_revision != json.loads(run["policy"])["codeRevision"])
-            or (profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7"} and expected_domain == "text"
+            or (profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"} and expected_domain == "text"
                 and attempt.validation_plan_hash is None)
             or row["state"] != attempt.state or row["image_budget_state"] != attempt.image_budget_state
             or row["reserved_image_outputs"] != attempt.reserved_image_outputs):
         raise ValueError("Codex Exec checkpoint differs from its immutable project attempt")
     allowed = {
         "prepared": {"reserved"},
-        "sent": {"spawn_intent", "running", "cancel_requested", "completed", "settled"},
+        "sent": {"queued", "spawn_intent", "running", "validating", "cancel_requested", "completed", "settled"},
         "outcome_unknown": {
-            "outcome_unknown", "running", "cancel_requested", "completed", "failed", "settled",
+            "outcome_unknown", "running", "validating", "cancel_requested", "completed", "failed", "settled",
         },
         "failed": {"failed", "settled"},
         "delivered": {"completed", "settled"},
@@ -138,7 +141,9 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
             raise ValueError("local adoption canonical owner changed")
         if owner == "bundle" and "inventory" in evidence.result:
             from .autopilot_inventory_validation import assert_inventory_binding
-            assert_inventory_binding(connection, project_id, evidence.result["inventory"])
+            run = _row(connection, "SELECT policy FROM v2_autopilot_runs WHERE id=?", (run_id,))
+            contract = json.loads(run["policy"]).get("executorBinding", {}).get("contractVersion")
+            assert_inventory_binding(connection, project_id, evidence.result["inventory"], executor_contract=contract)
         return
     if not evidence.job_id or not evidence.request_hash or not evidence.execution_pin:
         raise ValueError("native checkpoint requires its exact frozen execution identity")
@@ -163,7 +168,7 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
                 connection, "SELECT policy FROM v2_autopilot_runs WHERE id=?", (run_id,),
             )["policy"])
             executor_profile = CodexExecProfile.model_validate(frozen_policy.get("executorBinding", {}))
-            if executor_profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7"}:
+            if executor_profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}:
                 from ...codex_exec_validation import build_text_validation_plan
                 plan = build_text_validation_plan(
                     request,
@@ -195,6 +200,13 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
                 or stable_hash(request) != evidence.request_hash or evidence.subject_id != expected_subject
                 or request.get("specialistPreflight") != evidence.execution_pin):
             raise ValueError("image checkpoint frozen owner binding changed")
+        profile = json.loads(run["policy"]).get("executorBinding", {})
+        if owner == "character-reference" and profile.get("contractVersion") == "plotloom.codex-exec.v8":
+            cast_subject = subject.get("acceptedCast", {}).get("castCharacterId")
+            consumer = subject.get("characterContext", {}).get("characterId")
+            if (not cast_subject or consumer != evidence.subject_id
+                    or operation_key != f"character-reference:{cast_subject}"):
+                raise ValueError("Cast operation and consumer proposal identities differ from frozen provenance")
         proofs = list(connection.execute(f'SELECT manifest_hash,manifest,id,state FROM "{delivery_table}" WHERE "{foreign_key}"=? AND manifest_hash IS NOT NULL', (evidence.job_id,)))
         retained = next((item for item in proofs if item[0] == evidence.delivery_hash), None)
         proof = evidence.delivery_hash if retained is not None else None

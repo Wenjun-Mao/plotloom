@@ -2,8 +2,8 @@
 from hashlib import sha256
 from pathlib import Path
 
-from .autopilot_contracts import LaunchPolicy, POLICY_VERSION, PREVIOUS_POLICY_VERSION
 from .art_style import freeze_art_style
+from .autopilot_contracts import POLICY_VERSION, PREVIOUS_POLICY_VERSION, LaunchPolicy
 from .cast_style import freeze_cast_style
 from .exceptions import InvalidTransitionError
 from .source_structures import planned_structure
@@ -52,6 +52,7 @@ def freeze_launch_policy(store, registry, request):
     width, height = GEOMETRY[brief.aspect_ratio]
     return LaunchPolicy(version=POLICY_VERSION, style_authority=request.style_authority, render_style=render_style, art_render_style=art_render_style,
         max_images=request.max_images, max_jobs=request.max_jobs, image_width=width, image_height=height,
+        early_reference_limit=4,
         code_revision=code_revision, specialist_bindings=None, executor_binding=profile, execution_pins=pins,
         brief=brief.model_dump(mode="json", by_alias=False))
 

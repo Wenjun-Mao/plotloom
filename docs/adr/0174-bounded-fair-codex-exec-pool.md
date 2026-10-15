@@ -15,7 +15,9 @@ activity. Increasing a process count alone would preserve those defects.
 ## Decision
 
 - Freeze pool limits in the current executor profile: at most four Codex jobs,
-  two text and two image jobs, with at most four admitted waiting jobs. Trusted
+  two text and two image jobs, with at most four enabled waiting jobs. Suspended
+  identities retain inactive project work; resuming must reacquire bounded queue
+  authorization before dispatch. Trusted
   qualification configurations may reduce these limits; their exact profile
   is frozen before dispatch. A job remains one immutable package and one
   attempt. Model/effort, sandbox, one-call image authority and native evidence
@@ -36,6 +38,10 @@ activity. Increasing a process count alone would preserve those defects.
   terminal settlement. Other eligible work may use remaining capacity. Cancel
   uses exact immutable identity and owned processes; killing a local child does
   not establish absence of an ImageGen operation.
+  When a stopped image job is proven not started, cancel its unstarted owning
+  proposal in the same project evidence transaction as terminal checkpoint,
+  attempt and budget settlement. This cannot strand an exported proposal after
+  host capacity is released, and cannot revoke an existing delivered asset.
 - Pause suspends unstarted queue authorization and retains its order/budget.
   An unregistered worker can be fenced before registration. A registered worker
   may park the original attempt only through its own proven pre-spawn branch;
@@ -47,6 +53,16 @@ activity. Increasing a process count alone would preserve those defects.
   every exact held attempt/domain and unchanged attempt/receipt bytes. Do not
   reset an unknown ledger or bypass it with a new namespace. Retained profile
   metadata remains readable; retired executor contracts are not executable.
+- Project folders use exact schema admission and do not run Alembic on open.
+  Freeze the immediately preceding serial layout from `1368dbd7` under hash
+  `a6e41b2a3ab1745521886f8db4b2a16e57bc2562835f2af4689be8d424a1a0e6`.
+  Extend the established explicit preserving operator transition to that exact
+  layout: idle paused/stopped work only, no unsettled attempts, unchanged row
+  projections, asset/package bytes, foreign keys and identity. Ordinary open
+  remains strict. Snapshot destination upgrade records the actual source-layout
+  hash and retains existing restored-run dispatch quarantine. Alembic 0029 is
+  engine-schema support; it is not project-folder upgrade evidence. No live
+  operator activation or source/attempt rebinding is authorized by this change.
 - Keep project adoption serial under existing claim/currentness/CAS authority.
   Current Cast → Art → Script → Storyboard and Bridge bindings stay intact.
   Two text slots require genuinely independent frozen jobs, initially from

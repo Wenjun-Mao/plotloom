@@ -15,12 +15,12 @@ from plotloom.codex_exec_contracts import (
     CodexExecReceipt,
     output_manifest_hash,
 )
+from plotloom.codex_exec_delivery import publish_creative_completion
 from plotloom.codex_exec_validation import (
     CodexExecTextValidationEvidence,
     CodexExecValidationStepEvidence,
     validation_plan_from_package,
 )
-from plotloom.codex_exec_delivery import publish_creative_completion
 from plotloom.creative_handoff_contracts import (
     CreativeHandoffError,
     CreativeHandoffRequest,
@@ -67,12 +67,19 @@ def _request_for_stage(stage: str) -> CreativeHandoffRequest:
             "art.json": {"scenes": []},
         },
     }.get(stage, {})
+    if stage == "storyboard":
+        from plotloom.production_dialogue_timing import (
+            TIMING_FILENAME,
+            freeze_f5_dialogue_timing,
+        )
+        artifacts[TIMING_FILENAME] = freeze_f5_dialogue_timing(artifacts["script.json"],
+            script_content_hash="a" * 64, language="zh-CN").model_dump(mode="json", by_alias=True)
     return _request().model_copy(update={"stage": stage, "input_artifacts": artifacts})
 
 
 def _profile() -> CodexExecProfile:
     return CodexExecProfile(
-        contractVersion="plotloom.codex-exec.v7",
+        contractVersion="plotloom.codex-exec.v8",
         executableSha256="a" * 64,
         cliVersion="codex-cli 0.162.0-alpha.17.2",
         model="gpt-6.1-sol",
@@ -91,6 +98,7 @@ def _profile() -> CodexExecProfile:
         maxEventBytes=50_000_000,
         maxOutputBytes=20_000_000,
         maxImageOutputs=4,
+        maxProcesses=4, maxTextProcesses=2, maxImageProcesses=2, maxQueuedJobs=4,
     )
 
 
@@ -313,6 +321,14 @@ def _saved_brief_request(stage: str) -> CreativeHandoffRequest:
             "storyboard-style-contract.json": freeze_storyboard_brief_style(parent),
         }
         creative_brief = storyboard_brief_instructions()
+    if stage == "storyboard":
+        from plotloom.production_dialogue_timing import (
+            TIMING_FILENAME,
+            freeze_f5_dialogue_timing,
+        )
+        input_artifacts["script.json"] = {"episodes": []}
+        input_artifacts[TIMING_FILENAME] = freeze_f5_dialogue_timing(input_artifacts["script.json"],
+            script_content_hash="a" * 64, language="zh-CN").model_dump(mode="json", by_alias=True)
     source = (
         {"acceptedScriptRevision": 1, "acceptedScriptContentHash": "a" * 64}
         if stage == "storyboard"

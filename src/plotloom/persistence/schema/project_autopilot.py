@@ -2,7 +2,17 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -59,7 +69,7 @@ class AutopilotExecAttemptRow(Base):
         ForeignKeyConstraint(["run_id", "project_id"], ["v2_autopilot_runs.id", "v2_autopilot_runs.project_id"], ondelete="CASCADE"),
         UniqueConstraint("run_id", "operation_key"),
         UniqueConstraint("project_id", "job_id"),
-        CheckConstraint("state IN ('reserved','spawn_intent','running','outcome_unknown','cancel_requested','completed','failed','settled')"),
+        CheckConstraint("state IN ('reserved','queued','spawn_intent','running','validating','outcome_unknown','cancel_requested','completed','failed','settled')", name="ck_v2_autopilot_exec_attempts_state"),
         CheckConstraint("domain IN ('text','image')"),
         CheckConstraint("image_budget_state IN ('none','reserved','consumed','released')"),
         CheckConstraint("(domain = 'text' AND image_budget_state = 'none' AND reserved_image_outputs = 0) OR (domain = 'image' AND image_budget_state != 'none' AND reserved_image_outputs BETWEEN 1 AND 4)"),
