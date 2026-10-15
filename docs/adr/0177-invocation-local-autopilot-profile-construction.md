@@ -1,9 +1,11 @@
 # 0177 — Invocation-local autopilot profile construction
 
-Status: owner-authorized October 14, 2026; design reviewed. Implementation
-candidate over local integrated `8ab58839df652e21ec5eef51a63c925d33a1af58`;
-independent read-only stable code review found no actionable issue. Correctness
-execution and matched measurement are separately scheduled, not passed evidence.
+Status: owner-authorized October 14, 2026; implementation committed at
+`db0216999210616fa6020ef156b811abb735d55f`, parent
+`8ab58839df652e21ec5eef51a63c925d33a1af58`. Independent stable code review,
+142 focused checks and one quiet unchanged-case pair are complete. The pair is
+scoped observational evidence; current whole-Python measurement, combined full
+qualification, publication and product acceptance remain open.
 Tracked in the [Python speed track](../roadmap/2026-10-14-python-context-and-workers.md).
 
 ## Problem and evidence
@@ -71,3 +73,35 @@ tests must not force visibility by changing cursors or transactions. Reuse the
 preselected contract/open/claim/geometry/recovery consumer union and obtain an
 independent stable review. Correctness, a new quiet uninstrumented matched pair,
 combined release qualification, publication and product acceptance remain separate.
+
+## Executed checkpoint — October 15
+
+The exact committed candidate bytes passed 51 new-contract and 91 selected
+consumer cases before commit; committing changed no content. Independent stable
+code and observer reviews found no remaining actionable issues after bounded
+observer corrections. An explicit eight-file Ruff F-family check passed; the
+earlier default Ruff check remains failed with ten non-F findings. These are
+focused/static records, not quick, module or full release qualification.
+
+Root accepted one quiet native mapped-consumer pair on clean before `8ab58839`
+and after `db021699`, using a detached control and the same checked physical
+Python 3.12.13 environment. Separate accepted natural collection/source-binding
+proof established each arm's package, test, fixture and tool ownership despite
+the shared editable environment. The measured command used only the original
+timing plugin, fresh external roots and the unchanged fixture generation.
+
+Whole focused-command time, including immediate owned cleanup, was
+50.113741375s before and 45.048235292s after; case setup/call/teardown totals
+were 47.094782542s and 42.662325292s. Both actual one-case executions passed
+with the same native fingerprint. This single pair observed 5.065506083s less
+command time; it establishes no statistical or whole-suite gain and cannot be
+added to earlier observations or subtracted from a historical complete run.
+The fixed-resource 151.73295-second / 85-percent target remains unmet.
+
+The [roadmap receipt](../roadmap/2026-10-14-python-context-and-workers.md#ordinary-open-profile-correctness-and-matched-result--october-15)
+records the exact case, fingerprint, commands, phase rows and artifact hashes.
+Retained result:
+`.local/remaining-cost/ordinary-open-profile-isolated-jf3tfr7m/result.json`,
+SHA-256 `7d20525429c5e829e52b04fc0bc1bebadecd624333d76f44b2adf7dcfda9b2fd`.
+This documentation receipt was written after the pair; it changes neither the
+measured revision nor the executable contract. No tests were rerun solely for it.

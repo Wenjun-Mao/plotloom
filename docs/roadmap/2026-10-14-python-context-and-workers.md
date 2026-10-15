@@ -3,9 +3,11 @@
 Status: the first owner-approved slice was independently reviewed, locally
 full-qualified and integrated on October 14, 2026. The later historical-scheduler
 and geometry-fixture continuation is implemented with focused checks and
-independent review; scoped geometry measurement passed. A later current
-2,239-case Python-only observation passed, as recorded below; matched current
-whole-suite gains and combined full qualification remain open. This continues the
+independent review; scoped geometry measurement passed. A historical 2,239-case
+Python-only observation passed at `7638964`, as recorded below. The later
+ordinary-open profile implementation at `db021699` has 142 focused passes and
+one accepted unchanged-case pair; a fresh current whole-Python measurement,
+matched whole-suite gains and combined full qualification remain open. This continues the
 [testing-health plan](2026-10-10-testing-health-cleanup.md),
 not a redefinition of its 85-percent complete-suite wall-time target.
 
@@ -2010,13 +2012,13 @@ extraction. Only direct ordinary checkpoint/decision passes share construction;
 SQL, isolation, errors, receipts, hashes, files, public/nested and admission paths
 retain their existing behavior. No plan reuse, generic memoizer or ambient cache.
 
-Resource hold: CLI's separate native serial/parallel comparison has priority.
-No tests, collection, dependency tooling, profiling, benchmarks, broad/full gate,
-provider calls, source commit, push or activation are allocated in this phase.
-Stop at a stable reviewed diff and return new selectors, the affected consumer
-union and proposed correctness/measurement commands. Correctness execution and
-the new unchanged-case uninstrumented before/after pair need separate scheduling;
-the accepted attribution is diagnostic, not a timing baseline. The fixed-resource
+Initial resource hold (historical design checkpoint): CLI's separate native
+serial/parallel comparison had priority. Tests, collection, dependency tooling,
+profiling, benchmarks, broad/full gates, provider calls, source commit, push and
+activation were unallocated. The stopping condition was a stable reviewed diff
+with selectors and proposed correctness/measurement commands. Those executions
+needed separate scheduling; their later accepted results follow below. The
+attribution remains diagnostic, not a timing baseline. The fixed-resource
 151.73295-second / 85-percent target remains unmet.
 
 The existing architecture reader's independent stable code review found no
@@ -2028,7 +2030,7 @@ eight changed/new Python files; the corrected one-off ownership JSON check and
 integration base in both existing runtime files; the receipt contract file is
 byte-identical. These static facts do not establish runtime correctness.
 
-Proposed first focused command, **not allocated or executed yet**:
+Initial focused command (unallocated at the design checkpoint; later executed):
 
 ```sh
 uv run --locked --no-sync python scripts/verify.py focused \
@@ -2038,7 +2040,7 @@ uv run --locked --no-sync python scripts/verify.py focused \
   --pytest tests/test_autopilot_profile_receipts.py
 ```
 
-Proposed affected-consumer focused union, using one `--pytest` per selector:
+Initially selected affected-consumer union, using one `--pytest` per selector:
 
 - `tests/test_codex_exec_contracts.py`
 - `tests/test_codex_exec_receipts.py`
@@ -2053,19 +2055,147 @@ Proposed affected-consumer focused union, using one `--pytest` per selector:
 - `tests/test_autopilot_image_safety.py::test_retained_candidate_must_match_exact_manifest_output`
 
 The last case exercises an existing direct public-binding caller affected by the
-common-body extraction. This is a proposal for scoped correctness, not full or
-module qualification. The manager must allocate its external temporary roots,
-execution window and cleanup. No test counts have been collected for this delta.
+common-body extraction. This was a scoped correctness proposal, not full or
+module qualification. No counts had been collected at that checkpoint; the
+manager subsequently allocated external roots, execution and cleanup, with the
+actual results below.
 
-After stable correctness, a separately allocated new matched observer would run
-this unchanged case uninstrumented on both exact frozen inputs:
+The initial proposal reserved a separately allocated matched observer for this
+unchanged case, uninstrumented on both exact frozen inputs:
 
 ```sh
 uv run --locked --no-sync python scripts/verify.py focused \
   --pytest 'tests/test_autopilot_early_references.py::test_complete_early_pack_reuses_original_jobs_and_budgets_once[mapped-consumer]'
 ```
 
-Proposed before is integrated `8ab58839`; after is the later correctness-qualified
-candidate commit (not created in this phase). Require quiet matching resources,
-dependencies/host and native case proofs, fresh external roots, complete command
-timing and owned cleanup. No old observer or diagnostic becomes this baseline.
+At that proposal checkpoint, before was integrated `8ab58839` and the after
+commit had not been created. Quiet matching resources, dependency/host and
+native case proofs, fresh external roots, complete-command timing and owned
+cleanup remained required. No old observer or diagnostic became the baseline.
+
+### Ordinary-open profile correctness and matched result — October 15
+
+Implementation was committed at `db0216999210616fa6020ef156b811abb735d55f`,
+parent `8ab58839df652e21ec5eef51a63c925d33a1af58`. Its reviewed twelve-file
+candidate digest was
+`632b585b273ca193fb1db4eb3a0dcc9553d43fc891ce0bcd5038be6fe5e592b6`.
+The exact candidate bytes passed **142 focused cases**: 51 in the four new
+contract files above and 91 in the selected consumer union. This evidence was
+captured before commit; committing changed no bytes. Independent stable code
+review found no actionable issue. Correctness result
+`.local/remaining-cost/profile-construction-correctness-htplzps2/result.json`
+has SHA-256 `5ed960fef8a2d843ab0aa69c12692175d922e66d99a15d032ca3944c0bf589c4`.
+The explicit eight-file Ruff F-family check passed; the earlier default Ruff
+check remains failed with **ten non-F findings**. No quick/module/full success
+or unfiltered hosted CI is implied by these focused/static records.
+
+After attended independent observer reviews and root's separate setup/seal/
+ONE START releases, the new quiet pair completed once. The requested reader
+selection was GPT-6.1 Sol / High; host records confirmed that selection for the
+later setup/observer review turns. Before was a separate clean detached control
+at exact `8ab58839`; after was clean `db021699`. Frozen CLI `2a359171` remained
+separate and untouched. Both arms used the same checked physical Python 3.12.13
+and retained `.venv`, lock and case inputs. Root accepted setup-02's natural
+nested runner/pytest/package/test/fixture/tool binding proof plus separate
+per-arm import identities before measurement. The measured pair used only the
+original timing plugin and arm `src:root` source paths, with fresh external
+temporary/cache roots and unchanged fixture generation; no setup diagnostic,
+collect-only override, prewarming or product instrumentation entered execution.
+
+Both arms passed the exact mapped-consumer case in the command above, with
+native fingerprint
+`20a17f28cc1719827b02e22af90b923bbf436d1cf3d83d21a9b3e19f19c3bcd4`.
+Each focused command's selector collection emitted `complete=false`; its
+distinct actual execution emitted `complete=true`, one case/file and a valid
+phase row. Both retained the same existing httpx deprecation warning.
+
+| Side | Whole command | Setup | Call | Teardown | Case phase sum |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| before | 50.113741375s | 0.000569792s | 47.094119167s | 0.000093583s | 47.094782542s |
+| after | 45.048235292s | 0.000478542s | 42.661754000s | 0.000092750s | 42.662325292s |
+
+Values here are rounded; full precision is in the result. Whole-command time
+includes the focused runner's startup/selector collection, actual test phases,
+reporting and immediate owned-group cleanup. Separate collection/import probes,
+preservation checks and final external-root removal are excluded. This one pair
+observed **5.065506083s / 10.108018%** less command time and
+**4.432457250s / 9.411780%** less case phase time. It is not a repeated/statistical
+result, a whole-suite saving or an amount to add to other scoped results or
+subtract from the historical 524.161556s run. The **151.73295s / 85-percent**
+target, current whole-Python measurement and combined full qualification remain
+open. The human owner's CLI verification-authority choice is still pending;
+provider, hosted CI, live
+activation, publication and product acceptance remain held or unestablished.
+
+Evidence root `.local/remaining-cost/ordinary-open-profile-isolated-jf3tfr7m/`:
+
+- `result.json`: `7d20525429c5e829e52b04fc0bc1bebadecd624333d76f44b2adf7dcfda9b2fd`;
+- `before/focused.log`: `aa55a4dd8c1fa4212347ce1c21be8c8b579096f53648c7494e109728a006d5b2`;
+- `after/focused.log`: `2f1a4056e25483fcf0669a870400b3cfa83717b6953255e06785a1e7de5ce763`;
+- observer `.local/remaining-cost/ordinary_open_profile_isolated_pair_20261015.py`:
+  `8941b90e71be7e515890432b5460e0cd6a559e481991a475ab0806284257c9b4`;
+- sealed plan: `9bf8ad66b531486cc3a9efce48681f9eaac7ce00f0701f0233de2dbd75753aca`.
+
+Actual terminal, native proofs, source/environment/artifact preservation and
+owned-group/exact-root cleanup passed root's independent audit. Setup-01 remains
+a failed proof attempt; the older user-interrupted pair remains incomplete.
+Neither supplied an arm or was relabeled as this successful pair. This receipt
+changes only documentation after measurement: the measured source remains
+`db021699` with the original digest above, not a later docs commit. No test was
+rerun solely for these documentation edits. This receipt alone authorizes no
+commit or push; publication still needs separate authorization/qualification.
+
+### Proposed next checkpoint — one fresh current whole-Python observation
+
+Prefer current whole-Python evidence before choosing another micro-optimization.
+After review and a separately authorized local docs commit, pin that actual clean
+HEAD (not yet known), executable inputs, environment/tool/host identity and the
+unchanged timing manifest. Prepare a new ignored capture without retargeting
+`.local/remaining-cost/current_python_external_capture.py` or any spent observer.
+Reuse its inventory/scheduler/report extraction and native runner/completion
+contracts; use the later reviewed latched stop, registration, early-cleaning and
+reporting lifecycle, with exact owned groups and registered external-root inode/
+device checks. Keep its whole-command timeout proposal at 3600 seconds, subject
+to root review rather than inheriting the scoped pair's 900-second bound.
+
+Proposed separate unfiltered native inventory command:
+
+```sh
+uv run --locked --no-sync python -m pytest --collect-only -q -p no:cacheprovider
+```
+
+Proposed timed command, retaining the released **default two workers**:
+
+```sh
+uv run --locked --no-sync python scripts/testing/run_python_suite.py
+```
+
+Use the existing checked environment and explicit retained source paths, offline/
+no-sync children, fresh external temp/uv caches and the native runner's disabled
+pytest cache. Refuse ambient filters/plugins/coverage startup; leave
+`PYTEST_ADDOPTS` empty, as the runner requires. The runner itself selects the
+timing plugin for workers. No setup diagnostic, fixture prewarming, manifest
+rewrite, worker-count increase or new environment is proposed.
+
+Deliver fresh native IDs/counts (currently uncollected, not predicted), scheduler
+basis/history/fallback and exact whole-file assignments. Match the runner's own
+fresh collector fingerprint to the separate inventory; require two disjoint
+assigned native-ID fingerprints whose union is exact, both workers' true
+completion markers and finite per-file phase rows. Preserve raw logs and report
+hashes, whole-command wall including immediate owned cleanup, native worker/
+parallel walls, per-file setup/call/teardown totals and pre/post source/env/
+manifest/proof/cache identity. Phase sums are work totals, not parallel wall.
+Retain all old evidence, including this pair, and verify terminal/group/root
+cleanup before reporting. `verification-tooling` owns the native runner,
+completion/scheduler/plugin and their existing regression selections; no tool or
+test contract change is proposed.
+
+Stopping condition: one current Python-only observation, then root review. This
+proposal authorizes no capture authoring, collection or execution. The previous
+524.1615562500083s at `7638964` / 2,239 cases / 211 files is different-input
+history, not a matched baseline. A docs-only commit can retain executable
+evidence while explicitly changing revision provenance; later CLI integration
+that changes executable inputs/inventory invalidates current-source reuse and
+needs fresh measurement/relevant qualification. Whole-Python success would
+still leave combined full, hosted CI, CLI, publication and product acceptance
+separate. No 85-percent promise follows from the scoped five-second observation.
