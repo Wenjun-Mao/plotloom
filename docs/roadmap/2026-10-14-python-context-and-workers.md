@@ -2235,7 +2235,7 @@ canonical timing profile. The bounded repair updates that exact expectation and
 checks the full timing payload/digest against its serialized candidate binding;
 all lifecycle, cancellation, late-delivery and recovery assertions remain.
 
-**Open precision decision — human answer pending.** The other failure,
+**Precision decision at failed-run closure — subsequently resolved below.** The other failure,
 `test_raw_f5_accepts_submillisecond_time_but_production_conflicts_explicitly`,
 exposes a contract conflict: ADR 0100 places exact integer-millisecond conversion
 at Bridge/provenance and leaves raw F5 admission unchanged, whereas the new
@@ -2275,3 +2275,92 @@ The measured whole-run revision remains `bab6bc08`; this later test-only repair
 is not a relabelled whole-suite result. The subsequent receipt-only docs
 update does not change the executed test bytes. No second precision case,
 affected union, module, whole suite or full release check ran in this allocation.
+
+### Approved raw F5 precision repair — October 15
+
+The owner explicitly chose Option 1: preserve raw F5 decimal precision at review
+admission, compare exactly against canonical minima and frozen timing ceilings,
+and retain Bridge's strict integer-millisecond conversion. ADR 0173 now records
+why integer-ms minima do not constrain cut precision and preserves ADR 0100's
+boundary. The earlier failed whole-run receipt and its measured `bab6bc08`
+revision remain unchanged evidence; the first artifact-expectation repair was
+separately committed at `1b71883b`.
+
+The shared receiving helper now uses decimal integer coefficients/scales for
+comparisons and cut/segment/complete-route sums. Both receiving routes retain
+their original upstream validators, complete frozen timing metadata and exact
+dialogue ownership. The obsolete F5-only strict converter has no other callers
+and is removed. Bridge/canonical conversion and the retained raw-F5-acceptance /
+`cut_duration_invalid` integration expectation remain unchanged. There is no
+new dependency or sandbox resource grant; the existing timing-helper identity
+continues to be pinned by both routes and the Codex validation/resource owners.
+
+The draft was preserved during the owner's CLI-priority checkpoint, with no
+Python test live. Root subsequently released the bounded Python correctness
+window after that CLI checkpoint finished. These are correctness checks, not
+matched timing evidence. No new whole-Python, full release, sandbox handoff or
+provider proof is authorized by this checkpoint.
+
+Executed checks at retained HEAD `1b71883b` plus the uncommitted Option 1
+candidate, with unchanged receiver SHA-256
+`6b44c2c91a9339f5758cc44a536a6c69e737d5026086af0343480737a9357048`:
+
+- Initial focused selection: the two previously failed node IDs and all six new
+  exact-time test families, **56 passed / 4 failed** out of 60. Native session
+  `35719` exited 1. The new cut-boundary fixture had 18-second episodes, violating
+  the unchanged upstream 25-second target's ±15% gate before the precision check.
+  The repair belongs to fixture construction: preserve the boundary segment but
+  supply valid independent episode timing. No production gate or assertion was
+  weakened. Evidence: `.local/remaining-cost/f5-option1-initial-640iu5x_/`, result
+  `5fbe1871a0bd5848a18da23ccf876a71f7d6afad0618130b65318d7c3a4106f3`.
+- Smallest affected family after that fixture correction: **14 passed**, session
+  `73299` exited 0, native fingerprint
+  `8f348b82c9de8a1a8ba37ca67a8ddca5cba8d745846663c3eab83a21be397b38`.
+  Evidence: `.local/remaining-cost/f5-option1-boundary-1s4qspnk/`, result
+  `96e802444198b49def122c273602e1c529818b216f16132629c351299c571cea`.
+- Stable affected union below: **205 passed / 11 files**, session `64871` exited
+  0, exact native fingerprint
+  `1e43ce56a3de6555a77bc38ece2eae040c43c248b5f699fdd736f1350838509a`.
+  Evidence: `.local/remaining-cost/f5-option1-affected-lpa1ekkd/`, result
+  `4c097322b2e0f1fb4262e29a1b2975e57ec9f722d23c98bc55ed9390ea699568`, log
+  `05fd88e7fff78b1a2ae256897b9fc86e1ec93e9ee55a7bc91c450fc2c8227350`.
+
+The corrected test file at the successful checks was
+`d6a7af8d4553a99f1178396229100cd6bfff896c68689252fa8b7dec07758de1`.
+The successful native completion records match every collected ID with no
+skips/xfails; the existing Starlette/httpx warning appeared in the affected
+union. All three observations preserved their initial/final source, environment,
+pytest-cache and protected-evidence identities. All owned groups and registered
+inode-bound external roots were absent after cleanup. Source pytest caching was
+disabled; children used the existing environment, offline/no-sync, explicit
+retained src/root and fresh external TMPDIR/uv caches. The failed observation
+remains failed and immutable. Later receipt-only documentation does not change
+the tested executable inputs.
+
+The affected union used exactly:
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest tests/test_f5_dialogue_timing.py \
+  --pytest tests/test_project_storage_storyboard_review.py \
+  --pytest tests/test_storyboard_review_timing.py \
+  --pytest tests/test_storyboard_brief_style.py \
+  --pytest tests/test_production_presentation.py \
+  --pytest tests/test_production_presentation_integration.py \
+  --pytest tests/test_production_bridge_voice_over.py \
+  --pytest tests/test_codex_exec_validation.py \
+  --pytest tests/test_codex_exec_resources.py \
+  --pytest tests/test_codex_exec_stage_routing.py \
+  --pytest tests/test_storyboard_operation_context.py
+```
+
+Both receiving routes have action-only submillisecond admission/render/acceptance
+and unchanged Bridge refusal coverage, exact canonical-minimum and complete-route
+comparisons, supported JSON exponent notation, frozen cut/segment boundaries,
+missing timing metadata and malformed-number refusals. Existing source-binding,
+ownership, multi-cue, install/reopen and currentness regressions remain in the
+union. The existing `creative-production` owner already includes the changed
+test file; there is no new file or allowlist expansion. Node syntax and scoped
+Ruff F/I checks passed; AST/diff consistency was checked. These scoped results
+leave a fresh whole-Python observation, combined full qualification, actual
+changed-command sandbox qualification, hosted CI and product acceptance open.

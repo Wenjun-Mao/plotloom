@@ -61,3 +61,27 @@ both validator routes and real proposal/install/reopen admission. Qualify the
 changed F5 command plans in the actual provider-free sandbox before a new
 disposable provider proof. Preserve the stopped proof and old native evidence
 under their original pins.
+
+## Raw F5 precision clarification — 2026-10-15
+
+The owner explicitly chose to preserve ADR 0100's raw-review precision boundary.
+The initial receiving implementation converted every source cut to integer
+milliseconds, including action-only cuts; the retained submillisecond integration
+regression exposed that unintended restriction. Integer-ms dialogue minima
+constrain a comparison, not the precision of the model-authored cut duration.
+
+Both receiving routes interpret each finite JSON number's decimal value exactly,
+including exponent notation, and use decimal integer coefficients/scales for
+cut/segment/route sums and comparisons against frozen limits and canonical
+minima. No rounding, binary floating-point summation, epsilon or empty-dialogue
+bypass establishes receiving acceptance. All original upstream gates, binding,
+source ownership and exactly-once dialogue assignment checks remain required.
+Raw source bytes are not rewritten. Exact conversion to positive integer
+milliseconds remains a separate, unchanged Bridge/provenance requirement under
+[ADR 0100](0100-reviewed-production-presentation.md): raw F5 may accept `2.5001`
+seconds, then Bridge must expose `cut_duration_invalid` and refuse installation.
+
+Moving representability rejection into F5 would change the preserved review
+contract and is rejected for this repair. Retained failed observations, jobs and
+packages remain under their original source identities; this clarification does
+not relabel them as satisfying the corrected receiving contract.

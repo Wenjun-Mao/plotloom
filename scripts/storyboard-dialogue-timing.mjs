@@ -11,16 +11,29 @@ function sort(value) {
 }
 const coordinate = (ep, scene, flow) => `${ep}/${scene}/${flow}`;
 
-export function sourceSecondsToMilliseconds(seconds) {
-  assert(typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0, 'Source cut seconds must be finite and positive');
-  const [, whole, fraction = '', exponent = '0'] = String(seconds).match(/^(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/) ?? [];
-  assert(whole !== undefined, 'Source cut seconds cannot be represented exactly');
-  const digits = BigInt(whole + fraction), power = 3 + Number(exponent) - fraction.length;
-  const divisor = power < 0 ? 10n ** BigInt(-power) : 1n;
-  assert(digits % divisor === 0n, 'Source cut seconds must be exactly representable as integer milliseconds');
-  const result = power < 0 ? digits / divisor : digits * 10n ** BigInt(power);
-  assert(result <= BigInt(Number.MAX_SAFE_INTEGER), 'Source cut milliseconds exceed exact integer capacity');
-  return Number(result);
+const zeroTime = { coefficient: 0n, scale: 0 };
+
+function secondsTime(seconds) {
+  assert(typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0, 'Source timing seconds must be finite and positive');
+  const [, whole, fraction = '', exponent = '0'] = String(seconds).match(/^(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/);
+  // Match the JSON number's decimal value, including exponent notation. Raw F5
+  // comparison does not convert or round that value into canonical integer ms.
+  return { coefficient: BigInt(whole + fraction), scale: fraction.length - Number(exponent) };
+}
+
+function alignedTimes(left, right) {
+  const scale = Math.max(left.scale, right.scale);
+  return [left.coefficient * 10n ** BigInt(scale - left.scale), right.coefficient * 10n ** BigInt(scale - right.scale), scale];
+}
+
+function addTimes(left, right) {
+  const [a, b, scale] = alignedTimes(left, right);
+  return { coefficient: a + b, scale };
+}
+
+function atMost(left, right) {
+  const [a, b] = alignedTimes(left, right);
+  return a <= b;
 }
 
 export function validateF5ReceivingTiming(board, request) {
@@ -49,34 +62,42 @@ export function validateF5ReceivingTiming(board, request) {
     assert(['measured', 'natural', 'brisk'].includes(line.delivery) && Number.isSafeInteger(line.minimumDurationUnits) && line.minimumDurationUnits > 0, 'Canonical dialogue timing minimum/pace is invalid');
     const key = coordinate(line.episode, line.sceneIndex, line.flowIndex);
     assert(!minima.has(key), 'Canonical dialogue timing source coordinates repeat');
-    minima.set(key, line.minimumDurationUnits);
+    minima.set(key, BigInt(line.minimumDurationUnits));
   });
   const mapping = admission.sectionBindings;
   assert(Array.isArray(mapping) && canonical(board.episodes?.map(ep => ep.ep)) === canonical(mapping.map(item => item.episode)), 'Storyboard episodes must exactly match frozen F4 mapping');
   assert(admission.reviewTiming && Object.entries(admission.reviewTiming).every(([key, value]) => board.params?.[key] === value), 'Storyboard params must match frozen review timing');
+  const minimumCut = secondsTime(admission.reviewTiming.minCutSeconds);
+  const maximumCut = secondsTime(admission.reviewTiming.maxCutSeconds);
+  const maximumSegment = secondsTime(admission.reviewTiming.maxSegmentSeconds);
+  const maximumRoute = secondsTime(admission.targetPlaythroughSeconds);
   const assigned = new Map(), durations = new Map();
   board.episodes.forEach((episode, index) => {
-    let episodeUnits = 0;
+    let episodeTime = zeroTime;
     for (const segment of episode.segments ?? []) {
+      let segmentTime = zeroTime;
       for (const cut of segment.cuts ?? []) {
-        const units = sourceSecondsToMilliseconds(cut.seconds);
-        episodeUnits += units;
+        const duration = secondsTime(cut.seconds);
+        assert(atMost(minimumCut, duration) && atMost(duration, maximumCut), 'Cut duration violates frozen review timing');
+        segmentTime = addTimes(segmentTime, duration);
         const [start, end] = cut.beats ?? [];
         assert(Number.isInteger(start) && Number.isInteger(end) && start >= 1 && end >= start, 'Cut beats must identify an ordered source range');
-        let total = 0;
+        let total = 0n;
         for (let flow = start; flow <= end; flow++) {
           const key = coordinate(episode.ep, segment.sceneIndex, flow);
           if (!minima.has(key)) continue;
           total += minima.get(key);
           assigned.set(key, (assigned.get(key) ?? 0) + 1);
         }
-        assert(total <= units, 'Canonical dialogue minima must fit their owning cut duration');
+        assert(atMost({ coefficient: total, scale: 3 }, duration), 'Canonical dialogue minima must fit their owning cut duration');
       }
+      assert(atMost(segmentTime, maximumSegment), 'Segment duration violates frozen review timing');
+      episodeTime = addTimes(episodeTime, segmentTime);
     }
-    durations.set(mapping[index].sectionId, episodeUnits);
+    durations.set(mapping[index].sectionId, episodeTime);
   });
   assert([...minima.keys()].every(key => assigned.get(key) === 1), 'Every canonical dialogue line must belong to exactly one cut');
   const footage = new Set(admission.completeRouteSectionIds.flat().filter(id => !admission.routeOnlySectionIds.includes(id)));
-  assert(footage.size === durations.size && [...durations].every(([id, units]) => footage.has(id) && Number.isSafeInteger(units) && units > 0), 'Storyboard timing must cover every footage section exactly');
-  assert(admission.completeRouteSectionIds.every(route => route.reduce((sum, id) => sum + (durations.get(id) ?? 0), 0) <= admission.targetPlaythroughSeconds * 1000), 'Complete storyboard route exceeds author playthrough maximum');
+  assert(footage.size === durations.size && [...durations].every(([id, time]) => footage.has(id) && time.coefficient > 0n), 'Storyboard timing must cover every footage section exactly');
+  assert(admission.completeRouteSectionIds.every(route => atMost(route.reduce((sum, id) => addTimes(sum, durations.get(id) ?? zeroTime), zeroTime), maximumRoute)), 'Complete storyboard route exceeds author playthrough maximum');
 }

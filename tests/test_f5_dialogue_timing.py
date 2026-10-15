@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from plotloom.authored_route_timing import route_budget_hash
 from plotloom.codex_exec_validation import build_text_validation_plan
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_exchange import canonical_json
@@ -72,7 +73,8 @@ def prepared(tmp_path, monkeypatch, request):
     style = configuration if isinstance(configuration, str) else configuration["style"]
     source = creative_delivery_fixtures._pilot_script()
     source["lang"] = "en"
-    source["episodes"][0]["scenes"][0]["flow"][3] = {"speaker": "VO", "line": LINE, "delivery": NOTES}
+    if not isinstance(configuration, dict) or configuration.get("dialogue", True):
+        source["episodes"][0]["scenes"][0]["flow"][3] = {"speaker": "VO", "line": LINE, "delivery": NOTES}
     if isinstance(configuration, dict) and configuration.get("multi"):
         source["episodes"][0]["scenes"][0]["flow"][3]["line"] = LINE[:12]
         source["episodes"][0]["scenes"][0]["flow"][4] = {"speaker": "VO", "line": LINE[12:], "delivery": NOTES}
@@ -254,4 +256,135 @@ def test_impossible_line_refuses_fresh_preparation_without_creating_a_job(prepar
     with store.repository._read() as session:
         assert session.get(StoryboardReviewCandidateRow, "ch_" + "u" * 32) is None
         assert session.get(CreativeHandoffExecutionPinRow, "ch_" + "u" * 32) is None
+
+
+@pytest.mark.parametrize("prepared", [
+    {"style": "realistic", "dialogue": False}, {"style": "brief", "dialogue": False},
+], indirect=True)
+@pytest.mark.parametrize("seconds,bridge_conflict", [(2.5, False), (2.5001, True), (2.5000001, True)])
+def test_action_only_raw_precision_admits_but_bridge_conversion_stays_strict(prepared, tmp_path, seconds, bridge_conflict):
+    _storage, store, candidate, frozen = prepared
+    assert frozen.input_artifacts[TIMING_FILENAME]["lines"] == []
+    board = _source_shaped_review_board(seconds)
+    if candidate.binding.storyboard_render_contract:
+        board = brief_board(board, "direction")
+    validated = invoke(tmp_path, frozen, board)
+    assert validated.returncode == 0, validated.stderr.decode()
+    adopt_rendered_board(store, candidate, frozen, board, tmp_path)
+    accepted = store.storyboard_review_state().accepted_review
+    assert accepted is not None and accepted.storyboard == board
+    proposal = store.prepare_production_bridge(store.production_bridge_state().preparation.request).proposal
+    assert proposal is not None
+    assert any(conflict.code == "cut_duration_invalid" for conflict in proposal.conflicts) is bridge_conflict
+    if bridge_conflict:
+        assert not proposal.installable
+    artifacts = deepcopy(frozen.input_artifacts)
+    del artifacts[TIMING_FILENAME]
+    missing = invoke(tmp_path, frozen.model_copy(update={"input_artifacts": artifacts}), board)
+    assert missing.returncode != 0 and b"canonical dialogue timing" in missing.stderr.lower()
+
+
+@pytest.mark.parametrize("prepared", ["realistic", "brief"], indirect=True)
+@pytest.mark.parametrize("seconds,accepted", [
+    (7.9199999, False), (7.919999999999999, False), (7.92, True),
+    (7.920000000000001, True), (7.9200001, True),
+])
+def test_raw_precision_compares_exactly_against_canonical_minimum(prepared, tmp_path, seconds, accepted):
+    _storage, _store, candidate, frozen = prepared
+    board = narrated_board(seconds, style="brief" if candidate.binding.storyboard_render_contract else "realistic")
+    for render in (False, True):
+        result = invoke(tmp_path, frozen, board, render=render)
+        if accepted:
+            assert result.returncode == 0, result.stderr.decode()
+        else:
+            assert result.returncode != 0 and b"Canonical dialogue minima" in result.stderr
+
+
+@pytest.mark.parametrize("prepared", [
+    {"style": "realistic", "dialogue": False}, {"style": "brief", "dialogue": False},
+], indirect=True)
+@pytest.mark.parametrize("last_seconds,accepted", [(2.4999999, True), (2.5, True), (2.5000001, False)])
+def test_mixed_decimal_route_sum_obeys_exact_ceiling(prepared, tmp_path, last_seconds, accepted):
+    _storage, _store, candidate, frozen = prepared
+    board = _source_shaped_review_board(2.5)
+    # Each episode totals exactly 22.5 seconds. Either complete route is 45;
+    # mutually exclusive endings must never be summed together.
+    for episode in board["episodes"]:
+        cuts = [cut for segment in episode["segments"] for cut in segment["cuts"]]
+        for index, cut in enumerate(cuts[:-1]):
+            cut["seconds"] = 2.5001 if index % 2 == 0 else 2.4999
+    board["episodes"][1]["segments"][-1]["cuts"][-1]["seconds"] = last_seconds
+    if candidate.binding.storyboard_render_contract:
+        board = brief_board(board, "direction")
+    artifacts = deepcopy(frozen.input_artifacts)
+    admission = artifacts["storyboard-admission.json"]
+    admission["targetPlaythroughSeconds"] = 45
+    admission["routeBudgetHash"] = route_budget_hash(
+        target_seconds=45, section_bindings=admission["sectionBindings"],
+        routes=admission["completeRouteSectionIds"], route_only_ids=admission["routeOnlySectionIds"],
+    )
+    limited = frozen.model_copy(update={"input_artifacts": artifacts})
+    for render in (False, True):
+        result = invoke(tmp_path, limited, board, render=render)
+        if accepted:
+            assert result.returncode == 0, result.stderr.decode()
+        else:
+            assert result.returncode != 0 and b"Complete storyboard route exceeds" in result.stderr
+
+
+@pytest.mark.parametrize("prepared", [
+    {"style": "realistic", "dialogue": False}, {"style": "brief", "dialogue": False},
+], indirect=True)
+@pytest.mark.parametrize("seconds", [True, None, "2.5", 0, -1, float("nan"), float("inf"), -float("inf")])
+def test_raw_precision_does_not_admit_invalid_source_seconds(prepared, tmp_path, seconds):
+    _storage, _store, candidate, frozen = prepared
+    board = _source_shaped_review_board(2.5)
+    board["episodes"][0]["segments"][0]["cuts"][0]["seconds"] = seconds
+    if candidate.binding.storyboard_render_contract:
+        board = brief_board(board, "direction")
+    result = invoke(tmp_path, frozen, board)
+    assert result.returncode != 0
+
+
+@pytest.mark.parametrize("prepared", [
+    {"style": "realistic", "dialogue": False}, {"style": "brief", "dialogue": False},
+], indirect=True)
+@pytest.mark.parametrize("literal", ["2.5001e0", "25001e-4", "0.25001e+1"])
+def test_raw_precision_accepts_supported_json_exponent_notation(prepared, tmp_path, literal):
+    _storage, _store, candidate, frozen = prepared
+    board = _source_shaped_review_board(2.5001)
+    if candidate.binding.storyboard_render_contract:
+        board = brief_board(board, "direction")
+    baseline = invoke(tmp_path, frozen, board)
+    assert baseline.returncode == 0, baseline.stderr.decode()
+    path = tmp_path / "board.json"
+    original = path.read_bytes()
+    assert b'"seconds":2.5001' in original
+    path.write_bytes(original.replace(b'"seconds":2.5001', f'"seconds":{literal}'.encode()))
+    assert json.loads(path.read_bytes()) == board
+    result = subprocess.run(baseline.args, capture_output=True, check=False)
+    assert result.returncode == 0, result.stderr.decode()
+
+
+@pytest.mark.parametrize("prepared", [
+    {"style": "realistic", "dialogue": False}, {"style": "brief", "dialogue": False},
+], indirect=True)
+@pytest.mark.parametrize("boundary,seconds,accepted", [
+    ("cut", 1.9999999, False), ("cut", 2, True), ("cut", 8, True), ("cut", 8.0000001, False),
+    ("segment", 2.9999999, True), ("segment", 3, True), ("segment", 3.0000001, False),
+])
+def test_raw_precision_preserves_frozen_cut_and_segment_limits(prepared, tmp_path, boundary, seconds, accepted):
+    _storage, _store, candidate, frozen = prepared
+    board = _source_shaped_review_board(2.7 if boundary == "cut" else 3)
+    if boundary == "cut":
+        # Keep all episodes within the independent upstream 25-second target;
+        # this segment can then exercise either 2- or 8-second cut admission.
+        board["episodes"][0]["segments"][0] = _source_shaped_review_board(2)["episodes"][0]["segments"][0]
+    segment = board["episodes"][0]["segments"][0 if boundary == "cut" else 1]
+    segment["cuts"][-1]["seconds"] = seconds
+    if candidate.binding.storyboard_render_contract:
+        board = brief_board(board, "direction")
+    for render in (False, True):
+        result = invoke(tmp_path, frozen, board, render=render)
+        assert (result.returncode == 0) is accepted, result.stderr.decode()
 
