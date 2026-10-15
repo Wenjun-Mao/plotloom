@@ -98,10 +98,13 @@ def _run_frozen_plan(tmp_path: Path, stage: str) -> str:
     policy = "src/plotloom/storyboard_brief_style.py" if stage == "storyboard" else "src/plotloom/autopilot_brief_style.py"
     assert plan.route == "saved_brief" and plan.candidate_filename == candidate_filename
     assert plan.source_revision == PLOTLOOM_CODE_REVISION
-    assert set(resources.read_paths) == {
+    expected_paths = {
         (EXAMPLES / f"novel-{stage}").resolve(), (ROOT / adapter).resolve(),
         (ROOT / policy).resolve(), tools["node"].parent.parent,
     }
+    if stage == "storyboard":
+        expected_paths.add((ROOT / "scripts/storyboard-dialogue-timing.mjs").resolve())
+    assert set(resources.read_paths) == expected_paths
     assert tuple(step.step_id for step in plan.steps) == ("validate", "render")
     assert tuple(step.stdout_is_report for step in plan.steps) == (False, True)
     assert {path.name for path in delivery.iterdir()} == {candidate_filename}
