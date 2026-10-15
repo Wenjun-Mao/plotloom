@@ -42,7 +42,8 @@ def _row(connection, sql, values):
     return dict(zip((column[0] for column in cursor.description), row, strict=True))
 
 
-def _assert_exec_attempt_binding(connection, project_id, run_id, state, evidence, owner, operation_key):
+def _assert_exec_attempt_binding(connection, project_id, run_id, state, evidence, owner, operation_key,
+                                 *, profile_construction=None):
     run = _row(connection, "SELECT project_id,policy FROM v2_autopilot_runs WHERE id=?", (run_id,))
     policy = json.loads(run["policy"])
     is_codex_exec = policy.get("version") == POLICY_VERSION
@@ -61,7 +62,8 @@ def _assert_exec_attempt_binding(connection, project_id, run_id, state, evidence
     row = _row(connection, "SELECT * FROM v2_autopilot_exec_attempts WHERE id=?", (str(evidence.executor_attempt_id),))
     attempt = CodexExecAttempt.model_validate(json.loads(row["snapshot"]))
     expected_domain = "text" if owner in CREATIVE_OWNERS else "image"
-    profile = CodexExecProfile.model_validate(policy.get("executorBinding", {}))
+    profile = (CodexExecProfile.model_validate(policy.get("executorBinding", {}))
+        if profile_construction is None else profile_construction.resolve(run["policy"], policy))
     if (row["run_id"] != run_id or row["project_id"] != project_id
             or row["operation_key"] != operation_key or row["job_id"] != evidence.job_id
             or row["domain"] != expected_domain or attempt.attempt_id != evidence.executor_attempt_id
@@ -104,6 +106,12 @@ def _assert_exec_attempt_binding(connection, project_id, run_id, state, evidence
 
 
 def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id, operation_key=None, asset_home=None):
+    return _assert_checkpoint_binding(connection, project_id, state, evidence, run_id=run_id,
+        operation_key=operation_key, asset_home=asset_home)
+
+
+def _assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id,
+                               operation_key=None, asset_home=None, profile_construction=None):
     owner = evidence.owner
     if owner == "geometry-preparation":
         if evidence.job_id or evidence.request_hash or evidence.execution_pin or evidence.delivery_hash or evidence.geometry_preparation is None:
@@ -148,7 +156,8 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
     if not evidence.job_id or not evidence.request_hash or not evidence.execution_pin:
         raise ValueError("native checkpoint requires its exact frozen execution identity")
     exec_attempt, exec_receipt = _assert_exec_attempt_binding(
-        connection, project_id, run_id, state, evidence, owner, operation_key
+        connection, project_id, run_id, state, evidence, owner, operation_key,
+        profile_construction=profile_construction,
     )
     if owner in CREATIVE_OWNERS:
         bridge = owner.startswith("bridge-")
@@ -164,10 +173,12 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
                 or pin["project_id"] != project_id or pin["stage"] != owner or expected_pin != evidence.execution_pin):
             raise ValueError("creative checkpoint frozen owner binding changed")
         if exec_attempt is not None and exec_attempt.domain == "text":
-            frozen_policy = json.loads(_row(
+            raw_policy = _row(
                 connection, "SELECT policy FROM v2_autopilot_runs WHERE id=?", (run_id,),
-            )["policy"])
-            executor_profile = CodexExecProfile.model_validate(frozen_policy.get("executorBinding", {}))
+            )["policy"]
+            frozen_policy = json.loads(raw_policy)
+            executor_profile = (CodexExecProfile.model_validate(frozen_policy.get("executorBinding", {}))
+                if profile_construction is None else profile_construction.resolve(raw_policy, frozen_policy))
             if executor_profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}:
                 from ...codex_exec_validation import build_text_validation_plan
                 plan = build_text_validation_plan(

@@ -1991,3 +1991,81 @@ full gate. Reconcile the exact integrated CLI/Python source before reusing
 evidence or timing manifests. Actual whole-suite timing, publication and hosted
 status remain separate; neither approval nor a local profile establishes 85
 percent. Stop for a materially different authority or data-model change.
+
+## Approved ordinary-open profile-construction candidate — October 14
+
+After independently reviewing the accepted diagnostic and temporary design note,
+the manager authorized precisely the lazy, private single-success slot described
+in [ADR 0177](../adr/0177-invocation-local-autopilot-profile-construction.md).
+The existing read-only architecture reader found no design blocker. The retained
+checkout was clean main `b45f2a3f`; ancestry was verified and local main fast-
+forwarded only to delivered CLI `8ab58839df652e21ec5eef51a63c925d33a1af58`.
+This is development integration, not release/product acceptance. Preserve prior
+evidence and its original revision claims; the CLI checkout remains untouched.
+
+Deliverable: bounded source, ADR and focused regression candidate with explicit
+module ownership, lightweight stdlib static inspection and the existing reader's
+stable code review. Each profile site owns its fresh raw policy TEXT and decoded
+extraction. Only direct ordinary checkpoint/decision passes share construction;
+SQL, isolation, errors, receipts, hashes, files, public/nested and admission paths
+retain their existing behavior. No plan reuse, generic memoizer or ambient cache.
+
+Resource hold: CLI's separate native serial/parallel comparison has priority.
+No tests, collection, dependency tooling, profiling, benchmarks, broad/full gate,
+provider calls, source commit, push or activation are allocated in this phase.
+Stop at a stable reviewed diff and return new selectors, the affected consumer
+union and proposed correctness/measurement commands. Correctness execution and
+the new unchanged-case uninstrumented before/after pair need separate scheduling;
+the accepted attribution is diagnostic, not a timing baseline. The fixed-resource
+151.73295-second / 85-percent target remains unmet.
+
+The existing architecture reader's independent stable code review found no
+actionable issue, including no fixture/API or predicted-count inconsistency.
+Requested GPT-6.1 Sol / High; effective settings unverified. Review was source-
+only: no imports, collection or execution. Stdlib AST parsing passed for all
+eight changed/new Python files; the corrected one-off ownership JSON check and
+`git diff --check` passed. Exact SQL-call ASTs and source-site order match the
+integration base in both existing runtime files; the receipt contract file is
+byte-identical. These static facts do not establish runtime correctness.
+
+Proposed first focused command, **not allocated or executed yet**:
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest tests/test_autopilot_profile_construction.py \
+  --pytest tests/test_autopilot_profile_bindings.py \
+  --pytest tests/test_autopilot_profile_transactions.py \
+  --pytest tests/test_autopilot_profile_receipts.py
+```
+
+Proposed affected-consumer focused union, using one `--pytest` per selector:
+
+- `tests/test_codex_exec_contracts.py`
+- `tests/test_codex_exec_receipts.py`
+- `tests/services/creator_workbench/test_codex_exec_pool_profile.py`
+- `tests/test_autopilot_exec_pool.py`
+- `tests/test_autopilot_early_references.py`
+- `tests/test_autopilot_claim_transactions.py`
+- `tests/test_autopilot_geometry.py::test_tampered_or_missing_lineage_refuses_ordinary_open`
+- `tests/test_autopilot_creator_confirmation.py::test_ordinary_validation_refuses_unnamed_fact_without_its_receipt`
+- `tests/test_autopilot_recovery.py::test_snapshot_and_closed_folder_restore_preserve_all_retained_creative_files`
+- `tests/test_autopilot_recovery.py::test_portable_autopilot_cannot_resume_after_acknowledgement`
+- `tests/test_autopilot_image_safety.py::test_retained_candidate_must_match_exact_manifest_output`
+
+The last case exercises an existing direct public-binding caller affected by the
+common-body extraction. This is a proposal for scoped correctness, not full or
+module qualification. The manager must allocate its external temporary roots,
+execution window and cleanup. No test counts have been collected for this delta.
+
+After stable correctness, a separately allocated new matched observer would run
+this unchanged case uninstrumented on both exact frozen inputs:
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest 'tests/test_autopilot_early_references.py::test_complete_early_pack_reuses_original_jobs_and_budgets_once[mapped-consumer]'
+```
+
+Proposed before is integrated `8ab58839`; after is the later correctness-qualified
+candidate commit (not created in this phase). Require quiet matching resources,
+dependencies/host and native case proofs, fresh external roots, complete command
+timing and owned cleanup. No old observer or diagnostic becomes this baseline.

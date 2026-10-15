@@ -32,6 +32,10 @@
           "tests/test_autopilot_authority.py",
           "tests/test_receipt_material_projections.py",
           "tests/test_autopilot_claim_transactions.py",
+          "tests/test_autopilot_profile_construction.py",
+          "tests/test_autopilot_profile_bindings.py",
+          "tests/test_autopilot_profile_transactions.py",
+          "tests/test_autopilot_profile_receipts.py",
           "tests/test_autopilot_exec_pool.py",
           "tests/test_autopilot_text_controller.py",
           "tests/test_autopilot_controller_safety.py",
@@ -652,6 +656,12 @@
       "path": "tests/autopilot_controller_fixtures.py",
       "kind": "shared-fixture-or-helper",
       "consumers": ["project-lifecycle", "story-authoring"]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/autopilot_profile_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["story-authoring"]
     },
     {
       "suite": "pytest",

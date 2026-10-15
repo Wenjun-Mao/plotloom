@@ -100,3 +100,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0174 Bounded fair Codex Exec scheduling](0174-bounded-fair-codex-exec-pool.md)
 - [0175 Dependency-ready references, frames and progress](0175-dependency-ready-autopilot-materials.md)
 - [0176 Receipt-command-local material projections](0176-receipt-command-local-material-projections.md)
+- [0177 Invocation-local autopilot profile construction](0177-invocation-local-autopilot-profile-construction.md)
