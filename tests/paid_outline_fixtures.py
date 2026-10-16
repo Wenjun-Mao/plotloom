@@ -40,12 +40,17 @@ def paid_source(tmp_path_factory):
 
 
 def _commit_fixture(source, processes):
+    """Create the independent fixture revision required by ADR 0178.
+
+    Paid and generic fixture HEADs must differ even when copied source bytes
+    match. An intentional empty snapshot preserves that identity contract.
+    """
     environment = os.environ | {"GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1",
         "GIT_AUTHOR_NAME": "Synthetic fixture", "GIT_COMMITTER_NAME": "Synthetic fixture",
         "GIT_AUTHOR_EMAIL": "fixture@example.invalid", "GIT_COMMITTER_EMAIL": "fixture@example.invalid"}
     processes.run(["git", "-C", str(source), "add", "--", "src/plotloom", "services", "scripts", ".agents", "pyproject.toml", "uv.lock"],
         env=environment, check=True, capture_output=True, timeout=15)
-    processes.run(["git", "-C", str(source), "-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "Synthetic paid Outline source fixture"],
+    processes.run(["git", "-C", str(source), "-c", "commit.gpgsign=false", "commit", "--allow-empty", "--quiet", "-m", "Synthetic paid Outline source fixture"],
         env=environment, check=True, capture_output=True, timeout=15)
 
 

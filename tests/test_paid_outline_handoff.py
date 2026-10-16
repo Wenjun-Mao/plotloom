@@ -1,6 +1,8 @@
 """Actual paid entry and owner composition; external native/provider IO is fake."""
 import json
+import os
 import sqlite3
+import subprocess
 from contextlib import closing
 from copy import deepcopy
 from hashlib import sha256
@@ -14,6 +16,7 @@ from tests.codex_exec_runtime_fixtures import (
     codex_exec_test_source as _codex_exec_test_source,  # noqa: F401
 )
 from tests.paid_outline_fixtures import (
+    _commit_fixture,
     allocation_model,
     rebind_allocation,
     run_capsule,
@@ -28,6 +31,77 @@ from tests.paid_outline_fixtures import (
     paid_source as _paid_source,  # noqa: F401
 )
 from tests.paid_outline_processes import owned_processes
+
+
+def _copied_snapshot_source(root, processes):
+    original, copied = root / "original", root / "copied"
+    original.mkdir(mode=0o700)
+    environment = os.environ | {"GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+    processes.run(["git", "-c", "init.defaultBranch=main", "init", "--quiet", str(original)],
+        env=environment, check=True, capture_output=True)
+    for name in ("src/plotloom", "services", "scripts", ".agents"):
+        directory = original / name
+        directory.mkdir(parents=True)
+        (directory / "fixture.txt").write_text("original fixture bytes\n")
+    for name in ("pyproject.toml", "uv.lock"):
+        (original / name).write_text("synthetic snapshot fixture\n")
+    _commit_fixture(original, processes)
+    processes.run(["git", "clone", "--quiet", "--no-hardlinks", str(original), str(copied)],
+        env=environment, check=True, capture_output=True)
+    return copied
+
+
+@pytest.mark.parametrize("changed", [False, True], ids=["clean-copy", "controlled-delta"])
+def test_fixture_snapshot_creates_distinct_commit_for_copied_source(tmp_path, changed):
+    tmp_path.chmod(0o700)
+    with owned_processes(tmp_path) as processes:
+        source = _copied_snapshot_source(tmp_path, processes)
+        def git(*arguments):
+            return processes.run(["git", "-C", str(source), *arguments],
+                check=True, capture_output=True, text=True).stdout.strip()
+        original_head, original_tree = git("rev-parse", "HEAD"), git("rev-parse", "HEAD^{tree}")
+        assert git("status", "--porcelain") == ""
+        if changed:
+            (source / "services/fixture.txt").write_text("controlled copied-source delta\n")
+            (source / "outside-owner.txt").write_text("must remain outside the snapshot\n")
+        _commit_fixture(source, processes)
+        snapshot_head, snapshot_tree = git("rev-parse", "HEAD"), git("rev-parse", "HEAD^{tree}")
+        assert snapshot_head != original_head
+        assert git("rev-list", "--parents", "-n", "1", "HEAD").split() == [snapshot_head, original_head]
+        if changed:
+            assert snapshot_tree != original_tree
+            assert git("diff", "--name-only", original_head, snapshot_head) == "services/fixture.txt"
+            assert git("show", "HEAD:services/fixture.txt") == "controlled copied-source delta"
+            assert "outside-owner.txt" not in git("ls-files").splitlines()
+        else:
+            assert snapshot_tree == original_tree
+            assert git("status", "--porcelain") == ""
+
+
+@pytest.mark.parametrize("operation", ["add", "commit"])
+def test_fixture_snapshot_propagates_actual_git_failure(tmp_path, operation):
+    tmp_path.chmod(0o700)
+    with owned_processes(tmp_path) as processes:
+        source = _copied_snapshot_source(tmp_path, processes)
+        reference = source / ".git/refs/heads/main"
+        original_reference = reference.read_bytes()
+        if operation == "add":
+            (source / ".git/index.lock").write_text("explicit test-owned lock\n")
+        else:
+            processes.run(["git", "-C", str(source), "config", "core.hooksPath", ".git/hooks"],
+                check=True, capture_output=True)
+            hook = source / ".git/hooks/pre-commit"
+            hook.write_text("#!/bin/sh\nprintf 'fixture commit refused\\n' >&2\nexit 73\n")
+            hook.chmod(0o700)
+            (source / "services/fixture.txt").write_text("rejected copied-source delta\n")
+        with pytest.raises(subprocess.CalledProcessError) as failure:
+            _commit_fixture(source, processes)
+        assert failure.value.returncode != 0 and operation in failure.value.cmd
+        expected = b"index.lock" if operation == "add" else b"fixture commit refused"
+        assert expected in failure.value.stderr
+        assert reference.read_bytes() == original_reference
+    settlement = json.loads((tmp_path / "process-settlement.json").read_bytes())
+    assert not settlement["remaining"] and not settlement["errors"]
 
 
 def test_paid_source_is_independent_and_generic_metadata_semantics_survive(tmp_path,
