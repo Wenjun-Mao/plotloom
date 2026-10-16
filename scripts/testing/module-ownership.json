@@ -34,6 +34,7 @@
           "tests/test_autopilot_claim_transactions.py",
           "tests/test_autopilot_profile_construction.py",
           "tests/test_autopilot_profile_bindings.py",
+          "tests/test_autopilot_policy_decoding.py",
           "tests/test_autopilot_profile_transactions.py",
           "tests/test_autopilot_profile_receipts.py",
           "tests/test_autopilot_exec_pool.py",

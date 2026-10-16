@@ -82,3 +82,30 @@ The profile's JSON timings include other inputs and are not a savings bound.
 That is a separate candidate; do not combine it with this fixture proposal or
 extend ADR 0177 into a snapshot of an entire validation pass. Default Python
 workers remain two; ordinary admission, validation and recovery stay intact.
+
+## Approved loaded-row policy decoding slice
+
+Root reviewed the concrete production opportunity and released a bounded
+implementation from local `5aad60f625cfadecf2a38ec371a78974ea7f8e57`.
+The source owner is `autopilot_bindings.py`: retain one decoded local map per
+already-selected policy row. A successful native image path reduces five
+policy decodes to two while keeping both policy SELECTs. The image branch
+retains project rejection before its first decode; attempt/receipt, provenance,
+manifest, SQL and subsequent-read boundaries remain unchanged. ADR 0177 now
+clarifies that this local variable does not extend its profile-construction slot.
+
+Deliver an uncommitted stable candidate, cohesive SQLite-backed guards and
+native focused evidence: new guards first, then their union with the complete
+profile-binding file, all 14 handoff/seed-guard cases and the exact natural
+complete-pack image case. Check decoder multiplicity, exact SQL, zero validator
+writes, malformed-policy/error precedence, a fresh second row observation,
+caller transaction visibility, separate/nested calls and retained v5–v8 profiles.
+Use the fixed QA environment, explicit source binding and mature owned cleanup;
+protect the actual 224 prior files without retargeting their historical inputs.
+
+No cross-row/pass cache, snapshot graph, SQL removal, ordinary-open bypass,
+concurrency/coverage change, provider/native work, benchmark, whole/full gate,
+commit or push is released. The existing profile attributes 1.128867498s to all
+direct JSON loads in both binding helpers, including non-policy inputs; it does
+not establish avoidable work or a speed estimate. Stop after functional/static
+evidence for independent Root review; the whole-suite target remains open.

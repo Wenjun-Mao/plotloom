@@ -72,7 +72,7 @@ def _assert_exec_attempt_binding(connection, project_id, run_id, state, evidence
             or attempt.request_hash != evidence.request_hash or attempt.domain != expected_domain
             or attempt.profile_hash != profile.profile_hash
             or (profile.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}
-                and attempt.plotloom_code_revision != json.loads(run["policy"])["codeRevision"])
+                and attempt.plotloom_code_revision != policy["codeRevision"])
             or (profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"} and expected_domain == "text"
                 and attempt.validation_plan_hash is None)
             or row["state"] != attempt.state or row["image_budget_state"] != attempt.image_budget_state
@@ -203,7 +203,10 @@ def _assert_checkpoint_binding(connection, project_id, state, evidence, *, run_i
         row = _row(connection, f'SELECT * FROM "{table}" WHERE id=?', (evidence.job_id,))
         request = json.loads(row["request"])
         run = _row(connection, "SELECT project_id,policy FROM v2_autopilot_runs WHERE id=?", (run_id,))
-        if run["project_id"] != project_id or json.loads(run["policy"])["executionPins"].get("image") != evidence.execution_pin:
+        if run["project_id"] != project_id:
+            raise ValueError("image checkpoint execution differs from frozen launch policy")
+        frozen_policy = json.loads(run["policy"])
+        if frozen_policy["executionPins"].get("image") != evidence.execution_pin:
             raise ValueError("image checkpoint execution differs from frozen launch policy")
         subject = request.get("frozenSnapshot", {})
         expected_subject = (subject.get("shot", {}).get("id") if owner == "image"
@@ -212,7 +215,7 @@ def _assert_checkpoint_binding(connection, project_id, state, evidence, *, run_i
                 or stable_hash(request) != evidence.request_hash or evidence.subject_id != expected_subject
                 or request.get("specialistPreflight") != evidence.execution_pin):
             raise ValueError("image checkpoint frozen owner binding changed")
-        profile = json.loads(run["policy"]).get("executorBinding", {})
+        profile = frozen_policy.get("executorBinding", {})
         if owner == "character-reference" and profile.get("contractVersion") == "plotloom.codex-exec.v8":
             cast_subject = subject.get("acceptedCast", {}).get("castCharacterId")
             consumer = subject.get("characterContext", {}).get("characterId")
@@ -225,7 +228,6 @@ def _assert_checkpoint_binding(connection, project_id, state, evidence, *, run_i
         if retained is not None:
             from ...image_job_contracts import ImageDeliveryManifest
             manifest = ImageDeliveryManifest.model_validate_json(retained[1])
-            frozen_policy = json.loads(run["policy"])
             provenance = manifest.executor_provenance
             native_task_identity = manifest.native_task_identity
             if (stable_hash(manifest.canonical_payload()) != proof

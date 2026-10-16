@@ -41,6 +41,14 @@ it never replaces a database row or fresh decoding. Do not key by run, row/model
 identity, normalized JSON, profile hash or the earlier parsed run-policy map.
 Full policy text is deliberately stricter than executor-binding equivalence.
 
+Fresh decoding belongs to each selected policy-row observation. A binding method
+may reuse that row's own decoded local map without extending the profile slot;
+every later SELECT still decodes its own value, even when the text is equal.
+Keep the first decode and all field accesses at their original error-order
+boundaries, and do not mutate or expose the local map. This permits eliminating
+duplicate decoding of one already-loaded row, not sharing parsed authority
+between the attempt helper, image branch, separate calls or validation passes.
+
 Clear the slot before extraction/replacement, retain only after success, and
 take the original constructor path for all non-TEXT inputs. Thus A/A constructs
 once, A/B/A constructs three times, and failure or bytes input cannot recover an
