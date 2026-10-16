@@ -19,7 +19,11 @@ class CreativeHandoffPackageExchangeMixin:
         plotloom_code_revision: str | None = None,
     ) -> tuple[Path, dict[str, Any]]:
         """Confirm every specialist-consumed package file still matches its projection."""
-        from .creative_handoff_exchange import TEMPLATE_FILENAME, _read_regular, canonical_json
+        from .creative_handoff_exchange import (
+            TEMPLATE_FILENAME,
+            _read_regular,
+            canonical_json,
+        )
 
         job_root = self._job_root(request.job_id)
         package = job_root / "package"
@@ -64,6 +68,7 @@ class CreativeHandoffPackageExchangeMixin:
             executor_backend=executor_backend,
             plotloom_code_revision=plotloom_code_revision,
         )
+        self._assert_outline_report_schema(request)
         return {"packagePath": str(job_root / "package"), "deliveryPath": str(job_root / "delivery")}
 
     def write_package(
@@ -75,7 +80,12 @@ class CreativeHandoffPackageExchangeMixin:
         plotloom_code_revision: str | None = None,
     ) -> dict[str, str]:
         """Publish the exact frozen package once, then verify its complete projection."""
-        from .creative_handoff_exchange import TEMPLATE_FILENAME, _write_once, canonical_json, request_hash
+        from .creative_handoff_exchange import (
+            TEMPLATE_FILENAME,
+            _write_once,
+            canonical_json,
+            request_hash,
+        )
 
         request.assert_secret_free()
         job_root = self._job_root(request.job_id)
@@ -94,7 +104,9 @@ class CreativeHandoffPackageExchangeMixin:
                 executor_backend=executor_backend,
                 plotloom_code_revision=plotloom_code_revision,
             )
+            self._assert_outline_report_schema(request)
             return {"packagePath": str(package), "deliveryPath": str(job_root / "delivery")}
+        self._assert_outline_report_schema(request)
         from .creative_package_publication import publish_package
 
         files = {
@@ -112,3 +124,10 @@ class CreativeHandoffPackageExchangeMixin:
             plotloom_code_revision=plotloom_code_revision,
         )
         return {"packagePath": str(package), "deliveryPath": str(job_root / "delivery")}
+
+    @staticmethod
+    def _assert_outline_report_schema(request: CreativeHandoffRequest) -> None:
+        if request.stage == "outline":
+            from .outline_report_metadata import assert_outline_report_schema_current
+
+            assert_outline_report_schema_current(request.input_artifacts)

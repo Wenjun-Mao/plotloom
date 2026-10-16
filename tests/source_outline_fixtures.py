@@ -11,6 +11,10 @@ from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import canonical_json
 from plotloom.domain import ProjectBrief
+from plotloom.outline_report_metadata import (
+    OUTLINE_REPORT_SCHEMA_FILENAME,
+    outline_report_metadata_schema,
+)
 from plotloom.outline_settings import OUTLINE_SETTINGS_FILENAME, outline_settings
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.source_outline_contracts import SourceMaterial
@@ -52,6 +56,7 @@ def _request(
         expected_stage_revision=expected_outline_revision,
         source=source.model_dump(mode="json", by_alias=True),
         input_artifacts={
+            OUTLINE_REPORT_SCHEMA_FILENAME: outline_report_metadata_schema(),
             OUTLINE_SETTINGS_FILENAME: outline_settings(selected_brief),
             "story-topology.json": planned_structure(
                 project_id, selected_brief

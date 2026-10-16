@@ -32,6 +32,7 @@ DISABLED_CLI_FEATURES = (
     "tool_call_mcp_elicitation",
 )
 INSTRUCTION_FILES = (
+    "src/plotloom/outline_preparation.py",
     "src/plotloom/codex_exec_prompts.py",
     ".agents/skills/plotloom-shuohao-specialist/SKILL.md",
     ".agents/skills/plotloom-intent-specialist/SKILL.md",
@@ -39,6 +40,9 @@ INSTRUCTION_FILES = (
     ".agents/skills/plotloom-image-specialist/SKILL.md",
 )
 VALIDATOR_FILES = (
+    "src/plotloom/outline_report_metadata.py",
+    "src/plotloom/outline_preparation.py",
+    "src/plotloom/persistence/project/source_outline_mutations.py",
     "src/plotloom/codex_exec_contracts.py",
     "src/plotloom/codex_exec_pool_contracts.py",
     "src/plotloom/codex_exec_namespace_contracts.py",

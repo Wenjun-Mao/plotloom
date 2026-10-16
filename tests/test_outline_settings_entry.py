@@ -11,6 +11,10 @@ from plotloom.api import create_project_folder_authoring_app
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError
 from plotloom.domain import ProjectBrief
+from plotloom.outline_report_metadata import (
+    OUTLINE_REPORT_SCHEMA_FILENAME,
+    outline_report_metadata_schema,
+)
 from plotloom.outline_settings import OUTLINE_SETTINGS_FILENAME, outline_settings
 from plotloom.source_outline_contracts import OutlineAcceptRequest, SourceMaterial
 from tests.source_outline_fixtures import _deliver, _material, _request, _storage
@@ -56,6 +60,9 @@ def test_source_api_carries_settings_without_inventing_story_or_direction(tmp_pa
         request = json.loads((package / "request.json").read_text())
         expected = outline_settings(ProjectBrief.model_validate(project["brief"]))
         assert request["inputArtifacts"][OUTLINE_SETTINGS_FILENAME] == expected
+        assert request["inputArtifacts"][OUTLINE_REPORT_SCHEMA_FILENAME] == outline_report_metadata_schema()
+        assert json.loads((package / "inputs" / OUTLINE_REPORT_SCHEMA_FILENAME).read_text()) == outline_report_metadata_schema()
+        assert "Top-level lang selects report UI" in request["creativeBrief"]
         assert json.loads((package / "inputs" / OUTLINE_SETTINGS_FILENAME).read_text()) == expected
         assert "title" not in expected and "synopsis" not in expected
         assert request["source"]["text"] == material["text"]

@@ -1,26 +1,21 @@
 # Plotloom roadmap entrypoint
 
 Current priority (2026-10-16): [parallel CLI generation](2026-10-13-autopilot-cli-workers.md)
-in `b30f` is the sole active workstream. The accepted one-Outline allocation is
-spent. The [accepted local software checkpoint](2026-10-15-cli-capsule-handoff.md#accepted-local-software-checkpoint-2026-10-16)
-records reviewed local source commits `41792fcc` and `af8d529d`, with Root's
-accepted full local result bound to tested `af8d529d`. This documentation-only
-reconciliation does not establish another tested revision. No new product
-authority was added. The owner approved one bounded pair and justified additional
-Codex/Spark attempts. The original attended allocation `150eaa6f` failed in its
-arm entry before campaign intent and remains consumed, with zero projects,
-attempts or arm clocks. The receiver repair was committed locally as `4a0d3478`.
-The next attended allocation `ed0d3624` is consumed and failed: its accepted Script
-could not fit the selected F5 line limit, and its blocked primary run prevented
-strict settlement despite reconciliation of all original attempts. Its closed
-failure packet remains immutable. The current bounded step is the prospective
-optional F4 dialogue requirement and runner blocked-pause repair in
-[ADR 0179](../adr/0179-planned-script-dialogue-compatibility.md), with a stable
-uncommitted candidate, provider-free checks and independent review as its stop.
-Full qualification, commit and another finite paid release require Root's next
-decision. Native qualification,
-matched/statistical speedup, CI, publication, LIVE and creative/product acceptance
-remain open.
+in `b30f` is the sole active workstream. Root released the sole source writer for
+[ADR 0180](../adr/0180-outline-report-metadata-receiving.md): a bounded Outline
+report-metadata contract after consumed allocation `946f7858` passed upstream
+validation and failed report rendering on `lang="zh-CN"`. Earlier allocation
+`1b891486` failed the exact warning enum gate. Both remain spent/unqualified,
+with strict cleanup unresolved; closed evidence and original deliveries are
+immutable. The current source baseline is clean local `095b790e`; its accepted
+full software result does not qualify modified code.
+
+Deliver the shared typed metadata/schema, primary instruction and receiving
+bypass guards, with focused regressions and one reviewed story-authoring plus
+shared-provider-dispatch contract union. Stop at a stable uncommitted candidate
+for independent/Root review. Full gate, commit, push/merge, new allocation or
+paid generation, CI/LIVE and creative/product acceptance are not released.
+Earlier receiver and F4/F5 fixes and their failures retain their recorded scope.
 
 The [Python speed track](2026-10-14-python-context-and-workers.md) in retained
 `autopilot-ux-release` is parked until CLI completion and separate release. Its

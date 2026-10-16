@@ -1,15 +1,26 @@
 from __future__ import annotations
 
-from hashlib import sha256
 import json
-from pathlib import Path
 import subprocess
+from hashlib import sha256
+from pathlib import Path
 
 import pytest
 
-from plotloom.creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
-import plotloom.creative_handoff_exchange as creative_handoff_exchange
-from plotloom.creative_handoff_exchange import CreativeHandoffExchange, canonical_json, request_hash
+from plotloom import creative_handoff_exchange
+from plotloom.creative_handoff_contracts import (
+    CreativeHandoffError,
+    CreativeHandoffRequest,
+)
+from plotloom.creative_handoff_exchange import (
+    CreativeHandoffExchange,
+    canonical_json,
+    request_hash,
+)
+from plotloom.outline_report_metadata import (
+    OUTLINE_REPORT_SCHEMA_FILENAME,
+    outline_report_metadata_schema,
+)
 
 
 def _request(*, revision: int = 3) -> CreativeHandoffRequest:
@@ -20,7 +31,7 @@ def _request(*, revision: int = 3) -> CreativeHandoffRequest:
         "stage": "outline",
         "expectedStageRevision": revision,
         "source": {"kind": "synopsis", "text": "A ferryman faces one irreversible choice."},
-        "inputArtifacts": {},
+        "inputArtifacts": {OUTLINE_REPORT_SCHEMA_FILENAME: outline_report_metadata_schema()},
         "creativeBrief": "Create a one-episode outline candidate; do not claim approval.",
     })
 
@@ -65,7 +76,8 @@ def _file_snapshot(directory: Path) -> dict[str, bytes]:
 
 
 def test_self_contained_package_is_idempotent_and_keeps_upstream_inputs(tmp_path: Path) -> None:
-    request = _request().model_copy(update={"input_artifacts": {"cast.json": {"source": "Ferry", "characters": []}}})
+    original = _request()
+    request = original.model_copy(update={"input_artifacts": original.input_artifacts | {"cast.json": {"source": "Ferry", "characters": []}}})
     exchange = CreativeHandoffExchange(tmp_path / "project" / "outputs" / "creative-handoff")
 
     copied = exchange.write_package(request, exchange.current_execution_pin(request.stage))
@@ -119,7 +131,8 @@ def test_stale_delivery_is_rejected_without_mutating_the_candidate(tmp_path: Pat
 def test_candidate_read_rejects_any_altered_specialist_consumed_package_file(
     tmp_path: Path, target: str, replacement: bytes,
 ) -> None:
-    request = _request().model_copy(update={"input_artifacts": {"cast.json": {"source": "Ferry"}}})
+    original = _request()
+    request = original.model_copy(update={"input_artifacts": original.input_artifacts | {"cast.json": {"source": "Ferry"}}})
     exchange = CreativeHandoffExchange(tmp_path / "exchange")
     package = Path(exchange.write_package(request, exchange.current_execution_pin(request.stage))["packagePath"])
     (package / target).write_bytes(replacement)

@@ -1,25 +1,24 @@
 # Parallel CLI workers for pre-video autopilot
 
 Current bounded release (2026-10-16): **CLI first; Python optimization parked**.
-The source-binding repair is committed as `4a0d3478`. Fresh allocation
-`ed0d3624` passed actual safe sealed entries and attached original handle 53594,
-then failed at F4→F5 dialogue capacity. It remains FAILED/UNRESOLVED; its 81-file
-closed failure packet, original outputs, 90 immutable files and 116 prior pins
-are preserved. Parallel never executed. Six text attempts and four image outputs
-were spent; neither failed allocation may be replayed.
+Root released the sole source writer at local `095b790e` for
+[ADR 0180](../adr/0180-outline-report-metadata-receiving.md): prospective Outline
+report metadata, generated frozen schema/input/currentness, primary instruction,
+and native/manual/direct/ready/acceptance guards. Preserve omitted/null report
+UI defaults and saved content locale; no locale rewrite or render override.
+The two further consumed allocations remain failed: `1b891486` missed an exact
+warning enum; `946f7858` passed upstream validation then failed rendering on
+`lang="zh-CN"`. Their original handles are terminal, closed packets immutable,
+parallel unexecuted and strict cleanup unresolved. Paid repetition is stopped.
 
-Root released the same sole writer for step 6's bounded prospective compatibility
-and blocked-run settlement repairs, under ADR 0179. Deliver optional shared F4
-intent (manual absence preserved, explicit 2–15 selection, one existing autopilot
-default), prompt/binding/native/project validation and exact stored-mode
-currentness, plus revision-CAS pause of blocked originals without classifier
-weakening. Include the exact retained failure, provider-free real F4→F5 composition,
-blocked/late-original settlement and both pinned toolchains in the changed native
-command boundary. Use red/green focused checks, reviewed owner union and quick;
-preserve all evidence. Stop at a stable uncommitted candidate for independent
-review. Full qualification needs a separate stable-candidate release. No new paid
-allocation, generation, current-run control, cleanup, CI, commit, merge, push or
-Python optimization is released.
+Deliver focused regression evidence, scoped static/ownership checks and one
+stable story-authoring/shared-provider-dispatch contract union using the native
+single-process module runner. Preserve all earlier failures, assets, pins and
+source/runtime evidence. Stop with an uncommitted candidate for independent/Root
+review. The accepted full software evidence at old `095b790e` is not acceptance
+of the modified candidate. No full gate, commit/push/merge, hosted CI, allocation,
+paid/native generation, historical cleanup, LIVE, Python optimization or
+creative/product acceptance is released.
 
 Earlier checkpoint (2026-10-16):
 Root accepted the completed `ed9c4941` one-Outline packet. That allocation is
@@ -43,7 +42,7 @@ treated QA diagnostics as the descriptor (`projectRoot`). The invocation is
 consumed. All 83 original file pins remain unchanged; scoped settlement found
 the original group absent and zero projects, attempts or arm clocks.
 
-The current approved step-6 deliverable is a bounded receiver source-binding
+The earlier approved step-6 deliverable was a bounded receiver source-binding
 repair using the existing verified `handoff_phase.R`, real sealed QA/context
 entry regressions for both arms and execute modes, and ADR 0178 clarification.
 Retain the failure and red/green evidence, then run proportional focused/module

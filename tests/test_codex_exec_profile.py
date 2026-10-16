@@ -11,6 +11,9 @@ from plotloom.codex_exec_profile import (
 
 def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources() -> None:
     required = {
+        "src/plotloom/outline_report_metadata.py",
+        "src/plotloom/outline_preparation.py",
+        "src/plotloom/persistence/project/source_outline_mutations.py",
         "src/plotloom/codex_exec_contracts.py",
         "src/plotloom/codex_exec_receipt_contracts.py",
         "src/plotloom/codex_exec_constants.py",
@@ -63,6 +66,9 @@ def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources()
 
     assert required <= set(VALIDATOR_FILES)
     assert all((source_root / relative).is_file() for relative in VALIDATOR_FILES)
+    from plotloom.codex_exec_profile import INSTRUCTION_FILES
+
+    assert "src/plotloom/outline_preparation.py" in INSTRUCTION_FILES
     assert {
         "apps",
         "browser_annotation_api",

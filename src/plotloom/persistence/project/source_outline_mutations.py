@@ -5,13 +5,16 @@ from __future__ import annotations
 from hashlib import sha256
 from typing import TYPE_CHECKING
 
-from .autopilot_authority import receipt_only
 from sqlalchemy import select
 
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
 from ...domain import ProjectBrief, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
+from ...outline_report_metadata import (
+    assert_outline_report_metadata,
+    assert_outline_report_schema_current,
+)
 from ...outline_settings import assert_outline_settings_current
 from ...source_outline_contracts import (
     OutlineAcceptRequest,
@@ -26,6 +29,7 @@ from ..schema import (
     SourceOutlineSourceRevisionRow,
 )
 from .access import ProjectPersistenceAccess
+from .autopilot_authority import receipt_only
 from .creative_execution_pins import freeze_execution_pin
 from .production_rebuild_quiescence import assert_production_quiescent
 
@@ -113,9 +117,11 @@ class SourceOutlineMutations:
                     raise CreativeHandoffError("request_identity_mismatch", "creative job identifier is already bound to another request")
                 if existing.status != "prepared":
                     raise CreativeHandoffError("delivery_stale", "outline job identity is already terminal")
+                assert_outline_report_schema_current(request.input_artifacts)
                 return self._owner._candidate(existing)
             self._owner._assert_no_prepared_publication(session, project_id)
             freeze_execution_pin(session, request, execution_pin)
+            assert_outline_report_schema_current(request.input_artifacts)
             now = utc_now()
             row = SourceOutlineCandidateRow(
                 job_id=request.job_id, project_id=project_id,
@@ -154,9 +160,13 @@ class SourceOutlineMutations:
             if candidate.status == "ready":
                 if candidate.manifest_hash != delivery.manifest_hash:
                     raise CreativeHandoffError("delivery_conflict", "a different delivery already occupies this candidate")
+                assert_outline_report_schema_current(request.input_artifacts)
+                assert_outline_report_metadata(candidate.outline)
                 return self._owner._candidate(candidate)
             if candidate.status != "prepared":
                 raise CreativeHandoffError("delivery_stale", "outline candidate is no longer awaiting delivery")
+            assert_outline_report_schema_current(request.input_artifacts)
+            assert_outline_report_metadata(delivery.candidate)
             candidate.status = "ready"
             candidate.delivery_id = delivery.manifest.delivery_id
             candidate.manifest_hash = delivery.manifest_hash
@@ -191,6 +201,8 @@ class SourceOutlineMutations:
             assert_outline_settings_current(
                 CreativeHandoffRequest.model_validate(candidate.request), ProjectBrief.model_validate(project.brief),
             )
+            assert_outline_report_schema_current(candidate.request["inputArtifacts"])
+            assert_outline_report_metadata(candidate.outline)
             now = utc_now()
             content_hash = sha256(canonical_json(candidate.outline)).hexdigest()
             head.outline_revision += 1

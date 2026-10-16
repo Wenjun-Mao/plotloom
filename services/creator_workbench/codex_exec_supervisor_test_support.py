@@ -1,19 +1,23 @@
 """Shared fixtures and builders for creator-workbench Codex Exec tests."""
-import time
-import subprocess
 import json
+import subprocess
+import time
 from contextlib import closing
 from pathlib import Path
 from uuid import uuid4
 
 from plotloom.codex_exec_contracts import CodexExecAttempt
+from plotloom.codex_exec_profile import SUPPORTED_CLI_VERSION, build_codex_exec_profile
 from plotloom.codex_exec_runtime import package_tree_hash
+from plotloom.codex_exec_validation import validation_plan_from_package
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import request_hash
+from plotloom.outline_report_metadata import (
+    OUTLINE_REPORT_SCHEMA_FILENAME,
+    outline_report_metadata_schema,
+)
 from plotloom.project_storage import ProjectFolderStorage
-from plotloom.codex_exec_profile import SUPPORTED_CLI_VERSION, build_codex_exec_profile
-from plotloom.codex_exec_validation import validation_plan_from_package
 
 
 def _attempt(state="spawn_intent"):
@@ -82,7 +86,7 @@ def _prepared_text_job(supervisor, tmp_path, *, fake_cli_source=None):
             stage="outline",
             expectedStageRevision=0,
             source={"kind": "synopsis", "title": "The Ferryman", "text": "A ferryman faces one irreversible choice."},
-            inputArtifacts={},
+            inputArtifacts={OUTLINE_REPORT_SCHEMA_FILENAME: outline_report_metadata_schema()},
             creativeBrief="Create a one-episode outline candidate without claiming approval.",
         )
         exchange = store.creative_handoff_exchange()

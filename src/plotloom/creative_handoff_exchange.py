@@ -436,6 +436,14 @@ class CreativeHandoffExchange(CreativeHandoffPackageExchangeMixin):
             raise CreativeHandoffError("delivery_candidate_invalid", "candidate must be a JSON object")
         if not report.lstrip().lower().startswith((b"<!doctype html", b"<html")):
             raise CreativeHandoffError("delivery_report_invalid", "report must be an HTML-derived view")
+        if request.stage == "outline":
+            from .outline_report_metadata import (
+                assert_outline_report_metadata,
+                assert_outline_report_schema_current,
+            )
+
+            assert_outline_report_schema_current(request.input_artifacts)
+            assert_outline_report_metadata(candidate)
         return ValidatedCreativeDelivery(
             request=request, manifest=manifest,
             manifest_hash=sha256(canonical_json(manifest.model_dump(mode="json", by_alias=True))).hexdigest(),

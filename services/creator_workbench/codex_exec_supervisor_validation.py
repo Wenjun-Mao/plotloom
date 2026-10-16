@@ -56,6 +56,24 @@ class CodexExecSupervisorValidationMixin(CodexExecSupervisorValidationProcessMix
         candidate_before = initial[0]
         if candidate_before.size_bytes > 2_000_000:
             raise self._validation_failure("candidate_too_large", plan.plan_hash)
+        if plan.stage == "outline":
+            from plotloom.codex_exec_files import (
+                CodexExecFileError,
+                read_confined_regular_file,
+            )
+            from plotloom.outline_report_metadata import assert_outline_report_metadata
+
+            try:
+                raw = read_confined_regular_file(job_root, "delivery/" + plan.candidate_filename, max_bytes=2_000_000)
+            except CodexExecFileError as error:
+                raise self._validation_failure("candidate_read_invalid", plan.plan_hash) from error
+            if (sha256(raw).hexdigest(), len(raw)) != (candidate_before.sha256, candidate_before.size_bytes):
+                raise self._validation_failure("validation_candidate_changed", plan.plan_hash)
+            try:
+                candidate = json.loads(raw)
+                assert_outline_report_metadata(candidate)
+            except (ValueError, UnicodeError) as error:
+                raise self._validation_failure("outline_report_metadata_invalid", plan.plan_hash) from error
 
         validation_root = private_dir / "validation"
         if validation_root.exists() or validation_root.is_symlink():

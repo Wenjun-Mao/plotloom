@@ -30,6 +30,10 @@ from plotloom.creative_handoff_exchange import (
     canonical_json,
     request_hash,
 )
+from plotloom.outline_report_metadata import (
+    OUTLINE_REPORT_SCHEMA_FILENAME,
+    outline_report_metadata_schema,
+)
 from plotloom.storyboard_brief_style import (
     freeze_storyboard_brief_style,
     storyboard_brief_instructions,
@@ -46,7 +50,7 @@ def _request() -> CreativeHandoffRequest:
         "stage": "outline",
         "expectedStageRevision": 3,
         "source": {"kind": "synopsis", "text": "A ferryman faces one irreversible choice."},
-        "inputArtifacts": {},
+        "inputArtifacts": {OUTLINE_REPORT_SCHEMA_FILENAME: outline_report_metadata_schema()},
         "creativeBrief": "Create a one-episode outline candidate; do not claim approval.",
     })
 
@@ -66,7 +70,7 @@ def _request_for_stage(stage: str) -> CreativeHandoffRequest:
             "cast.json": {"characters": []},
             "art.json": {"scenes": []},
         },
-    }.get(stage, {})
+    }.get(stage, _request().input_artifacts if stage == "outline" else {})
     if stage == "storyboard":
         from plotloom.production_dialogue_timing import (
             TIMING_FILENAME,

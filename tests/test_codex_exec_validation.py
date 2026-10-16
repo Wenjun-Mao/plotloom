@@ -14,6 +14,10 @@ from plotloom.creative_handoff_contracts import (
     CreativeHandoffRequest,
     creative_handoff_request_from_package,
 )
+from plotloom.outline_report_metadata import (
+    OUTLINE_REPORT_SCHEMA_FILENAME,
+    outline_report_metadata_schema,
+)
 from plotloom.production_dialogue_timing import (
     TIMING_FILENAME,
     freeze_f5_dialogue_timing,
@@ -40,7 +44,7 @@ def _request(stage: str, artifacts: dict | None = None) -> CreativeHandoffReques
         "stage": stage,
         "expectedStageRevision": 4,
         "source": {"kind": "synopsis", "text": "A ferryman faces one irreversible choice."},
-        "inputArtifacts": artifacts or {},
+        "inputArtifacts": ({OUTLINE_REPORT_SCHEMA_FILENAME: outline_report_metadata_schema()} if stage == "outline" else {}) | (artifacts or {}),
         "creativeBrief": "Create one stage candidate. Preserve the frozen source facts.",
     })
 

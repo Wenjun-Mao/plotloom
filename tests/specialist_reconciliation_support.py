@@ -11,6 +11,10 @@ from fastapi.testclient import TestClient
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
+from plotloom.outline_report_metadata import (
+    OUTLINE_REPORT_SCHEMA_FILENAME,
+    outline_report_metadata_schema,
+)
 from plotloom.outline_settings import OUTLINE_SETTINGS_FILENAME, outline_settings
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.source_structures import planned_structure
@@ -38,6 +42,7 @@ def prepare(store, stage, job=None):
             expected_stage_revision=state.accepted_outline.revision,
             source=state.source.material.model_dump(mode="json", by_alias=True),
             input_artifacts={
+                OUTLINE_REPORT_SCHEMA_FILENAME: outline_report_metadata_schema(),
                 OUTLINE_SETTINGS_FILENAME: outline_settings(store.project().brief),
                 "story-topology.json": planned_structure(
                     store.manifest.project_id, store.project().brief

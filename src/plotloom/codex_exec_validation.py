@@ -145,7 +145,13 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
             or any(not isinstance(execution_pin[key], str) or re.fullmatch(HASH, execution_pin[key]) is None
                    for key in ("upstreamSkillHash", "specialistSkillHash"))):
         raise ValueError("text validation requires the exact frozen execution pin")
+    if not isinstance(source_revision, str) or re.fullmatch(r"[a-f0-9]{7,64}", source_revision) is None:
+        raise ValueError("text validation requires the frozen source revision")
     stage = request.stage
+    if stage == "outline":
+        from .outline_report_metadata import assert_outline_report_schema_current
+
+        assert_outline_report_schema_current(request.input_artifacts)
     if stage == "storyboard":
         from .production_dialogue_timing import TIMING_FILENAME, FrozenF5DialogueTiming
 
@@ -208,7 +214,10 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
         render = ("node", (f"{source}/scripts/{script}", "render", cand, "--html", *extra))
         route = "preset_style"
     elif stage == "script":
-        from .script_dialogue_compatibility import assert_current_planned_dialogue, planned_dialogue_from_admission
+        from .script_dialogue_compatibility import (
+            assert_current_planned_dialogue,
+            planned_dialogue_from_admission,
+        )
         planned = planned_dialogue_from_admission(artifacts.get("script-admission.json"))
         if planned is not None:
             assert_current_planned_dialogue(planned)
