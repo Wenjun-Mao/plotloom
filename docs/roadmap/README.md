@@ -1,7 +1,7 @@
 # Plotloom roadmap entrypoint
 
 The owner-requested Python coordinator continues the approved
-[Python speed track](2026-10-14-python-context-and-workers.md) in retained
+[Python speed track](2026-10-15-python-speed-continuation.md) in retained
 `autopilot-ux-release`, separately from higher-priority
 [parallel CLI generation](2026-10-13-autopilot-cli-workers.md) in `b30f`.
 The manager is read-only in both checkouts. Small focused correctness work and
