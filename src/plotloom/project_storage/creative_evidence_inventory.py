@@ -5,6 +5,7 @@ from hashlib import sha256
 from pathlib import PurePosixPath
 
 from ..codex_exec_resources import upstream_skill_path_for_stage
+from ..codex_exec_retained_outline import retained_outline_package_projection
 from ..creative_handoff_contracts import (
     CreativeDeliveryManifest,
     CreativeHandoffRequest,
@@ -108,6 +109,13 @@ def _retained_codex_request_projection(
 ):
     """Project only the package request shapes admitted by retained launch profiles."""
     if profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}:
+        if request.stage == "outline":
+            try:
+                return retained_outline_package_projection(
+                    request, execution_pin, source_revision=plotloom_code_revision
+                )
+            except (TypeError, ValueError) as error:
+                raise ProjectStorageCorruptionError("retained Outline package projection is invalid") from error
         projected, _instructions, _template, _members = projection_exchange._projection(
             request,
             execution_pin,

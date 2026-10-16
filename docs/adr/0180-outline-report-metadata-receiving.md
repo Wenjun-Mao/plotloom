@@ -27,9 +27,36 @@ normalization, default insertion or `params.language` requirement is added.
 The same type generates `outline-report-metadata-schema.json` in new frozen
 Outline inputs. The primary instruction explains UI/content separation.
 Expected-schema identity is checked independently of saved-settings guards at
-publication/recovery, native plan construction, manual intake and project
+publication/executable-assignment recovery, native plan construction, manual intake and project
 preparation/admission/acceptance. Input/profile identities bind the new contract.
 Old contracts need not remain executable; historical evidence remains unchanged.
+
+Passive retained-evidence inventory, snapshot and closed-folder restore are a
+separate boundary. Retained Codex v6/v7/v8 Outline packages use a private
+recovery-owned package-v4/validation-plan-v1 representation, following the
+existing v4/v5 historical projection precedent. It independently derives the
+fixed upstream Node validate/render argv and route plus original request,
+execution-pin, source-revision and input digests. The recorded plan is compared
+to this expected representation, never trusted as its own reference. Missing
+or historically different metadata schemas remain original bytes; no schema
+is inserted, upgraded or normalized. Existing package, typed attempt/receipt,
+manifest and output checks still apply. This projection never feeds live plan
+construction, publication, `verified_package_paths`, receiving or adoption;
+those paths require the current schema and cannot execute an old request.
+
+Passive database validation also distinguishes retained provenance from current
+checkpoint authority. `assert_retained_checkpoint_provenance` is used only for
+checkpoint rows and retained machine decisions in `assert_autopilot_contracts`.
+The existing `assert_checkpoint_binding` remains strict for mutation,
+reservation, spawn, reconciliation and adoption. Both entry points share the
+same private owner/identity/state/receipt/hash checks; only retained Outline
+v6/v7/v8 plan derivation uses the historical representation. The pure
+`codex_exec_retained_outline` module owns that one independently derived
+package-v4/plan-v1 shape below persistence and storage, including structural
+input bounds. Storage boundaries translate failures to corruption; persistence
+does not import storage exceptions. No public mode/skip flag, run-state
+permission inference or exception fallback is introduced. Other stages and
+retained v4/v5 behavior are unchanged.
 
 Error ordering is intentional:
 

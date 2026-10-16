@@ -9,6 +9,7 @@ from plotloom.autopilot_contracts import OperationScope
 from plotloom.codex_exec_contracts import CodexExecProfile
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+from plotloom.creative_package_publication import PUBLICATION_LOCK
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.project_storage import (
     ProjectBusyError,
@@ -50,7 +51,17 @@ def test_snapshot_and_closed_folder_restore_preserve_all_retained_creative_files
     project_id, home = accepted_outline(storage)
     original = {path.relative_to(home).as_posix(): sha256(path.read_bytes()).hexdigest()
         for path in (home / "outputs" / "creative-handoff").rglob("*") if path.is_file()}
-    assert sum(not name.endswith(".lock") for name in original) == 8
+    jobs = list((home / "outputs/creative-handoff/jobs").iterdir())
+    assert {job.name for job in jobs} == {"ch_" + "a" * 32}
+    job = jobs[0]
+    inventory = {path.relative_to(job).as_posix() for path in job.rglob("*") if path.is_file()}
+    assert inventory - {PUBLICATION_LOCK} == {
+        "package/request.json", "package/COPY_ASSIGNMENT.txt",
+        "package/completion-manifest.example.json",
+        "package/inputs/outline-report-metadata-schema.json",
+        "package/inputs/outline-settings.json", "package/inputs/story-topology.json",
+        "delivery/outline.json", "delivery/report.html", "delivery/completion.json",
+    }
     snapshot = storage.recovery.create_snapshot(project_id)
     assert original.items() <= {(item.relative_path, item.content_hash) for item in snapshot.manifest.files}
     restored = storage_at(tmp_path / "snapshot-restored").recovery.restore(Path(snapshot.location))

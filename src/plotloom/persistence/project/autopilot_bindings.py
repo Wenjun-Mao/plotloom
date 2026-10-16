@@ -104,6 +104,36 @@ def _assert_exec_attempt_binding(connection, project_id, run_id, state, evidence
 
 
 def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id, operation_key=None, asset_home=None):
+    """Validate current checkpoint authority before mutation, dispatch or adoption."""
+    return _assert_checkpoint_binding(connection, project_id, state, evidence,
+        run_id=run_id, operation_key=operation_key, asset_home=asset_home,
+        validation_plan_for_request=_current_checkpoint_validation_plan)
+
+
+def assert_retained_checkpoint_provenance(connection, project_id, state, evidence, *, run_id, operation_key=None, asset_home=None):
+    """Verify immutable historical evidence during passive database inspection only."""
+    return _assert_checkpoint_binding(connection, project_id, state, evidence,
+        run_id=run_id, operation_key=operation_key, asset_home=asset_home,
+        validation_plan_for_request=_retained_checkpoint_validation_plan)
+
+
+def _current_checkpoint_validation_plan(request, *, execution_pin, source_revision):
+    from ...codex_exec_validation import build_text_validation_plan
+
+    return build_text_validation_plan(request, execution_pin=execution_pin, source_revision=source_revision)
+
+
+def _retained_checkpoint_validation_plan(request, *, execution_pin, source_revision):
+    if request.stage == "outline":
+        from ...codex_exec_retained_outline import retained_outline_package_projection
+        from ...codex_exec_validation import CodexExecTextValidationPlan
+
+        expected = retained_outline_package_projection(request, execution_pin, source_revision=source_revision)
+        return CodexExecTextValidationPlan.model_validate(expected["validationPlan"])
+    return _current_checkpoint_validation_plan(request, execution_pin=execution_pin, source_revision=source_revision)
+
+
+def _assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id, operation_key, asset_home, validation_plan_for_request):
     owner = evidence.owner
     if owner == "geometry-preparation":
         if evidence.job_id or evidence.request_hash or evidence.execution_pin or evidence.delivery_hash or evidence.geometry_preparation is None:
@@ -169,8 +199,7 @@ def assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id
             )["policy"])
             executor_profile = CodexExecProfile.model_validate(frozen_policy.get("executorBinding", {}))
             if executor_profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}:
-                from ...codex_exec_validation import build_text_validation_plan
-                plan = build_text_validation_plan(
+                plan = validation_plan_for_request(
                     request,
                     execution_pin=expected_pin,
                     source_revision=frozen_policy["codeRevision"],

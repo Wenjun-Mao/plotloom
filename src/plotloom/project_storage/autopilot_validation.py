@@ -14,8 +14,8 @@ from ..codex_exec_contracts import (
 )
 from ..persistence.codec import stable_hash
 from ..persistence.project.autopilot_bindings import (
-    assert_checkpoint_binding,
     assert_frame_binding,
+    assert_retained_checkpoint_provenance,
 )
 from .format import ProjectStorageCorruptionError
 
@@ -43,7 +43,7 @@ def assert_autopilot_contracts(connection, *, asset_home=None):
             run_policies[identifier] = parsed
         for identifier, run_id, project, operation_key, state, raw in connection.execute("SELECT id,run_id,project_id,operation_key,state,evidence FROM v2_autopilot_checkpoints"):
             parsed = CheckpointEvidence.model_validate_json(raw)
-            assert_checkpoint_binding(connection, project, state, parsed, run_id=run_id,
+            assert_retained_checkpoint_provenance(connection, project, state, parsed, run_id=run_id,
                 operation_key=operation_key, asset_home=asset_home)
             if run_id not in runs or runs[run_id][0] != project:
                 raise ValueError("checkpoint run identity changed")
@@ -114,7 +114,7 @@ def assert_autopilot_contracts(connection, *, asset_home=None):
             retained_checkpoint = connection.execute(
                 "SELECT operation_key FROM v2_autopilot_checkpoints WHERE id=?", (checkpoint,)
             ).fetchone()
-            assert_checkpoint_binding(connection, project,
+            assert_retained_checkpoint_provenance(connection, project,
                 "delivered" if parsed.evidence.delivery_hash else "prepared", parsed.evidence,
                 run_id=run_id, operation_key=retained_checkpoint[0], asset_home=asset_home)
         for run_id, project, shot, job, asset, decision, raw in connection.execute("SELECT run_id,project_id,shot_id,job_id,asset_id,decision_id,frame FROM v2_autopilot_frames"):

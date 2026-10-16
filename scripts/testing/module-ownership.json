@@ -382,7 +382,8 @@
           "tests/test_autopilot_schema_upgrade.py",
           "tests/test_codex_exec_pool_project_upgrade.py",
           "tests/test_codex_exec_pool_migration.py",
-          "tests/test_autopilot_recovery.py"
+          "tests/test_autopilot_recovery.py",
+          "tests/test_retained_outline_recovery.py"
         ],
         "vitest": [
           "frontend/tests/app-state-navigation.test.ts",
