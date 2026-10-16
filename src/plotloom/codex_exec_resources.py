@@ -6,7 +6,7 @@ import json
 import os
 import shutil
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 
@@ -205,8 +205,10 @@ def validator_toolchain_hash(source_root: Path) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def _required_tool_paths(plan: _StageResources, environment=None) -> tuple[tuple[str, Path], ...]:
+def _required_tool_paths(plan: _StageResources, environment=None, *, include_node=False) -> tuple[tuple[str, Path], ...]:
     tool_names = ("uv", "python") if plan.python_project else ("node",)
+    if plan.python_project and include_node:
+        tool_names += ("node",)
     tools = []
     for name in tool_names:
         if name == "python":
@@ -273,6 +275,14 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
         saved_brief_route = codex_exec_saved_brief_route(stage, package_request)
     except (TypeError, ValueError) as error:
         raise CodexExecResourceError("frozen saved-Brief contract does not match its source policy") from error
+    planned_script = False
+    if stage == "script":
+        from .script_dialogue_compatibility import assert_current_planned_dialogue, planned_dialogue_from_admission
+        planned = planned_dialogue_from_admission(package_request.get("inputArtifacts", {}).get("script-admission.json"))
+        if planned is not None:
+            assert_current_planned_dialogue(planned)
+            planned_script = True
+            plan = replace(plan, python_project=True, validator_paths=("scripts/script_receiving.py",))
     validator_paths = saved_brief_route.source_paths if saved_brief_route else plan.validator_paths
     relative_paths = [plan.upstream_read_path, *validator_paths]
     if stage == "storyboard":
@@ -289,7 +299,7 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
         _source_parent, source_hash = python_source_identity(root)
         relative_paths.extend(("src", "pyproject.toml", "uv.lock"))
     paths = list(dict.fromkeys(_source_path(root, relative) for relative in relative_paths))
-    tools = _required_tool_paths(plan, environment)
+    tools = _required_tool_paths(plan, environment, include_node=planned_script)
     for name, executable in tools:
         if name == "uv":
             paths.append(executable)

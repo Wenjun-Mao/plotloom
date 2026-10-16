@@ -109,7 +109,7 @@ def create(client, role, plan, projects, runtime, service):
 
 def pause(client, project, reason):
     current = client.get(f"/api/v2/projects/{project}/autopilot").json()
-    if current["state"] in {"running", "waiting"}:
+    if current["state"] in {"running", "waiting", "blocked"}:
         result = client.post(f"/api/v2/projects/{project}/autopilot/control", json={"expectedRevision": current["revision"], "action": "pause"})
         if result.status_code != 200:
             raise RuntimeError("safe pause refused; retained original run requires inspection")

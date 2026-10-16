@@ -1,6 +1,27 @@
 # Parallel CLI workers for pre-video autopilot
 
-Current checkpoint (2026-10-16): **CLI first; Python optimization parked**.
+Current bounded release (2026-10-16): **CLI first; Python optimization parked**.
+The source-binding repair is committed as `4a0d3478`. Fresh allocation
+`ed0d3624` passed actual safe sealed entries and attached original handle 53594,
+then failed at F4→F5 dialogue capacity. It remains FAILED/UNRESOLVED; its 81-file
+closed failure packet, original outputs, 90 immutable files and 116 prior pins
+are preserved. Parallel never executed. Six text attempts and four image outputs
+were spent; neither failed allocation may be replayed.
+
+Root released the same sole writer for step 6's bounded prospective compatibility
+and blocked-run settlement repairs, under ADR 0179. Deliver optional shared F4
+intent (manual absence preserved, explicit 2–15 selection, one existing autopilot
+default), prompt/binding/native/project validation and exact stored-mode
+currentness, plus revision-CAS pause of blocked originals without classifier
+weakening. Include the exact retained failure, provider-free real F4→F5 composition,
+blocked/late-original settlement and both pinned toolchains in the changed native
+command boundary. Use red/green focused checks, reviewed owner union and quick;
+preserve all evidence. Stop at a stable uncommitted candidate for independent
+review. Full qualification needs a separate stable-candidate release. No new paid
+allocation, generation, current-run control, cleanup, CI, commit, merge, push or
+Python optimization is released.
+
+Earlier checkpoint (2026-10-16):
 Root accepted the completed `ed9c4941` one-Outline packet. That allocation is
 spent and does not qualify the matched pair; its paused HOLD and retained
 per-validator PID-absence limitation remain. Root independently reviewed the

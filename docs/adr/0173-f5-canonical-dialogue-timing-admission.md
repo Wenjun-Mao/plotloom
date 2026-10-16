@@ -54,6 +54,12 @@ ceilings remain unchanged. New F5 bindings stale earlier review bindings;
 retained revisions/jobs remain readable evidence, never silently upgraded or
 replayed. A new review is required to execute the current receiving contract.
 
+The later optional prospective F4 requirement is governed by
+[ADR 0179](0179-planned-script-dialogue-compatibility.md). It adds necessary
+canonical feasibility checks only when explicitly selected, preserving this F5
+gate and standalone F4's upstream estimator. It does not retrofit retained jobs
+or promise a complete future F5 schedule.
+
 ## Alternatives and guardrails
 
 Changing canonical rates to match upstream defaults changes existing production

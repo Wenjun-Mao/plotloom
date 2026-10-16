@@ -12,7 +12,7 @@ from .outline_preparation import outline_request
 from .persistence.codec import stable_hash
 from .script_contracts import ScriptAcceptRequest
 from .source_outline_contracts import OutlineAcceptRequest, SectionMapSaveRequest, SectionMapGraphInstallRequest, SourceMaterial
-from .storyboard_review_contracts import StoryboardReviewAcceptRequest
+from .storyboard_review_contracts import DEFAULT_STORYBOARD_MAX_CUT_SECONDS, StoryboardReviewAcceptRequest
 
 TEXT_STAGES = ("outline", "branches", "characters", "art", "script", "storyboard")
 
@@ -42,8 +42,8 @@ def prepare_text(store, stage, policy):
             raise ValueError("frozen preset authority is incomplete")
         methods = {"characters": (store.prepare_cast_candidate, {"render_style": cast_style}),
             "art": (store.prepare_art_candidate, {"render_style": art_style}),
-            "script": (store.prepare_script_candidate, {}),
-            "storyboard": (store.prepare_storyboard_review_candidate, {})}
+            "script": (store.prepare_script_candidate, {"planned_storyboard_max_cut_seconds": DEFAULT_STORYBOARD_MAX_CUT_SECONDS}),
+            "storyboard": (store.prepare_storyboard_review_candidate, {"max_cut_seconds": DEFAULT_STORYBOARD_MAX_CUT_SECONDS})}
         command, options = methods[stage]
         _candidate, request = command(job_id, **options)
     return request

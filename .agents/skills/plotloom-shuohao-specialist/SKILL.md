@@ -124,6 +124,17 @@ keeps its existing candidate, report, and manifest responsibilities.
   durations. Preserve unequal section lengths; do not impose an equal split,
   pad time, or sum mutually exclusive endings. Storyboard cuts must satisfy the
   same route maximum as well as their frozen cut/segment limits.
+  If `script-admission.json.plannedStoryboardDialogue` is present, preserve that
+  explicitly selected requirement. Trusted code owns its spoken language,
+  canonical profile/rules and normalization, not the model. Each indivisible line
+  (including VO) must fit its selected maximum, and each complete route's
+  canonical dialogue-only lower bound must fit the author maximum. Report lang
+  and configurable upstream charsPerSecond do not replace canonical minima.
+  Do not alter rates, reinterpret performance notes or author timing minima to
+  force a fit. These are necessary bounds, not proof of a full future F5 schedule.
+  Run the pinned Plotloom `scripts/script_receiving.py` validate/render command
+  path with the frozen request when opted in; upstream creative gates still run.
+  Its absence is a supported standalone F4 intent and promises no F5 maximum.
 - Fresh `storyboard` requests require `inputs/dialogue-timing-contract.json`.
   Trusted code owns its spoken language, canonical delivery pace and exact
   millisecond minimum for each accepted F4 dialogue flow item, including `VO`.

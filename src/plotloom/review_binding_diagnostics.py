@@ -19,6 +19,7 @@ FIELD_OWNERS = {
     "section_bindings": "source", "complete_route_section_ids": "source",
     "route_only_section_ids": "source", "section_ids": "source",
     "render_contract": "art",
+    "planned_storyboard_dialogue": "script",
     "review_min_cut_seconds": "storyboard-review",
     "review_max_cut_seconds": "storyboard-review",
     "review_max_segment_seconds": "storyboard-review",

@@ -9,9 +9,16 @@ reconciliation does not establish another tested revision. No new product
 authority was added. The owner approved one bounded pair and justified additional
 Codex/Spark attempts. The original attended allocation `150eaa6f` failed in its
 arm entry before campaign intent and remains consumed, with zero projects,
-attempts or arm clocks. The current bounded step is its receiver source-binding
-repair and real sealed-entry regression; Root/independent review precedes any
-commit or separately frozen allocation/attended release. Native qualification,
+attempts or arm clocks. The receiver repair was committed locally as `4a0d3478`.
+The next attended allocation `ed0d3624` is consumed and failed: its accepted Script
+could not fit the selected F5 line limit, and its blocked primary run prevented
+strict settlement despite reconciliation of all original attempts. Its closed
+failure packet remains immutable. The current bounded step is the prospective
+optional F4 dialogue requirement and runner blocked-pause repair in
+[ADR 0179](../adr/0179-planned-script-dialogue-compatibility.md), with a stable
+uncommitted candidate, provider-free checks and independent review as its stop.
+Full qualification, commit and another finite paid release require Root's next
+decision. Native qualification,
 matched/statistical speedup, CI, publication, LIVE and creative/product acceptance
 remain open.
 

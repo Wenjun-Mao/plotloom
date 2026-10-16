@@ -264,7 +264,8 @@ def _focused_steps(args: argparse.Namespace) -> list[Step]:
                     selector,
                 )
             )
-        steps.append(_command("focused pytest", *common, "-q", *validated))
+        ordered = _load_module_selection().order_pytest_selectors(validated, root=ROOT)
+        steps.append(_command("focused pytest", *common, "-q", *ordered))
     if args.vitest:
         validated = [
             _project_selector(

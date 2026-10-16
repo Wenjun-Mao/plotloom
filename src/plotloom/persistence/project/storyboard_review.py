@@ -25,6 +25,7 @@ from ...production_dialogue_timing import (
 from ...review_binding_diagnostics import review_binding_diagnostics
 from ...review_context_diagnostics import ReviewContextDiagnostic, ReviewContextError
 from ...script_contracts import AcceptedScriptRevision, ScriptBinding
+from ...storyboard_review_contracts import DEFAULT_STORYBOARD_MAX_CUT_SECONDS
 from ...storyboard_brief_style import (
     ADAPTER as BRIEF_ADAPTER,
 )
@@ -88,10 +89,10 @@ class ProjectStoryboardReviewPersistence:
     def _accepted(row: StoryboardReviewRevisionRow) -> AcceptedStoryboardReviewRevision:
         return AcceptedStoryboardReviewRevision(revision=row.revision, candidate_job_id=row.candidate_job_id, content_hash=row.content_hash, binding=row.binding, storyboard=row.storyboard, accepted_at=row.accepted_at)
 
-    def _context(self, session: Any, project_id: str, *, max_cut_seconds: int = 8) -> StoryboardReviewContext:
+    def _context(self, session: Any, project_id: str, *, max_cut_seconds: int = DEFAULT_STORYBOARD_MAX_CUT_SECONDS) -> StoryboardReviewContext:
         return self._resolve_context(session, project_id, max_cut_seconds=max_cut_seconds).context
 
-    def _resolve_context(self, session: Any, project_id: str, *, max_cut_seconds: int = 8) -> _ResolvedStoryboardContext:
+    def _resolve_context(self, session: Any, project_id: str, *, max_cut_seconds: int = DEFAULT_STORYBOARD_MAX_CUT_SECONDS) -> _ResolvedStoryboardContext:
         """Keep the section map with the exact Script resolution that supplied it."""
         script_head = self._script._head(session, project_id)
         accepted_row = session.scalar(select(ScriptRevisionRow).where(
@@ -103,7 +104,7 @@ class ProjectStoryboardReviewPersistence:
         script = AcceptedScriptRevision(revision=accepted_row.revision, candidate_job_id=accepted_row.candidate_job_id, content_hash=accepted_row.content_hash, binding=accepted_row.binding, script=accepted_row.script, accepted_at=accepted_row.accepted_at)
         inherited = ScriptBinding.model_validate(script.binding)
         try:
-            current, _source, outline, mapping, cast, art = self._script._context(session, project_id)
+            current, _source, outline, mapping, cast, art = self._script._context_for_binding(session, project_id, inherited)
         except ReviewContextError as error:
             raise ReviewContextError(ReviewContextDiagnostic(code="accepted_script_not_current", owner="script", technical_message="the accepted F4 script context is stale")) from error
         if self._script._binding_diagnostics(current, inherited):
@@ -189,7 +190,7 @@ class ProjectStoryboardReviewPersistence:
             accepted_state = accepted_review_state(exists=accepted is not None, candidate_active=candidate is not None, head_status=head.status, stale_reasons=accepted_stale)
             return StoryboardReviewState(accepted_review_state=accepted_state, candidate=self._candidate(candidate) if candidate else None, accepted_review=self._accepted(accepted) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
 
-    def prepare_candidate(self, project_id: str, job_id: str, *, max_cut_seconds: int = 8, execution_pin: dict[str, str]) -> tuple[StoryboardReviewCandidate, CreativeHandoffRequest]:
+    def prepare_candidate(self, project_id: str, job_id: str, *, max_cut_seconds: int = DEFAULT_STORYBOARD_MAX_CUT_SECONDS, execution_pin: dict[str, str]) -> tuple[StoryboardReviewCandidate, CreativeHandoffRequest]:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id)); head = self._head(session, project_id)
             if session.scalar(select(StoryboardReviewCandidateRow.job_id).where(

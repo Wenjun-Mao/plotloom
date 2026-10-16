@@ -12,6 +12,7 @@ from .domain import CamelModel
 
 TIMING_FILENAME = "dialogue-timing-contract.json"
 TIMING_VERSION = "plotloom.f5-dialogue-timing.v1"
+DIALOGUE_NORMALIZATION_VERSION = "plotloom.f4-dialogue-normalization.v1"
 
 
 def projected_dialogue_timing(value: dict[str, Any], language: str) -> dict[str, Any]:

@@ -163,6 +163,97 @@ def test_arm_restart_guard_precedes_preflight_or_controller_step(pair_controls,t
     with pytest.raises(RuntimeError,match='restart cannot advance or resend'):
         entry.main()
 
+
+def test_runner_pauses_blocked_original_through_real_product_cas(pair_controls,tmp_path,monkeypatch):
+    from contextlib import contextmanager
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from plotloom.api.project_folder_autopilot import register_autopilot_routes
+    from tests.autopilot_controller_fixtures import environment
+    storage,registry,service,run,calls=environment(tmp_path/'blocked-original',monkeypatch,auto_deliver=False)
+    @contextmanager
+    def opened(project_id):
+        with closing(storage.projects.open(project_id)) as store:
+            yield store
+    app=FastAPI()
+    register_autopilot_routes(app,opened,service)
+    try:
+        with opened(run.project_id) as store:
+            store.repository.autopilot.blocker(run.project_id,code='contract_blocked',message='retained failure')
+            blocked=store.repository.autopilot.current(run.project_id)
+        assert blocked.state=='blocked'
+        with TestClient(app) as client:
+            pair_controls.modules['run_arm'].pause(client,run.project_id,'settle original')
+        with opened(run.project_id) as store:
+            current=store.repository.autopilot.current(run.project_id)
+        assert current.state=='paused' and current.revision==blocked.revision+1
+        assert calls==[]
+    finally:
+        service.close()
+
+
+def test_blocked_settlement_collects_late_original_without_adoption_or_success(pair_controls,tmp_path,monkeypatch):
+    from contextlib import contextmanager
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from plotloom.api.project_folder_autopilot import register_autopilot_routes
+    from tests.autopilot_controller_fixtures import environment
+    storage,registry,service,run,calls=environment(tmp_path/'late-blocked',monkeypatch,auto_deliver=False)
+    fake=registry._codex_exec_test_host
+    arm=pair_controls.modules['run_arm']
+    parking=pair_controls.modules['parking_observation']
+    @contextmanager
+    def opened(project_id):
+        with closing(storage.projects.open(project_id)) as store:yield store
+    app=FastAPI()
+    register_autopilot_routes(app,opened,service)
+    halted=[]
+    runtime=Namespace(bridge=Namespace(exec_supervisor=lambda:Namespace(halt_qualification=halted.append)))
+    def observe(_runtime,_projects,*,material_qualified):
+        with opened(run.project_id) as store:
+            current=store.repository.autopilot.current(run.project_id)
+            checkpoint=next(item for item in current.checkpoints if item['operationKey']=='outline')
+            project,receipt=store.repository.autopilot.exec_attempt_evidence_for_operation(current.id,'outline')
+            assert current.state=='paused' and checkpoint['state']=='delivered'
+            assert store.source_outline_state().accepted_outline is None
+        host=fake.statuses[str(project.attempt_id)]
+        assert receipt==host.receipt and project==host.attempt
+        # Fake host observations are explicit fixture facts; no native process claim.
+        row=pair_controls.exports['LedgerRow'](original,host.attempt,receipt=host.receipt)
+        facts=parking.CleanupFacts(rows=(row,),project_attempts=(project,),
+            project_states={run.project_id:current.state},queue={},held=0,validators=0,
+            group_observations={host.attempt.process_group_id:'absent'},material_qualified=material_qualified)
+        result=parking.classify_cleanup(facts)
+        return result,{'classification':result.outcome}
+    monkeypatch.setattr(arm,'cleanup_snapshot',observe)
+    try:
+        assert service.acquire_controller()
+        for _ in range(3):service.step(run.project_id)
+        with opened(run.project_id) as store:
+            current=store.repository.autopilot.current(run.project_id)
+            original,_=store.repository.autopilot.exec_attempt_evidence_for_operation(current.id,'outline')
+            store.repository.autopilot.blocker(run.project_id,code='contract_blocked',message='fixture failure')
+        assert original is not None and len(calls)==1
+        fake.auto_deliver=True
+        with TestClient(app) as client:
+            result=arm.settle(runtime,client,service,{'primary':run.project_id},{},
+                Namespace(require_complete=lambda:pytest.fail('incomplete material cannot qualify')),material_qualified=False)
+        assert halted==['settling_originals'] and len(calls)==1 and fake.image_calls==[]
+        assert result.outcome=='material_incomplete' and result.all_work_quiescent and not result.complete_success
+    finally:service.close()
+
+
+def test_blocked_pause_cas_refusal_stays_visible_without_retry(pair_controls):
+    calls=[]
+    class Client:
+        def get(self,url):return Namespace(json=lambda:{'state':'blocked','revision':7})
+        def post(self,url,*,json):
+            calls.append(json)
+            return Namespace(status_code=409)
+    with pytest.raises(RuntimeError,match='safe pause refused'):
+        pair_controls.modules['run_arm'].pause(Client(),'fixture-project','settling')
+    assert calls==[{'expectedRevision':7,'action':'pause'}]
+
 @pytest.fixture(autouse=True)
 def bind_current_controls(pair_controls,monkeypatch):
     for name,value in pair_controls.exports.items():

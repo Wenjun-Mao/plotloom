@@ -4,7 +4,7 @@ from typing import Any, Callable, Literal
 from uuid import uuid4
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import HTMLResponse
-from ..script_contracts import ScriptAcceptRequest, ScriptCandidate, ScriptCandidatePreparation, ScriptReopenRequest, ScriptReviewState, ScriptSectionSaveRequest
+from ..script_contracts import ScriptAcceptRequest, ScriptCandidate, ScriptCandidatePreparation, ScriptPrepareRequest, ScriptReopenRequest, ScriptReviewState, ScriptSectionSaveRequest
 from ..upstream_report_presentation import static_script_report
 
 
@@ -18,9 +18,10 @@ def register_project_folder_script_routes(app: FastAPI, opened_project: Callable
         with opened_project(project_id) as store: return store.script_state()
 
     @app.post("/api/v2/projects/{project_id}/script/candidates", response_model=ScriptCandidatePreparation, status_code=status.HTTP_201_CREATED)
-    def prepare_script(project_id: str) -> ScriptCandidatePreparation:
+    def prepare_script(project_id: str, body: ScriptPrepareRequest | None = None) -> ScriptCandidatePreparation:
         with opened_project(project_id) as store:
-            candidate, request = store.prepare_script_candidate(f"ch_{uuid4().hex}")
+            candidate, request = store.prepare_script_candidate(f"ch_{uuid4().hex}",
+                planned_storyboard_max_cut_seconds=(body or ScriptPrepareRequest()).planned_storyboard_max_cut_seconds)
             return preparation(store, candidate, request)
 
     @app.get("/api/v2/projects/{project_id}/script/candidates/{job_id}/handoff", response_model=ScriptCandidatePreparation)

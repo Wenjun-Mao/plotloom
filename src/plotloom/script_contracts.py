@@ -11,6 +11,7 @@ from .authored_route_timing import route_budget_hash
 from .accepted_review_state import AcceptedReviewState
 from .domain import CamelModel
 from .review_context_diagnostics import ReviewContextDiagnostic
+from .script_dialogue_compatibility import PlannedStoryboardDialogue
 
 ScriptStatus = Literal["missing", "prepared", "candidate_ready", "accepted", "reopened", "stale"]
 
@@ -23,6 +24,7 @@ class ScriptBinding(ArtBinding):
     section_bindings: list["ScriptSectionBinding"] = Field(min_length=1, max_length=128)
     complete_route_section_ids: list[list[str]] = Field(min_length=1)
     route_only_section_ids: list[str]
+    planned_storyboard_dialogue: PlannedStoryboardDialogue | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def require_exact_footage_membership(self) -> "ScriptBinding":
@@ -64,6 +66,10 @@ class ScriptCandidate(CamelModel):
     report_available: bool = False
     created_at: datetime
     delivered_at: datetime | None = None
+
+
+class ScriptPrepareRequest(CamelModel):
+    planned_storyboard_max_cut_seconds: int | None = Field(default=None, strict=True, ge=2, le=15)
 
 
 class ScriptCandidatePreparation(ScriptCandidate):

@@ -208,10 +208,19 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
         render = ("node", (f"{source}/scripts/{script}", "render", cand, "--html", *extra))
         route = "preset_style"
     elif stage == "script":
-        base = f"{source}/third_party/shuohao-skills/skills/novel-script/scripts/novel-script.mjs"
-        validate = ("node", (base, "validate", cand, "--outline", input_path("outline.json"), "--art", input_path("art.json")))
-        render = ("node", (base, "render", cand, "--html", "--outline", input_path("outline.json"), "--art", input_path("art.json"), "--cast", input_path("cast.json")))
-        route = "upstream"
+        from .script_dialogue_compatibility import assert_current_planned_dialogue, planned_dialogue_from_admission
+        planned = planned_dialogue_from_admission(artifacts.get("script-admission.json"))
+        if planned is not None:
+            assert_current_planned_dialogue(planned)
+            runner = ("run", "--project", source, "--locked", "--no-sync", "python", f"{source}/scripts/script_receiving.py")
+            validate = ("uv", runner + ("validate", cand, "--request", request_path))
+            render = ("uv", runner + ("render", cand, "--request", request_path))
+            route = "plotloom_native"
+        else:
+            base = f"{source}/third_party/shuohao-skills/skills/novel-script/scripts/novel-script.mjs"
+            validate = ("node", (base, "validate", cand, "--outline", input_path("outline.json"), "--art", input_path("art.json")))
+            render = ("node", (base, "render", cand, "--html", "--outline", input_path("outline.json"), "--art", input_path("art.json"), "--cast", input_path("cast.json")))
+            route = "upstream"
     elif stage == "storyboard":
         base = f"{source}/scripts/storyboard-receiving.mjs"
         validate = ("node", (base, "validate", cand, "--request", request_path))

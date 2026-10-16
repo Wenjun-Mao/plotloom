@@ -11,6 +11,7 @@ from plotloom.autopilot_brief_style import freeze_brief_style
 from plotloom.codex_exec_python_environment import inspect_checked_python_environment
 from plotloom.codex_exec_resources import (
     CodexExecResourceError,
+    codex_exec_source_resources,
     codex_exec_source_read_paths,
     upstream_skill_path_for_stage,
 )
@@ -20,6 +21,24 @@ from tests.codex_exec_runtime_fixtures import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.parametrize("planned", [False, True])
+def test_opted_in_script_keeps_checked_python_and_pinned_node_together(planned):
+    from plotloom.script_dialogue_compatibility import freeze_planned_storyboard_dialogue
+    artifacts = {}
+    if planned:
+        artifacts["script-admission.json"] = {"plannedStoryboardDialogue": freeze_planned_storyboard_dialogue(
+            max_cut_seconds=8, language="zh-CN").model_dump(mode="json", by_alias=True)}
+    request = dict(stage="script", upstreamSkillPath=upstream_skill_path_for_stage("script"),
+        executionPin=_pin("script"), inputArtifacts=artifacts)
+    resources = codex_exec_source_resources(ROOT, request)
+    tools = dict(resources.tools)
+    assert set(tools) == ({"uv", "python", "node"} if planned else {"node"})
+    assert tools["node"].parent.parent.resolve() in resources.read_paths
+    assert (ROOT / "src" in resources.read_paths) is planned
+    assert (ROOT / "scripts/script_receiving.py" in resources.read_paths) is planned
+    assert (resources.python_environment is not None) is planned
 
 
 @pytest.fixture(autouse=True)

@@ -12,7 +12,7 @@ from plotloom.authored_route_timing import (
 )
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName
-from plotloom.persistence.project.script import _validate_timing_caps
+from plotloom.script_receiving import validate_timing_caps
 from plotloom.production_bridge_contracts import (
     ProductionBridgeAcceptRequest,
     ProductionBridgeIntentUpdateRequest,
@@ -216,13 +216,13 @@ def test_script_validates_both_complete_route_totals(prepared_uneven_script, fie
             for ep, seconds in ((1, 10), (2, 5), (3, 5))
         ]
     }
-    _validate_timing_caps(script, candidate.binding, stats)
+    validate_timing_caps(script, candidate.binding, stats)
     stats["episodes"][2][field] = 5.1
     with pytest.raises(
         ValueError,
         match=f"complete script {'target' if field == 'target' else 'estimated'} route",
     ):
-        _validate_timing_caps(script, candidate.binding, stats)
+        validate_timing_caps(script, candidate.binding, stats)
 
 
 def test_route_hash_rejects_mutated_targets_and_removed_caps(prepared_uneven_script):

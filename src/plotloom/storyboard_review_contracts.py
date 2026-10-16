@@ -13,6 +13,7 @@ from .review_context_diagnostics import ReviewContextDiagnostic
 from .script_contracts import ScriptBinding, ScriptSectionBinding
 
 StoryboardReviewStatus = Literal["missing", "prepared", "candidate_ready", "accepted", "stale"]
+DEFAULT_STORYBOARD_MAX_CUT_SECONDS = 8
 
 
 class StoryboardReviewBinding(ScriptBinding):
@@ -81,7 +82,7 @@ class StoryboardReviewAcceptRequest(CamelModel):
 
 
 class StoryboardReviewPrepareRequest(CamelModel):
-    max_cut_seconds: int = Field(default=8, ge=2, le=15)
+    max_cut_seconds: int = Field(default=DEFAULT_STORYBOARD_MAX_CUT_SECONDS, ge=2, le=15)
 
 
 def ordered_episode_mapping(binding: StoryboardReviewBinding) -> list[ScriptSectionBinding]:

@@ -51,6 +51,20 @@ Vitest's list interface does not expose a parameter value or source location
 for those repeated rows; the ordinal distinguishes the discovered rows without
 pretending to recover hidden parameter data.
 
+### Exact-file pytest ancestry (2026-10-16)
+
+Focused/module pytest argv orders selected files by normalized path components,
+keeping every ancestor branch contiguous. Locked pytest 9.1.1 can create distinct
+same-path Package collectors when explicit files revisit an interleaved branch;
+its node-scoped conftest fixtures then become invisible to later consumers. A
+three-file collection reproduces the failure; grouping the same files restores
+all eight job fixtures. One shared ordering helper preserves exact selector
+values/multiplicity and stable same-file case order. It adds no files or filters.
+Full workers already sort their assigned whole-file paths; their assignment,
+scheduling and lifecycle remain unchanged. Regress ancestry, prefix-adjacent
+directories, absolute/relative selectors and native fixture visibility. Special
+fixture imports, global registration and dependency changes are unnecessary.
+
 ## Alternatives and consequences
 
 Directory ownership was rejected because the suites do not share product

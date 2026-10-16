@@ -10,7 +10,7 @@ from ..creative_handoff_exchange import ValidatedCreativeDelivery
 from ..production_bridge_contracts import ProductionBridgeAcceptRequest, ProductionBridgeIntentUpdateRequest, ProductionBridgePrepareRequest, ProductionBridgeState
 from ..script_contracts import ScriptAcceptRequest, ScriptCandidate, ScriptReopenRequest, ScriptReviewState, ScriptSectionSaveRequest
 from ..source_outline_contracts import OutlineAcceptRequest, OutlineCandidate, OutlineReopenRequest, SectionMapGraphInstallRequest, SectionMapSaveRequest, SourceMaterial, SourceOutlineReviewState
-from ..storyboard_review_contracts import StoryboardReviewAcceptRequest, StoryboardReviewCandidate, StoryboardReviewState
+from ..storyboard_review_contracts import DEFAULT_STORYBOARD_MAX_CUT_SECONDS, StoryboardReviewAcceptRequest, StoryboardReviewCandidate, StoryboardReviewState
 from .project_creative_handoffs import ProjectCreativeHandoffs
 
 
@@ -133,9 +133,10 @@ class ProjectCreativeStages(ProjectCreativeHandoffs):
     def script_state(self) -> ScriptReviewState:
         return self.repository.script.get_state(self.manifest.project_id)
 
-    def prepare_script_candidate(self, job_id: str) -> tuple[ScriptCandidate, CreativeHandoffRequest]:
+    def prepare_script_candidate(self, job_id: str, *, planned_storyboard_max_cut_seconds: int | None = None) -> tuple[ScriptCandidate, CreativeHandoffRequest]:
         pin = self.creative_handoff_exchange().current_execution_pin("script")
-        return self.repository.script.prepare_candidate(self.manifest.project_id, job_id, execution_pin=pin)
+        return self.repository.script.prepare_candidate(self.manifest.project_id, job_id, execution_pin=pin,
+            planned_storyboard_max_cut_seconds=planned_storyboard_max_cut_seconds)
 
     def admit_script_delivery(self, delivery: ValidatedCreativeDelivery) -> ScriptCandidate:
         return self.repository.script.admit_delivery(self.manifest.project_id, delivery)
@@ -161,7 +162,7 @@ class ProjectCreativeStages(ProjectCreativeHandoffs):
     def storyboard_review_state(self) -> StoryboardReviewState:
         return self.repository.storyboard_review.get_state(self.manifest.project_id)
 
-    def prepare_storyboard_review_candidate(self, job_id: str, *, max_cut_seconds: int = 8) -> tuple[StoryboardReviewCandidate, CreativeHandoffRequest]:
+    def prepare_storyboard_review_candidate(self, job_id: str, *, max_cut_seconds: int = DEFAULT_STORYBOARD_MAX_CUT_SECONDS) -> tuple[StoryboardReviewCandidate, CreativeHandoffRequest]:
         pin = self.creative_handoff_exchange().current_execution_pin("storyboard")
         return self.repository.storyboard_review.prepare_candidate(self.manifest.project_id, job_id, max_cut_seconds=max_cut_seconds, execution_pin=pin)
 

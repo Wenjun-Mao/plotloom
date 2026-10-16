@@ -66,6 +66,19 @@ class ModuleStep:
     cwd: Path
 
 
+def order_pytest_selectors(selectors: Sequence[str], *, root: Path) -> tuple[str, ...]:
+    """Keep every ancestry branch contiguous without changing selected cases.
+
+    Pytest scopes conftest fixtures to collector objects. Interleaving branches
+    can create distinct same-path Package objects. Component ordering groups all
+    ancestors; ignoring the case suffix keeps stable same-file selector order.
+    """
+    def file_components(selector: str) -> tuple[str, ...]:
+        return (root / selector.split("::", 1)[0]).resolve().parts
+
+    return tuple(sorted(selectors, key=file_components))
+
+
 def build_module_plan(
     manifest: Any,
     module_names: list[str],
@@ -281,7 +294,7 @@ def build_module_steps(plan: ModulePlan, root: Path) -> tuple[ModuleStep, ...]:
                 "--no-sync",
                 "pytest",
                 "-q",
-                *local_selectors,
+                *order_pytest_selectors(local_selectors, root=root),
             )
         elif suite == "vitest":
             command = (

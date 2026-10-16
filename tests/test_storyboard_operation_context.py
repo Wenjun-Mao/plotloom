@@ -1,7 +1,7 @@
 """One owner read shares inputs, never authority across reads or frozen modes."""
 
 from contextlib import contextmanager
-from types import SimpleNamespace
+from types import MethodType, SimpleNamespace
 
 import pytest
 from sqlalchemy import select
@@ -22,6 +22,7 @@ from plotloom.review_context_diagnostics import (
     ReviewContextError,
 )
 from plotloom.script_contracts import ScriptBinding, ScriptReopenRequest
+from plotloom.script_dialogue_compatibility import freeze_planned_storyboard_dialogue
 from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
 from tests.creative_delivery_fixtures import _accepted_f4_script, _deliver_stage
 from tests.storyboard_brief_fixtures import real_example_request
@@ -44,6 +45,7 @@ def test_script_binding_diagnostics_keep_exact_field_order_and_section_reason(bi
         "cast_revision", "cast_content_hash", "art_revision", "art_content_hash",
         "target_playthrough_seconds", "route_budget_hash", "section_bindings",
         "complete_route_section_ids", "route_only_section_ids",
+        "planned_storyboard_dialogue",
     )
     # Comparison is deliberately pure: no persistence or upstream validity is
     # needed to establish the exact existing diagnostic sequence.
@@ -65,8 +67,8 @@ def _context_owner(monkeypatch, binding, *, status="accepted", row_exists=True, 
     )
     calls = []
 
-    def context(*_args):
-        calls.append(True)
+    def context(*_args, **kwargs):
+        calls.append(kwargs)
         if isinstance(resolve, Exception):
             raise resolve
         return resolve or (binding, {}, {}, {}, {}, {})
@@ -76,6 +78,7 @@ def _context_owner(monkeypatch, binding, *, status="accepted", row_exists=True, 
         _context=context,
         _binding_diagnostics=ProjectScriptPersistence._binding_diagnostics,
     )
+    script._context_for_binding = MethodType(ProjectScriptPersistence._context_for_binding, script)
     monkeypatch.setattr(
         "plotloom.persistence.project.storyboard_review._upstream_script_outline",
         lambda *_: {},
@@ -147,6 +150,18 @@ def test_context_and_each_binding_keep_independent_frozen_modes(monkeypatch, bin
     assert new_projection.storyboard_render_contract == frozen.storyboard_render_contract
     assert context[0].model_dump(mode="json", by_alias=True) == original
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize("maximum", [None, 8, 15])
+def test_context_resolves_exact_inherited_script_selection(monkeypatch, bindings, maximum):
+    script, _frozen = bindings
+    planned = None if maximum is None else freeze_planned_storyboard_dialogue(max_cut_seconds=maximum, language="zh-CN")
+    script = script.model_copy(update={"planned_storyboard_dialogue": planned})
+    owner, session, calls = _context_owner(monkeypatch, script)
+    context = owner._context(session, "project", max_cut_seconds=12)
+    assert calls == [{"planned_storyboard_max_cut_seconds": maximum}]
+    assert context[0].planned_storyboard_dialogue == planned
+    assert context[0].review_max_cut_seconds == 12
 
 
 def test_render_projection_failure_is_local_to_the_binding(monkeypatch, bindings):
