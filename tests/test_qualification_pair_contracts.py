@@ -140,3 +140,52 @@ def test_pair_original_handle_attendance_before_deliberately_held_callback(tmp_p
             generationDispatches=0,heldBeforeProjects=True)
         assert not (tmp_path/'forbidden-native').exists()
         assert not (tmp_path/'work/campaign_intent.json').exists()
+
+
+@pytest.mark.parametrize('arm',['serial','parallel'])
+@pytest.mark.parametrize('execute',[False,True])
+def test_sealed_arm_entry_uses_real_qa_source_and_stops_at_driver_boundary(tmp_path,paid_source,arm,execute):
+    import sqlite3
+    tmp_path.chmod(0o700)
+    with owned_processes(tmp_path) as owner:
+        case=prepare_case(tmp_path,paid_source,owner)
+        command=[sys.executable,'-B',str(FIXTURE),'arm-entry','--root',str(tmp_path),
+            '--source',str(paid_source),'--arm',arm]
+        if execute:command.append('--execute')
+        result=owner.run(command,env=case['env'],capture_output=True,text=True,timeout=30)
+        assert result.returncode==0,result.stdout+result.stderr
+        report=json.loads((tmp_path/'receipts/arm-entry.json').read_bytes())
+        assert report['source']==str(paid_source)
+        assert report['work']==str(tmp_path/'work'/arm) and report['arm']==arm
+        assert report['entryArgv']==[str(tmp_path/'bundle/pair_arm_receiver.py'),'--arm',arm]+(['--execute'] if execute else [])
+        assert report['driverArgv']==(['--execute'] if execute else [])
+        assert report['qa']['role']=='inner' and 'projectRoot' not in report['qa']
+        assert report['downstreamMainHeld'] and report['qualification'] is False
+        assert report['projectsCreated']==report['generationDispatches']==0
+        assert report['armStartExists'] is execute
+        start=tmp_path/'work'/arm/'arm-start.json'
+        if execute:
+            original=start.read_bytes()
+            value=json.loads(original)
+            assert set(value)=={'namespaceId','wallNs','monotonicNs'}
+            assert value['namespaceId']==case['allocation'][arm]['namespace']['namespaceId']
+            assert value['wallNs']>0 and value['monotonicNs']>0
+            boundary=(tmp_path/'receipts/arm-entry.json').read_bytes()
+            duplicate=owner.run(command,env=case['env'],capture_output=True,text=True,timeout=30)
+            assert duplicate.returncode!=0
+            assert 'restart cannot advance or resend' in duplicate.stderr
+            assert start.read_bytes()==original
+            assert (tmp_path/'receipts/arm-entry.json').read_bytes()==boundary
+        for name in ('serial','parallel'):
+            ns=case['allocation'][name]['namespace']
+            assert list(Path(ns['outputsRoot']['path']).iterdir())==[]
+            with sqlite3.connect(f"file:{ns['database']['path']}?mode=ro",uri=True) as db:
+                assert all(db.execute(f'SELECT count(*) FROM {table}').fetchone()[0]==0
+                    for table in ('exec_attempts','exec_slot','exec_queue','exec_validation_process'))
+                assert db.execute("SELECT count(*) FROM sqlite_master WHERE name LIKE 'exec_qualification_%'").fetchone()[0]==0
+            with sqlite3.connect(f"file:{ns['applicationDatabase']['path']}?mode=ro",uri=True) as db:
+                assert db.execute('SELECT count(*) FROM application_project_create_requests').fetchone()[0]==0
+            assert not (tmp_path/'work'/name/'launch_intent.json').exists()
+            if name!=arm:assert not (tmp_path/'work'/name/'arm-start.json').exists()
+        assert not (tmp_path/'work/campaign_intent.json').exists()
+        assert not (tmp_path/'forbidden-native').exists()

@@ -362,6 +362,34 @@ No expiry/HALT condition is added to the general connection path, so valid
 settlement remains available. Pre-fix qualification evidence stays separately
 identified; the corrected candidate requires fresh affected checks.
 
+### QA diagnostics and sealed arm source ownership (2026-10-16)
+
+The first attended finite pair attached its original handle, then failed before
+campaign intent: the arm entry indexed `projectRoot` in `handoff_qa.admit()`'s
+diagnostic result. That result contains verified runtime facts and a pin hash,
+not the descriptor. A restart unit mock invented the missing descriptor field;
+function-only preflights did not exercise the real child entrypoint.
+
+Every arm entry must first call actual `admit('inner')`, then obtain its source
+root from the existing pinned descriptor owner, `handoff_phase.R`, as the other
+receivers do. Keep the diagnostic payload unchanged. Expanding it into a second
+descriptor authority, re-reading a separate descriptor, or falling back to cwd
+would duplicate or weaken the existing binding and is rejected.
+
+Regress both arms with and without execute through real sealed QA admission and
+context installation; hold only downstream `run_arm.main` to prove source/argv
+binding, single original-start creation and duplicate-execute refusal without
+model admission. Unit mocks must not add descriptor fields to the diagnostic
+result. These entry-boundary fixtures do not qualify full arm preflight.
+
+Fresh operator preparation must additionally invoke the actual sealed
+`pair_arm_receiver.py --arm serial` and `--arm parallel` without `--execute`,
+through real `run_arm.main` zero-dispatch preflight. Retain their natural terminal
+results and prove unchanged clocks, empty catalogs and zero worker-ledger work.
+Record these safe arm-entry preflights separately from an attended campaign
+receiver or execute launch. A consumed failed allocation remains immutable;
+neither a source fix nor generation preapproval authorizes resealing or relaunch.
+
 ## Limits and consequences
 
 This replaces whole-body verification for the new contract. It attests neither

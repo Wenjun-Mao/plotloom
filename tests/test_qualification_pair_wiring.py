@@ -154,7 +154,8 @@ def test_failed_sidecar_pause_stops_before_sidecar_step(pair_controls,tmp_path,m
 def test_arm_restart_guard_precedes_preflight_or_controller_step(pair_controls,tmp_path,monkeypatch):
     import sys
     entry=load(monkeypatch,'pair_arm_receiver',CONTROLS/'pair_arm_receiver.py')
-    monkeypatch.setattr(entry,'admit',lambda _role:{'projectRoot':str(CONTROLS.parents[2])})
+    monkeypatch.setattr(entry,'admit',lambda _role:None)
+    monkeypatch.setitem(sys.modules,'handoff_phase',Namespace(R=CONTROLS.parents[2]))
     pair_controls.context.install=lambda **_options:Namespace(work=tmp_path)
     (tmp_path/'arm-start.json').write_text('retained original clock')
     monkeypatch.setattr(sys,'argv',['pair_arm_receiver.py','--arm','serial','--execute'])

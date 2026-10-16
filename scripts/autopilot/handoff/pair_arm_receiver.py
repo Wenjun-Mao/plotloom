@@ -3,18 +3,16 @@ from handoff_qa import admit
 
 
 def main():
-    qa=admit('inner')
+    admit('inner')
     import argparse
-    import json
     import sys
     import time
-    from pathlib import Path
+    from handoff_phase import R
     parser=argparse.ArgumentParser()
     parser.add_argument('--arm',choices=('serial','parallel'),required=True)
     parser.add_argument('--execute',action='store_true')
     args=parser.parse_args()
-    source=Path(qa['projectRoot'])
-    sys.path[:0]=[str(source/'src'),str(source/'services/creator_workbench')]
+    sys.path[:0]=[str(R/'src'),str(R/'services/creator_workbench')]
     from pair_context import install
     context=install(arm=args.arm)
     if args.execute:

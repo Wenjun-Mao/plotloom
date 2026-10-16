@@ -7,9 +7,11 @@ from pathlib import Path
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument('action',choices=('prepare','inspect','shadow','registered','namespace'))
+    parser.add_argument('action',choices=('prepare','inspect','shadow','registered','namespace','arm-entry'))
     parser.add_argument('--root',type=Path,required=True)
     parser.add_argument('--source',type=Path,required=True)
+    parser.add_argument('--arm',choices=('serial','parallel'))
+    parser.add_argument('--execute',action='store_true')
     args=parser.parse_args()
     root,source=args.root,args.source
     sys.dont_write_bytecode=True
@@ -36,6 +38,8 @@ def main():
         print(json.dumps(dict(syntheticEvidence=True,qualification=False,projectsCreated=0,generationDispatches=0)))
         return 0
     sys.path[:0]=[str(root/'bundle'),str(source/'src'),str(source/'services/creator_workbench')]
+    if args.action=='arm-entry':
+        return arm_entry(root,source,args.arm,args.execute)
     if args.action=='registered':
         packet=json.loads((root/'transport.json').read_bytes())
         sys.argv=['pair_launch.py','--phase-root',str(root/'phase'),'--phase-sha',packet['phaseSha256']]
@@ -59,6 +63,49 @@ def main():
             namespace_binding_sha256=arm.namespace_binding_sha256)
     print(json.dumps(dict(syntheticEvidence=True,qualification=False,source=str(context.source),work=str(context.campaign))))
     return 0
+
+
+def arm_entry(root,source,arm,execute):
+    """Real sealed QA/entry/context; hold only the downstream arm driver main.
+
+    Synthetic history cannot qualify a real arm. This checks entry wiring and
+    original-start/restart ordering without invoking the production driver.
+    """
+    import pair_context
+    original_install=pair_context.install
+
+    def install(*,arm):
+        context=original_install(arm=arm)
+        import run_arm
+
+        def held_main(argv):
+            from handoff_files import canonical,exclusive_bytes
+            from handoff_qa import admit
+            report=admit('inner')
+            assert 'projectRoot' not in report
+            assert context.source==source
+            assert sys.path[:2]==[str(source/'src'),str(source/'services/creator_workbench')]
+            assert argv==(['--execute'] if execute else [])
+            exclusive_bytes(root/'receipts','arm-entry.json',canonical(dict(
+                syntheticEvidence=True,qualification=False,downstreamMainHeld=True,
+                arm=arm,source=str(context.source),work=str(context.work),
+                qa=report,entryArgv=sys.argv,driverArgv=argv,
+                armStartExists=(context.work/'arm-start.json').exists(),
+                projectsCreated=0,generationDispatches=0)))
+            return 0
+
+        run_arm.main=held_main
+        return context
+
+    # Keep installation real; the observer only installs the downstream seam
+    # after the actual single-use context has verified the sealed allocation.
+    pair_context.install=install
+    for path in (str(source/'src'),str(source/'services/creator_workbench')):
+        sys.path.remove(path)
+    import pair_arm_receiver
+    sys.argv=[str(root/'bundle/pair_arm_receiver.py'),'--arm',arm]
+    if execute:sys.argv.append('--execute')
+    return pair_arm_receiver.main()
 
 
 if __name__=='__main__':

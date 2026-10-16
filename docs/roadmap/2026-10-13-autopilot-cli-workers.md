@@ -13,10 +13,27 @@ and the [accepted capsule checkpoint](2026-10-15-cli-capsule-handoff.md#accepted
 The source preserves the existing exclusive sidecar driver and inactive
 receipt reconciliation, with no new product authority. Receipt-bound tool-call
 overlap and ordered owned-process gates are required before pair completion.
-The selected serial-first native pair remains held for separate HUMAN approval,
-a fresh frozen allocation and attended release: four disposable projects, at most
-18 text attempts / 64 reserved image outputs total, 90 minutes plus ten minutes
-of settlement per arm, no retries or extra arms. Native qualification, matched/statistical
+The owner approved the bounded pair and later preapproved justified additional
+Codex/Spark attempts; each finite allocation and attended release remains
+separate. Root and independent review accepted allocation `150eaa6f` at
+`cae9e487`, then Root attended its one original handle `86031`. Attachment
+succeeded, but the serial arm child failed before campaign intent because it
+treated QA diagnostics as the descriptor (`projectRoot`). The invocation is
+consumed. All 83 original file pins remain unchanged; scoped settlement found
+the original group absent and zero projects, attempts or arm clocks.
+
+The current approved step-6 deliverable is a bounded receiver source-binding
+repair using the existing verified `handoff_phase.R`, real sealed QA/context
+entry regressions for both arms and execute modes, and ADR 0178 clarification.
+Retain the failure and red/green evidence, then run proportional focused/module
+and quick checks. Stop for Root/independent review before commit or a fresh
+allocation. No consumed-allocation replay, paid launch, full gate, LIVE, cleanup
+or Python optimization is released. A future preparation must also exercise both
+actual sealed arm entries without execute through their real zero-dispatch
+driver preflight, retaining natural terminal and empty-ledger/clock evidence.
+Frozen pair bounds remain four disposable projects, at most 18 text attempts /
+64 reserved image outputs, 90 minutes plus ten minutes settlement per arm,
+no retries or extra arms. Native qualification, matched/statistical
 speedup, CI/publication, LIVE and creative/product acceptance remain open. Python
 optimization stays parked; its current candidate remains unaccepted, and the
 85-percent complete-suite target remains open. Earlier releases below retain their historical scope; this current

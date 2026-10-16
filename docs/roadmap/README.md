@@ -6,8 +6,12 @@ spent. The [accepted local software checkpoint](2026-10-15-cli-capsule-handoff.m
 records reviewed local source commits `41792fcc` and `af8d529d`, with Root's
 accepted full local result bound to tested `af8d529d`. This documentation-only
 reconciliation does not establish another tested revision. No new product
-authority was added. The selected serial-first native pair still requires
-separate HUMAN approval, a fresh frozen allocation and attended release. Native qualification,
+authority was added. The owner approved one bounded pair and justified additional
+Codex/Spark attempts. The original attended allocation `150eaa6f` failed in its
+arm entry before campaign intent and remains consumed, with zero projects,
+attempts or arm clocks. The current bounded step is its receiver source-binding
+repair and real sealed-entry regression; Root/independent review precedes any
+commit or separately frozen allocation/attended release. Native qualification,
 matched/statistical speedup, CI, publication, LIVE and creative/product acceptance
 remain open.
 
