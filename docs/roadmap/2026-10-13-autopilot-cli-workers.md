@@ -2,21 +2,25 @@
 
 Current checkpoint (2026-10-16): **CLI first; Python optimization parked**.
 Root accepted the completed `ed9c4941` one-Outline packet. That allocation is
-spent and does not qualify the matched pair. Root selected the existing
-serial-first pair and released bounded handoff source work and CLI correctness
-checks, without generation, native preflight, real next-run allocation,
-commit/push or new actors. Root resolved the wider-source-migration checkpoint;
-the finite registered pair and tracked controls are now an uncommitted source
-candidate, with test-owned focused, affected module and static checks passed.
-The stable candidate awaits independent review. See
+spent and does not qualify the matched pair; its paused HOLD and retained
+per-validator PID-absence limitation remain. Root independently reviewed the
+finite registered pair and tracked controls, committed locally as `41792fcc`,
+then the fixture snapshot correction committed as `af8d529d`. Root accepted the
+ordinary unfiltered full local software result at tested `af8d529d`. This
+documentation-only reconciliation does not qualify another revision. See
 [ADR 0178](../adr/0178-capsule-plan-handoff-authority.md#finite-paired-qualification-migration-checkpoint-2026-10-15)
-and the [capsule checkpoint](2026-10-15-cli-capsule-handoff.md#finite-pair-source-migration-checkpoint-2026-10-15).
-The candidate preserves the existing exclusive sidecar driver and inactive
+and the [accepted capsule checkpoint](2026-10-15-cli-capsule-handoff.md#accepted-local-software-checkpoint-2026-10-16).
+The source preserves the existing exclusive sidecar driver and inactive
 receipt reconciliation, with no new product authority. Receipt-bound tool-call
 overlap and ordered owned-process gates are required before pair completion.
-Stable independent review, actual native/generation allocation and product
-acceptance remain open. Earlier releases below retain their historical scope;
-this narrower current assignment controls the next step.
+The selected serial-first native pair remains held for separate HUMAN approval,
+a fresh frozen allocation and attended release: four disposable projects, at most
+18 text attempts / 64 reserved image outputs total, 90 minutes plus ten minutes
+of settlement per arm, no retries or extra arms. Native qualification, matched/statistical
+speedup, CI/publication, LIVE and creative/product acceptance remain open. Python
+optimization stays parked; its current candidate remains unaccepted, and the
+85-percent complete-suite target remains open. Earlier releases below retain their historical scope; this current
+checkpoint controls the next step.
 
 Historical checkpoint: **dispatched once through Relay Direct on 2026-10-13**. The isolated
 checked-runtime repair `e24cb80e` passed all eleven provider-free native

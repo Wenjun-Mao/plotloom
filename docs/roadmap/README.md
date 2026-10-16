@@ -2,12 +2,14 @@
 
 Current priority (2026-10-16): [parallel CLI generation](2026-10-13-autopilot-cli-workers.md)
 in `b30f` is the sole active workstream. The accepted one-Outline allocation is
-spent. The [CLI capsule checkpoint](2026-10-15-cli-capsule-handoff.md#finite-pair-source-migration-checkpoint-2026-10-15)
-records the selected serial-first pair and Root's resolved migration direction.
-The finite registered entry, tracked controls and existing sidecar driver are an
-uncommitted source candidate with passed fixture-owned, affected and static checks.
-No new product authority was added. Stable independent review, new native/
-generation allocation, publication and product acceptance remain separate releases.
+spent. The [accepted local software checkpoint](2026-10-15-cli-capsule-handoff.md#accepted-local-software-checkpoint-2026-10-16)
+records reviewed local source commits `41792fcc` and `af8d529d`, with Root's
+accepted full local result bound to tested `af8d529d`. This documentation-only
+reconciliation does not establish another tested revision. No new product
+authority was added. The selected serial-first native pair still requires
+separate HUMAN approval, a fresh frozen allocation and attended release. Native qualification,
+matched/statistical speedup, CI, publication, LIVE and creative/product acceptance
+remain open.
 
 The [Python speed track](2026-10-14-python-context-and-workers.md) in retained
 `autopilot-ux-release` is parked until CLI completion and separate release. Its

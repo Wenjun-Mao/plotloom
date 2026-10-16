@@ -1,5 +1,12 @@
 # CLI capsule handoff checkpoint
 
+Current status (2026-10-16): reviewed local commits `41792fcc` / `af8d529d` and
+Root's accepted full local software result at tested `af8d529d` are recorded in
+the [accepted checkpoint](#accepted-local-software-checkpoint-2026-10-16).
+This documentation-only reconciliation does not establish another tested revision.
+
+## Historical initial capsule scope (2026-10-15)
+
 Approved scope: implement [ADR 0178](../adr/0178-capsule-plan-handoff-authority.md)'s capsule/anchor/plan and source/runtime
 registry correction in `scripts/autopilot/handoff`, with one fresh immutable
 bundle, actual provider-free host capability evidence and focused synthetic
@@ -236,6 +243,9 @@ module checks; separate stable review and native/generation release still follow
 
 ## Finite-pair source candidate (2026-10-16)
 
+Historical source-candidate receipt; later review, commits and full software
+acceptance are recorded in the accepted checkpoint below.
+
 Root resolved the checkpoint and released the tracked control migration plus
 finite namespace/host restrictions. The candidate binds immutable code controls,
 source, physical inputs, QA and checked validator identity separately from mutable
@@ -260,7 +270,8 @@ work locations, finite setup/admission/HALT/time fences, sidecar fast-delivery
 pause, historical-root-relative preservation, receipt-bound measurement admission
 and mandatory final overlap gates. Retained `.local` controls are not imported.
 
-Delivery is one stable uncommitted candidate, complete file/hash inventory and
+At this checkpoint delivery was one stable uncommitted candidate, complete
+file/hash inventory and
 fixture-owned focused/affected/static evidence for independent review. Final
 `shared-provider-dispatch` contract qualification passed 740 Python and 102
 frontend cases, ownership preflight and types. Focused boundaries passed 9 cases;
@@ -276,3 +287,40 @@ projects/generation; it is not native or all-route pair qualification. The prior
 Outline remains spent, historical results unchanged, Python optimization parked.
 No actual next-run namespace/project/allocation, native/provider/model dispatch,
 commit/push, cleanup or new actor follows this source/check release.
+
+## Accepted local software checkpoint (2026-10-16)
+
+Root independently reviewed the finite-pair source and authorized local commit
+`41792fcc`. The first full gate then failed in the disposable-source fixture when
+its copied owner tree was already clean. The reviewed fixture correction uses an
+intentional `--allow-empty` snapshot commit to preserve paid/generic HEAD
+inequality. Four actual-Git guards and both complete affected files (48 cases)
+passed before local commit `af8d529d`; existing isolation/receipt-byte assertions
+remain intact. See the retained [failed full packet](../../.local/native-proof/cli-full-local-source-20261016-01/README.md)
+and [fixture correction](../../.local/native-proof/fixture-snapshot-allow-empty-20261016-01/README.md).
+Their original outcomes and prior proposed follow-up remain unchanged.
+
+Root accepted the [corrected full local software packet](../../.local/native-proof/cli-full-fixture-corrected-20261016-01/README.md)
+at exact tested HEAD `af8d529df549e4031e0f6e22074af8fecb0c6d1a`, tree
+`070d3476d11e85a3574b113718f1423440e4be3d`: original session 90211 naturally exited
+zero, all 14 ordinary full steps passed, with 2,639 Python cases across 238 disjoint
+worker-owned files, 1,381 frontend units and 319 browser cases, plus bundle/parity
+and wheel/installed-smoke gates. The [66-artifact manifest](../../.local/native-proof/cli-full-fixture-corrected-20261016-01/artifact-manifest.json)
+is pinned by SHA-256 `667063756c65b11f6d4f424d08c14d64d2e5b3ccac21c3af67e664ce94589b3d`.
+Its closed `rootReviewPending` field records the packet's earlier handoff state;
+Root acceptance is additive and does not rewrite that receipt. This reconciliation
+is a documentation-only descendant of the tested source, not another tested revision.
+
+The accepted one-Outline allocation remains spent and paused in HOLD. It does
+not establish generated Outline adoption, all-route completion or native pair
+qualification; its retained per-validator PID-absence limitation remains. The
+selected next method is serial then parallel, primary plus Outline-only sidecar
+per arm: four disposable projects, ceilings of 18 text attempts / 64 reserved
+image outputs total (9/32 per arm), capacities `1/1/1/4` then `4/2/2/4`, and 90
+minutes plus ten minutes of settlement per arm, with no retries or extra arms.
+Actual execution still requires separate HUMAN approval, a fresh frozen allocation
+and attended release; this software acceptance grants none of them.
+
+CLI remains first. Python optimization is parked; its current candidate remains
+unaccepted, and the 85-percent complete-suite target stays open. Native qualification, matched/statistical
+speedup, hosted CI, publication, LIVE and creative/product acceptance remain open.
