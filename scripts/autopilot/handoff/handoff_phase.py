@@ -5,14 +5,14 @@ import sys
 from pathlib import Path
 
 from handoff_files import canonical, digest, owned_root, parse, read_owned, require
-from handoff_source import ENTRY_REGISTRY, RECEIVER_REGISTRY
+from handoff_source import ENTRY_REGISTRY, RECEIVER_REGISTRY, PAIR_WORKFLOW_FILES
 
 B = Path(__file__).absolute().parent
 QA = json.loads(read_owned(B / "qa-interpreter.json"))
 R = Path(QA["projectRoot"])
 REGISTRY = ENTRY_REGISTRY
 RECEIVERS = RECEIVER_REGISTRY
-AUTHORITIES = {"capability_check", "synthetic_unit", "provider_free_handoff", "paid_outline_once"}
+AUTHORITIES = {"capability_check", "synthetic_unit", "provider_free_handoff", "paid_outline_once",'qualification_pair_once'}
 FIELDS = {"version", "kind", "authority", "phaseRoot", "rootIdentity", "sourceRoot", "sourceIdentity",
     "namespace", "nonce", "sourceRevision", "sourceTree", "controlsSha256", "capsuleSha256",
     "helperSha256", "qaPinSha256", "allocationSha256", "entryArgvTemplate", "settlementAuthority"}
@@ -41,8 +41,9 @@ def validate_descriptor(phase, root, expected_kind, identity, *, source_root=B, 
     require(type(phase["version"]) is int and phase["version"] == 3
         and expected_kind in REGISTRY and phase["kind"] == expected_kind
         and phase["authority"] in AUTHORITIES, "phase version/kind/authority")
-    require((phase["authority"] == "paid_outline_once") == (expected_kind == "paid_outline")
-        and (hash_value(phase["allocationSha256"]) if expected_kind == "paid_outline" else phase["allocationSha256"] is None),
+    expected_authority={'paid_outline':'paid_outline_once','qualification_pair':'qualification_pair_once'}.get(expected_kind)
+    require((phase['authority']==expected_authority if expected_authority else phase['authority'] not in {'paid_outline_once','qualification_pair_once'})
+        and (hash_value(phase["allocationSha256"]) if expected_authority else phase["allocationSha256"] is None),
         "proof and paid allocation authority must remain distinct")
     require(root.is_absolute() and source_root.is_absolute() and root != source_root
         and source_root not in root.parents and root not in source_root.parents
@@ -58,11 +59,15 @@ def validate_descriptor(phase, root, expected_kind, identity, *, source_root=B, 
     require(all(hash_value(phase[key]) for key in
         ("controlsSha256", "capsuleSha256", "helperSha256", "qaPinSha256")), "invalid descriptor hashes")
     require(phase["entryArgvTemplate"] == entry_argv(expected_kind, root, "@PHASE_SHA256@", source_root=source_root)
-        and phase["settlementAuthority"] == ("hold_only" if expected_kind == "paid_outline" else "none"),
+        and phase["settlementAuthority"] == ("none" if expected_kind == 'handoff_proof_only' else "hold_only"),
         "exact registered entry/settlement changed")
 
 
 def assert_origins():
+    for filename in PAIR_WORKFLOW_FILES:
+        module=sys.modules.get(filename.removesuffix('.py'))
+        if module is not None:
+            require(Path(module.__file__).absolute()==B/filename,'pair workflow import origin changed')
     for name in ("handoff_files", "handoff_phase", "handoff_process", "handoff_receiver", "handoff_qa",
             "handoff_source", "handoff_launch", "paid_outline_contracts", "paid_outline_prepare",
             "paid_outline_state", "paid_outline_composition", "paid_outline_run"):
@@ -105,11 +110,16 @@ def load_phase(root, expected_sha, *, expected_kind):
     require(source == source_identity(R, require_committed=expected_kind == "paid_outline")
         and source["revision"] == phase["sourceRevision"] and source["tree"] == phase["sourceTree"],
         "actual owner source identity changed")
-    if expected_kind == "paid_outline":
-        from paid_outline_contracts import PaidOutlineAllocation
-        raw = read_owned(B / "paid-allocation.json")
+    if expected_kind in {'paid_outline','qualification_pair'}:
+        if expected_kind=='paid_outline':
+            from paid_outline_contracts import PaidOutlineAllocation as Allocation
+            filename='paid-allocation.json'
+        else:
+            from pair_contracts import QualificationPairAllocation as Allocation
+            filename='pair-allocation.json'
+        raw = read_owned(B / filename)
         require(digest(raw) == phase["allocationSha256"], "paid allocation body changed")
-        allocation = PaidOutlineAllocation.model_validate(parse(raw))
+        allocation = Allocation.model_validate(parse(raw))
         require(allocation.bundle_root.path == str(B) and allocation.phase_root.path == str(root)
             and allocation.nonce == phase["nonce"] and allocation.source.revision == source["revision"]
             and allocation.source.tree == source["tree"]

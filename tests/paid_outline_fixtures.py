@@ -126,16 +126,17 @@ def allocation_model(case):
     return module.PaidOutlineAllocation
 
 
-def rebind_allocation(case, change):
+def rebind_allocation(case, change, *, filename="paid-allocation.json"):
     """Adversarial synthetic DATA with matching outer hashes, never source code."""
     root = case["root"]
     assert json.loads((root / "fixture-owner.json").read_bytes())["syntheticEvidence"] is True
-    allocation = json.loads((root / "bundle/paid-allocation.json").read_bytes())
+    assert filename in {"paid-allocation.json", "pair-allocation.json"}
+    allocation = json.loads((root / "bundle" / filename).read_bytes())
     change(allocation)
     raw = builder.canonical(allocation)
-    (root / "bundle/paid-allocation.json").write_bytes(raw)
+    (root / "bundle" / filename).write_bytes(raw)
     controls = json.loads((root / "bundle/source-controls.json").read_bytes())
-    controls["files"]["paid-allocation.json"] = builder.digest(raw)
+    controls["files"][filename] = builder.digest(raw)
     control_raw = builder.canonical(controls)
     (root / "bundle/source-controls.json").write_bytes(control_raw)
     packet = json.loads((root / "transport.json").read_bytes())

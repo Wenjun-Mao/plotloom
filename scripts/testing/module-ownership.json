@@ -497,6 +497,8 @@
           "tests/services/creator_workbench/test_codex_exec_supervisor_environment.py",
           "tests/services/creator_workbench/test_codex_exec_supervisor_pool.py",
           "tests/services/creator_workbench/test_codex_exec_supervisor_namespace.py",
+          "tests/services/creator_workbench/test_codex_exec_qualification.py",
+          "tests/services/creator_workbench/test_codex_exec_qualification_edges.py",
           "tests/services/creator_workbench/test_codex_exec_pool_profile.py",
           "tests/services/creator_workbench/test_codex_exec_supervisor_validation_lifecycle.py",
           "tests/services/creator_workbench/test_codex_exec_helper_reaping.py",
@@ -514,6 +516,10 @@
           "tests/test_cli_handoff_receiver.py",
           "tests/test_paid_outline_handoff.py",
           "tests/test_paid_outline_processes.py",
+          "tests/test_qualification_pair_contracts.py",
+          "tests/test_qualification_pair_measurements.py",
+          "tests/test_qualification_pair_observation.py",
+          "tests/test_qualification_pair_wiring.py",
           "tests/test_codex_exec_receipts.py",
           "tests/test_codex_exec_resources.py",
           "tests/test_codex_exec_runtime.py",
@@ -621,6 +627,48 @@
     }
   },
   "support_dependencies": [
+    {
+      "suite": "pytest",
+      "path": "tests/qualification_pair_capability_fixture.mjs",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["shared-provider-dispatch"]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/services/creator_workbench/qualification_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["shared-provider-dispatch"]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/qualification_pair_test_support.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["shared-provider-dispatch"]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/qualification_pair_schema_fixture.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["shared-provider-dispatch"]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/qualification_pair_completion_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["shared-provider-dispatch"]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/qualification_pair_observation_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["shared-provider-dispatch"]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/qualification_pair_measurement_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["shared-provider-dispatch"]
+    },
     {
       "suite": "pytest",
       "path": "tests/codex_exec_runtime_fixtures.py",

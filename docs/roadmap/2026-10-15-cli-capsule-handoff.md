@@ -187,3 +187,92 @@ the accepted 29-file source packet remains closed and unchanged.
 The missing per-case cleanup receipts and retained-run-root/archive requirement
 remain explicit. No push, merge, provider/native/model/operator allocation,
 activation or broader full/matched/all-route qualification follows this release.
+
+## Finite-pair source-migration checkpoint (2026-10-15)
+
+Root accepted the genuine one-Outline packet at `ed9c4941`: original native
+terminal exit zero, a typed successful receipt and validated delivery, followed
+by paused HOLD. The allocation is spent. This is not generated Outline adoption,
+all-route completion or matched-pair qualification. The retained packet's
+per-validator PID-absence limitation remains; do not infer missing observations.
+
+CLI is the sole active workstream; Python optimization stays parked until CLI
+completion and a separate release. The approved source follow-up selects the
+already authored serial-first matched pair: four designated fresh projects,
+primary plus Outline-only sidecar per arm, up to nine text attempts and 32 image
+outputs per arm (18/64 total), caps `1/1/1/4` then `4/2/2/4`, and 90 minutes plus
+ten minutes of settlement per arm. No extra scout or standalone functional arm
+is selected. Counts depend on generated workload; identical author inputs do
+not establish identical downstream packages or a capacity-only speedup.
+
+Deliverable: one finite registered handoff around the existing production
+owners, with exact source/control/location/installation/project identities,
+roles, claims, deadlines and per-job freeze before admission. Primary authority
+includes the scoped adoption/install/reference/frame path; sidecar authority
+excludes generated-content adoption, images and later stages. Preserve one
+original native handle, failure/UNKNOWN stop, strict complete-success material
+and current-quiescence gates, and no parallel arm after incomplete serial.
+
+Static review identified two separate questions: tracked ownership of the
+retained location-bound controls, and sidecar no-adoption confinement. The
+existing driver pauses on the retained PID before its next single step; paused
+steps reconcile receipts without adoption. No bypassing race/restart/owner
+action has been demonstrated. Shared TEXT scope and ordinary launch minima do
+not establish a need for new project policy. Review preservation of that exact
+driver ordering or reuse of the existing strict Outline prepare/consume/HOLD
+owners before considering new product authority. Atomic role/budget admission,
+delayed grant and actual start/HALT fences remain required. See
+[ADR 0178](../adr/0178-capsule-plan-handoff-authority.md#finite-paired-qualification-migration-checkpoint-2026-10-15)
+for the concrete migration and owner-boundary checkpoint.
+
+Historical stopping condition: executable implementation paused for that design
+review under Root's explicit wider-migration instruction. Only ADR/roadmap
+documentation changed. No tests, native preflight, runtime, generation,
+next-run namespace/project/allocation, dependency/settings change, commit/push,
+cleanup or new actor occurred. The one-attempt implementation, all old roots,
+failed outcomes and accepted evidence remain unchanged. After review, continue
+the named source/owner slice with fixture-owned focused checks and affected
+module checks; separate stable review and native/generation release still follow.
+
+## Finite-pair source candidate (2026-10-16)
+
+Root resolved the checkpoint and released the tracked control migration plus
+finite namespace/host restrictions. The candidate binds immutable code controls,
+source, physical inputs, QA and checked validator identity separately from mutable
+work/arm roots. Actual project/run/role registration and current-owner job freeze
+precede admission. Atomic reserved-output ceilings, sticky HALT, delayed grant and
+final native-start guards reuse the existing supervisor. Activation/deadlines do
+not renew; settlement and late receipts remain available after new work stops.
+
+The existing exclusive sidecar algorithm remains the selected confinement:
+pause before advancing after PID, fast delivery or already-delivered receipt;
+then reconcile inactive receipts without adoption. Tests cover pause failure,
+interruption, restart and immediate/late delivery. No new product/project policy
+or public command fields were added. The parent requires strict current arm
+success and quiet before parallel. Parallel success requires ordered owned-process
+gates and positive receipt-bound ImageGen tool-call overlap; material completion
+alone cannot complete the pair. Original receipt evidence hashes must admit all
+timing/usage facts before analysis. See ADR 0178 for the root causes and decision.
+
+Mechanical migration: observation, cleanup, canary and workload helpers retain
+their existing responsibilities. Semantic changes: explicit verified code/source/
+work locations, finite setup/admission/HALT/time fences, sidecar fast-delivery
+pause, historical-root-relative preservation, receipt-bound measurement admission
+and mandatory final overlap gates. Retained `.local` controls are not imported.
+
+Delivery is one stable uncommitted candidate, complete file/hash inventory and
+fixture-owned focused/affected/static evidence for independent review. Final
+`shared-provider-dispatch` contract qualification passed 740 Python and 102
+frontend cases, ownership preflight and types. Focused boundaries passed 9 cases;
+the final host edge file passed 25. Quick passed 1381 frontend cases and both type
+checks; its unchanged inputs were reused after the narrow host correction.
+Final review caught retained activation JSON cleared to NULL after authorization;
+the host now refuses reconstruction/reactivation without renewing clocks.
+The concurrency test's one-host observation race was repaired by observing both
+independent hosts with unchanged transaction/ceiling assertions. Pre-fix, failing
+and corrected receipts remain separate in the source verification packet. The pair
+transport fixture attends the original synthetic native handle and holds before
+projects/generation; it is not native or all-route pair qualification. The prior
+Outline remains spent, historical results unchanged, Python optimization parked.
+No actual next-run namespace/project/allocation, native/provider/model dispatch,
+commit/push, cleanup or new actor follows this source/check release.

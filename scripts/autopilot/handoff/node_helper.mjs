@@ -17,7 +17,8 @@ export async function dispatch(request, syntheticIO = null) {
   const pause = syntheticIO?.pause ?? (ms => new Promise(resolve => setTimeout(resolve, ms)));
   const B = path.dirname(fileURLToPath(import.meta.url));
   let R, qa;
-  const registry = { handoff_proof_only: 'proof_launch.py', paid_outline: 'paid_launch.py' };
+  const registry = { handoff_proof_only: 'proof_launch.py', paid_outline: 'paid_launch.py', qualification_pair: 'pair_launch.py' };
+  const receivers = { handoff_proof_only: 'proof_receiver.py', paid_outline: 'paid_receiver.py', qualification_pair: 'pair_receiver.py' };
   const sha = value => crypto.createHash('sha256').update(value).digest('hex');
   const need = (value, message) => { if (!value) throw Error(message); };
   const hash = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
@@ -142,7 +143,7 @@ export async function dispatch(request, syntheticIO = null) {
     need(a.pid === launch.value.pid && a.pgid === a.pid && a.pgid === launch.value.pgid
       && a.birthStart === launch.value.birthStart && b.pid !== a.pid && b.ppid === a.pid && b.pgid === a.pgid, 'exact process topology');
     const expectedExec = ['/opt/homebrew/bin/uv', 'run', '--locked', '--no-sync', 'python', '-B',
-      B + (plan.kind === 'paid_outline' ? '/paid_receiver.py' : '/proof_receiver.py'),
+      B + '/' + receivers[plan.kind],
       '--phase-root', plan.phaseRoot, '--phase-sha', plan.phaseSha256];
     need(same(launch.value.execArgv, expectedExec) && a.commandSha256 === sha(expectedExec.join(' '))
       && qa.allowedInnerExecutables.some(exe => b.commandSha256 === sha([exe, ...expectedExec.slice(5)].join(' '))), 'process argv identity');
@@ -181,7 +182,7 @@ export async function dispatch(request, syntheticIO = null) {
     plan = parse(request.planText);
     keys(plan, ['version', 'authority', 'kind', 'sourceRoot', 'sourceIdentity', 'controlsSha256', 'phaseRoot',
       'phaseIdentity', 'phaseSha256', 'allocationSha256', 'namespace', 'nonce', 'argv', 'argvSha256', 'execArgs']);
-    need(plan.version === 3 && ['capability_check', 'synthetic_unit', 'provider_free_handoff', 'paid_outline_once'].includes(plan.authority)
+    need(plan.version === 3 && ['capability_check', 'synthetic_unit', 'provider_free_handoff', 'paid_outline_once', 'qualification_pair_once'].includes(plan.authority)
       && anchor.authority === plan.authority && (!syntheticIO || plan.authority === 'synthetic_unit'), 'authority class');
     need(plan.sourceRoot === B && anchor.sourceRoot === B && isRootIdentity(plan.sourceIdentity)
       && same(plan.sourceIdentity, anchor.sourceIdentity) && same(rootIdentity(await safeRoot(B)), plan.sourceIdentity), 'source root binding');
@@ -191,7 +192,8 @@ export async function dispatch(request, syntheticIO = null) {
       && hash(plan.phaseSha256) && plan.phaseSha256 === anchor.phaseSha256, 'plan/control/phase pins');
     need(plan.allocationSha256 === anchor.allocationSha256
       && ((plan.kind === 'paid_outline' && plan.authority === 'paid_outline_once' && hash(plan.allocationSha256))
-        || (plan.kind === 'handoff_proof_only' && plan.authority !== 'paid_outline_once' && plan.allocationSha256 === null)),
+        || (plan.kind === 'qualification_pair' && plan.authority === 'qualification_pair_once' && hash(plan.allocationSha256))
+        || (plan.kind === 'handoff_proof_only' && !['paid_outline_once','qualification_pair_once'].includes(plan.authority) && plan.allocationSha256 === null)),
       'proof/paid allocation authority substitution');
     const controlRaw = await read(B + '/source-controls.json');
     need(controlRaw.sha256 === plan.controlsSha256, 'source controls hash'); controls = parse(controlRaw.raw);
@@ -233,7 +235,7 @@ export async function dispatch(request, syntheticIO = null) {
       && phase.controlsSha256 === plan.controlsSha256 && phase.capsuleSha256 === anchor.capsuleSha256
       && phase.helperSha256 === anchor.helperSha256 && phase.qaPinSha256 === controls.files['qa-interpreter.json']
       && phase.allocationSha256 === plan.allocationSha256
-      && phase.settlementAuthority === (phase.kind === 'paid_outline' ? 'hold_only' : 'none'), 'descriptor binding');
+      && phase.settlementAuthority === (phase.kind === 'handoff_proof_only' ? 'none' : 'hold_only'), 'descriptor binding');
     need(Object.hasOwn(controls.files, registry[phase.kind]), 'actual registered entry unavailable');
     const ownerSource = parse((await read(B + '/source-identity.json')).raw);
     keys(ownerSource, ['version','kind','repositoryRoot','revision','tree','files','closureSha256','committed']);
@@ -241,6 +243,26 @@ export async function dispatch(request, syntheticIO = null) {
       && ownerSource.repositoryRoot === R && ownerSource.revision === phase.sourceRevision && ownerSource.tree === phase.sourceTree
       && hash(ownerSource.closureSha256) && ownerSource.closureSha256 === sha(bytes(ownerSource.files))
       && typeof ownerSource.committed === 'boolean', 'actual owner source manifest');
+    if (phase.kind === 'qualification_pair') {
+      need(ownerSource.committed === true && controls.files['pair-allocation.json'] === phase.allocationSha256, 'pair allocation/source pin');
+      const raw = await read(B + '/pair-allocation.json'); need(raw.sha256 === phase.allocationSha256, 'pair allocation body drift');
+      const a = parse(raw.raw);
+      keys(a, ['version','authority','allocationId','nonce','workRoot','bundleRoot','phaseRoot','ownerMarker','source','validatorRuntime','inputs',
+        'serial','parallel','textAttemptCeiling','imageOutputCeiling','retries','extraArms']);
+      need(a.version === 'plotloom.qualification-pair-once.v1' && a.authority === 'qualification_pair_once' && a.nonce === phase.nonce
+        && a.bundleRoot.path === B && a.phaseRoot.path === plan.phaseRoot && a.textAttemptCeiling === 18 && a.imageOutputCeiling === 64
+        && a.retries === 0 && a.extraArms === 0 && a.source.revision === ownerSource.revision && a.source.tree === ownerSource.tree
+        && a.validatorRuntime.qaPinSha256 === controls.files['qa-interpreter.json'], 'pair finite authority differs');
+      need(same(rootIdentity(await safeRoot(a.workRoot.path)), [a.workRoot.device,a.workRoot.inode,a.workRoot.uid]), 'pair work identity');
+      const expected = ['plan.json','prepared_inputs.json','preservation_inputs.json','current_source.json','serial/plan.json','parallel/plan.json'].map(n => a.workRoot.path + '/' + n);
+      need(Array.isArray(a.inputs) && same(a.inputs.map(x => x.path).sort(), expected.sort()), 'pair fixed input inventory');
+      need(a.ownerMarker.path === a.workRoot.path + '/owner.json', 'pair fixed owner marker');
+      for (const file of [...a.inputs,a.ownerMarker]) {
+        need(file.path.startsWith(a.workRoot.path + '/'), 'pair input escaped work root');
+        const item = await read(file.path); need(item.sha256 === file.sha256 && item.raw.length === file.size
+          && same(item.identity.slice(0,3), [file.device,file.inode,file.uid]), 'pair input changed');
+      }
+    }
     if (phase.kind === 'paid_outline') {
       need(ownerSource.committed === true && controls.files['paid-allocation.json'] === phase.allocationSha256,
         'paid committed source/allocation pin');

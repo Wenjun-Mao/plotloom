@@ -68,8 +68,9 @@ def receive(case, source, action, mode):
     birth = "Thu Oct 15 06:09:00 2026"
     qa = json.loads((case / "qa.json").read_bytes())
     from handoff_source import ENTRY_REGISTRY, RECEIVER_REGISTRY
+    kind='qualification_pair' if mode=='pair-transport' else 'paid_outline'
     argv = ["/opt/homebrew/bin/uv", "run", "--locked", "--no-sync", "python", "-B",
-        str(bundle / RECEIVER_REGISTRY["paid_outline"]), "--phase-root", str(root), "--phase-sha", phase_sha]
+        str(bundle / RECEIVER_REGISTRY[kind]), "--phase-root", str(root), "--phase-sha", phase_sha]
     parent_command = " ".join(argv)
     child_command = " ".join([qa["allowedInnerExecutables"][0], *argv[5:]])
     def fake_ps(command, **kwargs):
@@ -91,7 +92,10 @@ def receive(case, source, action, mode):
             # preserve natural completion and do not kill only the direct child.
             raise SystemExit(process.wait(timeout=45))
         os.execvpe = fake_exec
-        sys.argv = [str(bundle / ENTRY_REGISTRY["paid_outline"]), "--phase-root", str(root), "--phase-sha", phase_sha]
+        sys.argv = [str(bundle / ENTRY_REGISTRY[kind]), "--phase-root", str(root), "--phase-sha", phase_sha]
+        if kind=='qualification_pair':
+            import pair_launch
+            return pair_launch.main()
         import paid_launch
         return paid_launch.main()
     if mode == "deadline":
@@ -112,6 +116,27 @@ def receive(case, source, action, mode):
                 raise OSError("synthetic worker launch acknowledgment lost")
             return real_popen(command, **kwargs)
         subprocess.Popen = lost_worker
+    if kind=='qualification_pair':
+        import pair_context
+        original_install=pair_context.install
+        def install_transport_callback():
+            context=original_install()
+            import run_pair
+            run_pair.preflight=lambda:dict(syntheticEvidence=True,qualification=False)
+            def held_execute(_sealed):
+                from handoff_files import publish_record,read_record
+                witness=read_record(root,'receiver-accepted.json')[0]
+                assert witness['nativeExecHandle']==42
+                assert witness['allocationSha256']==json.loads((root/'phase.json').read_bytes())['allocationSha256']
+                publish_record(root,'synthetic-pair-callback.json',dict(syntheticEvidence=True,qualification=False,
+                    nativeExecHandle=witness['nativeExecHandle'],generationDispatches=0,heldBeforeProjects=True))
+                return 1
+            run_pair.execute=held_execute
+            return context
+        pair_context.install=install_transport_callback
+        import pair_receiver
+        sys.argv=['pair_receiver.py','--phase-root',str(root),'--phase-sha',phase_sha]
+        return pair_receiver.main()
     import paid_receiver
     return paid_receiver.main(["--phase-root", str(root), "--phase-sha", phase_sha])
 

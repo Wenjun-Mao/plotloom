@@ -180,6 +180,188 @@ The direct-command guard establishes its actual identity before releasing target
 execution. Its ready/go names publish complete JSON atomically; partial records
 are not repaired through parsing retries.
 
+## Finite paired qualification: migration checkpoint (2026-10-15)
+
+### Diagnosis and approved boundary
+
+The accepted `ed9c4941` handoff spends one exact reserved Outline identity. It
+does not authorize the existing serial-first campaign's four projects or its
+multiple dependent jobs. This is a missing finite authority contract, not a
+failed provider, checked Python runtime or Capsule attachment. The previous
+Outline allocation remains spent; its evidence and one-attempt namespace must
+not be widened, converted or relaunched.
+
+The selected future method is one serial arm followed by one parallel arm,
+with a primary and an Outline-only sidecar in each. Ceilings are nine text
+attempts and 32 image outputs per arm (18/64 total), with global/text/image/queue
+caps `1/1/1/4` then `4/2/2/4`, and 90 minutes plus ten minutes of settlement
+per arm. Primary authority covers the eight production text stages, required
+adoption/installation, references and all-route frames. Sidecar authority covers
+one original Outline and receipt reconciliation, without generated-content
+adoption, images or later stages. These are ceilings, not known output counts,
+creative acceptance, native qualification or a released generation allocation.
+
+Keep a separate finite qualification namespace and registered entry. Preserve
+the current exact-attempt namespace and ordinary unbound installations. Reuse
+the existing production project and supervisor owners; add no executor,
+scheduler, arbitrary-code loader or alternative recovery path. Source/work/arm
+locations and import origins must be explicit physical bindings. An allocation
+must not select Python modules, executable code, a fallback cwd or an old run.
+
+### Why a transport-only extension is insufficient
+
+Static inspection of retained `matched-pair-observed-2a359171-20261015-02`
+establishes the following migration requirements. That historical failed run
+remains evidence, never executable authority for a new run.
+
+| Existing boundary | Evidence and required change |
+| --- | --- |
+| Campaign source ownership | Counting shared files and one arm, the retained set contains 2,620 Python lines: 2,061 runtime/preparation/analysis/helper lines and 559 test/fixture lines. This inventory is outside the tracked fixed handoff closure; its size is not itself a reason to change the method. Retained `run_pair.py:12–15` derives ROOT from `WORK.parents[2]`; `serial/run_arm.py:17–28` uses `WORK.parents[3]` and inserts arm, campaign and service directories into `sys.path`. Moving files into B does not preserve import ownership. |
+| Sidecar control, distinct from host admission | Retained `serial/run_arm.py:210–225` excludes background controller ownership and takes its lease. Lines 264–275 inspect, pause on the retained native PID, then issue one step. Current `src/plotloom/autopilot_text_controller.py:44–60` returns after one stage action; lines 183–185 adopt only an already-delivered checkpoint, whereas lines 221–234 record delivery and return. Lines 34–36 and 339–383 route a paused sidecar into inactive receipt reconciliation. Preserve this ordering; a host Outline allowlist alone cannot guard local adoption. |
+| Ordinary launch budgets | `src/plotloom/autopilot_contracts.py:45–59` requires at least one image and nine jobs in ordinary policy. Qualification ceilings belong to the finite allocation/admission restriction; this does not establish a need to change ordinary policy or add a product-specific sidecar policy. |
+| Atomic admission | `services/creator_workbench/codex_exec_supervisor_admission.py:23,48–81` checks namespace before `BEGIN IMMEDIATE`, then inserts attempt and queue. Finite role/stage/count checks must also run inside that transaction, including disabled queue entries; a pre-call count or observer is insufficient. |
+| Deferred execution | `services/creator_workbench/codex_exec_supervisor_pool.py:101–117` grants later; status can drain the queue (`codex_exec_supervisor_admission.py:92–100`). Worker/native start are further boundaries. A deadline/HALT must fence new grants/starts while leaving observation, late receipts, exact pause/cancel and owned settlement usable; it cannot release uncertain capacity or make every ledger connection fail. |
+
+### Required design checkpoint before executable changes
+
+The source/import migration and the sidecar authority question are separate.
+No concrete race, restart path or owner action bypassing the existing exclusive
+one-step/pause/no-advance driver has been demonstrated in this inspection.
+The coarseness of TEXT scope does not prove that new product/project authority
+is necessary. Do not promote that earlier inference into an approved contract.
+At that checkpoint Root held wider migration for review; no finite-pair schema,
+entry, role fence or allocation had been implemented or qualified. The reviewed slice was:
+
+1. Promote the necessary campaign controls into one tracked workflow, preserving
+   RPC/capture/error and cleanup outcomes. Separate immutable controls in B
+   from mutable campaign/arm work roots; use explicit source/work/arm arguments
+   and verified fixed import origins. Keep both arms on identical control bytes.
+2. Define one persisted finite qualification allocation/admission restriction,
+   independently pinned in the installation/ledger. Bind catalog,
+   physical roots/databases, source/controls, profile, QA and checked validator
+   separately, project/run/role/claim identities, one-shot arm activation and
+   original deadlines. Freeze each actual project identity before its first dispatch;
+   freeze each request/package/attempt before its original admission. Missing
+   restriction after restart must refuse new work, not become ordinary unbound.
+3. Resolve sidecar confinement by preserving the audited exclusive driver and
+   persisted role/order, or reusing the existing prepare/reserve/strict-consume/
+   observe/HOLD owner path. `src/plotloom/autopilot_exec_staged.py:33–81` provides
+   one-shot consumption and observe-only reconciliation; the accepted
+   `scripts/autopilot/handoff/paid_outline_run.py:85–148` never calls controller
+   advance/adoption. Reuse those owners, not the spent allocation or its exact
+   namespace. Prove no second adopting step after immediate or late delivery,
+   failed pause, UNKNOWN, interruption or an attempted restart. Introduce new
+   project authority only if a named counterexample defeats these existing
+   boundaries. No qualification-only bypass or new public command fields follow
+   merely from the shared TEXT scope. Preserve the exact saved-Brief projection
+   and Outline preparation; neither grants generated-content adoption.
+4. Exercise those real boundaries with test-owned fixtures: forbidden sidecar
+   mutations, duplicate/foreign jobs, concurrent and disabled admissions,
+   restart pin removal, deadline crossing between admission/grant/start,
+   UNKNOWN/lost acknowledgment, late receipt settlement and serial failure
+   preventing parallel activation. Preserve strict `complete_success`, current
+   quiescence, complete all-route inventory/bundle and sidecar receipt checks.
+
+Enforce per-role reservations before consume and host insertion, then fence
+delayed grants and actual starts; passive observation cannot own these checks.
+Do not duplicate policy in an observer, weaken the ordinary launch schema, or
+load controls from retained `.local` evidence to avoid this migration. Reuse
+the unchanged eleven-plan and later fourteen-command F5 native evidence where
+its inputs remain unchanged; new fixture correctness is not native proof.
+
+### Resolved implementation direction (2026-10-15)
+
+Root resolved the checkpoint: migrate the necessary existing controls into a
+tracked fixed workflow with explicit verified source/work/arm bindings and
+immutable import origins. Preserve the authored method, RPC/error capture and
+strict success semantics. Keep mutable inputs and outputs outside the sealed
+code closure. Report mechanical migration separately from semantic changes.
+
+Use a distinct finite qualification binding with durable actual project/run/role
+registrations before dispatch; keep the one-attempt binding and ordinary pools
+unchanged. Atomically account for every original authorization, including
+disabled entries, and sum reserved image outputs rather than image row counts.
+Exact duplicate observations do not spend again. Each arm admits at most nine
+text attempts and 32 image outputs across its two designated projects.
+
+No new product/project authority or public command fields are selected. Preserve
+the exclusive one-step/pause/no-advance sidecar algorithm, its persisted role,
+and existing receipt-only inactive reconciliation. Guard immediate/late/already-
+delivered outcomes, failed pause, interruption and attempted restart directly.
+A concrete counterexample requires a stop with evidence, not speculative policy.
+
+New admission, delayed grants and native spawn must consult durable HALT,
+failure/UNKNOWN and original time bounds in their existing owner transactions.
+Worker terminal auto-drain is included. Persist activation/deadlines once;
+never renew on restart. A new start must fit the actual CLI runtime, each frozen
+validator-step ceiling and declared settlement allowance. Insufficient time is
+held/incomplete, never proof of remote absence or released uncertain capacity.
+Expiry blocks new work only; observation, receipts and owned settlement remain
+available. Parallel activation requires serial complete-success and current
+quiescence. No generation/native allocation, cleanup, publication or Python
+optimization follows this source/check release.
+
+### Implemented source candidate (2026-10-16)
+
+The source candidate now implements the resolved direction; execution remains
+held. The fixed registry adds `qualification_pair` with separate finite authority.
+Its code-only controls manifest precedes namespace pins, allocation, full source
+controls and transport hashes, avoiding a cycle. The Python registered entry owns
+the complete typed allocation/namespace schema; JS owns transport verification
+and its finite structural checks. A Python schema refusal may occur after a
+transport intent but must precede project creation, admission and provider work.
+Do not duplicate the full product schema in JS or claim an earlier refusal.
+
+Setup registers actual project/run/role/claim identities before dispatch. Each
+current-owner job is frozen before admission. Frozen originals count against the
+ceilings even when disabled or not admitted. The existing host transaction checks
+role, stage and output budgets; grants and final native spawn check sticky HALT
+and the original activation clock. Activation loss, missing persisted binding or
+identity drift refuses rather than restarting authority. Time expiry leaves
+receipt reconciliation and owned settlement usable; UNKNOWN retains capacity.
+No new project authority or public command fields were introduced.
+
+The existing serial-first driver is now tracked with explicit verified locations
+and source origins. The primary path retains adoption/install/reference/frame
+operations. The exclusive sidecar driver pauses before its next step on a PID,
+immediate delivery or an already-delivered receipt; paused steps use the existing
+inactive reconciliation owner. Failed pause, interruption and attempted restart
+cannot advance it. Historical controls remain read-only data/evidence, never an
+executable import. Preservation paths resolve from the frozen historical root,
+independently of the mutable work root.
+
+Review found two acceptance defects in the migrated analysis contract: material
+completion alone could set pair success, and a changed transcript could supply
+self-consistent timing without matching its original receipt. Fix these in the
+measurement and final acceptance owners. Before parsing time or usage, reconstruct
+the receipt evidence hash from the original private stdout/stderr, current
+transcript hash and exit code, plus the text-validation layer when applicable.
+Retain bounded private-file identity and second-read consistency checks. Parallel
+success additionally requires ordered cross/image/text owned-process gates and a
+strictly positive intersection of ImageGen tool-call intervals from distinct
+original attempts and sessions. Zero, touching, absent or unbound intervals fail.
+Persist the exact overlap proof and remeasure it at the parent arm gate before
+pair completion. This proves observed tool-call overlap only, not simultaneous
+remote computation, content equivalence or a capacity-only speedup.
+
+Test-owned fixtures exercise actual schema, host, receiver and telemetry owners.
+The pair transport fixture substitutes external native IO, attends original
+handle 42 and deliberately holds at a labelled callback before projects or
+generation. It does not qualify an actual pair. Stable independent review and a
+separate generation/native allocation remain required.
+
+Final review also found that setting retained `activation_json` to NULL left the
+arm row/table present and could allow host reactivation with fresh clocks after
+frozen authorizations. The fixed arm entry still prevented automatic campaign
+restart; that did not satisfy the host persistence contract. The host integrity
+owner now requires a valid retained activation whenever frozen or host attempts
+exist. Empty setup before activation remains valid. A regression first reproduced
+successful reconstruction on the invalid NULL state, then guards reconstruction
+and in-memory reactivation refusal with byte-identical database preservation.
+No expiry/HALT condition is added to the general connection path, so valid
+settlement remains available. Pre-fix qualification evidence stays separately
+identified; the corrected candidate requires fresh affected checks.
+
 ## Limits and consequences
 
 This replaces whole-body verification for the new contract. It attests neither

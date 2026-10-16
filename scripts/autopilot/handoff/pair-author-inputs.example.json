@@ -1,0 +1,28 @@
+{
+  "brief": {
+    "title": "雾闸一钥·时长接收执行证明",
+    "synopsis": "旧城退潮前，守闸人林澄必须决定是否把唯一一把防洪闸钥交给邻居修闸师；交出会公开她曾私自封闭暗渠的事实，不交则居民可能被困。交钥与留钥各自通向不同结局。聚焦一处闸房与堤门。",
+    "genre": "短篇悬疑",
+    "visualStyle": "写实电影摄影，低饱和冷青灰雨夜与一盏暖灯",
+    "genreSelections": [],
+    "visualStyleSelections": [],
+    "language": "zh-CN",
+    "aspectRatio": "16:9",
+    "targetPlaythroughSeconds": 20,
+    "decisionPointsPerPath": 1,
+    "endingCount": 2,
+    "nodeBudget": 4,
+    "maxOutDegree": 2,
+    "desiredJoinCount": 0,
+    "shotsPerSceneMin": 1,
+    "shotsPerSceneMax": 1,
+    "shotCountPolicy": "advisory"
+  },
+  "launchRequest": {
+    "expectedBriefRevision": 1,
+    "styleAuthority": "brief",
+    "maxImages": 32,
+    "maxJobs": 40
+  },
+  "priorEvidence": {}
+}

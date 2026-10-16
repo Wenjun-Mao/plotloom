@@ -17,6 +17,7 @@ from codex_exec_supervisor_validation_process import (
 
 
 class CodexExecSupervisorValidationMixin(CodexExecSupervisorValidationProcessMixin):
+    STEP_TIMEOUT_SECONDS = 300
     def _validate_text_delivery(
         self, attempt, profile, package_request, job_root, private_dir, source_resources,
     ):
@@ -112,7 +113,7 @@ class CodexExecSupervisorValidationMixin(CodexExecSupervisorValidationProcessMix
                         attempt, step.step_id, command, environment, validation_root, stdout, stderr,
                     )
                     exit_code = self._wait_validation_process(
-                        attempt, step.step_id, process, identity, started=started, timeout_seconds=300,
+                        attempt, step.step_id, process, identity, started=started, timeout_seconds=self.STEP_TIMEOUT_SECONDS,
                         stdout_path=stdout_path, stderr_path=stderr_path,
                         max_bytes=min(profile.max_output_bytes, 50_000_000),
                     )

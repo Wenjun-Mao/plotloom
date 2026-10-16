@@ -15,7 +15,7 @@ from handoff.handoff_source import ENTRY_REGISTRY, WORKFLOW_FILES, source_identi
 
 SOURCE = Path(__file__).absolute().parent / "handoff"
 INPUT_FILES = (*WORKFLOW_FILES, "qa-interpreter.json")
-FILES = (*INPUT_FILES, "source-identity.json", "paid-allocation.json")
+FILES = (*INPUT_FILES, "source-identity.json", "paid-allocation.json",'pair-controls.json','pair-allocation.json')
 BUILTINS = ["node:fs/promises", "node:fs", "node:crypto", "node:os", "node:path", "node:url"]
 
 
@@ -58,7 +58,15 @@ def read_regular(path, *, private=False):
     return raw
 
 
-def bound_sources(root, *, source=SOURCE, qa_bytes=None, allocation_bytes=None):
+def pair_code_controls(contents):
+    """Acyclic code-only pin: code -> finite namespace -> allocation -> full controls."""
+    return canonical({'version':1,'kind':'pair_code_controls.v1',
+        'files':{name:digest(raw) for name,raw in contents.items()}})
+
+
+def bound_sources(root, *, source=SOURCE, qa_bytes=None, allocation_bytes=None, pair_allocation_bytes=None):
+    if allocation_bytes is not None and pair_allocation_bytes is not None:
+        raise RuntimeError('one registered allocation kind per bundle')
     inputs = {name: read_regular(Path(source) / name) for name in INPUT_FILES}
     result = dict(inputs)
     template = result["capsule.mjs"].decode()
@@ -90,6 +98,21 @@ def bound_sources(root, *, source=SOURCE, qa_bytes=None, allocation_bytes=None):
                 or allocation.namespace.source_root.path != qa["projectRoot"]):
             raise RuntimeError("paid allocation source/QA/bundle binding differs")
         result["paid-allocation.json"] = allocation_bytes
+    if pair_allocation_bytes is not None:
+        from handoff.pair_contracts import QualificationPairAllocation
+        allocation=QualificationPairAllocation.model_validate_json(pair_allocation_bytes)
+        if canonical(json.loads(pair_allocation_bytes))!=pair_allocation_bytes:
+            raise RuntimeError('pair allocation must be canonical')
+        code=pair_code_controls(result)
+        if (not owner['committed'] or allocation.bundle_root.path!=str(root)
+                or allocation.source.revision!=owner['revision'] or allocation.source.tree!=owner['tree']
+                or allocation.source.workflow_closure_sha256!=owner['closureSha256']
+                or allocation.source.bundle_source_identity_sha256!=digest(result['source-identity.json'])
+                or allocation.validator_runtime.qa_pin_sha256!=digest(result['qa-interpreter.json'])
+                or any(getattr(allocation,arm).namespace.controls_sha256!=digest(code) for arm in ('serial','parallel'))):
+            raise RuntimeError('pair source/QA/code-only controls differ')
+        result['pair-controls.json']=code
+        result['pair-allocation.json']=pair_allocation_bytes
     return result, {name: digest(value) for name, value in inputs.items()}
 
 
@@ -110,11 +133,12 @@ def controls_for(root, identity, contents):
         "helperExportSha256": digest(helper_source.encode())}
 
 
-def seal_bundle(root, *, source=SOURCE, qa_bytes=None, allocation_bytes=None):
+def seal_bundle(root, *, source=SOURCE, qa_bytes=None, allocation_bytes=None, pair_allocation_bytes=None):
     root, identity = owned_directory(root)
     if list(root.iterdir()):
         raise RuntimeError("bundle must be fresh and empty; no overwrite or repair")
-    contents, inputs = bound_sources(root, source=source, qa_bytes=qa_bytes, allocation_bytes=allocation_bytes)
+    contents, inputs = bound_sources(root, source=source, qa_bytes=qa_bytes, allocation_bytes=allocation_bytes,
+        pair_allocation_bytes=pair_allocation_bytes)
     controls = controls_for(root, identity, contents)
     for name, raw in {**contents, "source-controls.json": canonical(controls)}.items():
         fd = os.open(root / name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
@@ -136,9 +160,10 @@ def seal_bundle(root, *, source=SOURCE, qa_bytes=None, allocation_bytes=None):
         "paidPositiveCriterion": "OPEN: source/test evidence is not actual paid qualification", "immutableAfterSeal": True}
 
 
-def verify_bundle(root, *, source=SOURCE, qa_bytes=None, allocation_bytes=None):
+def verify_bundle(root, *, source=SOURCE, qa_bytes=None, allocation_bytes=None, pair_allocation_bytes=None):
     root, identity = owned_directory(root)
-    contents, inputs = bound_sources(root, source=source, qa_bytes=qa_bytes, allocation_bytes=allocation_bytes)
+    contents, inputs = bound_sources(root, source=source, qa_bytes=qa_bytes, allocation_bytes=allocation_bytes,
+        pair_allocation_bytes=pair_allocation_bytes)
     controls = controls_for(root, identity, contents)
     if {p.name for p in root.iterdir()} != {*contents, "source-controls.json"}:
         raise RuntimeError("missing or extra bundle closure")

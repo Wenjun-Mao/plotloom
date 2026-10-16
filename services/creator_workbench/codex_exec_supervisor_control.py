@@ -72,6 +72,7 @@ class CodexExecSupervisorControlMixin:
                     )
                     if status_attempt.state == "outcome_unknown":
                         self._reserve_unknown_capacity(connection, status_attempt)
+                    self._qualification_terminal(connection,status_attempt)
                     connection.commit()
                     return self._status(status_attempt)
 

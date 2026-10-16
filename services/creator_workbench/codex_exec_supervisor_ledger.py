@@ -185,6 +185,7 @@ class CodexExecSupervisorLedgerMixin:
                 (updated.model_dump_json(by_alias=True), receipt_json, selected_manifest,
                  time.time(), str(attempt.attempt_id)),
             )
+            self._qualification_terminal(connection, updated)
             if updated.state in {"completed", "failed", "settled"}:
                 connection.execute("DELETE FROM exec_slot WHERE attempt_id=?", (str(attempt.attempt_id),))
                 self._forget_terminal_queue(connection, attempt.attempt_id)
@@ -192,6 +193,7 @@ class CodexExecSupervisorLedgerMixin:
             return updated
 
     def _persist_status_in_transaction(self, connection, attempt):
+        self._qualification_terminal(connection, attempt)
         connection.execute(
             "UPDATE exec_attempts SET status_json=?,updated_at=? WHERE attempt_id=?",
             (attempt.model_dump_json(by_alias=True), time.time(), str(attempt.attempt_id)),

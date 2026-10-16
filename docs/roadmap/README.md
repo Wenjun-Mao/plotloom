@@ -1,17 +1,19 @@
 # Plotloom roadmap entrypoint
 
-The owner released the [CLI capsule handoff checkpoint](2026-10-15-cli-capsule-handoff.md)
-for implementation and bounded provider-free capability/synthetic checks. Real
-handoff proof, paid generation and product acceptance remain separate releases.
+Current priority (2026-10-16): [parallel CLI generation](2026-10-13-autopilot-cli-workers.md)
+in `b30f` is the sole active workstream. The accepted one-Outline allocation is
+spent. The [CLI capsule checkpoint](2026-10-15-cli-capsule-handoff.md#finite-pair-source-migration-checkpoint-2026-10-15)
+records the selected serial-first pair and Root's resolved migration direction.
+The finite registered entry, tracked controls and existing sidecar driver are an
+uncommitted source candidate with passed fixture-owned, affected and static checks.
+No new product authority was added. Stable independent review, new native/
+generation allocation, publication and product acceptance remain separate releases.
 
-The owner-requested Python coordinator continues the approved
-[Python speed track](2026-10-14-python-context-and-workers.md) in retained
-`autopilot-ux-release`, separately from higher-priority
-[parallel CLI generation](2026-10-13-autopilot-cli-workers.md) in `b30f`.
-The manager is read-only in both checkouts. Small focused correctness work and
-attended read-only reviews may overlap; broad qualification, profiles and
-benchmarks require a manager-allocated quiet window. Default Python concurrency
-remains two and the 85-percent complete-suite target remains open.
+The [Python speed track](2026-10-14-python-context-and-workers.md) in retained
+`autopilot-ux-release` is parked until CLI completion and separate release. Its
+candidate stays unaccepted. Python-language fixture checks for CLI correctness
+do not resume optimization. The manager remains read-only in both checkouts;
+the 85-percent complete-suite target remains open.
 
 The [Bridge / controller-claim follow-up](2026-10-14-bridge-claim-optimization.md)
 has independent review and scoped matched evidence. Historical scheduling has

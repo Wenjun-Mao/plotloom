@@ -57,6 +57,9 @@ class CodexExecSupervisorAdmissionMixin:
                     if self._identity(prior) == self._identity(attempt):
                         return self._load(duplicate)
                     raise CodexExecSupervisorError("immutable Codex Exec job already has a host attempt")
+                if not self._qualification_admission(connection, attempt, enabled=enabled):
+                    connection.commit()
+                    raise CodexExecSupervisorError("qualification arm held before admission")
                 try:
                     # The tentative queue insertion and oldest eligible grant
                     # share one transaction. A full queue rolls both back and

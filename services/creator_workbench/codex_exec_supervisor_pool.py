@@ -100,6 +100,8 @@ class CodexExecSupervisorPoolMixin:
 
     def _grant_one_in_transaction(self, connection):
         self._namespace_assert_connection(connection)
+        if not self._qualification_new_work(connection):
+            return None
         counts = self._capacity_counts(connection)
         if sum(counts.values()) >= self.pool_limits.max_processes:
             return None
@@ -107,6 +109,8 @@ class CodexExecSupervisorPoolMixin:
             WHERE q.enabled=1 AND json_extract(a.status_json,'$.state')='queued' ORDER BY q.ordinal""").fetchall()
         for row in rows:
             attempt = CodexExecAttempt.model_validate_json(row["status_json"])
+            if not self._qualification_new_work(connection, attempt):
+                return None
             if counts[attempt.domain] >= self.pool_limits.domain_capacity(attempt.domain):
                 continue
             if any(row[name] is not None for name in ("worker_pid", "worker_group_id", "worker_birth_identity")):

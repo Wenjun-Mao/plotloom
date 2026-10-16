@@ -1,6 +1,24 @@
 # Parallel CLI workers for pre-video autopilot
 
-Status: **dispatched once through Relay Direct on 2026-10-13**. The isolated
+Current checkpoint (2026-10-16): **CLI first; Python optimization parked**.
+Root accepted the completed `ed9c4941` one-Outline packet. That allocation is
+spent and does not qualify the matched pair. Root selected the existing
+serial-first pair and released bounded handoff source work and CLI correctness
+checks, without generation, native preflight, real next-run allocation,
+commit/push or new actors. Root resolved the wider-source-migration checkpoint;
+the finite registered pair and tracked controls are now an uncommitted source
+candidate, with test-owned focused, affected module and static checks passed.
+The stable candidate awaits independent review. See
+[ADR 0178](../adr/0178-capsule-plan-handoff-authority.md#finite-paired-qualification-migration-checkpoint-2026-10-15)
+and the [capsule checkpoint](2026-10-15-cli-capsule-handoff.md#finite-pair-source-migration-checkpoint-2026-10-15).
+The candidate preserves the existing exclusive sidecar driver and inactive
+receipt reconciliation, with no new product authority. Receipt-bound tool-call
+overlap and ordered owned-process gates are required before pair completion.
+Stable independent review, actual native/generation allocation and product
+acceptance remain open. Earlier releases below retain their historical scope;
+this narrower current assignment controls the next step.
+
+Historical checkpoint: **dispatched once through Relay Direct on 2026-10-13**. The isolated
 checked-runtime repair `e24cb80e` passed all eleven provider-free native
 validate/render pairs and controls. Test-only follow-up `7685a868` passed fresh
 checkout checks; documentation checkpoint `dda660dc` is clean and idle. The

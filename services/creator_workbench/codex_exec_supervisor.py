@@ -16,6 +16,8 @@ from codex_exec_supervisor_namespace import CodexExecSupervisorNamespaceMixin
 from codex_exec_supervisor_pool import CodexExecSupervisorPoolMixin
 from codex_exec_supervisor_process import CodexExecSupervisorProcessMixin
 from codex_exec_supervisor_queue_control import CodexExecSupervisorQueueControlMixin
+from codex_exec_supervisor_qualification import CodexExecSupervisorQualificationMixin
+from codex_exec_supervisor_qualification_admission import CodexExecSupervisorQualificationAdmissionMixin
 from codex_exec_supervisor_worker_ownership import (
     CodexExecSupervisorWorkerOwnershipMixin,
 )
@@ -27,6 +29,8 @@ from plotloom.codex_exec_auth import (
 
 
 class CodexExecSupervisor(
+    CodexExecSupervisorQualificationMixin,
+    CodexExecSupervisorQualificationAdmissionMixin,
     CodexExecSupervisorNamespaceMixin,
     CodexExecSupervisorAdmissionMixin,
     CodexExecSupervisorPoolMixin,

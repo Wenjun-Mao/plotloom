@@ -41,6 +41,9 @@ class CodexExecSupervisorQueueControlMixin:
                 queue = connection.execute("SELECT enabled FROM exec_queue WHERE attempt_id=?", (str(attempt.attempt_id),)).fetchone()
                 if queue is None:
                     raise CodexExecSupervisorError("unstarted attempt has no durable queue authorization")
+                if enabled and not self._qualification_new_work(connection, attempt):
+                    connection.commit()
+                    raise CodexExecSupervisorError('qualification arm held before queue authorization')
                 connection.execute("UPDATE exec_queue SET enabled=? WHERE attempt_id=?", (int(enabled), str(attempt.attempt_id)))
                 if not enabled and current.state == "spawn_intent":
                     self._park_before_spawn_in_transaction(connection, row, current)

@@ -23,7 +23,7 @@ def launch(kind, qa):
     require(not any(os.environ.get(key) for key in refused), "ambient interpreter/root overrides refused")
     sys.path.insert(0, str(R / "src"))
     phase = load_phase(args.phase_root, args.phase_sha, expected_kind=kind)
-    authority = "paid_outline_once" if kind == "paid_outline" else "provider_free_handoff"
+    authority = {'paid_outline':'paid_outline_once','qualification_pair':'qualification_pair_once'}.get(kind,'provider_free_handoff')
     require(phase["authority"] == authority, "wrong registered launcher authority")
     root = Path(args.phase_root)
     intent = read_record(root, "invocation-intent.json")
@@ -36,7 +36,7 @@ def launch(kind, qa):
         "invocation-intent.json.ready-" + intent[1]}, "runtime already launched or contaminated")
     uv = shutil.which("uv")
     require(uv == "/opt/homebrew/bin/uv", "normal pinned uv entrypoint required")
-    prefix = "plotloom-outline-paid-transport-" if kind == "paid_outline" else "plotloom-outline-handoff-proof-"
+    prefix = {'paid_outline':'plotloom-outline-paid-transport-','qualification_pair':'plotloom-pair-transport-'}.get(kind,'plotloom-outline-handoff-proof-')
     temp = Path(tempfile.mkdtemp(prefix=prefix, dir="/private/tmp"))
     temp.chmod(0o700)
     for name in ("tmp", "cache", "uv-cache", "pycache"):

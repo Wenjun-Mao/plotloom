@@ -19,9 +19,9 @@ def prepare_transport(bundle_root, phase_root, *, authority, nonce):
     bundle, root = owned_root(bundle_root), owned_root(phase_root)
     require(not list(root.iterdir()), "transport runtime must be fresh and descriptor-only")
     require(bundle != root and bundle not in root.parents and root not in bundle.parents, "source/runtime roots overlap")
-    require(authority in {"capability_check", "synthetic_unit", "provider_free_handoff", "paid_outline_once"},
+    require(authority in {"capability_check", "synthetic_unit", "provider_free_handoff", "paid_outline_once", 'qualification_pair_once'},
         "unregistered transport authority")
-    kind = "paid_outline" if authority == "paid_outline_once" else "handoff_proof_only"
+    kind = {'paid_outline_once':'paid_outline','qualification_pair_once':'qualification_pair'}.get(authority,'handoff_proof_only')
     controls_raw = read_owned(bundle / "source-controls.json")
     controls = parse(controls_raw)
     qa = json.loads(read_owned(bundle / "qa-interpreter.json"))
@@ -31,10 +31,15 @@ def prepare_transport(bundle_root, phase_root, *, authority, nonce):
     for name, sha in controls["files"].items():
         require(Path(name).name == name and digest(read_owned(bundle / name)) == sha, "sealed source closure differs")
     allocation_sha = None
-    if kind == "paid_outline":
-        from paid_outline_contracts import PaidOutlineAllocation
-        raw = read_owned(bundle / "paid-allocation.json")
-        allocation = PaidOutlineAllocation.model_validate(parse(raw))
+    if kind in {'paid_outline','qualification_pair'}:
+        if kind=='paid_outline':
+            from paid_outline_contracts import PaidOutlineAllocation as Allocation
+            filename='paid-allocation.json'
+        else:
+            from pair_contracts import QualificationPairAllocation as Allocation
+            filename='pair-allocation.json'
+        raw = read_owned(bundle / filename)
+        allocation = Allocation.model_validate(parse(raw))
         allocation_sha = digest(raw)
         require(source["committed"] and allocation.nonce == nonce
             and allocation.phase_root.path == str(root) and allocation.bundle_root.path == str(bundle)
@@ -50,7 +55,7 @@ def prepare_transport(bundle_root, phase_root, *, authority, nonce):
         "sourceRevision": source["revision"], "sourceTree": source["tree"], "controlsSha256": digest(controls_raw),
         "capsuleSha256": controls["capsuleSourceSha256"], "helperSha256": controls["files"]["node_helper.mjs"],
         "qaPinSha256": controls["files"]["qa-interpreter.json"], "allocationSha256": allocation_sha,
-        "entryArgvTemplate": template, "settlementAuthority": "hold_only" if kind == "paid_outline" else "none"}
+        "entryArgvTemplate": template, "settlementAuthority": "hold_only" if kind != 'handoff_proof_only' else "none"}
     phase_sha = exclusive_bytes(root, "phase.json", canonical(phase))
     argv = [phase_sha if item == "@PHASE_SHA256@" else item for item in template]
     command = " ".join("'" + item.replace("'", "'\\''") + "'" for item in argv)

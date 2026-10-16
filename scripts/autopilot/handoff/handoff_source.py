@@ -4,15 +4,22 @@ import subprocess
 from hashlib import sha256
 from pathlib import Path
 
+PAIR_WORKFLOW_FILES = (
+    'admission_observation.py','campaign_observation.py','campaign_cleanup.py','campaign_guard.py',
+    'parking_observation.py','session_measurements.py','analyze_pair.py','run_pair.py',
+    'preservation.py','prepare_pair.py','canary_evidence.py','observe.py','pair_workload.py','run_arm.py',
+    'pair_context.py','pair_contracts.py','pair_preflight.py','pair_runtime.py','pair_sidecar.py',
+    'pair_launch.py','pair_receiver.py','pair_arm_receiver.py',
+)
 WORKFLOW_FILES = (
     "capsule.mjs", "node_helper.mjs", "handoff_files.py", "handoff_phase.py",
     "handoff_receiver.py", "handoff_process.py", "handoff_qa.py", "handoff_source.py",
     "handoff_launch.py", "handoff_plan.py", "proof_launch.py", "proof_receiver.py", "paid_launch.py", "paid_receiver.py",
     "paid_outline_contracts.py", "paid_outline_prepare.py", "paid_outline_run.py",
     "paid_outline_state.py", "paid_outline_composition.py",
-)
-ENTRY_REGISTRY = {"handoff_proof_only": "proof_launch.py", "paid_outline": "paid_launch.py"}
-RECEIVER_REGISTRY = {"handoff_proof_only": "proof_receiver.py", "paid_outline": "paid_receiver.py"}
+) + PAIR_WORKFLOW_FILES + ('pair-author-inputs.example.json',)
+ENTRY_REGISTRY = {"handoff_proof_only": "proof_launch.py", "paid_outline": "paid_launch.py", 'qualification_pair':'pair_launch.py'}
+RECEIVER_REGISTRY = {"handoff_proof_only": "proof_receiver.py", "paid_outline": "paid_receiver.py", 'qualification_pair':'pair_receiver.py'}
 
 
 def git_value(root, *args):

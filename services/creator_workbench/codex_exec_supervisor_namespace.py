@@ -26,7 +26,8 @@ class CodexExecSupervisorNamespaceMixin:
                 raise CodexExecSupervisorError("one-attempt namespace pin is required")
             if database.exists():
                 with closing(self._namespace_read_database(database, require_private=False)) as connection:
-                    if self._namespace_table_exists(connection, "exec_namespace_configuration"):
+                    if any(self._namespace_table_exists(connection,name) for name in
+                            ('exec_namespace_configuration','exec_qualification_arm','exec_qualification_project','exec_qualification_attempt')):
                         raise CodexExecSupervisorError("persisted namespace cannot become unbound")
             return
         from plotloom.codex_exec_namespace_contracts import CodexExecNamespaceBinding
@@ -35,7 +36,11 @@ class CodexExecSupervisorNamespaceMixin:
         if sha256(raw).hexdigest() != expected_sha256:
             raise CodexExecSupervisorError("one-attempt namespace binding hash differs")
         try:
-            self._namespace = CodexExecNamespaceBinding.model_validate_json(raw)
+            import json
+            from plotloom.codex_exec_qualification_contracts import CodexExecQualificationBinding
+            model = (CodexExecQualificationBinding if json.loads(raw).get("version") ==
+                "plotloom.exec-qualification-arm.v1" else CodexExecNamespaceBinding)
+            self._namespace = model.model_validate_json(raw)
         except ValueError as error:
             raise CodexExecSupervisorError("invalid one-attempt namespace binding") from error
         self._namespace_assert_files()
@@ -52,6 +57,9 @@ class CodexExecSupervisorNamespaceMixin:
                 if self._namespace_table_exists(connection, "exec_namespace_configuration"):
                     self._namespace_assert_connection(connection)
                 else:
+                    if any(self._namespace_table_exists(connection,name) for name in
+                            ('exec_qualification_arm','exec_qualification_project','exec_qualification_attempt')):
+                        raise CodexExecSupervisorError('qualification ledger cannot be rebound after binding loss')
                     # Binding is allowed only before any identity has entered a
                     # current empty ledger. Never convert an occupied/legacy pool.
                     for table in ("exec_attempts", "exec_queue", "exec_slot", "exec_validation_process"):
@@ -130,6 +138,10 @@ class CodexExecSupervisorNamespaceMixin:
                 raise CodexExecSupervisorError("namespace root is unsafe")
             elif name != "source_root" and expected.mode != 0o700:
                 raise CodexExecSupervisorError("namespace data roots must be private")
+        if self._finite_qualification:
+            if Path(binding.application_database.path) != Path(binding.application_root.path)/'application.sqlite3':
+                raise CodexExecSupervisorError('qualification application database differs')
+            self._qualification_path(binding.application_database)
 
     def _namespace_assert_profile(self):
         if self._namespace is not None:
@@ -142,6 +154,11 @@ class CodexExecSupervisorNamespaceMixin:
     def _namespace_assert_attempt(self, attempt=None, *, attempt_id=None, check_profile=False):
         self._namespace_assert_files()
         if self._namespace is None:
+            return
+        if self._finite_qualification:
+            self._qualification_requested(attempt, attempt_id=attempt_id)
+            if check_profile:
+                self._namespace_assert_profile()
             return
         expected = self._namespace.attempt
         if attempt_id is not None and str(attempt_id) != str(expected.attempt_id):
@@ -162,7 +179,8 @@ class CodexExecSupervisorNamespaceMixin:
 
     def _namespace_assert_connection(self, connection):
         if self._namespace is None:
-            if self._namespace_table_exists(connection, "exec_namespace_configuration"):
+            if any(self._namespace_table_exists(connection,name) for name in
+                    ('exec_namespace_configuration','exec_qualification_arm','exec_qualification_project','exec_qualification_attempt')):
                 raise CodexExecSupervisorError("persisted namespace cannot become unbound")
             return
         self._namespace_assert_files()
@@ -170,31 +188,12 @@ class CodexExecSupervisorNamespaceMixin:
         if len(saved) != 1 or saved[0]["identity"] != 1 or saved[0]["binding_sha256"] != self._namespace_sha256:
             raise CodexExecSupervisorError("namespace ledger binding differs")
         self._namespace_assert_pool(connection)
-        from plotloom.codex_exec_contracts import (
-            CodexExecAttempt,
-            CodexExecReceipt,
-            assert_receipt_matches_attempt,
-        )
+        if self._finite_qualification:
+            self._qualification_connection(connection)
+            return
         expected = self._namespace.attempt
         for row in connection.execute("SELECT * FROM exec_attempts"):
-            original = CodexExecAttempt.model_validate_json(row["attempt_json"])
-            current = CodexExecAttempt.model_validate_json(row["status_json"])
-            for attempt in (original, current):
-                self._namespace_assert_attempt(attempt)
-            if (row["attempt_id"], row["project_id"], row["job_id"]) != (
-                    str(expected.attempt_id), str(expected.project_id), expected.job_id):
-                raise CodexExecSupervisorError("foreign namespace ledger row")
-            tombstone = self._namespace_cancel_tombstone(connection, row, original, current)
-            if original.state != "spawn_intent" and not tombstone:
-                raise CodexExecSupervisorError("namespace ledger lacks its admitted snapshot")
-            private = self.private_root / "attempts" / str(expected.attempt_id)
-            if not tombstone and (Path(row["private_dir"]) != private
-                    or not Path(row["project_home"]).is_relative_to(self.outputs_root)):
-                raise CodexExecSupervisorError("namespace ledger paths differ")
-            if not tombstone and not Path(row["job_root"]).is_relative_to(Path(row["project_home"])):
-                raise CodexExecSupervisorError("namespace job escapes its project")
-            if row["receipt_json"] is not None:
-                assert_receipt_matches_attempt(current, CodexExecReceipt.model_validate_json(row["receipt_json"]))
+            self._namespace_assert_ledger_row(connection, row, expected)
         for table in ("exec_queue", "exec_slot", "exec_validation_process"):
             for row in connection.execute(f"SELECT * FROM {table}"):
                 if row["attempt_id"] != str(expected.attempt_id):
@@ -203,6 +202,32 @@ class CodexExecSupervisorNamespaceMixin:
                     raise CodexExecSupervisorError("orphan namespace queue, slot or validator")
                 if table == "exec_slot" and row["domain"] != expected.domain:
                     raise CodexExecSupervisorError("namespace slot domain differs")
+
+    def _namespace_assert_ledger_row(self, connection, row, expected, *, project_home=None):
+        """Shared integrity for exact-attempt and finite registered namespaces."""
+        from plotloom.codex_exec_contracts import CodexExecAttempt, CodexExecReceipt, assert_receipt_matches_attempt
+        original = CodexExecAttempt.model_validate_json(row["attempt_json"])
+        current = CodexExecAttempt.model_validate_json(row["status_json"])
+        if not self._finite_qualification:
+            self._namespace_assert_attempt(original)
+            self._namespace_assert_attempt(current)
+        if any(self._identity(item) != self._identity(expected) for item in (original, current)) or (
+                row["attempt_id"], row["project_id"], row["job_id"]) != (
+                str(expected.attempt_id), str(expected.project_id), expected.job_id):
+            raise CodexExecSupervisorError("foreign namespace ledger row")
+        tombstone = self._namespace_cancel_tombstone(connection, row, original, current)
+        if original.state != "spawn_intent" and not tombstone:
+            raise CodexExecSupervisorError("namespace ledger lacks its admitted snapshot")
+        if not tombstone:
+            home, job = Path(row["project_home"]), Path(row["job_root"])
+            private = self.private_root / "attempts" / str(expected.attempt_id)
+            if (Path(row["private_dir"]) != private or not home.is_relative_to(self.outputs_root)
+                    or (project_home is not None and home != project_home)):
+                raise CodexExecSupervisorError("namespace ledger paths differ")
+            if not job.is_relative_to(home) or home.resolve(strict=True)!=home or job.resolve(strict=True)!=job:
+                raise CodexExecSupervisorError("namespace job escapes its project")
+        if row["receipt_json"] is not None:
+            assert_receipt_matches_attempt(current, CodexExecReceipt.model_validate_json(row["receipt_json"]))
 
     def _namespace_assert_pool(self, connection):
         from plotloom.codex_exec_pool_contracts import CodexExecPoolLimits
@@ -251,6 +276,7 @@ class CodexExecSupervisorNamespaceMixin:
         saved = connection.execute("SELECT binding_sha256 FROM exec_namespace_configuration WHERE identity=1").fetchone()
         if saved is None:
             connection.execute("INSERT INTO exec_namespace_configuration VALUES(1,?)", (self._namespace_sha256,))
+        self._qualification_initialize(connection)
         self._namespace_assert_connection(connection)
         self._namespace_database_identity = self._namespace_regular_file(self.database)
         self._namespace_initializing = False

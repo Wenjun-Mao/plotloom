@@ -31,6 +31,8 @@ class RuntimeConfig:
     port: int
     bridge_port: int
     enable_h3: bool = False
+    pool_limits: object = None
+    namespace_binding_sha256: str | None = None
 
     def validated(self):
         if type(self.enable_h3) is not bool:
@@ -82,7 +84,8 @@ class RuntimeConfig:
         static = self.static_dir.resolve(strict=True)
         if not static.is_dir():
             raise ValueError("static assets must be an existing directory")
-        return RuntimeConfig(data, static, executable, token_path, self.port, self.bridge_port, self.enable_h3)
+        return RuntimeConfig(data, static, executable, token_path, self.port, self.bridge_port,
+            self.enable_h3, self.pool_limits, self.namespace_binding_sha256)
 
 
 @dataclass
@@ -153,6 +156,8 @@ def compose(config: RuntimeConfig):
             source_root=source_root,
             outputs_root=config.data_root / "outputs",
             private_root=config.token_file.parent / "codex-exec",
+            pool_limits=config.pool_limits,
+            namespace_binding_sha256=config.namespace_binding_sha256,
         )
         server.RequestHandlerClass = handler_for(bridge)
 

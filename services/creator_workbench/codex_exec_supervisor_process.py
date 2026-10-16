@@ -184,6 +184,16 @@ class CodexExecSupervisorProcessMixin(
                         # not-started in this interval.
                         try:
                             self._namespace_assert_attempt(attempt, check_profile=True)
+                            if not self._qualification_new_work(connection, attempt):
+                                # This worker owns proof that native Popen has
+                                # not occurred. Park only through the existing
+                                # exact pre-spawn owner, never time-only release.
+                                connection.execute("UPDATE exec_queue SET enabled=0 WHERE attempt_id=?",
+                                    (str(attempt.attempt_id),))
+                                self._park_before_spawn_in_transaction(connection, row, latest,
+                                    worker_identity=worker_identity)
+                                connection.commit()
+                                return
                             process = subprocess.Popen(
                                 command,
                                 cwd=delivery,

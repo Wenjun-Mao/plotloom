@@ -48,7 +48,7 @@ export const Capsule = async function Capsule(tools, planText, anchorText, ancho
         && sha(request.capsuleSource) === a.capsuleSha256 && sha(request.planText) === a.planSha256, 'capsule/plan identity');
       const p = parse(request.planText);
       keys(p, ['version','authority','kind','sourceRoot','sourceIdentity','controlsSha256','phaseRoot','phaseIdentity','phaseSha256','allocationSha256','namespace','nonce','argv','argvSha256','execArgs']);
-      need(p.version === 3 && ['capability_check','synthetic_unit','provider_free_handoff','paid_outline_once'].includes(p.authority)
+      need(p.version === 3 && ['capability_check','synthetic_unit','provider_free_handoff','paid_outline_once','qualification_pair_once'].includes(p.authority)
         && a.authority === p.authority && p.sourceRoot === B && p.controlsSha256 === a.controlsSha256
         && p.phaseSha256 === a.phaseSha256 && p.allocationSha256 === a.allocationSha256
         && stable(p.sourceIdentity) === stable(a.sourceIdentity), 'plan binding');
@@ -62,7 +62,11 @@ export const Capsule = async function Capsule(tools, planText, anchorText, ancho
       const allowed = ['capsule.mjs','node_helper.mjs','handoff_files.py','handoff_phase.py','handoff_receiver.py','handoff_process.py','handoff_qa.py',
         'proof_launch.py','proof_receiver.py','qa-interpreter.json','paid_launch.py','paid_receiver.py','handoff_launch.py','handoff_plan.py',
         'handoff_source.py','source-identity.json','paid-allocation.json','paid_outline_contracts.py','paid_outline_prepare.py',
-        'paid_outline_run.py','paid_outline_state.py','paid_outline_composition.py'];
+        'paid_outline_run.py','paid_outline_state.py','paid_outline_composition.py',
+        'admission_observation.py','campaign_observation.py','campaign_cleanup.py','campaign_guard.py','parking_observation.py',
+        'session_measurements.py','analyze_pair.py','run_pair.py','preservation.py','prepare_pair.py','canary_evidence.py','observe.py',
+        'pair_workload.py','run_arm.py','pair_context.py','pair_contracts.py','pair_preflight.py','pair_runtime.py','pair_sidecar.py',
+        'pair_launch.py','pair_receiver.py','pair_arm_receiver.py','pair-controls.json','pair-allocation.json','pair-author-inputs.example.json'];
       const closure = async () => {
         need(stable(await root(B)) === stable(a.sourceIdentity), 'source root identity');
         need(stable((await fs.readdir(B)).sort()) === stable([...Object.keys(controls.files),'source-controls.json'].sort()), 'source inventory');

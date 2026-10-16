@@ -26,7 +26,7 @@ const tools = {
     if (!child) {
       if (Object.keys(args).sort().join('|') !== Object.keys(plan.execArgs).sort().join('|')
         || Object.keys(plan.execArgs).some(key => args[key] !== plan.execArgs[key])) throw Error('non-registered native command');
-      calls.push('SYNTHETIC_registered_paid_launch');
+      calls.push(mode === 'pair-transport' ? 'SYNTHETIC_registered_pair_launch' : 'SYNTHETIC_registered_paid_launch');
       child = spawn(python, ['-B', nativeFixture, 'outer', '--case-root', root, '--source-root', source, '--mode', mode],
         { stdio: ['ignore', 'pipe', 'pipe'] });
       let output = '';
