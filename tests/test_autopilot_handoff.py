@@ -46,49 +46,52 @@ def observation(review):
                 "stateNotes": "Observed the pose and wardrobe in this frame."} for identifier in frame["characterIds"]]} for frame in bundle["frames"]]}
 
 
-def test_exact_human_handoff_preserves_machine_origin_and_withdraws_after_edit(tmp_path, monkeypatch):
+def test_exact_human_handoff_preserves_machine_origin_and_withdraws_after_edit(tmp_path, awaiting_handoff_seed):
     from fastapi.testclient import TestClient
 
     from plotloom.api import create_project_folder_authoring_app
-    storage, _registry, service, view, calls, text = handoff_image_environment(tmp_path, monkeypatch)
-    try:
-        complete = run_pack(storage, service, view)
-        assert_compact_handoff_pack(storage, view, complete, calls)
-        with closing(storage.projects.open(view.project_id)) as store:
-            review = review_material(store)
-            with store.repository._read() as session:
-                assert not video_eligible(session, view.project_id)
-            client = TestClient(create_project_folder_authoring_app(storage))
-            endpoint = f"/api/v2/projects/{view.project_id}/autopilot"
-            assert client.get(endpoint + "/launch-context").json()["eligible"] is False
-            assert client.get(endpoint + "/review").json()["bundleHash"] == review["bundleHash"]
-            assert client.post(endpoint + "/handoff", json=observation(review) | {"authority": "machine"}).status_code == 422
-            response = client.post(endpoint + "/handoff", json=observation(review))
-            assert response.status_code == 200, response.text
-            result = RunView.model_validate(response.json())
-            assert result.state == "handed_off"
-            with store.repository._read() as session:
-                assert video_eligible(session, view.project_id)
-            with store.repository.engine.connect() as connection:
-                assert connection.exec_driver_sql("SELECT count(*) FROM v2_autopilot_handoffs").scalar() == 1
-                assert connection.exec_driver_sql("SELECT count(*) FROM v2_approval_decisions").scalar() == 1
-                assert connection.exec_driver_sql("SELECT count(*) FROM v2_reviewed_shot_bindings").scalar() == len(complete.frames)
-                assert connection.exec_driver_sql("SELECT count(*) FROM v2_production_units WHERE approval_id IS NOT NULL").scalar() == 0
-                assert connection.exec_driver_sql("SELECT count(*) FROM v2_video_jobs").scalar() == 0
-                original = connection.exec_driver_sql("SELECT receipt FROM v2_autopilot_handoffs").scalar()
-            with store.repository.manual_command() as session:
-                project = store.repository._project_access.rows.project(session, view.project_id)
-                project.brief = project.brief | {"title": "Manual title after handoff"}
-                project.revision += 1
-            with store.repository._read() as session:
-                assert not video_eligible(session, view.project_id)
-            with store.repository.engine.connect() as connection:
-                assert connection.exec_driver_sql("SELECT receipt FROM v2_autopilot_handoffs").scalar() == original
-        with closing(storage.projects.open(view.project_id)):
-            pass  # Ordinary raw admission validates retained history after an edit.
-        assert len(calls) == len(complete.frames) + 2 and len(text) == 8
-    finally:
-        service.close()
+    from tests.autopilot_seed_fixtures import seed_files
+
+    storage, view, image_job_ids = copy_awaiting_handoff_seed(awaiting_handoff_seed, tmp_path / "handoff-copy")
+    complete = view
+    assert_compact_handoff_pack(storage, view, complete, image_job_ids)
+    with closing(storage.projects.open(view.project_id)) as store:
+        review = review_material(store)
+        with store.repository._read() as session:
+            assert not video_eligible(session, view.project_id)
+        client = TestClient(create_project_folder_authoring_app(storage))
+        endpoint = f"/api/v2/projects/{view.project_id}/autopilot"
+        assert client.get(endpoint + "/launch-context").json()["eligible"] is False
+        assert client.get(endpoint + "/review").json()["bundleHash"] == review["bundleHash"]
+        assert client.post(endpoint + "/handoff", json=observation(review) | {"authority": "machine"}).status_code == 422
+        response = client.post(endpoint + "/handoff", json=observation(review))
+        assert response.status_code == 200, response.text
+        result = RunView.model_validate(response.json())
+        assert result.state == "handed_off"
+        with store.repository._read() as session:
+            assert video_eligible(session, view.project_id)
+        with store.repository.engine.connect() as connection:
+            assert connection.exec_driver_sql("SELECT count(*) FROM v2_autopilot_handoffs").scalar() == 1
+            assert connection.exec_driver_sql("SELECT count(*) FROM v2_approval_decisions").scalar() == 1
+            assert connection.exec_driver_sql("SELECT count(*) FROM v2_reviewed_shot_bindings").scalar() == len(complete.frames)
+            assert connection.exec_driver_sql("SELECT count(*) FROM v2_production_units WHERE approval_id IS NOT NULL").scalar() == 0
+            assert connection.exec_driver_sql("SELECT count(*) FROM v2_video_jobs").scalar() == 0
+            original = connection.exec_driver_sql("SELECT receipt FROM v2_autopilot_handoffs").scalar()
+            text_job_ids = tuple(row[0] for row in connection.exec_driver_sql(
+                "SELECT job_id FROM v2_autopilot_exec_attempts WHERE run_id=? AND domain='text' AND state='completed' AND receipt IS NOT NULL",
+                (str(view.id),)))
+        with store.repository.manual_command() as session:
+            project = store.repository._project_access.rows.project(session, view.project_id)
+            project.brief = project.brief | {"title": "Manual title after handoff"}
+            project.revision += 1
+        with store.repository._read() as session:
+            assert not video_eligible(session, view.project_id)
+        with store.repository.engine.connect() as connection:
+            assert connection.exec_driver_sql("SELECT receipt FROM v2_autopilot_handoffs").scalar() == original
+    with closing(storage.projects.open(view.project_id)):
+        pass  # Ordinary raw admission validates retained history after an edit.
+    assert len(image_job_ids) == len(complete.frames) + 2 and len(text_job_ids) == 8
+    assert seed_files(awaiting_handoff_seed.project.root) == awaiting_handoff_seed.project.files
 
 
 @pytest.mark.parametrize("defect", ["missing", "fail", "hold", "asset", "references"])
