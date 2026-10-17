@@ -39,6 +39,8 @@ must cover text and image commands, package instructions and unchanged allow/den
 boundaries. Fake CLI tests alone cannot establish native initialization behavior.
 
 UNKNOWN is not a synonym for an inferred startup failure. Do not derive terminal
-authority from stderr text, a missing PID or a later successful probe. The original
-attempt, frozen profile, reservation and raw evidence remain unchanged. This fix
-does not authorize a duplicate attempt or automatically resume the held run.
+authority from stderr text, a missing PID or a later successful probe. Absent
+separate explicit operator disposal authority, the original attempt, frozen
+profile, reservation and raw evidence remain unchanged. An authorized discard is
+not terminal settlement and must not silently start replacement generation.
+This fix itself does not authorize a duplicate attempt or resume a held run.

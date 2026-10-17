@@ -7,12 +7,16 @@ attempt's UNKNOWN outcome. Its retained stderr identifies denied ambient AGENTS
 discovery before session creation; a provider-free owned initialization probe
 reproduces the failure and verifies zero document budget removes it without
 granting more filesystem access. ADR 0187 defines frozen-package instruction
-authority for both text and image invocations. Implement that shared invocation
-policy, regress its consumers, obtain independent review and qualify stable source.
-Keep the original attempt/profile, raw evidence and UNKNOWN reservation unchanged;
-no retry, live restart or generation is implied while the old run is unresolved.
-Optimization and speculative batching remain parked. Stop at a verified source
-fix and explicit recovery/deployment boundaries, not fabricated job completion.
+authority for both text and image invocations. Shared invocation policy and
+regressions passed independent review and one complete full gate at `1b9af397`:
+3,100 Python, 1,381 frontend and 319 browser cases, all 14 steps.
+The owner separately authorized permanently discarding the exact failed run
+without an archive. After qualification, offline removal preserved the project,
+brief and accepted source, removed its UNKNOWN reservation/run-only files, and did not infer terminal
+settlement or start replacement generation. Activate the fix with existing
+installation settings and verify readiness; a fresh generation remains the owner's
+next action. See the [verification record](../verification/2026-10-17-outline-startup-instructions.md).
+Optimization and speculative batching remain parked.
 
 ## Current CLI compatibility correction
 
