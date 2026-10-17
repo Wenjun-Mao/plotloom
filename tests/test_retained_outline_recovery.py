@@ -13,18 +13,24 @@ from plotloom.codex_exec_delivery import publish_creative_completion
 from plotloom.codex_exec_runtime import package_tree_hash
 from plotloom.codex_exec_validation import build_text_validation_plan
 from plotloom.creative_handoff_contracts import CreativeHandoffError
-from plotloom.creative_handoff_exchange import CreativeHandoffExchange
-from plotloom.creative_handoff_exchange import canonical_json
-from plotloom.project_storage import ProjectStorageCorruptionError
+from plotloom.creative_handoff_exchange import CreativeHandoffExchange, canonical_json
 from plotloom.persistence.project.autopilot_bindings import assert_checkpoint_binding
+from plotloom.project_storage import ProjectStorageCorruptionError
 from plotloom.project_storage.autopilot_validation import assert_autopilot_contracts
 from plotloom.project_storage.creative_evidence_inventory import (
-    _codex_creative_jobs, _retained_codex_request_projection, creative_evidence_paths,
+    _codex_creative_jobs,
+    _retained_codex_request_projection,
+    creative_evidence_paths,
 )
 from tests.autopilot_controller_fixtures import UPSTREAM_PIN
 from tests.retained_outline_fixtures import (
-    REVISION, digest, historical_package, historical_profile, historical_request,
-    stopped_native_outline, storage_at,
+    REVISION,
+    digest,
+    historical_package,
+    historical_profile,
+    historical_request,
+    stopped_native_outline,
+    storage_at,
 )
 from tests.source_outline_fixtures import _material, _request
 
@@ -160,13 +166,14 @@ def test_both_passive_checkpoint_and_decision_consumers_avoid_live_plan(tmp_path
     import plotloom.project_storage.autopilot_validation as validation
 
     calls = []
-    retained = validation.assert_retained_checkpoint_provenance
+    retained = validation._assert_checkpoint_binding
     def record(*args, **kwargs):
+        assert kwargs["validation_plan_for_request"] is validation._retained_checkpoint_validation_plan
         calls.append((args[2], kwargs["operation_key"]))
         return retained(*args, **kwargs)
     def forbidden(*args, **kwargs):
         pytest.fail("passive checkpoint/decision validation used live plan or process")
-    monkeypatch.setattr(validation, "assert_retained_checkpoint_provenance", record)
+    monkeypatch.setattr(validation, "_assert_checkpoint_binding", record)
     monkeypatch.setattr("plotloom.codex_exec_validation.build_text_validation_plan", forbidden)
     monkeypatch.setattr("subprocess.Popen", forbidden)
     with sqlite3.connect(home / "project.sqlite3") as connection:

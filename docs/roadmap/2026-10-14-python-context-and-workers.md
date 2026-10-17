@@ -1,5 +1,9 @@
 # Python context reuse and bounded worker experiment
 
+The current approved source slice is [validation-local profile construction
+(October 17)](2026-10-17-profile-construction.md). Earlier entries below preserve
+their original scope and evidence.
+
 ## Current-source row-byte trial — October 17, 2026
 
 CLI scoped native generation and documentation closeout are complete. Root

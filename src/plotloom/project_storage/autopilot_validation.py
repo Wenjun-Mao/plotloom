@@ -14,15 +14,18 @@ from ..codex_exec_contracts import (
 )
 from ..persistence.codec import stable_hash
 from ..persistence.project.autopilot_bindings import (
+    _assert_checkpoint_binding,
+    _retained_checkpoint_validation_plan,
     assert_frame_binding,
-    assert_retained_checkpoint_provenance,
 )
+from ..persistence.project.autopilot_profile_construction import _ProfileConstruction
 from .format import ProjectStorageCorruptionError
 
 STATES = {"running", "waiting", "paused", "cancelled", "stale", "blocked", "awaiting_review", "handed_off", "taken_over"}
 
 
 def assert_autopilot_contracts(connection, *, asset_home=None):
+    profile_construction = _ProfileConstruction()
     try:
         runs = {}
         run_policies = {}
@@ -43,8 +46,10 @@ def assert_autopilot_contracts(connection, *, asset_home=None):
             run_policies[identifier] = parsed
         for identifier, run_id, project, operation_key, state, raw in connection.execute("SELECT id,run_id,project_id,operation_key,state,evidence FROM v2_autopilot_checkpoints"):
             parsed = CheckpointEvidence.model_validate_json(raw)
-            assert_retained_checkpoint_provenance(connection, project, state, parsed, run_id=run_id,
-                operation_key=operation_key, asset_home=asset_home)
+            _assert_checkpoint_binding(connection, project, state, parsed, run_id=run_id,
+                operation_key=operation_key, asset_home=asset_home,
+                validation_plan_for_request=_retained_checkpoint_validation_plan,
+                profile_construction=profile_construction)
             if run_id not in runs or runs[run_id][0] != project:
                 raise ValueError("checkpoint run identity changed")
         if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_autopilot_exec_attempts'").fetchone():
@@ -114,9 +119,11 @@ def assert_autopilot_contracts(connection, *, asset_home=None):
             retained_checkpoint = connection.execute(
                 "SELECT operation_key FROM v2_autopilot_checkpoints WHERE id=?", (checkpoint,)
             ).fetchone()
-            assert_retained_checkpoint_provenance(connection, project,
+            _assert_checkpoint_binding(connection, project,
                 "delivered" if parsed.evidence.delivery_hash else "prepared", parsed.evidence,
-                run_id=run_id, operation_key=retained_checkpoint[0], asset_home=asset_home)
+                run_id=run_id, operation_key=retained_checkpoint[0], asset_home=asset_home,
+                validation_plan_for_request=_retained_checkpoint_validation_plan,
+                profile_construction=profile_construction)
         for run_id, project, shot, job, asset, decision, raw in connection.execute("SELECT run_id,project_id,shot_id,job_id,asset_id,decision_id,frame FROM v2_autopilot_frames"):
             parsed = ProvisionalFrame.model_validate_json(raw)
             if runs.get(run_id, (None,))[0] != project or (parsed.shot_id, parsed.job_id, parsed.asset_id) != (shot, job, asset):

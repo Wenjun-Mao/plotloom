@@ -1,5 +1,9 @@
 # Plotloom roadmap entrypoint
 
+Active bounded Python source step (October 17): [validation-local profile
+construction](2026-10-17-profile-construction.md), one uncommitted correctness
+candidate on 19793455. Earlier checkpoints below retain their dated scope.
+
 Current checkpoint (2026-10-17): **scoped native parallel CLI qualification
 accepted at tested `b313ac83`**. Root and two independent reviewers accepted the
 four-project, 18-text/30-image pair with 48 successful receipted attempts, complete

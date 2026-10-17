@@ -35,6 +35,11 @@
           "tests/test_receipt_material_projections.py",
           "tests/test_material_closure_bytes.py",
           "tests/test_autopilot_policy_decoding.py",
+          "tests/test_autopilot_profile_construction.py",
+          "tests/test_autopilot_profile_purity.py",
+          "tests/test_autopilot_profile_bindings.py",
+          "tests/test_autopilot_profile_transactions.py",
+          "tests/test_autopilot_profile_receipts.py",
           "tests/test_autopilot_claim_transactions.py",
           "tests/test_autopilot_exec_pool.py",
           "tests/test_autopilot_exec_staged.py",
@@ -640,6 +645,12 @@
     }
   },
   "support_dependencies": [
+    {
+      "suite": "pytest",
+      "path": "tests/autopilot_profile_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["story-authoring"]
+    },
     {
       "suite": "pytest",
       "path": "tests/autopilot_policy_fixtures.py",

@@ -105,3 +105,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0181 Historical qualification preservation](0181-historical-qualification-preservation.md)
 - [0182 Failed ImageGen terminal metadata](0182-failed-imagegen-event-metadata.md)
 - [0183 Closure-local canonical row bytes](0183-closure-local-canonical-row-bytes.md)
+- [0184 Validation-invocation-local profile construction](0184-validation-local-profile-construction.md)
