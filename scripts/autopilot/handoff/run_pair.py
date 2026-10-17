@@ -1,9 +1,7 @@
 """Preflight or execute one ordered, source-frozen observational native pair."""
 import argparse
-from copy import deepcopy
 import hashlib
 import json
-from pathlib import Path
 import signal
 import subprocess
 import sys
@@ -12,7 +10,7 @@ from datetime import UTC, datetime
 from pair_context import CONTROLS, current
 WORK = current().campaign
 ROOT = current().source
-from campaign_guard import profiles_differ_only_in_capacity, require_historical_material_and_current_absence, require_successful_current_arm
+from campaign_guard import require_successful_current_arm
 
 ACTIVE = None
 STOPPED = False

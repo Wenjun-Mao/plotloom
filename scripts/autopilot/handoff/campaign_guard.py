@@ -39,7 +39,8 @@ def _require_absent_group(group):
     raise RuntimeError("recorded process group is still present")
 
 
-def require_zero_live_original_work(proof_root, *, require_success=False):
+def _require_settled_ledger(proof_root, *, require_success):
+    """Validate retained data without asserting current process liveness."""
     database = proof_root / "private/codex-exec/supervisor.sqlite3"
     if database.is_symlink() or not database.is_file():
         raise RuntimeError("original private ledger must be a regular existing file")
@@ -60,12 +61,17 @@ def require_zero_live_original_work(proof_root, *, require_success=False):
                 raise RuntimeError("original successful receipt is missing")
             assert_receipt_matches_attempt(attempt, CodexExecReceipt.model_validate_json(row["receipt_json"]))
         groups.update(group for group in (row["worker_group_id"], attempt.process_group_id) if group is not None)
+    return {"attempts": len(rows), "held": 0, "queue": 0, "validators": 0}, groups
+
+
+def require_zero_live_original_work(proof_root, *, require_success=False):
+    ledger, groups = _require_settled_ledger(proof_root, require_success=require_success)
     for group in groups:
         _require_absent_group(group)
-    return {"attempts": len(rows), "groupsAbsent": len(groups), "held": 0, "queue": 0, "validators": 0}
+    return ledger | {"groupsAbsent": len(groups)}
 
 
-def require_historical_material_and_current_absence(proof_root):
+def require_historical_material(proof_root):
     result = json.loads((proof_root / "result.json").read_text())
     if sha(proof_root / "result.json") != HISTORICAL_RESULT_SHA or result["sourceRevision"] != HISTORICAL_SOURCE:
         raise RuntimeError("historical result identity changed")
@@ -76,15 +82,7 @@ def require_historical_material_and_current_absence(proof_root):
             or post["originalResultUnchanged"] != result or not post["driverAbsent"] or post["groupsPresent"]
             or post["held"] or post["queue"] or post["validators"] or not post["allTerminalSuccess"]):
         raise RuntimeError("additive post-parent-exit evidence differs")
-    live = require_zero_live_original_work(proof_root, require_success=True)
-    for group in post["recordedGroups"]:
-        _require_absent_group(group)
-    try:
-        os.kill(post["driverPid"], 0)
-    except ProcessLookupError:
-        pass
-    else:
-        raise RuntimeError("historical driver PID is present or absence unproved")
+    retained, groups = _require_settled_ledger(proof_root, require_success=True)
     primary = json.loads((proof_root / "latest_primary.json").read_text())
     sidecar = json.loads((proof_root / "latest_sidecar.json").read_text())
     if (primary["run"]["state"] != "awaiting_review" or primary["run"]["bundle"] is None
@@ -92,12 +90,13 @@ def require_historical_material_and_current_absence(proof_root):
             or sum(item["domain"] == "image" for item in primary["attempts"]) != 16
             or len(sidecar["attempts"]) != 1 or sidecar["run"]["state"] != "paused"
             or any(item["terminalResult"] != "success" for item in primary["attempts"] + sidecar["attempts"])
-            or live["attempts"] != 25 or live["attempts"] != post["attemptCount"]):
+            or retained["attempts"] != 25 or retained["attempts"] != post["attemptCount"]):
         raise RuntimeError("historical complete material/sidecar evidence differs")
     if sha(proof_root / "timeline.jsonl") != result["timelineSha256"]:
         raise RuntimeError("historical timeline changed")
     return {"historicalSource": HISTORICAL_SOURCE, "historicalInProcessPassed": False,
-        "historicalInProcessQuiescent": False, "materialComplete": True, "currentOriginalWork": live,
+        "historicalInProcessQuiescent": False, "materialComplete": True,
+        "retainedOriginalWork": retained | {"recordedGroups": sorted(groups)}, "historicalLiveness": "UNKNOWN",
         "newSourceQualification": False, "requiresNewArmsToQualifyReaper": True}
 
 
@@ -132,7 +131,7 @@ def require_execution_order(arm_root, plan):
     marker = json.loads((campaign / "campaign_intent.json").read_text())
     if marker["sourceRevision"] != plan["sourceRevision"] or marker["sealedPlanSha256"] != plan["sealedPlanSha256"]:
         raise RuntimeError("arm lacks the exact one-shot campaign identity")
-    require_historical_material_and_current_absence(Path(plan["functionalProofRoot"]))
+    require_historical_material(Path(plan["functionalProofRoot"]))
     if plan["arm"] == "parallel":
         require_successful_current_arm(campaign / "serial", expected_source=plan["sourceRevision"])
 

@@ -102,3 +102,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0176 Receipt-command-local material projections](0176-receipt-command-local-material-projections.md)
 - [0178 Capsule and plan handoff authority](0178-capsule-plan-handoff-authority.md)
 - [0179 Optional prospective Script dialogue compatibility](0179-planned-script-dialogue-compatibility.md)
+- [0181 Historical qualification preservation](0181-historical-qualification-preservation.md)

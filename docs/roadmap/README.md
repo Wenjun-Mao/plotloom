@@ -1,16 +1,27 @@
 # Plotloom roadmap entrypoint
 
 Current priority (2026-10-16): [parallel CLI generation](2026-10-13-autopilot-cli-workers.md)
-in `b30f` is the sole active workstream. Root released the sole source writer for
+in `b30f` is the sole active workstream. The human approved the bounded
+[historical qualification preservation contract](../adr/0181-historical-qualification-preservation.md):
+remove historical numeric-only PID/PGID rechecks while preserving retained
+material/ledger/receipt validation and strict current-allocation settlement.
+Deliver focused red/green, complete affected owner files and proportional static
+checks; stop with an uncommitted candidate for independent/Root review.
+No commit, preparation/preflight/SAFE, allocation, generation, cleanup, runtime
+repinning or CI is released. Python optimization stays parked.
+
+### Earlier Outline source checkpoint
+
+Root previously released the sole source writer for
 [ADR 0180](../adr/0180-outline-report-metadata-receiving.md): a bounded Outline
 report-metadata contract after consumed allocation `946f7858` passed upstream
 validation and failed report rendering on `lang="zh-CN"`. Earlier allocation
 `1b891486` failed the exact warning enum gate. Both remain spent/unqualified,
 with strict cleanup unresolved; closed evidence and original deliveries are
-immutable. The current source baseline is clean local `095b790e`; its accepted
+immutable. That checkpoint's baseline was clean local `095b790e`; its accepted
 full software result does not qualify modified code.
 
-Deliver the shared typed metadata/schema, primary instruction and receiving
+That release covered the shared typed metadata/schema, primary instruction and receiving
 bypass guards, with focused regressions and one reviewed story-authoring plus
 shared-provider-dispatch contract union. Stop at a stable uncommitted candidate
 for independent/Root review. Full gate, commit, push/merge, new allocation or

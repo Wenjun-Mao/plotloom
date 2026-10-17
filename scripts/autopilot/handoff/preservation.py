@@ -110,18 +110,11 @@ def require_preserved_inputs():
         elif sha(path) != digest:
             raise RuntimeError("retained campaign evidence or parked asset changed: " + relative)
     parked = json.loads((original / "post_exit_safe_parking.json").read_text())
-    for group in parked["recordedGroups"]:
-        try:
-            os.killpg(group, 0)
-        except ProcessLookupError:
-            continue
-        except OSError as error:
-            raise RuntimeError("retained native group absence unproved") from error
-        raise RuntimeError("retained native group is present")
     if not parked["parkedAllDispatchDisabled"] or len(parked["parkedAttemptIds"]) != 5:
         raise RuntimeError("original five-job safe parking proof differs")
     return {"sourceRevision": revision, "sourceInputs": source_count,
         "historicalSourceRevision": pins["sourceRevision"], "currentDescriptorSha256": sha(WORK / "current_source.json"),
         "retainedCampaignFiles": len(baseline["retainedEvidence"]),
         "oldParkedAttempts": parked["parkedAttemptIds"], "additionalOldDispatches": 0,
+        "historicalLiveness": "UNKNOWN",
         "generationDispatches": 0, "credentialPathsExcluded": sorted(exclusions)}

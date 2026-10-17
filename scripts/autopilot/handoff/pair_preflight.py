@@ -39,7 +39,7 @@ def preflight_campaign():
         and sealed['sourceRevision'] == context.allocation.source.revision, 'pair order/envelope/source differs')
     require(sha(work/'prepared_inputs.json') == sealed['preparedInputsSha256'], 'pair prepared inputs differ')
     prepared = json.loads((work/'prepared_inputs.json').read_bytes())
-    from campaign_guard import profiles_differ_only_in_capacity, require_historical_material_and_current_absence
+    from campaign_guard import profiles_differ_only_in_capacity, require_historical_material
     plans = {}
     for arm in sealed['order']:
         plan = json.loads((work/arm/'plan.json').read_bytes())
@@ -52,7 +52,7 @@ def preflight_campaign():
     profiles_differ_only_in_capacity(plans['serial']['profile'],plans['parallel']['profile'])
     require(sha(Path(plans['serial']['functionalProofRoot'])/'result.json') ==
         sealed['functionalResultSha256'], 'retained historical result differs')
-    require_historical_material_and_current_absence(Path(plans['serial']['functionalProofRoot']))
+    require_historical_material(Path(plans['serial']['functionalProofRoot']))
     return sealed
 
 

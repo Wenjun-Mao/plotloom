@@ -1,6 +1,22 @@
 # Parallel CLI workers for pre-video autopilot
 
 Current bounded release (2026-10-16): **CLI first; Python optimization parked**.
+The human approved [ADR 0181](../adr/0181-historical-qualification-preservation.md):
+historical preservation/material gates must not resample old numeric PID/PGID
+values. Retain their files, original outcomes, terminal ledger/receipt structure
+and limits. Current-allocation settlement, UNKNOWN capacity, admission/HALT/
+deadline/source/runtime fences and strict serial-before-parallel success remain
+fail-closed. The particular old guard failure cause stays UNKNOWN.
+
+The sole writer has bounded code/test/ADR/roadmap authority from Root-reviewed
+`44c581aa`; use test-owned fixtures, focused red/green, complete affected owner
+files and proportional static checks. Stop at a stable uncommitted candidate for
+independent/Root review. No actual historical probes, commit, preparation/
+preflight/SAFE, allocation, generation, cleanup, runtime repinning or CI is
+released. Pair/runtime continuity remain failed and historical cleanup unresolved.
+
+### Earlier Outline source release
+
 Root released the sole source writer at local `095b790e` for
 [ADR 0180](../adr/0180-outline-report-metadata-receiving.md): prospective Outline
 report metadata, generated frozen schema/input/currentness, primary instruction,

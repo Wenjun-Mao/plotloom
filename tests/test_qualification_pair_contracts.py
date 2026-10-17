@@ -9,6 +9,8 @@ import pytest
 from tests.cli_handoff_fixtures import ROOT,builder,current_test_qa,exclusive,private_directory
 from tests.paid_outline_fixtures import paid_source, rebind_allocation  # noqa: F401
 from tests.paid_outline_processes import owned_processes
+from tests.qualification_pair_test_support import pair_controls  # noqa: F401
+from tests.qualification_pair_test_support import historical_case, preservation_case, current_arm_case, write_json, load
 
 FIXTURE=ROOT/'tests/qualification_pair_schema_fixture.py'
 
@@ -122,6 +124,191 @@ def test_rebound_data_refuses_at_its_owning_boundary(tmp_path,paid_source,fault,
         assert not (tmp_path/'forbidden-native').exists()
         assert all(list(Path(case['allocation'][arm]['namespace']['outputsRoot']['path']).iterdir())==[]
             for arm in ('serial','parallel'))
+
+
+def test_historical_preservation_never_probes_old_numeric_ids(pair_controls, tmp_path, monkeypatch):
+    case = preservation_case(tmp_path, pair_controls, monkeypatch)
+    probes = []
+    monkeypatch.setattr(os, 'kill', lambda *args: probes.append(('pid', args)))
+    monkeypatch.setattr(os, 'killpg', lambda *args: probes.append(('group', args)))
+    before = {path: path.read_bytes() for path in case.original.rglob('*') if path.is_file()}
+    result = pair_controls.modules['preservation'].require_preserved_inputs()
+    assert probes == []  # Synthetic old numbers would appear present if sampled.
+    assert result['oldParkedAttempts'] == case.parked['parkedAttemptIds']
+    assert result['historicalLiveness'] == 'UNKNOWN'
+    assert all(path.read_bytes() == raw for path, raw in before.items())
+
+
+def test_historical_material_never_probes_old_numeric_ids(pair_controls, tmp_path, monkeypatch):
+    case = historical_case(tmp_path / 'historical', pair_controls, monkeypatch)
+    probes = []
+    monkeypatch.setattr(os, 'kill', lambda *args: probes.append(('pid', args)))
+    monkeypatch.setattr(os, 'killpg', lambda *args: probes.append(('group', args)))
+    before = case.database.read_bytes()
+    result = pair_controls.modules['campaign_guard'].require_historical_material(tmp_path / 'historical')
+    assert probes == []
+    assert result['historicalLiveness'] == 'UNKNOWN' and 'currentOriginalWork' not in result
+    assert result['retainedOriginalWork']['attempts'] == 25
+    assert 'groupsAbsent' not in result['retainedOriginalWork']
+    assert result['historicalInProcessPassed'] is False and result['historicalInProcessQuiescent'] is False
+    assert result['newSourceQualification'] is False and case.database.read_bytes() == before
+
+
+@pytest.mark.parametrize('fault', ['delivery', 'parking', 'baseline', 'manifest'])
+def test_historical_preservation_still_refuses_corruption(pair_controls, tmp_path, monkeypatch, fault):
+    case = preservation_case(tmp_path, pair_controls, monkeypatch)
+    paths = dict(delivery=case.delivery, parking=case.original / 'post_exit_safe_parking.json',
+        baseline=case.source / 'retained/baseline.json', manifest=case.source / 'retained/manifest.json')
+    paths[fault].write_text('{}')
+    monkeypatch.setattr(os, 'kill', lambda *_args: pytest.fail('historical PID probe'))
+    monkeypatch.setattr(os, 'killpg', lambda *_args: pytest.fail('historical group probe'))
+    with pytest.raises(RuntimeError, match='changed'):
+        pair_controls.modules['preservation'].require_preserved_inputs()
+
+
+@pytest.mark.parametrize('fault', ['dispatch-enabled', 'attempt-count'])
+def test_historical_parking_facts_still_refuse_under_rebound_synthetic_pins(pair_controls, tmp_path, monkeypatch, fault):
+    case = preservation_case(tmp_path, pair_controls, monkeypatch)
+    case.parked['parkedAllDispatchDisabled'] = fault != 'dispatch-enabled'
+    if fault == 'attempt-count':
+        case.parked['parkedAttemptIds'].pop()
+    parked_sha = write_json(case.original / 'post_exit_safe_parking.json', case.parked)
+    baseline_path = case.source / 'retained/baseline.json'
+    baseline = json.loads(baseline_path.read_bytes())
+    baseline['retainedEvidence']['post_exit_safe_parking.json'] = parked_sha
+    pins = json.loads((case.work / 'preservation_inputs.json').read_bytes())
+    pins['pinnedFiles']['retained/baseline.json'] = write_json(baseline_path, baseline)
+    current = json.loads((case.work / 'current_source.json').read_bytes())
+    current['historicalDescriptorSha256'] = write_json(case.work / 'preservation_inputs.json', pins)
+    write_json(case.work / 'current_source.json', current)
+    monkeypatch.setattr(os, 'killpg', lambda *_args: pytest.fail('historical group probe'))
+    with pytest.raises(RuntimeError, match='original five-job safe parking proof differs'):
+        pair_controls.modules['preservation'].require_preserved_inputs()
+
+
+@pytest.mark.parametrize('fault', ['result', 'timeline', 'post', 'material', 'slot', 'queue', 'validator',
+                                  'nonterminal', 'unsuccessful', 'missing-receipt', 'mismatched-receipt'])
+def test_historical_material_still_refuses_corruption(pair_controls, tmp_path, monkeypatch, fault):
+    root = tmp_path / 'historical'
+    case = historical_case(root, pair_controls, monkeypatch)
+    corrupt_guard_case(root, case, fault)
+    monkeypatch.setattr(os, 'kill', lambda *_args: pytest.fail('historical PID probe'))
+    monkeypatch.setattr(os, 'killpg', lambda *_args: pytest.fail('historical group probe'))
+    with pytest.raises(ValueError if fault == 'mismatched-receipt' else RuntimeError):
+        pair_controls.modules['campaign_guard'].require_historical_material(root)
+
+
+def corrupt_guard_case(root, case, fault):
+    import sqlite3
+    if fault in {'result', 'timeline'}:
+        (root / ('result.json' if fault == 'result' else 'timeline.jsonl')).write_text('{}')
+    elif fault in {'post', 'material'}:
+        name = 'post_exit_quiescence.json' if fault == 'post' else 'latest_primary.json'
+        value = json.loads((root / name).read_bytes())
+        if fault == 'post':
+            value['attemptCount'] = 24
+        else:
+            value['run']['state'] = 'running'
+        write_json(root / name, value)
+    else:
+        with sqlite3.connect(case.database) as db:
+            if fault in {'slot', 'queue', 'validator'}:
+                table, values = {'slot': ('exec_slot', ('text',)), 'queue': ('exec_queue', ('synthetic', 0)),
+                    'validator': ('exec_validation_process', (940001,))}[fault]
+                db.execute('INSERT INTO ' + table + ' VALUES(' + ','.join('?' * len(values)) + ')', values)
+            elif fault in {'missing-receipt', 'mismatched-receipt'}:
+                receipt = case.rows[0].receipt.model_dump(mode='json', by_alias=True)
+                receipt['requestHash'] = '9' * 64
+                db.execute('UPDATE exec_attempts SET receipt_json=? WHERE rowid=1',
+                    (None if fault == 'missing-receipt' else json.dumps(receipt),))
+            else:
+                value = case.rows[0].current.model_dump(mode='json', by_alias=True)
+                if fault == 'nonterminal':
+                    value.update(state='outcome_unknown', terminalResult=None, evidenceHash=None,
+                        remoteToolState=None, outputHash=None, remoteOutputHash=None, processExitCode=None,
+                        imageBudgetState='reserved' if value['domain'] == 'image' else 'none')
+                else:
+                    value.update(state='failed', terminalResult='failure', processExitCode=1)
+                db.execute('UPDATE exec_attempts SET status_json=? WHERE rowid=1', (json.dumps(value),))
+
+
+@pytest.mark.parametrize('fault', [None, 'present', 'unknown', 'slot', 'queue', 'validator', 'nonterminal',
+                                  'unsuccessful', 'missing-receipt', 'mismatched-receipt', 'frozen-jobs'])
+def test_current_arm_retains_real_ledger_receipt_and_absence_guards(pair_controls, tmp_path, monkeypatch, fault):
+    root = tmp_path / 'serial'
+    case = current_arm_case(root, pair_controls)
+    probes = []
+    def observed(group, signal):
+        assert group in case.groups and signal == 0
+        probes.append(group)
+        if fault == 'present':
+            return
+        if fault == 'unknown':
+            raise PermissionError('synthetic unknown ownership')
+        raise ProcessLookupError
+    monkeypatch.setattr(os, 'killpg', observed)
+    monkeypatch.setattr(os, 'kill', lambda *_args: pytest.fail('unexpected PID probe'))
+    if fault == 'frozen-jobs':
+        case.result['rpcObservation']['frozenJobs'] = 2
+        write_json(root / 'result.json', case.result)
+    elif fault not in {None, 'present', 'unknown'}:
+        corrupt_guard_case(root, case, fault)
+    before = case.database.read_bytes()
+    guard = pair_controls.modules['campaign_guard']
+    if fault is None:
+        result = guard.require_successful_current_arm(root, expected_source=case.result['sourceRevision'])
+        assert set(probes) == case.groups and result['groupsAbsent'] == len(case.groups)
+    else:
+        with pytest.raises((RuntimeError, ValueError)):
+            guard.require_successful_current_arm(root, expected_source=case.result['sourceRevision'])
+    assert case.database.read_bytes() == before
+
+
+def test_failed_serial_still_refuses_parallel_order(pair_controls, tmp_path, monkeypatch):
+    historical_case(tmp_path / 'historical', pair_controls, monkeypatch)
+    campaign = tmp_path / 'campaign'
+    case = current_arm_case(campaign / 'serial', pair_controls)
+    case.result['passed'] = False
+    write_json(campaign / 'serial/result.json', case.result)
+    write_json(campaign / 'campaign_intent.json', dict(sourceRevision=case.result['sourceRevision'], sealedPlanSha256='8' * 64))
+    monkeypatch.setattr(os, 'kill', lambda *_args: pytest.fail('historical PID probe'))
+    monkeypatch.setattr(os, 'killpg', lambda *_args: pytest.fail('failed serial must refuse before live probes'))
+    plan = dict(arm='parallel', sourceRevision=case.result['sourceRevision'], sealedPlanSha256='8' * 64,
+        functionalProofRoot=str(tmp_path / 'historical'))
+    with pytest.raises(RuntimeError, match='new arm has not established success'):
+        pair_controls.modules['campaign_guard'].require_execution_order(campaign / 'parallel', plan)
+
+
+def test_campaign_preflight_uses_historical_material_without_old_probes(pair_controls, tmp_path, monkeypatch):
+    from types import SimpleNamespace as Namespace
+    import hashlib
+    history = tmp_path / 'historical'
+    historical_case(history, pair_controls, monkeypatch)
+    campaign = tmp_path / 'campaign'
+    profiles = {arm: dict(maxProcesses=total, maxTextProcesses=text, maxImageProcesses=image, maxQueuedJobs=4)
+        for arm, total, text, image in [('serial', 1, 1, 1), ('parallel', 4, 2, 2)]}
+    plans = {arm: dict(profile=profile, profileHash=arm + '-synthetic', functionalProofRoot=str(history))
+        for arm, profile in profiles.items()}
+    prepared_sha = write_json(campaign / 'prepared_inputs.json', dict(arms=plans))
+    sealed = dict(sourceRevision='b' * 40, order=['serial', 'parallel'], totalDispatchEnvelope=dict(text=18, image=64),
+        preparedInputsSha256=prepared_sha, functionalResultSha256=hashlib.sha256((history / 'result.json').read_bytes()).hexdigest())
+    sealed_sha = write_json(campaign / 'plan.json', sealed)
+    allocation = Namespace(source=Namespace(revision=sealed['sourceRevision']))
+    for arm, profile in profiles.items():
+        write_json(campaign / arm / 'plan.json', plans[arm] | dict(sealedPlanSha256=sealed_sha))
+        bound = Namespace(profile_hash=plans[arm]['profileHash'], model_dump=lambda *, mode, by_alias, value=profile: value)
+        setattr(allocation, arm, Namespace(namespace=Namespace(profile=bound)))
+    for name in ('assert_control_bytes', 'assert_origins'):
+        monkeypatch.setattr(pair_controls.context, name,
+            lambda: pytest.fail('unit source fence must be supplied explicitly'), raising=False)
+    preflight = load(monkeypatch, 'pair_preflight', ROOT / 'scripts/autopilot/handoff/pair_preflight.py')
+    source_checks = []
+    # This unit supplies the admitted source fence; it never runs operator preflight or runtime inspection.
+    monkeypatch.setattr(preflight, '_source', lambda: source_checks.append('admitted synthetic source'))
+    monkeypatch.setattr(preflight, 'current', lambda: Namespace(campaign=campaign, allocation=allocation))
+    monkeypatch.setattr(os, 'kill', lambda *_args: pytest.fail('historical PID probe'))
+    monkeypatch.setattr(os, 'killpg', lambda *_args: pytest.fail('historical group probe'))
+    assert preflight.preflight_campaign() == sealed and len(source_checks) == 1
 
 
 def test_pair_original_handle_attendance_before_deliberately_held_callback(tmp_path,paid_source):
