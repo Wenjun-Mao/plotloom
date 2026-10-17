@@ -121,7 +121,8 @@ def test_readiness_uses_existing_file_store_without_exposing_cli_output(tmp_path
     assert "private login mode" not in json.dumps(bridge.exec_readiness())
 
 
-def test_client_emits_only_a_validated_profile(tmp_path, monkeypatch, capsys):
+@pytest.mark.parametrize("version", ["codex-cli 0.163.0-alpha.10.2", None])
+def test_client_emits_only_a_validated_profile(tmp_path, monkeypatch, capsys, version):
     token = tmp_path / "token"
     token.write_text("private-token")
     monkeypatch.setenv("PLOTLOOM_CODEX_BRIDGE_TOKEN_FILE", str(token))
@@ -129,7 +130,7 @@ def test_client_emits_only_a_validated_profile(tmp_path, monkeypatch, capsys):
     profile = CodexExecProfile(
         contractVersion="plotloom.codex-exec.v1",
         executableSha256="a" * 64,
-        cliVersion="codex-cli 0.162.0-alpha.17.2",
+        cliVersion=version,
         model="gpt-6.1-sol",
         reasoningEffort="medium",
         capabilities=("exec_json_events_v1", "session_rollout_v1", "image_gen_event_v1", "delivery_directory_write_v1"),

@@ -1,3 +1,5 @@
+import subprocess
+from hashlib import sha256
 from pathlib import Path
 
 import pytest
@@ -7,6 +9,89 @@ from plotloom.codex_exec_profile import (
     VALIDATOR_FILES,
     cli_feature_flags,
 )
+from tests.codex_exec_runtime_fixtures import (
+    codex_exec_test_source as _codex_exec_test_source,  # noqa: F401
+)
+
+
+@pytest.fixture
+def observed_cli(tmp_path, monkeypatch, codex_exec_test_source):
+    from plotloom import codex_exec_profile
+
+    executable = tmp_path / "codex"
+    executable.write_bytes(b"test-owned executable identity")
+    executable.chmod(0o700)
+    original_run = subprocess.run
+    observation = {"stdout": b"codex-cli 0.163.0-alpha.10.2\n", "stderr": b"", "returncode": 0}
+
+    def run(command, **options):
+        if command != [str(executable), "--version"]:
+            return original_run(command, **options)
+        if "error" in observation:
+            raise observation["error"]
+        return subprocess.CompletedProcess(command, **observation)
+
+    monkeypatch.setattr(subprocess, "run", run)
+    return codex_exec_profile, executable, codex_exec_test_source, observation
+
+
+@pytest.mark.parametrize("version", ["0.162.0-alpha.17.2", "0.163.0-alpha.10.2", "9.99.0"])
+def test_profile_records_observed_versions_without_an_allowlist(observed_cli, version):
+    module, executable, source, observation = observed_cli
+    observation["stdout"] = f"codex-cli {version}\n".encode()
+    profile = module.build_codex_exec_profile(executable, source_root=source)
+    assert profile.cli_version == f"codex-cli {version}"
+    assert profile.executable_sha256 == sha256(executable.read_bytes()).hexdigest()
+
+
+@pytest.mark.parametrize("unusable", [
+    {"returncode": 2}, {"stdout": b""}, {"stdout": b"\xff"},
+    {"stdout": b"codex-cli " + b"1" * 400}, {"stdout": b"codex-cli 1\nextra line"},
+    {"stdout": b"not version metadata"},
+    {"error": OSError("private error must not enter profile")},
+    {"error": subprocess.TimeoutExpired("codex", 5)},
+])
+def test_unavailable_version_metadata_does_not_block_profile(observed_cli, unusable):
+    module, executable, source, observation = observed_cli
+    observation.update(unusable)
+    profile = module.build_codex_exec_profile(executable, source_root=source)
+    assert profile.cli_version is None
+    assert profile.executable_sha256 == sha256(executable.read_bytes()).hexdigest()
+    assert "private error must not enter profile" not in profile.model_dump_json()
+
+
+def test_version_warning_is_not_an_execution_failure_or_profile_output(observed_cli):
+    module, executable, source, observation = observed_cli
+    observation["stderr"] = b"private warning must not enter profile"
+    profile = module.build_codex_exec_profile(executable, source_root=source)
+    assert profile.cli_version == "codex-cli 0.163.0-alpha.10.2"
+    assert "private warning must not enter profile" not in profile.model_dump_json()
+
+
+@pytest.mark.parametrize("boundary", ["source", "toolchain"])
+def test_absent_version_metadata_does_not_bypass_identity_checks(observed_cli, monkeypatch, boundary):
+    module, executable, source, observation = observed_cli
+    observation["returncode"] = 2
+
+    def refuse(*_args, **_kwargs):
+        raise RuntimeError("required identity unavailable")
+
+    monkeypatch.setattr(module, "_source_hash" if boundary == "source" else "validator_toolchain_hash", refuse)
+    with pytest.raises(RuntimeError, match="required identity unavailable"):
+        module.build_codex_exec_profile(executable, source_root=source)
+
+
+def test_frozen_profile_still_binds_observed_metadata_and_executable(observed_cli):
+    module, executable, source, observation = observed_cli
+    first = module.build_codex_exec_profile(executable, source_root=source)
+    assert module.build_codex_exec_profile(executable, source_root=source).profile_hash == first.profile_hash
+    observation["stdout"] = b"codex-cli 9.99.0\n"
+    changed_version = module.build_codex_exec_profile(executable, source_root=source)
+    assert changed_version.profile_hash != first.profile_hash
+    executable.write_bytes(b"different test-owned executable")
+    changed_binary = module.build_codex_exec_profile(executable, source_root=source)
+    assert changed_binary.executable_sha256 != first.executable_sha256
+    assert changed_binary.profile_hash != changed_version.profile_hash
 
 
 def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources() -> None:

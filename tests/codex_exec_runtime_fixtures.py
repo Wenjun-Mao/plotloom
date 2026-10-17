@@ -21,6 +21,8 @@ from plotloom.codex_exec_python_environment import (
     _snapshot,
 )
 
+CLI_FIXTURE_VERSION = "codex-cli 0.0.0-fixture"
+
 
 def _clone(source: Path, destination: Path, *, run=None) -> None:
     run = run or subprocess.run

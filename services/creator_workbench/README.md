@@ -100,8 +100,14 @@ current readiness and frozen execution profile before creating a run.
 The Mac must have uv and Node available to the installing command. The bridge's
 LaunchAgent retains their resolved executable directories plus system utility
 paths; it does not rely on launchd inheriting the shell PATH. Rerun `start`
-after changing tool locations. CLI version/profile qualification remains strict
-and independent of bridge health or file-store login readiness.
+after changing tool locations. The observed CLI version is provenance, not an
+availability allowlist: a newer version does not block a new run, and missing
+version metadata is recorded as null. Actual execution still applies the pinned
+permission/tool contract and requires strict event, session, receipt, validator
+and output evidence. Executable/source/toolchain/profile identity stays frozen
+for each run, so changing that identity during a run is not silently accepted.
+Bridge health, local login readiness and a valid profile are not evidence that
+generation or human acceptance succeeded. See ADR 0165's observed-version decision.
 
 Fresh Codex Exec jobs require explicit Python validator setup in this checkout.
 Use the physical versioned interpreter (every path component must be free of

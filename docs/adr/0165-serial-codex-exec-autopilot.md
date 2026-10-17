@@ -41,6 +41,30 @@ generated files in `delivery`.
 
 ## Decision
 
+### Observed CLI version, not an availability gate (2026-10-17)
+
+The installed app updated from the originally tested CLI to a newer release.
+Fresh profile construction refused it solely because `--version` differed from
+one literal string. That string establishes neither compatibility nor permission,
+event or output correctness, and unnecessarily prevented a new user run.
+
+Record the installed version as optional, bounded, non-secret metadata, not a
+supported-version allowlist. An unsuccessful, missing or unusable version probe
+records null without making an otherwise valid executable unavailable. Never
+substitute the old tested version, expose probe stderr, or provision/dispatch
+while observing it. Test fixtures own their synthetic version strings.
+
+Executable SHA-256, source/toolchain/model/permission profiles and exact frozen
+profile equality remain authoritative. Version observations remain part of the
+existing profile snapshot/hash; null is not a wildcard for an already frozen
+profile. A changed binary or profile during a run still refuses continuation.
+CLI flags are applied by the actual invocation, and existing strict event,
+session, tool, receipt, trusted-validator and output checks enforce execution
+contracts. Unknown or incompatible evidence cannot become successful delivery.
+Do not replace the version allowlist with help-text parsing or a second manual
+version approval registry. Prior native evidence retains its original tested
+revision and version; this change does not recertify it for another binary.
+
 1. **Freeze a distinct executor contract for future runs.** A launch policy
    identifies either the existing `specialist_chat` backend or `codex_exec`.
    A CLI profile pins executable identity and version, model and effort,

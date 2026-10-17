@@ -1,6 +1,19 @@
 # Plotloom roadmap entrypoint
 
-## Current manual-walkthrough deployment correction
+## Current CLI compatibility correction
+
+The owner approved removing the exact CLI-version production blocker and
+investigating bridge readiness. Scope: record bounded optional observed version
+metadata rather than enforce a version allowlist; preserve executable/profile
+identity, source/toolchain/permission boundaries, strict native evidence and
+UNKNOWN/no-resend safeguards. Test-owned versions must no longer import a
+production allowlist. Record the decision in ADR 0165, qualify the stable source,
+then restart the same installation and check readiness/profile without launching
+the user's story. Current project and historical evidence stay unchanged;
+optimization and speculative batching remain parked. Prior version-gate findings
+below are historical, not the current intended availability policy.
+
+## Earlier manual-walkthrough deployment correction
 
 The owner approved repairing the persistent creator composition after automatic
 preparation refused an unconfigured Mac Exec host. Scope: bind the existing

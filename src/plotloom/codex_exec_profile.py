@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from hashlib import sha256
 from pathlib import Path
@@ -10,7 +11,6 @@ from .codex_exec_auth import AUTHENTICATION_STORE
 from .codex_exec_contracts import CodexExecProfile
 from .codex_exec_resources import validator_toolchain_hash
 
-SUPPORTED_CLI_VERSION = "codex-cli 0.162.0-alpha.17.2"
 EXECUTION_MODEL = "gpt-6.1-sol"
 EXECUTION_REASONING_EFFORT = "medium"
 PERMISSION_PROFILE = "plotloom_autopilot_delivery_v5"
@@ -181,6 +181,26 @@ def _python_source_tree_hash(source_root: Path) -> str:
     return identity
 
 
+def _observed_cli_version(executable: Path) -> str | None:
+    """Observe bounded version metadata without turning it into launch authority."""
+    try:
+        result = subprocess.run(
+            [str(executable), "--version"], capture_output=True, timeout=5, check=False
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0 or not isinstance(result.stdout, bytes) or len(result.stdout) > 320:
+        return None
+    try:
+        version = result.stdout.decode("utf-8", "strict").strip()
+    except UnicodeDecodeError:
+        return None
+    # Unexpected output is not a version and must not leak diagnostics into profiles.
+    if len(version) > 80 or re.fullmatch(r"codex-cli [0-9][A-Za-z0-9.+_-]*", version) is None:
+        return None
+    return version
+
+
 def build_codex_exec_profile(executable: Path, *, source_root: Path, pool_limits=None) -> CodexExecProfile:
     """Fail closed unless this source checkout and the evaluated CLI are present."""
     executable = executable.expanduser().resolve(strict=True)
@@ -191,17 +211,13 @@ def build_codex_exec_profile(executable: Path, *, source_root: Path, pool_limits
         raise RuntimeError("qualified Codex CLI is not executable")
     if NODE_OPENSSL_CONFIG.is_symlink() or not NODE_OPENSSL_CONFIG.is_file():
         raise RuntimeError("the pinned Node validator OpenSSL configuration is unavailable")
-    version = subprocess.run(
-        [str(executable), "--version"], capture_output=True, timeout=5, check=False
-    )
-    if version.returncode != 0 or version.stderr or version.stdout.decode("utf-8", "strict").strip() != SUPPORTED_CLI_VERSION:
-        raise RuntimeError("installed Codex CLI version has no qualified execution evidence adapter")
+    version = _observed_cli_version(executable)
     from .codex_exec_pool_contracts import CodexExecPoolLimits
     limits = CodexExecPoolLimits.model_validate(pool_limits or CodexExecPoolLimits())
     return CodexExecProfile(
         contractVersion="plotloom.codex-exec.v8",
         executable_sha256=_hash_file(executable),
-        cli_version=SUPPORTED_CLI_VERSION,
+        cli_version=version,
         model=EXECUTION_MODEL,
         reasoning_effort=EXECUTION_REASONING_EFFORT,
         capabilities=(

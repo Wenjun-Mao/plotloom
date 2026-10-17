@@ -81,7 +81,8 @@ class CodexExecProfile(CamelModel):
         "plotloom.codex-exec.v4", "plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8",
     ] = "plotloom.codex-exec.v4"
     executable_sha256: str = Field(pattern=HASH)
-    cli_version: str = Field(min_length=1, max_length=80)
+    # Observed provenance only; executable/source/evidence checks own compatibility.
+    cli_version: str | None = Field(default=None, min_length=1, max_length=80)
     model: str = Field(min_length=1, max_length=120)
     reasoning_effort: Literal["minimal", "low", "medium", "high", "xhigh", "max"]
     capabilities: tuple[ExecCapability, ...] = Field(min_length=3, max_length=5)

@@ -7,7 +7,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from plotloom.codex_exec_contracts import CodexExecAttempt
-from plotloom.codex_exec_profile import SUPPORTED_CLI_VERSION, build_codex_exec_profile
+from plotloom.codex_exec_profile import build_codex_exec_profile
 from plotloom.codex_exec_runtime import package_tree_hash
 from plotloom.codex_exec_validation import validation_plan_from_package
 from plotloom.conformance import FIXED_CHINESE_BRIEF
@@ -18,6 +18,7 @@ from plotloom.outline_report_metadata import (
     outline_report_metadata_schema,
 )
 from plotloom.project_storage import ProjectFolderStorage
+from tests.codex_exec_runtime_fixtures import CLI_FIXTURE_VERSION
 
 
 def _attempt(state="spawn_intent"):
@@ -60,7 +61,7 @@ def _write_fake_cli(supervisor, body):
         "#!/usr/bin/env python3\n"
         "import sys\n"
         "if sys.argv[1:] == ['--version']:\n"
-        f"    print({SUPPORTED_CLI_VERSION!r})\n"
+        f"    print({CLI_FIXTURE_VERSION!r})\n"
         "    raise SystemExit(0)\n"
         "if sys.argv[-2:] == ['login', 'status']:\n"
         "    raise SystemExit(int(__import__('os').environ.get('PLOTLOOM_TEST_LOGIN_STATUS', '0')))\n"

@@ -8,7 +8,6 @@ import sys
 
 import pytest
 
-from plotloom.codex_exec_profile import SUPPORTED_CLI_VERSION
 from tests.cli_handoff_fixtures import (
     ROOT,
     ReadOnlyLoader,
@@ -17,7 +16,10 @@ from tests.cli_handoff_fixtures import (
     exclusive,
     private_directory,
 )
-from tests.codex_exec_runtime_fixtures import build_codex_exec_test_source
+from tests.codex_exec_runtime_fixtures import (
+    CLI_FIXTURE_VERSION,
+    build_codex_exec_test_source,
+)
 from tests.paid_outline_processes import owned_processes
 
 NATIVE_FIXTURE = ROOT / "tests/paid_outline_native_fixture.py"
@@ -83,7 +85,7 @@ def make_case(tmp_path, paid_source, processes):
     wrapper = ("#!/usr/bin/env python3\nimport sys\nfrom pathlib import Path\n"
         + "sys.path.insert(0, " + repr(str(ROOT)) + ")\n"
         + "from tests.paid_outline_cli_fixture import main\n"
-        + "raise SystemExit(main(Path(__file__).resolve(), sys.argv[1:], " + repr(SUPPORTED_CLI_VERSION) + "))\n")
+        + "raise SystemExit(main(Path(__file__).resolve(), sys.argv[1:], " + repr(CLI_FIXTURE_VERSION) + "))\n")
     exclusive(executable, wrapper.encode())
     executable.chmod(0o700)
     example = paid_source / "third_party/shuohao-skills/skills/novel-outline/examples/渡口-outline.json"

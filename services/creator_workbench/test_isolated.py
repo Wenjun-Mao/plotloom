@@ -22,6 +22,7 @@ from isolated import RuntimeConfig, compose
 
 from plotloom.art_contracts import ArtAcceptRequest
 from plotloom.conformance import FIXED_CHINESE_BRIEF
+from tests.codex_exec_runtime_fixtures import CLI_FIXTURE_VERSION
 from tests.test_project_storage_art import _deliver, _prepare_art_context
 
 
@@ -43,7 +44,7 @@ def installation(tmp_path, monkeypatch):
     fake.write_text(
         "import json, sys\n"
         "if sys.argv[1:] == ['--version']:\n"
-        "    print('codex-cli 0.162.0-alpha.17.2')\n"
+        f"    print({CLI_FIXTURE_VERSION!r})\n"
         "    raise SystemExit(0)\n"
         f"with open({str(calls)!r}, 'a') as log:\n"
         "    log.write(json.dumps(sys.argv[1:]) + '\\n')\n"
@@ -198,7 +199,6 @@ def test_full_http_dispatch_uses_one_settings_owner_and_actual_outbound_shim(ins
 
 def test_isolated_runtime_routes_profile_and_supervisor_to_confined_roots(installation):
     from plotloom.codex_exec_contracts import CodexExecProfile
-    from plotloom.codex_exec_profile import SUPPORTED_CLI_VERSION
 
     config, calls = installation
     with compose(config) as runtime:
@@ -216,7 +216,7 @@ def test_isolated_runtime_routes_profile_and_supervisor_to_confined_roots(instal
         )
         assert profile_result.returncode == 0, profile_result.stderr
         profile = CodexExecProfile.model_validate_json(profile_result.stdout)
-        assert profile.cli_version == SUPPORTED_CLI_VERSION
+        assert profile.cli_version == CLI_FIXTURE_VERSION
 
         supervisor = runtime.bridge.exec_supervisor()
         assert supervisor.source_root == runtime.bridge.source_root
