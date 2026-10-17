@@ -59,6 +59,7 @@
           "tests/test_autopilot_creator_confirmation.py",
           "tests/test_autopilot_geometry.py",
           "tests/test_autopilot_geometry_seed.py",
+          "tests/test_autopilot_installed_text_seed.py",
           "tests/test_autopilot_geometry_publication.py",
           "tests/test_autopilot_brief_style.py",
           "tests/test_autopilot_activity.py",
@@ -798,6 +799,12 @@
     {
       "suite": "pytest",
       "path": "tests/autopilot_geometry_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["story-authoring"]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/autopilot_installed_text_fixtures.py",
       "kind": "shared-fixture-or-helper",
       "consumers": ["story-authoring"]
     },

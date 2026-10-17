@@ -41,6 +41,14 @@ def geometry_frame_seed(tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
+def installed_text_prefix(tmp_path_factory):
+    """One closed default text/install prefix; every consumer owns a fresh runtime."""
+    from tests.autopilot_installed_text_fixtures import build_installed_text_prefix
+
+    return build_installed_text_prefix(tmp_path_factory.mktemp("installed-text-prefix"))
+
+
+@pytest.fixture(scope="session")
 def awaiting_handoff_seed(tmp_path_factory):
     """Completed machine material only; human facts remain copy-local."""
     from tests.autopilot_handoff_seed_fixtures import build_awaiting_handoff_seed

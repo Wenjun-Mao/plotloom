@@ -74,12 +74,12 @@ def deliver(store, request, value=None, *, host=None):
 
 
 
-def environment(tmp_path, monkeypatch, *, auto_deliver=True, brief=None, limits=None, early_references=False):
-    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
-    selected = brief or FIXED_CHINESE_BRIEF.model_copy(update={
+def default_brief():
+    return FIXED_CHINESE_BRIEF.model_copy(update={
         "decision_points_per_path": 1, "ending_count": 2, "desired_join_count": 0})
-    with closing(storage.projects.create(selected)) as store:
-        project_id = store.manifest.project_id
+
+
+def runtime(storage, monkeypatch, *, auto_deliver=True):
     registry, _settings = configured(storage.application.root)
     from tests.codex_exec_fixtures import install_profile
     install_profile(registry)
@@ -95,6 +95,15 @@ def environment(tmp_path, monkeypatch, *, auto_deliver=True, brief=None, limits=
     registry.codex_exec_suspend = host.suspend
     registry._codex_exec_test_host = host
     service = AutopilotService(storage, registry)
+    return registry, service, host
+
+
+def environment(tmp_path, monkeypatch, *, auto_deliver=True, brief=None, limits=None, early_references=False):
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    selected = brief or default_brief()
+    with closing(storage.projects.create(selected)) as store:
+        project_id = store.manifest.project_id
+    registry, service, host = runtime(storage, monkeypatch, auto_deliver=auto_deliver)
     request = LaunchRequest(expected_brief_revision=1, render_style="realistic", art_render_style="realistic", **(limits or {}))
     # Existing focused owner tests freeze zero exploratory permission so their
     # exact image/late-delivery boundary remains isolated. Scheduler tests opt

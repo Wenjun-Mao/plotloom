@@ -1,8 +1,14 @@
 # Plotloom roadmap entrypoint
 
-Active bounded Python source step (October 17): [validation-local profile
-construction](2026-10-17-profile-construction.md), one uncommitted correctness
-candidate on 19793455. Earlier checkpoints below retain their dated scope.
+Retained bounded Python fixture step (October 17): [closed installed-text prefix](2026-10-17-installed-text-prefix.md),
+source parent `6f2af250`, 145 distinct focused passes and one accepted single-process
+control-first screen (116.729 / 51.365 seconds). The observed 55.9963-percent
+elapsed reduction supports local retention subject to the recorded limits; it is
+not whole/default-two-worker qualification. The 85-percent complete-suite target
+remains open. Only documentation closeout and a normal local 12-path commit are
+released; no push/merge, CI or product acceptance. The prior
+[profile-construction checkpoint](2026-10-17-profile-construction.md) is committed
+at `6f2af250`. Earlier checkpoints below retain their dated scope.
 
 Current checkpoint (2026-10-17): **scoped native parallel CLI qualification
 accepted at tested `b313ac83`**. Root and two independent reviewers accepted the

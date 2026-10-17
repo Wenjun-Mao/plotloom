@@ -9,8 +9,13 @@ from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.geometry_preparation import prepare_geometry
 from plotloom.geometry_preparation_contracts import GeometryRecipe
 from plotloom.persistence.project.image_source_lineage import source_in_session
+from tests.autopilot_geometry_fixtures import (
+    copy_geometry_frame_seed,
+    first_geometry_frame,
+    mismatch,
+)
 from tests.autopilot_image_fixtures import image_environment
-from tests.autopilot_geometry_fixtures import copy_geometry_frame_seed, first_geometry_frame, mismatch
+from tests.autopilot_installed_text_fixtures import installed_text_image_environment
 from tests.test_autopilot_images import current
 
 
@@ -99,11 +104,11 @@ def geometry_context(store, view, original):
     return subject, inventory
 
 
-def test_concurrent_local_preparation_is_idempotent_and_does_not_dispatch(tmp_path, monkeypatch):
+def test_concurrent_local_preparation_is_idempotent_and_does_not_dispatch(tmp_path, monkeypatch, installed_text_prefix):
     from concurrent.futures import ThreadPoolExecutor
 
     from plotloom.autopilot_geometry_preparation import prepare_first_frame_geometry
-    storage, _registry, service, view, calls, _ = image_environment(tmp_path, monkeypatch, geometry=mismatch)
+    storage, _registry, service, view, calls, _ = installed_text_image_environment(tmp_path, monkeypatch, installed_text_prefix, geometry=mismatch)
     try:
         retained, original = original_ready(storage, service, view)
         count = len(calls)
@@ -125,11 +130,11 @@ def test_concurrent_local_preparation_is_idempotent_and_does_not_dispatch(tmp_pa
 
 
 @pytest.mark.parametrize("failure", ["transaction", "selection"])
-def test_failure_then_restart_reuses_local_identity_without_regeneration(tmp_path, monkeypatch, failure):
+def test_failure_then_restart_reuses_local_identity_without_regeneration(tmp_path, monkeypatch, installed_text_prefix, failure):
     import plotloom.autopilot_geometry_preparation as geometry
     from plotloom.autopilot_service import AutopilotService
     from plotloom.persistence.project.autopilot import AutopilotPersistence
-    storage, registry, service, view, calls, _ = image_environment(tmp_path, monkeypatch, geometry=mismatch)
+    storage, registry, service, view, calls, _ = installed_text_image_environment(tmp_path, monkeypatch, installed_text_prefix, geometry=mismatch)
     resumed = None
     try:
         retained, original = original_ready(storage, service, view)
@@ -201,11 +206,11 @@ def test_tampered_or_missing_lineage_refuses_ordinary_open(tmp_path, geometry_fr
 
 
 @pytest.mark.parametrize("action", ["pause", "cancel", "takeover"])
-def test_stopped_run_cannot_create_geometry(tmp_path, monkeypatch, action):
+def test_stopped_run_cannot_create_geometry(tmp_path, monkeypatch, installed_text_prefix, action):
     from plotloom.autopilot_contracts import RunControlRequest
     from plotloom.autopilot_geometry_preparation import prepare_first_frame_geometry
     from plotloom.exceptions import InvalidTransitionError
-    storage, _registry, service, view, calls, _ = image_environment(tmp_path, monkeypatch, geometry=mismatch)
+    storage, _registry, service, view, calls, _ = installed_text_image_environment(tmp_path, monkeypatch, installed_text_prefix, geometry=mismatch)
     try:
         retained, original = original_ready(storage, service, view); count = len(calls)
         service.control(view.project_id, RunControlRequest(expected_revision=retained.revision, action=action))
@@ -299,10 +304,10 @@ def test_each_frozen_target_is_exact_and_original_is_preserved(target):
     assert sha256(source.getvalue()).hexdigest() == digest and output != raw
 
 
-def test_matching_aspect_keeps_raw_candidate_bytes_and_dimensions(tmp_path, monkeypatch):
+def test_matching_aspect_keeps_raw_candidate_bytes_and_dimensions(tmp_path, monkeypatch, installed_text_prefix):
     def geometry(*, context):
         return (960, 540) if "shot" in context["request"]["frozenSnapshot"] else None
-    storage, _registry, service, view, calls, _ = image_environment(tmp_path, monkeypatch, geometry=geometry)
+    storage, _registry, service, view, calls, _ = installed_text_image_environment(tmp_path, monkeypatch, installed_text_prefix, geometry=geometry)
     try:
         result = first_geometry_frame(storage, service, view); frame = result.frames[0]
         assert frame.geometry_preparation is None and (frame.width, frame.height) == (960, 540)

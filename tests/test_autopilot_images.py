@@ -1,10 +1,13 @@
 """Complete automatic material pack through existing image owners, fake only."""
 from contextlib import closing
+
 import pytest
-from tests.autopilot_image_fixtures import image_environment, run_pack, deliver_image
-from plotloom.autopilot_materials import initial_inventory
+
 from plotloom.autopilot_contracts import RunControlRequest
+from plotloom.autopilot_materials import initial_inventory
 from plotloom.autopilot_service import AutopilotService
+from tests.autopilot_image_fixtures import deliver_image, image_environment, run_pack
+from tests.autopilot_installed_text_fixtures import installed_text_image_environment
 
 
 def test_complete_pack_selects_all_subjects_and_unique_route_frames_without_human_facts(tmp_path, monkeypatch):
@@ -96,8 +99,8 @@ def test_gallery_includes_unfilmed_cast_and_every_art_prop(tmp_path, monkeypatch
 
 
 @pytest.mark.parametrize("action", ["pause", "cancel", "takeover"])
-def test_late_reference_retains_original_receipt_without_selection(tmp_path, monkeypatch, action):
-    storage, registry, service, view, calls, _text = image_environment(tmp_path, monkeypatch, auto_deliver=False)
+def test_late_reference_retains_original_receipt_without_selection(tmp_path, monkeypatch, installed_text_prefix, action):
+    storage, registry, service, view, calls, _text = installed_text_image_environment(tmp_path, monkeypatch, installed_text_prefix, auto_deliver=False)
     try:
         retained, checkpoint = sent_reference(storage, service, view)
         service.control(view.project_id, RunControlRequest(expected_revision=retained.revision, action=action))
@@ -119,8 +122,8 @@ def test_late_reference_retains_original_receipt_without_selection(tmp_path, mon
         service.close()
 
 
-def test_extra_output_is_disclosed_blocker_and_never_competing_selection(tmp_path, monkeypatch):
-    storage, registry, service, view, calls, _text = image_environment(tmp_path, monkeypatch, auto_deliver=False)
+def test_extra_output_is_disclosed_blocker_and_never_competing_selection(tmp_path, monkeypatch, installed_text_prefix):
+    storage, registry, service, view, calls, _text = installed_text_image_environment(tmp_path, monkeypatch, installed_text_prefix, auto_deliver=False)
     try:
         retained, checkpoint = sent_reference(storage, service, view)
         with closing(storage.projects.open(view.project_id)) as store:
@@ -137,8 +140,8 @@ def test_extra_output_is_disclosed_blocker_and_never_competing_selection(tmp_pat
         service.close()
 
 
-def test_pause_at_image_send_boundary_prevents_native_dispatch(tmp_path, monkeypatch):
-    storage, registry, service, view, calls, _text = image_environment(tmp_path, monkeypatch, auto_deliver=False)
+def test_pause_at_image_send_boundary_prevents_native_dispatch(tmp_path, monkeypatch, installed_text_prefix):
+    storage, registry, service, view, calls, _text = installed_text_image_environment(tmp_path, monkeypatch, installed_text_prefix, auto_deliver=False)
     try:
         service.step(view.project_id)
         service.step(view.project_id)
@@ -153,11 +156,11 @@ def test_pause_at_image_send_boundary_prevents_native_dispatch(tmp_path, monkeyp
         service.close()
 
 
-def test_native_unknown_image_restart_reconciles_original_identity_without_resend(tmp_path, monkeypatch):
+def test_native_unknown_image_restart_reconciles_original_identity_without_resend(tmp_path, monkeypatch, installed_text_prefix):
     import sqlite3
     from pathlib import PurePosixPath
 
-    storage, registry, service, view, calls, _text = image_environment(tmp_path, monkeypatch, auto_deliver=False)
+    storage, registry, service, view, calls, _text = installed_text_image_environment(tmp_path, monkeypatch, installed_text_prefix, auto_deliver=False)
     resumed = None
     try:
         for _ in range(3):

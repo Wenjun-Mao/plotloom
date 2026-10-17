@@ -7,7 +7,7 @@ import pytest
 from plotloom.autopilot_contracts import RunControlRequest
 from plotloom.autopilot_service import AutopilotService
 from plotloom.persistence.project.autopilot import AutopilotPersistence
-from tests.autopilot_image_fixtures import image_environment
+from tests.autopilot_installed_text_fixtures import installed_text_image_environment
 from tests.test_autopilot_images import current
 
 
@@ -28,10 +28,10 @@ def references_ready(storage, service, view):
 
 
 def test_first_frame_prepared_sent_restart_delivery_and_pause_keep_exact_phase_identity(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, installed_text_prefix
 ):
-    storage, registry, service, view, calls, _text = image_environment(
-        tmp_path, monkeypatch
+    storage, registry, service, view, calls, _text = installed_text_image_environment(
+        tmp_path, monkeypatch, installed_text_prefix
     )
     resumed = None
     try:
@@ -84,12 +84,12 @@ def test_first_frame_prepared_sent_restart_delivery_and_pause_keep_exact_phase_i
 
 
 def test_waiting_first_frame_restart_keeps_prepared_identity_without_resend(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, installed_text_prefix
 ):
     from plotloom.image_job_contracts import ImageJobError
 
-    storage, registry, service, view, calls, _text = image_environment(
-        tmp_path, monkeypatch
+    storage, registry, service, view, calls, _text = installed_text_image_environment(
+        tmp_path, monkeypatch, installed_text_prefix
     )
     resumed = None
     try:
@@ -147,10 +147,10 @@ def test_waiting_first_frame_restart_keeps_prepared_identity_without_resend(
 
 
 def test_phase_failure_rolls_back_prepared_job_checkpoint_and_can_retry(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, installed_text_prefix
 ):
-    storage, _registry, service, view, calls, _text = image_environment(
-        tmp_path, monkeypatch
+    storage, _registry, service, view, calls, _text = installed_text_image_environment(
+        tmp_path, monkeypatch, installed_text_prefix
     )
     try:
         before = references_ready(storage, service, view)
