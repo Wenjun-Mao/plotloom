@@ -91,6 +91,18 @@ See [ADR 0095](../../docs/adr/0095-persistent-creator-workbench.md).
 
 ## Native specialist bridge
 
+The persistent server explicitly binds the installation registry to the image's
+`/usr/local/bin/codex` bridge shim for automatic Codex Exec preparation. Compose
+supplies the protected bridge URL/token-file environment. Starting the server
+does not create a run, check login or provision validators; `check-bridge`
+establishes transport health only. Automatic launch still checks the host's
+current readiness and frozen execution profile before creating a run.
+The Mac must have uv and Node available to the installing command. The bridge's
+LaunchAgent retains their resolved executable directories plus system utility
+paths; it does not rely on launchd inheriting the shell PATH. Rerun `start`
+after changing tool locations. CLI version/profile qualification remains strict
+and independent of bridge health or file-store login readiness.
+
 Fresh Codex Exec jobs require explicit Python validator setup in this checkout.
 Use the physical versioned interpreter (every path component must be free of
 symlinks) and the installed uv executable:

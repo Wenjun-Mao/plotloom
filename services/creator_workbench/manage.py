@@ -122,7 +122,19 @@ def configure_h3(config, path=None, *, disable=False):
         CONFIG.write_text(json.dumps(config, indent=2) + "\n")
 
 
+def _bridge_tool_path():
+    directories = []
+    for name in ("uv", "node"):
+        executable = shutil.which(name)
+        if executable is not None:
+            directories.append(str(Path(executable).resolve(strict=True).parent))
+    # launchd does not inherit the installing shell's tool discovery paths.
+    # Retain only the selected runtime directories and system utilities.
+    return os.pathsep.join(dict.fromkeys([*directories, *os.defpath.split(os.pathsep)]))
+
+
 def install_bridge(config):
+    tool_path = _bridge_tool_path()
     domain = f"gui/{os.getuid()}"
     agent = Path.home() / "Library" / "LaunchAgents" / f"{LABEL}.plist"
     agent.parent.mkdir(parents=True, exist_ok=True)
@@ -152,6 +164,7 @@ def install_bridge(config):
         "RunAtLoad": True,
         "KeepAlive": True,
         "EnvironmentVariables": {
+            "PATH": tool_path,
             "PLOTLOOM_BRIDGE_SOURCE_HASH": sha256(
                 (SERVICE / "host_bridge.py").read_bytes()
             ).hexdigest()

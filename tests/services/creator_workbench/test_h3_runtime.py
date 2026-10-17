@@ -1,14 +1,14 @@
-"""Persistent creator composition must explicitly admit protected H3 settings."""
+"""Persistent creator composition owns bridge and protected H3 bindings."""
 
 import importlib.util
 import json
 import os
+import subprocess
 from pathlib import Path
 
 import pytest
 import requests
 from fastapi.testclient import TestClient
-
 
 SERVICE = Path(__file__).resolve().parents[3] / "services" / "creator_workbench"
 FIXTURE_SECRET = "creator-test-secret-not-for-a-live-gateway"
@@ -139,6 +139,45 @@ def test_server_keeps_installation_storage_and_redacts_public_capability(modules
         assert FIXTURE_SECRET not in json.dumps(payload)
         assert client.get("/healthz").json() == {"status": "ok"}
         assert client.app.state.specialists.path.is_relative_to(data / "application")
+
+
+@pytest.mark.parametrize("state", ["ready", "unavailable", "not_authenticated"])
+def test_server_binds_exec_to_container_bridge_without_startup_dispatch(
+    modules, tmp_path, monkeypatch, state,
+):
+    from plotloom.image_job_contracts import ImageJobError
+
+    _settings, server, _manager = modules
+    data = tmp_path / "installation"
+    for directory in ("outputs", "application"):
+        (data / directory).mkdir(parents=True)
+    monkeypatch.setenv("PLOTLOOM_CHECKOUT", str(SERVICE.parents[1]))
+    monkeypatch.setenv("PLOTLOOM_CREATOR_DATA", str(data))
+    monkeypatch.setenv("PLOTLOOM_CREATOR_ENABLE_H3", "false")
+    calls = []
+
+    def bridge(command, **kwargs):
+        calls.append((command, kwargs))
+        assert command == ["/usr/local/bin/codex", "exec-readiness"]
+        return subprocess.CompletedProcess(command, 0, json.dumps({"state": state}), "")
+
+    monkeypatch.setattr(subprocess, "run", bridge)
+    with TestClient(server.create_app()) as client:
+        registry = client.app.state.specialists
+        assert registry.executable == "/usr/local/bin/codex"
+        # Compose supplies the protected bridge URL/token-file environment.
+        assert registry.environment is None
+        assert calls == []
+        assert client.get("/api/v2/projects").json()["projects"] == []
+        if state == "ready":
+            assert registry.require_codex_exec_readiness().ready
+        else:
+            with pytest.raises(ImageJobError) as error:
+                registry.require_codex_exec_readiness()
+            assert error.value.code == "codex_exec_not_ready"
+        assert len(calls) == 1
+        assert calls[0][1]["env"] is None
+        assert client.get("/api/v2/specialists").json()["activeTasks"] == []
 
 
 def test_manager_retains_only_config_path_and_disable_preserves_credentials(modules, configuration, tmp_path, monkeypatch):

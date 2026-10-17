@@ -4,10 +4,10 @@ import os
 from pathlib import Path
 
 import uvicorn
+from h3_configuration import creator_h3_backend
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.project_storage.composition import ProjectFolderStorage
-from h3_configuration import creator_h3_backend
 
 
 def create_app():
@@ -30,6 +30,7 @@ def create_app():
         video_provider=video_provider,
         video_adapter=video_adapter,
         static_dir=repository / "src" / "plotloom" / "static",
+        specialist_executable="/usr/local/bin/codex",
     )
 
     @app.get("/healthz")

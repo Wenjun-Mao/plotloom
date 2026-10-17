@@ -1,5 +1,7 @@
 """Guard login-service reinstallation and source updates using isolated paths."""
 
+import os
+import plistlib
 import subprocess
 from pathlib import Path
 
@@ -20,6 +22,14 @@ def installation(tmp_path, monkeypatch):
     monkeypatch.setattr(manage, "CONFIG", private / "deployment.json")
     monkeypatch.setattr(Path, "home", lambda: tmp_path / "home")
     commands = []
+    tools = {}
+    for name in ("uv", "node"):
+        executable = tmp_path / name / "bin" / name
+        executable.parent.mkdir(parents=True)
+        executable.write_text("fixture tool")
+        executable.chmod(0o700)
+        tools[name] = str(executable)
+    monkeypatch.setattr(manage.shutil, "which", tools.get)
     monkeypatch.setattr(
         manage, "run", lambda command, **_kwargs: commands.append(command)
     )
@@ -29,6 +39,32 @@ def installation(tmp_path, monkeypatch):
         "token": "/private/token",
     }
     return config, commands, service
+
+
+def test_bridge_launch_has_explicit_tool_paths_not_ambient_path(installation, monkeypatch):
+    config, _commands, _service = installation
+    monkeypatch.setenv("PATH", "/ambient-do-not-inherit")
+    manage.install_bridge(config)
+    agent = Path.home() / "Library/LaunchAgents/com.plotloom.creator-codex-bridge.plist"
+    definition = plistlib.loads(agent.read_bytes())
+    directories = [str(Path(manage.shutil.which(name)).resolve().parent) for name in ("uv", "node")]
+    expected = os.pathsep.join(dict.fromkeys([*directories, *os.defpath.split(os.pathsep)]))
+    assert definition["EnvironmentVariables"]["PATH"] == expected
+    assert "/ambient-do-not-inherit" not in expected
+
+
+@pytest.mark.parametrize("missing", ["uv", "node"])
+def test_missing_exec_tool_preserves_queue_bridge_startup(installation, monkeypatch, missing):
+    config, commands, _service = installation
+    original = manage.shutil.which
+    monkeypatch.setattr(manage.shutil, "which", lambda name: None if name == missing else original(name))
+    manage.install_bridge(config)
+    agent = Path.home() / "Library/LaunchAgents/com.plotloom.creator-codex-bridge.plist"
+    definition = plistlib.loads(agent.read_bytes())
+    present = "node" if missing == "uv" else "uv"
+    directories = [str(Path(original(present)).resolve().parent), *os.defpath.split(os.pathsep)]
+    assert definition["EnvironmentVariables"]["PATH"] == os.pathsep.join(dict.fromkeys(directories))
+    assert commands[-1][1] == "bootstrap"
 
 
 def test_start_reloads_an_unloaded_bridge_and_skips_an_unchanged_running_bridge(
@@ -60,6 +96,20 @@ def test_start_reloads_changed_bridge_code_at_the_same_source_path(installation)
     manage.install_bridge(config)
     commands.clear()
     (service / "host_bridge.py").write_text("updated bridge version")
+    manage.install_bridge(config)
+    assert [command[1] for command in commands] == ["bootout", "bootstrap"]
+
+
+def test_start_reloads_when_selected_bridge_tool_directory_changes(installation, tmp_path, monkeypatch):
+    config, commands, _service = installation
+    manage.install_bridge(config)
+    commands.clear()
+    original = manage.shutil.which
+    node = tmp_path / "new-node" / "node"
+    node.parent.mkdir()
+    node.write_text("new fixture tool")
+    node.chmod(0o700)
+    monkeypatch.setattr(manage.shutil, "which", lambda name: str(node) if name == "node" else original(name))
     manage.install_bridge(config)
     assert [command[1] for command in commands] == ["bootout", "bootstrap"]
 

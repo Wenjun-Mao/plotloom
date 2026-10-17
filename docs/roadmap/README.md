@@ -1,5 +1,27 @@
 # Plotloom roadmap entrypoint
 
+## Current manual-walkthrough deployment correction
+
+The owner approved repairing the persistent creator composition after automatic
+preparation refused an unconfigured Mac Exec host. Scope: bind the existing
+container bridge shim to the application registry, regress startup/readiness
+behavior, explicitly provision the missing checked validator environment, then
+restart the same installation and verify readiness without starting generation.
+Preserve the current project, credentials, settings, historical evidence and
+paused optimization tracks. The stopping condition is a healthy service with
+readiness/profile results handed back to the owner, not automatic generation.
+Any unsupported CLI version remains a separate qualification blocker; changing
+the qualified version pin is outside this deployment correction. See the clarification
+in [ADR 0095](../adr/0095-persistent-creator-workbench.md#explicit-codex-exec-composition-2026-10-17).
+
+The scoped candidate passed 100 distinct deployment/source/transport cases,
+quick verification (1,381 frontend cases and both type checks), native owner
+inventory, and scoped Ruff/diff checks. Unchanged application, bridge-protocol,
+admission, frontend, dependency and package code reuse the earlier integration
+evidence below; this correction has no new full-suite, hosted-CI or generation
+qualification claim. The installed CLI reports `0.163.0-alpha.10.2`, while the
+qualified Exec profile requires `0.162.0-alpha.17.2`; that refusal is preserved.
+
 ## October 17 integration and parked workstreams
 
 The owner requested merging the completed CLI and Python changes into `main`

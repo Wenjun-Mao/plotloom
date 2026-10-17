@@ -55,6 +55,33 @@ generated deployment configuration and runtime data remain outside both source
 subtrees. Adding another service requires an explicit ownership decision, not
 a general `services/*` exception. Focused tests exercise both admitted owners.
 
+### Explicit Codex Exec composition (2026-10-17)
+
+The persistent launcher omitted `specialist_executable` when composing the
+application. Bridge health passed, but automatic preparation failed before
+creating a run because its installation registry had no Exec transport. The
+isolated launcher already supplied its own shim; implicit legacy queue lookup
+did not configure the separate Exec boundary.
+
+Pass the image-owned `/usr/local/bin/codex` bridge shim explicitly to the same
+installation-local registry. Inherit Compose's protected bridge URL/token-file
+environment; do not copy host credentials or add an API fallback. Preserve the
+existing readiness, profile, admission and UNKNOWN refusals. Composition does
+not probe, provision or dispatch. Validator setup remains a separate explicit
+operation under ADR 0169; transport health alone proves neither setup nor login
+readiness. Regression coverage asserts the exact shim, zero startup dispatch,
+and ready/unavailable/unauthenticated propagation through the real registry.
+
+The login-started bridge also needs explicit host tool discovery: launchd's
+system-only default PATH cannot find the installed uv/Node validators. At
+installation, resolve their available selected executable directories and compose
+a PATH with those directories and system utilities only. Missing Exec tools
+leave automatic execution unavailable without preventing the legacy queue bridge
+or browser from starting. Changes to selected directories trigger the
+existing definition-based bridge reload. Do not inherit the entire shell
+environment or bypass toolchain identity checks; fresh profiles still hash
+actual tools and validators, and the supported CLI version remains strict.
+
 ### Explicit private H3 composition (2026-10-11)
 
 The owner E2E walkthrough reached an approved keyframe, but the persistent
