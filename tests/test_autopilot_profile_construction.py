@@ -155,6 +155,29 @@ def test_mutable_input_does_not_alias_profile_and_hash_is_still_computed(monkeyp
     assert len(hashes) == 2
 
 
+@pytest.mark.parametrize("explicit_null", [True, False])
+def test_optional_version_metadata_keeps_exact_text_reuse_only(monkeypatch, explicit_null):
+    binding = PROFILE.model_dump(mode="json", by_alias=True)
+    binding.pop("cliVersion")
+    if explicit_null:
+        binding["cliVersion"] = None
+    raw = json.dumps({"executorBinding": binding})
+    expected = CodexExecProfile.model_validate(binding)
+    calls = observe_constructions(monkeypatch)
+    slot = _ProfileConstruction()
+    first = resolve(slot, raw)
+    assert first == expected and first.cli_version is None
+    assert resolve(slot, raw) is first
+    with pytest.raises(ValidationError):
+        first.cli_version = "codex-cli 9.99.0"
+    other = binding.copy()
+    other.pop("cliVersion", None) if explicit_null else other.update(cliVersion=None)
+    replacement = resolve(slot, json.dumps({"executorBinding": other}))
+    assert replacement == first and replacement is not first
+    assert replacement.profile_hash == first.profile_hash
+    assert len(calls) == 2
+
+
 def test_reuse_requires_frozen_extra_forbidden_structurally_immutable_profile():
     def immutable(annotation):
         origin, arguments = get_origin(annotation), get_args(annotation)

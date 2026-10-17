@@ -39,6 +39,23 @@ receipt/attempt snapshot revalidation, filesystem/owner checks and exception
 priority remain fresh. The later policy SELECT remains a distinct observation.
 Do not retain validation plans, parsed requests, rows or admission authority.
 
+### Nullable observed version review (2026-10-17)
+
+ADR 0165 makes the observed CLI version optional metadata. The reviewed AST
+tripwire correctly refused that model change during final qualification.
+Root and independent review compared every named dependency: the only changed
+member is `cli_version`, now an immutable `str | None` with literal `default=None`.
+No factory, validator, mutable container, ambient lookup or I/O was added to
+model construction. Credential checks, frozen assignment and profile hashing
+remain value-only. The actual subprocess version observation is outside this
+construction slot and is never reused by it.
+
+Re-review therefore retains the same reuse boundary and updates its AST pin.
+Explicit null and omitted metadata regressions must match fresh validation,
+reuse only identical whole policy text, and replace on different policy text
+even when the resulting profile values and hashes are equal. No normalized-key,
+hash-key or runtime-observation reuse is introduced.
+
 ## Alternatives and guardrails
 
 Reject run/job-ID, normalized binding, profile-hash and global/session/connection
