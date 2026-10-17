@@ -9,12 +9,19 @@ fit these admitted inputs. ADR 0188 separates a finite complete native request
 budget from the unchanged API prompt bound, without dropping evidence or relaxing
 identity, freshness, target/source coverage or human-review contracts.
 
-Implement the shared native guard, prove both old refusals and new byte-boundary
-behavior, obtain independent review and qualify stable source. Preserve all
-generated work and the original frozen run; no policy/receipt rebase or duplicate
-dispatch is implied. The owner is choosing between a fresh automatic copy and
-supported manual continuation after deployment. Creative acceptance remains
-human-owned; Python optimization and speculative batching remain parked.
+The shared guard and package producer/reader correction passed independent review
+and one full local gate on clean `5f90e37f`: all 14 steps, 3,120 Python cases / 262
+files, 1,381 frontend cases and 319 browser cases. See the
+[verification record](../verification/2026-10-17-native-bridge-request-budget.md).
+This is not hosted CI, a speed claim or creative acceptance.
+
+The owner explicitly chose a fresh manual end-to-end walkthrough from the exact
+saved Brief and permanent removal of the existing project/run without an archive.
+After safe same-installation activation, use the normal idle-guarded project
+deletion and explicit manual prepare/send/review/adopt flow; do not start
+autopilot or rewrite an old frozen policy/receipt to rebase it. Record agent
+reviews as Codex, not human approval. Creative acceptance remains human-owned;
+Python optimization, the broader Goal and speculative batching remain parked.
 
 ## Current Outline startup correction
 
