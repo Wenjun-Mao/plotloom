@@ -1,23 +1,24 @@
 """Attended P3 lifecycle, dispatch and immutable output-association regressions."""
 from contextlib import closing
+
 import pytest
 
 from plotloom.autopilot_contracts import CheckpointEvidence, RunControlRequest
 from plotloom.autopilot_materials import initial_inventory
 from plotloom.image_commands import image_context
 from plotloom.persistence.project.autopilot_bindings import assert_checkpoint_binding
-from tests.autopilot_image_fixtures import handoff_image_environment
+from tests.autopilot_compact_text_fixtures import compact_safety_image_environment
 from tests.test_autopilot_images import current
 
 
-def safety_environment(tmp_path, monkeypatch, *, auto_deliver=True):
-    """Keep real stage/receipt boundaries; later unused frame count is incidental."""
-    values = handoff_image_environment(
-        tmp_path, monkeypatch, auto_deliver=auto_deliver, cuts_per_scene=2
+def safety_environment(tmp_path, monkeypatch, compact_two_cut_text_prefix, *, auto_deliver=True):
+    """Retain eight real text records; every safety mutation is destination-local."""
+    values = compact_safety_image_environment(
+        tmp_path, monkeypatch, compact_two_cut_text_prefix, auto_deliver=auto_deliver
     )
     storage, _registry, service, view, _calls, text_calls = values
     try:
-        assert len(text_calls) == 8
+        assert len(compact_two_cut_text_prefix.text_records) == 8 and not text_calls
         with closing(storage.projects.open(view.project_id)) as store:
             inventory = initial_inventory(store, view.policy)
         assert inventory.route_count == 2
@@ -45,8 +46,8 @@ def reach(storage, service, view, owner, state):
 
 @pytest.mark.parametrize("owner", ["character-reference", "art-reference"])
 @pytest.mark.parametrize("action", ["cancel", "takeover"])
-def test_stop_after_reference_ingestion_preserves_terminal_owner_and_prevents_selection(tmp_path, monkeypatch, owner, action):
-    storage, registry, service, view, calls, _text = safety_environment(tmp_path, monkeypatch)
+def test_stop_after_reference_ingestion_preserves_terminal_owner_and_prevents_selection(tmp_path, monkeypatch, owner, action, compact_two_cut_text_prefix):
+    storage, registry, service, view, calls, _text = safety_environment(tmp_path, monkeypatch, compact_two_cut_text_prefix)
     try:
         retained, checkpoint = reach(storage, service, view, owner, "delivered")
         stopped = service.control(view.project_id, RunControlRequest(expected_revision=retained.revision, action=action))
@@ -63,8 +64,8 @@ def test_stop_after_reference_ingestion_preserves_terminal_owner_and_prevents_se
 
 
 @pytest.mark.parametrize("state", ["delivered", "adopted"])
-def test_direct_shot_cancellation_withdraws_automatic_authority_before_bundle(tmp_path, monkeypatch, state):
-    storage, _registry, service, view, calls, _text = safety_environment(tmp_path, monkeypatch)
+def test_direct_shot_cancellation_withdraws_automatic_authority_before_bundle(tmp_path, monkeypatch, state, compact_two_cut_text_prefix):
+    storage, _registry, service, view, calls, _text = safety_environment(tmp_path, monkeypatch, compact_two_cut_text_prefix)
     try:
         _retained, checkpoint = reach(storage, service, view, "image", state)
         with closing(storage.projects.open(view.project_id)) as store:
@@ -81,8 +82,8 @@ def test_direct_shot_cancellation_withdraws_automatic_authority_before_bundle(tm
 
 
 @pytest.mark.parametrize("race", [False, True])
-def test_partial_execution_publication_blocks_initial_or_final_codex_admission(tmp_path, monkeypatch, race):
-    storage, registry, service, view, calls, _text = safety_environment(tmp_path, monkeypatch, auto_deliver=False)
+def test_partial_execution_publication_blocks_initial_or_final_codex_admission(tmp_path, monkeypatch, race, compact_two_cut_text_prefix):
+    storage, registry, service, view, calls, _text = safety_environment(tmp_path, monkeypatch, compact_two_cut_text_prefix, auto_deliver=False)
     try:
         _retained, checkpoint = reach(storage, service, view, "character-reference", "prepared")
         with closing(storage.projects.open(view.project_id)) as store:
@@ -116,8 +117,8 @@ def test_partial_execution_publication_blocks_initial_or_final_codex_admission(t
 
 
 @pytest.mark.parametrize("field,value", [("output_filename", "foreign.png"), ("output_hash", "d" * 64), ("role", "refinement")])
-def test_retained_candidate_must_match_exact_manifest_output(tmp_path, monkeypatch, field, value):
-    storage, _registry, service, view, _calls, _text = safety_environment(tmp_path, monkeypatch)
+def test_retained_candidate_must_match_exact_manifest_output(tmp_path, monkeypatch, field, value, compact_two_cut_text_prefix):
+    storage, _registry, service, view, _calls, _text = safety_environment(tmp_path, monkeypatch, compact_two_cut_text_prefix)
     try:
         _retained, checkpoint = reach(storage, service, view, "character-reference", "delivered")
         with closing(storage.projects.open(view.project_id)) as store:

@@ -56,6 +56,14 @@ def awaiting_handoff_seed(tmp_path_factory):
     return build_awaiting_handoff_seed(tmp_path_factory.mktemp("awaiting-handoff-seed"))
 
 
+@pytest.fixture(scope="module")
+def compact_two_cut_text_prefix(tmp_path_factory):
+    """One natural closed compact text cut per opted-in module/worker."""
+    from tests.autopilot_compact_text_fixtures import build_compact_two_cut_text_prefix
+
+    return build_compact_two_cut_text_prefix(tmp_path_factory.mktemp("compact-two-cut-text-prefix"))
+
+
 @pytest.fixture(scope="session")
 def accepted_script_reconciliation_seed(tmp_path_factory):
     """No registry/dispatch is copied; selected cases build those afresh."""

@@ -1,5 +1,18 @@
 # Plotloom roadmap entrypoint
 
+Reviewed Python test candidate (October 17): [compact text-only safety prefix](2026-10-17-compact-text-safety.md)
+on `3fc0ed95`, extending ADR0185 only for eleven safety cases. Root accepted
+source/correctness: 13 new guards + 11 safety + 82 regressions = 106 DISTINCT
+focused passes. One eleven-case screen adds no distinct IDs: whole command plus
+settlement 59.74812462500995s control / 22.540467124956194s candidate, observed
+62.27418472726257% shorter with fixed-order/cache/host-load and preparation limits.
+Candidate cold seed/copies/validation/claims were inside the clock. All 13 new
+guards are unpriced here and must enter later whole measurement. Default boundary
+and natural complete-pack remain unchanged; no causal/whole-suite extrapolation.
+Target 151.73295s remains OPEN; no candidate whole/full/CI/product qualification.
+Three-doc closeout awaits Root review, uncommitted; no further run or commit is
+released. B remains parked and C3 held.
+
 Reviewed bounded Python candidate (October 17): [fresh Result row adapter](2026-10-14-python-context-and-workers.md#fresh-result-row-adapter--october-17-2026),
 uncommitted on `4a61133f`: 47 + 96 = 143 distinct focused passes, plus one natural
 case per matched screen arm (43.038875542s control / 42.129494000s candidate;
