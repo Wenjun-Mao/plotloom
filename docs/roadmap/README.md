@@ -3,15 +3,23 @@
 ## Current CLI compatibility correction
 
 The owner approved removing the exact CLI-version production blocker and
-investigating bridge readiness. Scope: record bounded optional observed version
-metadata rather than enforce a version allowlist; preserve executable/profile
-identity, source/toolchain/permission boundaries, strict native evidence and
-UNKNOWN/no-resend safeguards. Test-owned versions must no longer import a
-production allowlist. Record the decision in ADR 0165, qualify the stable source,
-then restart the same installation and check readiness/profile without launching
-the user's story. Current project and historical evidence stay unchanged;
-optimization and speculative batching remain parked. Prior version-gate findings
-below are historical, not the current intended availability policy.
+investigating bridge readiness. The implemented policy records bounded optional
+observed version metadata rather than enforcing a version allowlist; executable/
+profile identity, source/toolchain/permission boundaries, strict native evidence
+and UNKNOWN/no-resend safeguards remain enforced. Test fixtures own their version
+labels independently. ADR 0165 records this availability decision.
+
+The [verification record](../verification/2026-10-17-codex-cli-observed-version.md)
+documents the original deliberate purity-tripwire failure, independent review,
+94 affected passes, unchanged Python evidence reuse and all six remaining full
+steps passing, including 319 browser cases and installed-wheel smoke. Final
+native inventory is 3,098 Python cases / 261 files. This is composite local
+qualification, not a claim that the original full invocation passed.
+
+Restart the same installation and check readiness/profile without launching the
+user's story. Current project and historical evidence stay unchanged; optimization
+and speculative batching remain parked. Prior version-gate findings below are
+historical, not the current availability policy.
 
 ## Earlier manual-walkthrough deployment correction
 
@@ -23,8 +31,8 @@ restart the same installation and verify readiness without starting generation.
 Preserve the current project, credentials, settings, historical evidence and
 paused optimization tracks. The stopping condition is a healthy service with
 readiness/profile results handed back to the owner, not automatic generation.
-Any unsupported CLI version remains a separate qualification blocker; changing
-the qualified version pin is outside this deployment correction. See the clarification
+That earlier correction left the then-existing exact-version gate unchanged;
+the current CLI compatibility correction above supersedes that gate. See the clarification
 in [ADR 0095](../adr/0095-persistent-creator-workbench.md#explicit-codex-exec-composition-2026-10-17).
 
 The scoped candidate passed 100 distinct deployment/source/transport cases,
@@ -32,8 +40,9 @@ quick verification (1,381 frontend cases and both type checks), native owner
 inventory, and scoped Ruff/diff checks. Unchanged application, bridge-protocol,
 admission, frontend, dependency and package code reuse the earlier integration
 evidence below; this correction has no new full-suite, hosted-CI or generation
-qualification claim. The installed CLI reports `0.163.0-alpha.10.2`, while the
-qualified Exec profile requires `0.162.0-alpha.17.2`; that refusal is preserved.
+qualification claim. At that checkpoint the installed CLI reported
+`0.163.0-alpha.10.2`, while the Exec profile required `0.162.0-alpha.17.2`;
+the historical refusal remains preserved.
 
 ## October 17 integration and parked workstreams
 
