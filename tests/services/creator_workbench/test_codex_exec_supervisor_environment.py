@@ -19,6 +19,41 @@ from codex_exec_supervisor_test_support import _prepared_text_job
 from plotloom.codex_exec_resources import codex_exec_source_resources
 
 
+@pytest.mark.parametrize("domain", ["text", "image"])
+def test_cli_invocation_uses_only_frozen_instructions(supervisor, tmp_path, domain):
+    from codex_exec_supervisor_test_support import _write_fake_cli
+
+    from plotloom.codex_exec_prompts import assignment_prompt
+
+    profile = _write_fake_cli(supervisor, "raise SystemExit(0)\n")
+    job, private = tmp_path / "job", tmp_path / "private-attempt"
+    pinned = supervisor.source_root / "pinned-stage"
+    command = supervisor._cli_command(
+        profile, job, private, domain=domain, source_read_paths=(pinned,),
+    )
+    configurations = [command[index + 1] for index, item in enumerate(command[:-1]) if item == "--config"]
+    assert configurations.count("project_doc_max_bytes=0") == 1
+    assert command[:5] == [str(supervisor.executable), "exec", "--json", "--cd", str(job / "delivery")]
+    assert command[-2:] == ["--ignore-user-config", "-"]
+    assert 'cli_auth_credentials_store="file"' in configurations
+    assert 'web_search="disabled"' in configurations
+    assert f'permissions.{profile.permission_profile}.network.enabled=false' in configurations
+    filesystem = next(value for value in configurations if ".filesystem=" in value)
+    assert '":root"="deny"' in filesystem
+    assert f'{json.dumps(str(supervisor.codex_home))}="deny"' in filesystem
+    assert f'{json.dumps(str(job / "package"))}="read"' in filesystem
+    assert f'{json.dumps(str(job / "delivery"))}="write"' in filesystem
+    assert f'{json.dumps(str(pinned))}="read"' in filesystem
+    assert f'{json.dumps(str(supervisor.source_root))}=' not in filesystem
+    assert not {"--sandbox", "--dangerously-bypass-approvals-and-sandbox", "--yolo"} & set(command)
+    for feature in ("image_generation", "view_image"):
+        expected = "--enable" if domain == "image" else "--disable"
+        assert any(command[index:index + 2] == [expected, feature] for index in range(len(command) - 1))
+    prompt = assignment_prompt(job_id="frozen-job", package_path=job / "package",
+                               delivery_path=job / "delivery", domain=domain)
+    assert str(job / "package") in prompt and "COPY_ASSIGNMENT.txt and pinned source instructions" in prompt
+
+
 def test_trusted_python_ignores_valid_bytecode_seeded_in_the_old_cli_writable_cache(supervisor, tmp_path):
     from codex_exec_supervisor_test_support import _write_fake_cli
 

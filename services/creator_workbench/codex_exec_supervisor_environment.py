@@ -25,6 +25,33 @@ def _text_openssl_config(profile):
 
 
 class CodexExecSupervisorEnvironmentMixin:
+    def _cli_command(self, profile, job_root, private_dir, *, domain, source_read_paths=()):
+        from plotloom.codex_exec_auth import AUTHENTICATION_STORE
+        from plotloom.codex_exec_profile import DISABLED_CLI_FEATURES, cli_feature_flags
+
+        delivery = job_root / "delivery"
+        command = [
+            str(self.executable), "exec", "--json", "--cd", str(delivery),
+            "--model", profile.model,
+            "--config", f'model_reasoning_effort="{profile.reasoning_effort}"',
+            "--config", f'cli_auth_credentials_store="{AUTHENTICATION_STORE}"',
+            "--config", f'default_permissions="{profile.permission_profile}"',
+            "--config", f'permissions.{profile.permission_profile}.extends=":workspace"',
+            "--config", self._permission_filesystem_config(
+                profile, job_root, delivery, private_dir, self.codex_home,
+                source_read_paths, domain=domain,
+            ),
+            "--config", f'permissions.{profile.permission_profile}.network.enabled=false',
+        ]
+        command.extend(flag for feature in DISABLED_CLI_FEATURES for flag in ("--disable", feature))
+        command.extend(cli_feature_flags(domain))
+        command.extend(("--config", 'web_search="disabled"'))
+        # Frozen packages own instructions; ancestor/global AGENTS discovery is
+        # neither authorized input nor compatible with the deny-root boundary.
+        command.extend(("--config", "project_doc_max_bytes=0"))
+        command.extend(("--ignore-user-config", "-"))
+        return command
+
     @staticmethod
     def _disabled_python_cache(private_dir):
         from plotloom.codex_exec_runtime_tree import stable_file_hash

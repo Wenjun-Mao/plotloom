@@ -1,5 +1,19 @@
 # Plotloom roadmap entrypoint
 
+## Current Outline startup correction
+
+The owner approved investigating and fixing the first walkthrough Outline
+attempt's UNKNOWN outcome. Its retained stderr identifies denied ambient AGENTS
+discovery before session creation; a provider-free owned initialization probe
+reproduces the failure and verifies zero document budget removes it without
+granting more filesystem access. ADR 0187 defines frozen-package instruction
+authority for both text and image invocations. Implement that shared invocation
+policy, regress its consumers, obtain independent review and qualify stable source.
+Keep the original attempt/profile, raw evidence and UNKNOWN reservation unchanged;
+no retry, live restart or generation is implied while the old run is unresolved.
+Optimization and speculative batching remain parked. Stop at a verified source
+fix and explicit recovery/deployment boundaries, not fabricated job completion.
+
 ## Current CLI compatibility correction
 
 The owner approved removing the exact CLI-version production blocker and
