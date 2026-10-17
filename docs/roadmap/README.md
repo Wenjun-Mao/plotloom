@@ -12,12 +12,20 @@ speedup, a capacity-only multiplier or the Python 85-percent target. Recorded
 settlement does not establish fresh OS/global/transport absence. Historical
 failures, UNKNOWN reservations and unresolved cleanup remain unchanged.
 
-Current work is the bounded three-document reconciliation and one local docs-only
-commit. Software qualification remains pinned to `b313`; the docs descendant is
-not newly software-tested. Human creative/product acceptance, hosted CI,
-merge/push, public publication and live/canonical adoption remain separate and
-open/held. Python remains parked through docs closeout and Root's separate
-restart review; no runtime work is released by this checkpoint.
+CLI documentation closeout is complete at `e3dc802c`; software qualification
+remains pinned to `b313`. Root completed the Python restart review and statically
+accepted the bounded [canonical-row-byte trial](2026-10-14-python-context-and-workers.md#current-source-row-byte-trial--october-17-2026).
+Integration on `codex/python-speed-current-20261017` passed the initial 41-case
+focused check and one separately released 96-case affected-owner union on the
+same executable pins, plus proportional static checks. The first pass was reused;
+successor documentation preserves its original manifests and native receipts.
+Root retained the mechanism after two separately released natural-case screening
+orders favored it modestly (whole control/candidate 49.719 / 46.936 seconds, then
+49.108 / 46.688 seconds). This supports incremental retention, not attributable,
+statistical or whole-suite gains. One local eight-path correctness/screening
+checkpoint commit is released. Further full/whole qualification, providers,
+push/merge, live/canonical adoption and human product/creative acceptance remain
+separate and held; the 85-percent target remains open.
 
 ### Earlier failed-ImageGen telemetry source checkpoint
 
@@ -63,12 +71,11 @@ for independent/Root review. Full gate, commit, push/merge, new allocation or
 paid generation, CI/LIVE and creative/product acceptance are not released.
 Earlier receiver and F4/F5 fixes and their failures retain their recorded scope.
 
-The [Python speed track](2026-10-14-python-context-and-workers.md) in retained
-`autopilot-ux-release` is parked through CLI documentation closeout and Root's
-separate restart review. Its
-candidate stays unaccepted. Python-language fixture checks for CLI correctness
-do not resume optimization. The manager remains read-only in both checkouts;
-the 85-percent complete-suite target remains open.
+The original [Python speed track](2026-10-14-python-context-and-workers.md)
+candidate in retained `autopilot-ux-release` stays preserved and unaccepted.
+Its current-source integration has only the bounded release above; earlier
+Python source/evidence is not current CLI qualification. The manager remains
+read-only in both checkouts; the 85-percent complete-suite target remains open.
 
 The [Bridge / controller-claim follow-up](2026-10-14-bridge-claim-optimization.md)
 has independent review and scoped matched evidence. Historical scheduling has

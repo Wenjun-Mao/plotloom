@@ -1,8 +1,8 @@
 """Receipt segments share row construction, never authority across boundaries."""
+import json
 from collections import Counter
 from contextlib import closing
 from datetime import datetime, timezone
-import json
 from types import SimpleNamespace
 
 import pytest
@@ -13,7 +13,6 @@ from plotloom.persistence.codec import stable_hash
 from plotloom.persistence.project import autopilot_closure as closure
 from plotloom.persistence.schema import ProjectRow
 from plotloom.project_storage import ProjectFolderStorage
-
 
 PROTECTED = tuple(name for name in closure.MATERIAL_TABLES if name != "v2_managed_assets")
 CANCELLATIONS = ("v2_image_jobs", "v2_character_reference_proposals", "v2_art_reference_proposals")
@@ -96,12 +95,12 @@ def test_protected_mismatch_precedes_all_asset_extras_reads_and_full_hash(monkey
 
     def protected_hash(payload):
         assert set(payload) == set(PROTECTED), "full hashing preceded protected refusal"
-        return stable_hash(payload)
+        return real_hash(payload)
 
     monkeypatch.setattr(session, "execute", protected_only)
     monkeypatch.setattr(session, "scalars", lambda *_: pytest.fail("read cancellations before protected refusal"))
-    real_hash = closure.stable_hash
-    monkeypatch.setattr(closure, "stable_hash", lambda value: protected_hash(value) if set(value) & set(PROTECTED) else real_hash(value))
+    real_hash = closure._hash_material
+    monkeypatch.setattr(closure, "_hash_material", protected_hash)
     with pytest.raises(InvalidTransitionError) as caught:
         closure._receipt_material_closures(session, "project", expected_protected=expected)
     assert str(caught.value) == "receipt reconciliation cannot change creative or human authority"
@@ -211,7 +210,7 @@ def test_post_segment_flush_failure_rolls_back_transport_write_and_cleans_contex
 def test_unexpected_post_projection_or_hash_failure_rolls_back_and_cleans_context(store, monkeypatch, failure_stage):
     from tests.autopilot_fixtures import authority, start_run
     run = start_run(store)
-    original_payload, original_extras, original_hash = closure._material_payload, closure._add_material_extras, closure.stable_hash
+    original_payload, original_extras, original_hash = closure._material_payload, closure._add_material_extras, closure._hash_material
     after_yield = False
     failure = OSError(f"unreadable {failure_stage}")
 
@@ -234,7 +233,7 @@ def test_unexpected_post_projection_or_hash_failure_rolls_back_and_cleans_contex
 
     monkeypatch.setattr(closure, "_material_payload", payload)
     monkeypatch.setattr(closure, "_add_material_extras", extras)
-    monkeypatch.setattr(closure, "stable_hash", hashing)
+    monkeypatch.setattr(closure, "_hash_material", hashing)
     with pytest.raises(OSError) as caught:
         with store.repository.autopilot_command(authority(run, OperationScope.EVIDENCE)) as session:
             row = store.repository.autopilot.row(session, store.manifest.project_id)

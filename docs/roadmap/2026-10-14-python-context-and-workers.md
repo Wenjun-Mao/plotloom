@@ -1,5 +1,54 @@
 # Python context reuse and bounded worker experiment
 
+## Current-source row-byte trial — October 17, 2026
+
+CLI scoped native generation and documentation closeout are complete. Root
+accepted the bounded canonical-byte mechanism statically and released minimal
+integration on `codex/python-speed-current-20261017` in retained `b30f`, based on
+clean `e3dc802cef837e1f0a2f3f5071ecff7fcb140ef8`. The old `91871` candidate,
+restart note and observations remain untouched; no other Python optimization is
+restored. [ADR 0183](../adr/0183-closure-local-canonical-row-bytes.md) owns this
+current private contract. Earlier entries below retain their historical scope.
+
+Delivery contains only closure bytes, their complete-byte guards, existing
+receipt-owner injection-hook changes and current ownership/documentation
+registration. Initial correctness passed all 25 byte and 16 receipt cases through
+locked/no-sync `verify.py focused` on fixed QA, within its 900-second deadline.
+Root verified that pass and collected an independent accepting source review.
+One separately released six-file union then passed 96 authority, claim, geometry,
+image-safety, late-receipts and module-ownership cases, with one Starlette/httpx
+deprecation warning, within its 1,200-second deadline. All 137 focused cases are
+distinct; the first 41 were reused. Both original invocations exited naturally,
+their launched groups were absent at immediate terminal and selected source
+pins stayed unchanged. [ADR 0183's checkpoint](../adr/0183-closure-local-canonical-row-bytes.md#executed-focused-checkpoint)
+links exact native receipts, source pins and binding limitations. Scoped Ruff F/I,
+compilation, ownership registration and diff checks passed; the retained initial
+import-layout failure was corrected without changing non-import ASTs.
+
+Root accepted the 137-case scoped correctness and independent review, then retained
+the mechanism after exactly two one-case screening orders. Control/candidate whole
+walls were 49.71917320904322 / 46.9363840839942 seconds, then reversed-order
+control/candidate walls 49.107580375042744 / 46.68832533399109 seconds. Pytest times
+were 46.89 / 44.16 and 46.36 / 43.77 seconds respectively. Both directions favor
+the candidate modestly; no averaging, causal/statistical or suite-gain claim
+follows. [ADR 0183](../adr/0183-closure-local-canonical-row-bytes.md#retention-screening-and-decision)
+records exact sources, limits and sealed evidence. No more one-case repeats.
+
+Root released one normal local checkpoint commit of these eight scoped paths,
+labelled correctness plus screening. Further owner/full/whole checks, profiles,
+seed redesign, providers, push/merge and live changes remain held. B is unapproved;
+C remains unproved/parked. Static acceptance and local screening are not
+measured improvement, release qualification or product acceptance. These small
+doc-only successor updates preserve all executable and earlier evidence bytes;
+no extra runtime follows solely for documentation.
+The current `b313` full receipt has 2,865 backend cases; its 897.527-second Python
+step and the historical 2,471-case, 579.064-second observation at `91871` are
+unmatched context, not a speed comparison. The fixed 151.73295-second target
+stays open. Current-source same-selected-row decoding is a separate following
+port; no other older optimization or performance/full qualification is implied.
+
+## Historical track
+
 Status: the first owner-approved slice was independently reviewed, locally
 full-qualified and integrated on October 14, 2026. The later historical-scheduler
 and geometry-fixture continuation is implemented with focused checks and

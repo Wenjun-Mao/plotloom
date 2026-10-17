@@ -33,6 +33,7 @@
           "tests/test_v2_authoring_domain.py",
           "tests/test_autopilot_authority.py",
           "tests/test_receipt_material_projections.py",
+          "tests/test_material_closure_bytes.py",
           "tests/test_autopilot_claim_transactions.py",
           "tests/test_autopilot_exec_pool.py",
           "tests/test_autopilot_exec_staged.py",

@@ -1,5 +1,9 @@
 """Current material authority, distinct from append-only review/transport history."""
+import json
+from dataclasses import dataclass
 from datetime import datetime
+from hashlib import sha256
+
 from sqlalchemy import select
 
 from ...exceptions import InvalidTransitionError
@@ -22,24 +26,60 @@ MATERIAL_TABLES = (
 )
 
 
+@dataclass(frozen=True)
+class _EncodedRows:
+    """Fresh, already hashed row bytes owned only by one closure construction."""
+
+    data: bytes
+
+
+def _json_text(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def _material_bytes(payload):
+    chunks = [b"{"]
+    for index, name in enumerate(sorted(payload)):
+        if index:
+            chunks.append(b",")
+        chunks.extend((_json_text(name), b":"))
+        value = payload[name]
+        chunks.append(value.data if isinstance(value, _EncodedRows) else _json_text(value))
+    chunks.append(b"}")
+    # json.dumps completes before UTF-8 encoding in the canonical hash contract.
+    # Serialize every ordinary extra first, so a later JSON error still precedes
+    # an earlier lone surrogate's encoding error. Row bytes already passed UTF-8
+    # at their original sort-key boundary.
+    try:
+        return b"".join(chunk.encode("utf-8") if isinstance(chunk, str) else chunk for chunk in chunks)
+    except UnicodeEncodeError:
+        # Reproduce the canonical exception's complete input and offsets, too.
+        text = "".join(chunk if isinstance(chunk, str) else chunk.decode("utf-8") for chunk in chunks)
+        return text.encode("utf-8")
+
+
+def _hash_material(payload):
+    return sha256(_material_bytes(payload)).hexdigest()
+
+
 def material_closure(session, project_id, *, tables=MATERIAL_TABLES, include_cancellations=True):
     session.flush()
     payload = _material_payload(session, project_id, tables)
     if include_cancellations:
         _add_material_extras(session, project_id, payload)
-    return stable_hash(payload)
+    return _hash_material(payload)
 
 
 def _receipt_material_closures(session, project_id, *, expected_protected=None):
     """Build each segment afresh; refuse protected edits before allowed extras."""
     session.flush()
     payload = _material_payload(session, project_id, tuple(name for name in MATERIAL_TABLES if name != "v2_managed_assets"))
-    protected = stable_hash(payload)
+    protected = _hash_material(payload)
     if expected_protected is not None and protected != expected_protected:
         raise InvalidTransitionError("receipt reconciliation cannot change creative or human authority")
     payload.update(_material_payload(session, project_id, ("v2_managed_assets",)))
     _add_material_extras(session, project_id, payload)
-    return protected, stable_hash(payload)
+    return protected, _hash_material(payload)
 
 
 def _material_payload(session, project_id, tables):
@@ -49,7 +89,13 @@ def _material_payload(session, project_id, tables):
         rows = session.execute(select(table).where(table.c.project_id == project_id) if "project_id" in table.c
                                else select(table).where(table.c.id == project_id)).mappings()
         values = [{key: value.isoformat() if isinstance(value, datetime) else value for key, value in row.items()} for row in rows]
-        payload[name] = sorted(values, key=stable_hash)
+        encoded = []
+        for value in values:
+            data = _json_text(value).encode("utf-8")
+            encoded.append((sha256(data).hexdigest(), data))
+        # Sort by digest alone: equal digests retain the database's row order.
+        encoded.sort(key=lambda item: item[0])
+        payload[name] = _EncodedRows(b"[" + b",".join(data for _, data in encoded) + b"]")
     return payload
 
 
