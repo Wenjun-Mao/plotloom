@@ -87,8 +87,10 @@ def _material_payload(session, project_id, tables):
     for name in tables:
         table = Base.metadata.tables[name]
         rows = session.execute(select(table).where(table.c.project_id == project_id) if "project_id" in table.c
-                               else select(table).where(table.c.id == project_id)).mappings()
-        values = [{key: value.isoformat() if isinstance(value, datetime) else value for key, value in row.items()} for row in rows]
+                               else select(table).where(table.c.id == project_id))
+        keys = tuple(rows.keys())
+        values = [{key: value.isoformat() if isinstance(value, datetime) else value
+                   for key, value in zip(keys, row, strict=True)} for row in rows]
         encoded = []
         for value in values:
             data = _json_text(value).encode("utf-8")

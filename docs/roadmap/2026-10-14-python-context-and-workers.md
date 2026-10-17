@@ -1,8 +1,48 @@
 # Python context reuse and bounded worker experiment
 
-The current approved source slice is [validation-local profile construction
-(October 17)](2026-10-17-profile-construction.md). Earlier entries below preserve
-their original scope and evidence.
+The current approved source slice is the fresh Result row adapter below, on clean
+`4a61133f`. Earlier entries preserve their original scope and evidence.
+
+## Fresh Result row adapter — October 17, 2026
+
+Root released one source/correctness candidate: only _material_payload replaces
+per-row MappingResult/RowMapping.items adapters with one result-owned key tuple
+and ordered processed Row values. [ADR 0183's boundary](../adr/0183-closure-local-canonical-row-bytes.md#fresh-result-row-adapter--october-17-2026)
+records unchanged SQL/flush/cursor, full normalization before encoding, byte/error
+grammar and protected/fresh-call authority. This is fresh-result value derivation,
+not a material-payload cross-build cache or unapproved B read snapshot.
+
+Implemented corrected rectangular ByteSession/ProjectionSession fixtures, retaining
+all earlier grammar/phase/error assertions with explicit complete columns; new
+result metadata/processed-value guards; actual-DB old-mappings/new-row bytes and
+identical SELECT traces for every material table including empty metadata; nested
+independent pending-write freshness; exact helper/owner registration. Six new
+guards passed first, then both complete existing byte/receipt owners passed 41
+cases (47 prior focused cases). The separately released exact six-file affected union passed 96 cases
+(authority, claim transactions, geometry, image safety, late receipts and
+verification ownership): 143 distinct focused cases across nine files. Scoped
+Ruff F/I, syntax, ownership and diff checks passed; exact IDs and original native
+terminal are in the [union receipt](../../.local/remaining-cost/material-result-closeout-4a61133f-20261017/correctness-union-receipt.json).
+
+The accepted current absolute observation at `4a61133f` passed 2,985 cases / 257
+files in 814.730342s; its unchanged target of 151.73295s remains OPEN. It precedes this candidate
+and does not qualify modified code. One separately released unchanged natural
+complete-pack case passed once per arm: control 43.038875542s, candidate
+42.129494000s for the whole pytest command plus immediate owned settlement,
+observed 0.909381542s / 2.11293% shorter. The fixed control-first pair uses fresh
+roots/UV caches and disabled pytest cacheprovider; shared OS/dependency caches,
+host load and source-root differences limit inference. Separate import probes
+do not attest loaded modules in the pytest child. This is screening evidence,
+without causal/statistical, whole-suite or 85-percent claims. Candidate has no
+whole/full/hosted CI qualification or product acceptance. B remains Park with no
+diagnostic released; publication C3 is excluded. Trust observations remain fresh.
+
+Root retained the mechanism as a modest idiomatic incremental candidate after
+independent source/method review and accepted the one-pair observation. Freeze a
+doc-only successor with the same six non-doc hashes/modes for Root review; keep
+the original candidate/patch and all receipts immutable. Stop uncommitted. No
+repeat/reversed pair, further performance/profile/whole/full/module sweep,
+providers, cleanup, commit, push or merge is released.
 
 ## Current-source row-byte trial — October 17, 2026
 

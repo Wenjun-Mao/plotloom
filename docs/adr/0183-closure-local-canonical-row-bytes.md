@@ -98,3 +98,58 @@ the [reversed pair](../../.local/remaining-cost/canonical-row-bytes-reversed-scr
 has SHA `b4b7285a6222b36152db76c6eb3cbc5f11b783fcca533af4162c1cad67b39527`.
 Their original receipts, logs, commands, pins and earlier manifests remain sealed
 at their actual sources. A local checkpoint commit does not upgrade that evidence.
+
+## Fresh Result row adapter — October 17, 2026
+
+Root separately released a bounded adapter candidate on clean `4a61133f`.
+Installed SQLAlchemy 2.0.52's Result iterator already creates processed Row
+values; MappingResult adds RowMapping, whose items() allocates a list/view and
+does per-key lookups. In _material_payload only, capture each fresh Result's
+ordered keys once and pair them with its ordered processed Row values. The
+single-Table projection has named unique columns and fixed-width rows; strict
+pairing asserts that existing shape. General ambiguous projections are excluded.
+
+This changes local adapter allocations, not the database observation contract.
+Keep every fresh execute/SELECT/table/predicate, flush and cursor consumption,
+datetime normalization and complete-values-list-before-encoding phase. Keep
+canonical JSON/UTF-8/errors, digest-only stable ties, protected-before-extras and
+subsequent call/command freshness. No cross-row/call value memoization, prepared
+query/schema cache, serialization deduplication, alternate snapshot or public
+signature change. B remains unapproved and separate.
+
+ByteSession/ProjectionSession now expose Result.keys()/ordered values. Synthetic
+byte-grammar rows have explicit complete result columns, with explicit nulls
+where an earlier fake omitted a column. Those artificial result fields are not
+claimed to be production schemas; real-database old-mappings versus new-row
+byte/SELECT parity covers every actual material table and empty result metadata.
+Keep all earlier Unicode/nested JSON/null/number/datetime/tie/unsupported-value and
+phase/error assertions. Add fresh result-owned metadata, no mapping/key-lookup,
+metadata failure, and nested independent pending-write guards. No production
+fallback accommodates an obsolete fake protocol.
+
+Correctness closeout: six new guards and 41 complete byte/receipt owner cases
+passed (47 prior focused cases), followed by the exact retained six-file affected union: authority, claim
+transactions, geometry, image safety, late receipts and verification ownership.
+That union passed 96 cases, for 143 distinct focused cases across nine files.
+Scoped F/I, syntax, static ownership and diff checks passed. The
+[union receipt](../../.local/remaining-cost/material-result-closeout-4a61133f-20261017/correctness-union-receipt.json)
+retains exact full IDs, original native terminal and unchanged source/QA pins.
+
+One separately released natural complete-pack pair passed the unchanged case
+once per arm: control 43.038875542s, candidate 42.129494000s for the whole pytest
+command plus immediate owned settlement. The observed 0.909381542s / 2.11293%
+shorter candidate is a modest screen, with fixed control-first order, shared
+OS/dependency caches and host-load limits. Both used fresh roots/UV caches and
+disabled pytest cacheprovider. Separate import probes do not establish loaded
+module origin in the pytest child. The
+[pair receipt](../../.local/remaining-cost/material-result-screen-4a61133f-prep-20261017/pair-receipt.json)
+does not establish causal/statistical or whole-suite savings, an 85-percent goal,
+full release qualification or product acceptance. No repeat/reversed pair ran.
+
+The accepted base `4a61133f` whole observation remains historical evidence:
+2,985 cases / 257 files in 814.730342s against the unchanged 151.73295s target,
+which remains OPEN. This adapter candidate has no whole/full or hosted CI
+qualification. Root retained it as a modest idiomatic increment after independent
+source/method review; the doc-closeout successor remains uncommitted pending Root
+review. No further run, provider work, commit/push/merge or cleanup is released.
+B remains Park; publication C3 is excluded and still requires separate authority.

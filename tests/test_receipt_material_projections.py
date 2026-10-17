@@ -13,6 +13,7 @@ from plotloom.persistence.codec import stable_hash
 from plotloom.persistence.project import autopilot_closure as closure
 from plotloom.persistence.schema import ProjectRow
 from plotloom.project_storage import ProjectFolderStorage
+from tests.material_result_fixtures import MaterialResult
 
 PROTECTED = tuple(name for name in closure.MATERIAL_TABLES if name != "v2_managed_assets")
 CANCELLATIONS = ("v2_image_jobs", "v2_character_reference_proposals", "v2_art_reference_proposals")
@@ -54,7 +55,7 @@ class ProjectionSession:
         assert list(statement.selected_columns) == list(table.columns)
         column = table.c.project_id if "project_id" in table.c else table.c.id
         assert statement.whereclause.left is column
-        return SimpleNamespace(mappings=lambda: self.rows[table.name])
+        return MaterialResult(("id", "created_at", "value"), self.rows[table.name])
 
     def scalars(self, statement):
         name = statement.get_final_froms()[0].name

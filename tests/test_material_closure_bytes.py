@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from plotloom.persistence.project import autopilot_closure as closure
+from tests.material_result_fixtures import MaterialResult
 
 CANCELLATIONS = ("v2_image_jobs", "v2_character_reference_proposals", "v2_art_reference_proposals")
 
@@ -21,8 +22,9 @@ def expected_rows(rows):
 
 
 class ByteSession:
-    def __init__(self, rows=None, preparations=()):
+    def __init__(self, rows=None, preparations=(), *, columns=None):
         self.rows = rows or {}
+        self.columns = columns or {}
         self.preparations = preparations
         self.cancelled = {name: ["中", "a"] for name in CANCELLATIONS}
         self.events = []
@@ -33,7 +35,10 @@ class ByteSession:
     def execute(self, statement):
         name = statement.get_final_froms()[0].name
         self.events.append(name)
-        return SimpleNamespace(mappings=lambda: self.rows.get(name, []), all=lambda: self.preparations)
+        if name == "v2_autopilot_checkpoints":
+            return SimpleNamespace(all=lambda: self.preparations)
+        columns = self.columns.get(name, tuple(statement.selected_columns.keys()))
+        return MaterialResult(columns, self.rows.get(name, ()))
 
     def scalars(self, statement):
         name = statement.get_final_froms()[0].name
@@ -54,9 +59,11 @@ def test_complete_bytes_match_independent_payload_for_empty_subset_and_duplicate
             "a": {"x": "é", "y": "/"}}, "integer": 10**80}
     preparations = [("z", {"geometryPreparation": {"width": 1280}}),
         ("a", {"geometryPreparation": {"width": 720}}), ("null", {"geometryPreparation": None})]
-    session = ByteSession({"v2_projects": [source, {"id": "a", "created_at": None}]}, preparations)
+    empty = {"id": "a", "created_at": None, "nested": None, "integer": None}
+    session = ByteSession({"v2_projects": [source, empty]}, preparations,
+        columns={"v2_projects": ("id", "created_at", "nested", "integer")})
     payload = closure._material_payload(session, "project", tables)
-    expected = {name: expected_rows([normalized, {"id": "a", "created_at": None}])
+    expected = {name: expected_rows([normalized, empty])
         if name == "v2_projects" else [] for name in tables}
     if extras:
         closure._add_material_extras(session, "project", payload)
@@ -72,7 +79,8 @@ def test_complete_bytes_match_independent_payload_for_empty_subset_and_duplicate
 
 def test_receipt_aggregate_uses_fresh_row_bytes_once_across_its_two_hashes(monkeypatch):
     session = ByteSession({"v2_projects": [{"id": "p", "value": {"title": "原文"}}],
-        "v2_managed_assets": [{"id": "asset", "value": "a"}]})
+        "v2_managed_assets": [{"id": "asset", "value": "a"}]},
+        columns={"v2_projects": ("id", "value"), "v2_managed_assets": ("id", "value")})
     original_text, original_hash = closure._json_text, closure._hash_material
     encoded_rows, aggregates = [], []
 
@@ -108,12 +116,12 @@ def test_receipt_aggregate_uses_fresh_row_bytes_once_across_its_two_hashes(monke
 def test_digest_ties_preserve_original_row_order(monkeypatch):
     rows = [{"id": "z"}, {"id": "a"}, {"id": "z"}]
     monkeypatch.setattr(closure, "sha256", lambda _: SimpleNamespace(hexdigest=lambda: "0" * 64))
-    payload = closure._material_payload(ByteSession({"v2_projects": rows}), "project", ("v2_projects",))
+    payload = closure._material_payload(ByteSession({"v2_projects": rows}, columns={"v2_projects": ("id",)}), "project", ("v2_projects",))
     assert closure._material_bytes(payload) == canonical_bytes({"v2_projects": rows})
 
 
 def test_table_is_consumed_and_normalized_before_row_encoding_and_sort_before_next_select(monkeypatch):
-    session = ByteSession()
+    session = ByteSession(columns={"v2_projects": ("id", "created_at")})
     events = session.events
 
     class Stamp(datetime):
@@ -153,7 +161,7 @@ def test_table_is_consumed_and_normalized_before_row_encoding_and_sort_before_ne
 
 @pytest.mark.parametrize("stage", ["iteration", "normalization", "json", "utf8", "hash"])
 def test_row_failure_keeps_original_phase_and_prevents_next_table_read(monkeypatch, stage):
-    session = ByteSession()
+    session = ByteSession(columns={"v2_projects": ("id", "value")})
     failure = OSError(stage)
     events = session.events
 
@@ -162,7 +170,7 @@ def test_row_failure_keeps_original_phase_and_prevents_next_table_read(monkeypat
             raise failure
 
     def rows():
-        yield {"id": "first"}
+        yield {"id": "first", "value": None}
         if stage == "iteration":
             raise failure
         yield {"id": "second", "value": BrokenStamp(2026, 10, 15) if stage == "normalization" else 2}
@@ -193,7 +201,7 @@ def test_row_failure_keeps_original_phase_and_prevents_next_table_read(monkeypat
 
 @pytest.mark.parametrize("bad", [object(), b"untrusted bytes", {"mixed": {1: "a", "1": "b"}}])
 def test_unsupported_rows_fail_before_later_table(bad):
-    session = ByteSession({"v2_projects": [{"id": "first", "value": bad}]})
+    session = ByteSession({"v2_projects": [{"id": "first", "value": bad}]}, columns={"v2_projects": ("id", "value")})
     with pytest.raises(TypeError):
         canonical_bytes({"id": "first", "value": bad})
     with pytest.raises(TypeError):
@@ -228,7 +236,7 @@ def test_all_ordinary_json_serialization_precedes_utf8_encoding(payload, error):
 
 
 def test_surrogate_exception_retains_complete_input_and_offsets_with_encoded_rows():
-    session = ByteSession({"v2_projects": [{"id": "中"}]})
+    session = ByteSession({"v2_projects": [{"id": "中"}]}, columns={"v2_projects": ("id",)})
     payload = closure._material_payload(session, "project", ("v2_projects",))
     payload["z"] = "\ud800"
     with pytest.raises(UnicodeEncodeError) as expected:

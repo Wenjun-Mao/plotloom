@@ -1,5 +1,13 @@
 # Plotloom roadmap entrypoint
 
+Reviewed bounded Python candidate (October 17): [fresh Result row adapter](2026-10-14-python-context-and-workers.md#fresh-result-row-adapter--october-17-2026),
+uncommitted on `4a61133f`: 47 + 96 = 143 distinct focused passes, plus one natural
+case per matched screen arm (43.038875542s control / 42.129494000s candidate;
+observed 2.11293% shorter, screening limits apply). The base whole observation
+814.730342s remains historical; the 151.73295s target is OPEN. Candidate has no
+whole/full/CI qualification. Doc-only successor awaits Root review; no commit or
+further run is released. B remains Park; publication C3 is excluded.
+
 Retained bounded Python fixture step (October 17): [three human handoff seed
 consumers](2026-10-17-handoff-human-seed.md), source parent `0d630b02`, 51 distinct
 focused passes and accepted Root/independent review. No benchmark or speed claim.

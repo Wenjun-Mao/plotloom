@@ -34,6 +34,7 @@
           "tests/test_autopilot_authority.py",
           "tests/test_receipt_material_projections.py",
           "tests/test_material_closure_bytes.py",
+          "tests/test_material_result_rows.py",
           "tests/test_autopilot_policy_decoding.py",
           "tests/test_autopilot_profile_construction.py",
           "tests/test_autopilot_profile_purity.py",
@@ -805,6 +806,12 @@
     {
       "suite": "pytest",
       "path": "tests/autopilot_installed_text_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["story-authoring"]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/material_result_fixtures.py",
       "kind": "shared-fixture-or-helper",
       "consumers": ["story-authoring"]
     },
