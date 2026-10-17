@@ -14,8 +14,12 @@ from .domain import CamelModel
 _PLACEHOLDER = re.compile(r"\{(?:source|submodule|package|delivery|candidate|report|input:[A-Za-z0-9_.-]+|tool:(?:uv|node))\}")
 
 
+def _canonical_bytes(value) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+
+
 def _hash(value) -> str:
-    return sha256(json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
+    return sha256(_canonical_bytes(value)).hexdigest()
 
 
 class CodexExecValidationInput(CamelModel):
@@ -161,14 +165,14 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
         FrozenF5DialogueTiming.model_validate(frozen_timing)
     candidate = CREATIVE_CANDIDATE_FILENAMES[stage]
     artifacts = request.input_artifacts
-    inputs = tuple(CodexExecValidationInput(
-        filename=name,
-        sha256=_hash(artifact),
-        sizeBytes=len(json.dumps(artifact, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()),
-    ) for name, artifact in sorted(artifacts.items()))
-    saved_route = codex_exec_saved_brief_route(stage, request.model_dump(mode="json", by_alias=True) | {
-        "inputArtifacts": request.model_dump(mode="json", by_alias=True)["inputArtifacts"],
-    })
+    input_items = []
+    for name, artifact in sorted(artifacts.items()):
+        content = _canonical_bytes(artifact)
+        input_items.append(CodexExecValidationInput(
+            filename=name, sha256=sha256(content).hexdigest(), sizeBytes=len(content),
+        ))
+    inputs = tuple(input_items)
+    saved_route = codex_exec_saved_brief_route(stage, request.model_dump(mode="json", by_alias=True))
 
     def input_path(filename: str) -> str:
         if filename not in artifacts:

@@ -7,7 +7,18 @@ from uuid import uuid4
 
 import pytest
 
-from plotloom.codex_exec_contracts import CodexExecProfile
+from plotloom.codex_exec_contracts import (
+    CodexExecAttempt,
+    CodexExecOutputEvidence,
+    CodexExecProfile,
+    CodexExecReceipt,
+    assert_receipt_matches_attempt,
+    output_manifest_hash,
+)
+from plotloom.codex_exec_validation import (
+    CodexExecTextValidationEvidence,
+    CodexExecTextValidationPlan,
+)
 from plotloom.persistence.project import autopilot_bindings as bindings
 from plotloom.project_storage import autopilot_validation as validation
 from tests.autopilot_profile_fixtures import observe_constructions, seed_profile_graph
@@ -224,3 +235,60 @@ def test_current_image_owners_reconstruct_attempt_and_receipt_on_slot_hit(image_
         assert len(receipts) == before_receipts + 2
     assert len(calls) == 2
     assert len(attempts) == len(receipts) == 6
+
+
+def test_completed_binding_derives_one_fresh_plan_hash_per_call(graph, monkeypatch):
+    connection, data = graph
+    outputs = tuple(CodexExecOutputEvidence(output_hash=digit * 64,
+        output_relative_path=f"delivery/{name}", size_bytes=12)
+        for digit, name in (("a", "outline.json"), ("b", "report.html")))
+    completed = CodexExecAttempt.model_validate(data.attempt.model_dump(mode="python") | {
+        "state": "completed", "terminal_result": "success", "remote_tool_state": "not_applicable",
+        "session_id": uuid4(), "process_id": 123, "process_group_id": 123,
+        "process_birth_identity": "test-owned-process", "process_exit_code": 0,
+        "evidence_hash": "c" * 64, "output_hash": output_manifest_hash(outputs),
+    })
+    proof = CodexExecTextValidationEvidence(
+        plan_hash=completed.validation_plan_hash, profile_hash=completed.profile_hash,
+        validator_hash=data.policy.executor_binding.validator_hash,
+        request_hash=completed.request_hash, package_hash=completed.package_hash,
+        source_revision=completed.plotloom_code_revision, candidate_filename="outline.json",
+        candidate_hash=outputs[0].output_hash, candidate_size_bytes=12,
+        report_hash=outputs[1].output_hash, report_size_bytes=12,
+        steps=({"stepId": "validate", "argvHash": "d" * 64, "exitCode": 0,
+                "stdoutHash": "e" * 64, "stdoutSizeBytes": 0,
+                "stderrHash": "f" * 64, "stderrSizeBytes": 0, "durationMs": 0},
+               {"stepId": "render", "argvHash": "d" * 64, "exitCode": 0,
+                "stdoutHash": outputs[1].output_hash, "stdoutSizeBytes": 12,
+                "stderrHash": "f" * 64, "stderrSizeBytes": 0, "durationMs": 0}),
+    )
+    receipt = CodexExecReceipt(**{name: getattr(completed, name) for name in (
+        "attempt_id", "session_id", "profile_hash", "request_hash", "package_hash",
+        "plotloom_code_revision", "validation_plan_hash", "process_id", "process_group_id",
+        "process_birth_identity", "process_exit_code", "evidence_hash", "output_hash",
+        "remote_tool_state")}, expected_image_outputs=0, outputs=outputs, text_validation=proof)
+    assert_receipt_matches_attempt(completed, receipt)
+    data.evidence = data.evidence.model_copy(update={
+        "executor_receipt_hash": completed.evidence_hash, "delivery_hash": "1" * 64})
+    connection.execute("UPDATE v2_autopilot_exec_attempts SET state='completed',snapshot=?,receipt=?",
+        (completed.model_dump_json(by_alias=True), receipt.model_dump_json(by_alias=True)))
+    connection.execute("UPDATE v2_source_outline_candidates SET manifest_hash=?", (data.evidence.delivery_hash,))
+    connection.commit()
+    original, hashes = CodexExecTextValidationPlan.plan_hash.fget, []
+
+    def plan_hash(plan):
+        value = original(plan)
+        hashes.append((plan, value))
+        return value
+
+    monkeypatch.setattr(CodexExecTextValidationPlan, "plan_hash", property(plan_hash))
+    traces = [observed(connection, lambda: binding(connection, data, state="delivered")) for _ in range(2)]
+    assert traces[0] == traces[1] and traces[0][1] == ("return", None)
+    assert len(hashes) == 2 and hashes[0][0] is not hashes[1][0]
+    assert [value for _plan, value in hashes] == [completed.validation_plan_hash] * 2
+    request = json.loads(connection.execute("SELECT request FROM v2_source_outline_candidates").fetchone()[0])
+    request["creativeBrief"] = "A changed source must be revalidated."
+    connection.execute("UPDATE v2_source_outline_candidates SET request=?", (json.dumps(request),))
+    with pytest.raises(ValueError, match="creative checkpoint frozen owner binding changed"):
+        binding(connection, data, state="delivered")
+    assert len(hashes) == 2  # The fresh request binding still fails before plan construction.

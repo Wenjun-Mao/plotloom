@@ -156,9 +156,11 @@ performance, provider, publication or live action followed these focused results
 Status: the first owner-approved slice was independently reviewed, locally
 full-qualified and integrated on October 14, 2026. The later historical-scheduler
 and geometry-fixture continuation is implemented with focused checks and
-independent review; scoped geometry measurement passed. A later current
-2,239-case Python-only observation passed, as recorded below; matched current
-whole-suite gains and combined full qualification remain open. This continues the
+independent review; scoped geometry measurement passed. A historical 2,239-case
+Python-only observation passed at `7638964`, as recorded below. The later
+ordinary-open profile implementation at `db021699` has 142 focused passes and
+one accepted unchanged-case pair; a fresh current whole-Python measurement,
+matched whole-suite gains and combined full qualification remain open. This continues the
 [testing-health plan](2026-10-10-testing-health-cleanup.md),
 not a redefinition of its 85-percent complete-suite wall-time target.
 
@@ -2144,3 +2146,656 @@ full gate. Reconcile the exact integrated CLI/Python source before reusing
 evidence or timing manifests. Actual whole-suite timing, publication and hosted
 status remain separate; neither approval nor a local profile establishes 85
 percent. Stop for a materially different authority or data-model change.
+
+## Approved ordinary-open profile-construction candidate — October 14
+
+After independently reviewing the accepted diagnostic and temporary design note,
+the manager authorized precisely the lazy, private single-success slot described
+in [ADR 0177](../adr/0177-invocation-local-autopilot-profile-construction.md).
+The existing read-only architecture reader found no design blocker. The retained
+checkout was clean main `b45f2a3f`; ancestry was verified and local main fast-
+forwarded only to delivered CLI `8ab58839df652e21ec5eef51a63c925d33a1af58`.
+This is development integration, not release/product acceptance. Preserve prior
+evidence and its original revision claims; the CLI checkout remains untouched.
+
+Deliverable: bounded source, ADR and focused regression candidate with explicit
+module ownership, lightweight stdlib static inspection and the existing reader's
+stable code review. Each profile site owns its fresh raw policy TEXT and decoded
+extraction. Only direct ordinary checkpoint/decision passes share construction;
+SQL, isolation, errors, receipts, hashes, files, public/nested and admission paths
+retain their existing behavior. No plan reuse, generic memoizer or ambient cache.
+
+Initial resource hold (historical design checkpoint): CLI's separate native
+serial/parallel comparison had priority. Tests, collection, dependency tooling,
+profiling, benchmarks, broad/full gates, provider calls, source commit, push and
+activation were unallocated. The stopping condition was a stable reviewed diff
+with selectors and proposed correctness/measurement commands. Those executions
+needed separate scheduling; their later accepted results follow below. The
+attribution remains diagnostic, not a timing baseline. The fixed-resource
+151.73295-second / 85-percent target remains unmet.
+
+The existing architecture reader's independent stable code review found no
+actionable issue, including no fixture/API or predicted-count inconsistency.
+Requested GPT-6.1 Sol / High; effective settings unverified. Review was source-
+only: no imports, collection or execution. Stdlib AST parsing passed for all
+eight changed/new Python files; the corrected one-off ownership JSON check and
+`git diff --check` passed. Exact SQL-call ASTs and source-site order match the
+integration base in both existing runtime files; the receipt contract file is
+byte-identical. These static facts do not establish runtime correctness.
+
+Initial focused command (unallocated at the design checkpoint; later executed):
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest tests/test_autopilot_profile_construction.py \
+  --pytest tests/test_autopilot_profile_bindings.py \
+  --pytest tests/test_autopilot_profile_transactions.py \
+  --pytest tests/test_autopilot_profile_receipts.py
+```
+
+Initially selected affected-consumer union, using one `--pytest` per selector:
+
+- `tests/test_codex_exec_contracts.py`
+- `tests/test_codex_exec_receipts.py`
+- `tests/services/creator_workbench/test_codex_exec_pool_profile.py`
+- `tests/test_autopilot_exec_pool.py`
+- `tests/test_autopilot_early_references.py`
+- `tests/test_autopilot_claim_transactions.py`
+- `tests/test_autopilot_geometry.py::test_tampered_or_missing_lineage_refuses_ordinary_open`
+- `tests/test_autopilot_creator_confirmation.py::test_ordinary_validation_refuses_unnamed_fact_without_its_receipt`
+- `tests/test_autopilot_recovery.py::test_snapshot_and_closed_folder_restore_preserve_all_retained_creative_files`
+- `tests/test_autopilot_recovery.py::test_portable_autopilot_cannot_resume_after_acknowledgement`
+- `tests/test_autopilot_image_safety.py::test_retained_candidate_must_match_exact_manifest_output`
+
+The last case exercises an existing direct public-binding caller affected by the
+common-body extraction. This was a scoped correctness proposal, not full or
+module qualification. No counts had been collected at that checkpoint; the
+manager subsequently allocated external roots, execution and cleanup, with the
+actual results below.
+
+The initial proposal reserved a separately allocated matched observer for this
+unchanged case, uninstrumented on both exact frozen inputs:
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest 'tests/test_autopilot_early_references.py::test_complete_early_pack_reuses_original_jobs_and_budgets_once[mapped-consumer]'
+```
+
+At that proposal checkpoint, before was integrated `8ab58839` and the after
+commit had not been created. Quiet matching resources, dependency/host and
+native case proofs, fresh external roots, complete-command timing and owned
+cleanup remained required. No old observer or diagnostic became the baseline.
+
+### Ordinary-open profile correctness and matched result — October 15
+
+Implementation was committed at `db0216999210616fa6020ef156b811abb735d55f`,
+parent `8ab58839df652e21ec5eef51a63c925d33a1af58`. Its reviewed twelve-file
+candidate digest was
+`632b585b273ca193fb1db4eb3a0dcc9553d43fc891ce0bcd5038be6fe5e592b6`.
+The exact candidate bytes passed **142 focused cases**: 51 in the four new
+contract files above and 91 in the selected consumer union. This evidence was
+captured before commit; committing changed no bytes. Independent stable code
+review found no actionable issue. Correctness result
+`.local/remaining-cost/profile-construction-correctness-htplzps2/result.json`
+has SHA-256 `5ed960fef8a2d843ab0aa69c12692175d922e66d99a15d032ca3944c0bf589c4`.
+The explicit eight-file Ruff F-family check passed; the earlier default Ruff
+check remains failed with **ten non-F findings**. No quick/module/full success
+or unfiltered hosted CI is implied by these focused/static records.
+
+After attended independent observer reviews and root's separate setup/seal/
+ONE START releases, the new quiet pair completed once. The requested reader
+selection was GPT-6.1 Sol / High; host records confirmed that selection for the
+later setup/observer review turns. Before was a separate clean detached control
+at exact `8ab58839`; after was clean `db021699`. Frozen CLI `2a359171` remained
+separate and untouched. Both arms used the same checked physical Python 3.12.13
+and retained `.venv`, lock and case inputs. Root accepted setup-02's natural
+nested runner/pytest/package/test/fixture/tool binding proof plus separate
+per-arm import identities before measurement. The measured pair used only the
+original timing plugin and arm `src:root` source paths, with fresh external
+temporary/cache roots and unchanged fixture generation; no setup diagnostic,
+collect-only override, prewarming or product instrumentation entered execution.
+
+Both arms passed the exact mapped-consumer case in the command above, with
+native fingerprint
+`20a17f28cc1719827b02e22af90b923bbf436d1cf3d83d21a9b3e19f19c3bcd4`.
+Each focused command's selector collection emitted `complete=false`; its
+distinct actual execution emitted `complete=true`, one case/file and a valid
+phase row. Both retained the same existing httpx deprecation warning.
+
+| Side | Whole command | Setup | Call | Teardown | Case phase sum |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| before | 50.113741375s | 0.000569792s | 47.094119167s | 0.000093583s | 47.094782542s |
+| after | 45.048235292s | 0.000478542s | 42.661754000s | 0.000092750s | 42.662325292s |
+
+Values here are rounded; full precision is in the result. Whole-command time
+includes the focused runner's startup/selector collection, actual test phases,
+reporting and immediate owned-group cleanup. Separate collection/import probes,
+preservation checks and final external-root removal are excluded. This one pair
+observed **5.065506083s / 10.108018%** less command time and
+**4.432457250s / 9.411780%** less case phase time. It is not a repeated/statistical
+result, a whole-suite saving or an amount to add to other scoped results or
+subtract from the historical 524.161556s run. The **151.73295s / 85-percent**
+target, current whole-Python measurement and combined full qualification remain
+open. The human owner's CLI verification-authority choice is still pending;
+provider, hosted CI, live
+activation, publication and product acceptance remain held or unestablished.
+
+Evidence root `.local/remaining-cost/ordinary-open-profile-isolated-jf3tfr7m/`:
+
+- `result.json`: `7d20525429c5e829e52b04fc0bc1bebadecd624333d76f44b2adf7dcfda9b2fd`;
+- `before/focused.log`: `aa55a4dd8c1fa4212347ce1c21be8c8b579096f53648c7494e109728a006d5b2`;
+- `after/focused.log`: `2f1a4056e25483fcf0669a870400b3cfa83717b6953255e06785a1e7de5ce763`;
+- observer `.local/remaining-cost/ordinary_open_profile_isolated_pair_20261015.py`:
+  `8941b90e71be7e515890432b5460e0cd6a559e481991a475ab0806284257c9b4`;
+- sealed plan: `9bf8ad66b531486cc3a9efce48681f9eaac7ce00f0701f0233de2dbd75753aca`.
+
+Actual terminal, native proofs, source/environment/artifact preservation and
+owned-group/exact-root cleanup passed root's independent audit. Setup-01 remains
+a failed proof attempt; the older user-interrupted pair remains incomplete.
+Neither supplied an arm or was relabeled as this successful pair. This receipt
+changes only documentation after measurement: the measured source remains
+`db021699` with the original digest above, not a later docs commit. No test was
+rerun solely for these documentation edits. This receipt alone authorizes no
+commit or push; publication still needs separate authorization/qualification.
+
+### Proposed next checkpoint — one fresh current whole-Python observation
+
+Prefer current whole-Python evidence before choosing another micro-optimization.
+After review and a separately authorized local docs commit, pin that actual clean
+HEAD (not yet known), executable inputs, environment/tool/host identity and the
+unchanged timing manifest. Prepare a new ignored capture without retargeting
+`.local/remaining-cost/current_python_external_capture.py` or any spent observer.
+Reuse its inventory/scheduler/report extraction and native runner/completion
+contracts; use the later reviewed latched stop, registration, early-cleaning and
+reporting lifecycle, with exact owned groups and registered external-root inode/
+device checks. Keep its whole-command timeout proposal at 3600 seconds, subject
+to root review rather than inheriting the scoped pair's 900-second bound.
+
+Proposed separate unfiltered native inventory command:
+
+```sh
+uv run --locked --no-sync python -m pytest --collect-only -q -p no:cacheprovider
+```
+
+Proposed timed command, retaining the released **default two workers**:
+
+```sh
+uv run --locked --no-sync python scripts/testing/run_python_suite.py
+```
+
+Use the existing checked environment and explicit retained source paths, offline/
+no-sync children, fresh external temp/uv caches and the native runner's disabled
+pytest cache. Refuse ambient filters/plugins/coverage startup; leave
+`PYTEST_ADDOPTS` empty, as the runner requires. The runner itself selects the
+timing plugin for workers. No setup diagnostic, fixture prewarming, manifest
+rewrite, worker-count increase or new environment is proposed.
+
+Deliver fresh native IDs/counts (currently uncollected, not predicted), scheduler
+basis/history/fallback and exact whole-file assignments. Match the runner's own
+fresh collector fingerprint to the separate inventory; require two disjoint
+assigned native-ID fingerprints whose union is exact, both workers' true
+completion markers and finite per-file phase rows. Preserve raw logs and report
+hashes, whole-command wall including immediate owned cleanup, native worker/
+parallel walls, per-file setup/call/teardown totals and pre/post source/env/
+manifest/proof/cache identity. Phase sums are work totals, not parallel wall.
+Retain all old evidence, including this pair, and verify terminal/group/root
+cleanup before reporting. `verification-tooling` owns the native runner,
+completion/scheduler/plugin and their existing regression selections; no tool or
+test contract change is proposed.
+
+Stopping condition: one current Python-only observation, then root review. This
+proposal authorizes no capture authoring, collection or execution. The previous
+524.1615562500083s at `7638964` / 2,239 cases / 211 files is different-input
+history, not a matched baseline. A docs-only commit can retain executable
+evidence while explicitly changing revision provenance; later CLI integration
+that changes executable inputs/inventory invalidates current-source reuse and
+needs fresh measurement/relevant qualification. Whole-Python success would
+still leave combined full, hosted CI, CLI, publication and product acceptance
+separate. No 85-percent promise follows from the scoped five-second observation.
+
+### Current whole-Python observation failed — October 15
+
+The separately allocated observation at clean
+`bab6bc0809cc9b271e46a5a18e705340477b3fdd` genuinely terminated with exit 1.
+Fresh native inventory contained **2,375 cases / 226 files**, fingerprint
+`dca02467c486f4f961684426a3ed90c04ed7718d9d8c541adea8e8fa6716f713`.
+Worker 1 reported 1,232 passed / 1 failed; worker 2 reported 1,141 passed /
+1 failed: **2,373 passed / 2 failed** overall. Both actual timing markers were
+incomplete, with zero per-file phase rows. External failed-command wall was
+**701.227730750019s**; native coordinator wall was **694.223s**. This is failed
+current-source evidence, not successful qualification, matched whole-suite gain,
+or achievement of the 85-percent target. No phase bottleneck ranking is possible.
+
+Evidence remains immutable under
+`.local/remaining-cost/current-python-bab6bc08-ifyzlug_/`:
+
+- Result: `f2513267cd33aa5cde0dfa800f5081cc484f044a33f82d11aeec74a845adb0e3`.
+- Sealed plan: `fe170078f415fd08983ab6a851835914644778853c54af9a34ac3979869185c6`.
+- Consumed START: `7099ca4ca997c5f8034d18043335f9deb5ac41a6ca6381b91fadfa50eb31bdd4`.
+
+Initial/final source, environment and protected-artifact identities matched;
+tracked source remained clean. All owned process groups and the exact external
+parent/nested temporary roots were absent after cleanup. Root independently
+accepted the failed-run closure and released its quiet window; that allocation
+is spent and permits no retry.
+
+Reviewed diagnosis traces both failures to the earlier `e71e537f` F5 timing
+change, not the latest profile-construction optimization. The lifecycle test in
+`test_project_storage_storyboard_review.py` retained an obsolete five-artifact
+expectation. ADR 0173 requires the sixth timing artifact even for action-only
+Script (`lines: []`), bound to accepted Script identity, saved language and the
+canonical timing profile. The bounded repair updates that exact expectation and
+checks the full timing payload/digest against its serialized candidate binding;
+all lifecycle, cancellation, late-delivery and recovery assertions remain.
+
+**Precision decision at failed-run closure — subsequently resolved below.** The other failure,
+`test_raw_f5_accepts_submillisecond_time_but_production_conflicts_explicitly`,
+exposes a contract conflict: ADR 0100 places exact integer-millisecond conversion
+at Bridge/provenance and leaves raw F5 admission unchanged, whereas the new
+receiving adapter rejects every fractional-millisecond cut before dialogue
+assignment, including action-only Script. ADR 0173 authorizes canonical minima
+and route checks without explicitly superseding that precision boundary.
+Upstream-library versus receiving-adapter terminology does not resolve it.
+The choices are to preserve raw precision with exact decimal comparisons against
+minima/route ceilings while keeping Bridge conversion strict, or explicitly
+authorize earlier precision rejection and reconcile the owning ADRs. Neither
+rounding nor skipping empty-dialogue timing checks is an acceptable resolution.
+No precision production code, owning ADR or second-test expectation is changed
+by this first-failure repair. A precision repair, its affected qualification and
+any fresh whole-Python run require the decision and a new allocation. The
+separately authorized first-failure correctness window is recorded below;
+combined full, hosted CI, CLI and product acceptance remain open.
+
+The first-failure repair's separately allocated focused check executed once:
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest tests/test_project_storage_storyboard_review.py::test_f5a_freezes_current_f4_identity_blocks_lifecycle_and_refuses_late_delivery
+```
+
+Native session `76888` exited 0: **1 passed**, with the existing Starlette/httpx
+deprecation warning. Native collection and true execution completion matched the
+exact one-case fingerprint
+`aa8cc6e7be4e089679beb7e123527baa0dc6cd57429223abe19e1c2b7e7e8382`.
+The fixed existing environment ran offline/no-sync with cacheprovider disabled,
+fresh external TMPDIR/uv cache and the established owned-group cleanup. Initial
+and final candidate/environment/cache/protected-evidence probes matched; the
+owned group and inode-bound temporary root were absent. Evidence is
+`.local/remaining-cost/f5-artifact-lifecycle-correctness-li9lgi_j/`, result
+`a76baeb96b57f973fdbc8bb5b065e1f76d7a6686bf50b2f5c62c8855e824d6f6`, log
+`5a6b8c5a14b29a21ebe714a904dbb67ea6b1cdaa03bc3b5985de000ed97a0907`.
+The measured whole-run revision remains `bab6bc08`; this later test-only repair
+is not a relabelled whole-suite result. The subsequent receipt-only docs
+update does not change the executed test bytes. No second precision case,
+affected union, module, whole suite or full release check ran in this allocation.
+
+### Approved raw F5 precision repair — October 15
+
+The owner explicitly chose Option 1: preserve raw F5 decimal precision at review
+admission, compare exactly against canonical minima and frozen timing ceilings,
+and retain Bridge's strict integer-millisecond conversion. ADR 0173 now records
+why integer-ms minima do not constrain cut precision and preserves ADR 0100's
+boundary. The earlier failed whole-run receipt and its measured `bab6bc08`
+revision remain unchanged evidence; the first artifact-expectation repair was
+separately committed at `1b71883b`.
+
+The shared receiving helper now uses decimal integer coefficients/scales for
+comparisons and cut/segment/complete-route sums. Both receiving routes retain
+their original upstream validators, complete frozen timing metadata and exact
+dialogue ownership. The obsolete F5-only strict converter has no other callers
+and is removed. Bridge/canonical conversion and the retained raw-F5-acceptance /
+`cut_duration_invalid` integration expectation remain unchanged. There is no
+new dependency or sandbox resource grant; the existing timing-helper identity
+continues to be pinned by both routes and the Codex validation/resource owners.
+
+The draft was preserved during the owner's CLI-priority checkpoint, with no
+Python test live. Root subsequently released the bounded Python correctness
+window after that CLI checkpoint finished. These are correctness checks, not
+matched timing evidence. No new whole-Python, full release, sandbox handoff or
+provider proof is authorized by this checkpoint.
+
+Executed checks at retained HEAD `1b71883b` plus the uncommitted Option 1
+candidate, with unchanged receiver SHA-256
+`6b44c2c91a9339f5758cc44a536a6c69e737d5026086af0343480737a9357048`:
+
+- Initial focused selection: the two previously failed node IDs and all six new
+  exact-time test families, **56 passed / 4 failed** out of 60. Native session
+  `35719` exited 1. The new cut-boundary fixture had 18-second episodes, violating
+  the unchanged upstream 25-second target's ±15% gate before the precision check.
+  The repair belongs to fixture construction: preserve the boundary segment but
+  supply valid independent episode timing. No production gate or assertion was
+  weakened. Evidence: `.local/remaining-cost/f5-option1-initial-640iu5x_/`, result
+  `5fbe1871a0bd5848a18da23ccf876a71f7d6afad0618130b65318d7c3a4106f3`.
+- Smallest affected family after that fixture correction: **14 passed**, session
+  `73299` exited 0, native fingerprint
+  `8f348b82c9de8a1a8ba37ca67a8ddca5cba8d745846663c3eab83a21be397b38`.
+  Evidence: `.local/remaining-cost/f5-option1-boundary-1s4qspnk/`, result
+  `96e802444198b49def122c273602e1c529818b216f16132629c351299c571cea`.
+- Stable affected union below: **205 passed / 11 files**, session `64871` exited
+  0, exact native fingerprint
+  `1e43ce56a3de6555a77bc38ece2eae040c43c248b5f699fdd736f1350838509a`.
+  Evidence: `.local/remaining-cost/f5-option1-affected-lpa1ekkd/`, result
+  `4c097322b2e0f1fb4262e29a1b2975e57ec9f722d23c98bc55ed9390ea699568`, log
+  `05fd88e7fff78b1a2ae256897b9fc86e1ec93e9ee55a7bc91c450fc2c8227350`.
+
+The corrected test file at the successful checks was
+`d6a7af8d4553a99f1178396229100cd6bfff896c68689252fa8b7dec07758de1`.
+The successful native completion records match every collected ID with no
+skips/xfails; the existing Starlette/httpx warning appeared in the affected
+union. All three observations preserved their initial/final source, environment,
+pytest-cache and protected-evidence identities. All owned groups and registered
+inode-bound external roots were absent after cleanup. Source pytest caching was
+disabled; children used the existing environment, offline/no-sync, explicit
+retained src/root and fresh external TMPDIR/uv caches. The failed observation
+remains failed and immutable. Later receipt-only documentation does not change
+the tested executable inputs.
+
+The affected union used exactly:
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest tests/test_f5_dialogue_timing.py \
+  --pytest tests/test_project_storage_storyboard_review.py \
+  --pytest tests/test_storyboard_review_timing.py \
+  --pytest tests/test_storyboard_brief_style.py \
+  --pytest tests/test_production_presentation.py \
+  --pytest tests/test_production_presentation_integration.py \
+  --pytest tests/test_production_bridge_voice_over.py \
+  --pytest tests/test_codex_exec_validation.py \
+  --pytest tests/test_codex_exec_resources.py \
+  --pytest tests/test_codex_exec_stage_routing.py \
+  --pytest tests/test_storyboard_operation_context.py
+```
+
+Both receiving routes have action-only submillisecond admission/render/acceptance
+and unchanged Bridge refusal coverage, exact canonical-minimum and complete-route
+comparisons, supported JSON exponent notation, frozen cut/segment boundaries,
+missing timing metadata and malformed-number refusals. Existing source-binding,
+ownership, multi-cue, install/reopen and currentness regressions remain in the
+union. The existing `creative-production` owner already includes the changed
+test file; there is no new file or allowlist expansion. Node syntax and scoped
+Ruff F/I checks passed; AST/diff consistency was checked. These scoped results
+leave a fresh whole-Python observation, combined full qualification, actual
+changed-command sandbox qualification, hosted CI and product acceptance open.
+
+### Successful current whole-Python observation — October 15
+
+Measured clean revision **`b0ed49f3b81bd66fb090586e15f0530b217dd362`** passed
+the unchanged default-two-worker native Python command: **2,433 cases / 226
+files**, exact inventory fingerprint
+`2c06e3d99bdb1d9433879631b9ef420d43518ebfb3a1123c1b91da92d5f44642`.
+Both actual completion markers are true: worker 1 covers 1,286 cases / 112 files;
+worker 2 covers 1,147 / 114, with disjoint exhaustive coverage and 226 finite
+per-file phase rows. Native session `7173`, command execution
+`exec-8208372a-3e53-4cef-b0aa-0b432f34b2e6`, genuinely terminated with exit 0.
+
+External whole-command wall was **591.4420814999903s**, native coordinator wall
+**584.771s**. Phase **work** totals were setup **174.38635409012204s**, call
+**963.4108807064476s**, teardown **0.9395840348443016s**, aggregate
+**1138.736818831414s**; these are not parallel wall or production-only time.
+See the retained [result](../../.local/remaining-cost/current-python-b0ed49f3-tidx1h3k/result.json),
+[raw log](../../.local/remaining-cost/current-python-b0ed49f3-tidx1h3k/python-suite.log)
+and [phase ledger](../../.local/remaining-cost/current-python-b0ed49f3-tidx1h3k/native-reports-and-phase-rows.json).
+Their SHA-256 pins are respectively
+`90c1ea3823fe912613a82ea5c6cea494ba4da3644022c7ece2a224075e79908b`,
+`93c946cfb40152f464232fadfa6e930cb4c1de0c6dfeb3f83419e370ca5395db`,
+`dba4b90f9d17d2970273756c2f850cee36a0eab3db81bb15683e170cd3eef529`.
+
+Source/environment/cache and all protected identities were preserved. All 14
+owned groups, inode-bound parent root `151225105` and nested runner root were
+absent; the quiet window was released and the allocation is spent. Root audit
+`a51639` independently accepted raw coverage, exact canonical phase rows,
+hashes and cleanup; `641b10` independently rechecked the fresh input/environment/
+host/cache identity. Root's earlier extra auditor concatenated worker-grouped
+rows against a path-sorted ledger; inspection `40047d` identified that ordering
+assumption, and `a51639` verified exact canonical equality. No product failure,
+weaker row check, changed input or rerun resulted from that auditor correction.
+
+This is successful current whole-Python evidence, not `verify.py full`, hosted
+CI, CLI/sandbox qualification, product acceptance or a matched speed comparison.
+The original **151.73295s / 85%** target remains unmet. The failed `bab6bc08`
+observation and all original pins/STARTs remain failed/immutable. This later
+docs-only receipt does not relabel measured revision `b0ed49f3` or its inputs.
+Unstable source-attribution candidates remain temporary pending Root review;
+this receipt authorizes no implementation, profile or further execution.
+
+### Accepted diagnostic and bounded local derivations — October 15
+
+Root accepted the one-case instrumentation diagnostic at clean `ff822895`
+(executable input `c1dce293a0e3d514c52ba850be0f843a5a61bae1b708dc5dccb9c80890c9da01`).
+Its [raw profile and attribution](../../.local/remaining-cost/complete-pack-ff822895-profile-wedls046/result.json)
+remain immutable diagnostic evidence, separate from the whole-Python observation
+at `b0ed49f3`. Nested elapsed costs are not additive savings or a speed comparison.
+
+Root then authorized only three equivalent, call-local derivations: one saved-route
+request export, one canonical byte encoding per artifact for SHA/UTF-8 size, and
+one hash of each freshly constructed binding plan for both comparisons. The
+candidate preserves routing, canonical JSON, F5 admission, request-hash ownership,
+SQL/JSON/model checks and their ordering; it adds no cross-call cache or observation
+reuse. Non-timing guards delegate real behavior and cover all eight stage routes,
+nested Unicode/escaped/numeric artifacts, exact plan hashes, one derivation per
+construction, fresh subsequent bindings and changed-request rejection.
+
+Native `verify.py focused` passed the two changed owners (**33 cases**), then the
+four requested owners plus existing profile-receipt tests (**97 cases / 5 files**).
+Receipt coverage was included because the local plan hash feeds the receipt
+comparison; transaction code is unchanged. After correcting only two test import
+orders found by scoped Ruff, the final union passed again: native session `55520`,
+exit 0, true exact-completion fingerprint
+`f2d10a99911b98ccc4d9ab7fa2ea32a049e4bb20fda039fb3fc991e86c3e6d95`,
+no skips/xfails. Scoped Ruff F/I and candidate AST checks passed.
+The [final result](../../.local/remaining-cost/local-derivations-20261015/final/result.json)
+(`1bed2e3f79df0e27895d3cc6754c94c1fbadd149c357f9d80ee6e69479745e54`)
+records exact commands, file/diff pins and tested executable input
+`4bd3555a6c79ab04304627b539ed0ee739bedcbe814e2193fe01763b7162ceec`.
+It confirms unchanged index/environment/host/tools/cache/protected evidence and
+cleanup of owned groups and inode-bound external roots. Checks used the fixed
+environment, offline/no-sync, explicit retained src/root and disabled source cache.
+The candidate was checked as an uncommitted diff on `ff822895`. Root accepted the
+bounded source/focused checkpoint after independent audit `e0625d`; broad gates
+remain open. This receipt-only clarification does not change tested executable
+inputs. No new profile, benchmark,
+whole/full gate, hosted CI, provider/native campaign or product acceptance was run.
+The **151.73295s / 85%** target and larger attribution ideas remain open.
+
+### F5 accepted-F4 seed reuse — bounded functional checkpoint
+
+Root authorized the test-only slice on `412b3bbd`: 72 prepared F5 cases now copy
+five closed accepted-Script variants using the existing `AcceptedScriptSeed`
+freeze/open contract. The creation Brief, accepted topology, 8–9-shot bounds,
+script language `en`, narration/split/action variants and realistic/saved-Brief
+style contracts are checked. Seeds contain no F5 candidates, revisions or F5
+execution pins; legitimate upstream pins remain. Each case opens an independent
+physical home with fresh application storage, then prepares its own F5 job/pin.
+All original F5 test bodies/decorators/assertions remain unchanged; six pure
+projection cases have no seed dependency. No production/shared-seed code changed.
+
+The first five isolation guards failed because the new test applied the strict
+closed-file inventory to an open sibling database. Its sidecar refusal correctly
+fired. The guard now compares whole-file inventories only after handles close;
+no filtering/tolerance or shared-helper change was added. The failed
+[result](../../.local/remaining-cost/f5-script-seed-20261015/result.json) remains
+failed/immutable, and its owned group/root were cleaned.
+
+After that lifecycle correction, native `verify.py focused` passed **5 new
+guards**, then **85 cases / 3 files**: the original F5 file, new variant/isolation
+owner and existing specialist-seed guards, included because their strict
+freeze/copy mechanics are reused. Native session `32964` genuinely exited 0;
+the true execution fingerprint is
+`9b144348097f2a96913a3cf73ff5fac38052ddf484e9cbe272b07de39604ed2d`,
+with no skips/xfails. All **78** retained F5 IDs match the pinned native inventory;
+the **72** prepared subset retains fingerprint
+`6302bc0e47d4e93e8d7dc65b5ff85745880034043d1cece21d3e2ad5ebb76f51`.
+The [functional result](../../.local/remaining-cost/f5-script-seed-20261015/corrected/result.json)
+(`ae65796d44886ca4acaf9d88db05da93c447ea90571acfb8718c408663ecd04e`)
+records commands, source pins and tested input
+`1defe3bd1be032df6414bfe43d6ee45f2122149cd741e4d6fb8ebcb306cc255f`.
+It confirms unchanged source/index/environment/host/tools/cache and 60 protected
+artifacts during checks; owned groups and inode-bound external roots were removed.
+Scoped Ruff F/I passed. Root accepted the bounded functional source checkpoint
+after independent audit `683cf7`, authorizing a local scoped commit. This
+receipt-only clarification does not change tested executable inputs. No performance
+comparison, profile, whole/full gate, hosted CI, provider/native campaign or
+product acceptance was run. The original 85% target remains open.
+
+### Accepted scoped F5 observation — October 15
+
+Root independently accepted the original-78 pair in audit `3b2a98`: before
+`412b3bbd` and after `ac73d635`, one measured pytest process per arm, sequentially.
+Both real collections matched; executions each proved 78 passed, no skips/xfails:
+`b3c34bdca66036580a49485d60e3414aac3470e4a39e86b1bc6fcf8667be6e2a`.
+Measured command wall was **45.23837783301133s → 14.546578707988374s**:
+observed reduction **30.691799125022953s / 67.84460583073019%** for this owner only.
+Native setup work was **38.216601003921824s → 7.897962494957028s**; call work
+**5.3209375778678805s → 5.4965840411314275s**; teardown
+**0.2397347498626914s → 0.0804937499051448s**. Phase work is elapsed, not CPU.
+The [actual result](../../.local/remaining-cost/f5-original78-pair-ac73d635-prep-20261015/run-y_2odn0e/result.json),
+SHA `e6c9bdb7f5625b868a63e3db0bb8da141ea78f43181f2da0336226f1d6117f06`,
+records exact argv, timing boundaries and runtime/source bindings. Native handle
+`24515` / execution `10da31ae` exited 0; all 12 owned groups and registered root
+were absent, with 79 protected/common identities and environment/cache preserved.
+Quiet `root-f5-original78-pair-ac73d635-20261015-01` is spent; Root released CLI priority.
+One ordered pair retains host/order noise; no default-two-worker/whole/85% conclusion.
+The five new guards remain required whole coverage. Whole `b0ed49f3` and profile
+`ff822895` retain original scopes; this docs-only receipt is not a new measured revision.
+
+### Rollback consumer seed reuse — functional checkpoint
+
+On `5f3d78ad`, only the mid-handoff rollback case now uses the existing guarded
+awaiting-handoff copy instead of rebuilding its prerequisite pack. Its fresh
+request, real first selection, injected second failure, zero-human-row and
+awaiting-review assertions remain; an explicit two-attempt assertion was added.
+All other test/helper ASTs and the 12 original handoff IDs remain unchanged.
+Focused correctness passed the changed case (**1**), then both full handoff and
+handoff-seed files (**14 / 2 files**, no skips/xfails), native `14867` exit 0,
+fingerprint `08be854b5eadae720307a9987e2d2229fbdb41885cb6535ccae6d6e0a5976f3f`.
+The [functional result](../../.local/remaining-cost/handoff-rollback-seed-20261015/result.json),
+SHA `7979b2f4296d2cbd5de8ecb52a1870f928d227c11bada64560d6e5ab08566553`,
+binds input `63831e592a96008bbf9fcf28c651ca06c77fb29b368da2a347ba9b851513779f`.
+Source/index/environment/host/tools/cache and 101 protected artifacts were
+preserved during checks; both owned groups and inode-bound roots were cleaned.
+No shared helper, production, dependency, ownership or workflow-proof case changed.
+Root accepted this functional checkpoint in audit `3c4e24`, authorizing a local
+scoped commit. No timing comparison or broader
+qualification ran; all earlier F5 observations/pins retain their historical scope.
+
+### Accepted current whole-Python qualification — October 15
+
+Root audit `e7dba5` independently accepted measured revision `f5e729d7`:
+**2,440 passed / 227 files**, unchanged default two workers, exact fingerprint
+`bdf8ee1fdbba737719efd728baa249203d9bd73b8d43ed8ba3964d657af19f80`.
+Worker 1 proved 1,235 cases / 113 files; worker 2 proved 1,205 / 114, with
+true exhaustive/disjoint completion records and no skips/xfails.
+External whole-command wall was **577.8609485409979s**. Runtime binding and the
+standalone collection were outside its timer; native collection, both workers
+and immediate owned-group settlement were inside; extraction/root removal outside.
+Aggregate native phase work **1086.9134571815666s** is elapsed work, not CPU or
+a non-contention floor. The [actual result](../../.local/remaining-cost/current-python-f5e729d7-prep-20261015/run-fi4oe26i/result.json),
+SHA `08c665a1b10e1885e0c1c1162a2155c857dc755370073557ee6a56aaab12dee2`,
+binds actual argv, runtime/source/input, worker reports and all finite phase rows.
+Native handle `40794` exited 0; all 14 recorded groups and the inode-bound parent
+and native nested root were absent. All 28 identities, 108 prior artifacts and
+runtime/environment/host/tools/cache stayed unchanged during the observation.
+Allocation `root-current-python-f5e729d7-20261015-01` is spent; Root released quiet.
+This proves the current Python lane, not matched 85%, frontend/full release or CI.
+Old **591.4420814999903s** remains historical `b0ed49f3`; the **151.73295s** target
+is still unmet. This docs-only receipt does not create a new measured revision.
+
+### RunView-local checkpoint evidence — bounded implementation brief
+
+Root authorized one source slice on `fea83fd2`: remove the second validation of
+the same loaded checkpoint evidence inside one RunView construction. The root
+cause is duplicated derivation between public checkpoint serialization and durable
+activity projection; the loaded rows are neither refreshed nor mutated between
+those sites. The composition layer owns a private typed projection, retaining each
+row's parse-then-dump order and the subsequent fresh attempt query/validation.
+[ADR 0186](../adr/0186-run-view-local-checkpoint-evidence.md) records the contract
+(renumbered from the independently assigned 0179 during integration).
+
+Deliver only the two persistence owners, focused regression owner/ownership entry
+and this decision/receipt. Preserve all SQL, closures, authority, ordinary-open,
+corruption, policy/frame validation, claim and following-read boundaries. Closure
+reuse was rejected because these checks cover distinct state/authority/read
+boundaries. No cross-view/session/global cache or weaker projection is allowed.
+Run the new focused guards first, then full bounded activity, claim transactions,
+authority, geometry and receipt-projection owners. Preserve historical whole-run
+identities/artifacts; new source deltas do not retarget that measured evidence.
+Stop with an uncommitted stable diff and actual functional evidence for Root's
+review. No full/module/whole gate, measurement/profile, provider/native work,
+actors, push or merge is authorized. No speed gain or 85% conclusion follows.
+
+#### Functional checkpoint — awaiting Root review
+
+The two persistence owners now share one private RunView-local derivation;
+no other `AutopilotPersistence` method changed. Fresh attempt SQL/parsing and the
+activity body remain unchanged apart from typed iteration/removal of the second
+evidence parse. The 247-line new regression owner delegates real SQLite queries,
+Pydantic parsing and serialization, covering exact output, one parse for every
+loaded row including no-job/geometry, policy/row-dump/attempt/frame order,
+malformed evidence, serialization failure, failed-view isolation, changed evidence
+and attempt state across views, and reentrant views.
+
+The first attempt failed collection because an assignment expression was illegal
+inside a comprehension iterable. The private aggregate now exposes its public
+list directly, preserving keyword evaluation order. The second attempt collected
+nine cases but its fixture job ID violated the real attempt schema; it now uses
+the established UUID-derived job identity. Both failed receipts remain immutable.
+The corrected nine guards passed; scoped Ruff F/I then identified only import
+ordering in the new owner, corrected before final qualification. Its failed lint
+receipt is also retained. No validator, assertion or existing owner was weakened.
+
+Native `verify.py focused` then passed **99 cases / 6 files**, including all nine
+new guards and the complete activity, claim-transactions, authority, geometry and
+receipt-projection files. The existing 90 native IDs match the accepted whole
+inventory; no skips/xfails. Fingerprint
+`e5bbc827daf7feddd35656868593e5bd1fc8341429c3cff23cfed1a4e644d708`;
+tested input `eeb0037ca05eec3ae60a5c7d6beb67b69d552811630ab938c30a37798dd68590`.
+Native session `72948` genuinely exited 0. The [functional result](../../.local/remaining-cost/run-view-checkpoint-evidence-20261015/affected-owner-union/result.json),
+SHA `d602a66a3d11f28465726380be9827110ff3f29bed83379608786dd97f982617`,
+contains exact commands, native IDs/markers, source pins and environment checks.
+Scoped Ruff F/I passed on the same executable input. One Starlette/httpx test-client
+deprecation warning remains outside this slice. Across all six launches, source,
+index, environment, host, tools, cache and 123 protected artifacts (including all
+108 prior whole-run artifacts) stayed unchanged; all owned groups and inode-bound
+temporary roots were removed. The historical 28 identities remain sealed at their
+measured revision; authorized new source/docs deltas are separate. These are
+contended functional timings only. Changes remain uncommitted for Root review;
+no whole/full/module gate, hosted CI, provider/native campaign, performance gain,
+85% conclusion, release or product acceptance is established.
+
+Root accepted the stable candidate for functional correctness in independent
+audits `ab9aaa`, `04ac6c` and `baaf6e`, reconstructing native 9/99-case completion,
+all 90 retained IDs, six launch receipts, source pins, preservation and cleanup.
+Root authorized one local commit of exactly these six reviewed paths; only this
+receipt and ADR status changed afterward. Executable input remains
+`eeb0037ca05eec3ae60a5c7d6beb67b69d552811630ab938c30a37798dd68590`.
+No retest, push, merge or measurement is authorized. Historical whole-Python
+`f5e729d7` predates this change; new whole qualification and any measured gain
+remain open, and the 151.73295-second target is unmet.
+
+### Accepted current-f1 whole-Python qualification — October 15
+
+Root independently accepted measured `f1a3333a` in audit `f62b13`:
+**2,449 passed / 228 files**, unchanged default two workers, exact fingerprint
+`6e37bb05af3a274a6420ba805b1cb73e48f39500d584724a09d646b3af240396`.
+Both true worker completions proved exhaustive/disjoint coverage: 1,212 / 1,237
+passed across 114 / 114 files, no skips/xfails. Original native session `28745`,
+execution `exec-c6523084-82d2-41cd-b470-bd46df47a9e5`, genuinely exited 0.
+Observed whole-command wall was **557.6845981249935s**; runtime binding and
+standalone collection were outside the timer, native whole/default-two-worker
+execution and immediate owned-group settlement inside, extraction/root removal
+outside. All 228 finite phase rows total **1050.6278429156519s elapsed work**,
+not CPU or a non-contention/avoided-work floor. The [bound result](../../.local/remaining-cost/current-python-f1a3333a-prep-20261015/run-b4cdp1sx/result.json),
+SHA `a15eb821b6eff95f4f77abd73debe54c75003712953952eda464a48f5f395888`,
+preserves commands, source/runtime bindings, native IDs, raw reports and phase rows.
+All 16 known owned groups, parent root inode `151988797` and nested runner root
+were absent; all 33 identities and 141 prior artifact pins stayed unchanged
+during the run. Allocation `root-current-python-f1a3333a-20261015-01` is spent;
+Root released its quiet hold after independent audit. The allocated plan retains
+the CLI receipt-retention limitation: shared pytest retention removed per-case
+settlement JSON, so fresh independent CLI PID/group reconciliation was unavailable.
+No recovered records or matched performance isolation are claimed. This qualifies
+current whole Python, not attributable gain, 85%, full release, hosted CI or
+product acceptance. The **151.73295s target remains unmet**; prior `f5`, `b0`,
+pairs and profiles retain their original scopes. This docs-only receipt does not
+retarget any measured plan, observer, START, result or historical identity map.

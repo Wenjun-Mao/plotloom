@@ -107,3 +107,5 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0183 Closure-local canonical row bytes](0183-closure-local-canonical-row-bytes.md)
 - [0184 Validation-invocation-local profile construction](0184-validation-local-profile-construction.md)
 - [0185 Closed installed-text prefix for explicit image tests](0185-installed-text-test-prefix.md) — retained locally with [scoped evidence and limits](../roadmap/2026-10-17-installed-text-prefix.md).
+- [0177 Invocation-local autopilot profile construction](0177-invocation-local-autopilot-profile-construction.md)
+- [0186 RunView-local checkpoint evidence](0186-run-view-local-checkpoint-evidence.md) — preserves the October 15 decision, renumbered to avoid the independent ADR 0179.

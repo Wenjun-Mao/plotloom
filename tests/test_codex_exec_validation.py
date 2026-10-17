@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import json
+import sys
+from hashlib import sha256
+
 import pytest
 from pydantic import ValidationError
 
@@ -80,8 +84,32 @@ def _saved_brief_artifacts(stage: str) -> dict:
         ("bridge-presentation", {}, "plotloom_native", "presentation.json"),
     ],
 )
-def test_plan_freezes_two_fixed_steps_for_each_fresh_text_stage(stage, artifacts, route, candidate):
-    plan = build_text_validation_plan(_request(stage, artifacts), execution_pin=PIN, source_revision=SOURCE_REVISION)
+def test_plan_freezes_two_fixed_steps_for_each_fresh_text_stage(stage, artifacts, route, candidate, monkeypatch):
+    from plotloom import codex_exec_stage_routing
+
+    request = _request(stage, artifacts)
+    expected_projection = request.model_dump(mode="json", by_alias=True)
+    exports, routes = [], []
+    original_dump = CreativeHandoffRequest.model_dump
+    original_route = codex_exec_stage_routing.codex_exec_saved_brief_route
+
+    def dump(self, **options):
+        exports.append((self, options, sys._getframe(1).f_code))
+        return original_dump(self, **options)
+
+    def saved_route(current_stage, payload):
+        routes.append((current_stage, payload))
+        return original_route(current_stage, payload)
+
+    monkeypatch.setattr(CreativeHandoffRequest, "model_dump", dump)
+    monkeypatch.setattr(codex_exec_stage_routing, "codex_exec_saved_brief_route", saved_route)
+    plan = build_text_validation_plan(request, execution_pin=PIN, source_revision=SOURCE_REVISION)
+
+    assert routes == [(stage, expected_projection)]
+    assert len(exports) == 2  # One route projection and the independent request-hash owner.
+    assert all(current is request and options == {"mode": "json", "by_alias": True}
+               for current, options, _caller in exports)
+    assert sum(caller is build_text_validation_plan.__code__ for _, _, caller in exports) == 1
 
     assert plan.stage == stage
     assert plan.route == route
@@ -90,6 +118,41 @@ def test_plan_freezes_two_fixed_steps_for_each_fresh_text_stage(stage, artifacts
     assert plan.steps[1].stdout_is_report
     assert not plan.steps[0].stdout_is_report
     assert all("sh" not in step.program for step in plan.steps)
+
+
+def test_plan_serializes_each_sorted_artifact_once_with_exact_canonical_bytes(monkeypatch):
+    from plotloom import codex_exec_validation
+
+    artifacts = {
+        "z-last.json": {"nested": [None, True, False, {"文字": "雪😀", "escaped": "\"\\\n\t"}]},
+        "a-first.json": {"numbers": [0, -7, -0.0, 2.5001, 1e-9, 1e20], "empty": {}},
+    }
+    request = _request("outline", artifacts)
+    expected = {
+        name: json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        for name, value in request.input_artifacts.items()
+    }
+    serialized, original = [], codex_exec_validation._canonical_bytes
+
+    def canonical_bytes(value):
+        # Outline's independent schema-hash validation is a separate authority.
+        if sys._getframe(1).f_code is build_text_validation_plan.__code__:
+            for name, artifact in request.input_artifacts.items():
+                if value is artifact:
+                    serialized.append(name)
+        return original(value)
+
+    monkeypatch.setattr(codex_exec_validation, "_canonical_bytes", canonical_bytes)
+    plan = build_text_validation_plan(request, execution_pin=PIN, source_revision=SOURCE_REVISION)
+
+    assert serialized == sorted(request.input_artifacts)
+    assert [(item.filename, item.sha256, item.size_bytes) for item in plan.inputs] == [
+        (name, sha256(content).hexdigest(), len(content)) for name, content in sorted(expected.items())
+    ]
+    assert len(expected["z-last.json"]) > len(expected["z-last.json"].decode("utf-8"))
+    canonical_plan = json.dumps(plan.model_dump(mode="json", by_alias=True),
+        sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    assert plan.plan_hash == sha256(canonical_plan).hexdigest()
 
 
 @pytest.mark.parametrize("stage", ["characters", "art", "storyboard"])

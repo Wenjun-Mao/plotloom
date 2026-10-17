@@ -9,6 +9,7 @@ from plotloom.persistence.project.storyboard_review import (
     ProjectStoryboardReviewPersistence,
 )
 from plotloom.production_dialogue_timing import freeze_f5_dialogue_timing
+from tests.f5_dialogue_timing_fixtures import f5_script_seeds as f5_script_seeds
 from tests.test_f5_dialogue_timing import ROOT, invoke, narrated_board
 from tests.test_f5_dialogue_timing import prepared as prepared_fixture
 
@@ -90,6 +91,11 @@ def test_raw_receiving_rejects_invalid_or_unsafe_ceiling(tmp_path, ceiling):
 def test_exact_different_scales_and_exponents_have_no_accumulated_integer_cap(tmp_path, ceiling, valid):
     board, request = receiving_inputs()
     request["inputArtifacts"]["storyboard-admission.json"]["targetPlaythroughSeconds"] = ceiling
+    # This isolated arithmetic stress case must still obey its own frozen caps.
+    limits = {"minCutSeconds": 2.5e-7, "maxCutSeconds": 5000000000000,
+              "maxSegmentSeconds": 10000000000001}
+    board["params"] = limits
+    request["inputArtifacts"]["storyboard-admission.json"]["reviewTiming"] = limits
     for episode in board["episodes"]:
         episode["segments"][0]["cuts"] = [{"seconds": 5000000000000, "beats": [1, 1]},
                                            {"seconds": 5000000000000, "beats": [1, 1]},

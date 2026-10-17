@@ -1,5 +1,29 @@
 # Plotloom roadmap entrypoint
 
+## October 17 integration and parked workstreams
+
+The owner requested merging the completed CLI and Python changes into `main`
+and pushing before a joint manual walkthrough. Integration combines Python
+checkpoint `52b61d0c` (which contains CLI checkpoint `e3dc802c`) with the older
+`main` checkpoint `91871f4b`. Nonduplicate RunView and validation derivations,
+exact F5 frozen-limit checks, and their regression owners are retained alongside
+the current CLI and strict/retained Outline contracts. Final full qualification
+of the combined candidate is required before publication.
+
+Python optimization and the speculative multi-image Codex batch-worker design
+are parked. The latest Python-only observation at `52b61d0c` passed 3,004 cases
+over 259 files in 794.7808812090079 seconds; the 151.73295-second target remains
+open. The private stack-census successor is unaccepted and mechanism-unqualified;
+it is not part of this merge. The older unaccepted row-byte candidate, held
+runtime roots and private evidence remain preserved separately.
+
+The dated entries below are historical checkpoint records, not current releases
+or instructions to resume optimization, generation, cleanup or live adoption.
+The earlier [Python continuation record](2026-10-15-python-speed-continuation.md)
+and original evidence retain their original source and qualification boundaries.
+
+## Earlier checkpoints
+
 Reviewed Python test candidate (October 17): [compact text-only safety prefix](2026-10-17-compact-text-safety.md)
 on `3fc0ed95`, extending ADR0185 only for eleven safety cases. Root accepted
 source/correctness: 13 new guards + 11 safety + 82 regressions = 106 DISTINCT

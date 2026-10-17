@@ -210,10 +210,11 @@ def _assert_checkpoint_binding(connection, project_id, state, evidence, *, run_i
                     execution_pin=expected_pin,
                     source_revision=frozen_policy["codeRevision"],
                 )
-                if exec_attempt.validation_plan_hash != plan.plan_hash:
+                plan_hash = plan.plan_hash
+                if exec_attempt.validation_plan_hash != plan_hash:
                     raise ValueError("Codex Exec attempt differs from the frozen creative validation plan")
                 if exec_receipt is not None and (
-                    exec_receipt.validation_plan_hash != plan.plan_hash
+                    exec_receipt.validation_plan_hash != plan_hash
                     or exec_receipt.text_validation is None
                     or exec_receipt.text_validation.validator_hash != executor_profile.validator_hash
                     or exec_receipt.text_validation.candidate_filename

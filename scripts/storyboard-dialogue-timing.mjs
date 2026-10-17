@@ -66,13 +66,18 @@ export function validateF5ReceivingTiming(board, request) {
   const mapping = admission.sectionBindings;
   assert(Array.isArray(mapping) && canonical(board.episodes?.map(ep => ep.ep)) === canonical(mapping.map(item => item.episode)), 'Storyboard episodes must exactly match frozen F4 mapping');
   assert(admission.reviewTiming && Object.entries(admission.reviewTiming).every(([key, value]) => board.params?.[key] === value), 'Storyboard params must match frozen review timing');
+  const minimumCut = sourceDuration(admission.reviewTiming.minCutSeconds);
+  const maximumCut = sourceDuration(admission.reviewTiming.maxCutSeconds);
+  const maximumSegment = sourceDuration(admission.reviewTiming.maxSegmentSeconds);
   const assigned = new Map(), durations = new Map();
   board.episodes.forEach((episode, index) => {
     let episodeUnits = integerDuration(0n);
     for (const segment of episode.segments ?? []) {
+      let segmentUnits = integerDuration(0n);
       for (const cut of segment.cuts ?? []) {
         const units = sourceDuration(cut.seconds);
-        episodeUnits = addDuration(episodeUnits, units);
+        assert(fitsDuration(minimumCut, units) && fitsDuration(units, maximumCut), 'Cut duration violates frozen review timing');
+        segmentUnits = addDuration(segmentUnits, units);
         const [start, end] = cut.beats ?? [];
         assert(Number.isInteger(start) && Number.isInteger(end) && start >= 1 && end >= start, 'Cut beats must identify an ordered source range');
         let total = 0n;
@@ -84,6 +89,8 @@ export function validateF5ReceivingTiming(board, request) {
         }
         assert(fitsDuration(integerDuration(total), units), 'Canonical dialogue minima must fit their owning cut duration');
       }
+      assert(fitsDuration(segmentUnits, maximumSegment), 'Segment duration violates frozen review timing');
+      episodeUnits = addDuration(episodeUnits, segmentUnits);
     }
     durations.set(mapping[index].sectionId, episodeUnits);
   });
