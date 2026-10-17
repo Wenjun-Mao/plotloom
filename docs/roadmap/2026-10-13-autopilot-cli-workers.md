@@ -1,6 +1,39 @@
 # Parallel CLI workers for pre-video autopilot
 
-Current bounded release (2026-10-16): **failed-ImageGen telemetry correction;
+## Accepted native CLI checkpoint · 2026-10-17
+
+Root and both independent reviewers accepted **scoped native parallel
+qualification at tested `b313ac839460d161cdf5b19b67ea4ce8ebc210f3`** for allocation
+`15478076-b745-4687-bc70-c10cbac5c7c0`. The
+[accepted pair receipt](../verification/2026-10-12-pre-video-autopilot.md#accepted-native-cli-pair--2026-10-17)
+records four disposable projects, 18 text deliveries, 30 images and 48 successful
+receipted attempts. Both complete all-route primary packs are retained; the two
+Outline HOLD sidecars remain unadopted. Ordered cross-domain, image and independent
+text gates passed, including 30.881 seconds of receipt-bound actual ImageGen
+overlap. Controller observation/step calls continued after HOLD to settle the
+original attempts.
+
+This is one author-input-matched observational pair with different generated
+content, layout and reference decisions. The receipt separates primary-pack and
+whole-arm walls; it establishes no causal/statistical speedup, capacity-only
+multiplier or Python 85-percent result. Settlement is recorded evidence, including
+48 absent-group observations per arm; fresh OS/global/transport absence is not
+established. Earlier FAILED/UNKNOWN outcomes, reservations, unresolved cleanup
+and numeric-PGID UNKNOWN causes remain unchanged.
+
+Step 6's scoped native proof and local software evidence are accepted at `b313`.
+This documentation descendant is not newly software-tested. Human creative/
+product acceptance, hosted CI, merge/push, public publication and live/canonical
+adoption remain separate and open/held. Python stays parked through this docs
+closeout; Root owns the separate restart review. The bounded deliverable is these
+three reconciled documents, docs-only checks and one local commit with normal
+hooks, then IDLE for Root review. No generation, tests, runtime probes, cleanup,
+merge or push is released here. Earlier sections retain their historical scope;
+this checkpoint controls the next action.
+
+### Earlier failed-ImageGen telemetry source release
+
+Earlier bounded release (2026-10-16): **failed-ImageGen telemetry correction;
 CLI first, Python optimization parked**. Root approved
 [ADR 0182](../adr/0182-failed-imagegen-event-metadata.md) after exact-session
 diagnostics bound a native failed Extension with null output-only transparency.

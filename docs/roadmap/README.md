@@ -1,6 +1,27 @@
 # Plotloom roadmap entrypoint
 
-Current priority (2026-10-16): the bounded failed-ImageGen telemetry correction
+Current checkpoint (2026-10-17): **scoped native parallel CLI qualification
+accepted at tested `b313ac83`**. Root and two independent reviewers accepted the
+four-project, 18-text/30-image pair with 48 successful receipted attempts, complete
+all-route primary packs and unadopted Outline HOLD sidecars. Ordered owned-process
+gates and 30.881 seconds of receipt-bound ImageGen overlap are recorded in the
+[CLI roadmap](2026-10-13-autopilot-cli-workers.md#accepted-native-cli-checkpoint--2026-10-17)
+and [accepted pair receipt](../verification/2026-10-12-pre-video-autopilot.md#accepted-native-cli-pair--2026-10-17).
+One author-input-matched observational pair does not establish causal/statistical
+speedup, a capacity-only multiplier or the Python 85-percent target. Recorded
+settlement does not establish fresh OS/global/transport absence. Historical
+failures, UNKNOWN reservations and unresolved cleanup remain unchanged.
+
+Current work is the bounded three-document reconciliation and one local docs-only
+commit. Software qualification remains pinned to `b313`; the docs descendant is
+not newly software-tested. Human creative/product acceptance, hosted CI,
+merge/push, public publication and live/canonical adoption remain separate and
+open/held. Python remains parked through docs closeout and Root's separate
+restart review; no runtime work is released by this checkpoint.
+
+### Earlier failed-ImageGen telemetry source checkpoint
+
+The earlier bounded failed-ImageGen telemetry correction was recorded
 in [parallel CLI generation](2026-10-13-autopilot-cli-workers.md), `b30f`.
 Root approved [ADR 0182](../adr/0182-failed-imagegen-event-metadata.md): failed
 events may preserve absent/null output-only transparency as None; completed
@@ -43,7 +64,8 @@ paid generation, CI/LIVE and creative/product acceptance are not released.
 Earlier receiver and F4/F5 fixes and their failures retain their recorded scope.
 
 The [Python speed track](2026-10-14-python-context-and-workers.md) in retained
-`autopilot-ux-release` is parked until CLI completion and separate release. Its
+`autopilot-ux-release` is parked through CLI documentation closeout and Root's
+separate restart review. Its
 candidate stays unaccepted. Python-language fixture checks for CLI correctness
 do not resume optimization. The manager remains read-only in both checkouts;
 the 85-percent complete-suite target remains open.

@@ -10,6 +10,12 @@ current release status. Scope and stopping boundary are in the
 [approved plan](../roadmap/2026-10-12-pre-video-autopilot.md#p0-implementation-checkpoint)
 and [ADR 0162](../adr/0162-pre-video-autopilot-authority.md).
 
+The latest [native CLI pair checkpoint](#accepted-native-cli-pair--2026-10-17)
+records Root's scoped technical acceptance at tested `b313ac83`, separately from
+the earlier installation activation, human creative/product acceptance and any
+later publication or adoption. The current docs closeout does not rerun software
+qualification or release Python optimization.
+
 The owner-approved UX/Brief-style and creator-confirmation follow-up is now
 technically closed out on executable source `ee7ec8de` and activated on the
 existing installation. Combined local software qualification, real frozen-package
@@ -2688,3 +2694,95 @@ observation/paid-campaign evidence retain their original pins. The changed valid
 bytes require fresh current-source/profile pins. No full rerun, provider dispatch,
 campaign preparation, hosted CI, publication, live activation or creative acceptance
 is established here; Python optimization remains paused.
+
+## Accepted native CLI pair · 2026-10-17
+
+Root recorded `ACCEPTED_SCOPED_NATIVE_PARALLEL_QUALIFICATION` after collecting both
+independent reviews: overlap/order/timing/receipt provenance and material/budget/
+settlement/source binding. Acceptance applies to allocation
+`15478076-b745-4687-bc70-c10cbac5c7c0`, source
+`b313ac839460d161cdf5b19b67ea4ce8ebc210f3`, tree
+`4a814dda85fe4fccd5d3c2bdc22989b229330973`. The local retained
+[Root acceptance receipt](../../.local/native-proof/paid-pair-15478076-root-technical-acceptance-20261017-01.json)
+has SHA-256 `0a62b7178f3e3f13fc14ecbc853cfabc1e55259920a841be79aca524f4921c40`.
+These ignored local artifacts are evidence pointers, not public publication.
+
+### Delivered material and overlap
+
+- Four disposable projects: each arm delivered eight primary texts, one sidecar
+  Outline and 15 images, with 24 successful receipts/manifests. Total: **18 texts,
+  30 images and 48 successful receipted attempts** within the frozen pair budget.
+  This allocation has no failed/UNKNOWN/retry rows; historical rows are unchanged.
+- Both primary packs cover all routes: four nodes (three filmed, one route-only),
+  two routes, five references, ten frames and ten geometry-lineage joins per arm.
+  Final primary/sidecar views, workload and complete-inventory joins were reviewed;
+  human handoff remains null. Each sidecar has one delivered Outline, paused at
+  HOLD and unadopted, with unchanged policy and no bundle/frames. Controller
+  observation/step calls continued after HOLD to settle the original attempt.
+- Strict serial success and settlement preceded parallel activation. The ordered
+  `cross` / `images` / `texts` gates bind eight witness process entries to owned
+  PID/PGID/birth/project identities and consecutive live signatures. Independent
+  texts are primary Script and sidecar Outline. C01 reference activity preceded
+  final primary text completion in both arms.
+- Actual ImageGen calls have **30.881 seconds of receipt-bound overlap**, with
+  distinct original attempt/session/call/event identities. Root recomputed all
+  48 receipt evidence hashes from saved streams, transcript hashes and validation
+  evidence. Full timeline/RPC provenance retains serial 305 / parallel 189 RPCs,
+  exact sequence sets and completed intervals without recorded RPC errors or
+  active/discarded/persistence failures. Review did not read raw sessions.
+
+### Recorded timings and assurance limits
+
+| Recorded wall (seconds) | Serial | Parallel |
+| --- | ---: | ---: |
+| Primary pack | 2250.722387334 | 1698.467136708 |
+| Whole arm: setup, work and settlement | 2258.5653864999767 | 1706.3392047500238 |
+
+This is **one author-input-matched observational pair**: the frozen author Brief
+matches and profiles differ only by approved capacities, while generated content,
+layout and reference decisions differ. These measurements establish no causal or
+statistical speedup, capacity-only multiplier, remote compute throughput or
+Python 85-percent result.
+
+Both arms retain `complete_success`, recorded quiescent/zero-live flags and empty
+slot/queue/validator tables. Each has **48 recorded absent-group observations**;
+`settling_originals` remains the expected admission fence. This is settlement at
+recorded boundaries, not fresh independent OS/current/global process or transport
+absence. Historical FAILED/UNKNOWN outcomes, retained reservations, unresolved
+cleanup and numeric-PGID UNKNOWN causes remain unchanged.
+
+### Closed evidence and software boundary
+
+The original attended handle 1765 ended naturally as `875f74`, EXIT0, and is closed
+forever. The first capture `8543d4` remains INCOMPLETE, seal
+`ec42979d64ee6ec061aa3522010d433c84c8722c0a782b25fd23d124d4d66ea5`.
+The corrected later capture `d89511` exited 0 and is COMPLETE, with 169 members
+plus seal (170 files), 43,978,750 bytes, 150 raw mappings and no required omissions.
+Only the two optional arm error.json files are absent. Its
+[manifest](../../.local/native-proof/paid-pair-15478076-closed-capture-20261017-03/manifest.json)
+SHA-256 is `2ff9fd56e18f9e3e99d3ef321f19744cc0cd3135a156623a4c967d4c834902b9`;
+the [saved-only readback receipt](../../.local/native-proof/paid-pair-15478076-closed-capture-20261017-03-readback.json)
+SHA-256 is `64ff25ca3bf4fc17fcca355d3d03b223e8fb96144c5083734e7e741f66540a66`.
+Root's actual terminal/release receipts are bound externally; historical
+preparation-time terminal fields were preserved.
+
+The selected input package is BOUND by its canonical package hash, literal request
+and ordered reference bindings. **Original-request digest recomputation remains
+UNREACHED.** All 497 finite preservation pins match before/after this later
+endpoint; this does not reconstruct the first capture, establish continuity or
+prove full prospective-baseline equivalence. The complete capture alone did not
+qualify the pair; Root's subsequent cross-file semantic review owns acceptance.
+
+Root accepted the 14-step full local software result at **tested `b313ac83`**:
+2,865 backend, 1,381 frontend and 319 browser cases, 1,405.091 seconds; full receipt
+SHA-256 `9f3f8a56c514ec64b39c90ead993d2230798c8ca2d662d9ef4bcee0009f89528`.
+That evidence was not rerun for the private capture correction. This docs-only
+descendant is not newly software-tested; its closeout checks are limited to exact
+docs scope, links, whitespace and unchanged tracked non-doc blobs/evidence pins.
+
+Human creative/product acceptance, hosted CI, merge/push, public publication and
+live/canonical adoption remain separate and open/held. No generation, tests,
+runtime probes, target capture, cleanup or publication is authorized by this
+documentation closeout. Python stays parked through closeout; Root owns the
+separate restart review. The next handoff is the one local docs-only commit and
+its checks, then IDLE for Root review.
