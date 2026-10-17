@@ -87,3 +87,101 @@ def test_shared_copy_safeguards_do_not_substitute_geometry_and_handoff_states(
         copy_geometry_frame_seed(awaiting_handoff_seed.project, tmp_path / "not-first-geometry")
     assert seed_files(geometry_frame_seed.root) == geometry_frame_seed.files
     assert seed_files(awaiting_handoff_seed.project.root) == awaiting_handoff_seed.project.files
+
+
+@pytest.mark.parametrize("operation", ["manual", "rollback", "takeover"])
+def test_human_operations_keep_retained_work_and_sibling_isolated_without_source(
+    tmp_path, monkeypatch, awaiting_handoff_seed, operation,
+):
+    from tests import test_autopilot_handoff as consumers
+
+    seed = awaiting_handoff_seed
+    sibling_root = tmp_path / "sibling"
+    sibling, other, retained_image_ids = copy_awaiting_handoff_seed(seed, sibling_root)
+    with closing(sibling.projects.open(other.project_id)) as store:
+        retained_attempts = _attempts(store)
+        assert_no_human_facts(store)
+    assert len(retained_attempts) == 16 and len(retained_image_ids) == 8
+    sibling_files = seed_files(sibling_root)
+    unavailable = seed.project.root.with_name(seed.project.root.name + "-unavailable")
+    captured, runtimes = [], []
+
+    def copy_then_remove_source(original_seed, destination):
+        assert original_seed is seed and not captured
+        result = copy_awaiting_handoff_seed(original_seed, destination)
+        storage, view, image_ids = result
+        assert image_ids == retained_image_ids
+        with closing(storage.projects.open(view.project_id)) as store:
+            assert_no_human_facts(store)
+            assert _attempts(store) == retained_attempts
+            with store.repository.engine.connect() as connection:
+                claim = connection.exec_driver_sql("SELECT claim FROM v2_autopilot_runs").scalar_one()
+        for relative, _digest in seed.project.files:
+            paths = [root / relative for root in (seed.project.root, destination, sibling_root)]
+            assert len({(path.stat().st_dev, path.stat().st_ino) for path in paths}) == 3
+        captured.append((storage, view, claim))
+        seed.project.root.rename(unavailable)
+        return result
+
+    def no_machine_work(*_args, **_kwargs):
+        raise AssertionError("human takeover must not claim, continue or contact retained machine work")
+
+    original_runtime = consumers.runtime
+
+    def fresh_runtime(storage, patch):
+        from plotloom.persistence.project.autopilot import AutopilotPersistence
+
+        registry, service, host = original_runtime(storage, patch)
+        assert not host.calls and not host.image_calls and not host.statuses and not host.pending
+        assert host.admissions == 0 and service._thread is None and service._descriptor is None
+        assert service.claim != captured[0][2]
+        for name in ("codex_exec_admit", "codex_exec_status", "codex_exec_cancel", "codex_exec_suspend"):
+            patch.setattr(registry, name, no_machine_work)
+        patch.setattr(service, "acquire_controller", no_machine_work)
+        patch.setattr(service, "step", no_machine_work)
+        patch.setattr(service.controller, "advance", no_machine_work)
+        patch.setattr(service.image_controller, "advance", no_machine_work)
+        patch.setattr(AutopilotPersistence, "claim", no_machine_work)
+        runtimes.append((registry, service, host))
+        return registry, service, host
+
+    functions = {
+        "manual": consumers.test_manual_import_replaces_one_frame_and_can_receive_fresh_human_handoff,
+        "rollback": consumers.test_mid_handoff_failure_rolls_back_all_native_human_rows,
+        "takeover": consumers.test_takeover_accepts_current_bundle_and_explicit_unassessable_authorization,
+    }
+    try:
+        with monkeypatch.context() as patch:
+            # Instrument the real factory only to hide the source AFTER copying.
+            # Reuse the complete operation/assertion body, including recovery and
+            # the second-selection failure; no alternate human-operation path.
+            patch.setattr(consumers, "copy_awaiting_handoff_seed", copy_then_remove_source)
+            patch.setattr(consumers, "runtime", fresh_runtime if operation == "takeover" else no_machine_work)
+            options = {"awaiting_handoff_seed": seed}
+            if operation != "manual":
+                options["monkeypatch"] = patch
+            functions[operation](tmp_path / "left", **options)
+            assert not seed.project.root.exists() and unavailable.is_dir()
+            storage, view, original_claim = captured[0]
+            with closing(storage.projects.open(view.project_id)) as store:
+                assert _attempts(store) == retained_attempts
+                current = store.repository.autopilot.current(view.project_id)
+                assert current.state == ("awaiting_review" if operation == "rollback" else "handed_off")
+                if operation == "rollback":
+                    assert_no_human_facts(store)
+                with store.repository.engine.connect() as connection:
+                    assert connection.exec_driver_sql("SELECT claim FROM v2_autopilot_runs").scalar_one() == original_claim
+            assert len(runtimes) == (1 if operation == "takeover" else 0)
+            for registry, service, host in runtimes:
+                assert not host.calls and not host.image_calls and not host.statuses and not host.pending
+                assert host.admissions == 0 and not registry.view()["busy"]
+                assert service._thread is None and service._descriptor is None
+            with closing(sibling.projects.open(other.project_id)) as store:
+                assert_no_human_facts(store)
+                assert store.repository.autopilot.current(other.project_id) == other
+                assert _attempts(store) == retained_attempts
+            assert seed_files(sibling_root) == sibling_files
+    finally:
+        if unavailable.exists():
+            unavailable.rename(seed.project.root)
+    assert seed_files(seed.project.root) == seed.project.files

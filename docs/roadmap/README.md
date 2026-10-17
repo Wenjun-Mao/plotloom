@@ -1,5 +1,12 @@
 # Plotloom roadmap entrypoint
 
+Retained bounded Python fixture step (October 17): [three human handoff seed
+consumers](2026-10-17-handoff-human-seed.md), source parent `0d630b02`, 51 distinct
+focused passes and accepted Root/independent review. No benchmark or speed claim.
+Only local five-path commit closeout and unsealed preparation of a prospective
+default-two-worker whole-Python observation are released; no collection or runtime
+launch. The 85-percent complete-suite target remains open.
+
 Retained bounded Python fixture step (October 17): [closed installed-text prefix](2026-10-17-installed-text-prefix.md),
 source parent `6f2af250`, 145 distinct focused passes and one accepted single-process
 control-first screen (116.729 / 51.365 seconds). The observed 55.9963-percent

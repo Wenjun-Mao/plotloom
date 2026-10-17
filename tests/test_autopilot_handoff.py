@@ -12,6 +12,7 @@ from plotloom.persistence.project.autopilot_handoff import (
     record_handoff,
     review_material,
 )
+from tests.autopilot_controller_fixtures import runtime
 from tests.autopilot_handoff_seed_fixtures import copy_awaiting_handoff_seed
 from tests.autopilot_image_fixtures import (
     assert_compact_handoff_pack as assert_handoff_pack,
@@ -107,11 +108,12 @@ def test_invalid_whole_handoff_creates_no_partial_human_authority(tmp_path, awai
                 assert connection.exec_driver_sql(f'SELECT count(*) FROM "{table}"').scalar() == 0
 
 
-def test_takeover_accepts_current_bundle_and_explicit_unassessable_authorization(tmp_path, monkeypatch):
-    storage, _registry, service, view, calls, _text = handoff_image_environment(tmp_path, monkeypatch)
+def test_takeover_accepts_current_bundle_and_explicit_unassessable_authorization(tmp_path, monkeypatch, awaiting_handoff_seed):
+    storage, view, retained_image_ids = copy_awaiting_handoff_seed(awaiting_handoff_seed, tmp_path / "handoff-copy")
+    _registry, service, _host = runtime(storage, monkeypatch)
     try:
-        complete = run_pack(storage, service, view)
-        assert_compact_handoff_pack(storage, view, complete, calls)
+        complete = view
+        assert_compact_handoff_pack(storage, view, complete, retained_image_ids)
         service.control(view.project_id, RunControlRequest(expected_revision=complete.revision, action="takeover"))
         with closing(storage.projects.open(view.project_id)) as store:
             body = observation(review_material(store))
@@ -119,12 +121,12 @@ def test_takeover_accepts_current_bundle_and_explicit_unassessable_authorization
             assert record_handoff(store, HumanHandoffRequest.model_validate(body)).state == "handed_off"
         with closing(storage.projects.open(view.project_id)) as store:
             with store.repository._read() as session: assert video_eligible(session, view.project_id)
-        assert len(calls) == len(complete.frames) + 2
+        assert len(retained_image_ids) == len(complete.frames) + 2
     finally:
         service.close()
 
 
-def test_manual_import_replaces_one_frame_and_can_receive_fresh_human_handoff(tmp_path, monkeypatch):
+def test_manual_import_replaces_one_frame_and_can_receive_fresh_human_handoff(tmp_path, awaiting_handoff_seed):
     from hashlib import sha256
     from io import BytesIO
 
@@ -136,80 +138,74 @@ def test_manual_import_replaces_one_frame_and_can_receive_fresh_human_handoff(tm
         SamePersonReviewRow,
         VisualSelectionStateRow,
     )
-    storage, _registry, service, view, calls, _text = handoff_image_environment(tmp_path, monkeypatch)
-    try:
-        complete = run_pack(storage, service, view)
-        assert_compact_handoff_pack(storage, view, complete, calls)
-        with closing(storage.projects.open(view.project_id)) as store:
-            initial = record_handoff(store, HumanHandoffRequest.model_validate(observation(review_material(store))))
-            frame = initial.frames[0]
-            buffer = BytesIO(); Image.new("RGB", (view.policy.image_width, view.policy.image_height), "blue").save(buffer, format="PNG")
-            content = buffer.getvalue(); digest = sha256(content).hexdigest(); uri = store.artifacts.put(content)
-            asset = store.media.record_managed_import(view.project_id, original_hash=digest, display_hash=digest,
-                mime_type="image/png", byte_size=len(content), width=view.policy.image_width, height=view.policy.image_height,
-                declaration={"origin": "manual", "rights": "unknown"}, publish=lambda: (uri, uri))
-            intent = store.media.create_visual_intent(view.project_id, asset["id"], {"role": "shot_keyframe", "compositionIntent": "Manual replacement framing.", "sourceRefs": [frame.shot_id]})
-            with store.repository._read() as session:
-                revision = session.get(VisualSelectionStateRow, view.project_id).revision
-                presentation = store.repository._media.shot_presentations.current(session, view.project_id, frame.shot_id)
-                retained = session.get(AutopilotHandoffRow, initial.handoff["receiptId"])
-                approval = retained.approval_id
-            store.media.select_reviewed_keyframe(view.project_id, asset_id=asset["id"], shot_id=frame.shot_id, scene_id=frame.scene_id,
-                expected_selection_revision=revision, storyboard_revision=frame.storyboard_revision, approval_id=approval,
-                compatibility_note="Inspected manual replacement.", visual_intent_id=intent["id"], visual_intent_revision=intent["revision"],
-                expected_presentation_revision=presentation["revision"] if presentation else 0)
-            review = review_material(store)
-            replacement = next(item for item in review["bundle"]["frames"] if item["shotId"] == frame.shot_id)
-            assert replacement["origin"] == "human_binding"
-            assert replacement["assetId"] == asset["id"]
-            result = record_handoff(store, HumanHandoffRequest.model_validate(observation(review)))
-            assert result.state == "handed_off"
-            with store.repository._read() as session:
-                assert video_eligible(session, view.project_id)
-                assert len(session.scalars(select(AutopilotHandoffRow)).all()) == 2
-                reviews = session.scalars(select(SamePersonReviewRow).order_by(SamePersonReviewRow.review_revision.desc())).all()
-                assert any(item.get("comparisonOrigin") == "human_current_material" for row in reviews for item in row.reference_bindings)
-        with closing(storage.projects.open(view.project_id)):
-            pass
-        from pathlib import Path
+    storage, view, retained_image_ids = copy_awaiting_handoff_seed(awaiting_handoff_seed, tmp_path / "handoff-copy")
+    complete = view
+    assert_compact_handoff_pack(storage, view, complete, retained_image_ids)
+    with closing(storage.projects.open(view.project_id)) as store:
+        initial = record_handoff(store, HumanHandoffRequest.model_validate(observation(review_material(store))))
+        frame = initial.frames[0]
+        buffer = BytesIO(); Image.new("RGB", (view.policy.image_width, view.policy.image_height), "blue").save(buffer, format="PNG")
+        content = buffer.getvalue(); digest = sha256(content).hexdigest(); uri = store.artifacts.put(content)
+        asset = store.media.record_managed_import(view.project_id, original_hash=digest, display_hash=digest,
+            mime_type="image/png", byte_size=len(content), width=view.policy.image_width, height=view.policy.image_height,
+            declaration={"origin": "manual", "rights": "unknown"}, publish=lambda: (uri, uri))
+        intent = store.media.create_visual_intent(view.project_id, asset["id"], {"role": "shot_keyframe", "compositionIntent": "Manual replacement framing.", "sourceRefs": [frame.shot_id]})
+        with store.repository._read() as session:
+            revision = session.get(VisualSelectionStateRow, view.project_id).revision
+            presentation = store.repository._media.shot_presentations.current(session, view.project_id, frame.shot_id)
+            retained = session.get(AutopilotHandoffRow, initial.handoff["receiptId"])
+            approval = retained.approval_id
+        store.media.select_reviewed_keyframe(view.project_id, asset_id=asset["id"], shot_id=frame.shot_id, scene_id=frame.scene_id,
+            expected_selection_revision=revision, storyboard_revision=frame.storyboard_revision, approval_id=approval,
+            compatibility_note="Inspected manual replacement.", visual_intent_id=intent["id"], visual_intent_revision=intent["revision"],
+            expected_presentation_revision=presentation["revision"] if presentation else 0)
+        review = review_material(store)
+        replacement = next(item for item in review["bundle"]["frames"] if item["shotId"] == frame.shot_id)
+        assert replacement["origin"] == "human_binding"
+        assert replacement["assetId"] == asset["id"]
+        result = record_handoff(store, HumanHandoffRequest.model_validate(observation(review)))
+        assert result.state == "handed_off"
+        with store.repository._read() as session:
+            assert video_eligible(session, view.project_id)
+            assert len(session.scalars(select(AutopilotHandoffRow)).all()) == 2
+            reviews = session.scalars(select(SamePersonReviewRow).order_by(SamePersonReviewRow.review_revision.desc())).all()
+            assert any(item.get("comparisonOrigin") == "human_current_material" for row in reviews for item in row.reference_bindings)
+    with closing(storage.projects.open(view.project_id)):
+        pass
+    from pathlib import Path
 
-        from tests.test_autopilot_recovery import storage_at
-        snapshot = storage.recovery.create_snapshot(view.project_id)
-        restored = storage_at(tmp_path / "handoff-restored")
-        restored.recovery.restore(Path(snapshot.location))
-        restored.recovery.acknowledge_recovery(view.project_id)
-        with closing(restored.projects.open(view.project_id)) as store:
-            with store.repository._read() as session:
-                assert video_eligible(session, view.project_id)
-                assert len(session.scalars(select(AutopilotHandoffRow)).all()) == 2
-            with pytest.raises(InvalidTransitionError, match="portable"):
-                store.repository.autopilot.claim(view.project_id, "destination-controller")
-        assert len(calls) == len(complete.frames) + 2
-    finally:
-        service.close()
+    from tests.test_autopilot_recovery import storage_at
+    snapshot = storage.recovery.create_snapshot(view.project_id)
+    restored = storage_at(tmp_path / "handoff-restored")
+    restored.recovery.restore(Path(snapshot.location))
+    restored.recovery.acknowledge_recovery(view.project_id)
+    with closing(restored.projects.open(view.project_id)) as store:
+        with store.repository._read() as session:
+            assert video_eligible(session, view.project_id)
+            assert len(session.scalars(select(AutopilotHandoffRow)).all()) == 2
+        with pytest.raises(InvalidTransitionError, match="portable"):
+            store.repository.autopilot.claim(view.project_id, "destination-controller")
+    assert len(retained_image_ids) == len(complete.frames) + 2
 
 
-def test_mid_handoff_failure_rolls_back_all_native_human_rows(tmp_path, monkeypatch):
-    storage, _registry, service, view, calls, _text = handoff_image_environment(tmp_path, monkeypatch)
-    try:
-        complete = run_pack(storage, service, view)
-        assert_compact_handoff_pack(storage, view, complete, calls)
-        with closing(storage.projects.open(view.project_id)) as store:
-            request = HumanHandoffRequest.model_validate(observation(review_material(store)))
-            original = store.repository._media.keyframes.select_reviewed_keyframe
-            attempts = []
-            def fail_after_first(*args, **kwargs):
-                attempts.append(kwargs["shot_id"])
-                if len(attempts) == 2: raise RuntimeError("fixture late admission failure")
-                return original(*args, **kwargs)
-            monkeypatch.setattr(store.repository._media.keyframes, "select_reviewed_keyframe", fail_after_first)
-            with pytest.raises(RuntimeError, match="late admission"): record_handoff(store, request)
-            with store.repository.engine.connect() as connection:
-                for table in ("v2_approval_decisions", "v2_visual_intents", "v2_reviewed_shot_bindings", "v2_same_person_reviews", "v2_autopilot_handoffs"):
-                    assert connection.exec_driver_sql(f'SELECT count(*) FROM "{table}"').scalar() == 0
-            assert store.repository.autopilot.current(view.project_id).state == "awaiting_review"
-    finally:
-        service.close()
+def test_mid_handoff_failure_rolls_back_all_native_human_rows(tmp_path, monkeypatch, awaiting_handoff_seed):
+    storage, view, retained_image_ids = copy_awaiting_handoff_seed(awaiting_handoff_seed, tmp_path / "handoff-copy")
+    complete = view
+    assert_compact_handoff_pack(storage, view, complete, retained_image_ids)
+    with closing(storage.projects.open(view.project_id)) as store:
+        request = HumanHandoffRequest.model_validate(observation(review_material(store)))
+        original = store.repository._media.keyframes.select_reviewed_keyframe
+        attempts = []
+        def fail_after_first(*args, **kwargs):
+            attempts.append(kwargs["shot_id"])
+            if len(attempts) == 2: raise RuntimeError("fixture late admission failure")
+            return original(*args, **kwargs)
+        monkeypatch.setattr(store.repository._media.keyframes, "select_reviewed_keyframe", fail_after_first)
+        with pytest.raises(RuntimeError, match="late admission"): record_handoff(store, request)
+        with store.repository.engine.connect() as connection:
+            for table in ("v2_approval_decisions", "v2_visual_intents", "v2_reviewed_shot_bindings", "v2_same_person_reviews", "v2_autopilot_handoffs"):
+                assert connection.exec_driver_sql(f'SELECT count(*) FROM "{table}"').scalar() == 0
+        assert store.repository.autopilot.current(view.project_id).state == "awaiting_review"
 
 
 def test_manual_multiview_reference_set_is_fully_displayed_and_endorsed(tmp_path, monkeypatch):

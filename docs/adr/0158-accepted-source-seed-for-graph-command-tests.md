@@ -244,3 +244,43 @@ Sol/Medium stable review found no actionable findings and ran no checks. The
 API guard created/admitted a fresh job with the seed unavailable, preserved
 sibling database/proposal and closed its held worker safely. Exact ten-case
 inventory is unchanged. The Python plan binds refs/logs; speed is unmeasured.
+
+## Three human handoff operations — October 17, 2026
+
+Root approved a bounded revision to the October 14 rule that kept takeover and
+mid-handoff rollback on fresh machine setup. For the current takeover,
+manual-frame-replacement and second-selection rollback tests, the completed
+machine pack is a reusable precondition; the real human operation is the behavior
+under test. Earlier rules/outcomes above remain historical.
+[Current scope](../roadmap/2026-10-17-handoff-human-seed.md).
+
+Reuse the unchanged AwaitingHandoffSeed builder/copier and its actual
+awaiting_review/material-review cut: six frames, two references, eight image and
+eight text terminal receipted attempts, no human/pending facts. Preserve retained
+identities, paths, provenance, snapshots and receipts. Returned image IDs are
+retained identities, not fresh dispatch counts. No clone/rebase framework,
+parsed shared authority, policy or production changes.
+
+Only takeover creates a fresh registry/fake host/service and calls real
+control(takeover). It must not acquire a controller, reassign a claim,
+step/resume/advance or contact retained historical work. Human record_handoff
+constructs its own HANDOFF authority. Manual replacement/rollback need no machine
+runtime. Preserve all post-pack operations/assertions, including real selection,
+second handoff, snapshot/restore and portable-claim refusal, and second-selection
+failure with every rollback table/state assertion.
+
+Extend source-unavailable, sibling/seed file/inode/history isolation and
+no-human-before guards through those exact bodies; prove the fresh takeover
+host/controller stays clean and inactive. Keep API success/withdrawal, multiview,
+derived-reference, retained-v1 confirmation and other owner functions natural
+and unchanged. Focused correctness and independent review remain separate from
+performance; no screen or full/whole qualification is released for this step.
+
+Root accepted local retention after 51 distinct focused cases passed across five
+complete files: the three new guards passed first, then both handoff files (17
+cases, including those guards), plus 34 authority/runtime/module-ownership cases.
+Root and attended independent Sol/Medium source review found no actionable issue;
+post-pack and unselected AST checks passed. Both accepted Python files retain
+their reviewed bytes/modes through documentation closeout and a normal local
+five-path commit. No benchmark or speed claim follows from correctness timing;
+whole-suite progress and the 85-percent target remain open.
