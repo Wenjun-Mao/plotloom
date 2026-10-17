@@ -3,15 +3,17 @@ from contextlib import closing
 from typing import Any
 
 from .creative_handoff_contracts import CreativeHandoffRequest
-from .creative_handoff_exchange import canonical_json, request_hash
+from .creative_handoff_exchange import request_hash
 from .domain import new_id
 from .exceptions import InvalidTransitionError
 from .image_job_contracts import ImageJobError
 from .native_bridge_candidate_service import NativeBridgeCandidateService
 from .native_bridge_presentation_contract import (
-    MAX_PRESENTATION_CONTEXT_BYTES, MAX_PRESENTATION_SOURCES,
-    presentation_response_schema, render_native_presentation_report,
+    MAX_PRESENTATION_SOURCES,
+    presentation_response_schema,
+    render_native_presentation_report,
 )
+from .native_bridge_request import assert_native_bridge_request_size
 
 
 class NativeBridgePresentationService(NativeBridgeCandidateService):
@@ -36,15 +38,12 @@ class NativeBridgePresentationService(NativeBridgeCandidateService):
         if not 0 < len(proposal.presentation.sources) <= MAX_PRESENTATION_SOURCES:
             raise InvalidTransitionError("presentation sources exceed the bounded one-package limit")
         context["intentPackage"] = proposal.intent_package.model_dump(mode="json", by_alias=True)
-        # Include frozen evidence for faithful semantic interpretation, but
-        # bound the whole package before persisting or reserving a job.
-        if len(canonical_json({"context": context, "presentation": package})) > MAX_PRESENTATION_CONTEXT_BYTES:
-            raise InvalidTransitionError("presentation context exceeds the bounded one-package limit")
         schema = presentation_response_schema([source.id for source in proposal.presentation.sources])
         request = CreativeHandoffRequest(job_id="ch_" + new_id().replace("-", ""), project_id=project_id,
             section_id="production-bridge", stage=self.stage, expected_stage_revision=expected_revision,
             source=context, input_artifacts={"presentation-source.json": package, "presentation-schema.json": schema},
             creative_brief="为全部冻结来源提出呈现归属与忠实画面描述，保留每字与限制；仅提供可编辑建议，等待作者确认。")
+        assert_native_bridge_request_size(request)
         exchange = store.creative_handoff_exchange()
         pin = exchange.current_execution_pin(self.stage)
         job = owner.enqueue(project_id, expected_revision=expected_revision, expected_hash=expected_hash,

@@ -7,6 +7,14 @@ from typing import Any
 from .creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 
 
+def _json_file_limit(request: CreativeHandoffRequest) -> int:
+    if request.stage in {"bridge-intent", "bridge-presentation"}:
+        from .native_bridge_request import MAX_NATIVE_BRIDGE_PACKAGE_JSON_BYTES
+
+        return MAX_NATIVE_BRIDGE_PACKAGE_JSON_BYTES
+    return 1_000_000
+
+
 class CreativeHandoffPackageExchangeMixin:
     """Own immutable package projection checks and first publication."""
 
@@ -36,7 +44,8 @@ class CreativeHandoffPackageExchangeMixin:
         names = self._names(package, package=True)
         if names != expected:
             raise CreativeHandoffError("package_conflict", "existing package has unexpected entries")
-        if _read_regular(package / "request.json", max_bytes=1_000_000, package=True) != canonical_json(projected):
+        json_limit = _json_file_limit(request)
+        if _read_regular(package / "request.json", max_bytes=json_limit, package=True) != canonical_json(projected):
             raise CreativeHandoffError("package_conflict", "existing package differs from frozen request")
         if _read_regular(package / "COPY_ASSIGNMENT.txt", max_bytes=20_000, package=True) != instructions:
             raise CreativeHandoffError("package_conflict", "existing package instructions differ from frozen request")
@@ -48,7 +57,7 @@ class CreativeHandoffPackageExchangeMixin:
         if self._names(inputs, package=True) != set(request.input_artifacts):
             raise CreativeHandoffError("package_conflict", "existing package inputs differ from frozen request")
         for filename, payload in request.input_artifacts.items():
-            if _read_regular(inputs / filename, max_bytes=1_000_000, package=True) != canonical_json(payload):
+            if _read_regular(inputs / filename, max_bytes=json_limit, package=True) != canonical_json(payload):
                 raise CreativeHandoffError("package_conflict", "existing package input differs from frozen request")
         return job_root, projected
 
@@ -116,6 +125,11 @@ class CreativeHandoffPackageExchangeMixin:
         }
         if executor_backend == "specialist_chat":
             files[TEMPLATE_FILENAME] = template
+        if request.stage in {"bridge-intent", "bridge-presentation"} and any(
+            len(content) > _json_file_limit(request)
+            for name, content in files.items() if name.endswith(".json")
+        ):
+            raise CreativeHandoffError("package_conflict", "native bridge package JSON exceeds its file limit")
         publish_package(package, digest=request_hash(request), files=files, write_once=_write_once)
         self._verify_frozen_package(
             request,

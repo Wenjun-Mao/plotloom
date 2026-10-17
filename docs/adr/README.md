@@ -110,3 +110,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0177 Invocation-local autopilot profile construction](0177-invocation-local-autopilot-profile-construction.md)
 - [0186 RunView-local checkpoint evidence](0186-run-view-local-checkpoint-evidence.md) — preserves the October 15 decision, renumbered to avoid the independent ADR 0179.
 - [0187 Frozen-worker instruction discovery](0187-frozen-worker-instruction-discovery.md)
+- [0188 Complete native bridge request budget](0188-native-bridge-request-budget.md)

@@ -3,13 +3,16 @@ from contextlib import closing
 from typing import Any
 
 from .creative_handoff_contracts import CreativeHandoffRequest
-from .creative_handoff_exchange import canonical_json, request_hash
+from .creative_handoff_exchange import request_hash
 from .domain import new_id
-from .exceptions import InvalidTransitionError
 from .image_job_contracts import ImageJobError
 from .native_bridge_candidate_service import NativeBridgeCandidateService
-from .native_bridge_intent_contract import native_intent_suggestions, render_native_intent_report
-from .production_bridge_intent_contract import MAX_INTENT_CONTEXT_BYTES, intent_response_schema
+from .native_bridge_intent_contract import (
+    native_intent_suggestions,
+    render_native_intent_report,
+)
+from .native_bridge_request import assert_native_bridge_request_size
+from .production_bridge_intent_contract import intent_response_schema
 
 
 class NativeBridgeIntentService(NativeBridgeCandidateService):
@@ -31,8 +34,6 @@ class NativeBridgeIntentService(NativeBridgeCandidateService):
         context, targets = owner.source_context(project_id, expected_revision=expected_revision, expected_hash=expected_hash)
         entries = store.production_bridge_state().proposal.intent_package.entries
         frozen_entries = [entry.model_dump(mode="json", by_alias=True) for entry in entries]
-        if len(canonical_json({"context": context, "targets": frozen_entries})) > MAX_INTENT_CONTEXT_BYTES:
-            raise InvalidTransitionError("native intent context exceeds the bounded one-package limit")
         schema = intent_response_schema([entry["id"] for entry in targets])
         request = CreativeHandoffRequest(
             job_id="ch_" + new_id().replace("-", ""), project_id=project_id,
@@ -40,6 +41,7 @@ class NativeBridgeIntentService(NativeBridgeCandidateService):
             source=context, input_artifacts={"targets.json": {"entries": frozen_entries}, "intent-schema.json": schema},
             creative_brief="为冻结提案的全部目标提出中文戏剧意图，仅交付建议与报告，等待作者整包审阅。",
         )
+        assert_native_bridge_request_size(request)
         exchange = store.creative_handoff_exchange()
         pin = exchange.current_execution_pin(request.stage)
         digest = request_hash(request)

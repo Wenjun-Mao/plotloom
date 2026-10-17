@@ -7,10 +7,12 @@ from pydantic import ConfigDict, Field
 from .creative_handoff_contracts import CreativeHandoffRequest
 from .domain import CamelModel
 from .production_presentation import (
-    PresentationSpan, PresentationUpdate, ProductionPresentation, bind_presentation_spans,
+    PresentationSpan,
+    PresentationUpdate,
+    ProductionPresentation,
+    bind_presentation_spans,
 )
 
-MAX_PRESENTATION_CONTEXT_BYTES = 180_000
 MAX_PRESENTATION_SOURCES = 256
 
 

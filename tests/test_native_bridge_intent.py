@@ -18,12 +18,12 @@ from plotloom.native_bridge_intent_service import NativeBridgeIntentService
 from plotloom.pipeline import RunSecretBroker
 from plotloom.production_bridge_contracts import ProductionBridgeIntentUpdateRequest
 from plotloom.production_bridge_intent_service import ProductionBridgeIntentService
+from tests.native_bridge_runtime_fixtures import create_native_intent_runtime
 from tests.production_bridge_intent_fixtures import (
     FakeAdapter,
     FakeResolver,
     _pending_project,
 )
-from tests.native_bridge_runtime_fixtures import create_native_intent_runtime
 
 
 @pytest.fixture
@@ -307,7 +307,7 @@ def test_send_rechecks_clean_frozen_execution_before_any_dispatch(seeded_native,
 def test_bounded_context_refuses_before_any_new_job(native, monkeypatch):
     storage, project, revision, digest, service, job, calls = native
     service.cancel(project, job)
-    monkeypatch.setattr("plotloom.native_bridge_intent_service.MAX_INTENT_CONTEXT_BYTES", 1)
+    monkeypatch.setattr("plotloom.native_bridge_request.MAX_NATIVE_BRIDGE_REQUEST_BYTES", 1)
     with pytest.raises(InvalidTransitionError, match="bounded"):
         service.create(project, expected_revision=revision, expected_hash=digest)
     with closing(storage.projects.open(project)) as store:
@@ -319,12 +319,11 @@ def test_context_ceiling_measures_utf8_bytes_before_any_enqueue(native, monkeypa
     storage, project, revision, digest, service, job, calls = native
     service.cancel(project, job)
     with closing(storage.projects.open(project)) as store:
-        context, _targets = store.repository.production_bridge_intent.source_context(project, expected_revision=revision, expected_hash=digest)
-        entries = [entry.model_dump(mode="json", by_alias=True) for entry in store.production_bridge_state().proposal.intent_package.entries]
-        encoded = canonical_json({"context": context, "targets": entries})
+        request, _ = service._request(store, project, job)
+        encoded = canonical_json(request.model_dump(mode="json", by_alias=True))
     characters, byte_count = len(encoded.decode("utf-8")), len(encoded)
     assert byte_count > characters
-    monkeypatch.setattr("plotloom.native_bridge_intent_service.MAX_INTENT_CONTEXT_BYTES", (characters + byte_count) // 2)
+    monkeypatch.setattr("plotloom.native_bridge_request.MAX_NATIVE_BRIDGE_REQUEST_BYTES", (characters + byte_count) // 2)
     with pytest.raises(InvalidTransitionError, match="bounded"):
         service.create(project, expected_revision=revision, expected_hash=digest)
     with closing(storage.projects.open(project)) as store:

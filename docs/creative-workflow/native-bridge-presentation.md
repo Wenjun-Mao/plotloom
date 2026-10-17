@@ -30,8 +30,12 @@ because it came from action or composition. Every span has an explicit role.
 
 If a faithful complete assignment cannot be made, stop and report the concrete
 blocker rather than inventing ownership. Semantic limitations belong in the
-completion manifest. At most 256 sources, 64 spans per source and 180,000 bytes
-of source/context. The validator proves structural coverage, not semantic truth.
+completion manifest. At most 256 sources and 64 spans per source are allowed.
+The complete creative request JSON (source, inputs/schema, identity and creative
+brief) is bounded to 1,048,576 canonical UTF-8 bytes, excluding additional generated
+package metadata and pinned resources. This finite admission bound is not a model
+capacity guarantee. Preserve complete evidence; do not truncate it to fit.
+The validator proves structural coverage, not semantic truth.
 
 Validate then derive the inert report with `scripts/native_bridge_presentation.py`.
 Publish the completion template last with actual hashes. Output has no source

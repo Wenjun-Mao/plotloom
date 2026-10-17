@@ -551,6 +551,7 @@
           "tests/test_h3_i2va_prompt.py",
           "tests/test_native_bridge_intent.py",
           "tests/test_native_bridge_presentation.py",
+          "tests/test_native_bridge_request_budget.py",
           "tests/test_native_bridge_seed.py",
           "tests/test_publish_image_completion.py",
           "tests/test_pin_image_specialist.py",

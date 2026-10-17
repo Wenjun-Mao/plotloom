@@ -1,5 +1,21 @@
 # Plotloom roadmap entrypoint
 
+## Current end-to-end bridge admission correction
+
+The owner approved fixing the walkthrough's Bridge Intent block end to end.
+Actual complete source/target evidence is 74,043 bytes; the following Presentation
+envelope is already 250,535 bytes. The native 60,000/180,000-byte limits do not
+fit these admitted inputs. ADR 0188 separates a finite complete native request
+budget from the unchanged API prompt bound, without dropping evidence or relaxing
+identity, freshness, target/source coverage or human-review contracts.
+
+Implement the shared native guard, prove both old refusals and new byte-boundary
+behavior, obtain independent review and qualify stable source. Preserve all
+generated work and the original frozen run; no policy/receipt rebase or duplicate
+dispatch is implied. The owner is choosing between a fresh automatic copy and
+supported manual continuation after deployment. Creative acceptance remains
+human-owned; Python optimization and speculative batching remain parked.
+
 ## Current Outline startup correction
 
 The owner approved investigating and fixing the first walkthrough Outline
