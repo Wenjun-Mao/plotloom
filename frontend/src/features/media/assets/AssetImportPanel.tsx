@@ -1,4 +1,4 @@
-import type { ManagedAsset } from "../../../types";
+import type { ManagedAsset, ReviewedKeyframe } from "../../../types";
 import { Button, Field } from "../../../components";
 import { CandidateCard } from "./MediaCandidates";
 
@@ -6,6 +6,8 @@ export function AssetImportPanel({
   projectId,
   shotId,
   assets,
+  reviewedKeyframes = [],
+  onReuseFrame,
   origin,
   declaredAdditions,
   candidates,
@@ -22,6 +24,8 @@ export function AssetImportPanel({
   projectId?: string;
   shotId?: string;
   assets: ManagedAsset[];
+  reviewedKeyframes?: ReviewedKeyframe[];
+  onReuseFrame?: (binding: ReviewedKeyframe) => void;
   origin: string;
   declaredAdditions: string;
   candidates: string[];
@@ -37,6 +41,18 @@ export function AssetImportPanel({
 }) {
   return (
     <>
+      <Field label="复用其他镜头当前审核画面">
+        <select data-testid="cross-shot-frame" value="" disabled={readOnly || busy || !shotId}
+          onChange={(event) => {
+            const binding = reviewedKeyframes.find((item) => item.id === event.target.value);
+            if (binding) { if (onReuseFrame) onReuseFrame(binding); else onKeepCandidate(binding.assetId); }
+          }}>
+          <option value="">选择同项目其他镜头的画面…</option>
+          {reviewedKeyframes.filter((binding) => binding.shotId !== shotId).map((binding) =>
+            <option key={binding.id} value={binding.id}>{binding.shotId} · {binding.assetId.slice(0, 8)}</option>)}
+        </select>
+        <small>冻结所选来源绑定的原始像素；随后为当前镜头保存独立意图并审核。来源批准不会成为当前镜头的批准。</small>
+      </Field>
       <div className="field-grid two compact">
         <Field label="来源声明">
           <input

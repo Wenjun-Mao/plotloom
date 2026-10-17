@@ -330,46 +330,8 @@ def register_project_folder_image_job_routes(
                 "jobs": store.media.list_image_jobs(project_id),
             }
 
-    @app.post(
-        "/api/v2/projects/{project_id}/image-jobs", status_code=status.HTTP_201_CREATED
-    )
-    def prepare_project_image_job(
-        project_id: str, body: ProjectFolderImageJobCreateRequest
-    ) -> dict[str, Any]:
-        target_id = image_job_target_id(body)
-        required_entity_id = f"{body.shot_id}:{target_id}"
-        require_media_draft_scope(
-            body.consumed_draft,
-            required_scope="image_direction",
-            required_entity_id=required_entity_id,
-        )
-        draft_payload = {
-            "shotId": body.shot_id,
-            "targetId": target_id,
-            "contextId": body.context_id,
-            "presentationChange": body.presentation_change,
-        }
-        adaptation = (
-            {"targetProfile": project_h3_target(body.keyframe_adaptation_profile_id)}
-            if body.keyframe_adaptation_profile_id is not None
-            else None
-        )
-        with opened_project(project_id) as store:
-            return store.media.prepare_image_job(
-                project_id,
-                approval_id=body.approval_id,
-                shot_id=body.shot_id,
-                storyboard_revision=body.storyboard_revision,
-                parent_candidate_asset_id=body.parent_candidate_asset_id,
-                keyframe_adaptation=adaptation,
-                presentation_change=body.presentation_change,
-                contract_version=body.contract_version,
-                consumed_draft=(
-                    body.consumed_draft.entity_id,
-                    body.consumed_draft.draft_revision,
-                    draft_payload,
-                ),
-            )
+    from .project_folder_image_prepare import register_image_prepare_route
+    register_image_prepare_route(app, opened_project, image_job_target_id, require_media_draft_scope, project_h3_target)
 
     @app.post("/api/v2/projects/{project_id}/image-jobs/{job_id}/copy")
     def copy_project_image_job(project_id: str, job_id: str) -> dict[str, Any]:
@@ -409,7 +371,7 @@ def register_project_folder_image_job_routes(
                 item
                 for item in context["request"]["frozenSnapshot"].get("references", [])
                 if item.get("role")
-                in {"parent_output", "source_keyframe", "character_identity"}
+                in {"parent_output", "source_keyframe", "character_identity", "scene_continuity"}
             ):
                 role = (
                     f"character_identity:{reference['characterId']}"
@@ -425,7 +387,7 @@ def register_project_folder_image_job_routes(
                         reference["originalHash"],
                     )
                 )
-                if reference["role"] == "character_identity":
+                if reference["role"] in {"character_identity", "scene_continuity"}:
                     identity_hashes.append(reference["originalHash"])
             exchange = store.image_exchange_for(context)
             native_task_binding = delivery_task_binding(job_id, context["request"])

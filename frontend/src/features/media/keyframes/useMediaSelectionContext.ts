@@ -8,6 +8,7 @@ import type {
   Storyboard,
   VisualIntent,
   VisualWorkbench,
+  ReviewedKeyframe,
 } from "../../../types";
 import {
   type ImageJobDraftTarget,
@@ -20,6 +21,7 @@ import type { MediaReadPhase } from "../useMediaWorkbenchData";
 import { currentProductionReferences } from "../references/production-reference";
 import { newSamePersonComparisons, latestCurrentReviewsByBinding } from "../references/same-person-draft";
 import type { SamePersonComparisonDraft } from "../../../same-person-review-types";
+import { ownsOrdinaryIntent } from "./visual-intent-ownership";
 
 function draftFor(
   intent: VisualIntent | undefined,
@@ -31,6 +33,8 @@ function draftFor(
       intent?.intent.compositionIntent ?? shot?.composition ?? "",
     styleIntent: intent?.intent.styleIntent ?? shot?.visualIntent ?? "",
     sourceRefs: intent?.intent.sourceRefs.join("\n") ?? "",
+    sourceBindingId: intent?.intent.targetUse?.source.bindingId,
+    retainedVisualIntentId: intent?.intent.targetUse ? intent.id : undefined,
   };
 }
 
@@ -104,6 +108,7 @@ export function useMediaSelectionContext({
     bindingId?: string;
     initialized: boolean;
   }>({ projectId, shotId: selectedShot?.id, initialized: false });
+  const pendingCrossShotUse = useRef<ReviewedKeyframe | null>(null);
   const sceneShots = useMemo(
     () =>
       selectedShot
@@ -161,14 +166,20 @@ export function useMediaSelectionContext({
     () => currentProductionReferences(workbench.characterReferences),
     [workbench.characterReferences],
   );
-  const selectedIdentityMapping = useMemo(
-    () => identityMappingForAsset(selectedBinding?.assetId, imageJobs),
-    [imageJobs, selectedBinding?.assetId],
-  );
-  const retainedIdentityMapping = useMemo(
-    () => identityMappingForAsset(keptAssetId, imageJobs),
-    [imageJobs, keptAssetId],
-  );
+  const currentMappingForShot = (shot: Shot | undefined) => {
+    return (shot?.characterIds ?? []).flatMap((characterId) => {
+      const reference = currentReferenceByCharacter.get(characterId);
+      return reference ? [{ characterId, referenceDecisionId: reference.id,
+        referenceRevision: reference.referenceRevision, characterContextHash: reference.characterContextHash,
+        assets: reference.assetHashes.map((asset, index) => ({ ...asset, view: index === 0 ? "primary" as const : "complementary" as const })) }] : [];
+    });
+  };
+  const mappingForBinding = (binding: typeof selectedBinding) => {
+    const intent = workbench.visualIntents.find((item) => item.id === binding?.visualIntentId);
+    if (!intent?.intent.targetUse) return identityMappingForAsset(binding?.assetId, imageJobs);
+    return currentMappingForShot(storyboard.shots.find((item) => item.id === binding?.shotId));
+  };
+  const selectedIdentityMapping = mappingForBinding(selectedBinding);
   const currentReviewByBinding = useMemo(
     () =>
       latestCurrentReviewsByBinding(workbench.samePersonReviews.reviews),
@@ -179,13 +190,19 @@ export function useMediaSelectionContext({
       (item) => item.shotId === shotId,
     );
     return (
-      identityMappingForAsset(binding?.assetId, imageJobs).length > 0 &&
+      mappingForBinding(binding).length > 0 &&
       !currentReviewByBinding.get(binding?.id ?? "")?.productionEligible
     );
   });
-  const activeIntent = workbench.visualIntents.find(
+  const originJob = imageJobs.find((job) => job.deliveries.some((delivery) => delivery.candidates.some((candidate) => candidate.assetId === keptAssetId)));
+  const foreignOrigin = (originJob?.request.frozenSnapshot?.shot?.id && originJob.request.frozenSnapshot.shot.id !== selectedShot?.id)
+    || workbench.reviewedKeyframes.some((binding) => binding.assetId === keptAssetId && binding.shotId !== selectedShot?.id);
+  const activeIntent = workbench.visualIntents.find((intent) => intent.assetId === keptAssetId &&
+    intent.intent.role === "shot_keyframe" && intent.intent.targetUse?.targetShotId === selectedShot?.id
+  ) ?? workbench.visualIntents.find(
     (intent) =>
-      intent.assetId === keptAssetId && intent.intent.role === "shot_keyframe",
+      intent.assetId === keptAssetId && intent.intent.role === "shot_keyframe" &&
+      !intent.intent.targetUse && (!foreignOrigin || ownsOrdinaryIntent(intent, selectedShot?.id, workbench.reviewedKeyframes)),
   );
   const intentEditor = useVisualIntentDraft(
     projectId,
@@ -198,6 +215,19 @@ export function useMediaSelectionContext({
     draftQuiescence,
   );
   const intentDraft = intentEditor.value;
+  const retainedIdentityMapping = intentDraft.sourceBindingId
+    ? currentMappingForShot(selectedShot) : identityMappingForAsset(keptAssetId, imageJobs);
+  const retainCrossShotFrame = (binding: ReviewedKeyframe) => {
+    if (binding.assetId === keptAssetId) intentEditor.update((value) => ({ ...value, sourceBindingId: binding.id, retainedVisualIntentId: undefined }));
+    else { pendingCrossShotUse.current = binding; setKeptAssetId(binding.assetId); }
+  };
+  useEffect(() => {
+    const source = pendingCrossShotUse.current;
+    if (source?.assetId === keptAssetId) {
+      pendingCrossShotUse.current = null;
+      intentEditor.update((value) => ({ ...value, sourceBindingId: source.id, retainedVisualIntentId: undefined }));
+    }
+  }, [keptAssetId]);
   const setIntentDraft = intentEditor.update;
   const eligibleRefinementCandidates = useMemo(
     () =>
@@ -219,7 +249,7 @@ export function useMediaSelectionContext({
   const imageJobContextId = [
     currentApproval?.id ?? "no-approval",
     `storyboard-${storyboardRevision ?? 0}`,
-    imageJobTarget.kind === "original" ? "original" : imageJobTarget.kind === "refinement" ? imageJobTarget.parentCandidateAssetId : imageJobTarget.profileId,
+    imageJobTarget.kind === "original" ? imageJobTarget.sceneContinuityBindingId ?? "original" : imageJobTarget.kind === "refinement" ? imageJobTarget.parentCandidateAssetId : imageJobTarget.profileId,
     selectedBinding?.id ?? "no-binding",
     `selection-${selectedBinding?.selectionRevision ?? 0}`,
     `intent-${selectedBinding?.visualIntentRevision ?? 0}`,
@@ -282,11 +312,17 @@ export function useMediaSelectionContext({
     }
     if (mediaReadPhase !== "ready") return;
     const current = retainedSelection.current;
-    if (!current.initialized || current.bindingId !== selectedBinding?.id) {
-      setKeptAssetId(selectedBinding?.assetId ?? "");
+    const targetDraft = activeIntent?.intent.targetUse;
+    const staleTargetDraft = !selectedBinding && targetDraft
+      && (targetDraft.targetShotId !== selectedShot?.id || activeIntent?.targetUseCurrent !== true);
+    if (!current.initialized || current.bindingId !== selectedBinding?.id || staleTargetDraft) {
+      const keepCurrentTargetDraft = current.initialized && !selectedBinding
+        && activeIntent?.intent.targetUse?.targetShotId === selectedShot?.id
+        && activeIntent?.targetUseCurrent === true;
+      if (!keepCurrentTargetDraft) setKeptAssetId(selectedBinding?.assetId ?? "");
       retainedSelection.current = { ...current, bindingId: selectedBinding?.id, initialized: true };
     }
-  }, [projectId, selectedShot?.id, mediaReadPhase, selectedBinding?.id]);
+  }, [projectId, selectedShot?.id, mediaReadPhase, selectedBinding?.id, activeIntent?.id, activeIntent?.targetUseCurrent]);
   useEffect(() => {
     if (!playing || !preview) return;
     const frame = preview.manifest.frames[frameIndex];
@@ -318,6 +354,7 @@ export function useMediaSelectionContext({
     activeIntent,
     intentEditor,
     intentDraft,
+    retainCrossShotFrame,
     eligibleRefinementCandidates,
     targetCandidate,
     imageJobContextId,

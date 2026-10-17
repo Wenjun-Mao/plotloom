@@ -527,7 +527,7 @@ class ImageJobExchange(ImagePackageCommands):
                 != expected_package_views
             or ((manifest.reference_use is not None) != bool(expected_references))
             or (manifest.reference_use is not None and
-                manifest.reference_use.viewed_reference_hashes != [item[2] for item in expected_references])
+                manifest.reference_use.viewed_reference_hashes != list(dict.fromkeys(item[2] for item in expected_references)))
             or manifest.executor_provenance is None
             or manifest.executor_provenance.model != profile.model
             or manifest.executor_provenance.reasoning_effort != profile.reasoning_effort

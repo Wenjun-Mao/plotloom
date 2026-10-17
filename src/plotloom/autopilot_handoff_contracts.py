@@ -8,6 +8,7 @@ from .domain import CamelModel, contains_secret_setting, contains_secret_value
 from .geometry_preparation_contracts import GeometryPreparation
 from .human_confirmation_contracts import UnnamedCreatorConfirmation
 from .managed_media import VisualIntentInput
+from .cross_shot_image_contracts import CrossShotTargetUse
 from .same_person_review_contracts import SamePersonReviewItem
 
 
@@ -31,6 +32,7 @@ class ReviewReference(CamelModel):
 
 
 class ReviewFrame(CamelModel):
+    target_use: CrossShotTargetUse | None = Field(default=None, exclude_if=lambda value: value is None)
     geometry_preparation: GeometryPreparation | None = Field(default=None, exclude_if=lambda value: value is None)
     shot_id: str
     scene_id: str

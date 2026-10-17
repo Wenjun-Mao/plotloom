@@ -263,6 +263,19 @@ it("author editing drops trusted Brief-origin authority without changing retaine
   const edit = authoredSource({ ...original, text: "Human revision" });
   expect(edit).not.toHaveProperty("briefOrigin"); expect(edit.text).toBe("Human revision"); expect(original.text).toBe("Saved synopsis"); expect(original.briefOrigin.revision).toBe(1);
 });
+it("discloses the immediate chained reuse source separately from original generation", async () => {
+  const material = structuredClone(fixtureMaterial);
+  material.bundle.frames[1] = { ...material.bundle.frames[1], shotId: "C", targetUse: {
+    kind: "cross_shot_initial_keyframe", targetShotId: "C", source: {
+      bindingId: "B-binding", sourceShotId: "B", originShotId: "A", assetId: "frame-2", originalHash: "2".repeat(64),
+    },
+  } };
+  vi.spyOn(autopilotApi, "review").mockResolvedValue(material);
+  await act(async () => root.render(createElement(MaterialReview, { projectId: "disposable", onClose: () => undefined,
+    onAccepted: async () => undefined, onUncertain: () => undefined })));
+  expect(host.textContent).toContain("来源 B → 当前 C");
+  expect(host.textContent).toContain("原始生成：A");
+});
 it("a review already open becomes read-only with its workspace and keeps close available", async () => {
   vi.spyOn(autopilotApi, "review").mockResolvedValue(fixtureMaterial);
   const submit = vi.spyOn(autopilotApi, "handoff");

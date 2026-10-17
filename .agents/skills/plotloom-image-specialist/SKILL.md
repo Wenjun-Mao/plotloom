@@ -18,6 +18,7 @@ Use this skill only for a single Plotloom package path explicitly supplied by th
   state, clothing, composition, action, or other shot-specific facts.
 - Treat a `character_identity` reference as identity-only: do not transfer its pose, framing, crop, camera, lighting, setting, or action. Honor the frozen shot's requested framing, and do not reframe it or add hands or props outside it merely to make a continuity fact visible.
 - A `parent_output` is refinement guidance only. It never replaces `character_identity` references or changes their roles.
+- A `scene_continuity` is one frozen reviewed frame from another shot in the same project. View it before ImageGen and retain its scene appearance and object layout only where compatible with the target shot. The target shot/presentation owns action, framing, lighting and current object states. This role is independent of `parent_output` and `character_identity`; it grants no approval, adoption or fidelity claim.
 - A `source_keyframe` appears only in a `keyframe_adaptation` package. It is
   the frozen composition that must be extended or recomposed into the exact
   frozen target profile; it is not permission to preserve black padding or to
@@ -36,7 +37,7 @@ Use this skill only for a single Plotloom package path explicitly supplied by th
    - `toolEvidence.imageGenExecutionId` is the distinct execution/output ID returned by ImageGen. Never put that execution ID in the native task field;
    - include the actual prompt and output byte hashes;
    - set `toolEvidence.tool` to exactly `codex_imagegen` and `available` to `true` for a built-in ImageGen run;
-   - when the package supplies `character_identity` references, set `referenceUse.viewedReferenceHashes` to exactly their frozen hashes and add concise role-aware notes; omit `referenceUse` when it supplies none;
+   - when the package supplies `character_identity` or `scene_continuity` references, set `referenceUse.viewedReferenceHashes` to exactly their frozen hashes and add concise role-aware notes; omit `referenceUse` when it supplies neither;
    - copy `executorProvenance.codeRevision`, `skillVersion`, and `skillHash` from the executor pin; record model/reasoning fields only when actually known.
 6. Publish once using the command emitted in `COPY_ASSIGNMENT.txt`. The publisher validates the native task binding, distinct ImageGen execution ID, manifest, output set, and hashes before it writes `delivery/completion.json` as the final marker. Do not create or edit `completion.json` by hand, rerun the publisher after success, or alter a completed manifest/output.
 7. After publication, run `uv run --locked --no-sync python scripts/cleanup_imagegen_staging.py --package "<package-path>" --staging-root "$CODEX_HOME/generated_images/$CODEX_THREAD_ID" --staged "<exact-returned-output-path>"` once, including one separately quoted `--staged "<exact-returned-output-path>"` argument for every declared output. The helper copies only missing matching outputs, validates the manifest identity, exact output set, and byte hashes, then removes only those exact source files. If it refuses or reports leftovers, preserve every staging file and report the paths/reasons to the coordinator. A missing staged file is idempotent only after its matching durable delivery output validates.

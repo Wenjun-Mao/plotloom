@@ -30,6 +30,7 @@ export function ImageJobPanel({
   mediaReadPhase = "ready",
   imageJobRefreshNotice,
   selectedBinding,
+  reviewedKeyframes = [],
   onPrepare,
   onCopy,
   onRefresh,
@@ -49,6 +50,7 @@ export function ImageJobPanel({
   mediaReadPhase?: MediaReadPhase;
   imageJobRefreshNotice: Record<string, string>;
   selectedBinding: ReviewedKeyframe | undefined;
+  reviewedKeyframes?: ReviewedKeyframe[];
   onPrepare: () => void;
   onCopy: (jobId: string) => void;
   onRefresh: (jobId: string) => void;
@@ -120,6 +122,16 @@ export function ImageJobPanel({
             )}
           </select>
         </Field>
+        {imageJobTarget.kind === "original" && <Field label="场景连续性参考（可选一张）">
+          <select data-testid="scene-continuity-source" disabled={readOnly || busy}
+            value={imageJobTarget.sceneContinuityBindingId ?? ""}
+            onChange={(event) => setImageJobTarget({ kind: "original", sceneContinuityBindingId: event.target.value || undefined })}>
+            <option value="">不使用场景参考</option>
+            {reviewedKeyframes.filter((binding) => binding.shotId !== shotId).map((binding) =>
+              <option key={binding.id} value={binding.id}>{binding.shotId} · 当前审核画面 {binding.assetId.slice(0, 8)}</option>)}
+          </select>
+          <small>冻结原始画面作为场景外观参考。当前镜头决定动作、构图、光线和物体状态；新图仍需审核，不保证模型忠实度。</small>
+        </Field>}
         <Field label={imageJobTarget.kind === "keyframe_adaptation" ? "冻结的画面呈现 / 比例适配方向" : "冻结的画面呈现 / 细化变化"} required>
           <textarea
             aria-required="true"

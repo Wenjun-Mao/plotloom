@@ -57,6 +57,7 @@ class ImageJobPreparationPersistence:
         storyboard_revision: int,
         parent_candidate_asset_id: str | None = None,
         keyframe_adaptation: dict[str, Any] | None = None,
+        scene_continuity_binding_id: str | None = None,
         presentation_change: str,
         contract_version: int = 2,
         consumed_draft: tuple[str, int, dict[str, Any]] | None = None,
@@ -95,6 +96,11 @@ class ImageJobPreparationPersistence:
 
             if contract_version not in {2, 3}:
                 raise InvalidTransitionError("image job contract version is unsupported")
+            if scene_continuity_binding_id is not None and (
+                parent_candidate_asset_id is not None or keyframe_adaptation is not None
+                or contract_version != 3 or machine_decision_id is not None
+            ):
+                raise InvalidTransitionError("scene continuity is a manual original-image operation")
             if keyframe_adaptation is not None and (
                 parent_candidate_asset_id is not None or contract_version != 3
             ):
@@ -155,7 +161,6 @@ class ImageJobPreparationPersistence:
                 asset = session.get(ManagedAssetRow, parent_candidate_asset_id)
                 if (
                     candidate is None or parent_job is None or asset is None or asset.project_id != project_id
-                    or not self._currentness.image_job_is_current_in_session(session, parent_job)
                 ):
                     raise InvalidTransitionError("refinement must name a current Plotloom image-job candidate")
                 binding = session.scalar(
@@ -200,6 +205,16 @@ class ImageJobPreparationPersistence:
                 reference, adaptation_snapshot = prepare_adaptation_source(
                     session, self._access, self._admission, self._currentness, project_id, shot_id, approval, keyframe_adaptation)
                 references.append(reference)
+
+            continuity = None
+            if scene_continuity_binding_id is not None:
+                from .image_reviewed_use import freeze_reviewed_source
+                source, asset = freeze_reviewed_source(session, project_id, scene_continuity_binding_id,
+                    shot_id, self._admission, self._currentness)
+                continuity = source.model_dump(mode="json", by_alias=True)
+                references.append({"assetId": asset.id, "role": "scene_continuity", "required": True,
+                    "originalHash": asset.original_hash, "mimeType": asset.mime_type,
+                    "byteSize": asset.byte_size, "width": asset.width, "height": asset.height})
 
             if len(references) > 9:
                 raise ImageJobError(
@@ -253,6 +268,8 @@ class ImageJobPreparationPersistence:
                 snapshot["reviewedVisualIntent"] = reviewed_visual_intent
             if adaptation_snapshot is not None:
                 snapshot["keyframeAdaptation"] = adaptation_snapshot
+            if continuity is not None:
+                snapshot["sceneContinuity"] = continuity
             snapshot_hash = stable_hash(snapshot)
             now = utc_now()
             unit = ProductionUnitRow(

@@ -22,6 +22,7 @@ from ..schema import (
     ReviewedShotBindingRow,
     SamePersonReviewRow,
     SamePersonReviewStateRow,
+    VisualIntentRow,
 )
 from .access import ProjectPersistenceAccess
 from .canonical import ProjectCanonicalPersistence
@@ -68,8 +69,12 @@ class SamePersonReviewPersistence:
     def identity_mapping_for_binding_in_session(
         self, session: Session, binding: ReviewedShotBindingRow
     ) -> list[dict[str, Any]] | None:
-        from .image_source_lineage import source_in_session
-        source = source_in_session(session, binding.project_id, binding.asset_id, shot_id=binding.shot_id)
+        from .image_reviewed_use import use_in_session
+        intent = session.get(VisualIntentRow, binding.visual_intent_id)
+        if intent is not None and intent.intent.get("targetUse") is not None:
+            from .human_comparison_mapping import human_mapping
+            return human_mapping(session, binding, self._canonical, self._references)
+        source = use_in_session(session, binding)
         if source is None:
             return None
         job = session.get(ImageJobRow, source.job_id)
@@ -93,15 +98,22 @@ class SamePersonReviewPersistence:
             return False
         if not self._admission.reviewed_binding_admission_eligible_in_session(session, project_id, binding, approval=approval):
             return False
-        from .image_source_lineage import source_in_session
+        from .image_reviewed_use import use_in_session
         try:
-            source = source_in_session(session, project_id, binding.asset_id, shot_id=binding.shot_id)
+            source = use_in_session(session, binding)
             mapping = self.identity_mapping_for_binding_in_session(session, binding)
         except InvalidTransitionError:
             return False
         asset = session.get(ManagedAssetRow, binding.asset_id)
+        if asset is None or asset.project_id != project_id:
+            return False
+        intent = session.get(VisualIntentRow, binding.visual_intent_id)
+        cross_shot = intent is not None and intent.intent.get("targetUse") is not None
+        cross_shot_context = bool(review.reference_bindings) and all(item.get("comparisonOrigin") == "cross_shot_target_use" for item in review.reference_bindings)
+        if cross_shot != cross_shot_context or (cross_shot and any(item.get("frameHash") != asset.original_hash for item in review.reference_bindings)):
+            return False
         human_context = bool(review.reference_bindings) and all(item.get("comparisonOrigin") == "human_current_material" for item in review.reference_bindings)
-        if asset is None or asset.project_id != project_id or (not human_context and source is None):
+        if not human_context and not cross_shot and source is None:
             return False
         if source and source.geometry:
             if any(item.get("frameHash") != asset.original_hash or item.get("geometryPreparationHash") != source.geometry.preparation_hash for item in review.reference_bindings):
@@ -191,8 +203,8 @@ class SamePersonReviewPersistence:
             binding = session.get(ReviewedShotBindingRow, binding_id)
             if binding is None or binding.project_id != project_id:
                 raise NotFoundError("reviewed keyframe binding not found")
-            from .image_source_lineage import source_in_session
-            source = source_in_session(session, project_id, binding.asset_id, shot_id=binding.shot_id)
+            from .image_reviewed_use import use_in_session
+            source = use_in_session(session, binding)
             mapping = self.identity_mapping_for_binding_in_session(session, binding)
             human_context = False
             source_job = session.get(ImageJobRow, source.job_id) if source else None
@@ -224,6 +236,10 @@ class SamePersonReviewPersistence:
             if human_context:
                 asset = session.get(ManagedAssetRow, binding.asset_id)
                 reference_bindings = [item | {"comparisonOrigin": "human_current_material", "frameHash": asset.original_hash} for item in reference_bindings]
+            intent = session.get(VisualIntentRow, binding.visual_intent_id)
+            if intent is not None and intent.intent.get("targetUse") is not None:
+                asset = session.get(ManagedAssetRow, binding.asset_id)
+                reference_bindings = [item | {"comparisonOrigin": "cross_shot_target_use", "frameHash": asset.original_hash} for item in reference_bindings]
             state.revision += 1
             state.updated_at = now
             review = SamePersonReviewRow(

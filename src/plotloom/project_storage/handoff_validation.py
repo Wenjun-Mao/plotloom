@@ -92,14 +92,26 @@ def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw,
         if source != (project_id, frame.shot_id, frame.asset_id) or asset != (project_id, frame.original_hash, frame.width, frame.height):
             raise ValueError("reviewed frame source bytes changed")
         from ..persistence.project.image_source_lineage import resolve_image_source
-        lineage = resolve_image_source(connection, project_id, frame.asset_id, shot_id=frame.shot_id, asset_home=asset_home)
+        if frame.origin == "human_binding":
+            from ..persistence.project.image_reviewed_use import resolve_reviewed_use
+            source_intent = connection.execute("SELECT i.intent FROM v2_visual_intents i JOIN v2_reviewed_shot_bindings b ON b.visual_intent_id=i.id WHERE b.id=?", (frame.source_id,)).fetchone()
+            frozen_use = frame.target_use.model_dump(mode="json", by_alias=True) if frame.target_use else None
+            if json.loads(source_intent[0]).get("targetUse") != frozen_use:
+                raise ValueError("displayed target use differs from its exact reviewed binding")
+            lineage = resolve_reviewed_use(connection, project_id, frame.asset_id, frame.shot_id, json.loads(source_intent[0]), asset_home=asset_home)
+        else:
+            lineage = resolve_image_source(connection, project_id, frame.asset_id, shot_id=frame.shot_id, asset_home=asset_home)
         if (lineage.geometry if lineage else None) != frame.geometry_preparation:
             raise ValueError("human handoff geometry lineage changed")
         binding = connection.execute("SELECT project_id,shot_id,scene_id,asset_id,visual_intent_id,approval_id,compatibility_note FROM v2_reviewed_shot_bindings WHERE id=?", (fact.get("bindingId"),)).fetchone()
         if binding != (project_id, frame.shot_id, frame.scene_id, frame.asset_id, fact.get("intentId"), approval_id, observation.compatibility_note) or fact.get("shotId") != frame.shot_id or fact.get("assetId") != frame.asset_id:
             raise ValueError("human handoff native binding changed")
         intent = connection.execute("SELECT project_id,asset_id,intent FROM v2_visual_intents WHERE id=?", (fact["intentId"],)).fetchone()
-        if intent is None or intent[:2] != (project_id, frame.asset_id) or json.loads(intent[2]) != observation.intent.model_dump(mode="json", by_alias=True):
+        from ..persistence.project.handoff_visual_intents import authored_intent
+        frozen_use = frame.target_use.model_dump(mode="json", by_alias=True) if frame.target_use else None
+        if (intent is None or intent[:2] != (project_id, frame.asset_id)
+                or authored_intent(json.loads(intent[2])) != observation.intent.model_dump(mode="json", by_alias=True)
+                or json.loads(intent[2]).get("targetUse") != frozen_use):
             raise ValueError("human authored intent changed")
         if frame.character_ids:
             review = connection.execute("SELECT project_id,binding_id,reviewer,notes,comparisons,reference_bindings FROM v2_same_person_reviews WHERE id=?", (fact.get("samePersonReviewId"),)).fetchone()
@@ -119,7 +131,10 @@ def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw,
                     raise ValueError("human comparison reference bytes changed")
                 if frame.geometry_preparation and (item.get("frameHash") != frame.original_hash or item.get("geometryPreparationHash") != frame.geometry_preparation.preparation_hash):
                     raise ValueError("human derivative observation lineage changed")
-                if item.get("comparisonOrigin") is not None and (item["comparisonOrigin"] != "human_current_material" or item.get("frameHash") != frame.original_hash):
+                expected_origin = "cross_shot_target_use" if frame.target_use else "human_current_material"
+                if frame.target_use is not None and item.get("comparisonOrigin") != expected_origin:
+                    raise ValueError("cross-shot target lacks its independent identity observation")
+                if item.get("comparisonOrigin") is not None and (item["comparisonOrigin"] != expected_origin or item.get("frameHash") != frame.original_hash):
                     raise ValueError("manual comparison context changed")
         elif fact.get("samePersonReviewId") is not None or observation.comparisons:
             raise ValueError("character-free frame cannot fabricate an identity pass")

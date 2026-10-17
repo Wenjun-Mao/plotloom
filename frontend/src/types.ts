@@ -272,12 +272,18 @@ export interface VisualIntent {
   id: string;
   assetId: string;
   revision: number;
+  targetUseCurrent?: boolean;
   intent: {
     role: "protagonist_reference" | "location_reference" | "shot_keyframe";
     identityIntent?: string | null;
     compositionIntent?: string | null;
     styleIntent?: string | null;
     sourceRefs: string[];
+    targetUse?: {
+      kind: "cross_shot_initial_keyframe";
+      targetShotId: string;
+      source: { bindingId: string; sourceShotId: string; originShotId: string | null; assetId: string; originalHash: string };
+    };
   };
 }
 

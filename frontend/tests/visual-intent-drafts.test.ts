@@ -21,8 +21,8 @@ const render = async (props: Parameters<typeof Probe>[0] = {}) => {
 const edit = async (styleIntent: string) => {
   await act(async () => editor.update((value) => ({ ...value, styleIntent })));
 };
-function DirectionProbe({ project = "project", shot = "shot", target = "original", context = "approval-1", durable = false, quiescence }: { project?: string; shot?: string; target?: string; context?: string; durable?: boolean; quiescence?: ProjectDraftQuiescence }) {
-  directionEditor = useImageJobDirectionDraft(project, shot, target === "original" ? { kind: "original" } : { kind: "refinement", parentCandidateAssetId: target }, context, durable ? 1 : undefined, durable, quiescence);
+function DirectionProbe({ project = "project", shot = "shot", target = "original", source, context = "approval-1", durable = false, quiescence }: { project?: string; shot?: string; target?: string; source?: string; context?: string; durable?: boolean; quiescence?: ProjectDraftQuiescence }) {
+  directionEditor = useImageJobDirectionDraft(project, shot, target === "original" ? { kind: "original", sceneContinuityBindingId: source } : { kind: "refinement", parentCandidateAssetId: target }, context, durable ? 1 : undefined, durable, quiescence);
   return null;
 }
 const renderDirection = async (props: Parameters<typeof DirectionProbe>[0] = {}) => {
@@ -31,6 +31,21 @@ const renderDirection = async (props: Parameters<typeof DirectionProbe>[0] = {})
 beforeEach(() => {
   sessionStorage.clear(); localStorage.clear();
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+});
+it("freezes cross-shot source selection in exact visual intent and image direction drafts", async () => {
+  vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
+  const save = vi.spyOn(plotloomApi, "saveAuthoringDraft").mockResolvedValue({ draftRevision: 1 } as never);
+  await render({ durable: true });
+  await act(async () => editor.update((value) => ({ ...value, sourceBindingId: "reviewed-A", retainedVisualIntentId: "B-intent" })));
+  await act(async () => { expect(await editor.flush()).toBe(true); });
+  expect(save.mock.lastCall?.[1].payload).toMatchObject({ sourceBindingId: "reviewed-A", retainedVisualIntentId: "B-intent" });
+  await renderDirection({ source: "reviewed-A", durable: true });
+  await act(async () => directionEditor.update("Use A's scene appearance"));
+  await act(async () => { expect(await directionEditor.flush()).toBe(true); });
+  expect(save.mock.lastCall?.[1].entityId).toBe("shot:scene_continuity:reviewed-A");
+  await renderDirection({ source: "reviewed-C", durable: true });
+  expect(directionEditor.value).toBe("");
+  expect(directionEditor.serverRevision).toBe(0);
 });
 afterEach(async () => { vi.restoreAllMocks(); await act(async () => root.unmount()); host.remove(); });
 

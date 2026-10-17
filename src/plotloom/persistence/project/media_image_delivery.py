@@ -42,7 +42,7 @@ class ImageJobDeliveryPersistence:
             sources: list[dict[str, Any]] = []
             for reference in job.request["frozenSnapshot"].get("references", []):
                 if reference.get("role") not in {
-                    "parent_output", "source_keyframe", "character_identity"
+                    "parent_output", "source_keyframe", "character_identity", "scene_continuity"
                 }:
                     continue
                 asset = session.get(ManagedAssetRow, reference.get("assetId"))

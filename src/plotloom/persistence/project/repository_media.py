@@ -83,10 +83,11 @@ class ProjectMediaRepository:
 
     def create_visual_intent(
         self, project_id: str, asset_id: str, intent: JsonObject, *,
+        target_shot_id: str | None = None,
         consumed_draft: tuple[str, int, JsonObject] | None = None,
     ) -> JsonObject:
         return self._intents.create_visual_intent(
-            project_id, asset_id, intent, consumed_draft=consumed_draft
+            project_id, asset_id, intent, consumed_draft=consumed_draft, target_shot_id=target_shot_id
         )
 
     def list_visual_intents(self, project_id: str) -> list[JsonObject]:
@@ -275,6 +276,7 @@ class ProjectMediaRepository:
         self, project_id: str, *, approval_id: str | None = None, machine_decision_id: str | None = None, shot_id: str,
         storyboard_revision: int, presentation_change: str,
         parent_candidate_asset_id: str | None = None,
+        scene_continuity_binding_id: str | None = None,
         keyframe_adaptation: JsonObject | None = None, contract_version: int = 2,
         consumed_draft: tuple[str, int, JsonObject] | None = None,
     ) -> JsonObject:
@@ -282,6 +284,7 @@ class ProjectMediaRepository:
             project_id, approval_id=approval_id, machine_decision_id=machine_decision_id, shot_id=shot_id,
             storyboard_revision=storyboard_revision,
             parent_candidate_asset_id=parent_candidate_asset_id,
+            scene_continuity_binding_id=scene_continuity_binding_id,
             keyframe_adaptation=keyframe_adaptation,
             presentation_change=presentation_change, contract_version=contract_version,
             consumed_draft=consumed_draft,

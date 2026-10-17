@@ -69,6 +69,10 @@ class ImageJobCurrentness:
     def image_job_is_current_in_session(self, session: Session, job: ImageJobRow) -> bool:
         return self._image_dependencies_current(session, job, ancestors=frozenset(), historical_source=False)
 
+    def image_source_is_current_in_session(self, session: Session, job: ImageJobRow) -> bool:
+        """Frozen independently reviewed use does not depend on later source selection."""
+        return self._image_dependencies_current(session, job, ancestors=frozenset(), historical_source=True)
+
     def _image_dependencies_current(self, session, job, *, ancestors, historical_source):
         if job.id in ancestors:
             return False
@@ -97,6 +101,24 @@ class ImageJobCurrentness:
         if not self.presentations.matches(session, job.project_id, unit.shot_id, unit.snapshot.get("shotPresentation")):
             return False
 
+        continuity = unit.snapshot.get("sceneContinuity")
+        if continuity is not None:
+            from .image_reviewed_use import connection_for, validate_reviewed_source, require_use_current
+            from ..schema import VisualIntentRow
+            try:
+                source = validate_reviewed_source(connection_for(session), job.project_id, continuity)
+                binding = session.get(ReviewedShotBindingRow, continuity["bindingId"])
+                if not self._admission.reviewed_binding_context_current_in_session(session, job.project_id, binding):
+                    return False
+                require_use_current(session, job.project_id, session.get(VisualIntentRow, binding.visual_intent_id).intent, self)
+                if source:
+                    source_job = session.get(ImageJobRow, source.job_id)
+                    if source_job is None or source_job.state != "delivered" or not self._image_dependencies_current(
+                        session, source_job, ancestors=ancestors, historical_source=True):
+                        return False
+            except (ValueError, TypeError, KeyError, InvalidTransitionError, NotFoundError):
+                return False
+
         adaptation = unit.snapshot.get("keyframeAdaptation", {})
         if adaptation.get("sourceAuthority", {}).get("actor") == "machine_provisional":
             source = session.get(ImageJobRow, adaptation.get("sourceJobId"))
@@ -105,6 +127,28 @@ class ImageJobCurrentness:
                     or source.project_id != job.project_id or asset.project_id != job.project_id
                     or asset.original_hash != adaptation.get("sourceOriginalHash")
                     or not self._image_dependencies_current(session, source, ancestors=ancestors, historical_source=True)):
+                return False
+        elif adaptation.get("sourceBindingId") is not None:
+            binding = session.get(ReviewedShotBindingRow, adaptation["sourceBindingId"])
+            asset = session.get(ManagedAssetRow, adaptation.get("sourceAssetId"))
+            if (binding is None or asset is None or binding.project_id != job.project_id
+                    or binding.shot_id != unit.shot_id or binding.asset_id != asset.id
+                    or binding.selection_revision != adaptation.get("sourceSelectionRevision")
+                    or binding.visual_intent_id != adaptation.get("sourceVisualIntentId")
+                    or binding.visual_intent_revision != adaptation.get("sourceVisualIntentRevision")
+                    or asset.original_hash != adaptation.get("sourceOriginalHash")
+                    or not self._admission.reviewed_binding_context_current_in_session(session, job.project_id, binding, approval=approval)):
+                return False
+            from .image_reviewed_use import require_use_current, use_in_session
+            from ..schema import VisualIntentRow
+            try:
+                source = use_in_session(session, binding)
+                require_use_current(session, job.project_id, session.get(VisualIntentRow, binding.visual_intent_id).intent, self)
+                if source:
+                    parent = session.get(ImageJobRow, source.job_id)
+                    if parent is None or not self._image_dependencies_current(session, parent, ancestors=ancestors, historical_source=True):
+                        return False
+            except (ValueError, InvalidTransitionError, NotFoundError):
                 return False
 
         # V1 original jobs predate the reviewed-keyframe refinement binding and
@@ -133,15 +177,21 @@ class ImageJobCurrentness:
                 return False
             if not self._admission.reviewed_binding_context_current_in_session(session, job.project_id, binding, approval=approval):
                 return False
+            from .image_reviewed_use import require_use_current
+            from ..schema import VisualIntentRow
+            try:
+                require_use_current(session, job.project_id, session.get(VisualIntentRow, binding.visual_intent_id).intent, self)
+            except (ValueError, InvalidTransitionError, NotFoundError):
+                return False
             # Before selection the frozen parent must remain selected. Once this
             # delivered output is reviewed/selected, that new selection correctly
             # supersedes its parent without erasing the immutable source context.
             latest = session.scalar(select(ReviewedShotBindingRow).where(ReviewedShotBindingRow.project_id == job.project_id,
                 ReviewedShotBindingRow.shot_id == unit.shot_id).order_by(ReviewedShotBindingRow.selection_revision.desc()).limit(1))
-            from .image_source_lineage import source_in_session
+            from .image_reviewed_use import use_in_session
             try:
-                parent_source = source_in_session(session, job.project_id, binding.asset_id, shot_id=unit.shot_id)
-                selected_source = source_in_session(session, job.project_id, latest.asset_id, shot_id=unit.shot_id) if latest else None
+                parent_source = use_in_session(session, binding)
+                selected_source = use_in_session(session, latest) if latest else None
             except InvalidTransitionError:
                 return False
             parent_job = session.get(ImageJobRow, parent_source.job_id) if parent_source else None

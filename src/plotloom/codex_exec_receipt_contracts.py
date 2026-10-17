@@ -64,8 +64,8 @@ class CodexExecImageEvidence(CamelModel):
         parts = self.output_relative_path.split("/")
         if len(parts) < 3 or any(part in {"", ".", ".."} for part in parts) or parts[:2] != ["delivery", "outputs"]:
             raise ValueError("ImageGen output must be confined to the attempt delivery outputs directory")
-        if len(self.reference_hashes) != len(set(self.reference_hashes)):
-            raise ValueError("ImageGen reference hashes must be distinct")
+        # Hashes bind the ordered attachment bytes, not attachment identity.
+        # Distinct role/path inputs may legitimately contain identical pixels.
         if any(re.fullmatch(HASH, value) is None for value in self.reference_hashes):
             raise ValueError("ImageGen reference evidence must use SHA-256 content hashes")
         if self.arguments_hash != image_arguments_hash(
@@ -201,7 +201,6 @@ class CodexExecReceipt(CamelModel):
         if len({item.call_id for item in self.image_evidence}) != len(self.image_evidence):
             raise ValueError("ImageGen call IDs must be unique within one attempt")
         view_paths = [item.package_relative_path for item in self.reference_views]
-        view_hashes = [item.reference_hash for item in self.reference_views]
         view_call_ids = [item.call_id for item in self.reference_views]
         view_event_ids = [item.event_id for item in self.reference_views]
         view_call_ordinals = [item.call_ordinal for item in self.reference_views]
@@ -214,7 +213,6 @@ class CodexExecReceipt(CamelModel):
         ]
         if (
             len(view_paths) != len(set(view_paths))
-            or len(view_hashes) != len(set(view_hashes))
             or len(view_call_ids) != len(set(view_call_ids))
             or len(view_event_ids) != len(set(view_event_ids))
             or view_call_ordinals != sorted(view_call_ordinals)

@@ -55,6 +55,7 @@ class ImageJobCreateRequest(CamelModel):
     shot_id: str = Field(min_length=1, max_length=100)
     storyboard_revision: int = Field(ge=1)
     parent_candidate_asset_id: str | None = Field(default=None, max_length=36)
+    scene_continuity_binding_id: str | None = Field(default=None, min_length=1, max_length=36)
     # An aspect-adaptation job starts from the current reviewed keyframe,
     # including an imported keyframe that has no prior image-job candidate.
     # The API resolves this opaque ID against the reviewed H3 catalog; callers
@@ -82,6 +83,11 @@ class ImageJobCreateRequest(CamelModel):
 
     @model_validator(mode="after")
     def adaptation_request_has_one_source_mode(self) -> "ImageJobCreateRequest":
+        if self.scene_continuity_binding_id is not None and (
+            self.parent_candidate_asset_id is not None or self.keyframe_adaptation_profile_id is not None
+            or self.contract_version != 3
+        ):
+            raise ValueError("scene continuity requires an independent identity-aware original job")
         if self.keyframe_adaptation_profile_id is not None:
             if self.parent_candidate_asset_id is not None:
                 raise ValueError("keyframe adaptation cannot also name a refinement parent")

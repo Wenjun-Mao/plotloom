@@ -212,7 +212,7 @@ def create_project_folder_authoring_app(
             return f"refinement:{body.parent_candidate_asset_id}"
         if body.keyframe_adaptation_profile_id is not None:
             return f"keyframe_adaptation:{body.keyframe_adaptation_profile_id}"
-        return "original"
+        return f"scene_continuity:{body.scene_continuity_binding_id}" if body.scene_continuity_binding_id else "original"
 
     @app.exception_handler(ProjectStorageConflictError)
     async def project_storage_conflict_handler(

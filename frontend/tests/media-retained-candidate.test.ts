@@ -261,3 +261,114 @@ it("clears observations immediately on approval/source revision changes, even be
   await render(shot, "project", false, { review, storyboardRevision: 1 });
   expect(compatibility().value).toBe("");
 });
+
+it("generic gallery retention of another shot's imported frame creates an independent explicit target draft", async () => {
+  vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValue(snapshot());
+  const save = vi.spyOn(plotloomApi, "createVisualIntent").mockResolvedValue(intent("old-asset"));
+  const select = vi.spyOn(plotloomApi, "selectReviewedKeyframe");
+  await render(otherShot);
+  await click("keep-candidate-old-asset");
+  expect(control<HTMLSelectElement>("cross-shot-use-source").value).toBe("old-asset-binding");
+  expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(true);
+  await edit(control<HTMLTextAreaElement>("visual-intent-source-refs"), "Independent B shot evidence");
+  await click("save-visual-intent");
+  expect(save.mock.lastCall?.[2]).toMatchObject({ sourceBindingId: "old-asset-binding", sourceRefs: ["Independent B shot evidence"] });
+  expect(select).not.toHaveBeenCalled();
+});
+
+it("does not edit an ordinary intent shared by existing A and B selections until B chooses explicit reuse", async () => {
+  const state = snapshot([binding(), binding("old-asset", otherShot, "shared-B-binding")]);
+  const unchanged = structuredClone(state);
+  vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValue(state);
+  const save = vi.spyOn(plotloomApi, "createVisualIntent").mockResolvedValue(intent("old-asset"));
+  const select = vi.spyOn(plotloomApi, "selectReviewedKeyframe");
+  await render(otherShot);
+  expect(control<HTMLTextAreaElement>("visual-intent-source-refs").value).not.toBe("old-asset-source");
+  await edit(control<HTMLTextAreaElement>("visual-intent-source-refs"), "Independent B evidence");
+  await click("save-visual-intent");
+  expect(save).not.toHaveBeenCalled();
+  expect(host.textContent).toContain("明确选择来源绑定");
+  expect(state).toEqual(unchanged);
+  await click("keep-candidate-old-asset");
+  expect(control<HTMLSelectElement>("cross-shot-use-source").value).toBe("old-asset-binding");
+  await click("save-visual-intent");
+  expect(save.mock.lastCall?.[2]).toMatchObject({ sourceBindingId: "old-asset-binding", sourceRefs: ["Independent B evidence"] });
+  expect(select).not.toHaveBeenCalled();
+  expect(state).toEqual(unchanged);
+});
+
+it("keeps A ordinary intent editable when B independently uses the same asset through a different typed intent", async () => {
+  const targetIntent: VisualIntent = { ...intent("old-asset"), id: "independent-B-intent", revision: 2, intent: {
+    ...intent("old-asset").intent, targetUse: { kind: "cross_shot_initial_keyframe", targetShotId: otherShot.id,
+      source: { bindingId: "old-asset-binding", sourceShotId: shot.id, originShotId: null,
+        assetId: "old-asset", originalHash: "a".repeat(64) } },
+  } };
+  const target = { ...binding("old-asset", otherShot, "B-binding"), visualIntentId: targetIntent.id, visualIntentRevision: 2 };
+  vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValue(snapshot([binding(), target], [intent("old-asset"), targetIntent]));
+  const save = vi.spyOn(plotloomApi, "createVisualIntent").mockResolvedValue(intent("old-asset"));
+  await render();
+  await click("keep-candidate-old-asset");
+  expect(control<HTMLSelectElement>("cross-shot-use-source").value).toBe("");
+  expect(control<HTMLTextAreaElement>("visual-intent-source-refs").value).toBe("old-asset-source");
+  await edit(control<HTMLTextAreaElement>("visual-intent-source-refs"), "A source edit");
+  await click("save-visual-intent");
+  expect(save.mock.lastCall?.[2]).toMatchObject({ sourceRefs: ["A source edit"], sourceBindingId: undefined, retainedVisualIntentId: undefined });
+  expect(save).toHaveBeenCalledOnce();
+});
+
+it("shows a frozen source after A reselection and saves B edits against B's retained target intent", async () => {
+  const targetIntent: VisualIntent = { ...intent("old-asset"), id: "B-intent", revision: 2, intent: {
+    ...intent("old-asset").intent, compositionIntent: "Independent B composition",
+    targetUse: { kind: "cross_shot_initial_keyframe", targetShotId: otherShot.id, source: {
+      bindingId: "historic-A-binding", sourceShotId: shot.id, originShotId: null, assetId: "old-asset", originalHash: "a".repeat(64) } },
+  } };
+  const target = { ...binding("old-asset", otherShot, "B-binding"), visualIntentId: targetIntent.id, visualIntentRevision: 2 };
+  vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValue(snapshot([binding(), target], [intent("old-asset"), targetIntent]));
+  const save = vi.spyOn(plotloomApi, "createVisualIntent").mockResolvedValue(targetIntent);
+  await render(otherShot);
+  const selector = control<HTMLSelectElement>("cross-shot-use-source");
+  expect(selector.value).toBe("historic-A-binding");
+  expect(selector.selectedOptions[0].textContent).toContain("已冻结来源");
+  await edit(control<HTMLTextAreaElement>("visual-intent-source-refs"), "B edit preserving pinned A pixels");
+  await click("save-visual-intent");
+  expect(save.mock.lastCall?.[2]).toMatchObject({ sourceBindingId: "historic-A-binding", retainedVisualIntentId: "B-intent" });
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!.call(selector, "");
+    selector.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await click("save-visual-intent");
+  expect(save).toHaveBeenCalledOnce();
+  expect(host.textContent).toContain("明确选择来源绑定");
+});
+
+it("retains only current typed authoring proof after binding withdrawal, without retaining review authority", async () => {
+  const makeIntent = (revision: number, targetUseCurrent: boolean): VisualIntent => ({
+    ...intent("old-asset"), id: `B-intent-${revision}`, revision, targetUseCurrent,
+    intent: { ...intent("old-asset").intent, sourceRefs: [`B edit ${revision}`], targetUse: {
+      kind: "cross_shot_initial_keyframe", targetShotId: otherShot.id, source: {
+        bindingId: "historic-A-binding", sourceShotId: shot.id, originShotId: null,
+        assetId: "old-asset", originalHash: "a".repeat(64),
+      },
+    } },
+  });
+  const original = makeIntent(2, true);
+  const target = { ...binding("old-asset", otherShot, "B-binding"), visualIntentId: original.id, visualIntentRevision: 2 };
+  vi.spyOn(plotloomApi, "getVisualWorkbench")
+    .mockResolvedValueOnce(snapshot([binding(), target], [intent("old-asset"), original]))
+    .mockResolvedValueOnce(snapshot([binding()], [intent("old-asset"), makeIntent(3, true)]))
+    .mockResolvedValueOnce(snapshot([binding()], [intent("old-asset"), makeIntent(4, true)]))
+    .mockResolvedValueOnce(snapshot([binding()], [intent("old-asset"), makeIntent(4, false)]));
+  await render(otherShot);
+  await edit(compatibility(), "Old B review must not transfer.");
+  for (const revision of [3, 4]) {
+    await refreshThroughImport();
+    expect(kept("old-asset")).toBe("true");
+    expect(control<HTMLTextAreaElement>("visual-intent-source-refs").value).toBe(`B edit ${revision}`);
+    expect(compatibility().value).toBe("");
+    expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(true);
+    expect(host.querySelector('[data-testid="current-reviewed-keyframe"]')).toBeNull();
+  }
+  await refreshThroughImport();
+  expect(kept("old-asset")).toBe("false");
+  expect(host.querySelector('[data-testid="visual-intent-source-refs"]')).toBeNull();
+});

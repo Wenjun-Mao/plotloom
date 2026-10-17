@@ -109,7 +109,7 @@ def read_image(
             require_executor_provenance=True,
             expected_executor_contract="codex_exec.v1",
             required_reference_hashes=[item["originalHash"] for item in request.get("frozenSnapshot", {}).get("references", [])
-                if item["role"] == "character_identity"],
+                if item["role"] in {"character_identity", "scene_continuity"}],
             expected_codex_attempt=executor_attempt,
             expected_codex_profile=executor_profile,
             expected_codex_receipt=executor_receipt,
@@ -118,7 +118,7 @@ def read_image(
             expected_codex_output_role=output_role,
         )
     return exchange.read_delivery(job_id=job_id, request_hash=context["requestHash"], require_executor_provenance=True,
-        required_reference_hashes=[item["originalHash"] for item in request["frozenSnapshot"].get("references", []) if item["role"] == "character_identity"],
+        required_reference_hashes=[item["originalHash"] for item in request["frozenSnapshot"].get("references", []) if item["role"] in {"character_identity", "scene_continuity"}],
         require_executor_pin=True, expected_executor_skill_version=preflight["skillVersion"],
         expected_executor_contract=preflight["executionContract"],
         expected_native_task_binding=native_task_binding)

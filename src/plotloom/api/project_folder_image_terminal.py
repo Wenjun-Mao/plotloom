@@ -23,7 +23,7 @@ def register_image_terminal_routes(app: FastAPI, opened_project: Callable[[str],
         exchange = store.image_exchange_for(context)
         references = []
         for index, reference in enumerate(item for item in context["request"]["frozenSnapshot"].get("references", [])
-                                          if item.get("role") in {"parent_output", "source_keyframe", "character_identity"}):
+                                          if item.get("role") in {"parent_output", "source_keyframe", "character_identity", "scene_continuity"}):
             role = reference["role"]
             if role == "character_identity" and reference.get("characterId"):
                 role = f"character_identity:{reference['characterId']}"

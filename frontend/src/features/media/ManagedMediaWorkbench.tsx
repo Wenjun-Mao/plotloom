@@ -27,6 +27,7 @@ import { useAssetKeyframeActions } from "./assets/useAssetKeyframeActions";
 import { useImageJobActions } from "./image-jobs/useImageJobActions";
 import { useCharacterReferenceActions } from "./references/useCharacterReferenceActions";
 import { useMediaSelectionContext } from "./keyframes/useMediaSelectionContext";
+import { ownsOrdinaryIntent } from "./keyframes/visual-intent-ownership";
 import { useKeyframeCompatibilityDraft } from "./keyframes/useKeyframeCompatibilityDraft";
 import { ShotPreparationSummary } from "./ShotPreparationSummary";
 import { revealMediaOwner } from "./media-owner-navigation";
@@ -144,6 +145,7 @@ export function ManagedMediaWorkbench({
     activeIntent,
     intentEditor,
     intentDraft,
+    retainCrossShotFrame,
     eligibleRefinementCandidates,
     targetCandidate,
     imageJobContextId,
@@ -365,6 +367,7 @@ export function ManagedMediaWorkbench({
         onRevokeReference={(characterId) => void revokeCharacterReference(characterId)}
       /></div>
       <ImageJobPanel
+        reviewedKeyframes={workbench.reviewedKeyframes}
         imageExchangeConfigured={imageExchangeConfigured}
         prerequisite={imageJobPrerequisite}
         target={imageJobTarget}
@@ -385,6 +388,8 @@ export function ManagedMediaWorkbench({
         onCancel={(jobId) => void cancelImageJob(jobId)}
       />
       <AssetImportPanel
+        onReuseFrame={retainCrossShotFrame}
+        reviewedKeyframes={workbench.reviewedKeyframes}
         projectId={projectId}
         shotId={selectedShot?.id}
         assets={workbench.assets}
@@ -398,7 +403,12 @@ export function ManagedMediaWorkbench({
         onDeclaredAdditions={setDeclaredAdditions}
         onImport={(file) => void importFile(file)}
         onChooseCandidate={chooseCandidate}
-        onKeepCandidate={keepCandidate}
+        onKeepCandidate={(assetId) => {
+          const targetUse = workbench.visualIntents.some((intent) => intent.assetId === assetId && intent.intent.targetUse?.targetShotId === selectedShot?.id);
+          const source = workbench.reviewedKeyframes.find((binding) => binding.assetId === assetId && binding.shotId !== selectedShot?.id);
+          const ordinaryOwned = workbench.visualIntents.some((intent) => intent.assetId === assetId && ownsOrdinaryIntent(intent, selectedShot?.id, workbench.reviewedKeyframes));
+          if (source && !targetUse && !ordinaryOwned) retainCrossShotFrame(source); else keepCandidate(assetId);
+        }}
         onClear={() => {
           setCandidates([]);
           setKeptAssetId("");

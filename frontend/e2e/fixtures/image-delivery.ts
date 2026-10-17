@@ -86,11 +86,11 @@ export async function writeImageDeliveryFromPackage({
   }
 
   const identityReferenceHashes = (request.references ?? [])
-    .filter((reference) => reference.role.startsWith("character_identity:"))
+    .filter((reference) => reference.role.startsWith("character_identity:") || reference.role === "scene_continuity")
     .map((reference) => reference.sha256);
   const referenceUse = identityReferenceHashes.length > 0
     ? {
-        viewedReferenceHashes: identityReferenceHashes,
+        viewedReferenceHashes: [...new Set(identityReferenceHashes)],
         identityNotes: "Fixture attestation only; creator review remains required.",
       }
     : undefined;

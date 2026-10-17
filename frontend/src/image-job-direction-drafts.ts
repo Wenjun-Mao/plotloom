@@ -4,7 +4,7 @@ import type { ProjectDraftQuiescence } from "./features/authoring/projectDraftQu
 import { discardMediaDraftEntry, useMediaDraftErasure } from "./features/authoring/projectDraftCache";
 
 export type ImageJobDraftTarget =
-  | { kind: "original" }
+  | { kind: "original"; sceneContinuityBindingId?: string }
   | { kind: "refinement"; parentCandidateAssetId: string }
   | { kind: "keyframe_adaptation"; profileId: string; profileLabel: string };
 
@@ -49,6 +49,7 @@ function readImageJobDrafts(): ImageJobDrafts {
 export function imageJobTargetId(target: ImageJobDraftTarget): string {
   if (target.kind === "refinement") return `refinement:${target.parentCandidateAssetId}`;
   if (target.kind === "keyframe_adaptation") return `keyframe_adaptation:${target.profileId}`;
+  if (target.sceneContinuityBindingId) return `scene_continuity:${target.sceneContinuityBindingId}`;
   return "original";
 }
 

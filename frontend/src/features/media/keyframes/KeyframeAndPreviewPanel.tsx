@@ -205,6 +205,20 @@ export function KeyframeAndPreviewPanel({
             <small role="alert">服务器上的视觉意图草稿已更新；当前文本未覆盖它。请重新载入或明确放弃本地版本。</small>
           )}
           <div className="field-grid two compact">
+            <Field label="跨镜头原始画面来源（可选）">
+              <select data-testid="cross-shot-use-source" value={intentDraft.sourceBindingId ?? ""}
+                disabled={readOnly || busy}
+                onChange={(event) => intentEditor.update((current) => ({ ...current, sourceBindingId: event.target.value || undefined,
+                  retainedVisualIntentId: event.target.value === activeIntent?.intent.targetUse?.source.bindingId ? activeIntent.id : undefined }))}>
+                <option value="">本镜头原生来源 / 普通导入</option>
+                {activeIntent?.intent.targetUse && !workbench.reviewedKeyframes.some((binding) => binding.id === activeIntent.intent.targetUse?.source.bindingId) &&
+                  <option value={activeIntent.intent.targetUse.source.bindingId}>已冻结来源 {activeIntent.intent.targetUse.source.sourceShotId} · {activeIntent.intent.targetUse.source.bindingId.slice(0, 8)}（保留原审核证据）</option>}
+                {workbench.reviewedKeyframes.filter((binding) => binding.assetId === keptAssetId && binding.shotId !== selectedShot?.id).map((binding) =>
+                  <option key={binding.id} value={binding.id}>复用 {binding.shotId} 的审核画面 · {binding.id.slice(0, 8)}</option>)}
+              </select>
+              {intentDraft.sourceBindingId && <small>原始画面来源保留；以下意图与兼容审核仅适用于 {selectedShot?.id}。人物出现时需要当前镜头独立同人审核。</small>}
+              {activeIntent?.intent.targetUse && <small>原始生成镜头：{activeIntent.intent.targetUse.source.originShotId ?? "手动导入"}；目标使用：{activeIntent.intent.targetUse.targetShotId}。</small>}
+            </Field>
             <Field label="身份意图">
               <textarea
                 rows={2}

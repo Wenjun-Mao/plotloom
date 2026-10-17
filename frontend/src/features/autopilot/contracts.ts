@@ -20,7 +20,7 @@ export type AutopilotRun = {
   handoff: { receiptId: string } | null;
 };
 export type Launch = { expectedBriefRevision: number; styleAuthority: "brief" | "preset"; renderStyle?: ArtRenderStyle; artRenderStyle?: ArtRenderStyle; maxImages: number; maxJobs: number };
-export type ReviewFrame = { geometryPreparation?: GeometryPreparation; shotId: string; sceneId: string; title: string; sceneName: string; direction: string; assetId: string; originalHash: string; description: string; characterIds: string[]; origin: string };
+export type ReviewFrame = { targetUse?: VisualIntent["intent"]["targetUse"]; geometryPreparation?: GeometryPreparation; shotId: string; sceneId: string; title: string; sceneName: string; direction: string; assetId: string; originalHash: string; description: string; characterIds: string[]; origin: string };
 export type ReviewReference = { owner: string; subjectId: string; name: string; decisionId: string; assetId: string;
   assets: Array<{ assetId: string; originalHash: string; width: number; height: number }> };
 export type ReviewMaterial = { runRevision: number; bundleHash: string; bundle: {
@@ -29,7 +29,7 @@ export type ReviewMaterial = { runRevision: number; bundleHash: string; bundle: 
 } };
 export type FrameDraft = { direction: string; sources: string; compatibility: string; comparisons: SamePersonComparisonDraft[] };
 export type Handoff = { expectedRunRevision: number; bundleHash: string; notes?: string; endorsedReferenceIds: string[];
-  frames: Array<{ shotId: string; assetId: string; intent: Omit<VisualIntent, "id" | "assetId" | "revision">["intent"]; compatibilityNote: string; comparisons: SamePersonComparison[] }> };
+  frames: Array<{ shotId: string; assetId: string; intent: Omit<VisualIntent["intent"], "targetUse">; compatibilityNote: string; comparisons: SamePersonComparison[] }> };
 
 export function completeFrame(draft: FrameDraft) {
   return Boolean(draft.direction.trim() && draft.sources.trim() && draft.compatibility.trim() && draft.comparisons.every(item =>

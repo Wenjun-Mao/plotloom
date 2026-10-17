@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .domain_base import CamelModel, to_camel
 from .brief_contracts import DirectionSelection, ProjectBrief
+from .media_authoring_drafts import ImageDirectionDraftPayload, VisualIntentDraftPayload
 
 # Current canonical production contracts live in a separate cohesive module.
 from .canonical_schema import (
@@ -380,49 +381,6 @@ class AuthoringDraft(CamelModel):
     draft_revision: Annotated[int, Field(ge=1)]
     payload: dict[str, Any]
     updated_at: datetime = Field(default_factory=utc_now)
-
-
-class VisualIntentDraftPayload(CamelModel):
-    """A recoverable visual-intent edit, never a browser UI snapshot."""
-
-    asset_id: str = Field(min_length=1, max_length=36)
-    shot_id: str = Field(min_length=1, max_length=100)
-    role: Literal["protagonist_reference", "location_reference", "shot_keyframe"]
-    identity_intent: str | None = Field(default=None, max_length=2_000)
-    composition_intent: str | None = Field(default=None, max_length=2_000)
-    style_intent: str | None = Field(default=None, max_length=2_000)
-    source_refs: list[str] = Field(min_length=1, max_length=32)
-
-    @field_validator("source_refs")
-    @classmethod
-    def normalize_source_refs(cls, value: list[str]) -> list[str]:
-        normalized = [item.strip() for item in value]
-        if any(not item or len(item) > 2_000 for item in normalized) or len(set(normalized)) != len(normalized):
-            raise ValueError("visual-intent draft source refs must be unique, nonblank, and bounded")
-        return normalized
-
-    @model_validator(mode="after")
-    def require_direction(self) -> "VisualIntentDraftPayload":
-        if not any(value and value.strip() for value in (self.identity_intent, self.composition_intent, self.style_intent)):
-            raise ValueError("visual-intent draft requires authored direction")
-        return self
-
-
-class ImageDirectionDraftPayload(CamelModel):
-    """A narrow manual-job direction buffer bound to one canonical context."""
-
-    shot_id: str = Field(min_length=1, max_length=100)
-    target_id: str = Field(min_length=1, max_length=160, pattern=r"^[A-Za-z0-9._:-]+$")
-    context_id: str = Field(min_length=1, max_length=160, pattern=r"^[A-Za-z0-9._:-]+$")
-    presentation_change: str = Field(min_length=1, max_length=2_000)
-
-    @field_validator("presentation_change")
-    @classmethod
-    def normalize_direction(cls, value: str) -> str:
-        normalized = value.strip()
-        if not normalized:
-            raise ValueError("image-direction draft must not be blank")
-        return normalized
 
 
 class CanonicalSnapshot(CamelModel):

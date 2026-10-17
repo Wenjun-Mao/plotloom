@@ -60,12 +60,8 @@ def record_handoff(store, request: HumanHandoffRequest):
             if observation.comparisons and not repository._media.same_person.comparisons_authorize_production(
                     [item.model_dump(mode="json", by_alias=True, exclude_none=True) for item in observation.comparisons]):
                 raise InvalidTransitionError("failed or held identity observations cannot authorize a handoff")
-        authored_intents = {}
-        for observation in request.frames:
-            payload = observation.intent.model_dump(mode="json", by_alias=True)
-            if observation.asset_id in authored_intents and authored_intents[observation.asset_id] != payload:
-                raise InvalidTransitionError("one shared asset requires the same current visual intent across its shot bindings")
-            authored_intents[observation.asset_id] = payload
+        from .handoff_visual_intents import prepare_handoff_intents, persist_handoff_intent
+        intent_plans = prepare_handoff_intents(session, repository, project_id, request.frames, expected)
         inventory = bundle["inventory"]
         latest = session.scalar(select(ApprovalDecisionRow).where(ApprovalDecisionRow.project_id == project_id,
             ApprovalDecisionRow.entity_revision_id == inventory["entityRevisionId"],
@@ -82,9 +78,10 @@ def record_handoff(store, request: HumanHandoffRequest):
         facts = []
         intents = {}
         for observation, frame in zip(request.frames, expected, strict=True):
-            if frame["assetId"] not in intents:
-                intents[frame["assetId"]] = repository._media.intents.create_visual_intent(project_id, frame["assetId"], authored_intents[frame["assetId"]])
-            intent = intents[frame["assetId"]]
+            key = (frame["assetId"], frame["shotId"] if frame.get("targetUse") else None)
+            if key not in intents:
+                intents[key] = persist_handoff_intent(repository, project_id, frame, intent_plans[key])
+            intent = intents[key]
             selection = session.get(VisualSelectionStateRow, project_id)
             presentation = repository._media.shot_presentations.current(session, project_id, frame["shotId"])
             binding = repository._media.keyframes.select_reviewed_keyframe(project_id, asset_id=frame["assetId"],

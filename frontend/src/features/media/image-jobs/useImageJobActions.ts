@@ -87,6 +87,7 @@ export function useImageJobActions({
         approvalId: currentApproval.id,
         shotId: selectedShot.id,
         storyboardRevision,
+        sceneContinuityBindingId: imageJobTarget.kind === "original" ? imageJobTarget.sceneContinuityBindingId : undefined,
         parentCandidateAssetId:
           imageJobTarget.kind === "refinement"
             ? imageJobTarget.parentCandidateAssetId

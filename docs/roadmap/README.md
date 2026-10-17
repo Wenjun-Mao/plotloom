@@ -1,5 +1,23 @@
 # Plotloom roadmap entrypoint
 
+## Current cross-shot image continuity correction
+
+The owner approved explicit cross-shot unchanged-frame reuse and one reviewed
+scene-continuity image input for new target-shot generation. ADR 0189 separates
+immutable origin from target-specific use; target approval/intent/identity review
+remain independent. The observed next-shot set drift and the source-shot-only
+admission restriction are the demonstrated scope, not a general redesign.
+
+Deliver the existing-workbench controls, shared typed persistence/admission and
+reference package contracts, focused regressions, independent review and one
+stable full qualification before publication/activation. Preserve the current
+manual project and every retained media outcome; do not rewrite old frozen jobs,
+relax machine/refinement/geometry checks, introduce providers or automatically
+select generated content. Stopping condition: qualified explicit reuse and
+continuity-reference paths available for manual continuation, with real visual
+fidelity and human audio/creative acceptance reported separately. Python
+optimization, batching and the broader Goal remain parked.
+
 ## Current end-to-end bridge admission correction
 
 The owner approved fixing the walkthrough's Bridge Intent block end to end.

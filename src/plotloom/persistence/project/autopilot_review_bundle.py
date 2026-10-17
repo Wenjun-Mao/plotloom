@@ -8,7 +8,7 @@ from ...exceptions import InvalidTransitionError
 from ...keyframe_preparation import has_matching_aspect
 from ...source_structures import complete_routes
 from ..codec import stable_hash
-from ..schema import AutopilotFrameRow, ManagedAssetRow, ImageJobRow, ImageJobCandidateRow, ReviewedShotBindingRow
+from ..schema import AutopilotFrameRow, ManagedAssetRow, ImageJobRow, ReviewedShotBindingRow
 from .autopilot_closure import material_closure
 
 
@@ -74,8 +74,11 @@ def current_review_bundle(store, session, run):
         if not has_matching_aspect(asset.width, asset.height, *ratio):
             raise InvalidTransitionError("current frame geometry does not match the current Brief")
         from .image_source_lineage import source_in_session
-        lineage = source_in_session(session, project_id, asset.id, shot_id=shot.id)
-        frames.append(ReviewFrame(geometry_preparation=lineage.geometry if lineage else None,shot_id=shot.id, scene_id=shot.scene_id, asset_id=asset.id,
+        from .image_reviewed_use import use_in_session
+        lineage = use_in_session(session, binding) if binding is not None else source_in_session(session, project_id, asset.id, shot_id=shot.id)
+        from ..schema import VisualIntentRow
+        intent = session.get(VisualIntentRow, binding.visual_intent_id) if binding else None
+        frames.append(ReviewFrame(target_use=intent.intent.get("targetUse") if intent else None, geometry_preparation=lineage.geometry if lineage else None,shot_id=shot.id, scene_id=shot.scene_id, asset_id=asset.id,
             title=shot.title, scene_name=scene_names[shot.scene_id], direction=shot.visual_intent + " " + shot.composition,
             original_hash=asset.original_hash, width=asset.width, height=asset.height,
             character_ids=shot.character_ids, description=shot.action,

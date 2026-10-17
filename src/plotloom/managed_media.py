@@ -67,6 +67,8 @@ class VisualIntentInput(CamelModel):
     composition_intent: str | None = Field(default=None, max_length=2_000)
     style_intent: str | None = Field(default=None, max_length=2_000)
     source_refs: list[str] = Field(default_factory=list, max_length=32)
+    source_binding_id: str | None = Field(default=None, min_length=1, max_length=36, exclude_if=lambda value: value is None)
+    retained_visual_intent_id: str | None = Field(default=None, min_length=1, max_length=36, exclude_if=lambda value: value is None)
 
     @field_validator("source_refs")
     @classmethod

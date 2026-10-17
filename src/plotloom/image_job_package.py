@@ -195,6 +195,14 @@ def project_image_package(
         }
         art_reference = request.get("target") == "art_reference_proposal"
         adaptation = request.get("kind") == "keyframe_adaptation"
+        continuity_instruction = (
+            "View the scene_continuity image before generation and include its hash in referenceUse. "
+            "It freezes another shot's reviewed scene appearance and object layout only. "
+            "The target shot and its shotPresentation control action, framing, lighting and current object states. "
+            "Do not copy the reference shot's action or override target facts; scene_continuity is not parent_output "
+            "or character_identity. The output is a new unselected target candidate; continuity fidelity needs review. "
+            if request.get("frozenSnapshot", {}).get("sceneContinuity") is not None else ""
+        )
         adaptation_contract = request.get("frozenSnapshot", {}).get("keyframeAdaptation", {}).get("outputContract", {})
         adaptation_instruction = (
             f" Adapt the supplied source_keyframe into one complete {adaptation_contract.get('width')}x{adaptation_contract.get('height')} "
@@ -218,6 +226,7 @@ def project_image_package(
                 )
             )
             + adaptation_instruction
+            + continuity_instruction
             + (f"Produce one unchanged original with aspect {request['frozenSnapshot']['requestedGeometry']['aspectRatio']}, "
                f"targeting {request['frozenSnapshot']['requestedGeometry']['width']}x{request['frozenSnapshot']['requestedGeometry']['height']}. "
                "Disclose actual geometry; do not crop or pad outputs. This is an AI provisional material, without human visual or identity approval. "
@@ -280,6 +289,7 @@ def project_image_package(
                 )
             )
             + adaptation_instruction
+            + continuity_instruction
             + ("Use the frozen shot action/composition and resolved visibleEvent fields as physical presentation authority. "
                "visibleTexts are exact nonspoken diegetic words: preserve their original text in the image. "
                + presentation_amendment_instruction(request)
@@ -339,9 +349,10 @@ def project_image_package(
             },
             "limitations": [],
         }
-        if any(item["role"].startswith("character_identity") for item in reference_entries):
+        if any(item["role"].startswith("character_identity") or item["role"] == "scene_continuity" for item in reference_entries):
             template_payload["referenceUse"] = {
-                "viewedReferenceHashes": ["replace-with-every-character-identity-hash"],
+                "viewedReferenceHashes": ["replace-with-every-character-identity-and-scene-continuity-hash"
+                    if continuity_instruction else "replace-with-every-character-identity-hash"],
                 "identityNotes": "describe how identity was preserved; this attestation is not creator approval",
             }
         template = None if version == CODEX_EXEC_PACKAGE_VERSION else canonical_json(template_payload)

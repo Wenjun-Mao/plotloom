@@ -83,8 +83,6 @@ class ReviewedKeyframePersistence:
             asset = session.get(ManagedAssetRow, asset_id)
             if asset is None or asset.project_id != project_id:
                 raise NotFoundError(f"managed asset not found: {asset_id}")
-            from .image_source_lineage import current_source_in_session
-            current_source_in_session(session, project_id, asset_id, self._image_currentness, shot_id=shot_id)
             intent = session.get(VisualIntentRow, visual_intent_id)
             if (
                 intent is None or intent.project_id != project_id or intent.asset_id != asset_id
@@ -92,7 +90,8 @@ class ReviewedKeyframePersistence:
             ):
                 raise InvalidTransitionError("reviewed keyframe must bind an exact current-project visual intent")
             latest_intent = self._admission.latest_visual_intent_for_role_in_session(
-                session, project_id, asset_id, intent.intent.get("role")
+                session, project_id, asset_id, intent.intent.get("role"),
+                (intent.intent.get("targetUse") or {}).get("targetShotId")
             )
             if latest_intent is None or latest_intent.id != intent.id:
                 raise InvalidTransitionError("reviewed keyframe must bind the current visual intent revision")
@@ -115,6 +114,8 @@ class ReviewedKeyframePersistence:
                 selection_revision=state.revision, compatibility_note=compatibility_note,
                 created_at=now,
             )
+            from .image_reviewed_use import use_in_session
+            use_in_session(session, binding, currentness=self._image_currentness)
             session.add(binding)
             session.flush()
             return {

@@ -24,6 +24,7 @@
     "graph-safety-diagnostics.spec.ts"
   ],
   "2": [
+    "cross-shot-image-use.spec.ts",
     "branching-video-preview.spec.ts",
     "cast-reference-studies.spec.ts",
     "project-folder-close.spec.ts",

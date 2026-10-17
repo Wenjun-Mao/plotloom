@@ -7,6 +7,7 @@ import type {
 } from "../../../types";
 import { plotloomApi } from "../../../api";
 import { useVisualIntentDraft } from "../../../visual-intent-drafts";
+import { ownsOrdinaryIntent } from "../keyframes/visual-intent-ownership";
 
 type IntentEditor = ReturnType<typeof useVisualIntentDraft>;
 
@@ -113,6 +114,12 @@ export function useAssetKeyframeActions({
       setError("已保存意图已有新版本；草稿仍保留，请先检查并重新载入。");
       return;
     }
+    const ownsCurrentIntent = ownsOrdinaryIntent(activeIntent, selectedShot?.id, workbench.reviewedKeyframes);
+    const needsExplicitUse = activeIntent?.intent.targetUse || (!ownsCurrentIntent && workbench.reviewedKeyframes.some((binding) => binding.assetId === keptAssetId && binding.shotId !== selectedShot?.id));
+    if (!intentDraft.sourceBindingId && needsExplicitUse) {
+      setError("这张图片已用于其他镜头；请明确选择来源绑定，保存当前镜头独立意图。");
+      return;
+    }
     const sourceRefs = intentDraft.sourceRefs
       .split("\n")
       .map((item) => item.trim())
@@ -137,6 +144,8 @@ export function useAssetKeyframeActions({
         compositionIntent: intentDraft.compositionIntent || undefined,
         styleIntent: intentDraft.styleIntent || undefined,
         sourceRefs,
+        sourceBindingId: intentDraft.sourceBindingId || undefined,
+        retainedVisualIntentId: intentDraft.retainedVisualIntentId || undefined,
         ...(mediaDraftsEnabled ? {
           shotId: selectedShot!.id,
           consumedDraft: {

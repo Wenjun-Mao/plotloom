@@ -19,5 +19,6 @@ def human_mapping(session, binding, canonical, references):
         assets = [session.get(ManagedAssetRow, identifier) for identifier in [reference.primary_asset_id, *reference.complementary_asset_ids]]
         mapping.append({"characterId": character_id, "referenceDecisionId": reference.id,
             "referenceRevision": reference.reference_revision,
-            "assets": [{"originalHash": asset.original_hash} for asset in assets]})
+            "characterContextHash": reference.character_context_hash,
+            "assets": [{"assetId": asset.id, "originalHash": asset.original_hash} for asset in assets]})
     return mapping

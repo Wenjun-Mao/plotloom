@@ -60,6 +60,8 @@ def assert_current_review_bindings(connection: sqlite3.Connection, *, asset_home
     consume these contracts. Never infer new authority from obsolete fields.
     """
     from .autopilot_validation import assert_autopilot_contracts
+    from .cross_shot_validation import assert_cross_shot_contracts
+    assert_cross_shot_contracts(connection, asset_home=asset_home)
     if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_autopilot_runs'").fetchone():
         assert_autopilot_contracts(connection, asset_home=asset_home)
     for table, model in (

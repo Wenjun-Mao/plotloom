@@ -272,7 +272,7 @@ def publish_image_completion(
         else "original"
     )
     reference_use = ImageReferenceUse(
-        viewedReferenceHashes=[item.reference_hash for item in receipt.reference_views],
+        viewedReferenceHashes=list(dict.fromkeys(item.reference_hash for item in receipt.reference_views)),
         identityNotes=(
             "The trusted host records each exact frozen package reference emitted as image content before ImageGen; "
             "this does not assert interpretation or approval."

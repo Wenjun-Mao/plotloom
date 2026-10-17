@@ -235,6 +235,7 @@ def register_project_folder_media_routes(
                 project_id,
                 asset_id,
                 intent,
+                target_shot_id=body.shot_id,
                 consumed_draft=(
                     body.consumed_draft.entity_id,
                     body.consumed_draft.draft_revision,

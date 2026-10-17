@@ -3,7 +3,7 @@ import { plotloomApi } from "./api";
 import type { ProjectDraftQuiescence } from "./features/authoring/projectDraftQuiescence";
 import { discardMediaDraftEntry, useMediaDraftErasure } from "./features/authoring/projectDraftCache";
 
-export type IntentDraft = { identityIntent: string; compositionIntent: string; styleIntent: string; sourceRefs: string };
+export type IntentDraft = { identityIntent: string; compositionIntent: string; styleIntent: string; sourceRefs: string; sourceBindingId?: string; retainedVisualIntentId?: string };
 type Entry = { baseId: string | null; value: IntentDraft };
 type Drafts = Record<string, Entry>;
 type DurableWriterState = {
@@ -18,7 +18,7 @@ type DurableWriterState = {
   suspended?: boolean;
 };
 const storageKey = "plotloom:visual-intent-drafts:v1";
-const fields = ["identityIntent", "compositionIntent", "styleIntent", "sourceRefs"] as const;
+const fields = ["identityIntent", "compositionIntent", "styleIntent", "sourceRefs", "sourceBindingId", "retainedVisualIntentId"] as const;
 
 function durableWriterStateFor(
   states: Map<string, DurableWriterState>,
@@ -51,7 +51,7 @@ function isIntentDraftEntry(value: unknown): value is Entry {
   const entry = value as Partial<Entry>;
   return (entry.baseId === null || typeof entry.baseId === "string")
     && Boolean(entry.value)
-    && fields.every((field) => typeof entry.value?.[field] === "string");
+    && fields.every((field) => typeof entry.value?.[field] === "string" || ((field === "sourceBindingId" || field === "retainedVisualIntentId") && entry.value?.[field] === undefined));
 }
 
 function readDrafts(): Drafts {
@@ -121,7 +121,7 @@ export function useVisualIntentDraft(
       if (cancelled || writerState.requestEpoch !== epoch) return;
       const remote = items.find((item) => item.editorScope === "visual_intent" && item.entityId === entityId);
       if (remote) {
-        const payload = remote.payload as Partial<{ assetId: string; shotId: string; identityIntent: string; compositionIntent: string; styleIntent: string; sourceRefs: string[] }>;
+        const payload = remote.payload as Partial<{ assetId: string; shotId: string; identityIntent: string; compositionIntent: string; styleIntent: string; sourceRefs: string[]; sourceBindingId: string; retainedVisualIntentId: string }>;
         if (payload.assetId === assetId && payload.shotId === shotId && Array.isArray(payload.sourceRefs)) {
           const sourceRefs = payload.sourceRefs;
           setDrafts((current) => current[key] ? current : {
@@ -133,6 +133,8 @@ export function useVisualIntentDraft(
                 compositionIntent: payload.compositionIntent ?? "",
                 styleIntent: payload.styleIntent ?? "",
                 sourceRefs: sourceRefs.join("\n"),
+                sourceBindingId: payload.sourceBindingId,
+                retainedVisualIntentId: payload.retainedVisualIntentId,
               },
             },
           });
@@ -145,6 +147,8 @@ export function useVisualIntentDraft(
             compositionIntent: payload.compositionIntent ?? null,
             styleIntent: payload.styleIntent ?? null,
             sourceRefs,
+            ...(payload.sourceBindingId ? { sourceBindingId: payload.sourceBindingId } : {}),
+            ...(payload.retainedVisualIntentId ? { retainedVisualIntentId: payload.retainedVisualIntentId } : {}),
           });
           if (activeWriterKey.current === writerKey) setServerRevision(remote.draftRevision);
         }
@@ -183,6 +187,8 @@ export function useVisualIntentDraft(
       compositionIntent: entry.value.compositionIntent || null,
       styleIntent: entry.value.styleIntent || null,
       sourceRefs: entry.value.sourceRefs.split("\n").map((item) => item.trim()).filter(Boolean),
+      ...(entry.value.sourceBindingId ? { sourceBindingId: entry.value.sourceBindingId } : {}),
+      ...(entry.value.retainedVisualIntentId ? { retainedVisualIntentId: entry.value.retainedVisualIntentId } : {}),
     };
     const fingerprint = JSON.stringify(payload);
     // A visual intent without provenance cannot obtain a valid durable

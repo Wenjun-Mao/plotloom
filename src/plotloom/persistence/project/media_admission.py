@@ -30,7 +30,7 @@ class KeyframeAdmission:
 
     @staticmethod
     def latest_visual_intent_for_role_in_session(
-        session: Session, project_id: str, asset_id: str, role: str | None
+        session: Session, project_id: str, asset_id: str, role: str | None, target_shot_id: str | None = None
     ) -> VisualIntentRow | None:
         """Return the latest intent in the asset's role-specific stream."""
 
@@ -46,6 +46,7 @@ class KeyframeAdmission:
                     .order_by(VisualIntentRow.revision.desc())
                 )
                 if candidate.intent.get("role") == role
+                and (candidate.intent.get("targetUse") or {}).get("targetShotId") == target_shot_id
             ),
             None,
         )
@@ -68,7 +69,7 @@ class KeyframeAdmission:
         if binding.project_id != project_id:
             return False
         try:
-            self._generated_source_currentness(session, project_id, binding.asset_id, binding.shot_id)
+            self._generated_source_currentness(session, binding)
         except (InvalidTransitionError, NotFoundError):
             return False
         latest_binding = session.scalar(
@@ -97,7 +98,8 @@ class KeyframeAdmission:
         ):
             return False
         latest_intent = self.latest_visual_intent_for_role_in_session(
-            session, project_id, binding.asset_id, intent.intent.get("role")
+            session, project_id, binding.asset_id, intent.intent.get("role"),
+            (intent.intent.get("targetUse") or {}).get("targetShotId")
         )
         if (
             latest_intent is None
