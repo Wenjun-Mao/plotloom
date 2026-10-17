@@ -7,8 +7,13 @@ and pushing before a joint manual walkthrough. Integration combines Python
 checkpoint `52b61d0c` (which contains CLI checkpoint `e3dc802c`) with the older
 `main` checkpoint `91871f4b`. Nonduplicate RunView and validation derivations,
 exact F5 frozen-limit checks, and their regression owners are retained alongside
-the current CLI and strict/retained Outline contracts. Final full qualification
-of the combined candidate is required before publication.
+the current CLI and strict/retained Outline contracts. Combined source
+`09791c2068fce4326fd85593ece145162ed87f6c` passed all fourteen full local gates:
+3,078 Python cases, 1,381 frontend cases and 319 browser cases, including bundle
+parity and installed-wheel smoke, in 1,267.774 seconds. See the
+[integration verification receipt](../verification/2026-10-17-cli-python-main-integration.md).
+The documentation closeout is not a second tested source revision. Hosted CI,
+live deployment and creative/product acceptance remain separate.
 
 Python optimization and the speculative multi-image Codex batch-worker design
 are parked. The latest Python-only observation at `52b61d0c` passed 3,004 cases
