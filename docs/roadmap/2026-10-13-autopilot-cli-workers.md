@@ -1,6 +1,30 @@
 # Parallel CLI workers for pre-video autopilot
 
-Current bounded release (2026-10-16): **CLI first; Python optimization parked**.
+Current bounded release (2026-10-16): **failed-ImageGen telemetry correction;
+CLI first, Python optimization parked**. Root approved
+[ADR 0182](../adr/0182-failed-imagegen-event-metadata.md) after exact-session
+diagnostics bound a native failed Extension with null output-only transparency.
+The demonstrated adapter mismatch does not reconstruct the original worker's
+UNKNOWN branch. Accept absent/null transparency only for failed events, retain
+None, and keep supplied metadata, successful output, identity/order/reference
+and strict process-group settlement gates unchanged.
+
+Deliver faithful sanitized null/absent parser guards, the actual supervisor
+execution-path failure settlement under a simulated native process, and
+missing/ambiguous/unsettled-proof UNKNOWN fences. Use focused red/green, the
+shared-provider-dispatch contract union and proportional quick/static checks.
+Stop at a stable uncommitted candidate for independent/Root review before full
+qualification, commit/push/merge or another native run. No generation, session
+control, historical reconciliation, cleanup or Python optimization is released.
+
+Consumed pair `b33781ad` remains FAILED; parallel qualification was not reached.
+Its accepted complete/bound closed capture and all old UNKNOWN, reservations,
+source candidates and original outcomes remain immutable. The one inspected
+session was human-authorized and exact-UUID only; a matching default-home record
+does not prove the original environment or loaded-module provenance.
+
+### Earlier historical preservation source release
+
 The human approved [ADR 0181](../adr/0181-historical-qualification-preservation.md):
 historical preservation/material gates must not resample old numeric PID/PGID
 values. Retain their files, original outcomes, terminal ledger/receipt structure

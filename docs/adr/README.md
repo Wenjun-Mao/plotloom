@@ -103,3 +103,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0178 Capsule and plan handoff authority](0178-capsule-plan-handoff-authority.md)
 - [0179 Optional prospective Script dialogue compatibility](0179-planned-script-dialogue-compatibility.md)
 - [0181 Historical qualification preservation](0181-historical-qualification-preservation.md)
+- [0182 Failed ImageGen terminal metadata](0182-failed-imagegen-event-metadata.md)

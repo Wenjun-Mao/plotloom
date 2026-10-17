@@ -1,6 +1,20 @@
 # Plotloom roadmap entrypoint
 
-Current priority (2026-10-16): [parallel CLI generation](2026-10-13-autopilot-cli-workers.md)
+Current priority (2026-10-16): the bounded failed-ImageGen telemetry correction
+in [parallel CLI generation](2026-10-13-autopilot-cli-workers.md), `b30f`.
+Root approved [ADR 0182](../adr/0182-failed-imagegen-event-metadata.md): failed
+events may preserve absent/null output-only transparency as None; completed
+events and supplied metadata remain strict. Deliver faithful sanitized parser
+and supervisor-settlement regressions, the affected contract union and quick/static
+checks, then stop uncommitted for independent/Root review. No full gate,
+generation, historical reconciliation, commit/push/merge or Python optimization
+is released. Consumed pair `b33781ad` remains FAILED, parallel qualification
+not reached and independent settlement unverified; its accepted closed evidence
+and historical UNKNOWN/reservations remain unchanged.
+
+### Earlier historical preservation source checkpoint
+
+[Parallel CLI generation](2026-10-13-autopilot-cli-workers.md)
 in `b30f` is the sole active workstream. The human approved the bounded
 [historical qualification preservation contract](../adr/0181-historical-qualification-preservation.md):
 remove historical numeric-only PID/PGID rechecks while preserving retained

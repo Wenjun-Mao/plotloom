@@ -230,7 +230,8 @@ def read_cli_session(session_path: Path, expected_session_id: UUID, *, max_event
                         if prior_event_id != event_id:
                             raise CodexExecTelemetryError("Codex ImageGen progress changed its event identity")
                         transparency = item.get("transparentBackground")
-                        if status in {"completed", "failed"} and type(transparency) is not bool:
+                        # A failed generation can have no output metadata; retain None rather than invent a value.
+                        if status == "completed" and type(transparency) is not bool:
                             raise CodexExecTelemetryError("terminal Codex ImageGen event lacks declared transparency")
                         if transparency is not None and (
                             type(transparency) is not bool or transparency != call.transparent_background
