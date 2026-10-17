@@ -18,7 +18,10 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from scripts.testing import python_suite_schedule
-from scripts.testing.python_suite_completion import CompletionError, validate_worker_completion
+from scripts.testing.python_suite_completion import (
+    CompletionError,
+    validate_worker_completion,
+)
 
 WORKER_COUNT = 2
 WORKER_SHUTDOWN_GRACE_SECONDS = 5.0
@@ -262,8 +265,8 @@ def run_python_suite(
             raise RuntimeError("pytest collector was not started")
         if collector_stderr:
             print(collector_stderr, end="", file=sys.stderr, flush=True)
+        print(collector_stdout, end="", flush=True)
         if collector_process.returncode:
-            print(collector_stdout, end="", flush=True)
             return collector_process.returncode
         try:
             cases = parse_collected_cases(collector_stdout, root=root)

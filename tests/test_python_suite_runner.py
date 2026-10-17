@@ -13,7 +13,10 @@ from unittest.mock import patch
 import pytest
 
 from scripts.testing import python_suite_timing_plugin
-from scripts.testing.python_suite_completion import RUN_MARKER, validate_worker_completion
+from scripts.testing.python_suite_completion import (
+    RUN_MARKER,
+    validate_worker_completion,
+)
 from tests.python_suite_runner_support import RUNNER, completion_proof
 
 
@@ -109,8 +112,9 @@ def test_runner_refuses_ambient_pytest_selection_before_collecting(capsys):
     assert "refuses ambient PYTEST_ADDOPTS" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize("worker_exit_code", [0, 7])
 def test_runner_reports_each_worker_and_fails_if_either_worker_fails(
-    tmp_path, monkeypatch, capsys
+    tmp_path, monkeypatch, capsys, worker_exit_code
 ):
     tests = tmp_path / "tests"
     tests.mkdir()
@@ -119,8 +123,9 @@ def test_runner_reports_each_worker_and_fails_if_either_worker_fails(
     collection = "tests/test_a.py::test_a\ntests/test_b.py::test_b\n"
     monkeypatch.setattr(RUNNER, "WORKER_SHUTDOWN_GRACE_SECONDS", 0)
     monkeypatch.setattr(RUNNER.os, "killpg", lambda *_args: None)
-    outcomes = iter((0, 7))
+    outcomes = iter((0, worker_exit_code))
     commands = []
+    collectors = []
 
     class CompletedWorker:
         def __init__(self, command, *, stdout, **_kwargs):
@@ -143,7 +148,7 @@ def test_runner_reports_each_worker_and_fails_if_either_worker_fails(
 
         def communicate(self, timeout=None):
             self.returncode = 0
-            return collection, ""
+            return collection, "collector warning\n"
 
         def poll(self):
             return self.returncode
@@ -153,20 +158,68 @@ def test_runner_reports_each_worker_and_fails_if_either_worker_fails(
 
     def start_process(command, **kwargs):
         if "--collect-only" in command:
+            collectors.append(command)
             return CompletedCollector()
         return CompletedWorker(command, **kwargs)
 
     monkeypatch.setattr(RUNNER.subprocess, "Popen", start_process)
 
-    assert RUNNER.run_python_suite(root=tmp_path, environment={}) == 1
-    output = capsys.readouterr().out
+    expected_exit = int(worker_exit_code != 0)
+    assert RUNNER.run_python_suite(root=tmp_path, environment={}) == expected_exit
+    captured = capsys.readouterr()
+    output = captured.out
+    assert output.count(collection) == 1
+    assert output.index(collection) < output.index("[python-suite] native_cases=")
+    assert captured.err == "collector warning\n"
+    assert len(collectors) == 1
     assert output.count("captured worker report") == 2
     assert "worker=1" in output and "worker=2" in output
-    assert "SUMMARY elapsed_seconds=" in output and "exit_code=1" in output
+    assert "SUMMARY elapsed_seconds=" in output and f"exit_code={expected_exit}" in output
     assert "schedule=case-count fallback=timing-manifest-missing" in output
     assert len(commands) == 2
     assert commands[0][-1] == "tests/test_a.py"
     assert commands[1][-1] == "tests/test_b.py"
+
+
+@pytest.mark.parametrize("collector_exit", [0, 2, 7])
+def test_collector_stdout_and_stderr_survive_failure_or_parse_refusal(tmp_path, monkeypatch, capsys, collector_exit):
+    (tmp_path / "tests").mkdir()
+    raw = "raw collector diagnostic\ncollection could not produce native case rows\n"
+    calls = []
+
+    class FinishedCollector:
+        pid = 900
+        returncode = None
+
+        def __init__(self, command, **_kwargs):
+            calls.append(command)
+            assert "--collect-only" in command, "failure must not start workers"
+
+        def communicate(self, timeout=None):
+            self.returncode = collector_exit
+            return raw, "original collector stderr\n"
+
+        def poll(self):
+            return self.returncode
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+    def absent(*_args):
+        raise ProcessLookupError
+
+    monkeypatch.setattr(RUNNER.subprocess, "Popen", FinishedCollector)
+    monkeypatch.setattr(RUNNER.os, "killpg", absent)
+    assert RUNNER.run_python_suite(root=tmp_path, environment={}) == (collector_exit or 2)
+    captured = capsys.readouterr()
+    assert len(calls) == 1 and captured.out.count(raw) == 1
+    assert captured.err.startswith("original collector stderr\n")
+    if collector_exit:
+        assert captured.err == "original collector stderr\n"
+        assert "refused collection" not in captured.err
+    else:
+        assert "Python suite refused collection or timing manifest: pytest collection returned no case IDs" in captured.err
+    assert "[python-suite] START" not in captured.out
 
 
 @pytest.mark.parametrize("worker_count", [2, 4])

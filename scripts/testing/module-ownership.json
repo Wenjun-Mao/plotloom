@@ -34,6 +34,7 @@
           "tests/test_autopilot_authority.py",
           "tests/test_receipt_material_projections.py",
           "tests/test_material_closure_bytes.py",
+          "tests/test_autopilot_policy_decoding.py",
           "tests/test_autopilot_claim_transactions.py",
           "tests/test_autopilot_exec_pool.py",
           "tests/test_autopilot_exec_staged.py",
@@ -639,6 +640,12 @@
     }
   },
   "support_dependencies": [
+    {
+      "suite": "pytest",
+      "path": "tests/autopilot_policy_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["story-authoring"]
+    },
     {
       "suite": "pytest",
       "path": "tests/qualification_pair_capability_fixture.mjs",

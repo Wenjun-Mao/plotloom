@@ -47,6 +47,66 @@ unmatched context, not a speed comparison. The fixed 151.73295-second target
 stays open. Current-source same-selected-row decoding is a separate following
 port; no other older optimization or performance/full qualification is implied.
 
+### Current selected-row policy decode port — October 17
+
+Root retained row bytes in local checkpoint `8cbf6aeec9e5c1f1a079ad3a200df6ce5acc9a0f`,
+tree `86f7fdf529936b7b2a1260ec5a8deb8a8458ff24`, parent `e3dc802c`.
+That eight-path commit contains scoped correctness and two-order screening, not
+full/current native or product qualification; historical manifests stay sealed.
+
+The next bounded port reuses the local decoded policy for each selected row in
+`autopilot_bindings.py`, adapting the already-completed `91871` optimization to
+current strict/retained callbacks. No profile slot, RunView, fresh-read/cache,
+SQL/visibility/schema or plan-callback change is included. A pre-edit public v8
+guard returned successfully and matched exact SQL but failed at three policy
+decodes instead of two; the failure is retained. Keep first-row decode before
+wrong-project refusal and second image-row wrong-project refusal before decode.
+
+The historical 22-guard design uses a small current-request text graph plus
+independent ordinary-opened copies of existing quiescent geometry_frame_seed.
+All three image owners and retained derivative bytes remain; no new seed type,
+live host or fresh dispatch is needed by these binding-only consumers. The full
+current retained-Outline owner covers passive recovery versus strict authority.
+Release only the complete new policy guards, retained-Outline recovery and
+module-ownership files through locked/no-sync focused verification, maximum 1,200
+seconds, plus scoped static checks. Stop with this policy candidate uncommitted
+for independent/Root review. No performance/full qualification, provider,
+commit/push/merge or live change is released for the policy port.
+
+The expected-red public v8 guard failed only at three decodes versus two; binding
+output and exact SQL already matched. After the local-map edit, all 22 adapted
+guards plus the complete 54-case retained-Outline and seven-case ownership files
+passed (83 cases, one Starlette/httpx deprecation warning), natural exit 0 with
+unchanged selected source pins and immediate launched-group absence. The red
+and green receipts in `.local/remaining-cost/current-policy-decoding-20261017/`
+retain their actual inputs; this is scoped correctness, not a new speed result.
+
+Root separately released one reporting fix in `run_python_suite.py`: successful
+collector stdout was already captured but only failures printed it. Emit those
+same bytes once before the exit-code branch, preserving stderr, failures, parsing,
+scheduling, one native collection, two workers and lifecycle. Existing runner-owner
+guards cover successful retention, failure codes and parse refusal. Only that
+complete owner file's focused run is released, max 900 seconds. This later change
+does not retarget the policy receipts. The planned future current candidate-only
+default-two-worker whole observation is not released; it must use one natural
+collector without a separate warming collection, retain raw IDs and later check
+passed-only worker summaries. Keep advisory timings unchanged and report actual
+schedule/fallback. No completion-plugin or measurement redesign is included.
+
+The complete runner owner passed 13 focused cases after one fixture-only repair:
+the new parse-refusal scratch root needed an empty `tests/` directory so the
+parser reached the intended no-case-ID error. The first result (12 passed, one
+failed) and strict assertion remain retained; production was not altered for
+that repair. Successful collector output is asserted once before scheduling,
+stderr/failed exit codes remain exact and no workers start after collection
+failure/refusal. Natural corrected exit 0, unchanged selected source pins and
+immediate launched-group absence are recorded separately under
+`.local/remaining-cost/current-runner-collector-stdout-20261017/`.
+Only existing long imports were wrapped for scoped Ruff F/I; behavior changes
+only the print position. Both the policy port and this reporting fix remain
+uncommitted for independent/Root review. No whole/full observation or additional
+performance, provider, publication or live action followed these focused results.
+
 ## Historical track
 
 Status: the first owner-approved slice was independently reviewed, locally
