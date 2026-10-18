@@ -118,3 +118,59 @@ lambda binding and a nested context manager; these were corrected before lint
 success. The loaded pending-deletion screenshot now waits for an enabled retry
 action. Continuation consent, blocked continuation and loaded pending deletion
 screenshots were inspected locally; they remain disposable fixture evidence.
+
+## First full qualification failure and acknowledged-deletion quarantine
+
+The root-owned original full gate ran naturally to completion on committed
+candidate `5cb08123`: exit 1, `VERIFY_SUMMARY` 1058.130 seconds. Worker 1 reported
+11 failed / 1691 passed; worker 2 reported 35 failed / 1450 passed. Total Python:
+46 failed / 3141 passed (3187 cases). The preserved root log is
+`.local/material-recovery-20261017/full-5cb08123.log`. The 1401 frontend unit tests
+and type checks passed; qualification stopped at Python, so downstream release
+gates were not qualified. This corrective source materially invalidates that
+candidate's release qualification; it is not a successful full gate.
+
+Diagnosis distinguished product defects from stale fixtures. Receipt projection
+strictness exposed a real unscoped inheritance query. The corrected geometry
+query uses one project/run/operation-correlated exclusion while preserving the
+original byte/hash/failure-order oracle unchanged. Current checkpoint validation
+no longer probes for missing inheritance tables. Only exact frozen prior-layout
+owners route to retained validation without continuation; bridge adoption follows
+that same explicit boundary. Minimum SQLite fixtures now contain the current
+inheritance/run fields and assert exact origin SQL while retaining decode counts,
+failure priority, independent observations and read-only guarantees. View fixtures
+explicitly name `predecessor_run_id`; lifetime counts derive once after the
+existing typed policy/checkpoint validation. Serial-upgrade tests compare every
+original column/value and separately assert the new NULL ancestry/empty links.
+
+Independent fault reproduction also showed that successful host revocation plus
+a failed initial manifest unlink left ordinary writes admitted; old consent could
+then erase new work. ADR 0190 now defines acknowledged intent as irreversible
+installation-scoped quarantine. Registry write/reopen/lifecycle admission checks
+the existing ledger after acquiring the project lease. Create/resume preflight
+before publishing a home and recheck under lease. Composed recovery copying and
+publication, in-place upgrade and text startup obey the same boundary. Passive
+inspection remains available, and explicit exact-consent erasure retry is separate.
+No service, backup, long application transaction or global bytes revocation added.
+
+Corrective commands use the same focused runner prefix as above:
+
+| Explicit selectors / command | Result |
+| --- | --- |
+| `--pytest tests/test_autopilot_policy_decoding.py --pytest tests/test_autopilot_profile_bindings.py --pytest tests/test_autopilot_view_checkpoints.py --pytest tests/test_receipt_material_projections.py --pytest tests/test_material_closure_bytes.py --pytest tests/test_codex_exec_pool_project_upgrade.py` | 100 passed, including all original 46 failing cases |
+| `--pytest tests/test_project_abandonment.py --pytest tests/test_project_deletion_quarantine.py --pytest tests/test_receipt_material_projections.py --pytest tests/test_autopilot_profile_bindings.py` | 53 passed after fixing the exact-prior bridge-adoption caller chain |
+| `--pytest tests/test_project_abandonment.py --pytest tests/test_project_deletion_quarantine.py --pytest tests/test_autopilot_continuation.py --pytest tests/test_autopilot_schema_upgrade.py` | 46 passed; current/prior erasure, actual pre/post-manifest permission failures, restart, post-lease ACK, no publication on quarantined identity, genuine continuation and preserving migration |
+| `--pytest tests/test_project_storage_recovery.py --pytest tests/test_direct_project_deletion.py` | 29 passed; portable CLI, held closed-folder leases, recovery-required behavior and ordinary deletion retained |
+| `--pytest tests/test_project_deletion_quarantine.py` | Final 9 passed on the completed admission source, 12.476 seconds focused |
+| Full Ruff on the new quarantine module/tests; F401 on changed Python files and API; `git diff --check` | Passed |
+| `uv run --locked --no-sync python scripts/testing/check_module_ownership.py` | Native discovery passed: 3197 pytest, 1401 Vitest, 325 Playwright cases; no test bodies executed |
+
+The first quarantine run passed all nine new cases but failed the immediate-prior
+abandonment case because bridge-adoption validation still called current-only
+inheritance lookup. That explicit caller chain was corrected, not tolerated via
+table absence. A neighboring focused invocation was refused before any test body
+because an operational-state filename did not exist; the corrected exact recovery
+and deletion selectors passed above. Frontend inputs/assets are unchanged by this
+correction, so their prior evidence is retained rather than rerun. No corrected
+full gate, commit, push, installation, native generation or live acceptance was
+performed by this source writer.

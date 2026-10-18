@@ -18,6 +18,7 @@ from .composition import ProjectFolderStorage
 from .application_store import ApplicationRunRoute
 from .format import ProjectStorageCorruptionError
 from .project_handle import ProjectStore
+from .write_admission import ProjectDeletionPendingError
 
 
 @dataclass
@@ -76,7 +77,11 @@ class ProjectRunDispatcher:
             if state != "open":
                 plans[home.manifest.project_id] = StartupRecoveryPlan()
                 continue
-            store = self.storage.projects.open(home.manifest.project_id)
+            try:
+                store = self.storage.projects.open(home.manifest.project_id)
+            except ProjectDeletionPendingError:
+                plans[home.manifest.project_id] = StartupRecoveryPlan()
+                continue
             try:
                 plans[home.manifest.project_id] = (
                     store.generation.reconcile_startup_jobs()

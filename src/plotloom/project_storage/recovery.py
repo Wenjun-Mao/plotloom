@@ -284,6 +284,7 @@ class ProjectRecoveryService:
                 )
                 frozen_inventory = payload_inventory(root, files)
                 control_required = PurePosixPath("recovery.json") in frozen_inventory
+            self.registry.admission.require_admitted(manifest.project_id)
             if any(home.manifest.project_id == manifest.project_id for home in self.registry.discover()):
                 raise ProjectStorageConflictError("restore would overwrite an existing project identity")
             final = self.outputs_root / f"{_utc_folder_timestamp(manifest.created_at)}__{manifest.project_id}"
@@ -337,6 +338,7 @@ class ProjectRecoveryService:
                 assert_database_contract(destination_database, manifest)
                 _assert_snapshot_tree(temporary, payload_paths(temporary, destination_database))
             _sync_directory(temporary)
+            self.registry.admission.require_admitted(manifest.project_id)
             os.replace(temporary, final)
             _sync_directory(self.outputs_root)
             temporary = None

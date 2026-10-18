@@ -24,10 +24,10 @@ from .format import ProjectStorageCorruptionError
 STATES = {"running", "waiting", "paused", "cancelled", "stale", "blocked", "awaiting_review", "handed_off", "taken_over"}
 
 
-def assert_autopilot_contracts(connection, *, asset_home=None):
+def assert_autopilot_contracts(connection, *, asset_home=None, continuation=True):
     profile_construction = _ProfileConstruction()
     try:
-        if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_autopilot_inheritance'").fetchone():
+        if continuation:
             from ..persistence.project.autopilot_continuation import assert_continuation_lineage
             assert_continuation_lineage(connection)
         runs = {}
@@ -52,7 +52,7 @@ def assert_autopilot_contracts(connection, *, asset_home=None):
             _assert_checkpoint_binding(connection, project, state, parsed, run_id=run_id,
                 operation_key=operation_key, asset_home=asset_home,
                 validation_plan_for_request=_retained_checkpoint_validation_plan,
-                profile_construction=profile_construction)
+                profile_construction=profile_construction, continuation=continuation)
             if run_id not in runs or runs[run_id][0] != project:
                 raise ValueError("checkpoint run identity changed")
         if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_autopilot_exec_attempts'").fetchone():
@@ -126,14 +126,19 @@ def assert_autopilot_contracts(connection, *, asset_home=None):
                 "delivered" if parsed.evidence.delivery_hash else "prepared", parsed.evidence,
                 run_id=run_id, operation_key=retained_checkpoint[0], asset_home=asset_home,
                 validation_plan_for_request=_retained_checkpoint_validation_plan,
-                profile_construction=profile_construction)
+                profile_construction=profile_construction, continuation=continuation)
         for run_id, project, shot, job, asset, decision, raw in connection.execute("SELECT run_id,project_id,shot_id,job_id,asset_id,decision_id,frame FROM v2_autopilot_frames"):
             parsed = ProvisionalFrame.model_validate_json(raw)
             if runs.get(run_id, (None,))[0] != project or (parsed.shot_id, parsed.job_id, parsed.asset_id) != (shot, job, asset):
                 raise ValueError("provisional frame identity changed")
             assert_frame_binding(connection, run_id, project, decision, parsed, asset_home=asset_home)
         from .bridge_adoption_validation import assert_bridge_adoption_contracts
-        assert_bridge_adoption_contracts(connection)
+        if continuation:
+            assert_bridge_adoption_contracts(connection)
+        else:
+            from functools import partial
+            assert_bridge_adoption_contracts(connection, checkpoint_validator=partial(_assert_checkpoint_binding,
+                asset_home=asset_home, validation_plan_for_request=_retained_checkpoint_validation_plan, continuation=False))
         from .handoff_validation import assert_handoff
         receipts = {}
         unnamed_approvals, unnamed_reviews = set(), set()

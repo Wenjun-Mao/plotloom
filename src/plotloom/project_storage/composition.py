@@ -36,6 +36,7 @@ class ProjectFolderStorage:
         self.projects = ProjectDirectoryRegistry(
             outputs_root, native_ownership=lambda project_id, jobs: project_execution_blockers(
                 self.application.root, project_id, jobs),
+            require_admitted=lambda project_id: self.application.abandonment.require_admitted(project_id),
         )
         self.lifecycle = ProjectFolderLifecycleService(self.projects, self.application)
         self.recovery = ProjectRecoveryService(self.projects.outputs_root, self.projects)

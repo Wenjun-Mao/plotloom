@@ -11,7 +11,7 @@ from ..persistence.codec import stable_hash
 from ..persistence.project.autopilot_bindings import _row, assert_checkpoint_binding
 
 
-def assert_adoption(connection, project, adoption: MachineAdoption, owner):
+def assert_adoption(connection, project, adoption: MachineAdoption, owner, *, checkpoint_validator=assert_checkpoint_binding):
     run = _row(connection, "SELECT project_id,policy_hash FROM v2_autopilot_runs WHERE id=?", (adoption.run_id,))
     decision = _row(connection, "SELECT run_id,project_id,scope,decision FROM v2_autopilot_decisions WHERE id=?", (adoption.decision_id,))
     facts = MachineDecision.model_validate_json(decision["decision"])
@@ -23,7 +23,7 @@ def assert_adoption(connection, project, adoption: MachineAdoption, owner):
             or evidence.owner != owner or evidence.job_id != adoption.job_id or evidence.request_hash != adoption.request_hash
             or evidence.delivery_hash != adoption.delivery_hash):
         raise ValueError("machine bridge native decision binding changed")
-    assert_checkpoint_binding(connection, project, "delivered", evidence, run_id=adoption.run_id,
+    checkpoint_validator(connection, project, "delivered", evidence, run_id=adoption.run_id,
         operation_key=owner)
     source = _row(connection, "SELECT content_hash,proposal FROM v2_production_bridge_revisions WHERE project_id=? AND revision=?",
         (project, adoption.proposal_revision))
@@ -35,7 +35,7 @@ def assert_adoption(connection, project, adoption: MachineAdoption, owner):
     return json.loads(source["proposal"]), job
 
 
-def assert_bridge_adoption_contracts(connection):
+def assert_bridge_adoption_contracts(connection, *, checkpoint_validator=assert_checkpoint_binding):
     for project, revision, digest, inputs, raw, conflicts in connection.execute(
             "SELECT project_id,revision,content_hash,inputs,proposal,conflicts FROM v2_production_bridge_revisions"):
         payload = json.loads(raw)
@@ -46,13 +46,13 @@ def assert_bridge_adoption_contracts(connection):
             raise ValueError("machine bridge retained proposal bytes changed")
         if intent.machine_adoption is not None:
             adoption = intent.machine_adoption
-            source, _job = assert_adoption(connection, project, adoption, "bridge-intent")
+            source, _job = assert_adoption(connection, project, adoption, "bridge-intent", checkpoint_validator=checkpoint_validator)
             original = ProductionBridgeIntentPackage.model_validate(source["intentPackage"])
             if revision <= adoption.proposal_revision or original.review_state != "model_suggested" or intent.entries != original.entries or intent.provenance != original.provenance:
                 raise ValueError("machine adopted intent differs from its exact native suggestion")
         if presentation.machine_adoption is not None:
             adoption = presentation.machine_adoption
-            source, job = assert_adoption(connection, project, adoption, "bridge-presentation")
+            source, job = assert_adoption(connection, project, adoption, "bridge-presentation", checkpoint_validator=checkpoint_validator)
             original = ProductionPresentation.model_validate(source["presentation"])
             request = CreativeHandoffRequest.model_validate_json(job["native_request"])
             suggestions = native_presentation_suggestions(request, json.loads(job["candidate"]))

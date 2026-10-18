@@ -49,6 +49,23 @@ An unacknowledged request may refresh explicit consent only for the same home
 inode and manifest, after rereading the server preview. An acknowledged revocation
 is immutable. Retry revalidates the directory and held lock after lease acquisition
 and anchors recursive erasure to the approved directory descriptor.
+Recording the installation's host-revocation acknowledgment irreversibly
+quarantines that pending project identity from new writable admission, even when
+erasure fails before manifest withdrawal. Registry admission checks the durable
+intent after acquiring the project lease; existing shared handles prevent the
+exclusive acknowledgment transition. Reopen, lifecycle mutation, dispatch,
+in-place upgrade and recovery copying/publication obey the same predicate.
+Create/resume also check before publishing any home. Passive inspection,
+directory and pending-deletion reads remain available and never resume erasure.
+Only explicit original-consent erasure retry can finish the acknowledged intent.
+Before acknowledgment, fresh preview/CAS remains required; a lost host response
+does not create a stale-consent retry shortcut. No application transaction spans
+project lease acquisition or filesystem erasure.
+This quarantine is installation-scoped, not global revocation of retained bytes.
+Composed recovery obeys its supplied installation ledger. The standalone portable
+restore operator (ADR 0044) intentionally has no application-root authority and
+still refuses existing identities/destinations; an external offline copy cannot
+remove this installation's quarantine or grant it execution authority.
 Abandonment reads the exact current or immediate-prior layout directly and does
 not require upgrading an UNKNOWN project. Ordinary continuation uses the named
 preserving schema upgrade after original ownership is resolved.

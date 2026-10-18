@@ -82,13 +82,16 @@ class AutopilotPersistence(AutopilotContinuationPersistence, AutopilotExecPersis
             .order_by(AutopilotCheckpointRow.created_at, AutopilotCheckpointRow.operation_key)).all()
         frames = session.scalars(select(AutopilotFrameRow).where(AutopilotFrameRow.run_id == row.id).order_by(AutopilotFrameRow.shot_id)).all()
         stale = row.expected_closure != material_closure(session, row.project_id)
+        policy = LaunchPolicy.model_validate(row.policy)
+        projected_checkpoints = _project_checkpoints(checkpoints)
+        lifetime_jobs, lifetime_images = project_job_counts(session, row.project_id)
         return RunView(id=row.id, project_id=row.project_id, revision=row.revision,
-            predecessor_run_id=row.predecessor_run_id, lifetime_jobs=project_job_counts(session, row.project_id)[0],
-            lifetime_images=project_job_counts(session, row.project_id)[1],
+            predecessor_run_id=row.predecessor_run_id, lifetime_jobs=lifetime_jobs,
+            lifetime_images=lifetime_images,
             state="stale" if stale and row.state not in {"cancelled", "taken_over", "stale"} else row.state,
-            phase=row.phase, policy=LaunchPolicy.model_validate(row.policy),
+            phase=row.phase, policy=policy,
             blocker={"code": "material_changed", "message": "项目素材已改变，请接管并继续手动编辑。"} if stale else row.blocker,
-            checkpoints=(projected_checkpoints := _project_checkpoints(checkpoints)).public,
+            checkpoints=projected_checkpoints.public,
             activities=run_activities(session, row.id, projected_checkpoints), material_current=not stale,
             frames=[ProvisionalFrame.model_validate(item.frame) for item in frames],
             bundle=row.bundle, bundle_hash=row.bundle_hash, handoff=row.handoff, created_at=row.created_at, updated_at=row.updated_at)

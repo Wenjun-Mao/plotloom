@@ -22,7 +22,8 @@ PROJECT_ID = "22222222-2222-4222-8222-222222222222"
 
 # Only columns read by the real validators are needed; no product schema changes.
 SCHEMA = {
-    "v2_autopilot_runs": "id,project_id,policy,policy_hash,brief_hash,state,bundle,bundle_hash,handoff",
+    "v2_autopilot_runs": "id,project_id,predecessor_run_id,policy,policy_hash,brief_hash,state,bundle,bundle_hash,handoff",
+    "v2_autopilot_inheritance": "run_id,operation_key,origin_checkpoint_id,evidence_hash,project_id",
     "v2_autopilot_checkpoints": "id,run_id,project_id,operation_key,state,evidence",
     "v2_autopilot_exec_attempts": "id,run_id,project_id,operation_key,job_id,domain,state,image_budget_state,reserved_image_outputs,snapshot,receipt",
     "v2_autopilot_decisions": "id,run_id,project_id,scope,checkpoint_id,decision",

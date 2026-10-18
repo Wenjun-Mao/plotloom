@@ -15,6 +15,7 @@ from tests.source_outline_fixtures import _material, _request
 RUN_ID = "11111111-1111-4111-8111-111111111111"
 PROJECT_ID = "22222222-2222-4222-8222-222222222222"
 SCHEMA = {
+    "v2_autopilot_inheritance": "run_id,operation_key,origin_checkpoint_id,evidence_hash,project_id",
     "v2_autopilot_runs": "id,project_id,policy",
     "v2_autopilot_exec_attempts": "id,run_id,project_id,operation_key,job_id,domain,state,image_budget_state,reserved_image_outputs,snapshot,receipt",
     "v2_source_outline_candidates": "job_id,project_id,request,manifest_hash",

@@ -86,7 +86,7 @@ def logical_inventory(connection, objects):
 def assert_prior_database(connection, project_id, *, layout="prior"):
     if layout not in PRIOR_LAYOUTS or schema_objects(connection) != prior_schema_objects(layout):
         raise ProjectStorageCorruptionError("explicit upgrade requires the exact immediate-prior layout")
-    assert_current_review_bindings(connection)
+    assert_current_review_bindings(connection, continuation=False)
     assert_integrity_identity(connection, project_id)
 
 
@@ -212,6 +212,8 @@ def upgrade_project(home: Path, registry, *, after_ddl=None):
             manifest_path = home / PROJECT_MANIFEST_FILENAME
             _safe_regular(manifest_path, label="upgrade manifest")
             manifest = parse_project_manifest(_read_json(manifest_path))
+            from .write_admission import require_no_acknowledged_deletion
+            require_no_acknowledged_deletion(registry.root.parent, manifest.project_id)
             database = home / manifest.database_path
             _safe_regular(database, label="upgrade database")
             with sqlite3.connect(f"{database.as_uri()}?mode=ro", uri=True) as admitted:

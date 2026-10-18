@@ -127,15 +127,13 @@ def test_unacknowledged_deletion_can_reinspect_and_refresh_explicit_consent(tmp_
         assert len(attempts) == 1
         retained = storage.application.abandonment.current(view.project_id)
         assert retained["revocation_json"] is None
+        with closing(storage.projects.inspect(view.project_id)) as inspection:
+            project = inspection.project()
+        saved = client.patch(path, json={"expectedRevision": project.revision,
+            "brief": project.brief.model_dump(mode="json", by_alias=True) | {"title": "重新核对后的片名"}})
+        assert saved.status_code == 200, saved.text
         if failure == "failed_revoke":
             host_hash = "b" * 64
-        else:
-            # The host retains its original tombstone hash after a lost ACK;
-            # a later project save changes the public consent preview instead.
-            with closing(storage.projects.open(view.project_id)) as store, store.repository.manual_command() as session:
-                project = store.repository._project_access.rows.project(session, view.project_id)
-                project.brief = project.brief | {"title": "重新核对后的片名"}
-                project.revision += 1
         refreshed = consent_from(client.get(path + "/abandonment-preview").json())
         assert refreshed["previewHash"] != original["previewHash"]
         assert client.post(path + "/abandon-and-delete", json=original).status_code == 409

@@ -52,18 +52,20 @@ def assert_current_schema(connection: sqlite3.Connection) -> None:
         )
 
 
-def assert_current_review_bindings(connection: sqlite3.Connection, *, asset_home: Path | None = None) -> None:
+def assert_current_review_bindings(connection: sqlite3.Connection, *, asset_home: Path | None = None, continuation: bool = True) -> None:
     """Reject unsupported JSON contracts before a folder can be mutated.
 
     SQL layout alone cannot establish the version of a persisted review binding.
     Validate retained revisions as well as candidates: history/report reads also
     consume these contracts. Never infer new authority from obsolete fields.
+    Only an exact frozen prior-layout owner may disable continuation validation;
+    current runtime paths never infer feature support from table absence.
     """
     from .autopilot_validation import assert_autopilot_contracts
     from .cross_shot_validation import assert_cross_shot_contracts
     assert_cross_shot_contracts(connection, asset_home=asset_home)
     if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_autopilot_runs'").fetchone():
-        assert_autopilot_contracts(connection, asset_home=asset_home)
+        assert_autopilot_contracts(connection, asset_home=asset_home, continuation=continuation)
     for table, model in (
         ("v2_script_candidates", ScriptBinding),
         ("v2_script_revisions", ScriptBinding),

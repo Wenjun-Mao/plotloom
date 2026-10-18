@@ -94,6 +94,7 @@ def image_graph(tmp_path, geometry_frame_seed, request):
 
 def text_sql(data):
     trace = [
+        inheritance_sql(data),
         f"SELECT project_id,policy FROM v2_autopilot_runs WHERE id='{data.run_id}'",
         f"SELECT * FROM v2_autopilot_exec_attempts WHERE id='{data.evidence.executor_attempt_id}'",
         f'SELECT * FROM "v2_source_outline_candidates" WHERE job_id=\'{data.evidence.job_id}\'',
@@ -103,10 +104,15 @@ def text_sql(data):
     return trace
 
 
+def inheritance_sql(data):
+    return f"SELECT origin_checkpoint_id,evidence_hash,project_id FROM v2_autopilot_inheritance WHERE run_id='{data.run_id}' AND operation_key='{data.operation_key}'"
+
+
 def image_sql(data):
     table, deliveries, foreign_key = bindings.IMAGE_OWNERS[data.owner]
     candidates = deliveries.replace("deliveries", "candidates")
     return [
+        inheritance_sql(data),
         f"SELECT project_id,policy FROM v2_autopilot_runs WHERE id='{data.run_id}'",
         f"SELECT * FROM v2_autopilot_exec_attempts WHERE id='{data.evidence.executor_attempt_id}'",
         f'SELECT * FROM "{table}" WHERE id=\'{data.evidence.job_id}\'',
@@ -160,7 +166,7 @@ def test_attempt_policy_decode_still_precedes_wrong_project(text_graph, monkeypa
     decoded = decode_spy(monkeypatch, {raw})
     trace, result = observe(connection, lambda: bind(connection, data))
     assert result[0:2] == ("error", error)
-    assert trace == text_sql(data)[:1]
+    assert trace == text_sql(data)[:2]
     assert decoded == [raw]
 
 
@@ -176,7 +182,7 @@ def test_image_wrong_project_still_precedes_malformed_second_policy(image_graph,
         decoded = decode_spy(monkeypatch, {data.raw_policy, "{"})
         trace, result = observe(connection, lambda: bind(observed, data))
     assert result == ("error", ValueError, "image checkpoint execution differs from frozen launch policy")
-    assert observed.reads == 2 and trace == image_sql(data)[:4]
+    assert observed.reads == 2 and trace == image_sql(data)[:5]
     assert decoded == [data.raw_policy]
 
 
@@ -205,7 +211,7 @@ def test_second_policy_read_uses_its_own_sqlite_observation(image_graph, monkeyp
         assert decoded == [data.raw_policy, data.raw_policy]
     else:
         assert result == ("error", ValueError, "image checkpoint execution differs from frozen launch policy")
-        assert trace == image_sql(data)[:4] and decoded == [data.raw_policy, raw]
+        assert trace == image_sql(data)[:5] and decoded == [data.raw_policy, raw]
     connection.rollback()
 
 
@@ -219,7 +225,7 @@ def test_success_failure_and_independent_calls_do_not_retain_policy(text_graph, 
     connection.execute("UPDATE v2_autopilot_runs SET policy=?", (raw,))
     connection.commit()
     trace, result = observe(connection, lambda: bind(connection, data))
-    assert trace == text_sql(data)[:2]
+    assert trace == text_sql(data)[:3]
     assert result == ("error", ValueError, "Codex Exec checkpoint differs from its immutable project attempt")
     assert decoded == [data.raw_policy] * 2 + [raw]
     connection.execute("UPDATE v2_autopilot_runs SET policy=?", (data.raw_policy,))
@@ -251,4 +257,4 @@ def test_malformed_native_receipt_still_fails_before_image_queries(image_graph, 
     decoded = decode_spy(monkeypatch, {data.raw_policy})
     trace, result = observe(connection, lambda: bind(connection, data))
     assert result[0:2] == ("error", ValidationError)
-    assert trace == image_sql(data)[:2] and decoded == [data.raw_policy]
+    assert trace == image_sql(data)[:3] and decoded == [data.raw_policy]

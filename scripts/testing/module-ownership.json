@@ -371,6 +371,7 @@
           "tests/test_application_profile_snapshot_contracts.py",
           "tests/test_direct_project_deletion.py",
           "tests/test_project_abandonment.py",
+          "tests/test_project_deletion_quarantine.py",
           "tests/test_production_project_folder_runtime.py",
           "tests/test_production_project_folder_runtime_boundaries.py",
           "tests/test_project_folder_native_dispatch_safety.py",

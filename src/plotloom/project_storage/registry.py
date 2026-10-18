@@ -39,6 +39,7 @@ from .format import (
 from .project_handle import ProjectStore
 from .project_home import ProjectHome, find_project_home
 from .deletion import permanently_delete_home
+from .write_admission import ProjectWriteAdmission
 from .operational_state import (
     ProjectAccessLease,
     ProjectBusyError,
@@ -52,9 +53,11 @@ from .operational_state import (
 class ProjectDirectoryRegistry:
     """Rebuildable project catalog derived only from validated manifests."""
 
-    def __init__(self, outputs_root: Path, *, native_ownership: Callable[[str, set[str]], list[str]] | None = None) -> None:
+    def __init__(self, outputs_root: Path, *, native_ownership: Callable[[str, set[str]], list[str]] | None = None,
+                 require_admitted: Callable[[str], None] | None = None) -> None:
         self.outputs_root = _require_real_directory(outputs_root, label="outputs root")
         self._native_ownership = native_ownership
+        self.admission = ProjectWriteAdmission(require_admitted)
 
     def native_blockers(self, store: ProjectStore) -> list[str]:
         if self._native_ownership is None:
@@ -94,6 +97,7 @@ class ProjectDirectoryRegistry:
             values["created_at"] = created_at
             values["updated_at"] = created_at
         project = Project(**values)
+        self.admission.require_admitted(project.id)
         home = self._new_home(project)
         manifest = ProjectManifest(project_id=project.id, created_at=project.created_at)
         _write_new_file(
@@ -102,7 +106,7 @@ class ProjectDirectoryRegistry:
                 _canonical_json(manifest.model_dump(mode="json", by_alias=True)) + "\n"
             ).encode("utf-8"),
         )
-        lease = ProjectAccessLease.acquire(home, mode="shared")
+        lease = self.admission.lease(home, project.id, mode="shared")
         try:
             return ProjectStore.initialize(
                 home,
@@ -132,6 +136,7 @@ class ProjectDirectoryRegistry:
         """
 
         validate_initial_stage_prefix(initial_stages)
+        self.admission.require_admitted(project_id)
         project = Project(
             id=project_id,
             brief=brief,
@@ -154,7 +159,7 @@ class ProjectDirectoryRegistry:
             raise ProjectStorageCorruptionError(
                 "reserved project manifest does not match its idempotency reservation"
             )
-        lease = ProjectAccessLease.acquire(home, mode="shared")
+        lease = self.admission.lease(home, project_id, mode="shared")
         try:
             try:
                 return ProjectStore.initialize(
@@ -211,7 +216,7 @@ class ProjectDirectoryRegistry:
         """Open an admitted shared handle; closed homes never reopen implicitly."""
 
         home = self._project_home(project_id)
-        lease = ProjectAccessLease.acquire(home.path, mode="shared")
+        lease = self.admission.lease(home.path, project_id, mode="shared")
         try:
             store = ProjectStore.open(
                 home.path, defer_wal=True, access_lease=lease
@@ -278,7 +283,7 @@ class ProjectDirectoryRegistry:
         """Explicitly reopen a closed folder without dispatching or replaying work."""
 
         home = self._project_home(project_id)
-        lease = ProjectAccessLease.acquire(home.path, mode="exclusive")
+        lease = self.admission.lease(home.path, project_id, mode="exclusive")
         try:
             store = ProjectStore.open(home.path, access_lease=lease)
         except BaseException:
@@ -429,7 +434,7 @@ class ProjectDirectoryRegistry:
 
     def _exclusive_store(self, project_id: str) -> ProjectStore:
         home = self._project_home(project_id)
-        lease = ProjectAccessLease.acquire(home.path, mode="exclusive")
+        lease = self.admission.lease(home.path, project_id, mode="exclusive")
         try:
             return ProjectStore.open(home.path, access_lease=lease)
         except BaseException:

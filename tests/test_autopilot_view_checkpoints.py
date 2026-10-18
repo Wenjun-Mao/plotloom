@@ -59,7 +59,7 @@ def view_context(monkeypatch):
         art_render_style="live-action", image_width=1280, image_height=720,
         code_revision="a" * 40, executor_binding=PROFILE, execution_pins={},
         brief=FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=False))
-    row = SimpleNamespace(id=RUN, project_id=PROJECT, revision=1, state="running",
+    row = SimpleNamespace(id=RUN, project_id=PROJECT, predecessor_run_id=None, revision=1, state="running",
         phase="outline", expected_closure="closure", policy=policy.model_dump(mode="json", by_alias=True),
         blocker=None, bundle=None, bundle_hash=None, handoff=None, created_at=NOW, updated_at=NOW)
     attempt = CodexExecAttempt(attempt_id=UUID("33333333-3333-4333-8333-333333333333"),
@@ -147,7 +147,7 @@ def render(context):
 PREFIX = ["select:v2_autopilot_checkpoints", "select:v2_autopilot_frames", "closure", "policy"]
 # SQL orders by created_at and operation_key, rather than fixture insertion order.
 PROJECTION = ["parse:geometry", "dump:geometry", "parse:outline", "dump:outline", "parse:no-job", "dump:no-job"]
-SUCCESS = PREFIX + PROJECTION + ["select:v2_autopilot_exec_attempts", "attempt", "activities", "frame"]
+SUCCESS = PREFIX + PROJECTION + ["select:v2_autopilot_checkpoints", "select:v2_autopilot_exec_attempts", "attempt", "activities", "frame"]
 
 
 def test_each_loaded_checkpoint_parses_once_and_keeps_canonical_output(view_context, monkeypatch):
@@ -158,8 +158,9 @@ def test_each_loaded_checkpoint_parses_once_and_keeps_canonical_output(view_cont
     observe(context, monkeypatch)
     view = render(context)
     assert context.events == SUCCESS
-    assert len(context.queries) == 3
-    assert all(query[1] == {"run_id_1": RUN} for query in context.queries)
+    assert len(context.queries) == 4
+    assert [query[1] for query in context.queries] == [{"run_id_1": RUN}, {"run_id_1": RUN}, {"project_id_1": PROJECT}, {"run_id_1": RUN}]
+    assert view.predecessor_run_id is None and view.lifetime_jobs == 2 and view.lifetime_images == 0
     canonical = lambda value: json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     assert canonical(view.checkpoints) == canonical(expected)
     assert [item.model_dump(mode="json", by_alias=True) for item in view.activities] == [{
@@ -219,7 +220,7 @@ def test_successive_views_reparse_changed_evidence_and_fresh_attempt_status(view
     context.events.clear()
     second = render(context)
     assert context.events == [event.replace(":outline", ":changed") for event in SUCCESS]
-    assert context.queries[3:] == first_queries
+    assert context.queries[4:] == first_queries
     assert first.activities[0].state == "queued" and first.activities[0].subject_id == "outline"
     assert second.activities[0].state == "generating" and second.activities[0].subject_id == "changed"
     assert first.checkpoints[1]["evidence"]["subjectId"] == "outline"
@@ -244,4 +245,4 @@ def test_reentrant_view_has_independent_derivations(view_context, monkeypatch):
     assert outer is not nested[0]
     assert context.events.count("parse:geometry") == context.events.count("parse:outline") == 2
     assert context.events.count("parse:no-job") == context.events.count("attempt") == 2
-    assert len(context.queries) == 6
+    assert len(context.queries) == 8

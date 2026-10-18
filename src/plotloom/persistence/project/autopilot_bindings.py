@@ -136,10 +136,9 @@ def _retained_checkpoint_validation_plan(request, *, execution_pin, source_revis
 
 
 def _assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id, operation_key, asset_home,
-                               validation_plan_for_request, profile_construction=None):
+                               validation_plan_for_request, profile_construction=None, continuation=True):
     from .autopilot_continuation import inherited_origin
-    has_lineage = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_autopilot_inheritance'").fetchone()
-    origin = inherited_origin(connection, run_id, operation_key, evidence) if has_lineage else None
+    origin = inherited_origin(connection, run_id, operation_key, evidence) if continuation else None
     if origin is not None:
         if state not in {"adopted", "delivered", "prepared"}:
             raise ValueError("inherited material cannot claim a new dispatch")

@@ -114,7 +114,13 @@ def test_serial_folder_requires_explicit_upgrade_and_preserves_valued_rows_bytes
     assert receipt["changed"] is True
     assert retained_bytes(home) == before_bytes
     with sqlite3.connect(home / "project.sqlite3") as connection:
-        assert logical_inventory(connection, prior_schema_objects("serial_exec")) == before_rows
+        from plotloom.persistence.codec import stable_hash
+        for name, original in before_rows.items():
+            projection = ",".join(f'"{column}"' for column in original["columns"])
+            rows = connection.execute(f'SELECT {projection} FROM "{name}"').fetchall()
+            assert (len(rows), stable_hash(sorted(rows, key=stable_hash))) == (original["count"], original["hash"])
+        assert connection.execute("SELECT predecessor_run_id FROM v2_autopilot_runs").fetchall() == [(None,)]
+        assert connection.execute("SELECT count(*) FROM v2_autopilot_inheritance").fetchone() == (0,)
     with closing(storage.projects.inspect(project_id)) as store:
         assert store.repository.operational_state()[0] == ("closed" if closed else "open")
         assert store.source_outline_state().accepted_outline is not None

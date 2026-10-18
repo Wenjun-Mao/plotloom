@@ -85,6 +85,36 @@ def test_exact_public_and_receipt_hashes_and_one_projection_per_segment(populate
     assert session.events == ["flush", "v2_managed_assets"]
 
 
+def test_geometry_inheritance_exclusion_binds_exact_project_run_and_operation():
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from plotloom.persistence.schema import Base
+    engine = create_engine("sqlite://")
+    names = ["v2_autopilot_checkpoints", "v2_autopilot_inheritance", *CANCELLATIONS]
+    Base.metadata.create_all(engine, tables=[Base.metadata.tables[name] for name in names])
+    try:
+        with Session(engine) as session:
+            checkpoint = Base.metadata.tables["v2_autopilot_checkpoints"]
+            inherited = Base.metadata.tables["v2_autopilot_inheritance"]
+            session.execute(checkpoint.insert().values(id="geometry", project_id="project", run_id="run",
+                operation_key="geometry:shot", revision=1, state="adopted", created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc), evidence={"geometryPreparation": {"width": 1280}}))
+            session.execute(inherited.insert().values(id="link", project_id="foreign", run_id="run",
+                operation_key="geometry:shot", origin_checkpoint_id="old", evidence_hash="a" * 64))
+            for project, run, operation, excluded in (("foreign", "run", "geometry:shot", False),
+                    ("project", "other", "geometry:shot", False), ("project", "run", "other", False),
+                    ("project", "run", "geometry:shot", True)):
+                session.execute(inherited.update().values(project_id=project, run_id=run, operation_key=operation))
+                payload = {}
+                closure._add_material_extras(session, "project", payload)
+                assert ("geometryPreparations" not in payload) is excluded
+                if not excluded:
+                    assert payload["geometryPreparations"] == [{"checkpointId": "geometry", "geometryPreparation": {"width": 1280}}]
+    finally:
+        engine.dispose()
+
+
 @pytest.mark.parametrize("expected", ["", "0" * 64])
 def test_protected_mismatch_precedes_all_asset_extras_reads_and_full_hash(monkeypatch, expected):
     session = ProjectionSession(populated=True, geometry=True)

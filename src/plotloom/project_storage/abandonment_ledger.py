@@ -24,6 +24,12 @@ class ApplicationAbandonmentLedger:
             row = connection.execute("SELECT * FROM application_project_abandonments WHERE project_id=?", (project_id,)).fetchone()
             return dict(row) if row else None
 
+    def require_admitted(self, project_id):
+        from .write_admission import reject_pending_deletion
+        row = self.current(project_id)
+        if row is not None and row["revocation_json"] is not None:
+            reject_pending_deletion()
+
     def pending(self):
         with self.application._read() as connection:
             return [{"projectId": row["project_id"], **json.loads(row["consent_json"]),
