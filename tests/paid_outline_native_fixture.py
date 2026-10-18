@@ -14,6 +14,8 @@ import tempfile
 import time
 from pathlib import Path
 
+import pytest
+
 
 def arguments():
     parser = argparse.ArgumentParser()
@@ -34,6 +36,21 @@ def main():
     sys.path.insert(0, str(source / "src"))
     sys.path.insert(0, str(source / "scripts/autopilot/handoff" if args.action == "prepare" else case / "bundle"))
     from plotloom import codex_exec_profile
+    process_support = sys.modules[journal_spawn.__module__]
+    qa = json.loads((case / "qa.json").read_bytes())
+    assert sys.executable == qa["entrypoint"]
+    assert str(Path(sys.executable).resolve()) == qa["physicalExecutable"]
+    assert str(Path(sys.prefix).resolve()) == qa["prefix"]
+    assert str(Path(sys.base_prefix).resolve()) == qa["physicalBasePrefix"]
+    assert Path(codex_exec_profile.__file__) == source / "src/plotloom/codex_exec_profile.py"
+    assert Path(pytest.__file__).is_relative_to(Path(sys.prefix))
+    assert Path(process_support.__file__) == Path(__file__).parent / "paid_outline_processes.py"
+    from tests.cli_handoff_fixtures import exclusive
+    exclusive(case / "receipts" / (args.action + "-runtime-" + str(os.getpid()) + ".json"), json.dumps({
+        "action": args.action, "executable": sys.executable, "prefix": sys.prefix,
+        "plotloomImport": codex_exec_profile.__file__, "pytestImport": pytest.__file__,
+        "testSupportImport": process_support.__file__,
+    }, sort_keys=True).encode())
     codex_exec_profile.NODE_OPENSSL_CONFIG = case / "provider-free-host/openssl.cnf"
     sys.path.insert(0, str(case / "provider-free-host/python-startup"))
     if args.action == "prepare":

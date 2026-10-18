@@ -34,8 +34,8 @@ jobs:
             frontend/package-lock.json
             docs/prompt-pipeline-lab/package-lock.json
 
-      - name: Install Python dependencies
-        run: uv sync --all-groups --frozen
+      - name: Provision owned copied test interpreter and frozen dependencies
+        run: python scripts/testing/provision_test_venv.py
       - name: Check API unused imports
         run: uv run ruff check src/plotloom/api --select F401
       - name: Install P2 media probe tools
@@ -62,7 +62,7 @@ jobs:
         # The full serial suite exceeded the old job budget while still advancing.
         # Bound this step separately and retain time for wheel/smoke qualification.
         timeout-minutes: 45
-        run: uv run pytest -q --durations=20
+        run: .venv/bin/python -m pytest -q --durations=20
       - name: Build wheel
         run: uv build --wheel
       - name: Smoke installed wheel
@@ -91,9 +91,10 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+      - name: Provision owned copied test interpreter and frozen dependencies
+        run: python scripts/testing/provision_test_venv.py
       - name: Install browser fixture dependencies
         run: |
-          uv sync --all-groups --frozen
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends ffmpeg
           npm --prefix frontend ci

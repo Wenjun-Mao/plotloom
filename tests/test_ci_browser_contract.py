@@ -156,5 +156,17 @@ def test_full_python_gate_has_measured_runner_budget_and_cleanup_margin():
     assert 45 <= int(step["timeout-minutes"]) < int(verify["timeout-minutes"]) <= 60
     assert int(verify["timeout-minutes"]) - int(step["timeout-minutes"]) >= 10
     command = step["run"].split()
-    assert command[:4] == ["uv", "run", "pytest", "-q"]
+    assert command[:4] == [".venv/bin/python", "-m", "pytest", "-q"]
     assert command[4:] == ["--durations=20"]
+
+
+def test_hosted_jobs_provision_the_same_owned_copied_test_runtime():
+    for job in _workflow()["jobs"].values():
+        steps = job["steps"]
+        setup = next(i for i, step in enumerate(steps)
+                     if step.get("uses", "").startswith("actions/setup-python@"))
+        provision = next(i for i, step in enumerate(steps)
+                         if step.get("run") == "python scripts/testing/provision_test_venv.py")
+        assert setup < provision
+        assert not any("uv sync" in step.get("run", "") for step in steps)
+        assert not any("chmod" in step.get("run", "") for step in steps)
