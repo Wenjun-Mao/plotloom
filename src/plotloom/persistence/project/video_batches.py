@@ -4,7 +4,7 @@ from sqlalchemy import select
 from ...domain import new_id, utc_now
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ..codec import stable_hash
-from ..schema import VideoBatchRow, VideoBatchReceiptRow
+from ..schema import VideoBatchRow, VideoBatchReceiptRow, VideoJobRow
 
 
 class VideoBatches:
@@ -15,11 +15,31 @@ class VideoBatches:
         return session.scalar(select(VideoBatchRow).where(VideoBatchRow.project_id == project_id)
             .order_by(VideoBatchRow.created_at.desc(), VideoBatchRow.id.desc()).limit(1))
 
-    def retained_job_ids(self, project_id):
+    def _known_predictions(self, session, project_id):
+        rows = session.scalars(select(VideoBatchRow).where(VideoBatchRow.project_id == project_id))
+        identifiers = {identifier for row in rows if row.execution.get("authorizedManifestHash")
+            for identifier in row.execution.get("jobs", {}).values()}
+        return list(session.scalars(select(VideoJobRow.id).where(VideoJobRow.project_id == project_id,
+            VideoJobRow.id.in_(identifiers), VideoJobRow.state.in_(("submitted", "retrieve_needed"))))) if identifiers else []
+
+    def known_prediction_ids(self, project_id):
         with self.access.read() as session:
-            rows = session.scalars(select(VideoBatchRow).where(VideoBatchRow.project_id == project_id))
-            return {identifier for row in rows if row.execution.get("authorizedManifestHash")
-                for identifier in row.execution.get("jobs", {}).values()}
+            return self._known_predictions(session, project_id)
+
+    def job_states(self, project_id, identifiers):
+        with self.access.read() as session:
+            return dict(session.execute(select(VideoJobRow.id, VideoJobRow.state).where(
+                VideoJobRow.project_id == project_id, VideoJobRow.id.in_(identifiers))).all()) if identifiers else {}
+
+    def needs_step(self, project_id):
+        """Cheap work predicate; never grants dispatch or proves source authority."""
+        with self.access.read() as session:
+            row = self.latest(session, project_id)
+            if row is None:
+                return False
+            draft = row.execution.get("draft")
+            unsettled_draft = draft and draft["attempt"]["state"] not in {"completed", "failed", "settled"}
+            return bool(row.state in {"running", "drafting"} or unsettled_draft or self._known_predictions(session, project_id))
 
     def current(self, project_id):
         with self.access.read() as session:

@@ -24,7 +24,11 @@ that authority. Human control has a separate CAS revision from progress facts,
 so observed progress cannot make Pause unusable or replay an older control intent.
 Existing job accounting remains ADR 0045's durable claim-before-
 transport protocol. Pause stops new submissions; known predictions remain
-observable even after a cancelled batch is superseded. Explicit native window
+observable even after a cancelled batch is superseded. Cheap inspection of those
+existing facts gates controller work; settled review waits do not trigger repeated
+authority/media scans. Every admitted execution/reconciliation step still opens
+with full authority validation. Progress counts project existing execution states;
+full gallery eligibility and byte proof remain with the review owner. Explicit native window
 preparation updates the latest unconfirmed batch proposal and its review CAS;
 it never rewrites a completed confirmation. UNKNOWN retains reservations and never permits replacement. All
 targets preflight before Start; edits fence unsent work. No automatic paid retry.

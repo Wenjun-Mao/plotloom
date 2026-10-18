@@ -131,8 +131,8 @@ class VideoBatchService:
             if not view:
                 return None
             if view["execution"].get("authorizedManifestHash"):
-                jobs = {job["id"]: job for job in self.require_video().jobs(store)}
-                states = [jobs.get(identifier, {}).get("state", "missing") for identifier in view["execution"]["jobs"].values()]
+                states_by_id = store.repository.video_batches.job_states(project_id, list(view["execution"]["jobs"].values()))
+                states = [states_by_id.get(identifier, "missing") for identifier in view["execution"]["jobs"].values()]
                 view["progress"] = {"total": len(view["manifest"]["targets"]), "ready": len(view["execution"]["segments"]),
                     "failed": sum(state == "failed" for state in states),
                     "blocked": sum(state in {"outcome_unknown", "dispatching", "missing"} for state in states)}
@@ -160,12 +160,9 @@ class VideoBatchService:
         with closing(self.storage.projects.open(project_id)) as store:
             owner = store.repository.video_batches
             # Observation belongs to retained predictions, not the latest dispatch grant.
-            retained = owner.retained_job_ids(project_id)
-            if retained:
-                for job in self.require_video().jobs(store):
-                    if job["id"] in retained and job["state"] in {"submitted", "retrieve_needed"}:
-                        self.require_video().reconcile(store, job["id"])
-                        return
+            for identifier in owner.known_prediction_ids(project_id):
+                self.require_video().reconcile(store, identifier)
+                return
             view = owner.current(project_id)
             if not view or view["state"] in {"setup", "ready", "approved", "retired"}:
                 return

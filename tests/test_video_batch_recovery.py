@@ -118,9 +118,13 @@ def test_cancelled_predecessor_keeps_observing_after_new_setup(tmp_path, monkeyp
     with closing(storage.projects.open(project_id)) as store:
         original = service.video.jobs(store)[0]
     assert original["state"] == "submitted"
+    with closing(storage.projects.open(project_id)) as store:
+        assert store.repository.video_batches.needs_step(project_id)
     service.control(project_id, BatchControl(batchId=started["id"], expectedControlRevision=started["controlRevision"], action="cancel"))
     successor = service.setup(project_id, BatchSetup(profileId="minimax_h3_quality8_portrait_576x1024_v2"))
     assert successor["id"] != started["id"]
+    with closing(storage.projects.open(project_id)) as store:
+        assert store.repository.video_batches.needs_step(project_id)
     observed = []
     monkeypatch.setattr(service.video, "reconcile", lambda store, identifier: observed.append(identifier))
     service.step(project_id)

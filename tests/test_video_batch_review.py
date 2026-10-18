@@ -36,6 +36,7 @@ def complete_batch(tmp_path, take):
     assert current["state"] == "awaiting_review", current["execution"].get("error")
     with closing(storage.projects.open(project_id)) as store:
         jobs = service.video.jobs(store)
+        assert not store.repository.video_batches.needs_step(project_id)
         assert len(jobs) == len(provider.submits) == 6
         assert all(job["state"] == "ingested" and not job["selected"] and job["segments"] for job in jobs)
     return storage, client, service, project_id, current
@@ -141,3 +142,11 @@ def test_reopening_rejected_alternative_preserves_batch_selected_content(tmp_pat
     original = next(job for job in jobs if job["id"] == receipt["selections"][0]["jobId"])
     assert original["selected"] and original["playbackSegment"]["id"] == receipt["selections"][0]["segmentId"]
     assert client.get(f"{base}/video-jobs/{original['id']}/playback").status_code == 200
+
+
+def test_progress_reads_execution_facts_without_revalidating_the_gallery(tmp_path, native_batch_take, monkeypatch):
+    _storage, _client, service, project_id, _current = complete_batch(tmp_path, native_batch_take)
+    monkeypatch.setattr(service.video, "jobs", lambda *_: pytest.fail("progress rebuilt full media eligibility"))
+    current = service.current(project_id)
+    assert current["state"] == "awaiting_review"
+    assert current["progress"] == {"total": 6, "ready": 6, "failed": 0, "blocked": 0}

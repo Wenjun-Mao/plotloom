@@ -51,7 +51,7 @@ class VideoBatchRuntime:
                             break
                         try:
                             with closing(self.service.storage.projects.inspect(home.manifest.project_id, passive=True)) as store:
-                                if store.repository.operational_state()[0] != "open" or store.repository.video_batches.current(home.manifest.project_id) is None:
+                                if store.repository.operational_state()[0] != "open" or not store.repository.video_batches.needs_step(home.manifest.project_id):
                                     continue
                             self.step(home.manifest.project_id)
                         except Exception as error:

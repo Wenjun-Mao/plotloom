@@ -48,6 +48,8 @@ def retained_proof_cache(connection, name, identity):
 def sql_scalar(session, name, identity, calculate):
     """Reuse immutable SQL-derived scalars only within the same mutation snapshot."""
     session.flush()
+    if _proofs.get() is None:
+        return calculate()
     connection = session.connection().connection.driver_connection
     cache, key = retained_proof_cache(connection, name, (session.get_transaction(), session.get_nested_transaction(), identity))
     if cache is not None and key in cache:
