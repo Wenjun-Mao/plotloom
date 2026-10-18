@@ -8,6 +8,13 @@ immutable origin from target-specific use; target approval/intent/identity revie
 remain independent. The observed next-shot set drift and the source-shot-only
 admission restriction are the demonstrated scope, not a general redesign.
 
+Implementation `901e6270` and fixture correction `cf689db9` are locally qualified:
+3,155 Python, 1,388 frontend and 321 browser cases, plus package smoke. The original
+full invocation stopped at four fixtures using retired implicit reuse; corrected
+unfiltered browser and downstream checks passed with unchanged-input evidence
+reuse, not a second full invocation. See the
+[verification record](../verification/2026-10-17-cross-shot-image-use.md).
+
 Deliver the existing-workbench controls, shared typed persistence/admission and
 reference package contracts, focused regressions, independent review and one
 stable full qualification before publication/activation. Preserve the current

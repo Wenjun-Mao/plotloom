@@ -2,8 +2,11 @@
 
 ## Status
 
-Owner-approved implementation scope, 2026-10-17. Implementation and qualification
-are pending; this record does not accept generated content or resume autopilot.
+Implemented in `901e6270`, with browser-fixture correction `cf689db9`, and locally
+qualified on 2026-10-17 (Toronto). See the
+[verification record](../verification/2026-10-17-cross-shot-image-use.md) for the
+original failed full invocation and justified downstream evidence reuse. This
+does not establish hosted CI, generated-content acceptance or autopilot authority.
 
 ## Context and cause
 
