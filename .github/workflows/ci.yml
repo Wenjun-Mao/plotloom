@@ -1,20 +1,16 @@
-name: CI
+name: Owned copied Python family diagnostic
+
+permissions:
+  contents: read
 
 on:
   workflow_dispatch:
-    inputs:
-      browser_grep:
-        description: "Browser test-name regex (.* is the full release gate; any filter is diagnostic only)"
-        required: true
-        default: ".*"
-        type: string
 
 jobs:
-  verify:
-    runs-on: ubuntu-latest
-    timeout-minutes: 55
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      # The retained-runtime inventory compares fixed historical commits.
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
@@ -25,106 +21,182 @@ jobs:
           enable-cache: true
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.12.15"
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: |
-            frontend/package-lock.json
-            docs/prompt-pipeline-lab/package-lock.json
-
-      - name: Provision owned copied test interpreter and frozen dependencies
-        run: python scripts/testing/provision_test_venv.py
-      - name: Check API unused imports
-        run: uv run ruff check src/plotloom/api --select F401
-      - name: Install P2 media probe tools
+          node-version: "22.23.3"
+      - name: Verify exact candidate and observe the selected source interpreter
+        id: source
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends ffmpeg
-          ffmpeg -version
-          ffprobe -version
-      - name: Install frontend dependencies
-        run: npm --prefix frontend ci
-      - name: Verify archived prompt reader
+          python - <<'PY'
+          import json, os, platform, subprocess, sys
+          from pathlib import Path
+          from scripts.testing.provision_test_venv import file_record, runtime_facts
+          root = Path.cwd()
+          output = root / ".local/owned-runtime-diagnostic"
+          output.mkdir(parents=True, exist_ok=True)
+          base = "f7fcf08009d26b52713ca23f9fa2b4eb318bef0e"
+          prior = "6dd4cd4f357c4355644fb1d9a284a9c441d909ed"
+          def git(*args):
+              return subprocess.check_output(["git", *args], text=True).strip()
+          runtime = runtime_facts([sys.executable], root)
+          mask = os.umask(0o022)
+          os.umask(mask)
+          facts = {"diagnosticOnly": True, "candidateBase": base, "head": git("rev-parse", "HEAD"),
+              "workflowOnlyDiff": git("diff", "--name-only", base, "HEAD").splitlines(),
+              "dependencyHead": git("-C", "third_party/shuohao-skills", "rev-parse", "HEAD"),
+              "sourceRuntime": runtime, "source": file_record(Path(runtime["baseExecutable"])),
+              "pythonLocation": os.environ.get("pythonLocation"), "uid": os.getuid(), "umask": oct(mask),
+              "osRelease": dict(line.split("=", 1) for line in Path("/etc/os-release").read_text().splitlines() if "=" in line),
+              "imageVersion": os.environ.get("ImageVersion"), "uv": subprocess.check_output(["uv", "--version"], text=True).strip(),
+              "node": subprocess.check_output(["node", "--version"], text=True).strip(), "checks": "pending"}
+          (output / "source-preflight.json").write_text(json.dumps(facts, indent=2) + "\n")
+          assert facts["workflowOnlyDiff"] == [".github/workflows/ci.yml"]
+          for ancestor in (base, prior):
+              subprocess.run(["git", "merge-base", "--is-ancestor", ancestor, "HEAD"], check=True)
+          assert not git("diff", "--name-only", "HEAD")
+          assert facts["dependencyHead"] == "4f9b2128c82adf623f594ba714c97d0afcfc16a2"
+          assert facts["osRelease"]["ID"].strip('"') == "ubuntu" and facts["osRelease"]["VERSION_ID"].strip('"') == "24.04"
+          assert runtime["implementation"] == "cpython" and runtime["version"] == [3, 12, 15] and runtime["machine"] == "x86_64"
+          assert Path(runtime["physicalBasePrefix"]) == Path(facts["pythonLocation"]).resolve()
+          assert Path(runtime["baseExecutable"]).is_relative_to(Path(facts["pythonLocation"]).resolve())
+          assert facts["node"] == "v22.23.3" and mask == 0o022
+          assert not (root / ".venv").exists() and not (root / ".venv").is_symlink()
+          assert not any(os.environ.get(key) for key in ("PYTHONPATH", "PYTHONHOME", "PYTEST_ADDOPTS", "UV_PROJECT_ENVIRONMENT", "UV_PYTHON", "VIRTUAL_ENV", "PYTHONDONTWRITEBYTECODE"))
+          facts["checks"] = "passed"
+          (output / "source-preflight.json").write_text(json.dumps(facts, indent=2) + "\n")
+          print(json.dumps(facts, sort_keys=True))
+          PY
+      - name: Ordinary copied-runtime provisioning and frozen Python dependencies
+        id: provision
         run: |
-          npm --prefix docs/prompt-pipeline-lab ci
-          npm --prefix docs/prompt-pipeline-lab run verify
-      - name: Frontend unit and type contracts
-        run: |
-          npm --prefix frontend test
-          npm --prefix frontend run typecheck
-      - name: Build production frontend
-        run: npm --prefix frontend run build
-      - name: Verify checked production bundle
-        run: git diff --exit-code -- src/plotloom/static
-      - name: Python and distribution contracts
-        # The full serial suite exceeded the old job budget while still advancing.
-        # Bound this step separately and retain time for wheel/smoke qualification.
-        timeout-minutes: 45
-        run: .venv/bin/python -m pytest -q --durations=20
-      - name: Build wheel
-        run: uv build --wheel
-      - name: Smoke installed wheel
-        run: uv run python scripts/smoke_installed_wheel.py dist
-
-  browser:
-    runs-on: ubuntu-latest
-    timeout-minutes: 55
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-          submodules: recursive
-      - uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - name: Provision owned copied test interpreter and frozen dependencies
-        run: python scripts/testing/provision_test_venv.py
-      - name: Install browser fixture dependencies
+          set -o pipefail
+          python scripts/testing/provision_test_venv.py 2>&1 | tee .local/owned-runtime-diagnostic/provision.log
+      - name: Install the ordinary affected-family media and Node tools
+        id: tools
         run: |
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends ffmpeg
           npm --prefix frontend ci
-      - name: Install Playwright Chromium
-        working-directory: frontend
-        run: npx playwright install --with-deps chromium
-      - name: Verify browser shard allocation and selected case coverage
-        working-directory: frontend
-        env:
-          BROWSER_GREP: ${{ inputs.browser_grep }}
-        run: node scripts/check_browser_shard_manifest.mjs
-      - name: Browser regression contracts
-        # Keep one real fixture stack per runner; distribute whole specs by duration.
-        # Playwright must finalize reports before the step/job cancellation budget.
-        timeout-minutes: 45
-        env:
-          BROWSER_GREP: ${{ inputs.browser_grep }}
-          BROWSER_SHARD: ${{ matrix.shard }}
-        run: npm --prefix frontend run test:e2e -- --workers=1 --grep="${BROWSER_GREP}" --global-timeout=2400000 --pass-with-no-tests
-      - name: Upload Playwright test results
+          npm --prefix docs/prompt-pipeline-lab ci
+      - name: Verify copied runtime and exact affected-family inventory
+        id: copied
+        run: |
+          .venv/bin/python - <<'PY'
+          import json, subprocess, sys
+          from pathlib import Path
+          import plotloom, pytest, tests
+          from scripts.testing.provision_test_venv import file_record, observe
+          from scripts.testing.run_python_suite import parse_collected_cases
+          from scripts.testing.python_suite_schedule import native_case_fingerprint
+          root = Path.cwd()
+          output = root / ".local/owned-runtime-diagnostic"
+          source = json.loads((output / "source-preflight.json").read_text())
+          rows = [json.loads(line) for line in (output / "provision.log").read_text().split('\n') if line.startswith('{"stage":')]
+          assert [row["stage"] for row in rows] == ["before-frozen-sync", "after-frozen-sync", "subsequent-uv-run", "subsequent-uv-sync"]
+          baseline = {key: rows[0][key] for key in ("copies", "configuration", "pyvenvCfg", "runtime")}
+          assert rows[0]["source"] == source["source"] and rows[0]["sourceRuntime"] == source["sourceRuntime"]
+          actual = observe(root, source["source"], source["sourceRuntime"], [sys.executable], expected=baseline)
+          assert file_record(Path(source["source"]["path"])) == source["source"]
+          assert Path(plotloom.__file__) == root / "src/plotloom/__init__.py" and Path(tests.__file__) == root / "tests/__init__.py"
+          assert Path(pytest.__file__).is_relative_to(Path(sys.prefix))
+          selectors = ["tests/test_test_venv_provisioning.py", "tests/test_cli_handoff_capsule.py", "tests/test_cli_handoff_receiver.py", "tests/test_paid_outline_handoff.py", "tests/test_qualification_pair_contracts.py"]
+          result = subprocess.run([sys.executable, "-m", "pytest", "--collect-only", "-q", *selectors], capture_output=True, text=True)
+          (output / "family-collection.log").write_text(result.stdout + result.stderr)
+          assert result.returncode == 0
+          cases = parse_collected_cases(result.stdout, root=root)
+          fingerprint = native_case_fingerprint(cases)
+          assert len(cases) == 154 and fingerprint == "76addf19ff262dc96c37d3ea94504565c77eb0b2a505ee3b669455202189d311"
+          assert not subprocess.check_output(["git", "diff", "--name-only", "HEAD"], text=True).strip()
+          facts = {"diagnosticOnly": True, "checks": "passed", "copied": actual, "sourceUnchanged": True,
+              "plotloomImport": plotloom.__file__, "pytestImport": pytest.__file__, "testsImport": tests.__file__,
+              "selectors": selectors, "nativeCases": len(cases), "nativeCaseIdsSha256": fingerprint}
+          (output / "copied-preflight.json").write_text(json.dumps(facts, indent=2) + "\n")
+          print(json.dumps(facts, sort_keys=True))
+          PY
+      - name: Provisioning and complete capsule receiver families
+        id: capsule
+        if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.provision.outcome == 'success' && steps.tools.outcome == 'success' && steps.copied.outcome == 'success' }}
+        timeout-minutes: 3
+        run: |
+          set -o pipefail
+          .venv/bin/python -m pytest -vv --tb=long --durations=20 tests/test_test_venv_provisioning.py tests/test_cli_handoff_capsule.py tests/test_cli_handoff_receiver.py --junitxml=.local/owned-runtime-diagnostic/capsule.xml 2>&1 | tee .local/owned-runtime-diagnostic/capsule.log
+      - name: Complete provider-free paid entry family
+        id: paid
+        if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.provision.outcome == 'success' && steps.tools.outcome == 'success' && steps.copied.outcome == 'success' }}
+        timeout-minutes: 6
+        run: |
+          set -o pipefail
+          .venv/bin/python -m pytest -vv --tb=long --durations=20 tests/test_paid_outline_handoff.py --junitxml=.local/owned-runtime-diagnostic/paid.xml 2>&1 | tee .local/owned-runtime-diagnostic/paid.log
+      - name: Complete shared pair callback family
+        id: pair
+        if: ${{ !cancelled() && steps.source.outcome == 'success' && steps.provision.outcome == 'success' && steps.tools.outcome == 'success' && steps.copied.outcome == 'success' }}
+        timeout-minutes: 3
+        run: |
+          set -o pipefail
+          .venv/bin/python -m pytest -vv --tb=long --durations=20 tests/test_qualification_pair_contracts.py --junitxml=.local/owned-runtime-diagnostic/pair.xml 2>&1 | tee .local/owned-runtime-diagnostic/pair.log
+      - name: Classify the diagnostic and retain owned fixture logs and receipts
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-test-results-${{ matrix.shard }}
-          path: frontend/test-results
-          retention-days: 7
-      - name: Upload Playwright report
+        env:
+          DIAG_SOURCE: ${{ steps.source.outcome }}
+          DIAG_PROVISION: ${{ steps.provision.outcome }}
+          DIAG_TOOLS: ${{ steps.tools.outcome }}
+          DIAG_COPIED: ${{ steps.copied.outcome }}
+          DIAG_CAPSULE: ${{ steps.capsule.outcome }}
+          DIAG_PAID: ${{ steps.paid.outcome }}
+          DIAG_PAIR: ${{ steps.pair.outcome }}
+        run: |
+          python - <<'PY'
+          import getpass, hashlib, json, os, shutil, stat, tempfile
+          from pathlib import Path
+          output = Path(".local/owned-runtime-diagnostic")
+          output.mkdir(parents=True, exist_ok=True)
+          states = {name: os.environ["DIAG_" + name] for name in ("SOURCE", "PROVISION", "TOOLS", "COPIED", "CAPSULE", "PAID", "PAIR")}
+          classification = "VALID_AFFECTED_FAMILY_DIAGNOSTIC" if all(states[name] == "success" for name in ("SOURCE", "PROVISION", "TOOLS", "COPIED")) else "INVALID_SETUP_OR_PREFLIGHT"
+          base = Path(tempfile.gettempdir()) / ("pytest-of-" + getpass.getuser())
+          selected, skipped = set(), []
+          for session in base.glob("pytest-[0-9]*"):
+              if session.is_symlink() or not session.is_dir():
+                  continue
+              for pattern, key, value in (("capsule-source*/owner.json", "evidenceClass", "synthetic_unit_only"), ("*/fixture-owner.json", "syntheticEvidence", True)):
+                  for marker in session.glob(pattern):
+                      if marker.parent.is_symlink():
+                          continue
+                      meta = marker.lstat()
+                      if not stat.S_ISREG(meta.st_mode) or meta.st_uid != os.getuid() or meta.st_nlink != 1:
+                          continue
+                      if json.loads(marker.read_text()).get(key) != value:
+                          continue
+                      case = marker.parent
+                      selected.update((case / "receipts").glob("*.log"))
+                      selected.update((case / "receipts").glob("*-runtime-*.json"))
+                      selected.update(case / "receipts" / name for name in ("node-stderr.log", "node-tap.log", "node-result.json", "arm-entry.json"))
+                      selected.update(case.glob("capsule-result-*.json"))
+                      selected.update(case / name for name in ("process-settlement.json", "phase/driver.log", "phase/paid-result.json", "phase/synthetic-pair-callback.json"))
+                      selected.update(case.rglob("*.stdout"))
+                      selected.update(case.rglob("*.stderr"))
+          copied = []
+          for source in sorted(selected):
+              if not source.exists():
+                  continue
+              meta = source.lstat()
+              relative = source.relative_to(base)
+              if source.resolve() != source or not stat.S_ISREG(meta.st_mode) or meta.st_uid != os.getuid() or meta.st_nlink != 1:
+                  skipped.append(str(relative))
+                  continue
+              destination = output / "fixture-logs" / relative
+              destination.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copyfile(source, destination)
+              copied.append({"path": str(relative), "bytes": meta.st_size, "sha256": hashlib.sha256(destination.read_bytes()).hexdigest()})
+          report = {"diagnosticOnly": True, "classification": classification, "stepOutcomes": states,
+              "retained": copied, "skippedUnsafeArtifactPaths": skipped, "releaseQualification": False}
+          (output / "diagnostic-result.json").write_text(json.dumps(report, indent=2) + "\n")
+          print(json.dumps(report, sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ matrix.shard }}
-          path: frontend/playwright-report
+          name: owned-copied-runtime-diagnostic-evidence
+          path: .local/owned-runtime-diagnostic
+          include-hidden-files: true
           retention-days: 7
