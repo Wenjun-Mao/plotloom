@@ -69,12 +69,23 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
   const identity = useRef(projectId); identity.current = projectId;
   const command = useRef(false);
   const [readEpoch, setReadEpoch] = useState(0);
+  const pendingHandoff = useRef<{projectId:string;runId:string} | null>(null);
+  // ACK and polling race for one pending foreground confirmation; either may win.
+  async function finishHandoff(value: AutopilotRun) {
+    if (pendingHandoff.current?.projectId !== projectId || pendingHandoff.current.runId !== value.id) return;
+    pendingHandoff.current = null;
+    setBusy(true); setSavedStatus("已保存，正在刷新制作状态");
+    try { await onChanged(); if (identity.current === projectId) setSavedStatus("已保存完整素材审阅"); }
+    catch { if (identity.current === projectId) setSavedStatus("已保存完整素材审阅；刷新制作状态失败，请重新读取。"); }
+    finally { if (identity.current === projectId) setBusy(false); }
+    completion.reveal("material-next-action");
+  }
   const readContext = useRef("");
   useEffect(() => {
     const context = `${projectId}:${revision}`;
     if (readContext.current !== context) {
       readContext.current = context;
-      setRun(null); setReady(false); setReview(false); setError(""); setCommandError("");
+      setRun(null); setReady(false); setReview(false); setError(""); setCommandError(""); setSavedStatus("");
     }
     if (!projectId) return;
     const abort = new AbortController(); let timer: ReturnType<typeof setTimeout>;
@@ -83,7 +94,7 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
         const value = await autopilotApi.current(projectId, abort.signal);
         if (abort.signal.aborted) return;
         setRun(previous => value && previous?.id === value.id && previous.revision > value.revision ? previous : value); setReady(true); setError("");
-        if (value?.state === "handed_off") setReview(false);
+        if (value?.state === "handed_off") { setReview(false); await finishHandoff(value); }
         // Material commands can withdraw a completed run without changing Brief.
         if (value) timer = setTimeout(refresh, 5000);
       } catch (failure) { if (!abort.signal.aborted) {
@@ -134,9 +145,10 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
     {error && <p className="autopilot-error" role="alert">素材准备：{error}</p>}
     {commandError && <p className="autopilot-error" role="alert">上次操作反馈：{commandError}</p>}
     {children}
-    {review && run && <MaterialReview onConfirmStart={completion.arm} key={`${projectId}:${run.revision}`} projectId={projectId} readOnly={readOnly || !ready} onClose={() => setReview(false)}
+    {review && run && <MaterialReview onConfirmStart={() => { pendingHandoff.current = {projectId,runId:run.id}; completion.arm(); }} key={`${projectId}:${run.revision}`} projectId={projectId} readOnly={readOnly || !ready} onClose={() => { completion.clear(); pendingHandoff.current = null; setReview(false); }}
       onUncertain={message => { setCommandError(message); setReady(false); setReadEpoch(epoch => epoch + 1); }}
-      onAccepted={async value => { setRun(value); setReview(false); setBusy(true); setSavedStatus("已保存，正在刷新制作状态"); try { await onChanged(); setSavedStatus("已保存完整素材审阅"); } catch { setSavedStatus("已保存完整素材审阅；刷新制作状态失败，请重新读取。"); } finally { setBusy(false); } completion.reveal("material-next-action"); }} />}
+      onAccepted={async value => { setRun(value); setReview(false); await finishHandoff(value); }} />}
+
   </Context.Provider>;
 }
 

@@ -7,8 +7,7 @@ not establish human creative acceptance.
 ## Source and authority
 
 - Retained checkout: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, `main`.
-- Baseline: `c5aabe252a83c6aa6708fbbbcf4fe704a771eaa3c` (use Git for the exact
-  resolved baseline; the short identity is `c5aabe25`).
+- Baseline: `c5aabe252a83c6aa6708fbbbcf4fe704a771eaa3`.
 - Owning plan: `docs/roadmap/2026-10-18-batch-video-production.md`.
 - Contracts: ADR 0192 inspection/authority and ADR 0193 frozen video batches.
 - One source writer. Independent read-only reviews found and verified corrections

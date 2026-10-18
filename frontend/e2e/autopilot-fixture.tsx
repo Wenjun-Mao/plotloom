@@ -82,11 +82,12 @@ autopilotApi.control = async (_id, _revision, action) => { record(["control", ac
 autopilotApi.handoff = async (_id, body) => { record(["handoff", body]);
   if (initial === "handoff-uncommitted") throw new Error("Disposable handoff not committed");
   current = { ...fixtureRun, state: "handed_off", handoff: { receiptId: "human-fixture" } };
+  if (initial === "handoff-delayed") await new Promise(resolve => setTimeout(resolve, 6500));
   if (initial === "handoff-unknown") throw new Error("Disposable handoff acknowledgment lost");
   return current; };
 specialistsApi.settings = async () => ({ text: { name: "文字测试助手", taskId: "text-fixture" }, image: { name: "图片测试助手", taskId: "image-fixture" }, busy: false });
 createRoot(document.getElementById("root")!).render(<main><h1>灯塔素材准备 · 一次审阅</h1><p>Disposable fixture · no generation or creative acceptance.</p><pre id="fixture-writes">[]</pre>
-  <AutopilotWorkspace projectId="disposable" revision={1} readOnly={false} onChanged={async () => undefined} onVideo={() => record(["manual-video-navigation"])}>
+  <AutopilotWorkspace projectId="disposable" revision={1} readOnly={false} onChanged={async () => { document.body.dataset.projectRefreshes = String(Number(document.body.dataset.projectRefreshes || "0") + 1); }} onVideo={() => record(["manual-video-navigation"])}>
     <section className="recommended-workflow-guide" aria-label="自动素材进度"><AutopilotProgress /></section>
     <AutopilotLaunch saved dirty={false} disabled={false} visualDirection="2D 动画；水彩；低饱和" /><p>故事的全部路线与镜头在这里汇成可审阅的素材包。</p>
   </AutopilotWorkspace>

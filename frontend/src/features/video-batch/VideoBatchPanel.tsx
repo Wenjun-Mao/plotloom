@@ -110,7 +110,7 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
         <Button variant="quiet" onClick={() => { const target = document.getElementById("video-batch-next-action"); if (target) revealWorkspaceTarget(target); }}>查看结果</Button>
       </div></section><p>暂停与取消保留已派发作业及结果；不代表远程取消。不确定发送不会重试。每个新视频仍需最终整包人工确认才用于故事。</p>
     </>}
-    {review && batch && projectId && <VideoBatchReview onConfirmStart={completion.arm} projectId={projectId} batch={batch} disabled={disabled || dirty || !ready} onClose={() => setReview(false)}
+    {review && batch && projectId && <VideoBatchReview onConfirmStart={completion.arm} projectId={projectId} batch={batch} disabled={disabled || dirty || !ready} onClose={() => { completion.clear(); setReview(false); }}
       onSaved={async () => { setReview(false); setBusy("已保存，正在刷新制作状态");
         try { const value = await batchApi.current(projectId); setBatch(value); await onChanged?.(); }
         catch (failure) { setError(`已保存全部视频确认；刷新制作状态失败：${String(failure)}`); }

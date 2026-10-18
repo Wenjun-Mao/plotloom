@@ -126,7 +126,7 @@ test("long blocker remains readable at desktop, narrow and short viewports", asy
   }
 });
 
-for (const outcome of ["normal", "handoff-unknown", "handoff-uncommitted"]) test(outcome === "normal" ? "whole review confirms once and records separate uncertain identity authorization" : outcome === "handoff-unknown" ? "lost handoff acknowledgment reconciles durable result without resending confirmation" : "uncommitted handoff retains authored edits through failed read reconciliation", async ({ page, frontendOrigin }, testInfo) => {
+for (const outcome of ["normal", "handoff-unknown", "handoff-uncommitted", "handoff-delayed"]) test(outcome === "normal" ? "whole review confirms once and records separate uncertain identity authorization" : outcome === "handoff-unknown" ? "lost handoff acknowledgment reconciles durable result without resending confirmation" : outcome === "handoff-delayed" ? "earlier handed-off poll refreshes once before a held approval acknowledgment" : "uncommitted handoff retains authored edits through failed read reconciliation", async ({ page, frontendOrigin }, testInfo) => {
   await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html${outcome === "normal" ? "" : `?state=${outcome}`}`);
   await page.getByRole("button", { name: "审阅完整素材", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "审阅完整素材" });
@@ -166,10 +166,12 @@ for (const outcome of ["normal", "handoff-unknown", "handoff-uncommitted"]) test
     await expect(dialog.getByLabel("备注（可选）")).toHaveValue("  已检查全部故事路线与图片。\n");
     await expect(page.getByRole("button", { name: "进入手动视频制作" })).toHaveCount(0);
   } else { await expect(dialog).not.toBeVisible(); await expect(page.getByRole("button", { name: "进入手动视频制作" })).toBeVisible(); }
+  if (outcome === "handoff-delayed") await expect(page.locator("body")).toHaveAttribute("data-project-refreshes", "1");
   if (outcome === "handoff-unknown") {
     await expect(page.getByRole("alert")).toContainText("Disposable handoff acknowledgment lost");
     await expect(page.getByRole("button", { name: "审阅完整素材", exact: true })).toHaveCount(0);
     await expect(page.getByText("已记录完整人工审阅", { exact: false })).toBeVisible();
+    await expect(page.locator("body")).toHaveAttribute("data-project-refreshes", "1");
   }
   const writes = JSON.parse(await page.locator("#fixture-writes").textContent() || "[]") as Array<[string, BulkHandoff]>;
   expect(writes).toHaveLength(1); expect(writes[0][0]).toBe("handoff");
