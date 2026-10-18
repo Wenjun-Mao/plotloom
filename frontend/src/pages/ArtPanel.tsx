@@ -13,6 +13,7 @@ import { StageGuide } from "../components/StageGuide";
 import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
 import { ReviewContextErrorNotice, ReviewContextNotice, reviewContextFailure, reviewContextNextStep, type ReviewContextFailure } from "./ReviewContextNotice";
 import { useReportReviewWorkflowRead } from "../app/workspace/ReviewWorkflowReadContext";
+import { renderStylePresentation } from "../features/render-style-contract";
 
 type EditorProps = { disabled: boolean; draft: string; setDraft: (value: string) => void };
 type ProjectSession = { projectId: string; epoch: number };
@@ -105,6 +106,8 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
     {error ? <><ReviewContextErrorNotice error={error} projectId={projectId} /><Button variant="quiet" onClick={() => void recheck()}>重试加载美术参考</Button></> : <Spinner />}
   </article>;
   const { candidate, acceptedArt: accepted } = state;
+  const renderContractOwner = candidate ? candidate.binding : accepted?.binding;
+  const renderPresentation = renderStylePresentation(renderContractOwner?.renderContract);
   const editDraft = (next: string) => { draftDirty.current = next !== JSON.stringify(draftBase?.value.art, null, 2); setDraft(next); reviewDraft.changed(next); };
   const adoptCurrent = () => { draftDirty.current = false; setDraftBase(currentAuthority); setDraft(currentAuthority?.value.art ? JSON.stringify(currentAuthority.value.art, null, 2) : ""); void reviewDraft.clear(); };
   const heading = checking ? "正在刷新" : failed ? "无法刷新" : state.status === "stale" ? "上下文已过期" : state.status === "reopened" ? "美术设定修订轮次已打开" : candidate?.status === "ready" ? "待审核美术设定" : candidate?.status === "prepared" ? "美术任务尚未交付" : accepted ? `${adoptionLabel("art", accepted.revision, accepted.contentHash)}美术设定 r${accepted.revision}` : "尚无美术候选";
@@ -127,7 +130,7 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
     <StageGuide next={onContinue && <Button variant="quiet" disabled={checking || failed || busy || draftDirty.current || state.acceptedReviewState.status !== "current" || !accepted} onClick={onContinue}>继续：剧本</Button>}>
       {checking ? "正在核对当前版本，请稍候。" : failed ? "读取失败，请先重试；暂时不能继续或修改。" : automatic ? (state.status === "accepted" && accepted ? `${adoptionSentence(adoptionLabel("art", accepted.revision, accepted.contentHash), "地点与道具设定")}。${automatic}` : automatic) : busy ? "正在处理美术任务，请稍候。" : retained ? "保留了基于旧版本的美术草稿。请在下方明确舍弃，或用当前版本替换草稿，再继续剧本。" : state.status === "reopened" || draftDirty.current ? "先保存或明确舍弃美术修改，再继续剧本。" : state.status === "stale" ? reviewContextNextStep(state.staleReasons[0], "请按当前审核要求重新准备并确认美术设定。") : state.status === "accepted" && accepted ? `${adoptionSentence(adoptionLabel("art", accepted.revision, accepted.contentHash), "地点与道具设定")}。可按需制作参考图，也可继续编写剧本；进入下一步不会自动生成图片。` : "选择美术风格，准备并发送文字任务，再审核返回的地点与道具设定。"}
     </StageGuide>
-    {(candidate?.binding.renderContract || accepted?.binding.renderContract) && <p>美术风格：{(candidate?.binding.renderContract || accepted?.binding.renderContract)?.preset.label}</p>}
+    {renderPresentation && <p data-testid="render-style-presentation">美术风格：{renderPresentation.label}{renderPresentation.authority === "saved_brief" && renderPresentation.details ? `。${renderPresentation.details}` : ""}</p>}
     <ReviewContextNotice projectId={projectId} diagnostics={state.staleReasons} />
     {state.candidate && <AcceptedEvidenceNotice projectId={projectId} state={state.acceptedReviewState} />}
     {!candidate && state.status !== "reopened" && <section aria-label="准备美术设定候选">

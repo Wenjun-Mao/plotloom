@@ -15,6 +15,7 @@ import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskAct
 import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
 import { ReviewContextErrorNotice, ReviewContextNotice, reviewContextFailure, type ReviewContextFailure } from "./ReviewContextNotice";
 import { useReportReviewWorkflowRead } from "../app/workspace/ReviewWorkflowReadContext";
+import { renderStylePresentation } from "../features/render-style-contract";
 
 type CastPanelProps = {
   projectId: string; readOnly: boolean; state: CastReviewState | undefined; loadError: string;
@@ -84,6 +85,8 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
   </article>;
 
   const candidate = state.candidate; const accepted = state.acceptedCast;
+  const renderContractOwner = candidate ? candidate.binding : accepted?.binding;
+  const renderPresentation = renderStylePresentation(renderContractOwner?.renderContract);
   const taskLabel = readStatus === "loading" ? "正在刷新角色设定" : loadError ? "无法刷新角色设定" : state.status === "stale" ? "角色设定需重新确认" : state.status === "reopened" ? "正在编辑角色设定" : candidate?.status === "ready" ? "待审核角色设定" : candidate?.status === "prepared" ? "角色任务尚未交付" : accepted ? `${adoptionLabel("characters", accepted.revision, accepted.contentHash)}角色设定 r${accepted.revision}` : "尚无角色提案";
   const updateDirection: CastDirectionChange = (index, group, key, value) => {
     const next = { ...editedCast, characters: charactersOf(editedCast).map((character, candidateIndex) => candidateIndex === index ? { ...character, [group]: { ...(group === "reviewNotes" ? { sourceNotes: "", performanceGuidance: "" } : {}), ...record(character[group]), [key]: value } } : character) };
@@ -100,11 +103,11 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
     <ReviewContextNotice projectId={projectId} diagnostics={state.staleReasons} />
     {state.candidate && <AcceptedEvidenceNotice projectId={projectId} state={state.acceptedReviewState} />}
     {accepted && <AcceptedCastSummary accepted={accepted} current={readStatus === "ready" && !loadError && state.acceptedReviewState.status === "current"} onEdit={() => act(() => plotloomApi.reopenCast(projectId, accepted.revision), undefined, true)} disabled={readOnly || busy || state.acceptedReviewState.status !== "current"} />}
+    {renderPresentation && <p data-testid="render-style-presentation">{candidate ? "本次角色图像风格" : "已确认角色图像风格"}：{renderPresentation.label}{renderPresentation.details ? `。${renderPresentation.details}` : renderPresentation.authority === "preset" ? "。" : ""}</p>}
     {accepted && state.status === "stale" && <p className="action-prerequisite">当前审核依据需要更新，不能直接编辑旧版本。请准备新的角色设定任务，审核后确认；原设定与图片仍保留。</p>}
     {accepted?.reportAvailable && <AcceptedCastReport projectId={projectId} accepted={accepted} />}
     {!candidate && state.status !== "reopened" && <section className="cast-next-action"><div><strong>准备角色设定任务</strong><small>{ownerReadOnly ? "此项目为只读，不能准备或发送角色设定任务。" : "选择角色图像的表现形式，再准备并发送任务。项目简报中的视觉要求会一并带入，结果需要你审核确认。"}</small><label>角色图像风格<select aria-label="角色图像风格" value={renderStyle} disabled={readOnly || busy} onChange={event => setRenderStyle(event.target.value as ArtRenderStyle | "")}><option value="">请选择</option><option value="live-action">真人写实</option><option value="realistic">半写实厚涂</option><option value="ghibli">吉卜力式动画</option></select></label></div><Button variant="quiet" disabled={readOnly || busy || !renderStyle} onClick={() => renderStyle && act(() => plotloomApi.prepareCastCandidate(projectId, renderStyle), (result) => setAssignment(result.assignment))}>准备角色设定任务</Button></section>}
     {candidate && <>
-      {candidate.binding.renderContract && <p>本次角色图像风格：{candidate.binding.renderContract.preset.label}。{candidate.binding.renderContract.authorDirection && `项目视觉要求：${candidate.binding.renderContract.authorDirection}`}</p>}
       <details className="cast-technical"><summary>查看提案来源与技术详情</summary><small>冻结来源与章节：r{candidate.binding.sourceRevision} · r{candidate.binding.outlineRevision} · {candidate.binding.sectionIds.join(" · ")}</small>{candidate.status === "ready" && <><pre>{JSON.stringify(candidate.cast, null, 2)}</pre>{candidate.reportAvailable && <><p className="action-prerequisite">角色报告静态阅读：全部角色、关系与提示词展开；搜索、角色切换、复制、导出与报告内图片放大停用。原始归档与当前审阅内容保持独立。</p><ProjectReportFrame sandbox="" referrerPolicy="no-referrer" title="角色报告静态阅读" className="source-outline-report" url={plotloomApi.castCandidateReportUrl(projectId, candidate.jobId)} /></>}</>}</details>
       {candidate.status === "prepared" && <SpecialistTaskActions projectId={projectId} stage="characters" jobId={candidate.jobId} disabled={readOnly || busy} sendDisabled={state.status === "stale"} onDelivered={() => onRefresh()} />}
       {["prepared", "ready"].includes(candidate.status) && <Button variant="danger" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.cancelCastCandidate(projectId, candidate.jobId))}>{candidate.status === "ready" ? "放弃此角色提案" : "取消此任务"}</Button>}

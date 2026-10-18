@@ -9,6 +9,7 @@ import { demoProject, demoRun } from "../src/demo";
 import { specialistsApi } from "../src/features/specialists/api";
 import { plotloomApi } from "../src/api";
 import { TracePage } from "../src/pages/TracePage";
+import type { CastPresetRenderContract, SavedBriefRenderContract } from "../src/features/render-style-contract";
 import type { CastReviewState } from "../src/types";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -30,6 +31,28 @@ const accepted: NonNullable<CastReviewState["acceptedCast"]> = {
 const props = { projectId: "project", readOnly: false, loadError: "", onState: vi.fn(), onRefresh: vi.fn(async () => true), onInvalidate: vi.fn(), onTransitionComplete: vi.fn() };
 async function renderCast(state?: CastReviewState, loadError = "") {
   await act(async () => root.render(createElement(CastPanel, { ...props, state, loadError })));
+}
+
+const emptyDirectionRule = "尊重故事设定，由专业助手结合内容判断视觉表达；不默认真人实拍或其他预设。";
+function savedBriefContract(direction: string | null): SavedBriefRenderContract {
+  return { version: 1, authority: "saved_brief", stageInstructionContract: "plotloom.autopilot.saved-brief-receiving-contract.v2",
+    direction, emptyDirectionRule: direction ? null : emptyDirectionRule, validatorHashes: { castAdapter: "a".repeat(64) }, contentHash: "b".repeat(64) };
+}
+const manualCastContract: CastPresetRenderContract = {
+  version: 1, style: "live-action", authorDirection: "manual cast direction",
+  preset: { label: "真人写实", render: "photographic portrait", surface: "natural skin", lighting: "soft portrait light", negative: "illustration", tags: ["live-action"] },
+  implementationHash: "c".repeat(64),
+};
+
+function castState(lifecycle: "accepted" | "prepared" | "ready", renderContract: NonNullable<CastReviewState["acceptedCast"]>["binding"]["renderContract"]): CastReviewState {
+  const binding = { ...accepted.binding, renderContract };
+  const candidateStatus = lifecycle === "accepted" ? null : lifecycle;
+  const candidate = candidateStatus ? { jobId: `${candidateStatus}-job`, expectedCastRevision: 0, binding, status: candidateStatus,
+    deliveryId: null, manifestHash: null, cast: lifecycle === "ready" ? accepted.cast : null, reportAvailable: false,
+    createdAt: "2026-10-04T00:00:00Z", deliveredAt: null } : null;
+  return { status: lifecycle === "accepted" ? "accepted" : lifecycle === "ready" ? "candidate_ready" : "prepared",
+    acceptedReviewState: { status: "current", staleReasons: [] }, staleReasons: [],
+    candidate, acceptedCast: lifecycle === "accepted" ? { ...accepted, binding } : null };
 }
 
 it("marks required labels inline without giving optional inputs a native validation constraint", async () => {
@@ -285,4 +308,37 @@ it.each(["ready", "prepared"] as const)("labels a stale %s cast candidate as nee
   expect(host.querySelector(".reference-state")?.textContent).toBe("需更新");
   const mutation = [...host.querySelectorAll("button")].find(button => button.textContent === (status === "ready" ? "确认使用此角色设定" : "发送给文字创作助手"));
   expect(mutation?.disabled).toBe(true);
+});
+
+it.each([
+  { lifecycle: "accepted" as const, contract: savedBriefContract("雨夜旧港，克制的蓝绿色光线。"), expected: "项目视觉要求：雨夜旧港，克制的蓝绿色光线。" },
+  { lifecycle: "prepared" as const, contract: savedBriefContract("旧城车站，低饱和色彩。"), expected: "项目视觉要求：旧城车站，低饱和色彩。" },
+  { lifecycle: "ready" as const, contract: savedBriefContract(null), expected: emptyDirectionRule },
+])("renders the saved-Brief style authority on Cast $lifecycle content", async ({ lifecycle, contract, expected }) => {
+  await renderCast(castState(lifecycle, contract));
+  const presentation = host.querySelector('[data-testid="render-style-presentation"]')!;
+  expect(presentation.textContent).toContain(`${lifecycle === "accepted" ? "已确认" : "本次"}角色图像风格：项目简报视觉方向`);
+  expect(presentation.textContent).toContain(expected);
+  expect(presentation.textContent).not.toContain("半写实厚涂");
+});
+
+it("keeps the established manual Cast preset and its author direction", async () => {
+  await renderCast(castState("prepared", manualCastContract));
+  const presentation = host.querySelector('[data-testid="render-style-presentation"]')!;
+  expect(presentation.textContent).toContain("本次角色图像风格：真人写实。项目视觉要求：manual cast direction");
+  expect(presentation.textContent).not.toContain("项目简报视觉方向");
+  await renderCast(castState("prepared", { ...manualCastContract, authorDirection: null }));
+  expect(host.querySelector('[data-testid="render-style-presentation"]')?.textContent).toBe("本次角色图像风格：真人写实。");
+});
+
+it.each(["prepared", "ready"] as const)("uses the %s Cast candidate's Brief authority instead of a retained preset", async lifecycle => {
+  const state = castState(lifecycle, savedBriefContract("候选的独立角色视觉方向"));
+  state.acceptedCast = castState("accepted", manualCastContract).acceptedCast;
+  state.acceptedReviewState = { status: "retained", staleReasons: [] };
+  state.candidate!.expectedCastRevision = 1;
+  await renderCast(state);
+  const presentation = host.querySelector('[data-testid="render-style-presentation"]')!;
+  expect(presentation.textContent).toContain("本次角色图像风格：项目简报视觉方向");
+  expect(presentation.textContent).toContain("项目视觉要求：候选的独立角色视觉方向");
+  expect(presentation.textContent).not.toContain("manual cast direction");
 });

@@ -1,5 +1,6 @@
 import { test, expect } from "./fixture";
 import { createScriptProject, json } from "./f5a-fixture";
+import { createAcceptedArtProject } from "./art-review-fixture";
 import { fixtureRun } from "../tests/autopilot-fixture";
 
 test("actual stage workspaces distinguish automatic ownership while keeping manual controls and read-only reports", async ({ page, request, workbench }) => {
@@ -70,4 +71,59 @@ test("actual stage workspaces distinguish automatic ownership while keeping manu
   await page.screenshot({ path: "../.local/native927-caption/pixels/native927-caption-phase-1440x900.png", fullPage: false });
   expect(writes).toEqual([]);
   expect(await json(request.get(`${root}/autopilot`))).toBeNull();
+});
+
+test("saved-Brief style bindings survive Art and Characters navigation without generation", async ({ page, request, workbench }, testInfo) => {
+  const id = await createAcceptedArtProject(request, workbench.apiOrigin, "saved-brief-render-contract");
+  const savedBriefRenderContract = {
+    version: 1, authority: "saved_brief", stageInstructionContract: "plotloom.autopilot.saved-brief-receiving-contract.v2",
+    direction: "A rainy old harbor with restrained blue-green light.", emptyDirectionRule: null,
+    validatorHashes: Object.fromEntries(["policy", "artAdapter", "artUpstream", "artGateSummary", "castAdapter", "castUpstream"].map(name => [name, "a".repeat(64)])),
+    contentHash: "b".repeat(64),
+  };
+  await page.route(`**/api/v2/projects/${id}/cast`, async route => {
+    if (route.request().method() !== "GET") return route.continue();
+    const response = await route.fetch();
+    const state = await response.json();
+    state.acceptedCast.binding.renderContract = savedBriefRenderContract;
+    await route.fulfill({ response, body: JSON.stringify(state) });
+  });
+  await page.route(`**/api/v2/projects/${id}/art`, async route => {
+    if (route.request().method() !== "GET") return route.continue();
+    const response = await route.fetch();
+    const state = await response.json();
+    state.acceptedArt.binding.renderContract = savedBriefRenderContract;
+    await route.fulfill({ response, body: JSON.stringify(state) });
+  });
+  const browserWrites: string[] = [];
+  page.on("request", browserRequest => {
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(browserRequest.method())) browserWrites.push(browserRequest.url());
+  });
+
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#art`);
+  const artPanel = page.getByTestId("art-review");
+  await expect(artPanel).toContainText("美术风格：项目简报视觉方向");
+  await expect(artPanel).toContainText("项目视觉要求：A rainy old harbor with restrained blue-green light.");
+  await page.getByRole("link", { name: "角色", exact: true }).click();
+  const castPanel = page.getByTestId("cast-review");
+  await expect(castPanel).toContainText("已确认角色图像风格：项目简报视觉方向");
+  await expect(castPanel).toContainText("项目视觉要求：A rainy old harbor with restrained blue-green light.");
+  await page.getByRole("link", { name: "美术参考", exact: true }).click();
+  await expect(artPanel).toContainText("项目简报视觉方向");
+
+  for (const viewport of [{ width: 1280, height: 768 }, { width: 1280, height: 460 }, { width: 1700, height: 900 }]) {
+    await page.setViewportSize(viewport);
+    const suffix = `${viewport.width}x${viewport.height}`;
+    for (const [label, panel, name] of [["美术参考", artPanel, "art"], ["角色", castPanel, "cast"]] as const) {
+      await page.getByRole("link", { name: label, exact: true }).click();
+      const presentation = panel.getByTestId("render-style-presentation");
+      await presentation.scrollIntoViewIfNeeded();
+      await expect(presentation).toBeVisible();
+      await expect(presentation).toContainText("项目视觉要求：A rainy old harbor with restrained blue-green light.");
+      await page.screenshot({ path: testInfo.outputPath(`saved-brief-${name}-${suffix}.png`) });
+    }
+  }
+
+  expect(browserWrites).toEqual([]);
+  expect(await json<{ totalRequests: number }>(request.get(`${workbench.providerOrigin}/control/status`))).toMatchObject({ totalRequests: 0 });
 });

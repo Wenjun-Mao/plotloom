@@ -5,6 +5,7 @@ import { plotloomApi } from "../src/api";
 import { ArtPanel } from "../src/pages/ArtPanel";
 import { ScriptPanel } from "../src/pages/ScriptPanel";
 import { StoryboardReviewPanel } from "../src/pages/StoryboardReviewPanel";
+import { renderStylePresentation, type ArtPresetRenderContract, type SavedBriefRenderContract } from "../src/features/render-style-contract";
 import type { ArtBinding, ArtReviewState, ScriptBinding, ScriptReviewState, StoryboardReviewBinding, StoryboardReviewState } from "../src/types";
 
 // These unit checks isolate accepted-content authority. Real dispatch/admission
@@ -21,6 +22,84 @@ const diagnostic = { code: "binding_revision_changed", owner: "art", field: "art
 const evidence = { status: "retained", staleReasons: [diagnostic] } as const;
 const identity = { revision: 1, candidateJobId: "old", contentHash: "old-content", acceptedAt: "2026-10-09T00:00:00Z" };
 const baseCandidate = { jobId: "new", deliveryId: null, manifestHash: null, reportAvailable: false, createdAt: identity.acceptedAt, deliveredAt: null };
+const emptyDirectionRule = "尊重故事设定，由专业助手结合内容判断视觉表达；不默认真人实拍或其他预设。";
+
+function savedBriefContract(direction: string | null, rule = direction ? null : emptyDirectionRule): SavedBriefRenderContract {
+  return { version: 1, authority: "saved_brief", stageInstructionContract: "plotloom.autopilot.saved-brief-receiving-contract.v2", direction, emptyDirectionRule: rule,
+    validatorHashes: { artAdapter: "a".repeat(64), castAdapter: "b".repeat(64) }, contentHash: "c".repeat(64) };
+}
+
+const manualArtContract: ArtPresetRenderContract = {
+  version: 1, style: "realistic", authorDirection: "manual art direction",
+  preset: { label: "半写实厚涂", render: "painted realism", surface: "brush texture", negative: "photography", tags: ["realistic"] },
+  adapterHash: "d".repeat(64),
+};
+
+function artState(lifecycle: "accepted" | "prepared" | "ready", renderContract: NonNullable<ArtBinding["renderContract"]>): ArtReviewState {
+  const binding: ArtBinding = {
+    sourceRevision: 1, sourceContentHash: "source", outlineRevision: 1, outlineContentHash: "outline",
+    sectionMapRevision: 1, sectionMapContentHash: "map", graphRevision: 1, graphContentHash: "graph", sectionIds: ["opening"],
+    castRevision: 1, castContentHash: "cast", renderContract,
+  };
+  const candidateStatus = lifecycle === "accepted" ? null : lifecycle;
+  const acceptedArt = lifecycle === "accepted" ? { ...identity, binding, art: { style: "saved-brief", scenes: [], props: [] } } : null;
+  const candidate = candidateStatus ? { ...baseCandidate, expectedArtRevision: acceptedArt?.revision ?? 0, binding,
+    status: candidateStatus, art: lifecycle === "ready" ? { style: "saved-brief", scenes: [], props: [] } : null } : null;
+  return { status: lifecycle === "accepted" ? "accepted" : lifecycle === "ready" ? "candidate_ready" : "prepared", staleReasons: [],
+    acceptedReviewState: { status: "current", staleReasons: [] }, acceptedArt, candidate };
+}
+
+async function renderArtState(state: ArtReviewState) {
+  vi.spyOn(plotloomApi, "getArt").mockResolvedValue(state);
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ decisions: [], states: [] });
+  await act(async () => root.render(createElement(ArtPanel, { projectId: "project", readOnly: false })));
+}
+
+it("projects the real stage-specific preset shapes and keeps null, empty, and missing Brief direction distinct", () => {
+  expect(renderStylePresentation(manualArtContract)).toMatchObject({ authority: "preset", label: "半写实厚涂" });
+  const nullDirection = renderStylePresentation(savedBriefContract(null));
+  expect(nullDirection).toMatchObject({ authority: "saved_brief", details: emptyDirectionRule });
+  const emptyDirection = renderStylePresentation(savedBriefContract(""));
+  expect(emptyDirection).toMatchObject({ authority: "saved_brief", details: emptyDirectionRule });
+  const { direction: _direction, ...missingDirection } = savedBriefContract(null, null);
+  expect(renderStylePresentation(missingDirection as unknown as SavedBriefRenderContract)).toMatchObject({
+    authority: "saved_brief", details: "项目简报视觉方向字段缺失。",
+  });
+});
+
+it.each([
+  { lifecycle: "accepted" as const, contract: savedBriefContract("雨夜旧港，克制的蓝绿色光线。"), expected: "项目视觉要求：雨夜旧港，克制的蓝绿色光线。" },
+  { lifecycle: "prepared" as const, contract: savedBriefContract("旧城车站，低饱和色彩。"), expected: "项目视觉要求：旧城车站，低饱和色彩。" },
+  { lifecycle: "ready" as const, contract: savedBriefContract(null), expected: emptyDirectionRule },
+])("renders the saved-Brief style authority on Art $lifecycle content", async ({ lifecycle, contract, expected }) => {
+  await renderArtState(artState(lifecycle, contract));
+  const presentation = host.querySelector('[data-testid="render-style-presentation"]')!;
+  expect(presentation.textContent).toContain("美术风格：项目简报视觉方向");
+  expect(presentation.textContent).toContain(expected);
+  expect(presentation.textContent).not.toContain("真人写实");
+  expect(presentation.textContent).not.toContain("半写实厚涂");
+});
+
+it("keeps the established manual Art preset label", async () => {
+  await renderArtState(artState("prepared", manualArtContract));
+  const presentation = host.querySelector('[data-testid="render-style-presentation"]')!;
+  expect(presentation.textContent).toContain("美术风格：半写实厚涂");
+  expect(presentation.textContent).not.toContain("项目简报视觉方向");
+  expect(presentation.textContent).not.toContain("manual art direction");
+});
+
+it.each(["prepared", "ready"] as const)("uses the %s Art candidate's Brief authority instead of a retained preset", async lifecycle => {
+  const state = artState(lifecycle, savedBriefContract("候选的独立视觉方向"));
+  state.acceptedArt = artState("accepted", manualArtContract).acceptedArt;
+  state.acceptedReviewState = { status: "retained", staleReasons: [] };
+  state.candidate!.expectedArtRevision = 1;
+  await renderArtState(state);
+  const presentation = host.querySelector('[data-testid="render-style-presentation"]')!;
+  expect(presentation.textContent).toContain("项目视觉要求：候选的独立视觉方向");
+  expect(presentation.textContent).not.toContain("半写实厚涂");
+  expect(presentation.textContent).not.toContain("manual art direction");
+});
 
 it.each([ ["prepared", "opening"], ["prepared", "choice"], ["ready", "opening"], ["ready", "choice"] ] as const)("fresh %s Script candidate cannot reopen or relabel retained %s evidence", async (status, sectionId) => {
   const binding: ScriptBinding = {

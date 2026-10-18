@@ -1,5 +1,36 @@
 # Plotloom roadmap entrypoint
 
+## Current saved-Brief Art and Characters presentation correction
+
+The owner approved fixing the blank Art page and auditing the same preset-only
+render-contract assumption in Characters. Readback shows a valid
+`saved_brief` binding has `authority`, `direction` and `emptyDirectionRule`, but
+no `preset`; the Art and Cast pages both dereference `preset.label`. See the
+frontend clarification in [ADR 0163](../adr/0163-autopilot-brief-style-authority.md#frontend-review-presentation).
+
+Keep the fix at the frontend contract and presentation boundary: model the
+actual owner-specific preset shapes alongside the shared saved-Brief shape,
+display saved direction or its frozen empty-direction rule, and preserve manual
+preset presentation. Do not change request payloads, backend schemas, frozen
+contracts, validators, project data or generation behavior. The owner's exact
+automatic run was cancelled through its supported control before qualification;
+adopted text and delivered references remain retained, as does the unresolved
+reservation for an already-dispatched image. It is not automatically resumed.
+
+Acceptance gates are focused accepted/preset and prepared/ready candidate
+regressions, a browser navigation read through Art and Characters using
+saved-Brief payloads with no provider call or write, independent source review,
+the unfiltered frontend unit suite and both type checks, deterministic asset
+generation with a second-build SHA-256 tree comparison, and desktop pixel
+inspection. The source and checked assets are locally qualified: 1,401 frontend
+unit cases, both type checks, two identical production builds, 17 selected browser
+regressions and the overlapping final navigation/pixel case. Independent review
+found no implementation defect. See the
+[verification record](../verification/2026-10-17-saved-brief-style-presentation.md).
+Stopping condition: activate the same installation's frontend assets and verify
+live Art/Characters reads without restarting generation or changing project data.
+Hosted CI and human visual/creative acceptance remain separate.
+
 ## Current cross-shot image continuity correction
 
 The owner approved explicit cross-shot unchanged-frame reuse and one reviewed

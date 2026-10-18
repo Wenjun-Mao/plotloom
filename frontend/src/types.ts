@@ -1,6 +1,8 @@
 import type { AcceptedReviewState } from "./accepted-review-state";
 import type { ReviewContextDiagnostic } from "./review-context-types";
 import type { SamePersonReviewsResponse } from "./same-person-review-types";
+import type { ArtRenderContract, CastRenderContract } from "./features/render-style-contract";
+export type { ArtRenderStyle } from "./features/render-style-contract";
 
 export type StageName = "project_brief" | "story_bible" | "story_graph" | "scene_beats" | "storyboard";
 export type ServerStageName = Exclude<StageName, "project_brief">;
@@ -1306,13 +1308,13 @@ export interface SourceMapGraphAdmission {
   sectionMapRevision: number; sectionMapContentHash: string; graphRevision: number; graphContentHash: string;
   status: "current" | "stale"; staleReasons: string[]; installedAt: string;
 }
-export interface CastBinding { sourceRevision: number; sourceContentHash: string; outlineRevision: number; outlineContentHash: string; sectionMapRevision: number; sectionMapContentHash: string; graphRevision: number; graphContentHash: string; sectionIds: string[]; renderContract?: { style: ArtRenderStyle; authorDirection: string | null; preset: { label: string } } | null; }
+interface CastArtBindingBase { sourceRevision: number; sourceContentHash: string; outlineRevision: number; outlineContentHash: string; sectionMapRevision: number; sectionMapContentHash: string; graphRevision: number; graphContentHash: string; sectionIds: string[]; }
+export interface CastBinding extends CastArtBindingBase { renderContract?: CastRenderContract | null; }
 export interface CastCandidate { jobId: string; expectedCastRevision: number; binding: CastBinding; status: "prepared" | "ready" | "accepted" | "cancelled"; deliveryId: string | null; manifestHash: string | null; cast: Record<string, unknown> | null; reportAvailable: boolean; createdAt: string; deliveredAt: string | null; }
 export interface CastCandidatePreparation extends CastCandidate { packagePath: string; deliveryPath: string; assignment: string; }
 export interface AcceptedCastRevision { revision: number; candidateJobId: string; contentHash: string; binding: CastBinding; cast: Record<string, unknown>; consumerMappings: Array<{ castCharacterId: string; consumerCharacterId: string }>; reportAvailable: boolean; differsFromDelivery: boolean | null; acceptedAt: string; }
 export interface CastReviewState { acceptedReviewState: AcceptedReviewState; candidate: CastCandidate | null; acceptedCast: AcceptedCastRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: ReviewContextDiagnostic[]; }
-export type ArtRenderStyle = "live-action" | "realistic" | "ghibli";
-export interface ArtBinding extends CastBinding { castRevision: number; castContentHash: string; renderContract?: { style: ArtRenderStyle; authorDirection: string | null; preset: { label: string } } | null; }
+export interface ArtBinding extends CastArtBindingBase { castRevision: number; castContentHash: string; renderContract?: ArtRenderContract | null; }
 export interface ArtCandidate { jobId: string; expectedArtRevision: number; binding: ArtBinding; status: "prepared" | "ready" | "accepted" | "cancelled"; deliveryId: string | null; manifestHash: string | null; art: Record<string, unknown> | null; reportAvailable: boolean; createdAt: string; deliveredAt: string | null; }
 export interface ArtCandidatePreparation extends ArtCandidate { packagePath: string; deliveryPath: string; assignment: string; }
 export interface AcceptedArtRevision { revision: number; candidateJobId: string; contentHash: string; binding: ArtBinding; art: Record<string, unknown>; acceptedAt: string; }

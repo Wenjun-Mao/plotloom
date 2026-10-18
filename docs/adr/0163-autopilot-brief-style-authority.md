@@ -99,3 +99,24 @@ retains inherited Art authority, while superseded inputs or changed adapter
 identity make the new F5A binding stale. Regression evidence must include real
 upstream command execution, admission/acceptance and ordinary reopen/currentness,
 preserved non-style gates, and source frame propagation into image requests.
+
+## Frontend review presentation
+
+The API readback found that the Art and Cast pages still treated every frozen
+render contract as a manual preset. Manual Art contracts include `preset` and
+`adapterHash`; manual Cast contracts include `preset` and `implementationHash`.
+Saved-Brief contracts instead identify `authority: saved_brief` and carry
+`direction` plus `emptyDirectionRule`, with no preset. Dereferencing
+`preset.label` therefore blanked Art and could fail on Characters for valid
+saved-Brief bindings.
+
+Frontend bindings model the owner-specific preset contracts and the shared
+saved-Brief contract as an explicit union. The pages display the contract for
+the current candidate, or the accepted binding when no candidate exists.
+Saved direction is shown directly; a null or empty direction uses the frozen
+`emptyDirectionRule`, while a missing direction field is reported as missing.
+No preset is inferred for Brief authority. Manual preset labels and Cast's
+author-direction display remain unchanged. This is a presentation-only
+clarification: API payloads, frozen policies, validators and generation
+behavior do not change. Regression coverage exercises accepted and candidate
+bindings and navigation between Art and Characters without generation.
