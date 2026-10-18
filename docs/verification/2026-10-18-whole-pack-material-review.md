@@ -1,7 +1,8 @@
 # Whole-pack material review qualification
 
-Status: focused qualification complete; final full gate, publication and activation
-pending. This record does not claim creative acceptance.
+Status: local qualification complete; pushed and activated at `7b90bbc7` on
+2026-10-18. Live read-only UI verification passed. This record does not claim
+creative acceptance or hosted CI success.
 
 Scope: [approved plan](../roadmap/2026-10-17-bulk-material-review.md) and
 [ADR 0191](../adr/0191-whole-pack-human-material-confirmation.md). Baseline
@@ -117,7 +118,84 @@ for this correction.
 
 ## Final release and activation
 
-Pending: one stable `uv run --locked --no-sync python scripts/verify.py full`,
-normal push after divergence checks, positive idle proof, same-installation
-activation and post-start readback. No live creative approval, generation,
-deletion, reset or UNKNOWN settlement has occurred. Hosted CI remains separate.
+Local qualification is composed evidence, **not a green second full invocation**:
+
+- The original full attempt at `200a1c78` passed lock/probe/API lint, archived
+  prompt reader, all 1,407 frontend cases and frontend type checking. Its native
+  Python inventory covered 3,237 cases / 274 files: 3,231 passed and the six
+  fixture failures above were corrected and passed within the 35-case rerun.
+- Production files stayed byte-identical. At `7b90bbc7` the manager invoked the
+  unchanged `_full_steps` owner from `deterministic production bundle` onward,
+  retaining `_validate_full_filters`. All six remaining steps passed: deterministic
+  assets, checked-asset parity, all 94 browser specs / 331 cases with zero shard
+  gaps/overlap, all 331 browser cases, wheel build and installed-wheel smoke.
+  Browser fixture type checking ran inside the unfiltered browser command.
+  Log: `remaining-gates-7b90bbc7.log`; exit 0, 542.108 seconds total (browser
+  534.246 seconds). No release gate was filtered or waived.
+- The original full failure log remains unchanged. Existing build-backend
+  advisory, frontend chunk-size warning and Starlette deprecation warnings were
+  non-fatal; none was presented as a new product defect or silently suppressed.
+
+After a fresh remote divergence check (`0 behind / 2 ahead`) and clean-tree /
+production-manifest proof, normal push published
+`7b90bbc70d69aeb7a1bfda2c4af1b6e25759560f` to `origin/main`.
+Hosted CI is manual-dispatch only; its exact-revision run listing was empty.
+It was not dispatched and is not claimed as passed.
+
+### Positive idle proof and same-installation activation
+
+Fresh census found 78 completed native attempts plus the one retained UNKNOWN,
+queue 0, validators 0, legacy inflight 0 and no process at any retained worker PID.
+Both retained project databases had no executing generation/media/video work.
+Two application `dispatch_claimed` video leases exactly matched already ingested
+historical walkthrough jobs; this accounting contract intentionally has no
+completed transition. They were left untouched, not mistaken for active work or
+released to make deployment possible. No provider query was made.
+
+Immediate pre-start evidence matched all original 82 tables / 1,729 rows and
+436 substantive payloads, native attempt dump and settings/deployment hashes.
+Normal `manage.py stop` stopped Docker; the exact native bridge was explicitly
+unloaded. LaunchAgent absence, old PID 39086 exit and free port 8842 were observed
+before clean detached checkout promotion. Normal `manage.py start` passed on its
+first attempt (session 3121, exit 0), reused existing deployment/H3 configuration,
+recreated the container and loaded fresh bridge PID 45063. No SQL upgrade,
+compatibility adapter, backup or project removal was required.
+
+Localhost and HTTPS health passed, native readiness was `ready`, controller
+blocker was null, and the installed checkout was `7b90bbc7`. A99's run remained
+`awaiting_review` / `material-review`, current and with null handoff. Only the
+controller claim, timestamp and revision changed (461 → 462), as implemented by
+`AutopilotPersistence.claim`. All other project-table hashes and all 436 payloads
+matched the original and immediate pre-stop evidence. Payload aggregate:
+`b127be7d485f6263fc5a10ac58a29cdc99ad133b7fd6ce0020b668e2f5e36108`.
+Native attempts, UNKNOWN slot, historical video leases, settings and deployment
+hashes also matched. Evidence: `immediate-pre-activation.json`,
+`post-activation.json`, `post-ui.json`, `activation-stop.log` and
+`activation-start-7b90bbc7.log` under the ignored evidence directory.
+
+### Live UI and stopping-condition audit
+
+A separate ephemeral Chrome session opened the exact HTTPS creator route and
+review dialog, leaving the owner's Safari form untouched. Read-only DOM evidence
+showed five reference sets, 42 frame cards, all 89 current/retained-original image
+elements loaded with zero failures, zero checkboxes, zero visible required fields,
+one optional notes textarea and an enabled **确认全部素材并继续** button. The manager
+inspected top-gallery, first-frame and final-action pixels. Initial image reads
+were pending before completing; pending reads did not grant approval. The only
+console error was the intentional script-execution denial in the sandboxed
+static Script report, not an application exception. Network evidence contained
+GETs only. Screenshots, snapshot and request inventory are under
+`output/playwright/bulk-material-activation/`.
+
+The final action was **not clicked**. Post-UI evidence exactly matched post-start
+evidence; no approval, handoff, generation or video job was created. The owned
+browser session was closed. Worker and independent-review assignments were
+reviewed while idle, archived natively and Relay-unregistered.
+
+Acceptance mapping: zero-typing normal-case approval and exact coverage passed
+isolated 42-frame backend/browser checks; atomic rollback, exception blocking,
+separate uncertainty, hostile/stale/linkage refusals and strict detailed/manual
+behavior passed focused/native checks; no-video confirmation was asserted in
+fixtures. Live availability, existing-pack readback and zero-write inspection
+passed above. Actual creative approval remains creator-owned. Refresh/reopen the
+review to obtain the new UI; a retained old form is not bulk consent.

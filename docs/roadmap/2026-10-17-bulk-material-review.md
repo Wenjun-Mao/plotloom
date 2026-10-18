@@ -284,3 +284,28 @@ and then-current type check passed before interruption. Do not restart that
 invalidated broad run; the manager owns one stable final full gate after focused
 corrections, independent delta review and read-only real-layout admission.
 Commit, push, activation and final release evidence remain manager-owned.
+
+## Delivered checkpoint · 2026-10-18
+
+Implementation and independent review are complete. The original stable full
+attempt's six failures were traced to one missing empty table in a minimal test
+fixture; the 35-case affected rerun passed without changing production bytes.
+Unchanged earlier evidence plus all remaining unfiltered release-owner steps
+passed, including all 331 browser cases and installed-wheel smoke. This is
+composed local qualification, not a relabelled successful full invocation.
+
+`7b90bbc7` was normally pushed and safely activated in the existing installation.
+Fresh idle proof preceded Docker stop and positive native bridge unload. Health,
+native readiness, exact pack readback and a separate zero-write HTTPS gallery
+inspection passed. All 436 payloads, non-controller project facts, native
+attempts/UNKNOWN slot, historical video claims and settings remain unchanged;
+run revision 461 → 462 reflects only the new controller claim. The compatible
+project needed no reset, backup or compatibility layer. The owner's Safari form
+was untouched; refresh/reopen is user-controlled.
+
+The enabled **确认全部素材并继续** control covers the complete five-reference,
+42-frame gallery without required normal-case typing or per-item checkboxes.
+The agent did not click it. Actual creative approval and subsequent video work
+remain creator-owned. Hosted CI was not dispatched. See the
+[qualification record](../verification/2026-10-18-whole-pack-material-review.md)
+for evidence boundaries and the final acceptance audit.
