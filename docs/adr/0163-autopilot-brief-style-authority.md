@@ -120,3 +120,6 @@ author-direction display remain unchanged. This is a presentation-only
 clarification: API payloads, frozen policies, validators and generation
 behavior do not change. Regression coverage exercises accepted and candidate
 bindings and navigation between Art and Characters without generation.
+Accepted style captions use the existing revision/hash-bound adoption label;
+an AI-adopted style remains labelled AI-adopted after cancellation and is not
+presented as a new human confirmation.

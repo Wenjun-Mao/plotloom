@@ -75,6 +75,14 @@ test("actual stage workspaces distinguish automatic ownership while keeping manu
 
 test("saved-Brief style bindings survive Art and Characters navigation without generation", async ({ page, request, workbench }, testInfo) => {
   const id = await createAcceptedArtProject(request, workbench.apiOrigin, "saved-brief-render-contract");
+  const root = `${workbench.apiOrigin}/api/v2/projects/${id}`;
+  const [cast, art] = await Promise.all([json(request.get(`${root}/cast`)), json(request.get(`${root}/art`))]);
+  await page.route(`**/api/v2/projects/${id}/autopilot`, route => route.fulfill({ json: {
+    ...fixtureRun, projectId: id, state: "cancelled", phase: "art", checkpoints: [
+      ["characters", cast.acceptedCast], ["art", art.acceptedArt],
+    ].map(([operationKey, value]) => ({ operationKey, state: "adopted", evidence: { owner: operationKey,
+      result: { revision: value.revision, contentHash: value.contentHash } } })),
+  } }));
   const savedBriefRenderContract = {
     version: 1, authority: "saved_brief", stageInstructionContract: "plotloom.autopilot.saved-brief-receiving-contract.v2",
     direction: "A rainy old harbor with restrained blue-green light.", emptyDirectionRule: null,
@@ -106,7 +114,8 @@ test("saved-Brief style bindings survive Art and Characters navigation without g
   await expect(artPanel).toContainText("项目视觉要求：A rainy old harbor with restrained blue-green light.");
   await page.getByRole("link", { name: "角色", exact: true }).click();
   const castPanel = page.getByTestId("cast-review");
-  await expect(castPanel).toContainText("已确认角色图像风格：项目简报视觉方向");
+  await expect(castPanel).toContainText("AI 已采用角色图像风格：项目简报视觉方向");
+  await expect(castPanel.getByTestId("render-style-presentation")).not.toContainText("已确认");
   await expect(castPanel).toContainText("项目视觉要求：A rainy old harbor with restrained blue-green light.");
   await page.getByRole("link", { name: "美术参考", exact: true }).click();
   await expect(artPanel).toContainText("项目简报视觉方向");

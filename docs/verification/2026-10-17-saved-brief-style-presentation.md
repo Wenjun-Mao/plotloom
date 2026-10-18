@@ -23,6 +23,11 @@ persistence, admission, authentication, provider/prompt behavior, package/build
 dependencies and build tooling are unchanged. Independent review confirmed that
 boundary and found no implementation defect. Its non-blocking candidate-versus-
 retained-authority coverage gap was closed with four additional unit cases.
+Initial correction `1acfd0a5` removed the live blank screen. Live inspection
+also caught an accepted Cast style caption hardcoded as confirmed; the follow-up
+uses the existing revision/hash-bound adoption label. Its browser fixture now
+checks AI-adopted provenance on a cancelled run. Independent targeted review
+found no defect in that follow-up.
 
 ## Risk-scoped local frontend qualification
 
@@ -31,19 +36,20 @@ This uses AGENTS' bounded frontend policy, not a full backend/release rerun:
 - Focused Art/Cast presentation unit tests: 42/42 passed before the additional
   four precedence cases; the final unfiltered suite includes all 46 cases.
 - Final unfiltered `npm --prefix frontend test`: **1,401/1,401**, 159 files,
-  native session `65843`, completion `bfd86c`, exit 0.
+  final native session `38193`, completion `468024`, exit 0.
 - `npm --prefix frontend run typecheck` and `typecheck:e2e`: passed. Browser
   TypeScript also passed again with the final pixel/navigation invocation.
 - Two `npm --prefix frontend run build:deterministic` builds produced identical
-  sorted SHA-256 trees, session `38843`, completion `5d410a`, exit 0.
+  sorted SHA-256 trees, final session `27761`, completion `80e993`, exit 0.
   Workbench JavaScript SHA-256:
-  `6f4420564e1c3828541e2b81a43e37ca988685148031c60506e618fd610004bc`.
-- Selected browser regressions: **17/17**, session `13695`, completion `4905ea`:
+  `3c4435c428604c7c23365a1b3c2e69674fa3b9a06948f014a44d204d524dc9dd`.
+- Final selected browser regressions: **17/17**, session `52823`, completion `176ca3`:
   `autopilot-guidance`, `art-review`, `cast-render-choice`,
   `recommended-art-workflow`, and `recommended-cast-workflow` specs.
-- Final saved-Brief navigation/pixel case: **1/1**, session `27550`, completion
-  `cfca1b`. It overlaps the 17, not an additional unique browser case. Browser
-  reads through Art and Characters caused no writes or provider calls.
+- The final saved-Brief navigation/pixel case is included in those 17. An earlier
+  standalone 1/1 pass, session `27550`, remains retained as overlapping evidence,
+  not an additional unique browser case. Browser reads through Art and
+  Characters caused no writes or provider calls.
 - Root inspected Art and Cast captures at 1280×768, 1280×460 and 1700×900.
   Authority and direction remain readable without the root-render crash.
 - Native module ownership discovery and whitespace checks passed; discovery
