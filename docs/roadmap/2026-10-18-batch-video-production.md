@@ -21,10 +21,14 @@ proof-boundary coverage. Their affected checks pass; see
 and reuse of unaffected full evidence.
 See `docs/verification/2026-10-18-batch-video-production.md` for exact evidence,
 retained failures, measured latency and the live-provider/hosted-CI gaps.
-The manager explicitly holds publication and activation until the integrated
-checkpoint is reviewed. This overrides the normal push/activation sequence for
-this checkpoint. Owner materials, project data and the running installation have
-not been changed by this work.
+The manager closed correction review and authorized delivery. Source is published
+at `00773e65`; unfiltered hosted CI was dispatched. One exact incompatible
+cancelled development home was permanently removed through native revocation and
+erasure, with UNKNOWN host facts/reservations preserved. Activation remains
+pending because the other home's native revocation guard cannot prove absence
+of a reused PID/group; the old `7b90bbc7` installation remains healthy. See
+`docs/verification/2026-10-18-batch-video-publication-and-activation.md` for exact
+targets, irreversible deletion, preserved settings, CI state and stopping evidence.
 
 ## Outcome and settled choices
 
