@@ -239,3 +239,30 @@ provenance, hostile-PATH assertions or the separately approved CI method. It ran
 no tests. Full local/hosted qualification and product acceptance remain pending;
 no hosted retry, main push, activation, provider or live owner/process action is
 authorized by this correction checkpoint.
+
+## Follow-up: ordinary hosted two-worker qualification method
+
+Manager approval separately extends ADR 0160's existing local full runner to the
+ordinary hosted Python step, exactly
+`.venv/bin/python scripts/testing/run_python_suite.py`. The default remains two
+workers, with unchanged 45-minute step / 55-minute job budgets. Only the workflow
+command/comments, existing CI command assertion and decision/checkpoint/roadmap
+change. Runner, scheduler, plugins, timings, dependencies and all other same-SHA
+unfiltered gates are unchanged. Exact native coverage/completion, separate
+basetemps, ambient-filter refusal, failed-worker propagation and owned POSIX
+cleanup remain required. This is no measured hosted speed guarantee.
+
+`verify.py focused` selected the six exact files
+`test_python_suite_{runner,completion,cleanup,history_integration,schedule}.py`
+and `test_ci_browser_contract.py`. Mac: **109 passed / 1.62s**, runner **6.386s**,
+`hosted-two-worker-focused.log`. Retained Linux copied environment with the
+verified invocation setup: **109 passed / 1.37s**, runner **6.247s**,
+`linux-ci/hosted-two-worker-focused.log`. These execute bounded runner contracts,
+not the unfiltered product suite. Targeted Ruff and diff whitespace checks pass.
+The independent stable read-only review above covers this method diff too.
+
+The fixture correction is local commit `dbf32c44`; both coherent commits are
+retained on `main` for manager review, without publication. Full local and hosted
+same-SHA qualification, budget behavior and product acceptance remain unproven.
+No full-equivalent gate collection, hosted retry/dispatch, main push, activation,
+live provider/process action or owner-data mutation occurred in this follow-up.

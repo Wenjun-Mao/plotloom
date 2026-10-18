@@ -499,3 +499,20 @@ release success. Deliver scoped Mac/Linux checks, independent stable review and
 a coherent local commit in the retained source checkout. No further hosted
 dispatch, main push, full run, activation, provider, process or owner-data action
 is authorized. The separate serial runtime budget remains unestablished.
+
+### Ordinary hosted two-worker Python qualification
+
+The manager separately approved preparation of the existing default two-worker
+runner for ordinary hosted CI after copied-runtime setup passed. Invoke exactly
+`.venv/bin/python scripts/testing/run_python_suite.py`, retaining the 45-minute
+step / 55-minute job bounds and every unfiltered same-SHA gate. Extend ADR 0160
+and its CI command assertion; do not modify runner/scheduler/plugins, timings or
+add concurrency. Preserve native exact cover/completion, distinct basetemps,
+ambient-filter refusal and process-group cleanup. No speed guarantee is claimed.
+
+Deliver focused runner/completion/cleanup/CI evidence and an independently
+reviewed coherent local commit alongside the fixture correction. This is local
+method preparation, not authority for a full run, hosted dispatch, main push or
+activation. Return both commits and remaining qualification gaps for manager
+review; a redundant affected-family hosted rerun is not required before this
+local preparation.

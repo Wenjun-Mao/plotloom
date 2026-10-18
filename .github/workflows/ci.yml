@@ -59,10 +59,10 @@ jobs:
       - name: Verify checked production bundle
         run: git diff --exit-code -- src/plotloom/static
       - name: Python and distribution contracts
-        # The full serial suite exceeded the old job budget while still advancing.
-        # Bound this step separately and retain time for wheel/smoke qualification.
+        # Exact native collection and completion proofs; two isolated workers.
+        # Retain the existing bound and wheel/smoke qualification margin.
         timeout-minutes: 45
-        run: .venv/bin/python -m pytest -q --durations=20
+        run: .venv/bin/python scripts/testing/run_python_suite.py
       - name: Build wheel
         run: uv build --wheel
       - name: Smoke installed wheel

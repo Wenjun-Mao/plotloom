@@ -151,13 +151,11 @@ def test_full_python_gate_has_measured_runner_budget_and_cleanup_margin():
         for item in verify["steps"]
         if item.get("name") == "Python and distribution contracts"
     )
-    # The growing serial suite reached 83% before the former 30-minute job ended.
-    # Preserve the full selection and leave wheel/smoke time outside its budget.
-    assert 45 <= int(step["timeout-minutes"]) < int(verify["timeout-minutes"]) <= 60
-    assert int(verify["timeout-minutes"]) - int(step["timeout-minutes"]) >= 10
-    command = step["run"].split()
-    assert command[:4] == [".venv/bin/python", "-m", "pytest", "-q"]
-    assert command[4:] == ["--durations=20"]
+    # Use the existing runner's default two workers, preserving native coverage
+    # and the exact budgets rather than buying time with a larger timeout.
+    assert int(step["timeout-minutes"]) == 45
+    assert int(verify["timeout-minutes"]) == 55
+    assert step["run"].split() == [".venv/bin/python", "scripts/testing/run_python_suite.py"]
 
 
 def test_hosted_jobs_provision_the_same_owned_copied_test_runtime():

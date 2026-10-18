@@ -34,8 +34,8 @@ M5 measurement directory.
 
 ## Decision
 
-Use two Python processes in the full local gate. First collect the unfiltered
-native case IDs, reject empty, duplicate, unsafe or malformed rows, then assign
+Use two Python processes in the full local and hosted gates. First collect the
+unfiltered native case IDs, reject empty, duplicate, unsafe or malformed rows, then assign
 whole test files with a deterministic greedy split by collected case count.
 Check that the worker file union is exact and disjoint before starting tests.
 Run native collection as an owned subprocess group too. Poll
@@ -50,9 +50,9 @@ group. `finally` cleanup stops owned collection and worker processes before
 closing logs and removing their temporary root on abnormal exit. SIGINT returns
 130; SIGTERM returns its standard `128 + signal` status.
 
-The runner lives in `scripts/testing/run_python_suite.py`; only `verify.py
-full` uses it. Focused and module selections continue to use their native
-single-process selectors. The native ownership guard remains responsible for
+The runner lives in `scripts/testing/run_python_suite.py`; `verify.py full`
+and the ordinary hosted Python step use it. Focused and module selections
+continue to use their native single-process selectors. The native ownership guard remains responsible for
 the exact complete-suite case inventory.
 
 ## Alternatives and consequences
@@ -65,11 +65,35 @@ collection allows the assignment to adapt while retaining exact coverage.
 
 The measured comparison shows a material improvement for this host and
 configuration, while representing one pair rather than a timing distribution.
-Keep the change limited to the local full gate and two workers. The exact-runner
+Keep the change limited to full qualification and two workers. The exact-runner
 local full gate and unfiltered hosted same-SHA qualification remain required.
 If final qualification fails or later repeated execution exposes isolation
 defects, restore the serial full step and reassess the local runtime target
 before broadening concurrency.
+
+## Hosted qualification scope — 2026-10-18
+
+The original growing serial hosted gate stopped at its 45-minute bound while
+still advancing. Later copied-runtime diagnostic 39175064170 passed genuine
+hosted 3.12.15/x64 source/copy setup and the exact 154 affected cases completed
+with two distinct fake-CLI dependency-boundary failures (ADR 0196). These facts
+do not establish the full serial budget's cause or promise a speed improvement.
+
+Manager approval extends the existing runner to ordinary hosted qualification:
+`.venv/bin/python scripts/testing/run_python_suite.py`, with its unchanged default
+**two** workers and existing **45-minute step / 55-minute job** bounds. Reuse the
+owned copied test environment. Do not change scheduler, plugins, timing data or
+worker implementation. Historical weights remain prediction only, with explicit
+host-mismatch fallback under ADR 0171; no timing manifest is forced into use.
+
+Native unfiltered collection, exact whole-file cover, worker completion proofs,
+separate basetemps, ambient-filter refusal, failure propagation and POSIX group
+cleanup remain required. The same-SHA frontend, bundle, packaging, wheel smoke
+and complete browser gates remain unfiltered and separate. Local focused runner
+contracts are preparatory evidence; full local and hosted release qualification
+are still required and require separate execution authority for this checkpoint.
+No higher concurrency, filter, timeout increase or measured speed guarantee is
+part of this decision.
 
 Detached collection and worker sessions prevent a signal sent only to the
 coordinator from reaching its children. The coordinator records SIGTERM and
