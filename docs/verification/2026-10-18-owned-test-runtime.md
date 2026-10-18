@@ -266,3 +266,41 @@ retained on `main` for manager review, without publication. Full local and hoste
 same-SHA qualification, budget behavior and product acceptance remain unproven.
 No full-equivalent gate collection, hosted retry/dispatch, main push, activation,
 live provider/process action or owner-data mutation occurred in this follow-up.
+
+## Manager review and one ordinary hosted qualification
+
+The manager reviewed clean `80d736778532371aa920ebc3369e2b8e4557d4b2`, both
+commits, every new launcher/runtime/check helper, CI/ADR changes, the original
+control failure and genuine Linux startup/sandbox/settlement records. All 13
+committed input and 12 evidence hashes matched the candidate manifest. An
+attended independent root Sol/High review found no actionable issue (effective
+settings unverified). The private shell control is owned through guarded Popen;
+it does not add a shell transition to the production supervisor's identity path.
+
+The manager's independent current-checkout `verify.py focused` retest selected
+the same six runner/completion/cleanup/history/schedule/CI files, all 13 launcher
+cases and both hostile-PATH paid journeys: **124 passed / 40.14s**, runner
+**47.141s**, exit zero. Complete output:
+`.local/batch-video/manager-fake-cli-runner-retest.log`.
+
+The manager verified unchanged production source/services, Python dependency
+contracts and runner/scheduler/timing/completion implementations since
+`0af49b61`, and approved reuse of unaffected successful local full components
+with the scoped correction evidence under AGENTS. This is composed local
+evidence, not a new complete local full exit zero at `80d73677` or its subsequent
+documentation-only publication revision.
+
+Manager authorization now permits a documentation-only record of this review,
+normal fast-forward publication after executable hashes/clean state/remote
+ancestry checks, and **exactly one** ordinary `ci.yml` workflow dispatch on the
+final published main SHA with `browser_grep='.*'`. All same-SHA ordinary jobs,
+four complete browser shards and both exact native Python worker completion
+proofs are required. Existing copied-runtime setup, default two workers and
+45-minute step / 55-minute job bounds remain unchanged. Let jobs finish
+naturally; retain actual metadata, full logs and artifacts. Failure/timeout stays
+failed: diagnose read-only and return for manager review without a new fix,
+retry, cancellation or restart. No redundant local full gates run concurrently.
+Activation, provider/live process actions, owner-data mutation, guard bypass and
+worktree/branch cleanup remain held. The conditional CUA-helper permission is
+unchanged. Actual hosted outcome is a separate execution record, not implied
+by this authorization or local review.
