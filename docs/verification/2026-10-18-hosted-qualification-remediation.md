@@ -1,9 +1,12 @@
 # Hosted qualification remediation, 2026-10-18
 
-Status: stable correction checkpoint; scoped Linux/Mac qualification passed.
-Baseline: `99f2168495087dcc7e96b110e1a560edb0d99c4b` plus the reviewed correction
-diff in `/Users/wjmao/.codex/worktrees/b30f/plotloom`. No publication, live
-activation, provider dispatch or creative acceptance is claimed here.
+Status: composed local release qualification and manager review passed.
+The final full attempt exposed one browser-test synchronization race; its
+test-only correction passed focused and unfiltered downstream qualification.
+Correction revision: `0af49b61fc64ed048a239cefbf22a584fb15a096` in
+`/Users/wjmao/.codex/worktrees/b30f/plotloom`, based on
+`99f2168495087dcc7e96b110e1a560edb0d99c4b`. No publication, live activation,
+provider dispatch or creative acceptance is claimed here.
 The 14 changed executable/test inputs are pinned in
 `.local/batch-video/ci-remediation-inputs.json`, aggregate SHA-256
 `7a5c8c30df7c1a892a20c0279169d9a139c90b4edc02aee3eb8663ba2a0c83af`.
@@ -153,19 +156,83 @@ only. Existing deterministic frontend bundle evidence remains applicable to
 those unchanged executable inputs. Static report styles are Python-served
 derived HTML and were exercised through the real report route above.
 
-This evidence does not identify every failure hidden by the original quiet
-hosted timeout, establish a full local release gate or qualify hosted x64.
-Required full/hosted qualification and manager review remain separate. New
-source hashing includes the command-capture change, so unchanged product evidence
-must not be presented as complete qualification of that new runtime input.
+The scoped evidence above does not identify every failure hidden by the
+original quiet hosted timeout or qualify hosted x64. Final local qualification
+and manager review are recorded below. New source hashing includes the
+command-capture change, so older unchanged-product evidence alone must not be
+presented as complete qualification of that new runtime input.
 Neither a live helper stop/reset nor revocation/deletion/activation is authorized
 by these corrections. A separate later owner approval conditionally permits the
 manager to verify and gracefully stop only the exact idle CUA helper; it does not
 change the incarnation proof or give this worker concurrent live authority.
 This source worker performed no live operation or retained-fact mutation.
 
-Remote `main` was rechecked at `5f7dbf43` before packaging this local checkpoint.
-The gate ran against the baseline plus the pinned 14-file correction inputs;
-the local commit packages those unchanged verified bytes. Publication is held
-for the manager's checkpoint review and exact-revision retest. No full gate,
-hosted success, source activation or broader helper shutdown is implied.
+## Manager review and exact-revision retest
+
+The manager reviewed the actual `0af49b61` diff and ADRs 0194/0195 with no
+findings, then independently reran **50 Python + one real Chromium case**,
+including e2e typecheck, exit zero in **62.672s**. Exact selectors and output:
+`.local/batch-video/manager-ci-remediation-retest.log`. Fresh 1280x768 and
+1280x460 report captures showed all five KPI descriptions. Intentional semantic
+failures in that controlled report fixture are not product acceptance.
+
+The manager and independent read-only reviewer could not bind the current CUA
+helper PID 90191 to its owning chat or prove no pending automation. The owner's
+conditional stop approval therefore remains unfulfilled. No shutdown, reset or
+signal was performed; activation remains held. CPU, cwd, shared parent and an
+executor UUID lookup were not treated as ownership/inactivity proof. This
+assessment adds no new process-incarnation evidence or live-operation authority.
+
+## Final local attempt and bounded browser-test repair
+
+One unfiltered `uv run --locked --no-sync python scripts/verify.py full` ran on
+clean `0af49b61`, log `.local/batch-video/ci-remediation-full-0af49b61.log`.
+It **exited 1 in 1687.008s**: locked dependencies, media probes, API lint, archived
+reader, **1,415 frontend cases in 162 files**, frontend type contracts,
+**3,275 Python cases**, deterministic bundle/parity and unfiltered browser
+coverage passed. Python workers passed 1,707 and 1,568 cases; native case-ID
+SHA-256 was `83823784b115619d37edae935bde8449d6495c787faf2a90c5aa1f41a7555022`.
+Browser execution had **335 passed / one failed** in 597.239s; wheel/smoke were
+not reached. This invocation is retained as failed, not relabelled successful.
+
+The sole failure was the graph-action explanation case in
+`creator-workbench-operations.spec.ts`. Its nonretrying `innerText()` captured
+the pending production-read status, then its exact accessible-description
+assertion retried against the later settled status. The retained trace records
+the successful production-bridge read at that boundary; the error report shows
+24 subsequent reads of the settled text. `GraphWorkflowActions` renders both
+visible status and accessible description from the identical span. The known
+fixture is unconfirmed, so its settled creator text is explicitly
+`先确认当前图内容，再应用到故事路线。`; the professional view supplies no status.
+
+The correction awaits those exact fixture-owned states with `toHaveText()`
+before asserting the full exact description. All accessibility, geometry,
+no-write and no-dispatch assertions remain. No sleep, timeout increase,
+substring relaxation or production change was introduced. Failure screenshot,
+trace, video and context were copied before rerun into
+`.local/batch-video/local-full-0af49b61-failure/`. The manager independently
+reviewed the owning components and test-only diff with no findings.
+
+Focused whole-spec verification passed **seven browser cases**, including e2e
+typecheck, exit zero in **34.031s**; log
+`.local/batch-video/ci-remediation-graph-actions-focused.log`. An initial selector
+used `frontend/e2e/...` and was refused before test execution; its separate
+`ci-remediation-graph-actions-selector-refusal.log` is not execution evidence.
+
+Only that browser test changed after the full attempt. Passed Python, frontend,
+type, bundle and parity inputs remain unchanged and are reused; all 14 original
+correction inputs were rehashed and matched their pinned manifest. The changed
+operations spec SHA-256 is
+`7e8cfd04e3de7f18db21a9829a7e88ca2ed9a018ee3899dbb6a59a8a1ca86a7a`.
+The exact unfiltered browser coverage/suite and unreached wheel/smoke commands
+ran through the existing `_full_steps`/`_run_steps` definitions, log
+`.local/batch-video/ci-remediation-full-downstream.log`: **336 browser cases**
+passed in **590.676s**, wheel build and installed-wheel smoke passed, runner
+exit zero in **597.344s**. E2e typecheck ran within browser execution. This is
+positive composed local release qualification, not a fresh successful full
+invocation or a new verification tier. No gate was waived or filtered.
+
+Remote `main` was freshly fetched and remained at `5f7dbf43`; only the reviewed
+test synchronization and this evidence record differ from `0af49b61`.
+Publication follows the normal fast-forward check. Required unfiltered hosted CI
+is still pending. No source activation or broader helper shutdown is implied.

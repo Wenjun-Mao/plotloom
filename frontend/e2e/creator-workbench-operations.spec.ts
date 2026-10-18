@@ -40,7 +40,10 @@ test("graph action explanations identify whole-graph scope outside node details 
       const actions = bar.getByRole("group", { name: "保存、确认与应用", exact: true });
       // Inspect the whole region below the sticky guide, not only its buttons.
       await bar.evaluate(element => element.scrollIntoView({ block: "center" }));
-      const status = await bar.locator(".graph-workflow-status").count() ? await bar.locator(".graph-workflow-status").innerText() : "";
+      // Node selection can precede the production read. Assert this fixture's
+      // settled state rather than freezing a transient status as the expectation.
+      const status = view === "创作" ? "先确认当前图内容，再应用到故事路线。" : "";
+      await expect(bar.locator(".graph-workflow-status")).toHaveText(status ? [status] : []);
       await expect(bar).toHaveAccessibleDescription(`作用于全部节点和连接，不仅是当前选中的节点。 三项操作均不会生成影片。${status ? ` ${status}` : ""}`);
       await expect(bar.locator("header > p")).toHaveCount(1);
       await expect(bar.locator("footer")).toHaveCount(0);
