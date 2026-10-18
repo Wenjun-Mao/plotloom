@@ -13,7 +13,12 @@ The delegated source owner has implemented steps 1–4 in the retained checkout
 were addressed at native proposal, retained prediction, foreground intent and
 player read owners. Step 5 local software qualification is complete through
 full-run evidence, an exact corrected navigation-spec rerun and downstream wheel
-checks. Product source is `575907e7`; the test-contract revision is `52ad5889`.
+checks. Initial product source is `575907e7`; its test-contract revision is `52ad5889`.
+Manager-review corrections are implemented at `20e3c65b`: startup/index isolation,
+current adopter execution authority, exact-run completion intent and retained
+proof-boundary coverage. Their affected checks pass; see
+`docs/verification/2026-10-18-batch-video-corrections.md` for scoped requalification
+and reuse of unaffected full evidence.
 See `docs/verification/2026-10-18-batch-video-production.md` for exact evidence,
 retained failures, measured latency and the live-provider/hosted-CI gaps.
 The manager explicitly holds publication and activation until the integrated

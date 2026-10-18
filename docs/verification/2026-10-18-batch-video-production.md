@@ -1,15 +1,18 @@
 # Batch-video implementation qualification, 2026-10-18
 
-Status: integrated source checkpoint; local qualification combines full-run
+Status: initial integrated source checkpoint; local qualification combines full-run
 evidence with an exact test-contract rerun and downstream package checks.
 Publication and activation are held for manager review. Technical evidence does
 not establish human creative acceptance.
+
+The [manager correction checkpoint](2026-10-18-batch-video-corrections.md) records
+source `20e3c65b`, its affected regressions and evidence reuse after this checkpoint.
 
 ## Source and authority
 
 - Retained checkout: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, `main`.
 - Baseline: `c5aabe252a83c6aa6708fbbbcf4fe704a771eaa3`.
-- Frozen product candidate: `575907e7`; qualified test-contract revision:
+- Initial product candidate: `575907e7`; qualified test-contract revision:
   `52ad5889` (only the navigation regression assertion changed). Subsequent
   checkpoint documentation does not alter executable inputs.
 - Owning plan: `docs/roadmap/2026-10-18-batch-video-production.md`.
