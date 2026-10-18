@@ -1,13 +1,14 @@
 """One strict single-hop native source resolver shared by all frame consumers."""
+import json
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
-import json
+
 from ...autopilot_contracts import CheckpointEvidence
-from ...geometry_preparation_contracts import GeometryPreparation
-from ..codec import stable_hash
 from ...exceptions import InvalidTransitionError
+from ...geometry_preparation_contracts import GeometryPreparation
 from ...keyframe_preparation import has_matching_aspect
+from ..codec import stable_hash
 from ..schema import ImageJobRow
 
 
@@ -60,9 +61,13 @@ def _assert_geometry_bytes(connection, *assets, asset_home=None):
             raise ValueError("geometry source/output bytes changed")
 
 
-def assert_geometry(connection, record, *, project_id, run_id, asset_home=None):
+def assert_geometry(connection, record, *, project_id, run_id, asset_home=None, continuation=True):
     """Historical identity validation; currentness is checked separately."""
-    from .autopilot_bindings import assert_checkpoint_binding
+    from .autopilot_bindings import (
+        _assert_checkpoint_binding,
+        _retained_checkpoint_validation_plan,
+        assert_checkpoint_binding,
+    )
     source = record.source
     run = _row(connection, "SELECT * FROM v2_autopilot_runs WHERE id=?", (run_id,))
     policy = json.loads(run["policy"])
@@ -103,11 +108,42 @@ def assert_geometry(connection, record, *, project_id, run_id, asset_home=None):
             or has_matching_aspect(raw["width"], raw["height"], policy["imageWidth"], policy["imageHeight"])):
         raise ValueError("geometry preparation differs from its frozen local/native authority")
     _assert_geometry_bytes(connection, raw, output, asset_home=asset_home)
-    assert_checkpoint_binding(connection, project_id, "adopted", evidence, run_id=run_id,
-        operation_key=checkpoint["operation_key"], asset_home=asset_home)
+    if continuation:
+        assert_checkpoint_binding(connection, project_id, "adopted", evidence, run_id=run_id,
+            operation_key=checkpoint["operation_key"], asset_home=asset_home)
+    else:
+        _assert_checkpoint_binding(connection, project_id, "adopted", evidence, run_id=run_id,
+            operation_key=checkpoint["operation_key"], asset_home=asset_home,
+            validation_plan_for_request=_retained_checkpoint_validation_plan, continuation=False)
 
 
-def resolve_image_source(connection, project_id, asset_id, *, shot_id=None, asset_home=None):
+def _geometry_checkpoint(connection, project_id, asset_id, *, continuation):
+    """Resolve the recorded original, proving every retained successor copy."""
+    from .autopilot_continuation import inherited_origin
+    rows = list(connection.execute(
+        "SELECT id,run_id,operation_key,state,evidence FROM v2_autopilot_checkpoints "
+        "WHERE project_id=? AND json_extract(evidence,'$.geometryPreparation.output.assetId')=?",
+        (project_id, asset_id)))
+    parsed = [(row, CheckpointEvidence.model_validate_json(row[4])) for row in rows]
+    for row, evidence in parsed:
+        geometry = evidence.geometry_preparation
+        if (row[3] != "adopted" or evidence.owner != "geometry-preparation" or geometry is None
+                or evidence.subject_id != geometry.shot_id or geometry.project_id != project_id):
+            raise ValueError("geometry derivative typed owner changed")
+    originals = [(row, evidence) for row, evidence in parsed if row[1] == evidence.geometry_preparation.run_id]
+    if len(originals) != 1:
+        raise ValueError("geometry derivative lacks one immutable preparation checkpoint")
+    original, evidence = originals[0]
+    for row, copy in parsed:
+        if row[0] == original[0]:
+            continue
+        if (not continuation or copy != evidence or row[2] != original[2]
+                or inherited_origin(connection, row[1], row[2], copy) != original[1]):
+            raise ValueError("geometry derivative copy lacks its exact original authority")
+    return original[0], original[1], evidence
+
+
+def resolve_image_source(connection, project_id, asset_id, *, shot_id=None, asset_home=None, continuation=True):
     asset = _row(connection, "SELECT * FROM v2_managed_assets WHERE id=?", (asset_id,))
     if asset["project_id"] != project_id:
         raise ValueError("generated source belongs to another project")
@@ -117,15 +153,9 @@ def resolve_image_source(connection, project_id, asset_id, *, shot_id=None, asse
     if origin == "plotloom_geometry_preparation":
         if candidates:
             raise ValueError("local derivative cannot impersonate a native candidate")
-        checkpoints = list(connection.execute("SELECT id,run_id,project_id,state,evidence FROM v2_autopilot_checkpoints WHERE project_id=? AND json_extract(evidence,'$.geometryPreparation.output.assetId')=?", (project_id, asset_id)))
-        if len(checkpoints) != 1 or checkpoints[0][3] != "adopted":
-            raise ValueError("geometry derivative lacks one immutable preparation checkpoint")
-        checkpoint_id, run_id, project, state, raw = checkpoints[0]
-        evidence = CheckpointEvidence.model_validate_json(raw)
+        checkpoint_id, run_id, evidence = _geometry_checkpoint(connection, project_id, asset_id, continuation=continuation)
         geometry = evidence.geometry_preparation
-        if evidence.owner != "geometry-preparation" or geometry is None or evidence.subject_id != geometry.shot_id:
-            raise ValueError("geometry derivative typed owner changed")
-        assert_geometry(connection, geometry, project_id=project, run_id=run_id, asset_home=asset_home)
+        assert_geometry(connection, geometry, project_id=project_id, run_id=run_id, asset_home=asset_home, continuation=continuation)
         decisions = list(connection.execute("SELECT decision FROM v2_autopilot_decisions WHERE checkpoint_id=? AND scope=?", (checkpoint_id, "geometry_preparation")))
         if len(decisions) != 1 or json.loads(decisions[0][0]).get("evidence") != evidence.model_dump(mode="json", by_alias=True):
             raise ValueError("geometry derivative lacks its exact local authority decision")

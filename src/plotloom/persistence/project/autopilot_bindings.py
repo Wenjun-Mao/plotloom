@@ -153,7 +153,7 @@ def _assert_checkpoint_binding(connection, project_id, state, evidence, *, run_i
         if evidence.subject_id != evidence.geometry_preparation.shot_id:
             raise ValueError("local geometry shot identity changed")
         from .image_source_lineage import assert_geometry
-        assert_geometry(connection, evidence.geometry_preparation, project_id=project_id, run_id=run_id, asset_home=asset_home)
+        assert_geometry(connection, evidence.geometry_preparation, project_id=project_id, run_id=run_id, asset_home=asset_home, continuation=continuation)
         return
     if evidence.geometry_preparation is not None:
         raise ValueError("geometry lineage belongs only to its typed local owner")
@@ -303,9 +303,11 @@ def _assert_checkpoint_binding(connection, project_id, state, evidence, *, run_i
         raise ValueError(f"{owner} checkpoint delivery hash differs from its retained native proof")
 
 
-def assert_frame_binding(connection, run_id, project_id, decision_id, frame, *, asset_home=None):
+def assert_frame_binding(connection, run_id, project_id, decision_id, frame, *, asset_home=None, continuation=True):
     decision = _row(connection, "SELECT * FROM v2_autopilot_decisions WHERE id=?", (decision_id,))
     if decision["run_id"] != run_id:
+        if not continuation:
+            raise ValueError("prior-layout frame cannot inherit a selection decision")
         selection = connection.execute("SELECT c.operation_key FROM v2_autopilot_decisions d JOIN v2_autopilot_checkpoints c ON c.id=d.checkpoint_id WHERE d.id=?", (decision_id,)).fetchone()
         from .autopilot_continuation import inherited_origin
         checkpoint = connection.execute("SELECT evidence FROM v2_autopilot_checkpoints WHERE run_id=? AND operation_key=?", (run_id, selection[0])).fetchone() if selection else None
@@ -316,13 +318,13 @@ def assert_frame_binding(connection, run_id, project_id, decision_id, frame, *, 
             (origin, project_id, frame.shot_id, decision_id)).fetchone()
         if original_frame is None or json.loads(original_frame[0]) != frame.model_dump(mode="json", by_alias=True):
             raise ValueError("inherited frame differs from original selection bytes")
-        return assert_frame_binding(connection, origin, project_id, decision_id, frame, asset_home=asset_home)
+        return assert_frame_binding(connection, origin, project_id, decision_id, frame, asset_home=asset_home, continuation=continuation)
     job = _row(connection, "SELECT * FROM v2_image_jobs WHERE id=?", (frame.job_id,))
     unit = _row(connection, "SELECT * FROM v2_production_units WHERE id=?", (job["production_unit_id"],))
     asset = _row(connection, "SELECT * FROM v2_managed_assets WHERE id=?", (frame.asset_id,))
     revision = _row(connection, "SELECT * FROM v2_entity_revisions WHERE id=?", (unit["storyboard_entity_revision_id"],))
     from .image_source_lineage import resolve_image_source
-    lineage = resolve_image_source(connection, project_id, frame.asset_id, shot_id=frame.shot_id, asset_home=asset_home)
+    lineage = resolve_image_source(connection, project_id, frame.asset_id, shot_id=frame.shot_id, asset_home=asset_home, continuation=continuation)
     if lineage is None or lineage.job_id != frame.job_id or lineage.geometry != frame.geometry_preparation:
         raise ValueError("provisional frame source lineage changed")
     candidate = _row(connection, "SELECT * FROM v2_image_job_candidates WHERE id=?", (lineage.candidate_id,))

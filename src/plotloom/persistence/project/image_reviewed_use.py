@@ -56,11 +56,11 @@ def _binding_identity(binding):
     )}
 
 
-def resolve_reviewed_use(connection, project_id, asset_id, shot_id, intent, *, asset_home=None, ancestors=frozenset()):
+def resolve_reviewed_use(connection, project_id, asset_id, shot_id, intent, *, asset_home=None, ancestors=frozenset(), continuation=True):
     """Historical proof; source selection position is deliberately not authority."""
     use = intent.get("targetUse")
     if use is None:
-        return resolve_image_source(connection, project_id, asset_id, shot_id=shot_id, asset_home=asset_home)
+        return resolve_image_source(connection, project_id, asset_id, shot_id=shot_id, asset_home=asset_home, continuation=continuation)
     parsed = CrossShotTargetUse.model_validate(use)
     if intent.get("role") != "shot_keyframe" or parsed.target_shot_id != shot_id:
         raise ValueError("target use does not name this shot keyframe")
@@ -74,13 +74,13 @@ def resolve_reviewed_use(connection, project_id, asset_id, shot_id, intent, *, a
     if frozen.binding_id in ancestors or frozen.source_shot_id == shot_id:
         raise ValueError("cross-shot use is cyclic or self-referential")
     source = validate_reviewed_source(connection, project_id, frozen, asset_home=asset_home,
-        ancestors=ancestors | {frozen.binding_id})
+        ancestors=ancestors | {frozen.binding_id}, continuation=continuation)
     if frozen.asset_id != asset_id:
         raise ValueError("target use cannot change source pixels")
     return source
 
 
-def validate_reviewed_source(connection, project_id, frozen, *, asset_home=None, ancestors=frozenset()):
+def validate_reviewed_source(connection, project_id, frozen, *, asset_home=None, ancestors=frozenset(), continuation=True):
     frozen = ReviewedFrameSource.model_validate(frozen)
     binding = _row(connection, "SELECT * FROM v2_reviewed_shot_bindings WHERE id=?", (frozen.binding_id,))
     intent = _row(connection, "SELECT * FROM v2_visual_intents WHERE id=?", (binding["visual_intent_id"],))
@@ -95,7 +95,7 @@ def validate_reviewed_source(connection, project_id, frozen, *, asset_home=None,
         raise ValueError("reviewed source identity, intent or bytes changed")
     _assert_source_bytes(connection, asset, asset_home=asset_home)
     source = resolve_reviewed_use(connection, project_id, asset["id"], binding["shot_id"], payload,
-        asset_home=asset_home, ancestors=ancestors)
+        asset_home=asset_home, ancestors=ancestors, continuation=continuation)
     origin_shot, request_hash, delivery_hash = _origin(connection, source)
     if (frozen.origin_job_id != (source.job_id if source else None)
             or frozen.origin_candidate_id != (source.candidate_id if source else None)

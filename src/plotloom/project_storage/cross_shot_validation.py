@@ -8,7 +8,7 @@ from ..persistence.project.image_reviewed_use import (
 from .format import ProjectStorageCorruptionError
 
 
-def assert_cross_shot_contracts(connection, *, asset_home=None):
+def assert_cross_shot_contracts(connection, *, asset_home=None, continuation=True):
     try:
         for project_id, asset_id, shot_id, raw in connection.execute(
             "SELECT b.project_id,b.asset_id,b.shot_id,i.intent FROM v2_reviewed_shot_bindings b "
@@ -16,7 +16,7 @@ def assert_cross_shot_contracts(connection, *, asset_home=None):
         ):
             intent = json.loads(raw)
             if intent.get("targetUse") is not None:
-                resolve_reviewed_use(connection, project_id, asset_id, shot_id, intent, asset_home=asset_home)
+                resolve_reviewed_use(connection, project_id, asset_id, shot_id, intent, asset_home=asset_home, continuation=continuation)
             else:
                 # Preserve ordinary historical admission/currentness semantics.
                 # Only a foreign native origin reveals a removed target-use
@@ -40,7 +40,7 @@ def assert_cross_shot_contracts(connection, *, asset_home=None):
             intent = json.loads(raw)
             if intent.get("targetUse") is not None:
                 resolve_reviewed_use(connection, project_id, asset_id, intent["targetUse"]["targetShotId"], intent,
-                    asset_home=asset_home)
+                    asset_home=asset_home, continuation=continuation)
         for project_id, raw in connection.execute("SELECT project_id,request FROM v2_image_jobs"):
             request = json.loads(raw)
             snapshot = request.get("frozenSnapshot", {})
@@ -57,6 +57,6 @@ def assert_cross_shot_contracts(connection, *, asset_home=None):
                     or len(refs) != 1 or refs[0].get("assetId") != source["assetId"]
                     or refs[0].get("originalHash") != source["originalHash"]):
                 raise ValueError("continuity reference does not match its independent target request")
-            validate_reviewed_source(connection, project_id, source, asset_home=asset_home)
+            validate_reviewed_source(connection, project_id, source, asset_home=asset_home, continuation=continuation)
     except (ValueError, TypeError, KeyError) as error:
         raise ProjectStorageCorruptionError("cross-shot image use evidence is invalid") from error

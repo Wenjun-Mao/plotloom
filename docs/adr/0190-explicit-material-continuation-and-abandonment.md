@@ -78,6 +78,13 @@ Only the dedicated abandon action is available; click obtains a fresh server
 preview and new title/unchecked-uncertainty consent. Current project discovery,
 opening and controller admission remain exact-current. Catalog errors do not
 disable the independent current-project directory.
+Exact prior-layout validation context must survive nested geometry, reviewed
+source, cross-shot, frame and retained-handoff validation. Current mutation/session
+entrypoints remain strict-current; table absence never selects a validation mode.
+Geometry derivatives retain one canonical checkpoint owned by the preparation's
+recorded origin run. Continuation copies are accepted only through exact adopted
+predecessor links with identical evidence; every matching copy is validated, not
+silently ignored. Original geometry/native decisions and bytes remain authority.
 
 ## Alternatives and consequences
 

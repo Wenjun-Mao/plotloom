@@ -9,7 +9,7 @@ from ..persistence.project.autopilot_inventory_validation import (
 )
 
 
-def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw, digest, *, asset_home=None):
+def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw, digest, *, asset_home=None, continuation=True):
     receipt = parse_handoff_receipt(raw)
     if stable_hash(raw) != digest or (receipt.id, receipt.run_id, receipt.project_id, receipt.approval_id) != (identifier, run_id, project_id, approval_id):
         raise ValueError("human handoff identity changed")
@@ -98,9 +98,9 @@ def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw,
             frozen_use = frame.target_use.model_dump(mode="json", by_alias=True) if frame.target_use else None
             if json.loads(source_intent[0]).get("targetUse") != frozen_use:
                 raise ValueError("displayed target use differs from its exact reviewed binding")
-            lineage = resolve_reviewed_use(connection, project_id, frame.asset_id, frame.shot_id, json.loads(source_intent[0]), asset_home=asset_home)
+            lineage = resolve_reviewed_use(connection, project_id, frame.asset_id, frame.shot_id, json.loads(source_intent[0]), asset_home=asset_home, continuation=continuation)
         else:
-            lineage = resolve_image_source(connection, project_id, frame.asset_id, shot_id=frame.shot_id, asset_home=asset_home)
+            lineage = resolve_image_source(connection, project_id, frame.asset_id, shot_id=frame.shot_id, asset_home=asset_home, continuation=continuation)
         if (lineage.geometry if lineage else None) != frame.geometry_preparation:
             raise ValueError("human handoff geometry lineage changed")
         binding = connection.execute("SELECT project_id,shot_id,scene_id,asset_id,visual_intent_id,approval_id,compatibility_note FROM v2_reviewed_shot_bindings WHERE id=?", (fact.get("bindingId"),)).fetchone()

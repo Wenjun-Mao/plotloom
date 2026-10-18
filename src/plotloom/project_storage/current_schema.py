@@ -6,10 +6,10 @@ import sqlite3
 from functools import lru_cache
 from pathlib import Path
 
-from sqlalchemy import create_engine
 from pydantic import ValidationError
+from sqlalchemy import create_engine
 
-from ..persistence.schema import Base, PROJECT_TEXT_PIPELINE_TABLE_NAMES
+from ..persistence.schema import PROJECT_TEXT_PIPELINE_TABLE_NAMES, Base
 from ..script_contracts import ScriptBinding
 from ..storyboard_review_contracts import StoryboardReviewBinding
 from .format import ProjectStorageCorruptionError
@@ -63,7 +63,7 @@ def assert_current_review_bindings(connection: sqlite3.Connection, *, asset_home
     """
     from .autopilot_validation import assert_autopilot_contracts
     from .cross_shot_validation import assert_cross_shot_contracts
-    assert_cross_shot_contracts(connection, asset_home=asset_home)
+    assert_cross_shot_contracts(connection, asset_home=asset_home, continuation=continuation)
     if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_autopilot_runs'").fetchone():
         assert_autopilot_contracts(connection, asset_home=asset_home, continuation=continuation)
     for table, model in (

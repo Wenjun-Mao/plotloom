@@ -28,7 +28,9 @@ def assert_autopilot_contracts(connection, *, asset_home=None, continuation=True
     profile_construction = _ProfileConstruction()
     try:
         if continuation:
-            from ..persistence.project.autopilot_continuation import assert_continuation_lineage
+            from ..persistence.project.autopilot_continuation import (
+                assert_continuation_lineage,
+            )
             assert_continuation_lineage(connection)
         runs = {}
         run_policies = {}
@@ -131,7 +133,7 @@ def assert_autopilot_contracts(connection, *, asset_home=None, continuation=True
             parsed = ProvisionalFrame.model_validate_json(raw)
             if runs.get(run_id, (None,))[0] != project or (parsed.shot_id, parsed.job_id, parsed.asset_id) != (shot, job, asset):
                 raise ValueError("provisional frame identity changed")
-            assert_frame_binding(connection, run_id, project, decision, parsed, asset_home=asset_home)
+            assert_frame_binding(connection, run_id, project, decision, parsed, asset_home=asset_home, continuation=continuation)
         from .bridge_adoption_validation import assert_bridge_adoption_contracts
         if continuation:
             assert_bridge_adoption_contracts(connection)
@@ -145,7 +147,7 @@ def assert_autopilot_contracts(connection, *, asset_home=None, continuation=True
         for identifier, run_id, project, approval, raw, digest in connection.execute("SELECT id,run_id,project_id,approval_id,receipt,receipt_hash FROM v2_autopilot_handoffs"):
             if runs.get(run_id, (None,))[0] != project:
                 raise ValueError("human handoff run changed")
-            receipt = assert_handoff(connection, identifier, run_id, project, approval, json.loads(raw), digest, asset_home=asset_home)
+            receipt = assert_handoff(connection, identifier, run_id, project, approval, json.loads(raw), digest, asset_home=asset_home, continuation=continuation)
             receipts[identifier] = (run_id, digest, receipt.bundle_hash, receipt.material_closure)
             if receipt.version == "pre-video.handoff.v2":
                 if receipt.approval_origin == "created":

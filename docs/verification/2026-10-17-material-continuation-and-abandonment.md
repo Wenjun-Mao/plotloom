@@ -231,3 +231,85 @@ Inspected desktop fixture screenshots are `output/playwright/prior-abandonment-e
 `prior-abandonment-consent.png` and `prior-abandonment-pending.png` in that same
 directory. No new full gate, commit, push, live generation, deployment, migration,
 acceptance or project deletion was performed by this source assignment.
+
+## Geometry owner correction: RCA before implementation
+
+The root-owned full gate on `c14c04607d91e4221df360df71eb893763373948`
+passed all 14 steps, 1458.951 seconds: 3207 Python / 1401 frontend / 328 browser
+cases; log `.local/material-recovery-20261017/full-c14c0460.log`. A subsequent
+read-only preactivation check exposed a content-shape gap, not live corruption:
+exact-prior validation sets `continuation=False`, but geometry re-enters the public
+current checkpoint validator and queries the absent inheritance table. Frame,
+reviewed-source/cross-shot recursion and retained handoff must preserve that same
+explicit context. Earlier prior fixtures had no nontrivial geometry derivative.
+
+The same provenance owner assumes one project-wide geometry checkpoint per
+output asset. A genuine successor inherits that checkpoint, so ordinary reopening
+then sees two valid copies and fails. The durable contract is one exact canonical
+original selected by the preparation's origin run plus strictly validated linked
+copies, never first-row/timestamp selection or `len >= 1` tolerance. Correction
+belongs in the shared passive provenance validators, not UI, migration, stored
+evidence rewrites, caches, or current mutation admission. No live data is used for
+implementation or regression fixtures.
+
+### Bounded geometry correction verification
+
+The first two genuine regressions failed before product edits (2 failed,
+14.31 seconds pytest / 16.507 seconds focused). The exact-prior failure was
+`schema_upgrade.assert_prior_database -> autopilot_validation ->
+autopilot_bindings.assert_geometry -> image_source_lineage.assert_geometry ->
+assert_checkpoint_binding -> inherited_origin`, ending in
+`sqlite3.OperationalError: no such table: v2_autopilot_inheritance`.
+The partial successor's ordinary reopen failed because two retained geometry
+checkpoints were interpreted as ambiguous authority. Exact tool output, rather
+than a saved initial log, retains these initial traces.
+
+The correction forwards only the caller's explicit retained-layout context
+through pure provenance validators. Public checkpoint signatures and strict
+current mutation/session wrappers remain unchanged; nested native checks still
+construct independent authority. The source resolver selects the preparation's
+exact original run/checkpoint and proves every additional adopted copy through
+identical typed evidence and exact predecessor links. No schema, API, dependency,
+JavaScript, generated asset, migration implementation or stored evidence changed.
+
+| Executed selection | Result |
+| --- | --- |
+| Initial two regressions after correction | 2 passed, 21.65 seconds pytest / 23.872 seconds focused |
+| New geometry matrix before the final isolation assertions | 9 passed, 43.76 seconds pytest / 46.476 seconds focused |
+| Final affected Python selection below | 181 passed, 231.29 seconds pytest / 248.148 seconds focused |
+| Exact prior partial case after adding foreign frame-owner rejection | 1 passed, 8.91 seconds pytest / 10.869 seconds focused |
+| Full Ruff on seven changed production Python files and new regression file; `git diff --check` | Passed |
+| Native module ownership discovery (no test bodies executed) | Passed: 3216 Python / 272 files, 1401 frontend / 159 files, 328 browser / 94 files |
+
+The final affected command was `uv run --locked --no-sync python scripts/verify.py
+focused` with explicit `--pytest` selectors for
+`tests/test_prior_geometry_lineage.py`, `tests/test_autopilot_continuation.py`,
+`tests/test_autopilot_geometry.py`, `tests/test_autopilot_geometry_seed.py`,
+`tests/test_autopilot_handoff.py`, `tests/test_autopilot_review_readiness.py`,
+`tests/test_autopilot_authority.py`, `tests/test_autopilot_schema_upgrade.py`,
+`tests/test_cross_shot_image_use.py`, `tests/test_cross_shot_handoff.py`,
+`tests/test_image_source_lineage.py`, `tests/test_autopilot_profile_bindings.py`
+and `tests/test_autopilot_policy_decoding.py`. Exact commands and results are in
+`.local/material-recovery-20261017/geometry-focused.log`. The separate one-case
+run selected
+`tests/test_prior_geometry_lineage.py::test_exact_prior_partial_geometry_validates_without_current_table_reads`;
+log `.local/material-recovery-20261017/geometry-prior-context-negative.log`.
+
+The new cases cover cancelled partial derivatives and metadata-only preserving
+upgrade, complete awaiting-review geometry bundles, retained fixture human-handoff
+records, real reviewed target-use and scene-continuity chains, missing-only
+continuation under fresh pins, ordinary reopening, original frame/decision/receipt
+rows unchanged and five corrupt/unlinked/ambiguous copy rejections. Prior context
+cannot leak into the next strict-current call; a foreign prior frame owner is
+rejected before any inheritance query. Existing selected cases retain native
+receipt corruption, geometry byte/decision corruption, refinement ancestor
+currentness, exact SQL/decode order, profile isolation and public-signature guards.
+Typed synthetic reviewer observations are test evidence, not live human acceptance.
+
+The reviewed production diff SHA-256 (`git diff -- src/plotloom | shasum -a 256`)
+is `d82891b46a741b6b801cce063161a50fe26eda21e81ba3f2e0af483b02e66bfa`.
+The manager approved affected-consumer requalification and reuse of unchanged
+frontend/browser/dependency inputs from c14, not another full run. Package
+build/smoke and separate read-only deployment preflight are manager-owned evidence.
+No full gate, commit, push, install, live migration, generation, acceptance or
+deletion was performed by this bounded correction assignment.
