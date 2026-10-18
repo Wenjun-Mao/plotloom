@@ -1,5 +1,9 @@
 # Owned copied hosted-test runtime checkpoint — 2026-10-18
 
+Sections through “Retention and remaining gaps” preserve the initial
+`f7fcf080` checkpoint. The follow-up below supersedes its pending execution and
+authority statements; retained failed evidence is unchanged.
+
 ## Authority and boundary
 
 This is the manager-approved continuation of batch-video delivery's
@@ -137,3 +141,101 @@ serial-suite runtime budget remains a separate unresolved qualification concern.
 Copied executables still use the selected base runtime's libraries; this does
 not establish a separate immutable Python installation. Next action: prepare
 the bounded exact-host diagnostic draft for manager review before remote writes.
+
+## Follow-up: bind the synthetic CLI's real interpreter
+
+The one authorized hosted diagnostic [39175064170](https://github.com/Wenjun-Mao/plotloom/actions/runs/39175064170)
+used product base `f7fcf080` and workflow-only head `6619e729`. Source/copy
+preflights passed: source CPython 3.12.15/x64 was directly observed at 0777 and
+remained unchanged; all three owned one-link 0755 copies had identical bytes.
+All 154 native case IDs matched JUnit: capsule/receiver 70 passed, paid 37 passed
+and two failed, pair 45 passed, zero skips/errors/timeouts. This was a valid
+failed diagnostic, not release qualification. Its ignored evidence summary,
+full logs, 225-file artifact manifest and 214 retained fixture hashes remain
+under `owned-runtime-diagnostic-39175064170-*`.
+
+Both actual stderr traces fail importing `dotenv` from copied `plotloom.config`
+inside the Python fake CLI sandbox, before real Node validation. Its old
+`env python3` launcher did not bind pytest's explicit test interpreter. Exact
+remote fake-CLI executable/prefix were not observed. The local ambient Python
+already had the dependency; the private dependency-free PATH control reproduces
+selection without relying on that inference. This is a synthetic launch boundary
+defect, so the fix belongs in the test-owned launcher, preserving production
+environment filtering, PATH behavior, guards, QA defaults/pins and validators.
+
+Manager approval binds the wrapper directly to the raw absolute QA entrypoint
+under ADR 0196's 127-byte encoded shebang bound, with unsupported paths refused
+before wrapper creation/allocation. New small stdlib runtime support records
+exclusive PID startup facts before project imports and separate successful
+sandbox imports. Assertions use real current QA fields; exact patch/raw prefixes
+are observations, not new pins. Valid and invalid journeys verify every sandbox
+and actual copied source plus checked-environment `dotenv` origins. They prove a
+private `python3 -I -S` control lacks `dotenv`, reset its selection marker, and
+require no ambient selection while retaining genuine Node output/hash and
+missing-params/no-receipt/no-retry assertions. Duplicate refusal remains narrower
+than successful first delivery. Shared helper/test ownership is registered.
+
+Executed scoped evidence (all paths below relative to `.local/batch-video/`):
+
+- Before correction, the existing valid-delivery case under the hostile PATH
+  failed at actual ambient selection: **1 failed / 13.38s**, focused runner
+  **14.913s**. `fake-cli-ambient-before.log` and
+  `fake-cli-ambient-before-observations.json` preserve the real control,
+  missing-dependency traceback, failed result and owned settlement.
+- Mac CPython 3.12.13/aarch64: initial 12 path/startup cases plus both genuine
+  hostile-PATH journeys **14 passed / 39.91s**, runner **42.878s**.
+  `fake-cli-launch-focused.log`; actual startup/sandbox/control/validation and
+  settlement observations are retained in `fake-cli-launch-mac-observations.json`.
+  After adding explicit Unicode-whitespace coverage, final 13 unit cases plus
+  seven ownership cases **20 passed / 0.65s**, runner **2.910s**:
+  `fake-cli-launch-final-unit-ownership.log`.
+  Final native ownership discovery passed **3,298 Python / 1,415 frontend /
+  338 browser** cases without executing test bodies:
+  `fake-cli-final-native-ownership.log`.
+- The existing Linux checkout/copied venv is reused, CPython 3.12.3/aarch64,
+  UID 65534. Its 14 recorded executable inputs match the retained candidate;
+  its Git HEAD remains `2b3c8d66` with those current working bytes, rather than
+  claiming an exact new committed Linux checkout. See
+  `linux-ci/fake-cli-linux-observed-executable-inputs.json`.
+- Linux execution setup mistakes were retained and diagnosed separately:
+  missing uv cache setting stopped before collection; inherited umask 000
+  created owned 0777 source roots and caused mode refusals (107 passed,
+  16 failed, 38 setup errors); inherited Docker interpreter overrides then
+  caused two exact journey preflight refusals, before sandbox invocation.
+  These are `fake-cli-paid-pair-families.log`,
+  `fake-cli-paid-pair-families-corrected-env.log`,
+  `fake-cli-family-setup-mode.json` and `fake-cli-launch-exact.log` under
+  `linux-ci/`. The override cause was read from the actual capsule child
+  traceback; `fake-cli-launch-override-observation.json` labels its retained
+  tool-output excerpt after normal pytest retention removed the original root.
+  No guard or source behavior was changed to bypass these setup failures.
+- Reassessment restored the established environment: umask 022, existing cache,
+  no ambient interpreter/root overrides and the verified copied engine.
+  `linux-ci/fake-cli-execution-preflight.json` records actual facts. The exact
+  valid/invalid journeys then **2 passed / 35.41s**, runner **37.375s**:
+  `linux-ci/fake-cli-launch-clean-exact.log`.
+- With that verified environment, focused selections were
+  `test_paid_outline_cli_runtime.py`, `test_paid_outline_handoff.py`,
+  `test_paid_outline_processes.py` and all four
+  `test_qualification_pair_{contracts,measurements,observation,wiring}.py`
+  files: **162 passed / 185.88s**, one existing FastAPI deprecation warning,
+  runner **191.921s**. `linux-ci/fake-cli-paid-pair-clean-families.log`.
+  `linux-ci/fake-cli-final-observations.json` retains actual checked-engine
+  startup facts (59 valid / 48 invalid invocations), two valid and one invalid
+  sandbox import records, absent ambient markers, real validation output and
+  all 54 owned settlement reports. The two actual journeys and 50 other
+  reports are empty; two passing adversarial unit tests intentionally retain
+  mocked numeric-reuse/missing-spawn uncertainty with no signal. This is not
+  live-owner quiescence evidence. The initial collector's overbroad “all reports
+  empty” assertion was corrected after reading those existing negative tests;
+  no test assertion or process guard changed.
+
+Targeted Ruff and `git diff --check` pass. New helpers stay below 100 lines and
+the existing handoff case owner remains below 400 lines.
+
+Independent stable read-only review requested GPT-6.1 Sol / High (effective
+settings unverified) found no actionable issue in launcher validation,
+provenance, hostile-PATH assertions or the separately approved CI method. It ran
+no tests. Full local/hosted qualification and product acceptance remain pending;
+no hosted retry, main push, activation, provider or live owner/process action is
+authorized by this correction checkpoint.

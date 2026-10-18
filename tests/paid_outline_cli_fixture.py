@@ -30,6 +30,8 @@ def sandbox(case, executable, arguments):
         expand_validation_argv,
         validation_plan_from_package,
     )
+    from tests.paid_outline_cli_runtime import observe_sandbox_imports
+    observe_sandbox_imports(case, source, __file__)
 
     profile = CodexExecProfile.model_validate(namespace["profile"])
     attempt = namespace["attempt"]

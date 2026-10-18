@@ -16,11 +16,12 @@ from tests.cli_handoff_fixtures import (
     exclusive,
     private_directory,
 )
+from tests.codex_exec_platform_fixtures import provider_free_host_runtime
 from tests.codex_exec_runtime_fixtures import (
     CLI_FIXTURE_VERSION,
     build_codex_exec_test_source,
 )
-from tests.codex_exec_platform_fixtures import provider_free_host_runtime
+from tests.paid_outline_cli_runtime import cli_shebang
 from tests.paid_outline_processes import owned_processes
 
 NATIVE_FIXTURE = ROOT / "tests/paid_outline_native_fixture.py"
@@ -75,19 +76,22 @@ def paid_schema_case(tmp_path_factory, paid_source):
 def make_case(tmp_path, paid_source, processes):
     tmp_path = tmp_path.resolve()
     tmp_path.chmod(0o700)
+    qa = json.loads(current_test_qa())
+    shebang = cli_shebang(qa["entrypoint"])
     exclusive(tmp_path / "fixture-owner.json", builder.canonical({"syntheticEvidence": True,
         "qualification": False, "purpose": "source-unit-only"}))
     for name in ("data", "bundle", "phase", "auth-home"):
         private_directory(tmp_path / name)
-    qa = json.loads(current_test_qa())
     qa["projectRoot"] = str(paid_source)
     exclusive(tmp_path / "qa.json", builder.canonical(qa))
     executable = tmp_path / "fake-codex"
-    wrapper = ("#!/usr/bin/env python3\nimport sys\nfrom pathlib import Path\n"
+    wrapper = ("import sys\nfrom pathlib import Path\n"
         + "sys.path.insert(0, " + repr(str(ROOT)) + ")\n"
+        + "from tests.paid_outline_cli_runtime import observe_startup\n"
+        + "observe_startup(Path(__file__).resolve(), sys.argv[1:])\n"
         + "from tests.paid_outline_cli_fixture import main\n"
         + "raise SystemExit(main(Path(__file__).resolve(), sys.argv[1:], " + repr(CLI_FIXTURE_VERSION) + "))\n")
-    exclusive(executable, wrapper.encode())
+    exclusive(executable, shebang + wrapper.encode())
     executable.chmod(0o700)
     example = paid_source / "third_party/shuohao-skills/skills/novel-outline/examples/渡口-outline.json"
     exclusive(tmp_path / "provider-output.json", example.read_bytes())

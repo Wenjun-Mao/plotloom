@@ -15,6 +15,10 @@ from tests.cli_handoff_fixtures import ROOT
 from tests.codex_exec_runtime_fixtures import (
     codex_exec_test_source as _codex_exec_test_source,  # noqa: F401
 )
+from tests.paid_outline_cli_checks import (
+    assert_cli_observations,
+    without_ambient_python,
+)
 from tests.paid_outline_fixtures import (
     _commit_fixture,
     allocation_model,
@@ -138,7 +142,10 @@ def test_paid_source_is_independent_and_generic_metadata_semantics_survive(tmp_p
 
 def test_registered_paid_entry_reaches_one_receipt_and_validated_delivery_then_hold(paid_case):
     case = paid_case
+    ambient_marker = without_ambient_python(case)
     result = run_capsule(case)
+    assert not ambient_marker.exists(), "fake CLI selected ambient Python"
+    assert_cli_observations(case, sandbox_count=2)
     assert result["syntheticEvidence"] is True and result["qualification"] is False
     assert result["outcome"]["status"] == "RECEIVER_ACCEPTED", json.dumps(result, indent=2)
     assert result["actualFixtureChildTerminal"]["code"] == 0, json.dumps(result, indent=2)
@@ -198,11 +205,14 @@ def test_late_readiness_deadline_refuses_actual_consume_and_keeps_original_reser
 
 def test_invalid_candidate_fails_real_node_validation_without_receipt_or_retry(paid_case):
     case = paid_case
+    ambient_marker = without_ambient_python(case)
     output = case["root"] / "provider-output.json"
     candidate = json.loads(output.read_bytes())
     del candidate["params"]
     output.write_text(json.dumps(candidate, ensure_ascii=False))
     result = run_capsule(case, mode="invalid-candidate")
+    assert not ambient_marker.exists(), "fake CLI selected ambient Python"
+    assert_cli_observations(case, sandbox_count=1)
     assert result["outcome"]["status"] == "RECEIVER_ACCEPTED", json.dumps(result, indent=2)
     assert result["actualFixtureChildTerminal"]["code"] == 0, json.dumps(result, indent=2)
     paid = json.loads((case["root"] / "phase/paid-result.json").read_bytes())
@@ -252,6 +262,8 @@ def test_lost_launch_ack_holds_original_spent_attempt_and_fences_unstarted_host(
 
 
 def test_duplicate_capsule_does_not_admit_another_attempt(paid_case):
+    # This asserts duplicate refusal after a terminal first outcome; it does
+    # not establish that the first delivery passed validation.
     case = paid_case
     first = run_capsule(case)
     assert first["actualFixtureChildTerminal"]["code"] == 0, json.dumps(first, indent=2)

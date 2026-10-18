@@ -482,3 +482,20 @@ Hosted 3.12.15/x64 and the serial-suite budget remain unqualified; changes remai
 locally scoped. Manager review and an independent 29-case retest passed; coherent
 local commits and a reused-worktree hosted diagnostic draft are approved.
 Remote writes, dispatch, full runs and activation remain held for review.
+
+### Synthetic paid CLI launch correction
+
+Manager approval after one authorized diagnostic, run 39175064170: keep its
+failed evidence unchanged, bind only the synthetic fake CLI to the raw absolute
+genuine QA test interpreter and refuse unsupported direct-shebang paths. Add
+stdlib startup and sandbox import observations, hostile ambient-Python controls
+and exact valid/invalid paid regressions; preserve production environment/guards,
+QA defaults/pins, native Node validation and owned process settlement. ADR 0196
+owns this boundary. Exact old remote fake-CLI interpreter path remains unknown.
+
+The diagnostic directly qualified hosted source/copy provisioning and completed
+154 exact cases (152 passed, two fixture import failures); it was not a full or
+release success. Deliver scoped Mac/Linux checks, independent stable review and
+a coherent local commit in the retained source checkout. No further hosted
+dispatch, main push, full run, activation, provider, process or owner-data action
+is authorized. The separate serial runtime budget remains unestablished.
