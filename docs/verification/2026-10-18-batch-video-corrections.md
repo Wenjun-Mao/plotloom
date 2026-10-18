@@ -152,3 +152,23 @@ breaking schema/data-treatment issue from the initial checkpoint remains an
 activation prerequisite. Manager independently retests these corrections before
 publication/safe-activation continuation. The same worker chat remains available;
 no push, restart, deletion or activation is authorized by this checkpoint report.
+
+## Manager retest and delivery continuation
+
+The manager's independent focused retest at `468b2d0e` passed 13 backend, eight
+frontend and 23 browser cases, `VERIFY_SUMMARY exit_code=0`, in 97.703 seconds.
+Exact retained log: `.local/batch-video/manager-correction-retest.log`. Selections:
+`tests/test_project_startup_isolation.py`, `tests/test_video_batch_adoption.py`,
+`tests/test_retained_proof_boundaries.py`, frontend
+`tests/autopilot-completion-owner.test.ts`, `tests/completion-reveal.test.ts`, and
+`e2e/video-batch.spec.ts`, `e2e/autopilot-review.spec.ts`. The manager reports both
+independent correction reviewers closed their concrete findings with no remaining
+release defect in this bounded scope. No unaffected full gates were repeated.
+
+The manager then authorized normal publication and safe same-installation
+activation, including scoped permanent removal of the two exactly identified
+incompatible disposable development homes without backup/recovery. Native
+revocation, fresh idle proof, credential/settings preservation and retained
+UNKNOWN accounting remain required. The earlier hold above describes this
+correction checkpoint, not the later delivery authorization. Final operational
+evidence is recorded separately.
