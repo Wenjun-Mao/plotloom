@@ -14,10 +14,12 @@ full result on the corrective revision. See the
 The owner now authorizes safe same-installation activation after generation has
 finished. Recheck native worker/validator/queue quiescence; preserve the finished
 draft and all outputs, and leave the old UNKNOWN attempt/reservation untouched.
-Use only the named exact-home preserving upgrade where required. No generation,
-creative acceptance or live deletion is authorized by activation. Root owns
-publication, safe activation and read-only readiness/draft verification; hosted CI
-and human review remain separate. Python optimization and batching remain paused.
+The named exact-home preserving upgrade and same-installation activation completed
+on `99964f70`: finished draft 8/8 text and 47/47 images remains awaiting review,
+all retained payload hashes/native attempt rows/settings unchanged, and native
+readiness/HTTPS healthy. The old project's deletion-only action is visible; no
+generation, acceptance or live deletion was exercised. Hosted CI and human review
+remain separate. Python optimization and batching remain paused.
 
 ## Current saved-Brief Art and Characters presentation correction
 

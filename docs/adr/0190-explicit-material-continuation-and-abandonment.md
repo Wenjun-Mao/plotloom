@@ -2,7 +2,8 @@
 
 Status: accepted; implementation `dd3033d6` locally qualified, 2026-10-18.
 See the [verification record](../verification/2026-10-17-material-continuation-and-abandonment.md)
-for full-baseline and scoped corrective evidence; activation and hosted CI are separate.
+for full-baseline and scoped corrective evidence. Same-installation activation
+completed on `99964f70`; hosted CI and human creative acceptance remain separate.
 
 ## Problem
 

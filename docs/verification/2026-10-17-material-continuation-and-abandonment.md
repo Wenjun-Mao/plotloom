@@ -4,7 +4,8 @@ Implementation: `dd3033d674166534460503e7f22acf3154c1af4a`, isolated
 `b30f/plotloom`, baseline `d37a3f02`. ADR 0190 is locally qualified using the
 `c14c0460` full gate plus bounded geometry requalification below; the final
 corrective revision does not claim a separate full run. Owner-authorized safe
-activation is pending. No live generation, acceptance or deletion was performed.
+activation completed on checkout `99964f70`. No live generation, acceptance or
+deletion was performed by this fix.
 
 ## Implemented behavior
 
@@ -341,3 +342,34 @@ after generation finished. Activation must recheck local quiescence and preserve
 the completed draft, all outputs and the old UNKNOWN attempt/reservation; it is
 not generation restart, human creative acceptance or deletion consent. Hosted CI
 remains separate and has not been claimed as passed.
+
+## Same-installation activation
+
+After a fresh read-only ownership proof (79 attempts; no queued work, validators
+or live registered process groups), normal `manage.py stop` preceded checkout
+activation. Only finished project `a99d5422-61fd-4768-89f4-118e82bbed75` used the
+named internal operator `upgrade_project(exact_home, SpecialistRegistry(existing_application_root))`.
+It preserved all 81 original tables' 1729 rows by original-column hashes and all
+444 retained non-database payloads. Their combined payload hash remained
+`96b7bad33f019fc2a33396cf601aa70fcce6cf1cb238f05744658a4a8fa35583`
+after startup. The old cancelled project stayed unupgraded and undeleted.
+
+The first normal start built successfully but failed at `launchctl bootstrap`
+with exit 5. The exact service was then absent, its prior PID/port absent and
+plist valid; launchd logged the previous service becoming inactive/removing.
+One explicit bootstrap after that proof succeeded, followed by successful normal
+`manage.py start` (session 87735, exit 0). This is bounded operational recovery,
+not a source fix for launchd timing. Open operational question: if it recurs,
+qualify an explicit unload-completion boundary in the manage utility.
+
+Localhost/HTTPS health passed; native readiness is `ready` and the served checkout
+is `99964f70`. The same run remains `awaiting_review` / `material-review`, current,
+8/8 text and 47/47 images. Revision 460 became 461 through the new controller claim
+(`AutopilotPersistence.claim`); its bundle hashes and native outcomes are unchanged.
+The review GET succeeds. A separate HTTPS browser tab visibly confirmed that
+draft and the old project's deletion-only directory action; no destructive
+preview/consent, generation, takeover or creative acceptance was exercised.
+All 79 native attempt rows retain their pre-start hash, the old UNKNOWN image slot
+is retained, queues/validators are empty, and specialist settings bytes are
+unchanged. Existing deployment/H3/credential configuration was reused. Hosted CI
+listing for the pushed activation revision returned no runs; no CI success claimed.
