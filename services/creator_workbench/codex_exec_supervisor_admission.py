@@ -14,6 +14,12 @@ class CodexExecSupervisorAdmissionMixin:
         return self._admit_with_authorization(raw_attempt, enabled=True)
 
     def _admit_with_authorization(self, raw_attempt, *, enabled):
+        from plotloom.codex_exec_contracts import CodexExecAttempt
+        attempt = CodexExecAttempt.model_validate(raw_attempt)
+        with self._abandonment_fence(attempt.project_id):
+            return self._admit_fenced(attempt, enabled=enabled)
+
+    def _admit_fenced(self, raw_attempt, *, enabled):
         from plotloom.codex_exec_contracts import (
             CodexExecAttempt,
             CodexExecProfile,
@@ -21,6 +27,8 @@ class CodexExecSupervisorAdmissionMixin:
         )
         attempt = CodexExecAttempt.model_validate(raw_attempt)
         self._namespace_assert_attempt(attempt, check_profile=True)
+        if self._publication_revoked(attempt.project_id):
+            raise CodexExecSupervisorError("project dispatch and publication were explicitly revoked")
         if attempt.state != "spawn_intent":
             raise CodexExecSupervisorError("Codex Exec admission requires the persisted spawn-intent snapshot")
         with self._guard:
@@ -47,6 +55,7 @@ class CodexExecSupervisorAdmissionMixin:
             private_dir_created = False
             with closing(self._connect()) as connection:
                 connection.execute("BEGIN IMMEDIATE")
+                self._assert_project_publication(connection, attempt.project_id)
                 duplicate = connection.execute(
                     "SELECT * FROM exec_attempts WHERE project_id=? AND job_id=?",
                     (str(attempt.project_id), attempt.job_id),
@@ -96,6 +105,8 @@ class CodexExecSupervisorAdmissionMixin:
         row = self._row(UUID(str(attempt_id)))
         if row is None:
             return self._status()
+        if self._publication_revoked(row["project_id"]):
+            return self._load(row)
         attempt = self._refresh_active_attempt(row)
         # Reconnecting an already granted helper consumes this operation's
         # single launch allowance; otherwise grant one FIFO continuation.

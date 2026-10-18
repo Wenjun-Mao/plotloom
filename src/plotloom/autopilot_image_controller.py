@@ -107,7 +107,7 @@ class AutopilotImageController:
 
     def prepare(self, store, view, claim, subject, inventory, key, *, initial_result=None):
         require_job_capacity(view)
-        image_count = sum(item["evidence"]["owner"] in IMAGE_METHODS for item in view.checkpoints)
+        image_count = max(view.lifetime_images, sum(item["evidence"]["owner"] in IMAGE_METHODS for item in view.checkpoints))
         if image_count >= view.policy.max_images:
             raise InvalidTransitionError("达到冻结图片上限；不能新增适配，请接管已保留的素材。")
         with self.command(store, view, claim, OperationScope.IMAGE):

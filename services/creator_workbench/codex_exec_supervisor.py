@@ -8,6 +8,7 @@ import threading
 from pathlib import Path
 
 from codex_exec_supervisor_admission import CodexExecSupervisorAdmissionMixin
+from codex_exec_supervisor_abandonment import CodexExecSupervisorAbandonmentMixin
 from codex_exec_supervisor_control import CodexExecSupervisorControlMixin
 from codex_exec_supervisor_errors import CodexExecSupervisorError
 from codex_exec_supervisor_job import CodexExecSupervisorJobMixin
@@ -29,6 +30,7 @@ from plotloom.codex_exec_auth import (
 
 
 class CodexExecSupervisor(
+    CodexExecSupervisorAbandonmentMixin,
     CodexExecSupervisorQualificationMixin,
     CodexExecSupervisorQualificationAdmissionMixin,
     CodexExecSupervisorNamespaceMixin,

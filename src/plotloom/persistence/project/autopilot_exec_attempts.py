@@ -95,7 +95,7 @@ class AutopilotExecPersistence:
 
             if attempt.domain == "image":
                 reserved = session.scalar(select(func.coalesce(func.sum(AutopilotExecAttemptRow.reserved_image_outputs), 0)).where(
-                    AutopilotExecAttemptRow.run_id == run.id,
+                    AutopilotExecAttemptRow.project_id == run.project_id,
                     AutopilotExecAttemptRow.domain == "image",
                     AutopilotExecAttemptRow.image_budget_state.in_({"reserved", "consumed"}),
                 )) or 0

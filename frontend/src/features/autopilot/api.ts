@@ -9,6 +9,8 @@ export const autopilotApi = {
   launchContext: (id: string, signal?: AbortSignal) => read<{ eligible: boolean; briefRevision: number }>(`${path(id)}/launch-context`, { signal }),
   start: (id: string, body: Launch) => read<AutopilotRun>(`${path(id)}/start`, { method: "POST", body: JSON.stringify(body) }),
   control: (id: string, revision: number, action: string) => read<AutopilotRun>(`${path(id)}/control`, { method: "POST", body: JSON.stringify({ expectedRevision: revision, action }) }),
+  continuationContext: (id: string) => read<{ runId: string; runRevision: number; materialClosure: string; eligible: boolean; blockers: string[]; inheritedOperations: number; lifetimeJobs: number; lifetimeImages: number }>(`${path(id)}/continuation-context`),
+  continueMaterial: (id: string, body: Launch & { expectedRunId: string; expectedRunRevision: number; expectedMaterialClosure: string }) => read<AutopilotRun>(`${path(id)}/continue`, { method: "POST", body: JSON.stringify(body) }),
   review: (id: string, signal?: AbortSignal) => read<ReviewMaterial>(`${path(id)}/review`, { signal }),
   handoff: (id: string, body: Handoff) => read<AutopilotRun>(`${path(id)}/handoff`, { method: "POST", body: JSON.stringify(body) }),
 };

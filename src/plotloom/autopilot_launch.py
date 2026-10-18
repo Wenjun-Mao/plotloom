@@ -85,6 +85,6 @@ def assert_frozen_pins(store, policy):
 
 
 def require_job_capacity(view):
-    counted = sum(item["evidence"].get("jobId") is not None for item in view.checkpoints)
+    counted = max(view.lifetime_jobs, sum(item["evidence"].get("jobId") is not None for item in view.checkpoints))
     if counted >= view.policy.max_jobs:
         raise InvalidTransitionError("已达到冻结任务上限；请接管检查已保留的素材。")

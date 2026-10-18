@@ -179,6 +179,20 @@ def handler_for(bridge: QueueBridge):
         def do_POST(self):
             if not self.authenticated():
                 return
+            if self.path in {"/exec-abandonment-preview", "/exec-project-revoke"}:
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 1 <= length <= 1048576:
+                        raise ValueError("invalid abandonment request size")
+                    self.connection.settimeout(5)
+                    packet = json.loads(self.rfile.read(length))
+                    supervisor = bridge.exec_supervisor()
+                    action = supervisor.abandonment_preview if self.path == "/exec-abandonment-preview" else supervisor.revoke_project
+                    result = action(packet)
+                    self.reply(200, result.model_dump(mode="json", by_alias=True))
+                except Exception:
+                    self.reply(409, {"error": "project_abandonment_not_acknowledged"})
+                return
             if self.path == "/exec-admit":
                 try:
                     length = int(self.headers.get("Content-Length", "0"))

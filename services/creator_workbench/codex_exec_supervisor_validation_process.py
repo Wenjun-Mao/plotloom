@@ -83,6 +83,7 @@ class CodexExecSupervisorValidationProcessMixin:
     def _record_validation_spawn_intent(self, attempt, step_id):
         with self._guard, closing(self._connect()) as connection:
             connection.execute("BEGIN IMMEDIATE")
+            self._assert_project_publication(connection, attempt.project_id)
             row = connection.execute(
                 "SELECT attempt_json,status_json,worker_pid,worker_group_id,worker_birth_identity "
                 "FROM exec_attempts WHERE attempt_id=?", (str(attempt.attempt_id),),

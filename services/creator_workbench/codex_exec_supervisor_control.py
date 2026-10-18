@@ -142,6 +142,17 @@ class CodexExecSupervisorControlMixin:
     def _ensure_manifest(self, row, attempt):
         if row is None or not row["manifest_json"] or attempt.state != "completed":
             return
+        with closing(self._connect()) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            if connection.execute("SELECT 1 FROM exec_project_revocations WHERE project_id=?", (str(attempt.project_id),)).fetchone():
+                connection.rollback()
+                return
+            self._write_manifest(row, attempt)
+            connection.commit()
+
+    def _write_manifest(self, row, attempt):
+        if row is None or not row["manifest_json"] or attempt.state != "completed":
+            return
         job_root = Path(row["job_root"])
         delivery = job_root / "delivery"
         expected = row["manifest_json"].encode("utf-8")

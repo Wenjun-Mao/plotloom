@@ -178,6 +178,9 @@ class RunActivity(CamelModel):
 
 
 class RunView(CamelModel):
+    predecessor_run_id: str | None = None
+    lifetime_jobs: int = 0
+    lifetime_images: int = 0
     id: str
     project_id: str
     revision: int
@@ -199,3 +202,9 @@ class RunView(CamelModel):
 class RunControlRequest(CamelModel):
     expected_revision: int = Field(ge=1)
     action: Literal["pause", "resume", "cancel", "takeover"]
+
+
+class ContinueRequest(LaunchRequest):
+    expected_run_id: str = Field(min_length=1)
+    expected_run_revision: int = Field(ge=1)
+    expected_material_closure: str = Field(pattern=HASH)

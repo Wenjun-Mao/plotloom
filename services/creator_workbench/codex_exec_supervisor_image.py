@@ -54,7 +54,7 @@ class CodexExecSupervisorImageMixin:
             session_id=stream.session_id,
             max_bytes=profile.max_output_bytes,
         )
-        self._copy_image_to_delivery(job_root, Path(image_event.saved_path).name, content)
+        self._copy_image_to_delivery(attempt, job_root, Path(image_event.saved_path).name, content)
         image_path = f"delivery/outputs/{Path(image_event.saved_path).name}"
         prompt_hash = sha256(image_call.prompt.encode("utf-8")).hexdigest()
         arguments_hash = image_arguments_hash(
@@ -159,8 +159,20 @@ class CodexExecSupervisorImageMixin:
             ))
         return tuple(evidence)
 
+    def _copy_image_to_delivery(self, attempt, job_root, filename, content):
+        from contextlib import closing
+        with closing(self._connect()) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            self._assert_project_publication(connection, attempt.project_id)
+            row = connection.execute("SELECT job_root FROM exec_attempts WHERE attempt_id=? AND project_id=?",
+                (str(attempt.attempt_id), str(attempt.project_id))).fetchone()
+            if row is None or Path(row["job_root"]) != job_root:
+                raise CodexExecSupervisorError("image publication changed its exact host job root")
+            self._write_image_output(job_root, filename, content)
+            connection.commit()
+
     @staticmethod
-    def _copy_image_to_delivery(job_root, filename, content):
+    def _write_image_output(job_root, filename, content):
         if PurePosixPath(filename).name != filename or not filename.lower().endswith((".png", ".jpg", ".jpeg")):
             raise CodexExecSupervisorError("ImageGen returned an unsupported output basename")
         delivery = job_root / "delivery"

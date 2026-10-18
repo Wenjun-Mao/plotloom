@@ -184,6 +184,20 @@ class SpecialistRegistry:
     def codex_exec_status(self, attempt_id) -> CodexExecHostStatus:
         return self._codex_exec_request("exec-status", "--attempt-id", str(UUID(str(attempt_id))))
 
+    def codex_exec_abandonment(self, packet, *, revoke=False):
+        from .project_abandonment_contracts import AbandonmentPreview
+        if not self.executable:
+            raise ImageJobError("codex_exec_unavailable", "无法验证原 Codex Exec 主机；项目保留。")
+        try:
+            result = subprocess.run([self.executable, "exec-project-revoke" if revoke else "exec-abandonment-preview",
+                "--packet-json", packet.model_dump_json(by_alias=True)], capture_output=True,
+                timeout=30, check=False, env=self.environment)
+            if result.returncode != 0 or result.stderr:
+                raise ValueError("unacknowledged abandonment")
+            return AbandonmentPreview.model_validate_json(result.stdout)
+        except (OSError, subprocess.TimeoutExpired, TypeError, ValueError) as error:
+            raise ImageJobError("project_abandonment_unconfirmed", "主机未确认项目放弃；项目保留，请重新核对原任务。") from error
+
     def codex_exec_cancel(self, attempt: CodexExecAttempt) -> CodexExecHostStatus:
         """Fence a stop against the exact attempt, including pre-admission races."""
         attempt = CodexExecAttempt.model_validate(attempt.model_dump(mode="python"))

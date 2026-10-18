@@ -13,12 +13,13 @@ def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "command",
-        choices=["queue", "bridge-health", "exec-profile", "exec-readiness", "exec-admit", "exec-status", "exec-cancel", "exec-suspend", "exec-resume"],
+        choices=["queue", "bridge-health", "exec-profile", "exec-readiness", "exec-admit", "exec-status", "exec-cancel", "exec-suspend", "exec-resume", "exec-abandonment-preview", "exec-project-revoke"],
     )
     parser.add_argument("--thread")
     parser.add_argument("--message")
     parser.add_argument("--attempt-json")
     parser.add_argument("--attempt-id")
+    parser.add_argument("--packet-json")
     args = parser.parse_args(argv)
     if args.command == "queue" and (not args.thread or not args.message):
         parser.error("queue requires --thread and --message")
@@ -33,7 +34,15 @@ def main(argv=None):
     token = Path(os.environ["PLOTLOOM_CODEX_BRIDGE_TOKEN_FILE"]).read_text().strip()
     url = os.environ["PLOTLOOM_CODEX_BRIDGE_URL"].rstrip("/")
     payload = None
-    if args.command == "queue":
+    if args.command in {"exec-abandonment-preview", "exec-project-revoke"}:
+        try:
+            from plotloom.project_abandonment_contracts import AbandonmentPacket
+            payload = AbandonmentPacket.model_validate_json(args.packet_json).model_dump(mode="json", by_alias=True)
+        except (TypeError, ValueError):
+            parser.error("--packet-json must bind one exact project abandonment")
+    elif args.packet_json:
+        parser.error("packet arguments are only valid for project abandonment")
+    elif args.command == "queue":
         payload = {"thread": args.thread, "message": args.message}
     elif args.command == "exec-admit":
         try:
@@ -57,11 +66,13 @@ def main(argv=None):
             "exec-readiness": "/exec-readiness",
             "exec-admit": "/exec-admit",
             "exec-status": f"/exec-status/{args.attempt_id}" if args.attempt_id else "",
+            "exec-abandonment-preview": "/exec-abandonment-preview",
+            "exec-project-revoke": "/exec-project-revoke",
         }[args.command]
     request = Request(
         url + endpoint,
         data=json.dumps(payload).encode() if payload is not None else None,
-        method="POST" if args.command in {"queue", "exec-admit", "exec-cancel", "exec-suspend", "exec-resume"} else "GET",
+        method="POST" if payload is not None else "GET",
         headers={
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
@@ -76,6 +87,15 @@ def main(argv=None):
         return 1
     if args.command == "bridge-health":
         print("Native Codex bridge is available.")
+        return 0
+    if args.command in {"exec-abandonment-preview", "exec-project-revoke"}:
+        try:
+            from plotloom.project_abandonment_contracts import AbandonmentPreview
+            context = AbandonmentPreview.model_validate(result)
+        except (TypeError, ValueError):
+            print("Project abandonment acknowledgement is invalid.", file=sys.stderr)
+            return 1
+        print(context.model_dump_json(by_alias=True))
         return 0
     if args.command == "exec-profile":
         try:

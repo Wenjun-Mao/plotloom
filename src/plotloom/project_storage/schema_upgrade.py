@@ -23,7 +23,8 @@ from .snapshot_files import _safe_directory, _safe_regular
 PRIOR_LAYOUT_HASH = "ea9facef83198e8b5abdd8693923f51add1376c0b416041dbfa245b92011b825"
 SERIAL_EXEC_LAYOUT_HASH = "a6e41b2a3ab1745521886f8db4b2a16e57bc2562835f2af4689be8d424a1a0e6"
 PRIOR_LAYOUTS = {"prior": ("pre_autopilot.json", PRIOR_LAYOUT_HASH),
-    "serial_exec": ("pre_pool_exec.json", SERIAL_EXEC_LAYOUT_HASH)}
+    "serial_exec": ("pre_pool_exec.json", SERIAL_EXEC_LAYOUT_HASH),
+    "pre_continuation": ("pre_continuation.json", "dd718bfba215c9f70e1db31edae1302ad1f619de2ab3fb85687a344c4cb61d19")}
 
 
 def prior_schema_objects(layout="prior"):
@@ -134,7 +135,7 @@ def upgrade_database(connection, project_id, *, after_ddl=None, require_idle=Tru
         assert_integrity_identity(connection, project_id)
         return {"layout": "current", "changed": False}
     assert_prior_database(connection, project_id, layout=layout)
-    if require_idle:
+    if require_idle and layout != "pre_continuation":
         assert_idle_prior(connection)
     prior = prior_schema_objects(layout)
     before = logical_inventory(connection, prior)
@@ -156,21 +157,24 @@ def upgrade_database(connection, project_id, *, after_ddl=None, require_idle=Tru
         # Recheck under the write lock, so a stale preflight cannot admit a
         # concurrent layout/state/content change.
         assert_prior_database(connection, project_id, layout=layout)
-        if require_idle:
+        if require_idle and layout != "pre_continuation":
             assert_idle_prior(connection)
         if logical_inventory(connection, prior) != before:
             raise ProjectStorageCorruptionError("upgrade inputs changed before write admission")
         for kind, name, _table, sql in current:
             if kind == "table" and name not in prior_names:
                 connection.execute(sql)
-        changed_table = "v2_production_units" if layout == "prior" else "v2_autopilot_exec_attempts"
-        columns = before[changed_table]["columns"]
-        projection = ",".join(f'"{column}"' for column in columns)
-        connection.execute(f'CREATE TEMP TABLE project_schema_transfer AS SELECT * FROM "{changed_table}"')
-        connection.execute(f'DROP TABLE "{changed_table}"')
-        connection.execute(next(sql for kind, name, _, sql in current if kind == "table" and name == changed_table))
-        connection.execute(f'INSERT INTO "{changed_table}" ({projection}) SELECT {projection} FROM project_schema_transfer')
-        connection.execute("DROP TABLE project_schema_transfer")
+        prior_sql = {name: sql for kind, name, _, sql in prior if kind == "table"}
+        for kind, name, _, sql in current:
+            if kind != "table" or name not in prior_sql or sql == prior_sql[name]:
+                continue
+            columns = before[name]["columns"]
+            projection = ",".join(f'"{column}"' for column in columns)
+            connection.execute(f'CREATE TEMP TABLE project_schema_transfer AS SELECT * FROM "{name}"')
+            connection.execute(f'DROP TABLE "{name}"')
+            connection.execute(sql)
+            connection.execute(f'INSERT INTO "{name}" ({projection}) SELECT {projection} FROM project_schema_transfer')
+            connection.execute("DROP TABLE project_schema_transfer")
         existing = {item[1] for item in schema_objects(connection)}
         for kind, name, _table, sql in current:
             if kind == "index" and name not in existing:

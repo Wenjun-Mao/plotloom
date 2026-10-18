@@ -750,6 +750,8 @@ def create_project_folder_authoring_app(
     app.state.native_bridge_presentation_service = native_presentation_service
     register_specialist_routes(app, opened_project, specialists)
     register_autopilot_runtime(app, opened_project, specialists)
+    from .project_folder_abandonment import register_abandonment_routes
+    register_abandonment_routes(app, storage, specialists)
     register_project_folder_image_job_routes(
         app,
         opened_project,

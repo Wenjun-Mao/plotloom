@@ -67,6 +67,7 @@ class CodexExecSupervisorWorkerOwnershipMixin:
                 raise CodexExecSupervisorError("Codex Exec worker has no durable attempt reservation")
             from plotloom.codex_exec_contracts import CodexExecAttempt
             attempt = CodexExecAttempt.model_validate_json(row["status_json"])
+            self._assert_project_publication(connection, attempt.project_id)
             if attempt.state not in {"spawn_intent", "running", "validating", "cancel_requested"}:
                 connection.rollback()
                 return False
@@ -149,6 +150,8 @@ class CodexExecSupervisorWorkerOwnershipMixin:
                 raise CodexExecSupervisorError("Codex Exec attempt disappeared before worker start")
             from plotloom.codex_exec_contracts import CodexExecAttempt
             attempt = CodexExecAttempt.model_validate_json(row["status_json"])
+            if self._publication_revoked(attempt.project_id):
+                return
             if attempt.state != "spawn_intent":
                 return
             if not self._dispatch_enabled(attempt_id):

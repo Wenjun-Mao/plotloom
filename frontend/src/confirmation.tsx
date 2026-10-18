@@ -8,6 +8,7 @@ type Confirmation = {
   message: string;
   details: string;
   challenge?: { expected: string; label: string; hint: string };
+  acknowledgement?: string;
   action: () => void | Promise<void>;
 };
 
@@ -40,13 +41,14 @@ export function useConfirmation(identity: string, disabled = false) {
   };
 }
 
-function ConfirmationDialog({ title, message, details, challenge, busy, error, onCancel, onConfirm }: Confirmation & {
+function ConfirmationDialog({ title, message, details, challenge, acknowledgement, busy, error, onCancel, onConfirm }: Confirmation & {
   busy: boolean; error: string; onCancel: () => void; onConfirm: (typed: string) => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const cancelButton = useRef<HTMLButtonElement>(null);
   const id = useId();
   const [typed, setTyped] = useState("");
+  const [acknowledged, setAcknowledged] = useState(false);
   useEffect(() => {
     const element = dialog.current!;
     const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -60,8 +62,9 @@ function ConfirmationDialog({ title, message, details, challenge, busy, error, o
     <p id={`${id}-message`}>{message}</p>
     <pre>{details}</pre>
     {challenge && <div className="confirmation-challenge"><label htmlFor={`${id}-challenge`}>{challenge.label}</label><input id={`${id}-challenge`} value={typed} disabled={busy} autoComplete="off" aria-describedby={`${id}-hint`} onChange={event => setTyped(event.target.value)} /><small id={`${id}-hint`}>{challenge.hint}</small></div>}
+    {acknowledgement && <label><input type="checkbox" checked={acknowledged} disabled={busy} onChange={event => setAcknowledged(event.target.checked)} />{acknowledgement}</label>}
     {error && <p role="alert">{error}</p>}
     {busy && <p role="status">正在处理，请勿重复确认。</p>}
-    <div className="button-row"><button type="button" className="button" ref={cancelButton} disabled={busy} onClick={onCancel}>取消</button><Button variant="danger" disabled={busy || Boolean(challenge && typed !== challenge.expected)} onClick={() => onConfirm(typed)}>确认{title}</Button></div>
+    <div className="button-row"><button type="button" className="button" ref={cancelButton} disabled={busy} onClick={onCancel}>取消</button><Button variant="danger" disabled={busy || Boolean(challenge && typed !== challenge.expected) || Boolean(acknowledgement && !acknowledged)} onClick={() => onConfirm(typed)}>确认{title}</Button></div>
   </dialog>, document.body);
 }

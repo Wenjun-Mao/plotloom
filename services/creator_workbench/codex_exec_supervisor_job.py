@@ -11,6 +11,8 @@ from codex_exec_supervisor_errors import CodexExecSupervisorError
 
 class CodexExecSupervisorJobMixin:
     def _resolve_job(self, attempt):
+        if self._publication_revoked(attempt.project_id):
+            raise CodexExecSupervisorError("project dispatch and publication were explicitly revoked")
         from plotloom.project_storage.project_home import find_project_home
         home = find_project_home(self.outputs_root, str(attempt.project_id)).path
         if home.is_symlink() or not home.is_dir():

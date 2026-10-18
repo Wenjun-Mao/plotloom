@@ -27,6 +27,9 @@ STATES = {"running", "waiting", "paused", "cancelled", "stale", "blocked", "awai
 def assert_autopilot_contracts(connection, *, asset_home=None):
     profile_construction = _ProfileConstruction()
     try:
+        if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_autopilot_inheritance'").fetchone():
+            from ..persistence.project.autopilot_continuation import assert_continuation_lineage
+            assert_continuation_lineage(connection)
         runs = {}
         run_policies = {}
         for identifier, project, policy, digest, brief_hash, state, bundle, bundle_hash, handoff in connection.execute(

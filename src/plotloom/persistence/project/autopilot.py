@@ -27,9 +27,11 @@ from .autopilot_activity import _project_checkpoints, run_activities
 from .autopilot_closure import material_closure
 from .autopilot_exec_attempts import AutopilotExecPersistence
 from .autopilot_freshness import assert_fresh
+from .autopilot_continuation import AutopilotContinuationPersistence, project_job_counts
+from .autopilot_lineage import current_run_row
 
 
-class AutopilotPersistence(AutopilotExecPersistence):
+class AutopilotPersistence(AutopilotContinuationPersistence, AutopilotExecPersistence):
     def __init__(self, access, *, claim_write: Callable[[], ContextManager[Session]]):
         self.access = access
         self._claim_write = claim_write
@@ -37,7 +39,7 @@ class AutopilotPersistence(AutopilotExecPersistence):
 
     @staticmethod
     def row(session, project_id):
-        return session.scalar(select(AutopilotRunRow).where(AutopilotRunRow.project_id == project_id))
+        return current_run_row(session, project_id)
 
     def start(self, project_id, *, expected_brief_revision, policy: LaunchPolicy):
         if policy.version != POLICY_VERSION:
@@ -81,6 +83,8 @@ class AutopilotPersistence(AutopilotExecPersistence):
         frames = session.scalars(select(AutopilotFrameRow).where(AutopilotFrameRow.run_id == row.id).order_by(AutopilotFrameRow.shot_id)).all()
         stale = row.expected_closure != material_closure(session, row.project_id)
         return RunView(id=row.id, project_id=row.project_id, revision=row.revision,
+            predecessor_run_id=row.predecessor_run_id, lifetime_jobs=project_job_counts(session, row.project_id)[0],
+            lifetime_images=project_job_counts(session, row.project_id)[1],
             state="stale" if stale and row.state not in {"cancelled", "taken_over", "stale"} else row.state,
             phase=row.phase, policy=LaunchPolicy.model_validate(row.policy),
             blocker={"code": "material_changed", "message": "项目素材已改变，请接管并继续手动编辑。"} if stale else row.blocker,

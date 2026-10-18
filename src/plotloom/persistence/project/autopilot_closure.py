@@ -107,6 +107,13 @@ def _add_material_extras(session, project_id, payload):
         checkpoint_table.c.evidence["geometryPreparation"].as_string().is_not(None))).all()
     lineage = [{"checkpointId": identifier, "geometryPreparation": evidence["geometryPreparation"]}
         for identifier, evidence in preparations if evidence.get("geometryPreparation") is not None]
+    inherited_table = Base.metadata.tables["v2_autopilot_inheritance"]
+    inherited_keys = set(session.execute(select(inherited_table.c.run_id, inherited_table.c.operation_key)))
+    if inherited_keys:
+        inherited_ids = {row.id for row in session.execute(select(checkpoint_table.c.id, checkpoint_table.c.run_id,
+            checkpoint_table.c.operation_key).where(checkpoint_table.c.project_id == project_id))
+            if (row.run_id, row.operation_key) in inherited_keys}
+        lineage = [item for item in lineage if item["checkpointId"] not in inherited_ids]
     if lineage:
         payload["geometryPreparations"] = sorted(lineage, key=stable_hash)
     # Delivery/receipt progress is transport evidence, but a cancellation

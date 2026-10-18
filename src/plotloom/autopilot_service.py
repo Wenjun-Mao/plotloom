@@ -69,6 +69,13 @@ class AutopilotService:
         self._wake.set()
         return result
 
+    def continue_material(self, project_id, request):
+        with closing(self.storage.projects.open(project_id)) as store:
+            policy = freeze_launch_policy(store, self.registry, request)
+            result = store.repository.autopilot.continue_material(project_id, request=request, policy=policy)
+        self._wake.set()
+        return result
+
     def acquire_controller(self):
         with self._descriptor_lock:
             return self._acquire_controller()

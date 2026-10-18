@@ -7,7 +7,7 @@ from .application_control import (
 )
 from .project_image_jobs import ImageJobCandidateRow, ImageJobDeliveryRow, ImageJobRow, ProductionUnitRow
 from .base import Base
-from .project_autopilot import AutopilotRunRow, AutopilotCheckpointRow, AutopilotExecAttemptRow, AutopilotDecisionRow, AutopilotFrameRow, AutopilotHandoffRow
+from .project_autopilot import AutopilotRunRow, AutopilotCheckpointRow, AutopilotExecAttemptRow, AutopilotDecisionRow, AutopilotFrameRow, AutopilotHandoffRow, AutopilotInheritanceRow
 from .project_art import ArtCandidateRow, ArtHeadRow, ArtRevisionRow
 from .project_authoring import (
     ApprovalDecisionRow,
@@ -90,7 +90,7 @@ from .project_storyboard_review import (
 
 # This intentionally names the project-owned port instead of using Base.metadata wholesale.
 PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset({
-    "v2_autopilot_runs", "v2_autopilot_checkpoints", "v2_autopilot_exec_attempts", "v2_autopilot_decisions", "v2_autopilot_frames", "v2_autopilot_handoffs",
+    "v2_autopilot_runs", "v2_autopilot_checkpoints", "v2_autopilot_exec_attempts", "v2_autopilot_decisions", "v2_autopilot_frames", "v2_autopilot_handoffs", "v2_autopilot_inheritance",
     "v2_projects", "v2_project_operational_states", "v2_entity_revisions", "v2_stage_heads", "v2_authoring_drafts",
     "v2_gate_results", "v2_generation_runs", "v2_generation_attempts", "v2_artifacts", "v2_run_artifact_blobs",
     "v2_generation_plans", "v2_generation_stage_plans", "v2_generation_work_units",

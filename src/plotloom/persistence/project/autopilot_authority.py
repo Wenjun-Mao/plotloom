@@ -6,6 +6,7 @@ from ...domain import StageName, StageStatus
 from ...exceptions import InvalidTransitionError
 from ..schema import AutopilotDecisionRow, AutopilotRunRow, AutopilotHandoffRow, EntityRevisionRow, GateResultRow
 from .autopilot_closure import material_closure, production_closure
+from .autopilot_lineage import current_run_row
 
 
 def require_machine_scope(access, scope):
@@ -64,7 +65,7 @@ def machine_image_authority(session, access, project_id, decision_id):
 
 
 def video_eligible(session, project_id):
-    run = session.scalar(select(AutopilotRunRow).where(AutopilotRunRow.project_id == project_id))
+    run = current_run_row(session, project_id)
     if run is None:
         return True
     if run.state != "handed_off" or not isinstance(run.handoff, dict):

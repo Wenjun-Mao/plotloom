@@ -191,6 +191,20 @@ export class PlotloomApiClient {
     });
   }
 
+  abandonmentPreview(projectId: string): Promise<{ projectId: string; expectedLifecycleRevision: number; expectedProjectRevision: number; confirmationTitle: string; previewHash: string; eligible: boolean; blockers: string[]; unknownAttemptIds: string[] }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/abandonment-preview`);
+  }
+
+  abandonAndDeleteProject(projectId: string, preview: { expectedLifecycleRevision: number; expectedProjectRevision: number; confirmationTitle: string; previewHash: string }): Promise<void> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/abandon-and-delete`, {
+      method: "POST", body: JSON.stringify({ ...preview, acknowledgeUnknownRemote: true }),
+    });
+  }
+
+  pendingProjectDeletions(): Promise<Array<{ projectId: string; expectedLifecycleRevision: number; expectedProjectRevision: number; confirmationTitle: string; previewHash: string; revoked: boolean }>> {
+    return this.request("/project-deletions");
+  }
+
   patchProject(projectId: string, expectedRevision: number, brief: ProjectBrief): Promise<ProjectResource> {
     return this.request(`/projects/${encodeURIComponent(projectId)}`, {
       method: "PATCH",

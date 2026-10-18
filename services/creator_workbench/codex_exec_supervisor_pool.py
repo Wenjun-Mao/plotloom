@@ -109,6 +109,8 @@ class CodexExecSupervisorPoolMixin:
             WHERE q.enabled=1 AND json_extract(a.status_json,'$.state')='queued' ORDER BY q.ordinal""").fetchall()
         for row in rows:
             attempt = CodexExecAttempt.model_validate_json(row["status_json"])
+            if connection.execute("SELECT 1 FROM exec_project_revocations WHERE project_id=?", (str(attempt.project_id),)).fetchone():
+                continue
             if not self._qualification_new_work(connection, attempt):
                 return None
             if counts[attempt.domain] >= self.pool_limits.domain_capacity(attempt.domain):

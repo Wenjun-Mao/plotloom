@@ -1,5 +1,17 @@
 # Plotloom roadmap entrypoint
 
+## Current explicit continuation and abandonment
+
+The owner approved continuing remaining automatic material in the same project,
+preserving completed output, and an explicit abandon-and-delete UI for stuck
+projects. Implement ADR 0190 with strict origin lineage, fresh future authority,
+current closure/CAS, project lifetime caps and UNKNOWN no-resend. Abandonment must
+revoke host publication durably before exact-home erasure while preserving remote
+uncertainty. Qualify on disposable fixtures only. Installed source, live runs,
+runtime data, settings and credentials remain untouched; no restart, deployment,
+generation, acceptance or live deletion is authorized by this source assignment.
+Root owns final full qualification, commit/push and activation decisions.
+
 ## Current saved-Brief Art and Characters presentation correction
 
 The owner approved fixing the blank Art page and auditing the same preset-only

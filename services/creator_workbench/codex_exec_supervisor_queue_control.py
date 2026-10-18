@@ -26,6 +26,7 @@ class CodexExecSupervisorQueueControlMixin:
             self._admit_with_authorization(attempt, enabled=False)
         with self._guard, closing(self._connect()) as connection:
             connection.execute("BEGIN IMMEDIATE")
+            self._assert_project_publication(connection, attempt.project_id)
             try:
                 row = connection.execute("SELECT * FROM exec_attempts WHERE attempt_id=?", (str(attempt.attempt_id),)).fetchone()
                 if row is None:

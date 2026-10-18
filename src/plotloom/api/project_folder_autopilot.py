@@ -1,7 +1,7 @@
 """Explicit one-start pre-video admission and durable read/control routes."""
 from fastapi import FastAPI, status
 from contextlib import asynccontextmanager
-from ..autopilot_contracts import LaunchRequest, RunControlRequest, RunView
+from ..autopilot_contracts import LaunchRequest, RunControlRequest, RunView, ContinueRequest
 from ..autopilot_service import AutopilotService
 from ..autopilot_handoff_contracts import HumanHandoffRequest
 from ..persistence.project.autopilot_handoff import review_material, record_handoff
@@ -56,6 +56,15 @@ def register_autopilot_routes(app: FastAPI, opened_project, service):
     def review(project_id: str):
         with opened_project(project_id) as store:
             return review_material(store)
+
+    @app.get("/api/v2/projects/{project_id}/autopilot/continuation-context")
+    def continuation_context(project_id: str):
+        with opened_project(project_id) as store:
+            return store.repository.autopilot.continuation_context(project_id)
+
+    @app.post("/api/v2/projects/{project_id}/autopilot/continue", response_model=RunView)
+    def continue_material(project_id: str, body: ContinueRequest):
+        return service.continue_material(project_id, body)
 
     @app.post("/api/v2/projects/{project_id}/autopilot/handoff", response_model=RunView)
     def handoff(project_id: str, body: HumanHandoffRequest):

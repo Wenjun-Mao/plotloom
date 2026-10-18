@@ -3,6 +3,42 @@ import { createScriptProject, json } from "./f5a-fixture";
 import { createAcceptedArtProject } from "./art-review-fixture";
 import { fixtureRun } from "../tests/autopilot-fixture";
 
+test("cancelled partial work requires fresh explicit continuation consent and shows exact unknown blockers", async ({ page, request, workbench }) => {
+  const id = await createScriptProject(request, workbench.apiOrigin, "explicit-continuation");
+  const stopped = { ...fixtureRun, projectId: id, state: "cancelled", bundle: null };
+  await page.route(`**/api/v2/projects/${id}/autopilot`, route => route.fulfill({ json: stopped }));
+  let eligible = false;
+  await page.route(`**/api/v2/projects/${id}/autopilot/continuation-context`, route => route.fulfill({ json: {
+    runId: stopped.id, runRevision: stopped.revision, materialClosure: "a".repeat(64), eligible,
+    blockers: eligible ? [] : ["原任务 ij_exact_unknown 尚未核对；不会重复发送。"],
+    inheritedOperations: 8, lifetimeJobs: 10, lifetimeImages: 2,
+  } }));
+  const submissions: Record<string, unknown>[] = [];
+  await page.route(`**/api/v2/projects/${id}/autopilot/continue`, route => {
+    submissions.push(route.request().postDataJSON());
+    return route.fulfill({ json: { ...stopped, id: "successor", state: "running" } });
+  });
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source`);
+  await page.getByRole("button", { name: "继续剩余素材", exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: "ij_exact_unknown" })).toBeVisible();
+  await page.screenshot({ path: "../output/playwright/continuation-blocked.png" });
+  expect(submissions).toEqual([]);
+  eligible = true;
+  await page.getByRole("button", { name: "继续剩余素材", exact: true }).click();
+  const dialog = page.getByRole("alertdialog", { name: "继续剩余素材" });
+  await expect(dialog).toContainText("继承 8 项已采用工作");
+  await page.screenshot({ path: "../output/playwright/continuation-consent.png" });
+  await dialog.getByRole("button", { name: "取消", exact: true }).click();
+  expect(submissions).toEqual([]);
+  await page.getByRole("button", { name: "继续剩余素材", exact: true }).click();
+  await page.getByRole("button", { name: "确认继续剩余素材", exact: true }).click();
+  await expect.poll(() => submissions.length).toBe(1);
+  expect(submissions[0].expectedRunId).toBe(stopped.id);
+  expect(submissions[0].expectedRunRevision).toBe(stopped.revision);
+  expect(submissions[0].expectedMaterialClosure).toBe("a".repeat(64));
+  expect(submissions[0]).not.toHaveProperty("executionPins");
+});
+
 test("actual stage workspaces distinguish automatic ownership while keeping manual controls and read-only reports", async ({ page, request, workbench }) => {
   const id = await createScriptProject(request, workbench.apiOrigin, "automatic-guidance");
   const root = `${workbench.apiOrigin}/api/v2/projects/${id}`;

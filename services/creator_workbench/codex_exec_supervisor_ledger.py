@@ -39,6 +39,12 @@ class CodexExecSupervisorLedgerMixin:
         os.close(descriptor)
         with closing(self._connect()) as connection:
             connection.executescript("""
+                CREATE TABLE IF NOT EXISTS exec_project_revocations (
+                    project_id TEXT PRIMARY KEY,
+                    project_home TEXT NOT NULL,
+                    preview_hash TEXT NOT NULL,
+                    revoked_at REAL NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS exec_attempts (
                     attempt_id TEXT PRIMARY KEY,
                     project_id TEXT NOT NULL,
@@ -121,6 +127,7 @@ class CodexExecSupervisorLedgerMixin:
                 connection.rollback()
                 raise CodexExecSupervisorError("Codex Exec attempt ledger entry disappeared")
             original = CodexExecAttempt.model_validate_json(row["attempt_json"])
+            self._assert_project_publication(connection, original.project_id)
             if self._identity(original) != self._identity(attempt):
                 connection.rollback()
                 raise CodexExecSupervisorError("Codex Exec host update changed immutable attempt identity")

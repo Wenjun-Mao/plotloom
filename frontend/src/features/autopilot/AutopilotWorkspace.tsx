@@ -5,6 +5,7 @@ import type { AutopilotRun, Launch } from "./contracts";
 import { MaterialReview } from "./MaterialReview";
 import { projectAutopilotProgress } from "./progress";
 import { ConcurrentActivity } from "./ConcurrentActivity";
+import { ContinuationAction } from "./ContinuationAction";
 import "./autopilot.css";
 
 type Owner = { projectId: string; admissionKey: string; run: AutopilotRun | null; ready: boolean; busy: boolean; error: string; commandError: string;
@@ -112,6 +113,7 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
       {["plotloom.pre-video.v2", "plotloom.pre-video.v3"].includes(run.policy.version || "") && <p>首帧比例不符时，将保留原图并按冻结目标居中裁剪、缩放为独立素材；仍需你审阅。</p>}
       {ready && run.blocker && <p role="status">{run.blocker.message}</p>}
       <div className="button-row">
+        {run.state === "cancelled" && <ContinuationAction projectId={projectId} revision={revision} run={run} disabled={busy || readOnly || !ready} execute={execute} />}
         {controllable && ["running", "waiting"].includes(run.state) && <Button disabled={busy || readOnly || !ready} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "pause"))}>暂停</Button>}
         {controllable && ["paused", "blocked"].includes(run.state) && <Button disabled={busy || readOnly || !ready} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "resume"), true)}>继续原任务</Button>}
         {controllable && <><Button disabled={busy || readOnly || !ready} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "cancel"))}>取消自动准备</Button><Button disabled={busy || readOnly || !ready} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "takeover"), true)}>接管手动编辑</Button></>}

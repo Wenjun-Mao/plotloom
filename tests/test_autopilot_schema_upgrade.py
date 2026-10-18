@@ -14,6 +14,29 @@ from tests.autopilot_fixtures import make_prior_layout
 from tests.project_storage_fixtures import FixtureResolver, fixture_profile
 
 
+def test_immediate_prior_upgrade_preserves_cancelled_run_and_all_material_bytes(tmp_path, awaiting_handoff_seed):
+    from tests.autopilot_handoff_seed_fixtures import copy_awaiting_handoff_seed
+    from tests.autopilot_continuation_layout_fixtures import retain_pre_continuation_layout
+    storage, view, _calls = copy_awaiting_handoff_seed(awaiting_handoff_seed, tmp_path / "preserved")
+    with closing(storage.projects.open(view.project_id)) as store:
+        store.repository.autopilot.control(view.project_id, expected_revision=view.revision, action="cancel")
+        home = store.home
+    retain_pre_continuation_layout(home)
+    with sqlite3.connect(home / "project.sqlite3") as connection:
+        before = logical_inventory(connection, prior_schema_objects("pre_continuation"))
+    files = retained_bytes(home)
+    upgrade_project(home, SpecialistRegistry(storage.application.root))
+    with sqlite3.connect(home / "project.sqlite3") as connection:
+        from plotloom.persistence.codec import stable_hash
+        for name, original in before.items():
+            projection = ",".join(f'"{column}"' for column in original["columns"])
+            rows = connection.execute(f'SELECT {projection} FROM "{name}"').fetchall()
+            assert len(rows) == original["count"] and stable_hash(sorted(rows, key=stable_hash)) == original["hash"]
+    assert retained_bytes(home) == files
+    with closing(storage.projects.open(view.project_id)) as store:
+        assert store.repository.autopilot.current(view.project_id).state == "cancelled"
+
+
 def prior_fixture(tmp_path, *, closed=False):
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     with closing(storage.projects.create(FIXED_CHINESE_BRIEF)) as store:

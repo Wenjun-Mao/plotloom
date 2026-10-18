@@ -11,6 +11,7 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -21,11 +22,13 @@ from .base import Base
 class AutopilotRunRow(Base):
     __tablename__ = "v2_autopilot_runs"
     __table_args__ = (
-        UniqueConstraint("project_id"), UniqueConstraint("id", "project_id"),
+        UniqueConstraint("id", "project_id"), UniqueConstraint("predecessor_run_id"),
+        Index("ix_v2_autopilot_root", "project_id", unique=True, sqlite_where=text("predecessor_run_id IS NULL")),
         CheckConstraint("state IN ('running','waiting','paused','cancelled','stale','blocked','awaiting_review','handed_off','taken_over')"),
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    predecessor_run_id: Mapped[str | None] = mapped_column(ForeignKey("v2_autopilot_runs.id", ondelete="RESTRICT"), nullable=True)
     revision: Mapped[int] = mapped_column(Integer, nullable=False)
     lifecycle_revision: Mapped[int] = mapped_column(Integer, nullable=False)
     brief_revision: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -60,6 +63,21 @@ class AutopilotCheckpointRow(Base):
     evidence: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class AutopilotInheritanceRow(Base):
+    """Exact historical owner; this record never grants a native attempt."""
+    __tablename__ = "v2_autopilot_inheritance"
+    __table_args__ = (
+        ForeignKeyConstraint(["run_id", "project_id"], ["v2_autopilot_runs.id", "v2_autopilot_runs.project_id"], ondelete="CASCADE"),
+        UniqueConstraint("run_id", "operation_key"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    run_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    project_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    operation_key: Mapped[str] = mapped_column(String(160), nullable=False)
+    origin_checkpoint_id: Mapped[str] = mapped_column(ForeignKey("v2_autopilot_checkpoints.id", ondelete="RESTRICT"), nullable=False)
+    evidence_hash: Mapped[str] = mapped_column(String(64), nullable=False)
 
 
 class AutopilotExecAttemptRow(Base):

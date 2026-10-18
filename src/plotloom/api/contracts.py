@@ -83,6 +83,11 @@ class ProjectPermanentDeleteRequest(LifecycleRequest):
         return value
 
 
+class ProjectAbandonDeleteRequest(ProjectPermanentDeleteRequest):
+    preview_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    acknowledge_unknown_remote: bool = False
+
+
 class ProjectListResponse(CamelModel):
     projects: list[ProjectSummary]
     next_cursor: str | None = None

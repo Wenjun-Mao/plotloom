@@ -5,7 +5,7 @@ and on ordinary folder reads. Historical rows need not remain currently usable.
 """
 import json
 
-from ...autopilot_contracts import POLICY_VERSION
+from ...autopilot_contracts import POLICY_VERSION, CheckpointEvidence
 from ...codex_exec_contracts import (
     CodexExecAttempt,
     CodexExecProfile,
@@ -137,6 +137,16 @@ def _retained_checkpoint_validation_plan(request, *, execution_pin, source_revis
 
 def _assert_checkpoint_binding(connection, project_id, state, evidence, *, run_id, operation_key, asset_home,
                                validation_plan_for_request, profile_construction=None):
+    from .autopilot_continuation import inherited_origin
+    has_lineage = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_autopilot_inheritance'").fetchone()
+    origin = inherited_origin(connection, run_id, operation_key, evidence) if has_lineage else None
+    if origin is not None:
+        if state not in {"adopted", "delivered", "prepared"}:
+            raise ValueError("inherited material cannot claim a new dispatch")
+        return _assert_checkpoint_binding(connection, project_id, "adopted", evidence,
+            run_id=origin, operation_key=operation_key, asset_home=asset_home,
+            validation_plan_for_request=_retained_checkpoint_validation_plan,
+            profile_construction=profile_construction)
     owner = evidence.owner
     if owner == "geometry-preparation":
         if evidence.job_id or evidence.request_hash or evidence.execution_pin or evidence.delivery_hash or evidence.geometry_preparation is None:
@@ -295,10 +305,22 @@ def _assert_checkpoint_binding(connection, project_id, state, evidence, *, run_i
 
 
 def assert_frame_binding(connection, run_id, project_id, decision_id, frame, *, asset_home=None):
+    decision = _row(connection, "SELECT * FROM v2_autopilot_decisions WHERE id=?", (decision_id,))
+    if decision["run_id"] != run_id:
+        selection = connection.execute("SELECT c.operation_key FROM v2_autopilot_decisions d JOIN v2_autopilot_checkpoints c ON c.id=d.checkpoint_id WHERE d.id=?", (decision_id,)).fetchone()
+        from .autopilot_continuation import inherited_origin
+        checkpoint = connection.execute("SELECT evidence FROM v2_autopilot_checkpoints WHERE run_id=? AND operation_key=?", (run_id, selection[0])).fetchone() if selection else None
+        origin = inherited_origin(connection, run_id, selection[0], CheckpointEvidence.model_validate_json(checkpoint[0])) if checkpoint else None
+        if origin is None or origin != decision["run_id"]:
+            raise ValueError("inherited frame lacks its exact selection decision origin")
+        original_frame = connection.execute("SELECT frame FROM v2_autopilot_frames WHERE run_id=? AND project_id=? AND shot_id=? AND decision_id=?",
+            (origin, project_id, frame.shot_id, decision_id)).fetchone()
+        if original_frame is None or json.loads(original_frame[0]) != frame.model_dump(mode="json", by_alias=True):
+            raise ValueError("inherited frame differs from original selection bytes")
+        return assert_frame_binding(connection, origin, project_id, decision_id, frame, asset_home=asset_home)
     job = _row(connection, "SELECT * FROM v2_image_jobs WHERE id=?", (frame.job_id,))
     unit = _row(connection, "SELECT * FROM v2_production_units WHERE id=?", (job["production_unit_id"],))
     asset = _row(connection, "SELECT * FROM v2_managed_assets WHERE id=?", (frame.asset_id,))
-    decision = _row(connection, "SELECT * FROM v2_autopilot_decisions WHERE id=?", (decision_id,))
     revision = _row(connection, "SELECT * FROM v2_entity_revisions WHERE id=?", (unit["storyboard_entity_revision_id"],))
     from .image_source_lineage import resolve_image_source
     lineage = resolve_image_source(connection, project_id, frame.asset_id, shot_id=frame.shot_id, asset_home=asset_home)

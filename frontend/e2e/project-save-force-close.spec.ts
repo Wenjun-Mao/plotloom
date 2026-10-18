@@ -24,7 +24,7 @@ test("cached directory rows cannot close a project while directory inspection is
   try {
     await page.getByRole("button", { name: "当前项目 · 切换" }).click(); await started;
     await expect(row(page, id).getByRole("button", { name: "保存并关闭项目", exact: true })).toBeDisabled();
-    await expect(row(page, id).getByRole("button", { name: "强制关闭", exact: true })).toBeDisabled();
+    await expect(row(page, id).getByRole("button", { name: "退出工作区", exact: true })).toBeDisabled();
     await expect(page.getByRole("button", { name: "新建空白项目", exact: true })).toBeEnabled();
     release();
     await expect(row(page, id).getByRole("button", { name: "保存并关闭项目", exact: true })).toBeEnabled();
@@ -135,11 +135,11 @@ test("failed draft save retains input; force consent discards only unsent edits"
   await expect(page.getByRole("alert")).toContainText("编辑草稿未能保存");
   await expect(page.getByLabel("故事内容")).toHaveValue("这段尚未发送的编辑将由明确强制关闭丢弃。");
   expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}`)).ok()).toBeTruthy();
-  await row(page, id).getByRole("button", { name: "强制关闭", exact: true }).click();
+  await row(page, id).getByRole("button", { name: "退出工作区", exact: true }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "取消", exact: true }).click();
   await expect(page.getByLabel("故事内容")).toHaveValue("这段尚未发送的编辑将由明确强制关闭丢弃。");
-  await row(page, id).getByRole("button", { name: "强制关闭", exact: true }).click();
-  await page.getByRole("button", { name: "确认强制关闭项目", exact: true }).click();
+  await row(page, id).getByRole("button", { name: "退出工作区", exact: true }).click();
+  await page.getByRole("button", { name: "确认退出工作区", exact: true }).click();
   await expect(row(page, id)).toContainText("已关闭 · 可安全复制");
   await row(page, id).getByRole("button", { name: "重新打开" }).click();
   await page.getByRole("navigation", { name: "创作流程" }).getByRole("link", { name: "来源与大纲" }).click();
@@ -154,9 +154,9 @@ test("force exits while a prepared job remains owned and running-admissible", as
   await expect(page.getByText(/^任务尚未交付 · 发送状态见下方 ·/)).toBeVisible();
   const before = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`)).json();
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-  await row(page, id).getByRole("button", { name: "强制关闭", exact: true }).click();
+  await row(page, id).getByRole("button", { name: "退出工作区", exact: true }).click();
   await expect(page.getByRole("alertdialog")).toContainText("后台任务继续运行");
-  await page.getByRole("button", { name: "确认强制关闭项目", exact: true }).click();
+  await page.getByRole("button", { name: "确认退出工作区", exact: true }).click();
   await expect(page.getByText("已退出工作区；后台任务继续运行。项目尚未安全关闭，可稍后重试。", { exact: true })).toBeVisible();
   await expect(row(page, id)).toContainText("可打开");
   await expect(row(page, id)).not.toContainText("已关闭");
@@ -170,8 +170,8 @@ test("unknown force-close outcome is visibly unconfirmed, never inferred closed"
   const id = await newSourceProject(page, workbench.frontendOrigin);
   await page.route("**/api/v2/projects/*/close", route => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ message: "close unknown" }) }));
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-  await row(page, id).getByRole("button", { name: "强制关闭", exact: true }).click();
-  await page.getByRole("button", { name: "确认强制关闭项目", exact: true }).click();
+  await row(page, id).getByRole("button", { name: "退出工作区", exact: true }).click();
+  await page.getByRole("button", { name: "确认退出工作区", exact: true }).click();
   await expect(page.getByText(/已退出工作区，但未能确认安全关闭/)).toBeVisible();
   await expect(row(page, id)).not.toContainText("已关闭");
 });
@@ -184,8 +184,8 @@ test("force closing another busy project keeps the current workspace and does no
   const before = await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${other}/source-outline`));
   const current = await newSourceProject(page, workbench.frontendOrigin);
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-  await row(page, other).getByRole("button", { name: "强制关闭", exact: true }).click();
-  await page.getByRole("button", { name: "确认强制关闭项目", exact: true }).click();
+  await row(page, other).getByRole("button", { name: "退出工作区", exact: true }).click();
+  await page.getByRole("button", { name: "确认退出工作区", exact: true }).click();
   await expect(page.getByText("后台任务继续运行；项目尚未安全关闭，可稍后重试。", { exact: true })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`project=${current}`));
   await expect(row(page, current)).toContainText("当前项目");

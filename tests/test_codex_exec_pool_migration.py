@@ -13,6 +13,28 @@ from plotloom.persistence.schema.project_autopilot import AutopilotExecAttemptRo
 migration = importlib.import_module("plotloom.alembic.versions.0029_codex_exec_pool_states")
 
 
+def test_0030_upgrade_preserves_0029_rows_and_removes_only_single_run_constraint():
+    from plotloom.project_storage.schema_upgrade import prior_schema_objects
+    next_migration = importlib.import_module("plotloom.alembic.versions.0030_autopilot_continuation")
+    engine = sa.create_engine("sqlite://")
+    try:
+        with engine.begin() as connection:
+            for kind, _name, _, sql in prior_schema_objects("pre_continuation"):
+                if kind == "table":
+                    connection.exec_driver_sql(sql)
+            connection.exec_driver_sql("INSERT INTO v2_autopilot_runs VALUES ('run','project',2,1,1,'brief','{\"retained\":\"policy\"}','hash','cancelled','source',NULL,'closure',NULL,NULL,NULL,NULL,'2026-10-16','2026-10-16')")
+            before = connection.exec_driver_sql("SELECT * FROM v2_autopilot_runs").fetchall()
+            columns = [column["name"] for column in sa.inspect(connection).get_columns("v2_autopilot_runs")]
+            with Operations.context(MigrationContext.configure(connection)):
+                next_migration.upgrade()
+                next_migration.upgrade()
+            assert connection.exec_driver_sql("SELECT " + ",".join(columns) + " FROM v2_autopilot_runs").fetchall() == before
+            assert connection.exec_driver_sql("SELECT predecessor_run_id FROM v2_autopilot_runs").scalar() is None
+            assert "v2_autopilot_inheritance" in sa.inspect(connection).get_table_names()
+    finally:
+        engine.dispose()
+
+
 def _database(*, serial):
     engine = sa.create_engine("sqlite://")
     with engine.begin() as connection:

@@ -171,19 +171,19 @@ test.describe("M1-B0 real project journeys", () => {
     // Delete exists on both active and archived rows; visibility is not an archive receipt.
     await expect(projectItem(page, title)).toContainText("已归档 · 只读");
     await expect(page.getByRole("status").filter({ hasText: "正在读取项目目录" })).toHaveCount(0);
-    await expect(projectItem(page, title).getByRole("button", { name: "永久删除" })).toBeEnabled();
+    await expect(projectItem(page, title).getByRole("button", { name: "永久删除", exact: true })).toBeEnabled();
 
     let permanentDeleteRequests = 0;
     page.on("request", (request) => {
       if (new URL(request.url()).pathname.endsWith("/permanent-delete")) permanentDeleteRequests += 1;
     });
-    await projectItem(page, title).getByRole("button", { name: "永久删除" }).click();
+    await projectItem(page, title).getByRole("button", { name: "永久删除", exact: true }).click();
     const consent = page.getByRole("alertdialog", { name: "永久删除项目" });
     await consent.getByLabel("输入完整片名以确认删除").fill(`${title} wrong`);
     await expect(consent.getByRole("button", { name: "确认永久删除项目" })).toBeDisabled();
     expect(permanentDeleteRequests).toBe(0);
     await consent.getByRole("button", { name: "取消" }).click();
-    await projectItem(page, title).getByRole("button", { name: "永久删除" }).click();
+    await projectItem(page, title).getByRole("button", { name: "永久删除", exact: true }).click();
     await expect(consent.getByLabel("输入完整片名以确认删除")).toHaveValue("");
     await consent.getByLabel("输入完整片名以确认删除").fill(title);
     const deleted = page.waitForResponse((response) => response.request().method() === "POST"
