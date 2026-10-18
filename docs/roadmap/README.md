@@ -2,15 +2,22 @@
 
 ## Current explicit continuation and abandonment
 
-The owner approved continuing remaining automatic material in the same project,
-preserving completed output, and an explicit abandon-and-delete UI for stuck
-projects. Implement ADR 0190 with strict origin lineage, fresh future authority,
-current closure/CAS, project lifetime caps and UNKNOWN no-resend. Abandonment must
-revoke host publication durably before exact-home erasure while preserving remote
-uncertainty. Qualify on disposable fixtures only. Installed source, live runs,
-runtime data, settings and credentials remain untouched; no restart, deployment,
-generation, acceptance or live deletion is authorized by this source assignment.
-Root owns final full qualification, commit/push and activation decisions.
+ADR 0190 is implemented in `dd3033d6`: missing-only continuation retains exact
+origins and lifetime caps; explicit abandonment revokes publication before erasure
+without settling UNKNOWN work. The `c14c0460` full gate passed all 14 steps
+(3207 Python / 1401 frontend / 328 browser); the final geometry-only correction
+passed 181 affected Python cases, an overlapping final boundary case, independent
+review and installed-wheel smoke. Unchanged gate evidence is reused, not a new
+full result on the corrective revision. See the
+[verification record](../verification/2026-10-17-material-continuation-and-abandonment.md).
+
+The owner now authorizes safe same-installation activation after generation has
+finished. Recheck native worker/validator/queue quiescence; preserve the finished
+draft and all outputs, and leave the old UNKNOWN attempt/reservation untouched.
+Use only the named exact-home preserving upgrade where required. No generation,
+creative acceptance or live deletion is authorized by activation. Root owns
+publication, safe activation and read-only readiness/draft verification; hosted CI
+and human review remain separate. Python optimization and batching remain paused.
 
 ## Current saved-Brief Art and Characters presentation correction
 

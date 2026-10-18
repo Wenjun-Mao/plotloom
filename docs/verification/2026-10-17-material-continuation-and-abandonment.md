@@ -1,9 +1,10 @@
 # Material continuation and explicit project abandonment
 
-Source candidate: isolated `b30f/plotloom`, baseline `d37a3f02`, uncommitted.
-Implementation contract: ADR 0190. Source is not installed or activated. No live
-project, runtime setting, credential, native generation or remote result changed.
-Root owns independent review, full qualification, commit/push and activation.
+Implementation: `dd3033d674166534460503e7f22acf3154c1af4a`, isolated
+`b30f/plotloom`, baseline `d37a3f02`. ADR 0190 is locally qualified using the
+`c14c0460` full gate plus bounded geometry requalification below; the final
+corrective revision does not claim a separate full run. Owner-authorized safe
+activation is pending. No live generation, acceptance or deletion was performed.
 
 ## Implemented behavior
 
@@ -236,8 +237,10 @@ acceptance or project deletion was performed by this source assignment.
 
 The root-owned full gate on `c14c04607d91e4221df360df71eb893763373948`
 passed all 14 steps, 1458.951 seconds: 3207 Python / 1401 frontend / 328 browser
-cases; log `.local/material-recovery-20261017/full-c14c0460.log`. A subsequent
-read-only preactivation check exposed a content-shape gap, not live corruption:
+cases; log `.local/material-recovery-20261017/full-c14c0460.log`. A read-only
+preactivation check, performed while that gate was running, exposed a
+content-shape gap, not live corruption. The original gate completed unchanged
+before any corrective source edits:
 exact-prior validation sets `continuation=False`, but geometry re-enters the public
 current checkpoint validator and queries the absent inheritance table. Frame,
 reviewed-source/cross-shot recursion and retained handoff must preserve that same
@@ -313,3 +316,28 @@ frontend/browser/dependency inputs from c14, not another full run. Package
 build/smoke and separate read-only deployment preflight are manager-owned evidence.
 No full gate, commit, push, install, live migration, generation, acceptance or
 deletion was performed by this bounded correction assignment.
+
+## Local qualification closeout
+
+The final correction is limited to the seven shared Python provenance validators
+and their tests. API/persistence schemas, dispatch/provider behavior, dependencies,
+build tooling, JavaScript and checked assets are unchanged from `c14c0460`.
+Accordingly its full frontend, browser, dependency and deterministic-bundle evidence
+is reused; the affected 181-case Python run and overlapping one-case final boundary
+run requalify the changed consumers. Counts from overlapping runs are not additive.
+An independent read-only review found no source defects on production diff
+`d82891b46a741b6b801cce063161a50fe26eda21e81ba3f2e0af483b02e66bfa`.
+
+Root additionally built and installed the corrected wheel and passed the existing
+installed-wheel smoke (native session `85421`, exit 0). Wheel SHA-256:
+`7d0568632ce2c378df7ff2087648a2b4df9440aff2c2137153ef10968fd3b033`.
+The existing build-backend version advisory remains non-fatal and unchanged.
+
+The exact finished project passed the corrected read-only prior-layout preflight:
+55 completed attempts, awaiting review; no inheritance-table reads, and the same
+81-table original-column logical hash before and after validation. No database
+mutation was used to obtain this result. The owner authorized service restart
+after generation finished. Activation must recheck local quiescence and preserve
+the completed draft, all outputs and the old UNKNOWN attempt/reservation; it is
+not generation restart, human creative acceptance or deletion consent. Hosted CI
+remains separate and has not been claimed as passed.
