@@ -20,6 +20,14 @@ bytes retain their content-addressed integrity checks. Use inspection for raw
 asset/catalog reads, and one authority read for consolidated gallery evidence.
 Writes, dispatch, approvals, snapshot/export and restore keep full admission.
 
+Inspection discovery is not a promise that a project can execute. Startup
+reconciliation and run-index reconstruction isolate known project corruption at
+each project boundary, retain a project-scoped diagnostic and continue healthy
+projects. Run indexing uses read-only authority admission, including for closed
+projects; rejected evidence never enters the disposable routing index. Ordinary
+project authority reads still return the exact failure. Unexpected implementation
+exceptions propagate rather than becoming silent project skips.
+
 There is no cross-request validity cache: SQL revisions and mtimes do not prove
 asset bytes. Any bounded proof reuse must end with its exact read snapshot and
 be invalidated by writes. Immutable SQL-derived scalars (canonical gate passing

@@ -109,6 +109,22 @@ test("transient progress read failure retries original observation without dispa
   expect(await page.locator("#fixture-writes").textContent()).toBe("[]");
 });
 
+test("external run replacement cannot reveal completion for the foreground Start", async ({ page, frontendOrigin }) => {
+  await page.addInitScript(() => {
+    document.addEventListener("DOMContentLoaded", () => { document.documentElement.dataset.completionScrolls = "0"; });
+    window.scrollBy = () => { document.documentElement.dataset.completionScrolls = String(Number(document.documentElement.dataset.completionScrolls || "0") + 1); };
+  });
+  await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html?state=fresh-replaced`);
+  await page.getByRole("button", { name: "自动准备素材", exact: true }).click();
+  await page.getByRole("button", { name: "开始准备已保存简报的素材" }).click();
+  await expect(page.getByRole("button", { name: "审阅完整素材", exact: true })).toBeVisible({ timeout: 15000 });
+  await expect(page.locator("body")).toHaveAttribute("data-fixture-run-id", "replacement-run");
+  await expect(page.locator("html")).toHaveAttribute("data-completion-scrolls", "0");
+  await expect(page.locator("#material-next-action")).not.toBeFocused();
+  const writes = JSON.parse(await page.locator("#fixture-writes").textContent() || "[]");
+  expect(writes).toHaveLength(1); expect(writes[0][0]).toBe("start");
+});
+
 test("long blocker remains readable at desktop, narrow and short viewports", async ({ page, frontendOrigin }, info) => {
   for (const size of [{ width: 1440, height: 900 }, { width: 390, height: 844 }, { width: 390, height: 600 }]) {
     await page.setViewportSize(size);

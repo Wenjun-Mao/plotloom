@@ -18,6 +18,15 @@ binds lineage/timing/profile/backend/seeds, compiles prompts, validates manifest
 claims dispatch and validates media/proposals. One typed batch endorsement is
 consumed by shared H3 preparation/dispatch readers, not fabricated per-shot notes.
 
+The original English endorsement proves immutable source/direction/prompt facts;
+its originating batch need not remain running. Fresh dispatch separately requires
+the current explicitly started batch that links the exact job, its installation
+grant, unchanged manifest/source/selection scope and caps. A successor may adopt
+an unsubmitted job from a cancelled predecessor without rewriting its snapshot
+or reviving the predecessor. A merely prepared, paused, cancelled or stale
+successor confers no execution authority; an existing/unknown attempt is never
+resent.
+
 Project facts link existing jobs and unselected segment proposals. Application
 ownership fences execution and fresh dispatch; copies/restores cannot inherit
 that authority. Human control has a separate CAS revision from progress facts,
@@ -43,6 +52,12 @@ everything. Saved confirmation is distinct from subsequent refresh failures. Its
 refresh explicitly invalidates the existing manual player read owner. Foreground
 reveal intent starts at the initiating action, before asynchronous requests;
 visibility/navigation invalidation cannot be undone by a late acknowledgment.
+Preparation reveal intent also belongs to the exact initiating run. Initial
+Start binds that identity from its acknowledgment without rearming foreground
+intent; polled replacement, cancellation, takeover or staleness withdraws it.
+A late command acknowledgment cannot restore withdrawn intent. Material handoff
+uses a separate completion purpose so an awaiting-review poll cannot consume the
+intent reserved for its saved confirmation.
 
 ## Alternatives and guardrails
 

@@ -136,7 +136,7 @@ class ProjectVideoRepository:
                 )
             )
             from ..video_batch_basis import assert_direction_basis
-            assert_direction_basis(session, current.snapshot, dispatch=True, video_job_id=video_job_id)
+            assert_direction_basis(session, current.snapshot)
             from ..video_batch_basis import assert_batch_dispatch_scope
             assert_batch_dispatch_scope(session, project_id, video_job_id)
             now = utc_now()

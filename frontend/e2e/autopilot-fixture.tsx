@@ -55,11 +55,17 @@ autopilotApi.current = async () => {
     progressReads += 1;
     current = progressReads >= 3 ? { ...fixtureRun, revision: 15 } : { ...fixtureRun, state: "running", phase: progressReads === 1 ? "outline" : "references", revision: 12 + progressReads };
   }
+  if (initial === "fresh-replaced" && current?.state === "running") {
+    progressReads += 1;
+    current = progressReads >= 3 ? { ...fixtureRun, id: "replacement-run", revision: 22 }
+      : { ...fixtureRun, id: progressReads === 1 ? fixtureRun.id : "replacement-run", state: "running", revision: 20 + progressReads };
+  }
   if (initial === "running-retry") {
     progressReads += 1;
     if (progressReads === 2) throw new Error("Disposable transient read failure");
     if (progressReads >= 3) current = fixtureRun;
   }
+  document.body.dataset.fixtureRunId = current?.id || "";
   return current;
 };
 autopilotApi.launchContext = async () => ({ eligible: current === null, briefRevision: 1 });

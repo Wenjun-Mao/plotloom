@@ -61,11 +61,15 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
   const [commandError, setCommandError] = useState("");
   const [savedStatus, setSavedStatus] = useState("");
   const completion = useCompletionReveal(`${projectId}:${completionContext}`, completionBlocked);
-  const previousState = useRef<string | undefined>(undefined);
+  const completionOwner = useRef<{ runId: string | null; purpose: "preparation" | "handoff" } | null>(null);
+  const clearCompletion = () => { completionOwner.current = null; completion.clear(); };
+  const armCompletion = (runId: string | null, purpose: "preparation" | "handoff") => {
+    const owner = { runId, purpose }; completionOwner.current = owner; completion.arm(); return owner;
+  };
   useEffect(() => {
-    if (run?.state === "awaiting_review" && previousState.current !== "awaiting_review") completion.reveal("material-next-action");
-    previousState.current = run?.state;
-  }, [run?.state]);
+    if (run?.state === "awaiting_review" && completionOwner.current?.runId === run.id
+      && completionOwner.current.purpose === "preparation") completion.reveal("material-next-action");
+  }, [run?.id, run?.state]);
   const identity = useRef(projectId); identity.current = projectId;
   const command = useRef(false);
   const [readEpoch, setReadEpoch] = useState(0);
@@ -93,6 +97,9 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
       try {
         const value = await autopilotApi.current(projectId, abort.signal);
         if (abort.signal.aborted) return;
+        const intended = completionOwner.current;
+        if (intended && (!value || intended.runId !== null && intended.runId !== value.id
+          || ["cancelled", "taken_over", "stale"].includes(value.state))) clearCompletion();
         setRun(previous => value && previous?.id === value.id && previous.revision > value.revision ? previous : value); setReady(true); setError("");
         if (value?.state === "handed_off") { setReview(false); await finishHandoff(value); }
         // Material commands can withdraw a completed run without changing Brief.
@@ -107,9 +114,19 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
   const execute = async (operation: () => Promise<AutopilotRun>, refresh = false, foreground = false) => {
     if (command.current) return;
     command.current = true;
-    if (foreground) completion.arm(); else completion.clear();
+    const intended = foreground ? armCompletion(run?.id ?? null, "preparation") : null;
+    if (!foreground) clearCompletion();
     setBusy(true); setCommandError("");
-    try { const value = await operation(); if (identity.current !== projectId) return; setRun(value); setReadEpoch(epoch => epoch + 1); if (refresh) await onChanged(); }
+    try {
+      const value = await operation(); if (identity.current !== projectId) return;
+      // Start's new run identity binds the original intent; it never rearms an
+      // intent withdrawn by polling, navigation or a hidden tab during the call.
+      if (intended && completionOwner.current === intended) {
+        if (intended.runId !== null && intended.runId !== value.id) clearCompletion();
+        else intended.runId = value.id;
+      }
+      setRun(value); setReadEpoch(epoch => epoch + 1); if (refresh) await onChanged();
+    }
     catch (failure) { if (identity.current === projectId) {
       setCommandError(failure instanceof Error ? failure.message : String(failure));
       // Reconcile an uncertain command response by reading the durable run;
@@ -134,7 +151,7 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
       {ready && run.blocker && <p role="status">{run.blocker.message}</p>}
       <div className="button-row" id="material-next-action">
         {run.state === "cancelled" && <ContinuationAction projectId={projectId} revision={revision} run={run} disabled={busy || readOnly || !ready} execute={execute} />}
-        {controllable && ["running", "waiting"].includes(run.state) && <Button disabled={busy || readOnly || !ready} onClick={() => { completion.clear(); void execute(() => autopilotApi.control(projectId, run.revision, "pause")); }}>暂停</Button>}
+        {controllable && ["running", "waiting"].includes(run.state) && <Button disabled={busy || readOnly || !ready} onClick={() => { clearCompletion(); void execute(() => autopilotApi.control(projectId, run.revision, "pause")); }}>暂停</Button>}
         {controllable && ["paused", "blocked"].includes(run.state) && <Button disabled={busy || readOnly || !ready} onClick={() => { void execute(() => autopilotApi.control(projectId, run.revision, "resume"), true, true); }}>继续原任务</Button>}
         {controllable && <><Button disabled={busy || readOnly || !ready} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "cancel"))}>取消自动准备</Button><Button disabled={busy || readOnly || !ready} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "takeover"), true)}>接管手动编辑</Button></>}
         {["awaiting_review", "taken_over", "cancelled", "stale"].includes(run.state) && <Button variant="primary" disabled={busy || readOnly || !ready} onClick={() => setReview(true)}>审阅完整素材</Button>}
@@ -145,7 +162,7 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
     {error && <p className="autopilot-error" role="alert">素材准备：{error}</p>}
     {commandError && <p className="autopilot-error" role="alert">上次操作反馈：{commandError}</p>}
     {children}
-    {review && run && <MaterialReview onConfirmStart={() => { pendingHandoff.current = {projectId,runId:run.id}; completion.arm(); }} key={`${projectId}:${run.revision}`} projectId={projectId} readOnly={readOnly || !ready} onClose={() => { completion.clear(); pendingHandoff.current = null; setReview(false); }}
+    {review && run && <MaterialReview onConfirmStart={() => { pendingHandoff.current = {projectId,runId:run.id}; armCompletion(run.id, "handoff"); }} key={`${projectId}:${run.revision}`} projectId={projectId} readOnly={readOnly || !ready} onClose={() => { clearCompletion(); pendingHandoff.current = null; setReview(false); }}
       onUncertain={message => { setCommandError(message); setReady(false); setReadEpoch(epoch => epoch + 1); }}
       onAccepted={async value => { setRun(value); setReview(false); await finishHandoff(value); }} />}
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from collections.abc import Callable
 from pathlib import Path
+from typing import Literal
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -232,8 +233,9 @@ class ProjectDirectoryRegistry:
                 lease.close()
             raise
 
-    def inspect(self, project_id: str, *, passive: bool = False) -> ProjectStore:
-        """Open a shared read handle without changing closed-project admission."""
+    def inspect(self, project_id: str, *, passive: bool = False,
+                admission: Literal["inspection", "authority"] = "inspection") -> ProjectStore:
+        """Read with explicit admission, without reopening closed projects."""
 
         home = self._project_home(project_id)
         lease = ProjectAccessLease.acquire(
@@ -241,7 +243,7 @@ class ProjectDirectoryRegistry:
         )
         try:
             return ProjectStore.open(
-                home.path, read_only=True, admission="inspection", access_lease=lease
+                home.path, read_only=True, admission=admission, access_lease=lease
             )
         except BaseException:
             lease.close()

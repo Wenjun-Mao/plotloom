@@ -13,7 +13,8 @@ def valid_direction_endorsement(package):
         and isinstance(basis.get("manifestHash"), str) and re.fullmatch(r"[a-f0-9]{64}", basis["manifestHash"]))
 
 
-def assert_direction_basis(session, snapshot, *, dispatch=False, video_job_id=None):
+def assert_direction_basis(session, snapshot):
+    """Validate retained English endorsement, independent of execution ownership."""
     package = snapshot.get("reviewedDirections") or {}
     basis = package.get("reviewBasis")
     if basis is None:
@@ -36,8 +37,6 @@ def assert_direction_basis(session, snapshot, *, dispatch=False, video_job_id=No
     frozen = {key: value for key,value in snapshot.items() if key not in {"reviewedDirections", "compiledPrompt"}}
     if stable_hash(frozen) != target["sourceHash"]:
         raise InvalidTransitionError("batch source lineage changed")
-    if dispatch and (row.state != "running" or row.execution.get("jobs", {}).get(target["shotId"]) != video_job_id):
-        raise InvalidTransitionError("batch is paused, cancelled or does not own this job")
 
 
 def batch_for_job(session, project_id, video_job_id):
