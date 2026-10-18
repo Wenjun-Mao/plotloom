@@ -25,6 +25,7 @@ from plotloom.creative_handoff_contracts import CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import CreativeHandoffExchange, canonical_json
 from plotloom.image_job_contracts import ImageJobError
 from plotloom.native_bridge_intent_contract import render_native_intent_report
+from plotloom.video_directions_contract import render_report as render_video_directions_report
 from plotloom.native_bridge_presentation_contract import (
     render_native_presentation_report,
 )
@@ -182,7 +183,7 @@ class FakeCodexExecHost(FakeCodexImageReceipts):
         pin = store.creative_handoff_exchange().current_execution_pin(request.stage)
         paths = store.creative_handoff_exchange().write_package(
             request, pin, executor_backend="codex_exec",
-            plotloom_code_revision=run.policy.code_revision,
+            plotloom_code_revision=attempt.plotloom_code_revision,
         )
         job_root = Path(paths["packagePath"]).parent
         delivery = Path(paths["deliveryPath"])
@@ -194,6 +195,8 @@ class FakeCodexExecHost(FakeCodexImageReceipts):
             if request.stage == "bridge-intent"
             else render_native_presentation_report(request, json.loads(content))
             if request.stage == "bridge-presentation"
+            else render_video_directions_report(request, json.loads(content))
+            if request.stage == "video-directions"
             else b"<!doctype html><html><body>Deterministic fake Codex Exec evidence.</body></html>"
         )
         (delivery / candidate_filename).write_bytes(content)

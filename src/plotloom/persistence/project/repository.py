@@ -300,6 +300,8 @@ class ProjectSQLiteRepository(ProjectCommandTransactions):
             shot_presentations=self._media.shot_presentations,
         )
         self.video_dispatch = ProjectVideoDispatchAccess(self._read, self._lifecycle_write)
+        from .video_batches import VideoBatches
+        self.video_batches = VideoBatches(self.video_dispatch)
 
     def _schema_tables(self) -> list[Any]:
         from ..schema import Base

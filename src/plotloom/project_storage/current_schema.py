@@ -66,6 +66,13 @@ def assert_current_review_bindings(connection: sqlite3.Connection, *, asset_home
     assert_cross_shot_contracts(connection, asset_home=asset_home, continuation=continuation)
     if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_autopilot_runs'").fetchone():
         assert_autopilot_contracts(connection, asset_home=asset_home, continuation=continuation)
+    from .video_batch_validation import assert_video_batch_contracts
+    assert_video_batch_contracts(connection)
+    assert_review_binding_shapes(connection)
+
+
+def assert_review_binding_shapes(connection: sqlite3.Connection) -> None:
+    """Current JSON schema only; this does not validate review authority."""
     for table, model in (
         ("v2_script_candidates", ScriptBinding),
         ("v2_script_revisions", ScriptBinding),
@@ -82,19 +89,27 @@ def assert_current_review_bindings(connection: sqlite3.Connection, *, asset_home
                 ) from error
 
 
-def assert_current_project_database(database_path: Path, project_id: str) -> None:
+def assert_current_project_database(database_path: Path, project_id: str, *, admission: str = "authority") -> None:
     """Read the live database, including committed WAL rows, without migrating it.
 
     SQLite may maintain WAL/SHM sidecars for this read-only connection. Immutable
     mode is inappropriate here because it can omit committed WAL authority.
     """
+    if admission not in {"inspection", "authority"}:
+        raise ValueError("unknown project admission contract")
     try:
         connection = sqlite3.connect(f"{database_path.as_uri()}?mode=ro", uri=True)
         try:
             connection.execute("PRAGMA trusted_schema=OFF")
             connection.execute("PRAGMA query_only=ON")
+            connection.execute("BEGIN")
             assert_current_schema(connection)
-            assert_current_review_bindings(connection)
+            if admission == "authority":
+                from .proof_scope import proof_scope
+                with proof_scope():
+                    assert_current_review_bindings(connection)
+            else:
+                assert_review_binding_shapes(connection)
             projects = list(connection.execute("SELECT id FROM v2_projects"))
             states = list(
                 connection.execute(

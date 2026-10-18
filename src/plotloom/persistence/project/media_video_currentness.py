@@ -101,6 +101,11 @@ class VideoJobCurrentness:
     def video_job_input_status_in_session(self, session: Session, row: VideoJobRow) -> Literal["current", "stale", "invalid"]:
         if not frozen_video_request_is_valid(row):
             return "invalid"
+        from ...video_batch_basis import assert_direction_basis
+        try:
+            assert_direction_basis(session, row.snapshot)
+        except (InvalidTransitionError, ValueError, KeyError, TypeError):
+            return "invalid"
         return "current" if self._inputs_match_in_session(session, row) else "stale"
 
     def _inputs_match_in_session(self, session: Session, row: VideoJobRow) -> bool:

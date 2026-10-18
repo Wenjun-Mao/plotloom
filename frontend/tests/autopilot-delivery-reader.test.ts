@@ -1,19 +1,17 @@
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
+import { autopilotApi } from "../src/features/autopilot/api";
 import { plotloomApi } from "../src/api";
 import { useDeliveryEvidence } from "../src/features/autopilot/useDeliveryEvidence";
 import { deliveryDisclosure } from "../src/features/autopilot/deliveryEvidence";
 import { evidenceReadsFixture } from "./autopilot-delivery-fixture";
-import type { ManagedAsset } from "../src/types";
+import type { EvidenceReads } from "../src/features/autopilot/deliveryEvidence";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 afterEach(() => vi.restoreAllMocks());
 function mockReads() {
-  const assets = vi.spyOn(plotloomApi, "getManagedAssets").mockImplementation(async id => ({ assets: evidenceReadsFixture(id).assets }));
-  vi.spyOn(plotloomApi, "getCharacterReferenceProposals").mockImplementation(async id => ({ configured: true, proposals: evidenceReadsFixture(id).characters }));
-  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockImplementation(async id => ({ configured: true, proposals: evidenceReadsFixture(id).art }));
-  vi.spyOn(plotloomApi, "getImageJobs").mockImplementation(async id => ({ configured: true, jobs: evidenceReadsFixture(id).images }));
+  const assets = vi.spyOn(autopilotApi, "deliveryEvidence").mockImplementation(async id => evidenceReadsFixture(id));
   return assets;
 }
 async function harness() {
@@ -32,7 +30,7 @@ async function harness() {
 
 it("aborts old project/bundle reads and cannot display their late declarations", async () => {
   const assets = mockReads();
-  let release!: (value: { assets: ManagedAsset[] }) => void;
+  let release!: (value: EvidenceReads) => void;
   assets.mockImplementationOnce(() => new Promise(done => { release = done; }));
   const state = await harness();
   try {
@@ -40,7 +38,7 @@ it("aborts old project/bundle reads and cannot display their late declarations",
     const signal = assets.mock.calls[0][1]!;
     await state.render("current"); expect(signal.aborted).toBe(true);
     expect(state.reader.state?.status).toBe("ready");
-    await act(async () => release({ assets: evidenceReadsFixture("old").assets }));
+    await act(async () => release(evidenceReadsFixture("old")));
     const ready = state.reader.state!;
     if (ready.status !== "ready") throw new Error("current read should stay ready");
     expect(ready.value.assets.every(asset => asset.projectId === "current")).toBe(true);
@@ -63,12 +61,12 @@ it("a failed evidence read stays unknown and explicit retry reads the same bundl
 
 it("changing the exact bundle withdraws old ready evidence before the replacement resolves", async () => {
   const assets = mockReads(), state = await harness();
-  let release!: (value: { assets: ManagedAsset[] }) => void;
+  let release!: (value: EvidenceReads) => void;
   try {
     await state.render("current", "first");
     assets.mockImplementationOnce(() => new Promise(done => { release = done; }));
     await state.render("current", "second"); expect(state.host.textContent).toBe("unknown");
-    await act(async () => release({ assets: evidenceReadsFixture("current").assets }));
+    await act(async () => release(evidenceReadsFixture("current")));
     expect(state.reader.state?.status).toBe("ready");
   } finally { await state.unmount(); }
 });

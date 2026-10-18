@@ -16,8 +16,8 @@ from pydantic import Field, field_validator, model_validator
 from .domain import CamelModel, contains_secret_setting, contains_secret_value
 
 
-CREATIVE_STAGES = ("outline", "branches", "characters", "art", "script", "storyboard", "bridge-intent", "bridge-presentation")
-CreativeStage = Literal["outline", "branches", "characters", "art", "script", "storyboard", "bridge-intent", "bridge-presentation"]
+CREATIVE_STAGES = ("outline", "branches", "characters", "art", "script", "storyboard", "bridge-intent", "bridge-presentation", "video-directions")
+CreativeStage = Literal["outline", "branches", "characters", "art", "script", "storyboard", "bridge-intent", "bridge-presentation", "video-directions"]
 CREATIVE_CANDIDATE_FILENAMES = {
     "branches": "branches.json",
     "outline": "outline.json",
@@ -27,6 +27,7 @@ CREATIVE_CANDIDATE_FILENAMES = {
     "storyboard": "storyboard.json",
     "bridge-intent": "intent.json",
     "bridge-presentation": "presentation.json",
+    "video-directions": "directions.json",
 }
 SHA256_PATTERN = r"^[a-f0-9]{64}$"
 JOB_ID_PATTERN = r"^ch_[a-z0-9]{20,64}$"

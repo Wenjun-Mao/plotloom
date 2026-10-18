@@ -158,6 +158,7 @@ class ProjectStore(ProjectCreativeStages):
         project_home: Path,
         *,
         read_only: bool = False,
+        admission: str = "authority",
         defer_wal: bool = False,
         access_lease: ProjectAccessLease | None = None,
     ) -> ProjectStore:
@@ -178,7 +179,7 @@ class ProjectStore(ProjectCreativeStages):
             raise ProjectStorageCorruptionError(
                 "project database is missing or not a regular file"
             )
-        assert_current_project_database(database_path, manifest.project_id)
+        assert_current_project_database(database_path, manifest.project_id, admission=admission)
         store = cls(
             home,
             manifest,

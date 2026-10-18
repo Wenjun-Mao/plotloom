@@ -70,14 +70,12 @@ def direction_sources(snapshot: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def bind_reviewed_directions(snapshot: dict[str, Any], package: dict[str, Any] | None) -> dict[str, str]:
+def validate_direction_fields(snapshot: dict[str, Any], package: dict[str, Any] | None) -> dict[str, str]:
     requirement = direction_sources(snapshot)
     if package is None:
         raise ValueError("H3 needs reviewed English directions; inspect prompt sources before preparing")
     if package.get("sourceHash") != requirement["sourceHash"]:
         raise ValueError("H3 direction source changed; review the current shot again")
-    if package.get("reviewedEnglish") is not True:
-        raise ValueError("H3 English directions need explicit package review")
     fields = package.get("fields")
     if not isinstance(fields, list):
         raise ValueError("H3 direction fields are missing")
@@ -101,4 +99,12 @@ def bind_reviewed_directions(snapshot: dict[str, Any], package: dict[str, Any] |
         text = str(cue.get("text") or "")
         if text and any(text in english for english in rendered.values()):
             raise ValueError("H3 dialogue is repeated in reviewed directions")
+    return rendered
+
+
+def bind_reviewed_directions(snapshot: dict[str, Any], package: dict[str, Any] | None) -> dict[str, str]:
+    rendered = validate_direction_fields(snapshot, package)
+    from ...video_batch_basis import valid_direction_endorsement
+    if package is None or (package.get("reviewedEnglish") is not True and not valid_direction_endorsement(package)):
+        raise ValueError("H3 English directions need explicit package review")
     return rendered

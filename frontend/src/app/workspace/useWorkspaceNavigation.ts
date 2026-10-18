@@ -92,7 +92,7 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
     forceReload?: boolean;
     home?: boolean;
   }) => {
-    const normalized: NavigationTarget = { entity: "", run: "", hash: "", history: "push", forceReload: false, ...next };
+    const normalized: NavigationTarget = { entity: "", run: "", history: "push", forceReload: false, ...next, hash: next.hash ?? (next.stage === "storyboard" && !next.entity ? "video-batch-production" : "") };
     const currentRoute = session.routeRef.current;
     if (
       normalized.project === currentRoute.project

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { plotloomApi } from "../../api";
+import { autopilotApi } from "./api";
 import type { EvidenceReads } from "./deliveryEvidence";
 
 type ReadState = { key: string; status: "ready"; value: EvidenceReads } | { key: string; status: "failed"; message: string };
@@ -12,10 +12,8 @@ export function useDeliveryEvidence(projectId: string, bundleHash?: string) {
   useEffect(() => {
     if (!bundleHash) return;
     const abort = new AbortController();
-    void Promise.all([plotloomApi.getManagedAssets(projectId, abort.signal), plotloomApi.getCharacterReferenceProposals(projectId, abort.signal),
-      plotloomApi.getArtReferenceProposals(projectId, abort.signal), plotloomApi.getImageJobs(projectId, abort.signal)])
-      .then(([assets, characters, art, images]) => {
-        if (!abort.signal.aborted) setState({ key, status: "ready", value: { assets: assets.assets, characters: characters.proposals, art: art.proposals, images: images.jobs } });
+    void autopilotApi.deliveryEvidence(projectId, abort.signal).then(value => {
+        if (!abort.signal.aborted) setState({ key, status: "ready", value });
       }).catch(failure => { if (!abort.signal.aborted) setState({ key, status: "failed", message: failure instanceof Error ? failure.message : String(failure) }); });
     return () => abort.abort();
   }, [projectId, bundleHash, key, attempt]);

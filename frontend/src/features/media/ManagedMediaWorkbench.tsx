@@ -37,6 +37,7 @@ import type { SamePersonComparisonDraft } from "../../same-person-review-types";
 
 export function ManagedMediaWorkbench({
   projectId,
+  videoReadVersion,
   lifecycleRevision,
   projectRevision,
   lifecycleStatus,
@@ -58,6 +59,7 @@ export function ManagedMediaWorkbench({
   draftChanged = false,
 }: {
   projectId?: string;
+  videoReadVersion?: number;
   lifecycleRevision?: number;
   projectRevision?: number;
   lifecycleStatus?: "active" | "archived";
@@ -332,7 +334,7 @@ export function ManagedMediaWorkbench({
       )}
       <div className="shot-workbench-focus">
         <div className="shot-workbench-heading"><div><small>{selectedShot ? `当前镜头 · ${selectedShot.durationUnits / 1000} 秒` : "尚未选择镜头"}</small><strong>{selectedShot ? shotLabel(selectedShot) : "请选择镜头"}</strong>{selectedShot && <p>{selectedShot.action}</p>}</div></div>
-        <VideoPilotPanel projectId={projectId} projectRevision={projectRevision} lifecycleRevision={lifecycleRevision} lifecycleStatus={lifecycleStatus} shot={selectedShot} approvalId={review?.activeApproval?.id} approvalCurrent={approvalCurrent}
+        <VideoPilotPanel videoReadVersion={videoReadVersion} projectId={projectId} projectRevision={projectRevision} lifecycleRevision={lifecycleRevision} lifecycleStatus={lifecycleStatus} shot={selectedShot} approvalId={review?.activeApproval?.id} approvalCurrent={approvalCurrent}
           storyboardRevision={storyboardRevision} selectionRevision={workbench.selectionRevision}
           keyframe={selectedBinding ? assetById.get(selectedBinding.assetId) : undefined}
           reviewedBinding={selectedBinding} samePersonReviewId={selectedBinding ? currentReviewByBinding.get(selectedBinding.id)?.id : undefined}

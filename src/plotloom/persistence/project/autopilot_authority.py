@@ -58,8 +58,8 @@ def machine_image_authority(session, access, project_id, decision_id):
         upstream = access.rows.stage(session, project_id, StageName(stage))
         if upstream.status != "ready" or upstream.revision != expected:
             raise InvalidTransitionError("machine image upstream changed")
-    gates = session.scalars(select(GateResultRow).where(GateResultRow.entity_revision_id == revision.id)).all()
-    if not gates or any(gate.content_hash != revision.content_hash or not access.codecs.gate_result(gate).passed for gate in gates):
+    from .canonical_gate_evidence import gates_pass
+    if not gates_pass(session, access.codecs, revision.id, content_hash=revision.content_hash):
         raise InvalidTransitionError("machine image requires the current passing canonical gates")
     return decision, revision
 

@@ -230,6 +230,7 @@ class VideoSegmentRow(Base):
     derivative_uri: Mapped[str] = mapped_column(Text, nullable=False)
     derivative_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     proposal_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    confirmation_receipt_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     selected_revision: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

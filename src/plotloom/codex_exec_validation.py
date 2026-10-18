@@ -59,7 +59,7 @@ class CodexExecTextValidationPlan(CamelModel):
     schema_version: Literal[1] = 1
     stage: Literal[
         "outline", "branches", "characters", "art", "script", "storyboard",
-        "bridge-intent", "bridge-presentation",
+        "bridge-intent", "bridge-presentation", "video-directions",
     ]
     route: Literal["upstream", "preset_style", "saved_brief", "plotloom_native"]
     request_hash: str = Field(pattern=HASH)
@@ -188,8 +188,8 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
         validate = ("uv", runner + ("validate", cand, "--request", request_path))
         render = ("uv", runner + ("render", cand, "--request", request_path))
         route = "plotloom_native"
-    elif stage in {"bridge-intent", "bridge-presentation"}:
-        script = "native_bridge_intent.py" if stage == "bridge-intent" else "native_bridge_presentation.py"
+    elif stage in {"bridge-intent", "bridge-presentation", "video-directions"}:
+        script = {"bridge-intent": "native_bridge_intent.py", "bridge-presentation": "native_bridge_presentation.py", "video-directions": "video_directions.py"}[stage]
         runner = ("run", "--project", source, "--locked", "--no-sync", "python", f"{source}/scripts/{script}")
         validate = ("uv", runner + ("validate", cand, "--request", request_path))
         render = ("uv", runner + ("render", cand, "--request", request_path))

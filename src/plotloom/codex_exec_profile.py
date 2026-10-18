@@ -32,6 +32,8 @@ DISABLED_CLI_FEATURES = (
     "tool_call_mcp_elicitation",
 )
 INSTRUCTION_FILES = (
+    ".agents/skills/plotloom-video-directions-specialist/SKILL.md",
+    "docs/creative-workflow/native-video-directions.md",
     "src/plotloom/outline_preparation.py",
     "src/plotloom/codex_exec_prompts.py",
     ".agents/skills/plotloom-shuohao-specialist/SKILL.md",
@@ -40,6 +42,12 @@ INSTRUCTION_FILES = (
     ".agents/skills/plotloom-image-specialist/SKILL.md",
 )
 VALIDATOR_FILES = (
+    "scripts/video_directions.py",
+    "src/plotloom/video_directions_contract.py",
+    "src/plotloom/video_batch_contracts.py",
+    "src/plotloom/video_batch_basis.py",
+    "src/plotloom/video_backends/minimax_h3/directions.py",
+    "src/plotloom/video_backends/minimax_h3/prompt.py",
     "src/plotloom/outline_report_metadata.py",
     "src/plotloom/outline_preparation.py",
     "src/plotloom/persistence/project/source_outline_mutations.py",

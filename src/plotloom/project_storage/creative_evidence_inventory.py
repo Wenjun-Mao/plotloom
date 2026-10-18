@@ -33,6 +33,9 @@ def retained_requests(connection):
     for identifier, raw, evidence in connection.execute("SELECT id, native_request, response_evidence FROM v2_production_bridge_intent_jobs WHERE transport='codex_native'"):
         data = json.loads(evidence) if evidence else {}
         requests[identifier] = (CreativeHandoffRequest.model_validate_json(raw), data.get("manifestHash"))
+    from .video_batch_evidence import retained_batch_drafts
+    for request, data, _attempt, _profile, _receipt in retained_batch_drafts(connection):
+        requests[request.job_id] = (request, data.get("manifestHash"))
     return requests
 
 
@@ -101,6 +104,10 @@ def _codex_creative_jobs(connection):
                 raise ProjectStorageCorruptionError("retained Codex creative attempt has no exact v4 checkpoint")
             binding["attempt"] = attempt
             binding["receipt"] = CodexExecReceipt.model_validate_json(raw_receipt) if raw_receipt else None
+    from .video_batch_evidence import retained_batch_drafts
+    for request, _data, attempt, profile, receipt in retained_batch_drafts(connection):
+        jobs[request.job_id] = {"project_id": request.project_id, "operation_key": request.stage, "profile": profile,
+            "plotloom_code_revision": attempt.plotloom_code_revision, "attempt": attempt, "receipt": receipt}
     return jobs
 
 

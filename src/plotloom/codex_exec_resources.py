@@ -58,6 +58,12 @@ def _symlink_alias_chain(path: Path) -> tuple[tuple[Path, str], ...]:
 
 
 _STAGES = {
+    "video-directions": _StageResources(
+        "docs/creative-workflow/native-video-directions.md",
+        ".agents/skills/plotloom-video-directions-specialist/SKILL.md",
+        "docs/creative-workflow/native-video-directions.md",
+        ("scripts/video_directions.py",), python_project=True,
+    ),
     "outline": _StageResources(
         "third_party/shuohao-skills/skills/novel-outline/SKILL.md",
         ".agents/skills/plotloom-shuohao-specialist/SKILL.md",

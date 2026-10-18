@@ -1,0 +1,7 @@
+.video-batch-panel { margin-block: 1rem; }
+.video-batch-panel pre, .video-batch-review pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 28rem; overflow: auto; padding: 1rem; background: var(--panel-2); }
+.video-batch-panel article { border-top: 1px solid var(--line); padding-block: 1rem; }
+.video-batch-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; }
+.video-batch-gallery article { min-width: 0; }
+.video-batch-gallery video { width: 100%; max-height: 28rem; background: #171714; }
+#video-batch-next-action:focus, #material-next-action:focus { outline: 2px solid var(--accent, #3d624b); outline-offset: 6px; }

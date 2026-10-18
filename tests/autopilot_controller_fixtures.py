@@ -86,7 +86,7 @@ def runtime(storage, monkeypatch, *, auto_deliver=True):
     monkeypatch.setattr(
         CreativeHandoffExchange,
         "current_execution_pin",
-        lambda _self, stage: PIN if stage in {"bridge-intent", "bridge-presentation"} else UPSTREAM_PIN,
+        lambda _self, stage: PIN if stage in {"bridge-intent", "bridge-presentation", "video-directions"} else UPSTREAM_PIN,
     )
     host = FakeCodexExecHost(storage, registry, candidate_factory=lambda store, request: candidate(store, request), auto_deliver=auto_deliver)
     registry.codex_exec_admit = host.admit

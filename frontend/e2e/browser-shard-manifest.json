@@ -99,6 +99,7 @@
     "creator-workbench-cancellation.spec.ts",
     "scene-beats-deletion.spec.ts",
     "autopilot-review.spec.ts",
-    "autopilot-guidance.spec.ts"
+    "autopilot-guidance.spec.ts",
+    "video-batch.spec.ts"
   ]
 }

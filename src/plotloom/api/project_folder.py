@@ -155,15 +155,25 @@ def create_project_folder_authoring_app(
 
     @contextmanager
     def opened_project(project_id: str):
-        store = storage.projects.open(project_id)
+        from ..project_storage.proof_scope import proof_scope
+        with proof_scope():
+            store = storage.projects.open(project_id)
+            try:
+                yield store
+            finally:
+                store.close()
+
+    @contextmanager
+    def inspected_project(project_id: str):
+        store = storage.projects.inspect(project_id)
         try:
             yield store
         finally:
             store.close()
 
     @contextmanager
-    def inspected_project(project_id: str):
-        store = storage.projects.inspect(project_id)
+    def inspected_open_project(project_id: str):
+        store = storage.projects.read_open(project_id)
         try:
             yield store
         finally:
@@ -736,6 +746,7 @@ def create_project_folder_authoring_app(
         app,
         opened_project,
         require_media_draft_scope=require_media_draft_scope,
+        inspected_project=inspected_open_project,
     )
     specialists = SpecialistRegistry(
         storage.application.root, image_dispatcher,
@@ -760,6 +771,8 @@ def create_project_folder_authoring_app(
         project_h3_target=_project_h3_target,
         image_dispatcher=ImageSpecialist(specialists),
     )
+    from .project_folder_video_batch import register_video_batch_runtime
+    register_video_batch_runtime(app, storage, specialists, video_service)
     register_project_folder_video_routes(
         app,
         opened_project,

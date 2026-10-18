@@ -43,6 +43,7 @@ type ManagedProcess = {
 // alternate persistence model or route surface.
 export const test = createWorkbenchTest("vite");
 export const checkedStaticTest = createWorkbenchTest("checked-static");
+export const batchVideoTest = createWorkbenchTest("vite", "frontend/e2e/video_batch_runtime.py");
 
 /** Save a new Brief, then explicitly choose the established manual route. */
 export async function saveBriefAndContinue(page: Page): Promise<void> {
@@ -54,7 +55,7 @@ export async function saveBriefAndContinue(page: Page): Promise<void> {
   await continueManually.click();
 }
 
-function createWorkbenchTest(frontendMode: FrontendMode) {
+function createWorkbenchTest(frontendMode: FrontendMode, backendEntrypoint = "frontend/e2e/fake_video_runtime.py") {
   return base.extend<WorkbenchFixtures>({
   page: async ({ page, workbench }, use) => {
     // Own the backend before the page: route draining must finish before its
@@ -87,7 +88,6 @@ function createWorkbenchTest(frontendMode: FrontendMode) {
       PLOTLOOM_OUTPUTS_DIR: outputsRoot,
       PLOTLOOM_APPLICATION_DATA_DIR: applicationDataRoot,
     };
-    const backendEntrypoint = "frontend/e2e/fake_video_runtime.py";
     let backend = startProcess("FastAPI", "uv", ["run", "python", backendEntrypoint], backendEnvironment);
     let frontend: ManagedProcess | undefined;
 

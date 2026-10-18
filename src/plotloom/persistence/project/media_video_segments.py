@@ -22,6 +22,10 @@ from .access import ProjectPersistenceAccess
 from .media_video_currentness import VideoJobCurrentness
 from .media_video_integrity import frozen_video_request_is_valid, frozen_video_source_is_valid
 
+def _segment_confirmation_valid(session, segment):
+    from ...video_batch_review import segment_confirmation_valid
+    return segment_confirmation_valid(session, segment)
+
 
 class VideoSegmentPersistence:
     """One per-shot selection owner; derivative creation itself stays outside SQL."""
@@ -145,6 +149,8 @@ class VideoSegmentPersistence:
             row.proposal_hash = stable_hash(self._immutable(row))
             session.add(row)
             session.flush()
+            from .video_batch_proposals import bind_current_proposal
+            bind_current_proposal(session, row)
             return self._projection(row, current=True, selected=False, preview_eligible=True)
 
     def select(
@@ -183,6 +189,7 @@ class VideoSegmentPersistence:
                 selection.revision = revision
                 selection.updated_at = now
             segment.selected_revision = revision
+            segment.confirmation_receipt_id = session.info.get("pending_video_pack_receipt")
             session.add(VideoReviewRow(
                 id=new_id(), video_job_id=job.id, reviewer=reviewer,
                 decision="select", note=note, created_at=now,
@@ -313,7 +320,8 @@ class VideoSegmentPersistence:
                     VideoSegmentRow.selected_revision == selection.revision,
                 )
             )
-            if segment is None or not self._valid_metadata(segment, job):
+            from ...video_batch_review import segment_confirmation_valid
+            if segment is None or not self._valid_metadata(segment, job) or not segment_confirmation_valid(session, segment):
                 raise NotFoundError("video job has no current reviewed playback segment")
             return {"uri": segment.derivative_uri, "hash": segment.derivative_hash, "mimeType": "video/mp4"}
 
@@ -355,6 +363,7 @@ class VideoSegmentPersistence:
                     and selection.selected_video_job_id == job.id
                     and row.selected_revision == selection.revision
                     and self._valid_metadata(row, job)
+                    and _segment_confirmation_valid(session, row)
                 ),
             )
             for row in rows

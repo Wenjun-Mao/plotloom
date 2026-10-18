@@ -10,6 +10,19 @@ from ..persistence.project.autopilot_inventory_validation import (
 
 
 def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw, digest, *, asset_home=None, continuation=True):
+    from .proof_scope import retained_proof_cache
+    cache, key = retained_proof_cache(connection, "human-handoff", (identifier, run_id, project_id, approval_id,
+        digest, stable_hash(raw), str(asset_home) if asset_home else None, continuation))
+    if cache is not None and key in cache:
+        return cache[key]
+    receipt = _assert_handoff(connection, identifier, run_id, project_id, approval_id, raw, digest,
+        asset_home=asset_home, continuation=continuation)
+    if cache is not None:
+        cache[key] = receipt
+    return receipt
+
+
+def _assert_handoff(connection, identifier, run_id, project_id, approval_id, raw, digest, *, asset_home=None, continuation=True):
     receipt = parse_handoff_receipt(raw)
     bulk = receipt.version == "pre-video.handoff.v3"
     if stable_hash(raw) != digest or (receipt.id, receipt.run_id, receipt.project_id, receipt.approval_id) != (identifier, run_id, project_id, approval_id):

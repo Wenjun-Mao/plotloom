@@ -297,7 +297,11 @@
           "tests/test_project_storage_video_review.py",
           "tests/test_project_storage_video_submission.py",
           "tests/test_retained_video_evidence.py",
-          "tests/test_image_source_lineage.py"
+          "tests/test_image_source_lineage.py",
+          "tests/test_video_batch.py",
+          "tests/test_video_batch_recovery.py",
+          "tests/test_video_batch_review.py",
+          "tests/test_video_batch_realistic_pack.py"
         ],
         "vitest": [
           "frontend/tests/art-reference-preparation.test.ts",
@@ -335,7 +339,8 @@
           "frontend/e2e/project-folder-still-image-workflow.spec.ts",
           "frontend/e2e/project-folder-video.spec.ts",
           "frontend/e2e/reference-gallery-layout.spec.ts",
-          "frontend/e2e/video_backends/minimax_h3/h3-video-pilot.spec.ts"
+          "frontend/e2e/video_backends/minimax_h3/h3-video-pilot.spec.ts",
+          "frontend/e2e/video-batch.spec.ts"
         ]
       }
     },
@@ -372,16 +377,22 @@
           "tests/backend_core/test_runtime_recovery.py",
           "tests/test_accepted_review_lifecycle.py",
           "tests/test_application_profile_snapshot_contracts.py",
+          "tests/test_autopilot_continuation.py",
+          "tests/test_autopilot_recovery.py",
+          "tests/test_autopilot_schema_upgrade.py",
+          "tests/test_codex_exec_pool_migration.py",
+          "tests/test_codex_exec_pool_project_upgrade.py",
           "tests/test_direct_project_deletion.py",
-          "tests/test_project_abandonment.py",
-          "tests/test_project_deletion_quarantine.py",
           "tests/test_prior_abandonment_catalog.py",
           "tests/test_prior_geometry_lineage.py",
           "tests/test_production_project_folder_runtime.py",
           "tests/test_production_project_folder_runtime_boundaries.py",
+          "tests/test_project_abandonment.py",
+          "tests/test_project_artifact_publication.py",
+          "tests/test_project_deletion_quarantine.py",
           "tests/test_project_folder_native_dispatch_safety.py",
           "tests/test_project_home_identity.py",
-          "tests/test_project_artifact_publication.py",
+          "tests/test_project_inspection_admission.py",
           "tests/test_project_review_drafts.py",
           "tests/test_project_specialist_ownership.py",
           "tests/test_project_storage.py",
@@ -398,17 +409,13 @@
           "tests/test_project_storage_recovery.py",
           "tests/test_project_storage_route_contracts.py",
           "tests/test_project_storage_script.py",
+          "tests/test_project_storage_storyboard_review.py",
+          "tests/test_request_proof_scope.py",
+          "tests/test_retained_outline_recovery.py",
           "tests/test_script_dialogue_compatibility.py",
           "tests/test_script_dialogue_composition.py",
           "tests/test_script_receiving.py",
-          "tests/test_project_storage_storyboard_review.py",
-          "tests/test_storyboard_brief_style.py",
-          "tests/test_autopilot_schema_upgrade.py",
-          "tests/test_autopilot_continuation.py",
-          "tests/test_codex_exec_pool_project_upgrade.py",
-          "tests/test_codex_exec_pool_migration.py",
-          "tests/test_autopilot_recovery.py",
-          "tests/test_retained_outline_recovery.py"
+          "tests/test_storyboard_brief_style.py"
         ],
         "vitest": [
           "frontend/tests/app-state-navigation.test.ts",
@@ -653,7 +660,8 @@
           "frontend/tests/context-help.test.ts",
           "frontend/tests/run-presentation.test.ts",
           "frontend/tests/ui-time.test.ts",
-          "frontend/tests/workspace-viewport.test.ts"
+          "frontend/tests/workspace-viewport.test.ts",
+          "frontend/tests/completion-reveal.test.ts"
         ],
         "playwright": [
           "frontend/e2e/creator-confirmation.spec.ts",
@@ -669,211 +677,295 @@
       "suite": "pytest",
       "path": "tests/f5_dialogue_timing_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["creative-production"]
+      "consumers": [
+        "creative-production"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/autopilot_profile_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["story-authoring"]
+      "consumers": [
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/autopilot_policy_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["story-authoring"]
+      "consumers": [
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/qualification_pair_capability_fixture.mjs",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/services/creator_workbench/qualification_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/qualification_pair_test_support.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/qualification_pair_schema_fixture.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/qualification_pair_completion_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/qualification_pair_observation_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/qualification_pair_measurement_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/codex_exec_runtime_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/paid_outline_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/paid_outline_native_fixture.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/paid_outline_cli_fixture.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/paid_outline_processes.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/paid_outline_process_guard.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/paid_outline_capsule_fixture.mjs",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/cli_handoff_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/cli_handoff_fixtures.mjs",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/cli_handoff_capsule.test.mjs",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/extraction_worktree_paths.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["verification-tooling"]
+      "consumers": [
+        "verification-tooling"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/native_bridge_seed_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["creative-production", "shared-provider-dispatch", "story-authoring"]
+      "consumers": [
+        "creative-production",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/native_bridge_runtime_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch", "story-authoring"]
+      "consumers": [
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/specialist_reconciliation_seed.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["creative-production", "media-lifecycle", "project-lifecycle", "shared-provider-dispatch", "story-authoring"]
+      "consumers": [
+        "creative-production",
+        "media-lifecycle",
+        "project-lifecycle",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/autopilot_seed_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["creative-production", "media-lifecycle", "project-lifecycle", "shared-provider-dispatch", "story-authoring"]
+      "consumers": [
+        "creative-production",
+        "media-lifecycle",
+        "project-lifecycle",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/autopilot_handoff_seed_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["story-authoring"]
+      "consumers": [
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/bulk_material_pack_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["story-authoring"]
+      "consumers": [
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/autopilot_geometry_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["story-authoring"]
+      "consumers": [
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/autopilot_installed_text_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["story-authoring"]
+      "consumers": [
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/autopilot_installed_text_core.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["story-authoring"]
+      "consumers": [
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/autopilot_compact_text_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["story-authoring"]
+      "consumers": [
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/material_result_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["story-authoring"]
+      "consumers": [
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/autopilot_controller_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["project-lifecycle", "story-authoring"]
+      "consumers": [
+        "project-lifecycle",
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/autopilot_fake_exec_host.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["project-lifecycle", "story-authoring"]
+      "consumers": [
+        "project-lifecycle",
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/autopilot_fake_image_receipts.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["project-lifecycle", "story-authoring"]
+      "consumers": [
+        "project-lifecycle",
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
@@ -1725,6 +1817,15 @@
       "kind": "shared-fixture-or-helper",
       "consumers": [
         "story-authoring"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/video_batch_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle",
+        "project-lifecycle"
       ]
     }
   ]

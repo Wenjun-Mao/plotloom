@@ -10,7 +10,7 @@ import { deliveryDisclosure } from "./deliveryEvidence";
 import { useDeliveryEvidence } from "./useDeliveryEvidence";
 import { DeliveryDisclosure } from "./DeliveryDisclosure";
 
-export function MaterialReview({ projectId, readOnly = false, onClose, onAccepted, onUncertain }: { projectId: string; readOnly?: boolean; onClose: () => void; onAccepted: (run: AutopilotRun) => Promise<void>; onUncertain: (message: string) => void }) {
+export function MaterialReview({ projectId, readOnly = false, onConfirmStart, onClose, onAccepted, onUncertain }: { projectId: string; readOnly?: boolean; onConfirmStart?: () => void; onClose: () => void; onAccepted: (run: AutopilotRun) => Promise<void>; onUncertain: (message: string) => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [material, setMaterial] = useState<ReviewMaterial | null>(null); const [error, setError] = useState("");
   const [drafts, setDrafts] = useState<GalleryDraft[]>([]); const [notes, setNotes] = useState("");
@@ -41,11 +41,14 @@ export function MaterialReview({ projectId, readOnly = false, onClose, onAccepte
   const valid = material && pixelsReady && failedPixels.length === 0 && contextReady && deliveries.state?.status === "ready" && drafts.length === material.bundle.frames.length && problems.length === 0;
   const submit = async () => {
     if (!material || !valid || command.current || readOnly) return;
+    onConfirmStart?.();
     command.current = true; setBusy(true); setError(""); const submittedProject = projectId;
+    let committed = false;
     try { const result = await autopilotApi.handoff(projectId, bulkHandoff(material, drafts, notes));
+      committed = true;
       if (active.current && identity.current === submittedProject) await onAccepted(result);
     } catch (failure) { if (active.current && identity.current === submittedProject) {
-      const message = failure instanceof Error ? failure.message : String(failure); setError(message); onUncertain(message);
+      const message = failure instanceof Error ? failure.message : String(failure); setError(committed ? `已保存审阅；刷新制作状态失败：${message}` : message); onUncertain(message);
     } }
     finally { command.current = false; if (active.current && identity.current === submittedProject) setBusy(false); }
   };
@@ -87,7 +90,7 @@ export function MaterialReview({ projectId, readOnly = false, onClose, onAccepte
       <footer><p>点击即确认以上 {material.bundle.references.length} 项完整参考集与 {material.bundle.frames.length} 个首帧适合已显示的意图，且每位可见人物的身份与状态符合参考；单独授权的无法判断项保持不确定。此操作保存整包人工确认。之后可从工作台打开手动视频制作，设置参数并开始制作。</p>
         {!contextReady && deliveries.state?.status === "ready" && <p role="status">有素材来源说明尚待核实，请重新读取当前素材。<Button disabled={busy} onClick={deliveries.retry}>重新核对素材来源</Button></p>}
         {!pixelsReady && !failedPixels.length && <p role="status">正在核对当前图片是否可读取…</p>}
-        <Button variant="primary" busy={busy} disabled={busy || readOnly || !valid} onClick={() => void submit()}>确认全部素材并继续</Button></footer>
+        <Button variant="primary" busy={busy} disabled={busy || readOnly || !valid} onClick={() => void submit()}>{busy ? "正在保存审阅…" : "确认全部素材并继续"}</Button></footer>
     </>}
   </dialog>;
 }

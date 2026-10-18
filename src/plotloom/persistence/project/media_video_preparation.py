@@ -229,12 +229,14 @@ class VideoJobPreparation:
 
                 sources = direction_sources(snapshot)
                 if preview_only and reviewed_directions is None:
-                    return sources | {"compiledPrompt": None}
+                    return sources | {"compiledPrompt": None, "snapshot": snapshot}
                 try:
                     snapshot["compiledPrompt"] = compile_i2va_prompt(snapshot, reviewed_directions)
                 except ValueError as exc:
                     raise InvalidTransitionError(str(exc)) from exc
                 snapshot["reviewedDirections"] = reviewed_directions
+                from ...video_batch_basis import assert_direction_basis
+                assert_direction_basis(session, snapshot)
                 if preview_only:
                     return sources | {
                         "compiledPrompt": snapshot["compiledPrompt"],

@@ -13,6 +13,7 @@ from ..schema import (
     SourceOutlineCandidateRow,
     StoryboardReviewCandidateRow,
     VideoJobRow,
+    VideoBatchRow,
 )
 from .first_install_references import first_install_reference_is_independent
 
@@ -21,6 +22,7 @@ def assert_production_quiescent(access, session, project_id):
     if access.guards.busy(session, project_id):
         raise InvalidTransitionError("active project work prevents production rebuild")
     owners = (
+        (VideoBatchRow, "state", ("setup", "drafting", "ready", "running", "paused", "blocked", "awaiting_review")),
         (ProductionBridgeIntentJobRow, "status", ("queued", "dispatched", "outcome_unknown")),
         (VideoJobRow, "state", ("prepared", "dispatching", "submitted", "retrieve_needed", "outcome_unknown")),
         (ImageJobRow, "state", ("prepared", "exported")),

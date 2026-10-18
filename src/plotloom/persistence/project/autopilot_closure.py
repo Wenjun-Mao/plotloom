@@ -63,11 +63,13 @@ def _hash_material(payload):
 
 
 def material_closure(session, project_id, *, tables=MATERIAL_TABLES, include_cancellations=True):
-    session.flush()
-    payload = _material_payload(session, project_id, tables)
-    if include_cancellations:
-        _add_material_extras(session, project_id, payload)
-    return _hash_material(payload)
+    from ...project_storage.proof_scope import sql_scalar
+    def calculate():
+        payload = _material_payload(session, project_id, tables)
+        if include_cancellations:
+            _add_material_extras(session, project_id, payload)
+        return _hash_material(payload)
+    return sql_scalar(session, "material-closure", (project_id, tuple(tables), include_cancellations), calculate)
 
 
 def _receipt_material_closures(session, project_id, *, expected_protected=None):

@@ -57,6 +57,16 @@ def register_autopilot_routes(app: FastAPI, opened_project, service):
         with opened_project(project_id) as store:
             return review_material(store)
 
+    @app.get("/api/v2/projects/{project_id}/autopilot/delivery-evidence")
+    def delivery_evidence(project_id: str):
+        # One authority admission for the exact gallery metadata projection.
+        with opened_project(project_id) as store:
+            media = store.media
+            return {"assets": media.list_managed_assets(project_id),
+                "characters": media.list_character_reference_proposals(project_id),
+                "art": media.list_art_reference_proposals(project_id),
+                "images": media.list_image_jobs(project_id)}
+
     @app.get("/api/v2/projects/{project_id}/autopilot/continuation-context")
     def continuation_context(project_id: str):
         with opened_project(project_id) as store:

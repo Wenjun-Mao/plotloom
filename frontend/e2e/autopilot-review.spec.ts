@@ -27,8 +27,10 @@ for (const height of [900, 600]) {
     const dialog = page.getByRole("dialog", { name: "审阅完整素材" });
     for (const text of ["主参考：服装细节仍须人工核查。", "补充参考：侧脸仍须人工核查。", "额外椅子、花瓶与植物偏离冻结要求。",
       "原始输出为 941×1672，尺寸与冻结目标不符。", "适配输出仍需实际检查手部与构图；不代表质量改善。"]) await expect(dialog.getByText(text, { exact: true })).toBeVisible();
+    const originalDisclosure = dialog.locator("details").filter({ has: page.locator('a[href$="frame-original/original"]') }).last();
+    await originalDisclosure.locator("summary").click();
     const history = dialog.getByRole("img", { name: /适配来源原图 1/ });
-    await expect(history).toBeVisible(); await expect(history.locator("..")).toHaveAttribute("href", /frame-original\/original$/);
+    await expect(history).toBeVisible(); await expect(originalDisclosure.getByRole("link", { name: "打开完整原图" })).toHaveAttribute("href", /frame-original\/original$/);
     const declarations = dialog.locator(".autopilot-delivery-disclosure");
     await declarations.first().locator("summary").click();
     await expect(declarations.first()).toContainText("hero-job"); await expect(declarations.first()).toContainText("e".repeat(64));
@@ -219,6 +221,7 @@ for (const assetId of ["frame-1", "frame-original"]) test(`known failed image ${
   await page.getByRole("button", { name: "审阅完整素材", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "审阅完整素材" });
   const confirm = dialog.getByRole("button", { name: "确认全部素材并继续" });
+  if (assetId === "frame-original") await dialog.getByText("查看保留原图", { exact: true }).click();
   await expect(dialog.getByRole("alert")).toContainText("保留原图无法读取"); await expect(confirm).toBeDisabled();
   await page.unroute(pattern); await dialog.getByRole("button", { name: "重试读取图片", exact: true }).click();
   await expect(confirm).toBeEnabled(); expect(await page.locator("#fixture-writes").textContent()).toBe("[]");

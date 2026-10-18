@@ -110,6 +110,7 @@ def close_blockers(store: object) -> list[str]:
     terminal_runs = tuple(item.value for item in TERMINAL_RUN_STATUSES)
     terminal_tasks = tuple(item.value for item in TERMINAL_MEDIA_TASK_STATUSES)
     with repository.engine.connect() as connection:
+        active_batch = connection.exec_driver_sql("SELECT 1 FROM v2_video_batches WHERE project_id=? AND state IN ('drafting','running') LIMIT 1", (project_id,)).first()
         active_autopilot = connection.exec_driver_sql("SELECT 1 FROM v2_autopilot_runs WHERE project_id=? AND state IN ('running','waiting') LIMIT 1", (project_id,)).first()
         active_run = connection.exec_driver_sql(
             "SELECT 1 FROM v2_generation_runs WHERE project_id = ? AND status NOT IN (?, ?, ?, ?) LIMIT 1",
@@ -124,6 +125,8 @@ def close_blockers(store: object) -> list[str]:
             "AND state NOT IN ('ingested', 'cancelled', 'failed') LIMIT 1",
             (project_id,),
         ).first()
+    if active_batch is not None:
+        blockers.append("active_video_batch")
     if active_run is not None:
         blockers.append("nonterminal_text_run")
     if active_autopilot is not None:
@@ -151,6 +154,9 @@ def retained_specialist_job_ids(store: object) -> set[str]:
                     store.media.list_character_reference_proposals(project_id),
                     store.media.list_art_reference_proposals(project_id)):
         jobs.update(record.get("jobId", record.get("proposalId", record.get("id"))) for record in records)
+    with repository.engine.connect() as connection:
+        from .video_batch_evidence import retained_batch_drafts
+        jobs.update(request.job_id for request, *_rest in retained_batch_drafts(connection.connection.driver_connection))
     return jobs - {None}
 
 
@@ -167,6 +173,10 @@ def specialist_publication_blockers(store: object) -> list[str]:
         blockers.append("character_reference_publication_active")
     if any(proposal.get("state") not in {"delivered", "rejected", "cancelled"} for proposal in media.list_art_reference_proposals(project_id)):
         blockers.append("art_reference_publication_active")
+    with store.repository.engine.connect() as connection:
+        from .video_batch_evidence import retained_batch_drafts
+        if any(attempt.state not in {"completed", "failed", "settled"} for _request, _data, attempt, _profile, _receipt in retained_batch_drafts(connection.connection.driver_connection)):
+            blockers.append("video_directions_publication_active")
     blockers.extend(source_outline_publication_blockers(store))
     blockers.extend(cast_publication_blockers(store))
     blockers.extend(art_publication_blockers(store))

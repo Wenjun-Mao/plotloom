@@ -100,6 +100,7 @@ def publish_creative_completion(
         "storyboard": "storyboard.json",
         "bridge-intent": "intent.json",
         "bridge-presentation": "presentation.json",
+        "video-directions": "directions.json",
     }[request.stage]
     expected_names = {candidate_filename, "report.html"}
     if {item.relative_path for item in files} != expected_names:
@@ -121,7 +122,7 @@ def publish_creative_completion(
         codeRevision=code_revision,
         skillVersion=(
             f"plotloom-{request.stage.removeprefix('bridge-')}-specialist.v1"
-            if request.stage in {"bridge-intent", "bridge-presentation"}
+            if request.stage in {"bridge-intent", "bridge-presentation", "video-directions"}
             else "plotloom-shuohao-specialist.v1"
         ),
         skillHash=execution_pin["specialistSkillHash"],

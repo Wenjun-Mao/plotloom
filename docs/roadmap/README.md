@@ -1,5 +1,19 @@
 # Plotloom roadmap entrypoint
 
+## Approved batch video production and completion navigation
+
+The owner selected generation of all missing clips followed by one final review,
+without automatic story-playback approval. The
+[implementation plan](2026-10-18-batch-video-production.md) covers exact
+multi-route scope, reviewed H3 directions, durable bounded execution, atomic
+whole-pack video review, measured loading improvements and progress feedback.
+Completion reveal applies to the earlier image/material batch and approval as
+well as video generation and final approval. Consolidated implementation,
+qualification and safe-activation permissions are approved together. Execution
+uses Relay direct with one source writer in the retained checkout; the owner also
+gives standing approval for separate Relay worker chats in `AGENTS.md`. Actual
+owner-story generation and human approval remain explicit creator actions.
+
 ## Approved whole-pack gallery approval
 
 The owner requested planning first for one explicit final material approval,

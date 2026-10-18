@@ -62,6 +62,18 @@ def _assert_geometry_bytes(connection, *assets, asset_home=None):
 
 
 def assert_geometry(connection, record, *, project_id, run_id, asset_home=None, continuation=True):
+    from ...project_storage.proof_scope import geometry_proof_cache
+    cache, key = geometry_proof_cache(connection, record, project_id=project_id, run_id=run_id,
+        asset_home=asset_home, continuation=continuation)
+    if cache is not None and key in cache:
+        return
+    _assert_geometry(connection, record, project_id=project_id, run_id=run_id,
+        asset_home=asset_home, continuation=continuation)
+    if cache is not None:
+        cache[key] = True
+
+
+def _assert_geometry(connection, record, *, project_id, run_id, asset_home=None, continuation=True):
     """Historical identity validation; currentness is checked separately."""
     from .autopilot_bindings import (
         _assert_checkpoint_binding,

@@ -187,13 +187,8 @@ class KeyframeAdmission:
             or revision.revision != decision.subject_revision
         ):
             raise InvalidTransitionError("reviewed selection approval is stale")
-        gates = session.scalars(
-            select(GateResultRow).where(
-                GateResultRow.entity_revision_id == decision.entity_revision_id,
-                GateResultRow.gate_set_version == decision.gate_set_version,
-            )
-        ).all()
-        if not gates or any(not self._access.codecs.gate_result(gate).passed for gate in gates):
+        from .canonical_gate_evidence import gates_pass
+        if not gates_pass(session, self._access.codecs, decision.entity_revision_id, gate_set_version=decision.gate_set_version):
             raise InvalidTransitionError("reviewed selection approval gates are no longer passing")
         return decision
 

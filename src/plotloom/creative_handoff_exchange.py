@@ -134,19 +134,9 @@ class CreativeHandoffExchange(CreativeHandoffPackageExchangeMixin):
         """Freeze the vendored skill and local specialist used by a package."""
 
         repository = Path(__file__).resolve().parents[2]
-        if stage in {"bridge-intent", "bridge-presentation"}:
-            name = "intent" if stage == "bridge-intent" else "presentation"
-            dirty = subprocess.run(["git", "-C", str(repository), "status", "--porcelain", "--",
-                "src/plotloom", f"scripts/native_bridge_{name}.py", f"docs/creative-workflow/native-bridge-{name}.md",
-                f".agents/skills/plotloom-{name}-specialist"], capture_output=True, text=True, check=False)
-            if dirty.returncode != 0 or dirty.stdout.strip():
-                raise CreativeHandoffError("execution_pin_missing", "native intent execution source must be committed before preparing a package")
-            revision = subprocess.run(["git", "-C", str(repository), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
-            return {
-                "upstreamRevision": revision,
-                "upstreamSkillHash": sha256((repository / f"docs/creative-workflow/native-bridge-{name}.md").read_bytes()).hexdigest(),
-                "specialistSkillHash": sha256((repository / f".agents/skills/plotloom-{name}-specialist/SKILL.md").read_bytes()).hexdigest(),
-            }
+        from .native_stage_policy import NATIVE_STAGES, native_execution_pin
+        if stage in NATIVE_STAGES:
+            return native_execution_pin(stage, repository)
         submodule = repository / "third_party" / "shuohao-skills"
         stage = "outline" if stage == "branches" else stage
         upstream_skill_relative = upstream_skill_path_for_stage(stage)
@@ -330,7 +320,7 @@ class CreativeHandoffExchange(CreativeHandoffPackageExchangeMixin):
             "candidate": {"filename": candidate_filename, "sha256": "0" * 64},
             "report": {"filename": "report.html", "sha256": "0" * 64},
             "executorProvenance": {
-                "codeRevision": "checked-out-commit", "skillVersion": f"plotloom-{request.stage.removeprefix('bridge-')}-specialist.v1" if request.stage in {"bridge-intent", "bridge-presentation"} else "plotloom-shuohao-specialist.v1",
+                "codeRevision": "checked-out-commit", "skillVersion": f"plotloom-{request.stage.removeprefix('bridge-')}-specialist.v1" if request.stage in {"bridge-intent", "bridge-presentation", "video-directions"} else "plotloom-shuohao-specialist.v1",
                 "skillHash": projected["executionPin"]["specialistSkillHash"],
                 "upstreamRevision": projected["executionPin"]["upstreamRevision"],
                 "upstreamSkillHash": projected["executionPin"]["upstreamSkillHash"],
@@ -419,7 +409,7 @@ class CreativeHandoffExchange(CreativeHandoffPackageExchangeMixin):
             or provenance.upstream_skill_hash != expected_pin["upstreamSkillHash"]
         ):
             raise CreativeHandoffError("delivery_execution_mismatch", "delivery was not produced with the pinned specialist and upstream skill")
-        if request.stage in {"bridge-intent", "bridge-presentation"} and (
+        if request.stage in {"bridge-intent", "bridge-presentation", "video-directions"} and (
             provenance.code_revision != expected_pin["upstreamRevision"]
             or provenance.skill_version != f"plotloom-{request.stage.removeprefix('bridge-')}-specialist.v1"
         ):

@@ -135,6 +135,10 @@ class ProjectVideoRepository:
                     claimed_at=utc_now(),
                 )
             )
+            from ..video_batch_basis import assert_direction_basis
+            assert_direction_basis(session, current.snapshot, dispatch=True, video_job_id=video_job_id)
+            from ..video_batch_basis import assert_batch_dispatch_scope
+            assert_batch_dispatch_scope(session, project_id, video_job_id)
             now = utc_now()
             current.state = "dispatching"
             current.dispatched_at = now
@@ -321,6 +325,13 @@ class ProjectVideoRepository:
         self, video_job_id: str, *, backend_binding: VideoBackendBinding
     ) -> None:
         self.assert_video_authority(self.project_id)
+        from ..video_batch_basis import batch_for_job, assert_batch_dispatch_scope
+        with self._dispatch.read() as session:
+            assert_batch_dispatch_scope(session, self.project_id, video_job_id)
+            batch = batch_for_job(session, self.project_id, video_job_id)
+            if batch:
+                from .video_batch_grants import VideoBatchGrants
+                VideoBatchGrants(self._application).require(self.store, batch.id, batch.manifest_hash)
         if self.recovery_provider_state(video_job_id) is not None:
             raise InvalidTransitionError(
                 "restored video jobs cannot submit or replay a historical request"

@@ -5,19 +5,19 @@ from __future__ import annotations
 from typing import Any
 import json
 
-from .directions import bind_reviewed_directions
+from .directions import bind_reviewed_directions, validate_direction_fields
 from ...shot_presentation import message_direction
 
 _FIRST_FRAME = (
     "For the target video, at 0.00 seconds into the target video, "
     "<Picture 1> (from [Shot 1]) is fully referenced."
 )
-def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str, Any]) -> str:
+def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str, Any], *, draft: bool = False) -> str:
     """Place reviewed source-bound English directions into H3's I2VA roles."""
 
     shot = snapshot["shot"]
     context = snapshot["resolvedContext"]
-    rendered = bind_reviewed_directions(snapshot, reviewed_directions)
+    rendered = (validate_direction_fields if draft else bind_reviewed_directions)(snapshot, reviewed_directions)
     cues = context.get("dialogueCues", [])
     description = [
         (

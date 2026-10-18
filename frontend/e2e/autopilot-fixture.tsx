@@ -12,6 +12,10 @@ const initial = new URLSearchParams(location.search).get("state");
 const localGeometry = geometryReadsFixture();
 const evidence = initial === "geometry" ? localGeometry.reads : evidenceReadsFixture();
 let evidenceFailed = false;
+autopilotApi.deliveryEvidence = async () => {
+  if (initial === "evidence-failure" && !evidenceFailed) { evidenceFailed = true; throw new Error("Disposable evidence read failure"); }
+  return evidence;
+};
 plotloomApi.getManagedAssets = async () => {
   if (initial === "evidence-failure" && !evidenceFailed) { evidenceFailed = true; throw new Error("Disposable evidence read failure"); }
   return { assets: evidence.assets };

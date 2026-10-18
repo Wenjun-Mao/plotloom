@@ -29,8 +29,11 @@ def register_project_folder_media_routes(
     opened_project: Callable[[str], Any],
     *,
     require_media_draft_scope: Callable[..., Any],
+    inspected_project: Callable[[str], Any] | None = None,
 ) -> None:
     """Register direct-storage asset, preview, and workbench routes."""
+
+    inspect = inspected_project or opened_project
 
     @app.get("/api/v2/projects/{project_id}/shots/{shot_id}/production-presentation")
     def get_shot_presentation(project_id: str, shot_id: str) -> dict[str, Any]:
@@ -180,7 +183,7 @@ def register_project_folder_media_routes(
 
     @app.get("/api/v2/projects/{project_id}/managed-assets")
     def get_project_managed_assets(project_id: str) -> dict[str, Any]:
-        with opened_project(project_id) as store:
+        with inspect(project_id) as store:
             return {
                 "assets": store.media.list_managed_assets(project_id),
                 "selectionRevision": store.media.visual_selection_revision(
@@ -192,7 +195,7 @@ def register_project_folder_media_routes(
     def serve_project_managed_asset(
         project_id: str, asset_id: str, variant: Literal["display", "original"]
     ) -> Response:
-        with opened_project(project_id) as store:
+        with inspect(project_id) as store:
             stored = store.media.get_managed_asset_storage(project_id, asset_id)
             try:
                 content = store.artifacts.get(
@@ -208,6 +211,9 @@ def register_project_folder_media_routes(
                 raise HTTPException(
                     status_code=409, detail={"code": "managed_asset_corrupt"}
                 )
+            expected_hash = stored["displayHash"] if variant == "display" else stored["originalHash"]
+            if sha256(content).hexdigest() != expected_hash:
+                raise HTTPException(status_code=409, detail={"code": "managed_asset_corrupt"})
             return Response(
                 content=content,
                 media_type="image/png" if variant == "display" else stored["mimeType"],

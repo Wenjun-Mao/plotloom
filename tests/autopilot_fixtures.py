@@ -34,7 +34,7 @@ def exact_source(store):
             "contentHash": stable_hash(project.brief.model_dump(mode="json", by_alias=False))})
 
 
-def make_prior_layout(home):
+def make_prior_layout(home, layout="prior"):
     """Copy only frozen prior columns into a disposable immediate-prior DB."""
     import sqlite3
     from plotloom.project_storage.schema_upgrade import prior_schema_objects
@@ -43,7 +43,7 @@ def make_prior_layout(home):
     source = sqlite3.connect(database)
     target = sqlite3.connect(destination)
     try:
-        objects = prior_schema_objects()
+        objects = prior_schema_objects(layout)
         for kind, _name, _table, sql in objects:
             if kind == "table":
                 target.execute(sql)

@@ -112,3 +112,6 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0187 Frozen-worker instruction discovery](0187-frozen-worker-instruction-discovery.md)
 - [0188 Complete native bridge request budget](0188-native-bridge-request-budget.md)
 - [0191 Whole-pack human material confirmation](0191-whole-pack-human-material-confirmation.md)
+
+- [0192 Inspection and authority admission](0192-inspection-and-authority-admission.md)
+- [0193 Frozen batch video authority](0193-batch-video-authority.md)

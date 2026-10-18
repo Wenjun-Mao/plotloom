@@ -204,7 +204,8 @@ function OrderedVideoPlayback({ projectId, jobs, sourceIdentity }: { projectId: 
   </section>;
 }
 
-export function VideoPilotPanel({ projectId, projectRevision, lifecycleRevision, lifecycleStatus, shot, approvalId, approvalCurrent, storyboardRevision, selectionRevision, keyframe, reviewedBinding, samePersonReviewId, mediaReadPhase, storyboard, sceneBeats, graph, routeId, readOnly }: {
+export function VideoPilotPanel({ videoReadVersion, projectId, projectRevision, lifecycleRevision, lifecycleStatus, shot, approvalId, approvalCurrent, storyboardRevision, selectionRevision, keyframe, reviewedBinding, samePersonReviewId, mediaReadPhase, storyboard, sceneBeats, graph, routeId, readOnly }: {
+  videoReadVersion?: number;
   projectId?: string; shot?: Shot; approvalId?: string; storyboardRevision?: number; selectionRevision: number;
   lifecycleRevision?: number;
   projectRevision?: number;
@@ -216,7 +217,7 @@ export function VideoPilotPanel({ projectId, projectRevision, lifecycleRevision,
   const [budget, setBudget] = useState<VideoPilotBudget | null>(null);
   const [backend, setBackend] = useState<VideoBackend | null>(null);
   const [loadedJobs, setJobs] = useState<VideoJob[]>([]);
-  const videoContext = JSON.stringify([projectId, projectRevision, lifecycleRevision]);
+  const videoContext = JSON.stringify([projectId, projectRevision, lifecycleRevision, videoReadVersion]);
   const [loadedContext, setLoadedContext] = useState<string>();
   const [loadedProjectId, setLoadedProjectId] = useState<string>();
   const videoReadCurrent = loadedContext === videoContext;

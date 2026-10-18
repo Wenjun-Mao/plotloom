@@ -201,7 +201,7 @@ class ProjectDirectoryRegistry:
                 )
                 try:
                     store = ProjectStore.open(
-                        candidate, read_only=True, access_lease=lease
+                        candidate, read_only=True, admission="inspection", access_lease=lease
                     )
                 except BaseException:
                     lease.close()
@@ -241,10 +241,25 @@ class ProjectDirectoryRegistry:
         )
         try:
             return ProjectStore.open(
-                home.path, read_only=True, access_lease=lease
+                home.path, read_only=True, admission="inspection", access_lease=lease
             )
         except BaseException:
             lease.close()
+            raise
+
+    def read_open(self, project_id: str) -> ProjectStore:
+        """Inspect raw data while retaining open/deletion admission obligations."""
+        store = self.inspect(project_id)
+        try:
+            # The shared lease is already held: deletion cannot acknowledge
+            # between this predicate and the requested confined read.
+            self.admission.require_admitted(project_id)
+            state, _revision = store.repository.operational_state()
+            if state != "open":
+                raise ProjectClosedError("project_closed: reopen it explicitly before reading workspace media")
+            return store
+        except BaseException:
+            store.close()
             raise
 
     def close_project(self, project_id: str) -> int:

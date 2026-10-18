@@ -7,6 +7,7 @@ import { projectAutopilotProgress } from "./progress";
 import { ConcurrentActivity } from "./ConcurrentActivity";
 import { ContinuationAction } from "./ContinuationAction";
 import "./autopilot.css";
+import { useCompletionReveal } from "../../app/workspace/completionReveal";
 
 type Owner = { projectId: string; admissionKey: string; run: AutopilotRun | null; ready: boolean; busy: boolean; error: string; commandError: string;
   start: (body: Omit<Launch, "expectedBriefRevision">) => Promise<void> };
@@ -51,13 +52,20 @@ export function AutopilotProgress() {
   </div>;
 }
 
-export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, readOnly, onChanged, onVideo, children }: {
-  projectId: string; revision: number; admissionVersion?: number; readOnly: boolean; onChanged: () => Promise<void>; onVideo: () => void; children: ReactNode;
+export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, readOnly, completionBlocked = false, completionContext = "", onChanged, onVideo, children }: {
+  projectId: string; revision: number; admissionVersion?: number; readOnly: boolean; completionBlocked?: boolean; completionContext?: string; onChanged: () => Promise<void>; onVideo: () => void; children: ReactNode;
 }) {
   const [run, setRun] = useState<AutopilotRun | null>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [review, setReview] = useState(false);
   const [commandError, setCommandError] = useState("");
+  const [savedStatus, setSavedStatus] = useState("");
+  const completion = useCompletionReveal(`${projectId}:${completionContext}`, completionBlocked);
+  const previousState = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (run?.state === "awaiting_review" && previousState.current !== "awaiting_review") completion.reveal("material-next-action");
+    previousState.current = run?.state;
+  }, [run?.state]);
   const identity = useRef(projectId); identity.current = projectId;
   const command = useRef(false);
   const [readEpoch, setReadEpoch] = useState(0);
@@ -85,9 +93,10 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
     };
     void refresh(); return () => { abort.abort(); clearTimeout(timer); };
   }, [projectId, revision, readEpoch]);
-  const execute = async (operation: () => Promise<AutopilotRun>, refresh = false) => {
+  const execute = async (operation: () => Promise<AutopilotRun>, refresh = false, foreground = false) => {
     if (command.current) return;
     command.current = true;
+    if (foreground) completion.arm(); else completion.clear();
     setBusy(true); setCommandError("");
     try { const value = await operation(); if (identity.current !== projectId) return; setRun(value); setReadEpoch(epoch => epoch + 1); if (refresh) await onChanged(); }
     catch (failure) { if (identity.current === projectId) {
@@ -99,7 +108,7 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
     } }
     finally { command.current = false; setBusy(false); }
   };
-  const owner: Owner = { projectId, admissionKey: `${projectId}:${revision}:${admissionVersion}`, run, ready, busy, error, commandError, start: body => execute(() => autopilotApi.start(projectId, { ...body, expectedBriefRevision: revision }), true) };
+  const owner: Owner = { projectId, admissionKey: `${projectId}:${revision}:${admissionVersion}`, run, ready, busy, error, commandError, start: async body => { await execute(() => autopilotApi.start(projectId, { ...body, expectedBriefRevision: revision }), true, true); } };
   const controllable = run && !["cancelled", "taken_over", "stale", "handed_off"].includes(run.state);
   const progress = run ? projectAutopilotProgress(run) : null;
   return <Context.Provider value={owner}>
@@ -112,21 +121,22 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
       {ready && <ConcurrentActivity run={run} />}
       {["plotloom.pre-video.v2", "plotloom.pre-video.v3"].includes(run.policy.version || "") && <p>首帧比例不符时，将保留原图并按冻结目标居中裁剪、缩放为独立素材；仍需你审阅。</p>}
       {ready && run.blocker && <p role="status">{run.blocker.message}</p>}
-      <div className="button-row">
+      <div className="button-row" id="material-next-action">
         {run.state === "cancelled" && <ContinuationAction projectId={projectId} revision={revision} run={run} disabled={busy || readOnly || !ready} execute={execute} />}
-        {controllable && ["running", "waiting"].includes(run.state) && <Button disabled={busy || readOnly || !ready} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "pause"))}>暂停</Button>}
-        {controllable && ["paused", "blocked"].includes(run.state) && <Button disabled={busy || readOnly || !ready} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "resume"), true)}>继续原任务</Button>}
+        {controllable && ["running", "waiting"].includes(run.state) && <Button disabled={busy || readOnly || !ready} onClick={() => { completion.clear(); void execute(() => autopilotApi.control(projectId, run.revision, "pause")); }}>暂停</Button>}
+        {controllable && ["paused", "blocked"].includes(run.state) && <Button disabled={busy || readOnly || !ready} onClick={() => { void execute(() => autopilotApi.control(projectId, run.revision, "resume"), true, true); }}>继续原任务</Button>}
         {controllable && <><Button disabled={busy || readOnly || !ready} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "cancel"))}>取消自动准备</Button><Button disabled={busy || readOnly || !ready} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "takeover"), true)}>接管手动编辑</Button></>}
         {["awaiting_review", "taken_over", "cancelled", "stale"].includes(run.state) && <Button variant="primary" disabled={busy || readOnly || !ready} onClick={() => setReview(true)}>审阅完整素材</Button>}
-        {run.state === "handed_off" && ready && <Button variant="primary" onClick={onVideo}>进入手动视频制作</Button>}
+        {run.state === "handed_off" && ready && <><Button variant="primary" onClick={onVideo}>批量生成缺失视频</Button><Button onClick={onVideo}>进入手动视频制作</Button></>}
       </div>
     </section>}
+    {savedStatus && <p role="status" aria-live="polite">{savedStatus}</p>}
     {error && <p className="autopilot-error" role="alert">素材准备：{error}</p>}
     {commandError && <p className="autopilot-error" role="alert">上次操作反馈：{commandError}</p>}
     {children}
-    {review && run && <MaterialReview key={`${projectId}:${run.revision}`} projectId={projectId} readOnly={readOnly || !ready} onClose={() => setReview(false)}
+    {review && run && <MaterialReview onConfirmStart={completion.arm} key={`${projectId}:${run.revision}`} projectId={projectId} readOnly={readOnly || !ready} onClose={() => setReview(false)}
       onUncertain={message => { setCommandError(message); setReady(false); setReadEpoch(epoch => epoch + 1); }}
-      onAccepted={async value => { setRun(value); setReview(false); await onChanged(); }} />}
+      onAccepted={async value => { setRun(value); setReview(false); setBusy(true); setSavedStatus("已保存，正在刷新制作状态"); try { await onChanged(); setSavedStatus("已保存完整素材审阅"); } catch { setSavedStatus("已保存完整素材审阅；刷新制作状态失败，请重新读取。"); } finally { setBusy(false); } completion.reveal("material-next-action"); }} />}
   </Context.Provider>;
 }
 
