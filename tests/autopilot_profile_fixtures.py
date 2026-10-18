@@ -34,6 +34,7 @@ SCHEMA = {
     "v2_production_bridge_revisions": "project_id,revision,content_hash,inputs,proposal,conflicts",
     "v2_approval_decisions": "id,reviewer",
     "v2_same_person_reviews": "id,reviewer",
+    "v2_visual_intents": "id,project_id,intent",
 }
 
 

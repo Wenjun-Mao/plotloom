@@ -81,6 +81,40 @@ attempts plus one retained outcome-unknown, no queues/validators, and no live
 process for that UNKNOWN attempt's recorded PID. Recheck current activity before
 any restart; these observations alone are not permission to erase or settle it.
 
+## Final-gate fixture correction
+
+The full attempt at `200a1c78ec004b573de8699f937323909528aa05` ended with exit 1:
+3,231 Python cases passed and six failed. Original failure evidence remains in
+`.local/verification/2026-10-18-bulk-material/full-200a1c78.log`.
+All six failures came from the minimal profile-provenance fixture missing
+`v2_visual_intents`. The real validator now always reads `(id, project_id, intent)`
+to reject orphaned source endorsements; the fixture explicitly models only the
+columns read by real validators and omitted that empty collection. Its existing
+empty approval/review collections establish the same fixture convention.
+
+The correction adds only `v2_visual_intents: id,project_id,intent` to
+`tests/autopilot_profile_fixtures.py`. Production checks, missing-table behavior
+and assertions remain unchanged. The schema-seeding consumers are bindings,
+receipts and transactions; the construction tests import only the unchanged
+construction observer.
+
+Executed the affected selection, including all six original failures:
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest tests/test_autopilot_profile_bindings.py \
+  --pytest tests/test_autopilot_profile_receipts.py \
+  --pytest tests/test_autopilot_profile_transactions.py
+```
+
+Result: 35 passed in 8.45 seconds; verification exit 0, 11.996 seconds total.
+Log: `.local/verification/2026-10-18-bulk-material/profile-fixture-correction-200a1c78.log`.
+`git diff --exit-code HEAD -- src frontend/src` confirmed production bytes stayed
+unchanged. This test-fixture-only correction does not establish a new full pass:
+the manager reuses unchanged passed evidence and owns the remaining unfiltered
+downstream gates. No second full run, publication or live operation was performed
+for this correction.
+
 ## Final release and activation
 
 Pending: one stable `uv run --locked --no-sync python scripts/verify.py full`,
