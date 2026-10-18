@@ -67,8 +67,9 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await expect(page.locator(".topbar")).not.toContainText("角色");
   await page.getByText("编辑与工具", { exact: true }).click();
   await page.getByRole("button", { name: "分镜工作台", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=storyboard$`));
+  await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=storyboard#video-batch-production$`));
   await expect(page.getByRole("heading", { name: "分镜工作台" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "批量制作视频", exact: true })).toBeInViewport();
 
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${secondProject}&stage=source#art`);
   await expect(page.locator(".source-outline-page")).toHaveAttribute("data-project-id", secondProject);
