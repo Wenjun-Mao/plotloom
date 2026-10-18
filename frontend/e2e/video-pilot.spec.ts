@@ -2,6 +2,7 @@ import { openMediaPreparation, openMediaKeyframes } from "./workbench-controls";
 import { freezeReviewedFixtureDirections } from "./video_backends/minimax_h3/review-directions";
 import { expect, test, type Workbench } from "./fixture";
 import { demoProject } from "../src/demo";
+import { reviewedFixtureSource, saveFixtureTargetIntent, reviewFixtureTarget } from "./fixtures/reviewed-frame-reuse";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { APIRequestContext, Locator, Page } from "@playwright/test";
@@ -105,6 +106,7 @@ async function prepareSelectedPair(
   const panel = page.getByTestId("video-pilot-panel");
   await panel.locator("details.video-production > summary").click();
   const firstJobId = await ingestAndSelectOfflineCandidate(page, panel, projectId, 24);
+  const source = await reviewedFixtureSource(request, workbench.apiOrigin, projectId);
 
   // The adjoining fixture follows the same authored review/selection path.
   // Retention is scoped to a shot; explicitly retain the same fixture asset
@@ -112,8 +114,10 @@ async function prepareSelectedPair(
   await page.getByRole("combobox", { name: "当前镜头", exact: true }).selectOption("shot_03");
   await expect(page.locator(".shot-workbench-heading")).toContainText("双键升起");
   await page.getByTestId(/^keep-candidate-/).click();
+  const targetIntent = await saveFixtureTargetIntent(page, request, workbench.apiOrigin, projectId, source, "shot_03");
   await page.getByLabel("审核兼容性说明").fill("Current approved adjoining shot keyframe.");
   await page.getByTestId("select-reviewed-keyframe").click();
+  await reviewFixtureTarget(page, request, workbench.apiOrigin, projectId, source, targetIntent);
   const secondJobId = await ingestAndSelectOfflineCandidate(page, panel, projectId, 0);
 
   // An explicit route is required before the selected-path player appears;

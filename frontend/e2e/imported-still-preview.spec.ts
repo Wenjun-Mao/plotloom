@@ -2,6 +2,7 @@ import { navigateToSecondaryTool, openMediaPreparation, openMediaKeyframes } fro
 import { expect, test } from "./fixture";
 import { json } from "./f5a-fixture";
 import { demoProject } from "../src/demo";
+import { reviewedFixtureSource, saveFixtureTargetIntent, reviewFixtureTarget } from "./fixtures/reviewed-frame-reuse";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -46,19 +47,31 @@ test.describe("P0 imported still preview journey", () => {
     await expect(page.getByText(/已保存 r1/)).toBeVisible();
     await page.getByLabel("审核兼容性说明").fill("The retained still matches the approved first-shot composition.");
     await page.getByTestId("select-reviewed-keyframe").click();
+    await expect(page.getByTestId("current-reviewed-keyframe")).toContainText("画面意图 r1");
+    const source = await reviewedFixtureSource(request, workbench.apiOrigin, projectId);
+    const reference = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/character-references`, { data: {
+      characterId: "char_ruanxing", authority: "story_bible", primaryAssetId: source.binding.assetId,
+      complementaryAssetIds: [], expectedReferenceRevision: 0, reviewer: "Codex",
+      notes: "Offline fixture identity reference for independent target review; not human creative acceptance.",
+    } });
+    expect(reference.ok(), await reference.text()).toBeTruthy();
 
     await page.getByRole("combobox", { name: "当前镜头", exact: true }).selectOption("shot_02");
     await cards.nth(0).getByTestId(/^keep-candidate-/).click();
     await expect(page.getByLabel("审核兼容性说明")).toHaveValue("");
     await expect(page.getByTestId("select-reviewed-keyframe")).toBeDisabled();
+    const secondIntent = await saveFixtureTargetIntent(page, request, workbench.apiOrigin, projectId, source, "shot_02");
     await page.getByLabel("审核兼容性说明").fill("The retained fixture still is explicitly reviewed for the second shot.");
     await page.getByTestId("select-reviewed-keyframe").click();
+    await reviewFixtureTarget(page, request, workbench.apiOrigin, projectId, source, secondIntent);
     await page.getByRole("combobox", { name: "当前镜头", exact: true }).selectOption("shot_p0_03");
     await cards.nth(0).getByTestId(/^keep-candidate-/).click();
     await expect(page.getByLabel("审核兼容性说明")).toHaveValue("");
     await expect(page.getByTestId("select-reviewed-keyframe")).toBeDisabled();
+    const thirdIntent = await saveFixtureTargetIntent(page, request, workbench.apiOrigin, projectId, source, "shot_p0_03");
     await page.getByLabel("审核兼容性说明").fill("The retained fixture still is explicitly reviewed for the third shot.");
     await page.getByTestId("select-reviewed-keyframe").click();
+    await reviewFixtureTarget(page, request, workbench.apiOrigin, projectId, source, thirdIntent);
     await expect(page.getByText("所有镜头已有当前审核关键帧", { exact: false })).toBeVisible();
     await page.getByRole("combobox", { name: "当前镜头", exact: true }).selectOption("shot_01");
     await page.getByTestId("preview-subset-length").selectOption("3");

@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Locator, Page } from "@playwright/test";
 import { collectNativeMediaDiagnostics } from "./native-media-diagnostics";
+import { reviewedFixtureSource, saveFixtureTargetIntent, reviewFixtureTarget } from "./fixtures/reviewed-frame-reuse";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const still = path.join(root, "docs/verification/supporting/p0-generated/01-arrival.png");
@@ -170,10 +171,13 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
   await panel.locator("details.video-production > summary").click();
   const shotNames = ["门开", "双键升起", "城市醒来", "舱门开启"];
   const jobIds: string[] = [];
+  let source: Awaited<ReturnType<typeof reviewedFixtureSource>>;
   for (const [index, shotName] of shotNames.entries()) {
+    let targetIntent: Awaited<ReturnType<typeof saveFixtureTargetIntent>> | undefined;
     if (index > 0) {
       await page.getByRole("combobox", { name: "当前镜头", exact: true }).selectOption(project.storyboard.shots[index].id);
       await page.getByTestId(/^keep-candidate-/).click();
+      targetIntent = await saveFixtureTargetIntent(page, request, workbench.apiOrigin, projectId, source!, project.storyboard.shots[index].id);
     }
     await page.getByLabel("审核兼容性说明").fill(`Current approved ${shotName} fixture keyframe.`);
     const selectedKeyframeResponse = page.waitForResponse((response) => (
@@ -181,6 +185,7 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/reviewed-keyframes`
     ));
     await page.getByTestId("select-reviewed-keyframe").click();
+    if (targetIntent) await reviewFixtureTarget(page, request, workbench.apiOrigin, projectId, source!, targetIntent);
     if (index === 0) {
       const selectedKeyframe = await selectedKeyframeResponse.then((response) => response.json() as Promise<{ assetId: string }>);
       const visual = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/visual-workbench`);
@@ -194,6 +199,7 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
         } });
         expect(reference.ok()).toBeTruthy();
       }
+      source = await reviewedFixtureSource(request, workbench.apiOrigin, projectId);
     }
     jobIds.push(await ingestAndSelectOfflineCandidate(page, panel, projectId, index === 0 ? 24 : 0));
   }
