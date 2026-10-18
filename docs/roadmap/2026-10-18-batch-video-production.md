@@ -11,8 +11,11 @@ explicit actions; implementation approval does not perform them.
 The delegated source owner has implemented steps 1–4 in the retained checkout
 `/Users/wjmao/.codex/worktrees/b30f/plotloom`. Independent stable review findings
 were addressed at native proposal, retained prediction, foreground intent and
-player read owners. Step 5 qualification is in progress; see
-`docs/verification/2026-10-18-batch-video-production.md` for exact evidence.
+player read owners. Step 5 local software qualification is complete through
+full-run evidence, an exact corrected navigation-spec rerun and downstream wheel
+checks. Product source is `575907e7`; the test-contract revision is `52ad5889`.
+See `docs/verification/2026-10-18-batch-video-production.md` for exact evidence,
+retained failures, measured latency and the live-provider/hosted-CI gaps.
 The manager explicitly holds publication and activation until the integrated
 checkpoint is reviewed. This overrides the normal push/activation sequence for
 this checkpoint. Owner materials, project data and the running installation have
