@@ -1,5 +1,5 @@
 import { test, expect } from "./vite-only-fixture";
-import type { Handoff } from "../src/features/autopilot/contracts";
+import type { BulkHandoff } from "../src/features/autopilot/contracts";
 
 test("concurrent preparation shows durable states, retained count and unknown inventory at desktop sizes", async ({ page, frontendOrigin }, info) => {
   for (const height of [900, 600]) {
@@ -34,7 +34,7 @@ for (const height of [900, 600]) {
     await expect(declarations.first()).toContainText("hero-job"); await expect(declarations.first()).toContainText("e".repeat(64));
     await declarations.first().scrollIntoViewIfNeeded(); await page.screenshot({ path: info.outputPath(`reference-disclosures-${height}.png`) });
     await history.scrollIntoViewIfNeeded(); await page.screenshot({ path: info.outputPath(`original-adaptation-disclosures-${height}.png`) });
-    await expect(dialog.getByRole("button", { name: "确认使用这些素材" })).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "确认全部素材并继续" })).toBeEnabled();
     expect(await page.locator("#fixture-writes").textContent()).toBe("[]");
   });
 }
@@ -46,6 +46,7 @@ test("failed disclosure reads remain unknown and retry preserves authored observ
   await expect(dialog.getByText("图片交付说明读取失败", { exact: false })).toBeVisible();
   await expect(dialog).not.toContainText("未声明局限");
   const observation = page.getByRole("textbox", { name: "shot-1 画面意图", exact: true });
+  await dialog.getByText("查看意图与处理例外 · shot-1", { exact: true }).click();
   await observation.fill("保留作者在读取失败期间填写的观察。");
   await page.getByRole("button", { name: "重试读取图片交付说明" }).click();
   await expect(dialog.getByText("额外椅子、花瓶与植物偏离冻结要求。", { exact: true })).toBeVisible();
@@ -123,12 +124,12 @@ test("long blocker remains readable at desktop, narrow and short viewports", asy
   }
 });
 
-for (const outcome of ["normal", "handoff-unknown", "handoff-uncommitted"]) test(outcome === "normal" ? "whole review requires real observations and separate uncertain identity authorization" : outcome === "handoff-unknown" ? "lost handoff acknowledgment reconciles durable result without resending confirmation" : "uncommitted handoff retains authored observations through failed read reconciliation", async ({ page, frontendOrigin }, testInfo) => {
+for (const outcome of ["normal", "handoff-unknown", "handoff-uncommitted"]) test(outcome === "normal" ? "whole review confirms once and records separate uncertain identity authorization" : outcome === "handoff-unknown" ? "lost handoff acknowledgment reconciles durable result without resending confirmation" : "uncommitted handoff retains authored edits through failed read reconciliation", async ({ page, frontendOrigin }, testInfo) => {
   await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html${outcome === "normal" ? "" : `?state=${outcome}`}`);
   await page.getByRole("button", { name: "审阅完整素材", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "审阅完整素材" });
-  const confirm = dialog.getByRole("button", { name: "确认使用这些素材" });
-  await expect(confirm).toBeDisabled(); await expect(dialog.getByLabel("shot-1 hero 身份判断")).toHaveValue("");
+  const confirm = dialog.getByRole("button", { name: "确认全部素材并继续" });
+  await expect(confirm).toBeEnabled();
   await expect(dialog.getByRole("heading", { name: "守塔人 · 2 张参考" })).toBeVisible();
   await expect(dialog.getByRole("img", { name: "守塔人主参考", exact: true })).toBeVisible();
   await expect(dialog.getByRole("img", { name: "守塔人补充参考 1", exact: true })).toBeVisible();
@@ -140,17 +141,14 @@ for (const outcome of ["normal", "handoff-unknown", "handoff-uncommitted"]) test
   await page.screenshot({ path: testInfo.outputPath("reference-gallery-desktop.png"), fullPage: true });
   await dialog.locator(".autopilot-frame").first().scrollIntoViewIfNeeded();
   await page.screenshot({ path: testInfo.outputPath("frame-observations-desktop.png"), fullPage: true });
-  await dialog.getByLabel("我看过了，确认使用这些参考图 · 守塔人").check(); await dialog.getByLabel("我看过了，确认使用这些参考图 · 灯塔").check();
-  for (const shot of ["shot-1", "shot-2"]) {
-    await dialog.getByRole("textbox", { name: `${shot} 画面意图`, exact: true }).fill("清楚展示当前动作与环境关系。");
-    await dialog.getByRole("textbox", { name: `${shot} 意图依据`, exact: true }).fill(shot);
-    await dialog.getByRole("textbox", { name: `${shot} 镜头兼容性观察`, exact: true }).fill("实际看过此帧，构图与镜头动作相符。");
-  }
+  await expect(dialog.getByRole("checkbox")).toHaveCount(0);
+  await dialog.getByText("查看意图与处理例外 · shot-1", { exact: true }).click();
+  await expect(dialog.getByRole("textbox", { name: "shot-1 画面意图", exact: true })).toHaveValue("背影中景，动作清晰可见。");
+  if (outcome === "handoff-uncommitted") await dialog.getByRole("textbox", { name: "shot-1 画面意图", exact: true }).fill("清楚展示当前动作与环境关系。");
   await expect(dialog.getByRole("textbox", { name: "审阅人", exact: true })).toHaveCount(0);
   if (outcome !== "normal") await dialog.getByLabel("备注（可选）").fill("  已检查全部故事路线与图片。\n");
   await dialog.getByLabel("shot-1 hero 身份判断").selectOption("unassessable");
-  await dialog.getByLabel("shot-1 hero 身份观察").fill("人物背对镜头，脸部不可见。");
-  await dialog.getByLabel("shot-1 hero 状态观察").fill("外衣与伸手姿态符合当前动作。");
+  await expect(confirm).toBeDisabled();
   await dialog.getByLabel("shot-1 hero 不确定原因").fill("此镜头有意使用背影，接受身份不确定性。");
   await dialog.getByLabel("shot-1 hero 制作授权").selectOption("hold"); await expect(confirm).toBeDisabled();
   await dialog.getByLabel("shot-1 hero 制作授权").selectOption("authorize"); await expect(confirm).toBeEnabled();
@@ -162,7 +160,6 @@ for (const outcome of ["normal", "handoff-unknown", "handoff-uncommitted"]) test
     await expect(confirm).toBeDisabled();
     await expect(dialog.getByRole("alert")).toContainText("Disposable handoff not committed");
     await expect(confirm).toBeEnabled();
-    await dialog.locator(".autopilot-frame").first().locator("summary").click();
     await expect(dialog.getByRole("textbox", { name: "shot-1 画面意图", exact: true })).toHaveValue("清楚展示当前动作与环境关系。");
     await expect(dialog.getByLabel("备注（可选）")).toHaveValue("  已检查全部故事路线与图片。\n");
     await expect(page.getByRole("button", { name: "进入手动视频制作" })).toHaveCount(0);
@@ -172,9 +169,11 @@ for (const outcome of ["normal", "handoff-unknown", "handoff-uncommitted"]) test
     await expect(page.getByRole("button", { name: "审阅完整素材", exact: true })).toHaveCount(0);
     await expect(page.getByText("已记录完整人工审阅", { exact: false })).toBeVisible();
   }
-  const writes = JSON.parse(await page.locator("#fixture-writes").textContent() || "[]") as Array<[string, Handoff]>;
+  const writes = JSON.parse(await page.locator("#fixture-writes").textContent() || "[]") as Array<[string, BulkHandoff]>;
   expect(writes).toHaveLength(1); expect(writes[0][0]).toBe("handoff");
   expect(writes[0][1]).not.toHaveProperty("reviewer");
+  expect(writes[0][1].basis).toBe("whole-pack-material.v1");
+  expect(writes[0][1].frames[0].comparisons[0]).not.toHaveProperty("identityNotes");
   if (outcome === "normal") expect(writes[0][1]).not.toHaveProperty("notes");
   else expect(writes[0][1].notes).toBe("  已检查全部故事路线与图片。\n");
   expect(writes[0][1].frames[0].comparisons[0].judgment).toBe("unassessable"); expect(writes[0][1].frames[0].comparisons[0].productionDecision).toBe("authorize");
@@ -185,12 +184,44 @@ for (const outcome of ["normal", "handoff-unknown", "handoff-uncommitted"]) test
 test("closing and reloading review never fabricates completed judgments", async ({ page, frontendOrigin }) => {
   await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html`);
   await page.getByRole("button", { name: "审阅完整素材", exact: true }).click();
+  await page.getByText("查看意图与处理例外 · shot-1", { exact: true }).click();
   await page.getByLabel("shot-1 hero 身份判断").selectOption("fail");
   await page.getByRole("button", { name: "关闭审阅" }).click();
   await page.reload(); await page.getByRole("button", { name: "审阅完整素材", exact: true }).click();
-  await expect(page.getByLabel("shot-1 hero 身份判断")).toHaveValue("");
-  await expect(page.getByRole("button", { name: "确认使用这些素材" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "确认全部素材并继续" })).toBeEnabled();
   expect(await page.locator("#fixture-writes").textContent()).toBe("[]");
+});
+
+test("42-frame five-reference gallery approves with one explicit final action and zero typing", async ({ page, frontendOrigin }, info) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html?state=pack42`);
+  await page.getByRole("button", { name: "审阅完整素材", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "审阅完整素材" });
+  await expect(dialog).toContainText("5 项参考（6 张图片） · 42 个镜头首帧");
+  await expect(dialog.locator(".autopilot-frame")).toHaveCount(42);
+  await expect(dialog.locator(".autopilot-frame details[open]")).toHaveCount(0);
+  await expect(dialog.getByRole("checkbox")).toHaveCount(0);
+  const first = dialog.locator(".autopilot-frame").first(); await first.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: info.outputPath("whole-pack-42-gallery.png") });
+  const confirm = dialog.getByRole("button", { name: "确认全部素材并继续" });
+  await expect(confirm).toBeEnabled(); await confirm.click();
+  await expect(dialog).not.toBeVisible();
+  const writes = JSON.parse(await page.locator("#fixture-writes").textContent() || "[]") as Array<[string, BulkHandoff]>;
+  expect(writes).toHaveLength(1); expect(writes[0][1].frames).toHaveLength(42); expect(writes[0][1].endorsedReferenceIds).toHaveLength(5);
+  expect(writes[0][1].frames.every(frame => frame.compatibility === "pass")).toBe(true);
+  expect(writes[0][1]).not.toHaveProperty("notes");
+});
+
+for (const assetId of ["frame-1", "frame-original"]) test(`known failed image ${assetId} blocks whole-pack action and retry restores only observation`, async ({ page, frontendOrigin }) => {
+  const pattern = `**/managed-assets/${assetId}/**`;
+  await page.route(pattern, route => route.fulfill({ status: 503, body: "Disposable missing pixels" }));
+  await page.goto(`${frontendOrigin}/v2/e2e/autopilot-fixture.html`);
+  await page.getByRole("button", { name: "审阅完整素材", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "审阅完整素材" });
+  const confirm = dialog.getByRole("button", { name: "确认全部素材并继续" });
+  await expect(dialog.getByRole("alert")).toContainText("保留原图无法读取"); await expect(confirm).toBeDisabled();
+  await page.unroute(pattern); await dialog.getByRole("button", { name: "重试读取图片", exact: true }).click();
+  await expect(confirm).toBeEnabled(); expect(await page.locator("#fixture-writes").textContent()).toBe("[]");
 });
 
 for (const height of [900, 600]) test(`local geometry keeps original evidence and genuine review at 1440x${height}`, async ({ page, frontendOrigin }, testInfo) => {
@@ -205,7 +236,6 @@ for (const height of [900, 600]) test(`local geometry keeps original evidence an
   await disclosure.scrollIntoViewIfNeeded();
   await expect(disclosure.getByText("EXIF 方向：1 · 居中裁剪框：0.25, 0, 940.75, 1672", { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath(`geometry-disclosure-${height}.png`), fullPage: true });
-  await expect(page.getByLabel("shot-1 hero 身份判断")).toHaveValue("");
-  await expect(page.getByRole("button", { name: "确认使用这些素材" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "确认全部素材并继续" })).toBeEnabled();
   expect(await page.locator("#fixture-writes").textContent()).toBe("[]");
 });

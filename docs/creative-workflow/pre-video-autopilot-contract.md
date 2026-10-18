@@ -234,6 +234,18 @@ broader full qualification stays manager-owned on the stable candidate.
 
 ### Complete review and browser observation
 
+Whole-pack review now also supports the typed v3 basis in
+[ADR 0191](../adr/0191-whole-pack-human-material-confirmation.md). One explicit
+final action confirms the exact displayed reference sets, ordered frames and
+visible characters. Its judgments are bulk-confirmed, with no invented authored
+prose. The v2 review projection binds complete saved intent/source context;
+unchanged context is endorsed, explicit edits are creator input. FAIL/HOLD and
+unresolved flags block the whole transaction; unassessable still requires a
+separate reason and authorization. Shared admission requires validated exact
+receipt/native links for the new basis. Historical receipt shape/link checks do
+not invoke eligibility. Detailed inputs remain strict and retained v1/v2 evidence
+is immutable. No SQL migration or video operation is introduced.
+
 Review every selected character-reference view (primary and complementary),
 retaining the original decision ID and ordered asset IDs, hashes and dimensions.
 Endorsement must match the full set consumed by identity review. Current generated

@@ -276,6 +276,7 @@ export interface VisualIntent {
   revision: number;
   targetUseCurrent?: boolean;
   intent: {
+    sourceEndorsement?: { kind: "saved_storyboard"; entityRevisionId: string; revision: number; contentHash: string; shotId: string };
     role: "protagonist_reference" | "location_reference" | "shot_keyframe";
     identityIntent?: string | null;
     compositionIntent?: string | null;
@@ -298,6 +299,7 @@ export interface ReviewedKeyframe {
   visualIntentId: string | null;
   visualIntentRevision: number | null;
   compatibilityNote: string;
+  confirmationBasis?: { version: "whole-pack-material.v1" | "detailed-observations.v2"; receiptId: string; bundleHash: string };
 }
 
 export interface StillPreview {

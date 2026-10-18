@@ -1,6 +1,6 @@
 import { ApiTransport } from "../../api-transport";
 import { browserProjectReads } from "../../project-read-admission";
-import type { AutopilotRun, Handoff, Launch, ReviewMaterial } from "./contracts";
+import type { AutopilotRun, BulkHandoff, Handoff, Launch, ReviewMaterial } from "./contracts";
 const transport = new ApiTransport(globalThis.fetch, "/api/v2", browserProjectReads);
 const path = (id: string) => `/projects/${encodeURIComponent(id)}/autopilot`;
 const read = async <T,>(url: string, init?: RequestInit) => (await transport.json<T>(url, init)).body;
@@ -12,5 +12,5 @@ export const autopilotApi = {
   continuationContext: (id: string) => read<{ runId: string; runRevision: number; materialClosure: string; eligible: boolean; blockers: string[]; inheritedOperations: number; lifetimeJobs: number; lifetimeImages: number }>(`${path(id)}/continuation-context`),
   continueMaterial: (id: string, body: Launch & { expectedRunId: string; expectedRunRevision: number; expectedMaterialClosure: string }) => read<AutopilotRun>(`${path(id)}/continue`, { method: "POST", body: JSON.stringify(body) }),
   review: (id: string, signal?: AbortSignal) => read<ReviewMaterial>(`${path(id)}/review`, { signal }),
-  handoff: (id: string, body: Handoff) => read<AutopilotRun>(`${path(id)}/handoff`, { method: "POST", body: JSON.stringify(body) }),
+  handoff: (id: string, body: Handoff | BulkHandoff) => read<AutopilotRun>(`${path(id)}/handoff`, { method: "POST", body: JSON.stringify(body) }),
 };

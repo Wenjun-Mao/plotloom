@@ -5,6 +5,8 @@ from ...autopilot_contracts import CommandAuthority, OperationScope
 from ...autopilot_handoff_contracts import (
     HumanHandoffReceipt,
     HumanHandoffRequest,
+    BulkHumanHandoffRequest,
+    BulkHumanHandoffReceipt,
     parse_handoff_receipt,
 )
 from ...domain import new_id, utc_now
@@ -32,9 +34,11 @@ def review_material(store):
         return current_review_bundle(store, session, run)
 
 
-def record_handoff(store, request: HumanHandoffRequest):
+def record_handoff(store, request: HumanHandoffRequest | BulkHumanHandoffRequest):
     repository, project_id = store.repository, store.manifest.project_id
     attribution = UnnamedCreatorConfirmation()
+    bulk = isinstance(request, BulkHumanHandoffRequest)
+    identifier = new_id()
     # This authority is constructed only by this human endpoint; it never admits
     # machine scopes or relies on an expired controller claim after takeover.
     run = repository.autopilot.current(project_id)
@@ -55,6 +59,8 @@ def record_handoff(store, request: HumanHandoffRequest):
         if [item.shot_id for item in request.frames] != [item["shotId"] for item in expected]:
             raise InvalidTransitionError("review every filmed shot exactly once in displayed order")
         for observation, frame in zip(request.frames, expected, strict=True):
+            if bulk and (observation.compatibility != "pass" or observation.intent_context.model_dump(mode="json", by_alias=True) != frame.get("intentContext")):
+                raise InvalidTransitionError("resolve every frame flag and endorse its exact displayed saved intent")
             if observation.asset_id != frame["assetId"] or [item.character_id for item in observation.comparisons] != frame["characterIds"]:
                 raise InvalidTransitionError("frame review must cover exact displayed bytes and visible characters")
             if observation.comparisons and not repository._media.same_person.comparisons_authorize_production(
@@ -84,25 +90,29 @@ def record_handoff(store, request: HumanHandoffRequest):
             intent = intents[key]
             selection = session.get(VisualSelectionStateRow, project_id)
             presentation = repository._media.shot_presentations.current(session, project_id, frame["shotId"])
+            from .bulk_handoff_basis import BulkHandoffWrite
+            basis = BulkHandoffWrite(identifier, request.bundle_hash, frame["shotId"]) if bulk else None
             binding = repository._media.keyframes.select_reviewed_keyframe(project_id, asset_id=frame["assetId"],
                 shot_id=frame["shotId"], scene_id=frame["sceneId"], expected_selection_revision=selection.revision if selection else 0,
                 storyboard_revision=inventory["storyboardRevision"], approval_id=approval.id,
                 compatibility_note=observation.compatibility_note, visual_intent_id=intent["id"], visual_intent_revision=intent["revision"],
-                expected_presentation_revision=presentation["revision"] if presentation else 0)
+                expected_presentation_revision=presentation["revision"] if presentation else 0, **({"bulk_basis": basis} if bulk else {}))
             fact = {"shotId": frame["shotId"], "assetId": frame["assetId"], "intentId": intent["id"], "bindingId": binding["id"]}
             if observation.comparisons:
                 state = session.get(SamePersonReviewStateRow, project_id)
+                from ...bulk_material_contracts import stored_bulk_comparisons
+                comparisons = (stored_bulk_comparisons(observation, identifier, request.bundle_hash) if bulk else
+                    [item.model_dump(mode="json", by_alias=True, exclude_none=True) for item in observation.comparisons])
                 review = repository._media.same_person.record_same_person_review(project_id, binding_id=binding["id"],
                     expected_review_revision=state.revision if state else 0, reviewer=attribution,
-                    comparisons=[item.model_dump(mode="json", by_alias=True, exclude_none=True) for item in observation.comparisons],
-                    notes=observation.compatibility_note)
+                    comparisons=comparisons, notes=observation.compatibility_note, **({"bulk_basis": basis} if bulk else {}))
                 if not review["productionEligible"]:
                     raise InvalidTransitionError("identity observations are no longer current")
                 fact["samePersonReviewId"] = review["id"]
             facts.append(fact)
-        identifier = new_id()
         closure = material_closure(session, project_id)
-        receipt = HumanHandoffReceipt(id=identifier, run_id=row.id, project_id=project_id, bundle_hash=request.bundle_hash,
+        receipt_type = BulkHumanHandoffReceipt if bulk else HumanHandoffReceipt
+        receipt = receipt_type(id=identifier, run_id=row.id, project_id=project_id, bundle_hash=request.bundle_hash,
             bundle=bundle, attribution=attribution, observation=request, approval_id=approval.id, approval_origin=approval_origin, bindings=facts, material_closure=closure)
         raw = receipt.model_dump(mode="json", by_alias=True)
         session.add(AutopilotHandoffRow(id=identifier, run_id=row.id, project_id=project_id, approval_id=approval.id,
@@ -110,6 +120,7 @@ def record_handoff(store, request: HumanHandoffRequest):
         row.handoff = {"receiptId": identifier, "receiptHash": stable_hash(raw), "bundleHash": request.bundle_hash, "materialClosure": closure}
         row.state, row.phase, row.blocker = "handed_off", "manual-video", None
         session.flush()
+        session.info.pop("pending_bulk_bindings", None)
         if not handoff_is_current(session, repository, row):
             raise InvalidTransitionError("the complete human handoff failed current admission")
     return repository.autopilot.current(project_id)

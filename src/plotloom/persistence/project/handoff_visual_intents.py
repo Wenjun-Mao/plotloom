@@ -1,20 +1,28 @@
 """Preserve reviewed target-use authority through an explicit human handoff."""
 from ...exceptions import InvalidTransitionError
-from ...managed_media import VisualIntentInput
+from ...source_endorsed_intent import parse_saved_intent
 from ..schema import ReviewedShotBindingRow, VisualIntentRow
 
 
 def authored_intent(payload):
-    return VisualIntentInput.model_validate({key: value for key, value in payload.items() if key != "targetUse"}).model_dump(mode="json", by_alias=True)
+    return parse_saved_intent({key: value for key, value in payload.items() if key != "targetUse"}).model_dump(mode="json", by_alias=True)
 
 
 def prepare_handoff_intents(session, repository, project_id, observations, frames):
     """Read/validate every source before any handoff authority is written."""
     plans, changed_ids = {}, set()
     for observation, frame in zip(observations, frames, strict=True):
-        if observation.intent.source_binding_id is not None or observation.intent.retained_visual_intent_id is not None:
+        if getattr(observation.intent, "source_binding_id", None) is not None or getattr(observation.intent, "retained_visual_intent_id", None) is not None:
             raise InvalidTransitionError("handoff author fields cannot select new cross-shot source authority")
         payload = observation.intent.model_dump(mode="json", by_alias=True)
+        if "sourceEndorsement" in payload:
+            from .handoff_intent_context import assert_source_intent
+            try:
+                assert_source_intent(session.connection().connection.driver_connection, project_id, payload)
+            except (ValueError, TypeError, KeyError) as error:
+                raise InvalidTransitionError("source-endorsed intent differs from its exact saved source") from error
+            if payload != frame.get("intentContext", {}).get("intent"):
+                raise InvalidTransitionError("source-endorsed intent must preserve exact displayed saved context; edits are authored input")
         binding = session.get(ReviewedShotBindingRow, frame["sourceId"]) if frame["origin"] == "human_binding" else None
         intent = session.get(VisualIntentRow, binding.visual_intent_id) if binding else None
         target_use = frame.get("targetUse")

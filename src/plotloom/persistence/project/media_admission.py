@@ -89,6 +89,10 @@ class KeyframeAdmission:
         """Exact frozen intent/presentation/approval; selection position is separate."""
         if binding.project_id != project_id or not ShotPresentations.binding_matches(session, binding):
             return False
+        if not binding.compatibility_note.strip():
+            from .bulk_handoff_basis import binding_has_basis
+            if not binding_has_basis(session, binding):
+                return False
         intent = session.get(VisualIntentRow, binding.visual_intent_id)
         if (
             intent is None
@@ -97,6 +101,13 @@ class KeyframeAdmission:
             or intent.revision != binding.visual_intent_revision
         ):
             return False
+        if "sourceEndorsement" in intent.intent:
+            from .handoff_intent_context import assert_source_intent
+            try:
+                assert_source_intent(session.connection().connection.driver_connection, project_id,
+                    {key: value for key, value in intent.intent.items() if key != "targetUse"})
+            except (ValueError, TypeError, KeyError):
+                return False
         latest_intent = self.latest_visual_intent_for_role_in_session(
             session, project_id, binding.asset_id, intent.intent.get("role"),
             (intent.intent.get("targetUse") or {}).get("targetShotId")
@@ -130,7 +141,7 @@ class KeyframeAdmission:
             latest: dict[str, ReviewedShotBindingRow] = {}
             for row in rows:
                 latest.setdefault(row.shot_id, row)
-            return [
+            result = [
                 {
                     "id": row.id, "assetId": row.asset_id, "shotId": row.shot_id,
                     "sceneId": row.scene_id, "selectionRevision": row.selection_revision,
@@ -141,6 +152,12 @@ class KeyframeAdmission:
                 for row in latest.values()
                 if self.reviewed_binding_admission_eligible_in_session(session, project_id, row)
             ]
+            from .bulk_handoff_basis import receipt_basis
+            for item in result:
+                basis = receipt_basis(session, project_id, item["id"])
+                if basis is not None:
+                    item["confirmationBasis"] = basis
+            return result
 
 
     def approval_is_active_in_session(self, session: Session, decision_id: str) -> ApprovalDecisionRow:

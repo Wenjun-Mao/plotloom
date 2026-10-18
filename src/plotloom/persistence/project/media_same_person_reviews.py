@@ -89,6 +89,13 @@ class SamePersonReviewPersistence:
     def same_person_review_is_current_in_session(
         self, session: Session, project_id: str, review: SamePersonReviewRow
     ) -> bool:
+        from .bulk_handoff_basis import review_has_basis
+        if review.reviewer == "" or any("confirmation" in item for item in review.comparisons):
+            authority = self._access.authority()
+            from ...autopilot_contracts import OperationScope
+            detailed_write = authority is not None and authority.scope == OperationScope.HANDOFF and not any("confirmation" in item for item in review.comparisons)
+            if not detailed_write and not review_has_basis(session, review):
+                return False
         binding = session.get(ReviewedShotBindingRow, review.binding_id)
         if binding is None or binding.project_id != project_id:
             return False
@@ -186,6 +193,7 @@ class SamePersonReviewPersistence:
         reviewer: str | UnnamedCreatorConfirmation,
         comparisons: list[dict[str, Any]],
         notes: str,
+        bulk_basis=None,
     ) -> dict[str, Any]:
         """Persist an explicit human judgment about a v3 generated keyframe."""
         from .autopilot_authority import require_human_command
@@ -193,16 +201,27 @@ class SamePersonReviewPersistence:
         try:
             normalized_reviewer = stored_reviewer(self._access, reviewer)
             fields = dict(binding_id=binding_id, expected_review_revision=expected_review_revision, comparisons=comparisons, notes=notes)
-            request = (SamePersonReviewObservations(**fields) if isinstance(reviewer, UnnamedCreatorConfirmation)
-                else SamePersonReviewRequest(**fields, reviewer=reviewer))
+            if bulk_basis is not None:
+                bulk_basis.require(self._access)
+                from ...bulk_material_contracts import StoredBulkIdentityJudgment
+                parsed = [StoredBulkIdentityJudgment.model_validate(item) for item in comparisons]
+                if not parsed or any(item.confirmation.receipt_id != bulk_basis.receipt_id or item.confirmation.bundle_hash != bulk_basis.bundle_hash
+                        or item.confirmation.shot_id != bulk_basis.shot_id for item in parsed):
+                    raise ValueError("bulk comparison authority changed")
+                request = None
+            else:
+                request = (SamePersonReviewObservations(**fields) if isinstance(reviewer, UnnamedCreatorConfirmation)
+                    else SamePersonReviewRequest(**fields, reviewer=reviewer))
         except (ValidationError, ValueError) as error:
             raise InvalidTransitionError("same-person review requires complete explicit judgments and uncertainty decisions") from error
-        comparisons = [item.model_dump(mode="json", by_alias=True, exclude_none=True) for item in request.comparisons]
+        comparisons = [item.model_dump(mode="json", by_alias=True, exclude_none=True) for item in (parsed if bulk_basis is not None else request.comparisons)]
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             binding = session.get(ReviewedShotBindingRow, binding_id)
             if binding is None or binding.project_id != project_id:
                 raise NotFoundError("reviewed keyframe binding not found")
+            if bulk_basis is not None and session.info.get("pending_bulk_bindings", {}).get(binding_id) != bulk_basis:
+                raise InvalidTransitionError("bulk identity review must bind its exact pending handoff frame")
             from .image_reviewed_use import use_in_session
             source = use_in_session(session, binding)
             mapping = self.identity_mapping_for_binding_in_session(session, binding)
@@ -245,7 +264,7 @@ class SamePersonReviewPersistence:
             review = SamePersonReviewRow(
                 id=new_id(), project_id=project_id, binding_id=binding_id, review_revision=state.revision,
                 reference_bindings=reference_bindings, comparisons=comparisons, reviewer=normalized_reviewer,
-                notes=notes.strip(), created_at=now,
+                notes=notes if bulk_basis is not None else notes.strip(), created_at=now,
             )
             session.add(review)
             session.flush()

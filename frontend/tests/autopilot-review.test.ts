@@ -281,7 +281,7 @@ it("a review already open becomes read-only with its workspace and keeps close a
   const submit = vi.spyOn(autopilotApi, "handoff");
   const props = { projectId: "disposable", onClose: () => undefined, onAccepted: async () => undefined, onUncertain: () => undefined };
   await act(async () => root.render(createElement(MaterialReview, props)));
-  expect(host.querySelector<HTMLInputElement>('input[type="checkbox"]')!.disabled).toBe(false);
+  expect(host.querySelector<HTMLSelectElement>('select')!.disabled).toBe(false);
   await act(async () => root.render(createElement(MaterialReview, { ...props, readOnly: true })));
   expect([...host.querySelectorAll("input, textarea, select")].every(element => element.matches(":disabled"))).toBe(true);
   expect(host.querySelector<HTMLButtonElement>("button")!.disabled).toBe(false);
@@ -297,7 +297,7 @@ it("offers no reviewer input and an optional comment while waiting for genuine m
   const comment = label.control as HTMLTextAreaElement;
   expect(comment.required).toBe(false);
   expect(comment.value).toBe("");
-  const confirm = [...host.querySelectorAll<HTMLButtonElement>("button")].find(item => item.textContent === "确认使用这些素材")!;
+  const confirm = [...host.querySelectorAll<HTMLButtonElement>("button")].find(item => item.textContent === "确认全部素材并继续")!;
   expect(confirm.disabled).toBe(true);
   expect(host.textContent).toContain("之后可从工作台打开手动视频制作");
   expect(submit).not.toHaveBeenCalled();

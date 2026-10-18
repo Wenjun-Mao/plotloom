@@ -1,5 +1,21 @@
 # Plotloom roadmap entrypoint
 
+## Approved whole-pack gallery approval
+
+The owner requested planning first for one explicit final material approval,
+with saved intent/source context and exception-only input. Whole-pack approval
+is selected: unresolved flagged frames block final handoff. The
+[implementation plan](2026-10-17-bulk-material-review.md) includes a truthful
+typed bulk-confirmation basis, scoped verification and consolidated permissions
+for implementation through safe activation. Implementation and independent
+review are complete; focused checks and read-only admission of the actual
+42-frame project pass. The manager is preparing the stable final full gate;
+publication and activation remain pending. See the
+[qualification record](../verification/2026-10-18-whole-pack-material-review.md).
+Live creative approval remains creator-owned; no material has been approved by
+the agent. Incompatible development projects may be removed without backup or
+recovery under the owner's later clarification; this JSON change needed no reset.
+
 ## Current explicit continuation and abandonment
 
 ADR 0190 is implemented in `dd3033d6`: missing-only continuation retains exact

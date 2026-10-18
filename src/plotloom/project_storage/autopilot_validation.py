@@ -144,12 +144,16 @@ def assert_autopilot_contracts(connection, *, asset_home=None, continuation=True
         from .handoff_validation import assert_handoff
         receipts = {}
         unnamed_approvals, unnamed_reviews = set(), set()
+        source_intents = set()
         for identifier, run_id, project, approval, raw, digest in connection.execute("SELECT id,run_id,project_id,approval_id,receipt,receipt_hash FROM v2_autopilot_handoffs"):
             if runs.get(run_id, (None,))[0] != project:
                 raise ValueError("human handoff run changed")
             receipt = assert_handoff(connection, identifier, run_id, project, approval, json.loads(raw), digest, asset_home=asset_home, continuation=continuation)
+            if receipt.version == "pre-video.handoff.v3":
+                source_intents.update(fact["intentId"] for fact, observation in zip(receipt.bindings, receipt.observation.frames, strict=True)
+                    if "sourceEndorsement" in observation.intent.model_dump(mode="json", by_alias=True))
             receipts[identifier] = (run_id, digest, receipt.bundle_hash, receipt.material_closure)
-            if receipt.version == "pre-video.handoff.v2":
+            if receipt.version in {"pre-video.handoff.v2", "pre-video.handoff.v3"}:
                 if receipt.approval_origin == "created":
                     unnamed_approvals.add(receipt.approval_id)
                 unnamed_reviews.update(fact["samePersonReviewId"] for fact in receipt.bindings if "samePersonReviewId" in fact)
@@ -159,6 +163,13 @@ def assert_autopilot_contracts(connection, *, asset_home=None, continuation=True
             for identifier, reviewer in connection.execute(f'SELECT id,reviewer FROM "{table}" WHERE trim(reviewer)=\'\''):
                 if reviewer != "" or identifier not in admitted:
                     raise ValueError("unnamed human fact lacks exact creator confirmation evidence")
+        for identifier, project, payload in connection.execute("SELECT id,project_id,intent FROM v2_visual_intents"):
+            value = json.loads(payload)
+            if "sourceEndorsement" in value:
+                if identifier not in source_intents:
+                    raise ValueError("source-endorsed intent lacks exact whole-pack receipt evidence")
+                from ..persistence.project.handoff_intent_context import assert_source_intent
+                assert_source_intent(connection, project, {key: item for key, item in value.items() if key != "targetUse"})
         for run_id, pointer in connection.execute("SELECT id,handoff FROM v2_autopilot_runs WHERE handoff IS NOT NULL"):
             value = json.loads(pointer)
             if receipts.get(value.get("receiptId")) != (run_id, value.get("receiptHash"), value.get("bundleHash"), value.get("materialClosure")):

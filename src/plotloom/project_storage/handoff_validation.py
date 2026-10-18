@@ -11,6 +11,7 @@ from ..persistence.project.autopilot_inventory_validation import (
 
 def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw, digest, *, asset_home=None, continuation=True):
     receipt = parse_handoff_receipt(raw)
+    bulk = receipt.version == "pre-video.handoff.v3"
     if stable_hash(raw) != digest or (receipt.id, receipt.run_id, receipt.project_id, receipt.approval_id) != (identifier, run_id, project_id, approval_id):
         raise ValueError("human handoff identity changed")
     bundle = receipt.bundle.model_dump(mode="json", by_alias=True)
@@ -82,6 +83,19 @@ def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw,
         raise ValueError("human handoff shot coverage changed")
     for frame, subject, observation, fact in zip(frames, shots, receipt.observation.frames, receipt.bindings, strict=True):
         shot = shots_by_id[frame.shot_id]
+        if frame.intent_context is not None:
+            from ..persistence.project.handoff_intent_context import assert_saved_context
+            assert_saved_context(connection, project_id, frame, receipt.bundle.inventory, shot)
+        if bulk:
+            if (observation.intent_context != frame.intent_context or observation.compatibility != "pass"
+                    or receipt.bundle.version != "pre-video.human-review.v2"):
+                raise ValueError("bulk intent endorsement or frame judgment changed")
+            payload = observation.intent.model_dump(mode="json", by_alias=True)
+            if "sourceEndorsement" in payload:
+                from ..persistence.project.handoff_intent_context import assert_source_intent
+                assert_source_intent(connection, project_id, payload)
+                if observation.intent != observation.intent_context.intent:
+                    raise ValueError("source-endorsed intent cannot claim authored edits")
         if frame.title != shot["title"] or frame.description != shot["action"] or frame.direction != shot["visualIntent"] + " " + shot["composition"] or frame.scene_name != scenes_by_id[frame.scene_id]:
             raise ValueError("displayed human frame context differs from its historical shot")
         if frame.character_ids != subject.character_ids or frame.scene_id != subject.scene_id or observation.asset_id != frame.asset_id or observation.shot_id != frame.shot_id or [item.character_id for item in observation.comparisons] != frame.character_ids:
@@ -115,7 +129,11 @@ def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw,
             raise ValueError("human authored intent changed")
         if frame.character_ids:
             review = connection.execute("SELECT project_id,binding_id,reviewer,notes,comparisons,reference_bindings FROM v2_same_person_reviews WHERE id=?", (fact.get("samePersonReviewId"),)).fetchone()
-            comparisons = [item.model_dump(mode="json", by_alias=True, exclude_none=True) for item in observation.comparisons]
+            if bulk:
+                from ..bulk_material_contracts import stored_bulk_comparisons
+                comparisons = stored_bulk_comparisons(observation, identifier, receipt.bundle_hash)
+            else:
+                comparisons = [item.model_dump(mode="json", by_alias=True, exclude_none=True) for item in observation.comparisons]
             from ..persistence.project.media_same_person_reviews import (
                 SamePersonReviewPersistence,
             )

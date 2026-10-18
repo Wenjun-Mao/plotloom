@@ -78,7 +78,8 @@ def current_review_bundle(store, session, run):
         lineage = use_in_session(session, binding) if binding is not None else source_in_session(session, project_id, asset.id, shot_id=shot.id)
         from ..schema import VisualIntentRow
         intent = session.get(VisualIntentRow, binding.visual_intent_id) if binding else None
-        frames.append(ReviewFrame(target_use=intent.intent.get("targetUse") if intent else None, geometry_preparation=lineage.geometry if lineage else None,shot_id=shot.id, scene_id=shot.scene_id, asset_id=asset.id,
+        from .handoff_intent_context import context_for_frame
+        frames.append(ReviewFrame(intent_context=context_for_frame(inventory, shot, intent), target_use=intent.intent.get("targetUse") if intent else None, geometry_preparation=lineage.geometry if lineage else None,shot_id=shot.id, scene_id=shot.scene_id, asset_id=asset.id,
             title=shot.title, scene_name=scene_names[shot.scene_id], direction=shot.visual_intent + " " + shot.composition,
             original_hash=asset.original_hash, width=asset.width, height=asset.height,
             character_ids=shot.character_ids, description=shot.action,

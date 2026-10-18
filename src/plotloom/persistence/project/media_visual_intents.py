@@ -55,6 +55,13 @@ class VisualIntentPersistence:
                     canonical_payload=draft_payload,
                 )
             intent = dict(intent)
+            if "sourceEndorsement" in intent:
+                from ...autopilot_contracts import OperationScope
+                from .handoff_intent_context import assert_source_intent
+                authority = self._access.authority()
+                if authority is None or authority.scope != OperationScope.HANDOFF:
+                    raise InvalidTransitionError("saved source endorsement requires exact human handoff authority")
+                assert_source_intent(session.connection().connection.driver_connection, project_id, intent)
             if "targetUse" in intent:
                 raise ValueError("target use evidence is owned by trusted code")
             source_binding_id = intent.pop("sourceBindingId", None)

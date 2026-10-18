@@ -10,6 +10,7 @@ from .human_confirmation_contracts import UnnamedCreatorConfirmation
 from .managed_media import VisualIntentInput
 from .cross_shot_image_contracts import CrossShotTargetUse
 from .same_person_review_contracts import SamePersonReviewItem
+from .bulk_material_contracts import BulkFrameObservation, SavedIntentContext
 
 
 class ReviewAsset(CamelModel):
@@ -32,6 +33,7 @@ class ReviewReference(CamelModel):
 
 
 class ReviewFrame(CamelModel):
+    intent_context: SavedIntentContext | None = Field(default=None, exclude_if=lambda value: value is None)
     target_use: CrossShotTargetUse | None = Field(default=None, exclude_if=lambda value: value is None)
     geometry_preparation: GeometryPreparation | None = Field(default=None, exclude_if=lambda value: value is None)
     shot_id: str
@@ -50,7 +52,7 @@ class ReviewFrame(CamelModel):
 
 
 class CurrentReviewBundle(CamelModel):
-    version: Literal["pre-video.human-review.v1"] = "pre-video.human-review.v1"
+    version: Literal["pre-video.human-review.v1", "pre-video.human-review.v2"] = "pre-video.human-review.v2"
     run_id: str
     material_closure: str
     inventory: MaterialInventory
@@ -139,6 +141,21 @@ class HandoffReceiptFacts(CamelModel):
     material_closure: str
 
 
+class BulkHumanHandoffRequest(HumanHandoffRequest):
+    basis: Literal["whole-pack-material.v1"]
+    frames: list[BulkFrameObservation]
+
+
+class BulkHumanHandoffReceipt(HandoffReceiptFacts):
+    version: Literal["pre-video.handoff.v3"] = "pre-video.handoff.v3"
+    attribution: UnnamedCreatorConfirmation
+    observation: BulkHumanHandoffRequest
+
+    @property
+    def stored_reviewer(self) -> str:
+        return ""
+
+
 class HumanHandoffReceipt(HandoffReceiptFacts):
     version: Literal["pre-video.handoff.v2"] = "pre-video.handoff.v2"
     attribution: UnnamedCreatorConfirmation
@@ -158,8 +175,8 @@ class LegacyHumanHandoffReceipt(HandoffReceiptFacts):
         return self.observation.reviewer
 
 
-_receipt_reader = TypeAdapter(Annotated[HumanHandoffReceipt | LegacyHumanHandoffReceipt, Field(discriminator="version")])
+_receipt_reader = TypeAdapter(Annotated[BulkHumanHandoffReceipt | HumanHandoffReceipt | LegacyHumanHandoffReceipt, Field(discriminator="version")])
 
 
-def parse_handoff_receipt(raw) -> HumanHandoffReceipt | LegacyHumanHandoffReceipt:
+def parse_handoff_receipt(raw) -> BulkHumanHandoffReceipt | HumanHandoffReceipt | LegacyHumanHandoffReceipt:
     return _receipt_reader.validate_python(raw)

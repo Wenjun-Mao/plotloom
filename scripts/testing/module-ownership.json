@@ -56,6 +56,8 @@
           "tests/test_autopilot_review_readiness.py",
           "tests/test_image_package_publication.py",
           "tests/test_autopilot_handoff.py",
+          "tests/test_bulk_material_handoff.py",
+          "tests/test_bulk_material_realistic_pack.py",
           "tests/test_autopilot_handoff_seed.py",
           "tests/test_autopilot_creator_confirmation.py",
           "tests/test_autopilot_geometry.py",
@@ -89,6 +91,7 @@
           "frontend/tests/source-structure-model.test.ts",
           "frontend/tests/source-workflow-navigation.test.ts",
           "frontend/tests/autopilot-review.test.ts",
+          "frontend/tests/bulk-material-review.test.ts",
           "frontend/tests/autopilot-delivery-evidence.test.ts",
           "frontend/tests/autopilot-delivery-reader.test.ts",
           "frontend/tests/autopilot-presentation.test.ts",
@@ -815,6 +818,12 @@
     {
       "suite": "pytest",
       "path": "tests/autopilot_handoff_seed_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["story-authoring"]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/bulk_material_pack_fixtures.py",
       "kind": "shared-fixture-or-helper",
       "consumers": ["story-authoring"]
     },

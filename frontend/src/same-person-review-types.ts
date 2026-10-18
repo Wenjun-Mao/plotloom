@@ -13,7 +13,11 @@ export interface SamePersonReview {
   bindingId: string;
   reviewRevision: number;
   referenceBindings: Array<{ characterId: string; referenceDecisionId: string; referenceRevision: number; assetHashes: string[] }>;
-  comparisons: SamePersonComparison[];
+  comparisons: Array<SamePersonComparison | {
+    characterId: string; judgment: "pass" | "fail" | "unassessable"; comment?: string;
+    productionDecision?: "hold" | "authorize"; uncertaintyReason?: string;
+    confirmation: { version: "whole-pack-material.v1"; receiptId: string; bundleHash: string; shotId: string };
+  }>;
   reviewer: string;
   attribution?: import("./human-review-attribution").HumanReviewAttribution;
   notes: string;

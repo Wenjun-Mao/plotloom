@@ -62,11 +62,20 @@ autopilotApi.launchContext = async () => ({ eligible: current === null, briefRev
 autopilotApi.review = async () => {
   const result = { ...structuredClone(fixtureMaterial), runRevision: current?.revision ?? fixtureMaterial.runRevision };
   if (initial === "geometry") result.bundle.frames[0].geometryPreparation = localGeometry.geometry;
+  if (initial === "pack42") {
+    const templates = structuredClone(result.bundle.frames);
+    result.bundle.frames = Array.from({ length: 42 }, (_, index) => {
+      const frame = structuredClone(templates[index % 2]); const shotId = `pack-shot-${index + 1}`;
+      return { ...frame, shotId, sceneId: `pack-scene-${Math.floor(index / 7) + 1}`, sceneName: `灯塔场景 ${Math.floor(index / 7) + 1}`,
+        intentContext: { ...frame.intentContext, shotId }, title: `第 ${index + 1} 镜` };
+    });
+    result.bundle.references.push(...Array.from({ length: 3 }, (_, index) => ({ ...structuredClone(result.bundle.references[1]), decisionId: `extra-ref-${index}`, subjectId: `extra-subject-${index}`, name: `补充美术 ${index + 1}` })));
+  }
   return result;
 };
 autopilotApi.start = async (_id, body) => { record(["start", body]); current = { ...fixtureRun, state: "running" }; return current; };
 autopilotApi.control = async (_id, _revision, action) => { record(["control", action]); current = { ...fixtureRun, state: action === "pause" ? "paused" : action === "resume" ? "running" : action === "cancel" ? "cancelled" : "taken_over" }; return current; };
-autopilotApi.handoff = async (_id, body: Handoff) => { record(["handoff", body]);
+autopilotApi.handoff = async (_id, body) => { record(["handoff", body]);
   if (initial === "handoff-uncommitted") throw new Error("Disposable handoff not committed");
   current = { ...fixtureRun, state: "handed_off", handoff: { receiptId: "human-fixture" } };
   if (initial === "handoff-unknown") throw new Error("Disposable handoff acknowledgment lost");

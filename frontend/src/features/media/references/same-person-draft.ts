@@ -30,5 +30,5 @@ export function latestCurrentReviewsByBinding(reviews: SamePersonReview[]): Map<
 }
 
 export function samePersonReviewSummary(review: SamePersonReview): string {
-  return review.comparisons.map(item => `${item.characterId}：${item.judgment === "pass" ? "通过" : item.judgment === "fail" ? "不通过" : `无法判断 · ${item.productionDecision === "authorize" ? "已明确授权投产（接受身份不确定性）" : "暂缓投产"}`}`).join("；");
+  return review.comparisons.map(item => `${"confirmation" in item ? "整包人工确认 · " : ""}${item.characterId}：${item.judgment === "pass" ? "通过" : item.judgment === "fail" ? "不通过" : `无法判断 · ${item.productionDecision === "authorize" ? "已明确授权投产（接受身份不确定性）" : "暂缓投产"}`}`).join("；");
 }

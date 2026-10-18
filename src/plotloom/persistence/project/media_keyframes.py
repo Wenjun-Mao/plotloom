@@ -62,10 +62,15 @@ class ReviewedKeyframePersistence:
         visual_intent_id: str,
         visual_intent_revision: int,
         expected_presentation_revision: int = 0,
+        bulk_basis=None,
     ) -> dict[str, Any]:
         """Append an immutable reviewed binding under one lifecycle writer lease."""
         from .autopilot_authority import require_human_command
         require_human_command(self._access)
+        if bulk_basis is not None:
+            bulk_basis.require(self._access)
+        elif not compatibility_note.strip():
+            raise InvalidTransitionError("manual frame compatibility requires an authored observation")
 
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
@@ -118,6 +123,8 @@ class ReviewedKeyframePersistence:
             use_in_session(session, binding, currentness=self._image_currentness)
             session.add(binding)
             session.flush()
+            if bulk_basis is not None:
+                session.info.setdefault("pending_bulk_bindings", {})[binding.id] = bulk_basis
             return {
                 "id": binding.id, "assetId": asset_id, "shotId": shot_id,
                 "sceneId": scene_id, "selectionRevision": state.revision,

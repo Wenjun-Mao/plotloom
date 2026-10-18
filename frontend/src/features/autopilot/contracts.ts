@@ -21,10 +21,12 @@ export type AutopilotRun = {
 };
 export type Launch = { expectedBriefRevision: number; styleAuthority: "brief" | "preset"; renderStyle?: ArtRenderStyle; artRenderStyle?: ArtRenderStyle; maxImages: number; maxJobs: number };
 export type ReviewFrame = { targetUse?: VisualIntent["intent"]["targetUse"]; geometryPreparation?: GeometryPreparation; shotId: string; sceneId: string; title: string; sceneName: string; direction: string; assetId: string; originalHash: string; description: string; characterIds: string[]; origin: string };
+export type IntentContext = { kind: "storyboard" | "reviewed_intent"; sourceId: string; revision: number; contentHash: string; shotId: string; intent: Omit<VisualIntent["intent"], "targetUse"> };
+export type GalleryFrame = ReviewFrame & { intentContext: IntentContext };
 export type ReviewReference = { owner: string; subjectId: string; name: string; decisionId: string; assetId: string;
   assets: Array<{ assetId: string; originalHash: string; width: number; height: number }> };
 export type ReviewMaterial = { runRevision: number; bundleHash: string; bundle: {
-  inventory: { routeCount: number }; references: ReviewReference[]; frames: ReviewFrame[];
+  inventory: { routeCount: number }; references: ReviewReference[]; frames: GalleryFrame[];
   story: { characters: Record<string, string>; graph: { nodes: Array<{ id: string; title: string; summary: string }> }; routes?: string[][]; script: Record<string, unknown>; scriptBinding: ScriptBinding; reports?: Array<{ name: string; url: string }> };
 } };
 export type FrameDraft = { direction: string; sources: string; compatibility: string; comparisons: SamePersonComparisonDraft[] };
@@ -36,3 +38,7 @@ export function completeFrame(draft: FrameDraft) {
     item.identityNotes.trim() && item.stateNotes.trim() && (item.judgment === "pass" ||
       item.judgment === "unassessable" && item.productionDecision === "authorize" && item.uncertaintyReason?.trim())));
 }
+
+export type BulkComparison = { characterId: string; judgment: "pass" | "fail" | "unassessable"; comment?: string; productionDecision?: "hold" | "authorize"; uncertaintyReason?: string };
+export type BulkHandoff = { basis: "whole-pack-material.v1"; expectedRunRevision: number; bundleHash: string; notes?: string; endorsedReferenceIds: string[];
+  frames: Array<{ shotId: string; assetId: string; intentContext: IntentContext; intent: IntentContext["intent"]; compatibility: "pass" | "fail" | "hold"; comment?: string; comparisons: BulkComparison[] }> };
