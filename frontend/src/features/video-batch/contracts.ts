@@ -1,7 +1,7 @@
 import type { VideoJob } from "../../types";
 export type Direction = { path: string; english: string };
 export type Target = { shotId: string; title: string; mode: "generate" | "prepared" | "observe" | "reuse"; jobId: string | null; sourceHash: string;
-  args: { seed: number; profile_id: string }; sources: { path: string; text: string; label: string }[]; directions: { sourceHash: string; fields: Direction[] } | null; compiledPrompt: string | null;
+  args: { seed: number; profile_id: string; aspect_policy: string }; sources: { path: string; text: string; label: string }[]; directions: { sourceHash: string; fields: Direction[] } | null; compiledPrompt: string | null;
   authoredDurationUnits: number; requestedSeconds: number; requestedFrames: number; selectionRevision: number };
 export type Batch = { id: string; projectId: string; revision: number; controlRevision: number; state: string; manifestHash: string;
   manifest: { scopeShotIds: string[]; kept: { shotId: string; jobId: string }[]; targets: Target[]; blockers: { shotId: string; message: string }[];

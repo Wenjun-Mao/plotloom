@@ -87,6 +87,7 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
       <details><summary>审阅全部英文方向、源时长与编译提示词</summary>
         {batch.manifest.targets.map(target => <article key={target.shotId}><h4>{target.title} · {target.shotId}</h4>
           <p>作者播放 {target.authoredDurationUnits / 1000} 秒（{target.authoredDurationUnits * 24 / 1000} 帧）；请求源 {target.requestedSeconds} 秒 / {target.requestedFrames} 帧 · {target.mode}</p>
+          <p>本项冻结规格 {target.args.profile_id} · 比例处理 {target.args.aspect_policy}；复用或跟踪的原任务保持其原始设置。</p>
           <p>种子 {target.args.seed} · 首尾帧及意图来源均冻结于本清单；完整编译提示词保留下方的作者对白与画面文字。</p>
           {target.sources.map(source => <Field key={source.path} label={`${source.label} · ${source.path}`}><p>{source.text}</p>
             <textarea value={(edits[target.shotId] || target.directions?.fields || []).find(field => field.path === source.path)?.english || ""}
