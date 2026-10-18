@@ -132,3 +132,12 @@ performance, hosted CI completion and new-installation post-start checks remain
 separate gaps. Manager owns independent published/installed verification and any
 later safe-activation continuation; this worker did not archive itself or remove
 its Relay route.
+
+## Later bounded proof investigation
+
+The [process-incarnation investigation](2026-10-18-process-incarnation-proof-investigation.md)
+qualifies the earlier reuse diagnosis: timestamp/command inequality, unrecorded
+session provenance and a later UTC ledger update do not provide conclusive
+retrospective proof. No guard change or activation occurred. It also records the
+subsequent hosted CI failure, superseding the in-progress snapshot above without
+changing that historical evidence.

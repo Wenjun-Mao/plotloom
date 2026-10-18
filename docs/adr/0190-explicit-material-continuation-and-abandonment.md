@@ -89,6 +89,25 @@ recorded origin run. Continuation copies are accepted only through exact adopted
 predecessor links with identical evidence; every matching copy is validated, not
 silently ignored. Original geometry/native decisions and bytes remain authority.
 
+## Process-incarnation proof boundary, 2026-10-18
+
+The activation investigation did not establish a safe retrospective reuse proof
+for retained host identities. Numeric PID/group absence remains the implemented
+quiescence predicate; no exception for completed attempts or different commands
+is accepted. A legacy `ps lstart` token lacks its capture timezone and combines
+separate observations. The retained `updated_at` uses adjustable calendar time,
+so registration ordering does not make it a numerical bound on native birth.
+The launcher uses `start_new_session=True`, but legacy worker registration only
+enforced PID/group equality and retained no session/launch-origin witness.
+Source convention alone must not be promoted to a certified old session ID.
+
+Any later incarnation proof must bind reliable original observations, establish
+the supported kernel's group-lifetime semantics and remain fail-closed on
+ambiguity. New capture rules cannot certify historical rows. Keep the existing
+publication/spawn fences, fresh preview revalidation, attempt facts and UNKNOWN
+holds unchanged. See the [bounded investigation](../verification/2026-10-18-process-incarnation-proof-investigation.md)
+for the rejected proofs, actual runtime observations and remaining evidence gap.
+
 ## Alternatives and consequences
 
 Uncancelling or rebasing a frozen run would change old authority. A fresh project

@@ -13,6 +13,9 @@ qualification and safe-activation permissions are approved together. Execution
 uses Relay direct with one source writer in the retained checkout; the owner also
 gives standing approval for separate Relay worker chats in `AGENTS.md`. Actual
 owner-story generation and human approval remain explicit creator actions.
+The owner also approved the plan's narrow process-incarnation quiescence
+follow-up after PID reuse blocked safe activation; no guard bypass or termination
+of the unrelated CUA process is authorized.
 
 ## Approved whole-pack gallery approval
 

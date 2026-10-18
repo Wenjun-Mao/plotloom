@@ -401,3 +401,31 @@ Both image and video completion/approval flows reveal the useful next action
 without disrupting unrelated work. Report actual latency measurements, technical
 verification, activation and any gaps separately. The owner's generated story and
 creative acceptance are not implementation completion requirements.
+
+## Approved activation follow-up: process-incarnation quiescence
+
+Owner approval, 2026-10-18: implement a narrowly reviewed PID-reuse fix for the
+native deletion guard, then complete safe activation. The published feature is
+not yet installed: a completed worker's numeric PID/group was reused by an
+unrelated CUA process, and the existing guard intentionally requires numeric
+absence. No supported terminal-worker recovery path resolves that condition.
+
+Define a named positive quiescence proof: numeric PID/group absence, or conclusive
+retirement of the exact recorded isolated group incarnation. Validate platform
+semantics and reliable observations before admitting the latter; completed state,
+command changes, identity mismatch or leader disappearance alone are insufficient.
+Ambiguous/unsupported probes remain blocking. Record the durable contract in an
+ADR and independently review it before publication or live use. Cover surviving
+descendants, real reuse versus exec/command changes, birth ambiguity, permissions,
+sampling races, spawn/publication fencing, validators and stale previews.
+
+Preserve all retained attempt facts, receipts and UNKNOWN capacity; do not
+retroactively fabricate exit witnesses, clear identity fields, bypass revocation,
+send nonzero signals to unrelated processes or reset CUA. Use the same source
+writer and affected verification, then manager review before the existing scoped
+deletion/activation continuation. No live generation or creative approval is added.
+
+The [bounded investigation](../verification/2026-10-18-process-incarnation-proof-investigation.md)
+found no conclusive retrospective proof for the retained identity. The guard is
+unchanged and activation remains blocked; no future identity framework was added.
+Separately, the required hosted run failed and needs serialized remediation.
