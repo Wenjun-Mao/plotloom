@@ -74,8 +74,8 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
       <MiniMaxH3ProfileField profiles={h3Profiles(backend)} value={profile} onChange={setProfile} disabled={locked} />
       <Field label="输入首尾帧的比例处理"><select value={aspect} disabled={locked} onChange={event => setAspect(event.target.value)}>
         <option value="reject_mismatch">比例不符则阻止</option><option value="contain_pad">明确允许网关填边</option><option value="cover_center_crop">明确允许网关居中裁剪</option></select></Field>
-      <Field label="最多新视频任务"><input type="number" min={1} max={256} value={maxJobs} disabled={locked} onChange={event => setMaxJobs(Number(event.target.value))} /></Field>
-      <Field label="最多请求源秒数"><input type="number" min={5} max={2048} value={maxSeconds} disabled={locked} onChange={event => setMaxSeconds(Number(event.target.value))} /></Field>
+      <Field label="最多新视频任务"><input type="number" min={1} max={64} value={maxJobs} disabled={locked} onChange={event => setMaxJobs(Number(event.target.value))} /></Field>
+      <Field label="最多请求源秒数"><input type="number" min={5} max={512} value={maxSeconds} disabled={locked} onChange={event => setMaxSeconds(Number(event.target.value))} /></Field>
     </div><p>默认串行，每个缺失镜头最多尝试一次。此处只准备清单；不会发送 H3 作业。无可靠货币估价，以下按任务及请求秒数计量。</p>
       <Button variant="primary" disabled={locked || !backend?.enabled || !profile} onClick={() => void execute("正在核对全部路线与已有任务", "setup", { profileId: profile, aspectPolicy: aspect, maxJobs, maxRequestedSeconds: maxSeconds })}>批量生成缺失视频</Button>
       {!backend?.enabled && <p>H3 后端尚未配置或不可用；可继续使用手动制作查看已有任务。</p>}</>}
