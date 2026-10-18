@@ -174,3 +174,60 @@ and deletion selectors passed above. Frontend inputs/assets are unchanged by thi
 correction, so their prior evidence is retained rather than rerun. No corrected
 full gate, commit, push, installation, native generation or live acceptance was
 performed by this source writer.
+
+## Prior-layout directory journey correction
+
+The root-owned corrected full gate subsequently passed all 14 steps on
+`0fe930b29824654030e2abb0e9ed074fb9113082`, 1494.604 seconds: 3197 Python cases,
+1401 frontend unit cases, 325 browser cases and installed-wheel checks. Its log is
+`.local/material-recovery-20261017/full-0fe930b2.log`. This qualified that executed
+software, not the still-missing first UI entry for an unavailable prior-layout
+home. No live installation or project was changed by that gate.
+
+The new named passive catalog exposes only exact `pre_continuation` identity,
+title and revisions through a separate deletion-only directory section. It does
+not alter current discovery, canonical opening, dispatch or migration. All
+manifest identities participate in duplicate rejection. Any existing deletion
+intent is owned exclusively by the pending-retry UI. Listing makes no host call,
+does not create an intent or project-operation lock, and claims no eligibility.
+Only clicking obtains fresh preview/title/unchecked-uncertainty consent.
+
+The browser uses a real valued cancelled UNKNOWN prior-layout home and actual
+catalog, preview, consent, application ledger and owned erasure routes. Only the
+native host acknowledgment and one post-ACK filesystem fault are offline fixture
+seams; no route substitutes a fake current-project directory row. Its assertions
+cover host blockers, changed title/revision/preview after listing, wrong title,
+unchecked consent, neighbor preservation, unchanged original attempt snapshots,
+one revocation, immediate pending retry and retry after backend restart. This is
+disposable technical evidence, not native remote cancellation or live deletion.
+
+| Explicit command / selectors | Result |
+| --- | --- |
+| Focused `--pytest tests/test_prior_abandonment_catalog.py --pytest tests/test_project_abandonment.py --pytest tests/test_project_deletion_quarantine.py` | 26 passed, 29.160 seconds focused; 10 new catalog cases |
+| Focused `--playwright e2e/project-direct-delete.spec.ts --playwright e2e/project-save-force-close.spec.ts` | 24 passed, 64.722 seconds focused |
+| `npm run test` in `frontend/` | All 1401 cases / 159 files passed after lifecycle observation correction |
+| `npm run typecheck`, `npm run typecheck:e2e` | Passed; the affected browser runner also executes the latter |
+| `npm run build:deterministic` | Passed, checked assets refreshed; existing chunk-size advisory |
+| Full Ruff on new Python modules/tests/fixture helpers; API F401; `git diff --check` | Passed |
+| Native module ownership discovery | Passed: 3207 Python / 1401 Vitest / 328 browser cases; no test bodies executed |
+
+Two initial browser attempts failed before UI admission: the fixture helper lacked
+the repository `PYTHONPATH`, then macOS `/var` paths violated the reusable closed
+seed's strict `/private/var` identity assertion. The method was reassessed and only
+explicit test-owned roots normalized; source validators were retained unchanged.
+Second-failure context/trace are preserved under
+`.local/material-recovery-20261017/prior-catalog-bootstrap-failure2/`; the first
+trace had already been overwritten, and only its exact tool output remains.
+The initial real journey passed 11 cases but only proved restart recovery. An
+added same-session assertion then reproduced a genuine lifecycle observation
+defect: after ACK and 409, pending metadata stayed unfetched. Its context/trace are
+preserved under `.local/material-recovery-20261017/prior-catalog-immediate-retry-failure/`.
+The owning lifecycle now refreshes passive directory observation after a failed
+abandonment command, retaining the original failure and drafts and never retrying
+the destructive command. The final 24-case run proves both immediate and restart
+retry access.
+
+Inspected desktop fixture screenshots are `output/playwright/prior-abandonment-entry.png`,
+`prior-abandonment-consent.png` and `prior-abandonment-pending.png` in that same
+directory. No new full gate, commit, push, live generation, deployment, migration,
+acceptance or project deletion was performed by this source assignment.

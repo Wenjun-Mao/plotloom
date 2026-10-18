@@ -51,6 +51,9 @@ def main() -> None:
                     executable="/usr/bin/true",
                 ),
             )
+        if os.environ.get("PLOTLOOM_E2E_PRIOR_ABANDONMENT") == "1":
+            from fixtures.prior_abandonment_runtime import install
+            install(app, settings.application_data_dir)
         print("PLOTLOOM_E2E_LISTENER " + json.dumps({"role": "backend", "host": host, "port": port}), flush=True)
         uvicorn.Server(uvicorn.Config(app, host=host, port=port)).run(sockets=[listener])
 

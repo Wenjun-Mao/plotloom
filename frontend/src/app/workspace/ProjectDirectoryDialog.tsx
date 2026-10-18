@@ -3,14 +3,16 @@ import { formatUiTimestamp } from "../../ui-time";
 import type { ProjectListItem } from "../../types";
 import type { LifecycleAction } from "./useProjectLifecycle";
 import { PendingProjectDeletions, type PendingProjectDeletion } from "./PendingProjectDeletions";
+import { PriorProjectAbandonments, type PriorAbandonmentCandidate } from "./PriorProjectAbandonments";
 
-export function ProjectDirectoryDialog({ projects, currentProjectId, showArchived, error, readError = "", onRetry, notice, commandMessage, loading, busy = false, hasMore, onLoadMore, onArchived, onBlank, onSample, onOpen, onAction, onRetryDeletion, explicitProjectClose, onClose }: {
+export function ProjectDirectoryDialog({ projects, currentProjectId, showArchived, error, readError = "", onRetry, notice, commandMessage, loading, busy = false, hasMore, onLoadMore, onArchived, onBlank, onSample, onOpen, onAction, onRetryDeletion, onAbandonPrior, explicitProjectClose, onClose }: {
   projects: ProjectListItem[]; currentProjectId?: string; showArchived: boolean; error: string; notice?: string; loading: boolean; busy?: boolean; hasMore: boolean;
   readError?: string; onRetry?: () => void; commandMessage?: string;
   onLoadMore: () => void; onArchived: (show: boolean) => void; onBlank: () => void; onSample: () => void;
   onOpen: (project: ProjectListItem) => void; onAction: (project: ProjectListItem, action: LifecycleAction) => Promise<void>;
   explicitProjectClose: boolean; onClose: () => void;
   onRetryDeletion?: (pending: PendingProjectDeletion) => Promise<void>;
+  onAbandonPrior?: (candidate: PriorAbandonmentCandidate) => Promise<void>;
 }) {
   const rowBusy = busy || loading || Boolean(readError);
   return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="project-directory-title">
@@ -25,6 +27,7 @@ export function ProjectDirectoryDialog({ projects, currentProjectId, showArchive
         {notice && <div className="notice" role="status">{notice}</div>}
         {error && <ErrorNotice message={error} />}
         <PendingProjectDeletions refreshKey={projects} disabled={busy || loading} onRetry={onRetryDeletion} />
+        <PriorProjectAbandonments refreshKey={projects} disabled={busy || loading} onAbandon={onAbandonPrior} />
         {readError && <div className="notice warning" role="alert"><p>{readError}</p><p>{projects.length ? "当前显示上次读取的项目；重新读取成功前，列表中的项目操作暂不可用。仍可新建空白项目或打开示例项目。" : "项目目录尚未读入，请重新读取。"}</p><Button disabled={loading || busy} onClick={onRetry}>重新读取项目目录</Button></div>}
         {!readError && !loading && !projects.length && <div className="empty-state"><strong>还没有可用项目</strong><p>从空白项目开始，或先浏览教学示例。</p></div>}
         <div className="directory-list">{projects.map(item => {

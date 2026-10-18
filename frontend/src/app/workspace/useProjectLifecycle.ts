@@ -10,6 +10,7 @@ import type { ProjectListItem, ProjectSnapshotReceipt, ServerStageName, Workspac
 import type { WorkspaceSession } from "./useWorkspaceSession";
 import type { ProjectDraftQuiescence } from "../../features/authoring/projectDraftQuiescence";
 import type { PendingProjectDeletion } from "./PendingProjectDeletions";
+import type { PriorAbandonmentCandidate } from "./PriorProjectAbandonments";
 
 export type LifecycleAction = "archive" | "restore" | "duplicate" | "delete" | "abandon_delete" | "close" | "open" | "force_close";
 type ProjectCommand = LifecycleAction | "snapshot";
@@ -237,6 +238,10 @@ export function useProjectLifecycle({
       } catch (error) {
         const rejected = error instanceof ApiError && [404, 409, 422].includes(error.status);
         directory.setError(rejected ? `无法删除：${messageFrom(error)}` : `删除结果未确认，请检查项目目录后再操作：${messageFrom(error)}`);
+        // A failed destructive command may still have committed its revocation
+        // and deletion intent. Refresh observation only; preserve the error and
+        // every unsent draft, and never repeat the command here.
+        if (abandonment) await directory.refresh();
       } finally {
         try { reads?.resume(); }
         finally {
@@ -246,31 +251,36 @@ export function useProjectLifecycle({
       }
     });
   };
+  const requestAbandonment = async (item: LifecycleTarget) => {
+    if (session.project.id && mediaDraftQuiescence.isClosing(session.project.id)) return;
+    if (commandToken.current || closingProjectId || snapshottingProjectId) return;
+    await runCommand(item, "abandon_delete", async () => {
+      const operation = session.capture();
+      directory.setError("");
+      try {
+        const preview = await plotloomApi.abandonmentPreview(item.id);
+        if (!session.isCurrent(operation)) return;
+        if (!preview.eligible) { directory.setError(preview.blockers.join("；")); return; }
+        const consent = { expectedProjectRevision: preview.expectedProjectRevision,
+          expectedLifecycleRevision: preview.expectedLifecycleRevision,
+          confirmationTitle: preview.confirmationTitle, previewHash: preview.previewHash };
+        confirmation.requestConfirmation({ title: "放弃任务并永久删除项目",
+          message: "撤销此项目的自动派发和交付发布权限，然后永久删除项目及所有素材，无法撤销。",
+          details: `${preview.confirmationTitle}\n项目版本 r${preview.expectedProjectRevision} · 生命周期 r${preview.expectedLifecycleRevision}\n仍未确认远程结果的任务：${preview.unknownAttemptIds.join("、") || "无"}\n其他项目、账号设置、外部原文件和恢复快照保留。主机上的原始不确定结果与占用证据仍保留。`,
+          acknowledgement: "我理解远程任务可能仍已执行或继续执行；删除不会证明其取消、成功或释放占用。",
+          challenge: { expected: preview.confirmationTitle, label: "输入完整片名以确认放弃和删除", hint: `请原样输入：${preview.confirmationTitle}` },
+          action: () => performDelete({ id: item.id, brief: { title: preview.confirmationTitle },
+            revision: preview.expectedProjectRevision, lifecycleRevision: preview.expectedLifecycleRevision }, consent),
+        });
+      } catch (error) { if (session.isCurrent(operation)) directory.setError(messageFrom(error)); }
+    });
+  };
+  const abandonPrior = (candidate: PriorAbandonmentCandidate) => requestAbandonment({ id: candidate.projectId,
+    brief: { title: candidate.title }, revision: candidate.projectRevision, lifecycleRevision: candidate.lifecycleRevision });
   const mutate = async (item: ProjectListItem, action: LifecycleAction) => {
     if (session.project.id && mediaDraftQuiescence.isClosing(session.project.id)) return;
     if (commandToken.current || closingProjectId || snapshottingProjectId) return;
-    if (action === "abandon_delete") {
-      await runCommand(item, action, async () => {
-        const operation = session.capture();
-        directory.setError("");
-        try {
-          const preview = await plotloomApi.abandonmentPreview(item.id);
-          if (!session.isCurrent(operation)) return;
-          if (!preview.eligible) { directory.setError(preview.blockers.join("；")); return; }
-          const consent = { expectedProjectRevision: preview.expectedProjectRevision,
-            expectedLifecycleRevision: preview.expectedLifecycleRevision,
-            confirmationTitle: preview.confirmationTitle, previewHash: preview.previewHash };
-          confirmation.requestConfirmation({ title: "放弃任务并永久删除项目",
-            message: "撤销此项目的自动派发和交付发布权限，然后永久删除项目及所有素材，无法撤销。",
-            details: `${preview.confirmationTitle}\n项目版本 r${preview.expectedProjectRevision} · 生命周期 r${preview.expectedLifecycleRevision}\n仍未确认远程结果的任务：${preview.unknownAttemptIds.join("、") || "无"}\n其他项目、账号设置、外部原文件和恢复快照保留。主机上的原始不确定结果与占用证据仍保留。`,
-            acknowledgement: "我理解远程任务可能仍已执行或继续执行；删除不会证明其取消、成功或释放占用。",
-            challenge: { expected: preview.confirmationTitle, label: "输入完整片名以确认放弃和删除", hint: `请原样输入：${preview.confirmationTitle}` },
-            action: () => performDelete(item, consent),
-          });
-        } catch (error) { if (session.isCurrent(operation)) directory.setError(messageFrom(error)); }
-      });
-      return;
-    }
+    if (action === "abandon_delete") return requestAbandonment(item);
     if (action === "duplicate") {
       const target = { ...item, brief: { ...item.brief } };
       confirmation.requestConfirmation({
@@ -386,5 +396,5 @@ export function useProjectLifecycle({
       } catch (error) { if (session.isCurrent(operation)) directory.setError(messageFrom(error)); }
     });
   };
-  return { commandMessage, duplicateNotice, dismissDuplicateNotice: () => setDuplicateNotice(""), pendingArchive, mutate, retryDeletion, resolvePendingArchive, closingProjectId, deletingProjectId, snapshottingProjectId, latestSnapshot, createSnapshot, saveAndCloseCurrent, closeNotice, confirmation: confirmation.confirmation };
+  return { commandMessage, duplicateNotice, dismissDuplicateNotice: () => setDuplicateNotice(""), pendingArchive, mutate, abandonPrior, retryDeletion, resolvePendingArchive, closingProjectId, deletingProjectId, snapshottingProjectId, latestSnapshot, createSnapshot, saveAndCloseCurrent, closeNotice, confirmation: confirmation.confirmation };
 }

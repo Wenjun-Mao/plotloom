@@ -205,6 +205,10 @@ export class PlotloomApiClient {
     return this.request("/project-deletions");
   }
 
+  priorAbandonmentCandidates(): Promise<Array<{ projectId: string; title: string; projectRevision: number; lifecycleRevision: number; kind: "immediate_prior_abandonment_only" }>> {
+    return this.request("/project-abandonment-candidates");
+  }
+
   patchProject(projectId: string, expectedRevision: number, brief: ProjectBrief): Promise<ProjectResource> {
     return this.request(`/projects/${encodeURIComponent(projectId)}`, {
       method: "PATCH",

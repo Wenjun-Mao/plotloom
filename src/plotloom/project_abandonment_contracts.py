@@ -22,3 +22,11 @@ class AbandonmentPreview(CamelModel):
     blockers: list[str]
     unknown_attempt_ids: list[str]
     remote_outcomes: Literal["preserved"] = "preserved"
+
+
+class PriorAbandonmentCandidate(CamelModel):
+    project_id: str
+    title: str
+    project_revision: int = Field(ge=1)
+    lifecycle_revision: int = Field(ge=1)
+    kind: Literal["immediate_prior_abandonment_only"] = "immediate_prior_abandonment_only"

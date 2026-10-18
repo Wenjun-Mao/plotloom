@@ -69,6 +69,15 @@ remove this installation's quarantine or grant it execution authority.
 Abandonment reads the exact current or immediate-prior layout directly and does
 not require upgrading an UNKNOWN project. Ordinary continuation uses the named
 preserving schema upgrade after original ownership is resolved.
+The directory has a separate passive deletion-only catalog for exact
+`pre_continuation` homes: manifest identity, title and revisions, not a canonical
+project summary or an eligibility claim. It excludes every identity with an
+existing deletion intent and resolves duplicate identities across all manifests.
+Listing takes passive read leases and makes no host calls, migrations or writes.
+Only the dedicated abandon action is available; click obtains a fresh server
+preview and new title/unchecked-uncertainty consent. Current project discovery,
+opening and controller admission remain exact-current. Catalog errors do not
+disable the independent current-project directory.
 
 ## Alternatives and consequences
 

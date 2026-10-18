@@ -6,6 +6,13 @@ from .contracts import ProjectAbandonDeleteRequest
 
 
 def register_abandonment_routes(app, storage, specialists):
+    from ..project_abandonment_contracts import PriorAbandonmentCandidate
+    from ..project_storage.abandonment_catalog import prior_abandonment_candidates
+
+    @app.get("/api/v2/project-abandonment-candidates", response_model=list[PriorAbandonmentCandidate])
+    def abandonment_candidates():
+        return prior_abandonment_candidates(storage.projects, storage.application.abandonment)
+
     @app.get("/api/v2/projects/{project_id}/abandonment-preview")
     def abandonment_preview(project_id: str):
         return preview_abandonment(storage.projects, project_id, specialists)

@@ -1,6 +1,102 @@
 import { expect, test } from "./fixture";
 import { demoProject } from "../src/demo";
 import type { APIRequestContext, Page } from "@playwright/test";
+import { execFile } from "node:child_process";
+import { readFile, writeFile, access } from "node:fs/promises";
+import path from "node:path";
+import { promisify } from "node:util";
+
+const execute = promisify(execFile);
+
+test("prior metadata load failure leaves the current directory usable", async ({ page, request, workbench }) => {
+  const current = await create(request, workbench.apiOrigin, "目录独立可用");
+  await page.route("**/api/v2/project-abandonment-candidates", route => route.fulfill({ status: 503, json: { message: "fixture metadata unavailable" } }));
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${current.id}&stage=brief`);
+  await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+  await expect(page.getByRole("alert")).toContainText("旧版项目删除入口读取失败");
+  await expect(row(page, current.id).getByRole("button", { name: "永久删除", exact: true })).toBeEnabled();
+  await expect(row(page, current.id).getByRole("button", { name: "复制简报与规范内容" })).toBeEnabled();
+});
+
+for (const fault of [false, true]) test(`real prior-layout directory entry reaches guarded abandonment${fault ? " and durable retry" : ""}`, async ({ page, request, workbench }) => {
+  test.setTimeout(120_000);
+  const neighbor = await create(request, workbench.apiOrigin, "当前项目保留");
+  const seeded = await execute("uv", ["run", "--locked", "--no-sync", "python", "frontend/e2e/fixtures/prior_abandonment_project.py",
+    "--outputs", workbench.outputsRoot, "--application", workbench.applicationDataRoot, ...(fault ? ["--fault"] : [])],
+    { cwd: path.resolve(".."), env: { ...process.env, PYTHONPATH: path.resolve("..") } });
+  const target: { projectId: string; title: string; home: string } = JSON.parse(seeded.stdout.trim().split("\n").at(-1)!);
+  const evidencePath = path.join(workbench.applicationDataRoot, "prior-abandonment-fixture.json");
+  const evidence = async () => JSON.parse(await readFile(evidencePath, "utf8"));
+  const original = await evidence();
+  await workbench.restartBackend({ PLOTLOOM_E2E_PRIOR_ABANDONMENT: "1" });
+  expect((await (await request.get(`${workbench.apiOrigin}/api/v2/projects`)).json()).projects.map((item: { id: string }) => item.id)).not.toContain(target.projectId);
+  const catalog = await request.get(`${workbench.apiOrigin}/api/v2/project-abandonment-candidates`);
+  expect((await catalog.json()).map((item: { projectId: string }) => item.projectId)).toEqual([target.projectId]);
+  expect((await evidence()).calls).toEqual([]);
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${neighbor.id}&stage=brief`);
+  await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+  const prior = page.getByRole("region", { name: "旧版项目放弃删除" });
+  const action = prior.getByRole("button", { name: `核对放弃删除「${target.title}」` });
+  await expect(action).toBeEnabled();
+  await expect(prior.getByRole("button")).toHaveCount(1);
+  expect((await evidence()).calls).toEqual([]);
+  await page.screenshot({ path: "../output/playwright/prior-abandonment-entry.png" });
+  let consentTitle = target.title;
+  if (!fault) {
+    await writeFile(evidencePath, JSON.stringify({ ...await evidence(), blocked: true }));
+    await action.click();
+    await expect(page.getByRole("alert")).toContainText("exact-original-task");
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+    expect((await evidence()).calls).not.toContain("revoke");
+    await writeFile(evidencePath, JSON.stringify({ ...await evidence(), blocked: false, previewHash: "b".repeat(64) }));
+    await execute("uv", ["run", "--locked", "--no-sync", "python", "frontend/e2e/fixtures/prior_abandonment_project.py",
+      "--outputs", workbench.outputsRoot, "--application", workbench.applicationDataRoot, "--refresh-title"],
+      { cwd: path.resolve(".."), env: { ...process.env, PYTHONPATH: path.resolve("..") } });
+    consentTitle = (await evidence()).title;
+  }
+  await action.click();
+  const dialog = page.getByRole("alertdialog", { name: "放弃任务并永久删除项目" });
+  await expect(dialog).toBeVisible();
+  const commit = dialog.getByRole("button", { name: "确认放弃任务并永久删除项目" });
+  await dialog.getByLabel("输入完整片名以确认放弃和删除").fill("wrong title");
+  await dialog.getByRole("checkbox").check();
+  await expect(commit).toBeDisabled();
+  await dialog.getByRole("checkbox").uncheck();
+  await dialog.getByLabel("输入完整片名以确认放弃和删除").fill(consentTitle);
+  await expect(commit).toBeDisabled();
+  await dialog.getByRole("checkbox").check();
+  await page.screenshot({ path: "../output/playwright/prior-abandonment-consent.png" });
+  const deleted = page.waitForResponse(response => response.url().endsWith(`/${target.projectId}/abandon-and-delete`));
+  await commit.click();
+  expect((await deleted).status()).toBe(fault ? 409 : 204);
+  if (fault) {
+    await expect(page.getByRole("alert")).toContainText("尚未完成");
+    await expect(page.getByRole("region", { name: "待完成项目删除" }).getByRole("button", { name: `重试删除「${target.title}」` })).toBeEnabled();
+    await workbench.restartBackend({ PLOTLOOM_E2E_PRIOR_ABANDONMENT: "1" });
+    await page.reload();
+    await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+    await expect(page.getByRole("region", { name: "旧版项目放弃删除" })).toHaveCount(0);
+    const pending = page.getByRole("region", { name: "待完成项目删除" });
+    const retry = pending.getByRole("button", { name: `重试删除「${target.title}」` });
+    await expect(retry).toBeEnabled();
+    await page.screenshot({ path: "../output/playwright/prior-abandonment-pending.png" });
+    await retry.click();
+    const consent = page.getByRole("alertdialog", { name: "重试永久删除项目" });
+    const confirmRetry = consent.getByRole("button", { name: "确认重试永久删除项目" });
+    await consent.getByLabel("输入完整片名以确认重试删除").fill(target.title);
+    await expect(confirmRetry).toBeDisabled();
+    await consent.getByRole("checkbox").check();
+    const retried = page.waitForResponse(response => response.url().endsWith(`/${target.projectId}/abandon-and-delete`));
+    await confirmRetry.click();
+    expect((await retried).status()).toBe(204);
+  }
+  await expect(prior).toHaveCount(0);
+  expect((await evidence()).calls.filter((item: string) => item === "revoke")).toHaveLength(1);
+  expect((await evidence()).attempts).toEqual(original.attempts);
+  await expect(access(target.home)).rejects.toThrow();
+  expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${neighbor.id}`)).status()).toBe(200);
+  expect(await (await request.get(`${workbench.apiOrigin}/api/v2/project-deletions`)).json()).toEqual([]);
+});
 
 const row = (page: Page, id: string) => page.locator(`.directory-item[data-project-id="${id}"]`);
 
