@@ -7,8 +7,10 @@ run through the actual production source in the disposable committed checkout.
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -31,6 +33,9 @@ def main():
     install_spawn_journal(case)
     sys.path.insert(0, str(source / "src"))
     sys.path.insert(0, str(source / "scripts/autopilot/handoff" if args.action == "prepare" else case / "bundle"))
+    from plotloom import codex_exec_profile
+    codex_exec_profile.NODE_OPENSSL_CONFIG = case / "provider-free-host/openssl.cnf"
+    sys.path.insert(0, str(case / "provider-free-host/python-startup"))
     if args.action == "prepare":
         return prepare(case, source)
     return receive(case, source, args.action, args.mode)
@@ -83,6 +88,20 @@ def receive(case, source, action, mode):
         return real_check_output(command, **kwargs)
     subprocess.check_output = fake_ps
     if action == "outer":
+        # Native uv exec/process IO is already synthetic here. Own the paired
+        # executable lookup and temporary storage too, without creating Mac
+        # system paths or weakening the real launch/phase/source validators.
+        real_which, real_mkdtemp = shutil.which, tempfile.mkdtemp
+        shutil.which = lambda name, *args, **kwargs: (
+            "/opt/homebrew/bin/uv" if name == "uv" else real_which(name, *args, **kwargs)
+        )
+        temporary = case / "native-temporary"
+        def owned_mkdtemp(*args, **kwargs):
+            if kwargs.get("dir") == "/private/tmp":
+                temporary.mkdir(mode=0o700, exist_ok=True)
+                kwargs["dir"] = temporary
+            return real_mkdtemp(*args, **kwargs)
+        tempfile.mkdtemp = owned_mkdtemp
         def fake_exec(executable, command, environment):
             assert executable == "/opt/homebrew/bin/uv" and command == argv
             child = [sys.executable, "-B", str(Path(__file__).resolve()), "inner", "--case-root", str(case),

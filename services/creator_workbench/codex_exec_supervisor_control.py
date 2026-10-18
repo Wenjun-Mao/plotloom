@@ -183,7 +183,9 @@ class CodexExecSupervisorControlMixin:
     def _process_identity(pid):
         start = subprocess.run(["/bin/ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, timeout=2, check=True).stdout.decode().strip()
         group = int(subprocess.run(["/bin/ps", "-o", "pgid=", "-p", str(pid)], capture_output=True, timeout=2, check=True).stdout.decode().strip())
-        command = subprocess.run(["/bin/ps", "-o", "command=", "-p", str(pid)], capture_output=True, timeout=2, check=True).stdout.decode().strip()
+        # Display width differs between the detached helper and an RPC caller.
+        # Hash the full command in both; terminal truncation is not identity.
+        command = subprocess.run(["/bin/ps", "-ww", "-o", "command=", "-p", str(pid)], capture_output=True, timeout=2, check=True).stdout.decode().strip()
         if not start or not command:
             raise ProcessLookupError(pid)
         return group, f"{start}|{sha256(command.encode()).hexdigest()[:32]}"

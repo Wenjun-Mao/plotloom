@@ -15,6 +15,10 @@ def main():
     args=parser.parse_args()
     root,source=args.root,args.source
     sys.dont_write_bytecode=True
+    sys.path.insert(0,str(source/'src'))
+    from plotloom import codex_exec_profile
+    codex_exec_profile.NODE_OPENSSL_CONFIG=root/'provider-free-host/openssl.cnf'
+    sys.path.insert(0,str(root/'provider-free-host/python-startup'))
     if args.action=='prepare':
         sys.path[:0]=[str(source/'src'),str(source/'services/creator_workbench'),
             str(source/'scripts/autopilot/handoff'),str(source/'scripts/autopilot')]

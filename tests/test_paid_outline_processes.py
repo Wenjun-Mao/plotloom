@@ -16,6 +16,25 @@ from tests.paid_outline_process_guard import exclusive
 SUPPORT = str(Path(__file__).resolve().parents[1])
 
 
+def test_owned_process_identity_is_independent_of_display_width(monkeypatch):
+    process = subprocess.Popen(
+        [sys.executable, "-c", "import sys; sys.stdin.read()", "owned-long-command-" * 40],
+        stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+    try:
+        with monkeypatch.context() as columns:
+            columns.setenv("COLUMNS", "40")
+            narrow = lifecycle.process_identity(process.pid)
+            columns.setenv("COLUMNS", "4096")
+            wide = lifecycle.process_identity(process.pid)
+        assert narrow == wide
+        assert narrow["pgid"] == process.pid
+    finally:
+        process.communicate(timeout=5)
+    assert process.returncode == 0
+
+
 def program(root, ending):
     return [sys.executable, "-B", "-c", (
         "import subprocess,sys,time; "

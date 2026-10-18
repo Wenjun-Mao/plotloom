@@ -20,6 +20,7 @@ from tests.codex_exec_runtime_fixtures import (
     CLI_FIXTURE_VERSION,
     build_codex_exec_test_source,
 )
+from tests.codex_exec_platform_fixtures import provider_free_host_runtime
 from tests.paid_outline_processes import owned_processes
 
 NATIVE_FIXTURE = ROOT / "tests/paid_outline_native_fixture.py"
@@ -90,6 +91,7 @@ def make_case(tmp_path, paid_source, processes):
     executable.chmod(0o700)
     example = paid_source / "third_party/shuohao-skills/skills/novel-outline/examples/渡口-outline.json"
     exclusive(tmp_path / "provider-output.json", example.read_bytes())
+    provider_free_host_runtime(tmp_path / "provider-free-host", paid_source)
     context = {"root": tmp_path, "source": paid_source, "qa": qa, "executable": executable, "processes": processes,
         "environment": os.environ | {"CODEX_HOME": str(tmp_path / "auth-home"), "PYTHONDONTWRITEBYTECODE": "1"}}
     _native(context, ["prepare"])

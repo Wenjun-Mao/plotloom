@@ -70,11 +70,16 @@ test("pinned Storyboard static reader reveals long segments/prompts without perm
     await expect(dialog.locator("iframe")).toHaveAttribute("referrerpolicy", "no-referrer");
     await expect(dialog.locator("iframe")).toHaveAttribute("src", `${archiveUrl.replace(workbench.apiOrigin, "")}?presentation=static`);
     expect((await dialog.locator("iframe").boundingBox())!.height).toBeGreaterThan(height * 0.55);
+    await enlarged.locator("body").evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: test.info().outputPath(`storyboard-dialog-summary-${width}x${height}.png`) });
     for (const section of ["sec-rhythm", "sec-segments", "sec-gates"]) {
       await captureReportFramePoint(page, dialog.locator("iframe"), enlarged.locator(`#${section} h2`), test.info(), `storyboard-dialog-${section}-${width}x${height}`);
     }
     await expect(enlarged.locator("#seg-LONG_SEGMENT_30")).toContainText("Final prompt 30.");
     expect(await enlarged.locator("html").evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+    expect(await enlarged.locator(".kpi .d").evaluateAll(elements => elements.every(element => (
+      element.scrollWidth <= element.clientWidth && element.scrollHeight <= element.clientHeight
+    )))).toBe(true);
     expect(await enlarged.locator("body").evaluate(() => (window as unknown as { storyboardExecuted?: boolean }).storyboardExecuted)).toBeUndefined();
     await dialog.getByRole("button", { name: "关闭报告", exact: true }).click();
     await expect(dialog).toBeHidden(); await expect(opener).toBeFocused();

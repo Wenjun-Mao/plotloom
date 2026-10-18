@@ -14,8 +14,11 @@ uses Relay direct with one source writer in the retained checkout; the owner als
 gives standing approval for separate Relay worker chats in `AGENTS.md`. Actual
 owner-story generation and human approval remain explicit creator actions.
 The owner also approved the plan's narrow process-incarnation quiescence
-follow-up after PID reuse blocked safe activation; no guard bypass or termination
-of the unrelated CUA process is authorized.
+follow-up, which found no conclusive retained proof. The owner later authorized
+the manager to verify and gracefully stop only the exact idle CUA helper
+identified as PID 90191, conditional on ownership, inactivity and no uncertain
+impact on other work. Guard bypass and broader app/process shutdown remain
+excluded; this approval is separate from source qualification and activation.
 
 ## Approved whole-pack gallery approval
 

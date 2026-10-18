@@ -429,3 +429,33 @@ The [bounded investigation](../verification/2026-10-18-process-incarnation-proof
 found no conclusive retrospective proof for the retained identity. The guard is
 unchanged and activation remains blocked; no future identity framework was added.
 Separately, the required hosted run failed and needs serialized remediation.
+
+## Hosted qualification remediation
+
+The manager continued the original delivery scope after failed unfiltered run
+39146800414: reproduce exact failures on isolated Linux, repair demonstrated
+source-owner causes and recover later failures through bounded family checks.
+The initial confirmed causes are missing test-owned OpenSSL configuration in
+provider-free host fixtures and intrinsic KPI description widths in the static
+Storyboard dialog. Preserve production Mac config authority, copied source and
+validators, archive bytes/security and full required hosted coverage. Record
+actual Linux measurements and arm64/x64 differences. No general Python
+optimization, timeout increase, filtered release claim or live operation is added.
+Return a diagnostic/fix checkpoint with focused evidence and remaining failures
+before publication or activation; the unresolved process proof stays separate.
+
+The [correction checkpoint](../verification/2026-10-18-hosted-qualification-remediation.md)
+repairs explicit provider-free platform resources, display-width-dependent
+process command identity and static report KPI sizing. Expanded Linux families,
+the reviewed Mac contract module union and the affected browser on both platforms
+passed; independent review found no actionable issues. Full/hosted qualification,
+manager exact-revision retest and publication remain outstanding.
+
+The owner subsequently selected the native question's targeted helper-stop
+option: verify and gracefully stop only the idle CUA helper identified as PID
+90191, with ownership, inactivity and absence of uncertain other-work impact
+established first. Temporary REPL loss was acknowledged. The manager owns that
+inspection/action; the source worker must not signal/reset it concurrently.
+No Codex/Safari/app-wide shutdown, active other-chat interruption, guard bypass,
+history rewrite or UNKNOWN release is included. Actual helper absence and fresh
+native project preflight remain required before any deletion/activation.

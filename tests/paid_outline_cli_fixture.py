@@ -19,6 +19,8 @@ def sandbox(case, executable, arguments):
     source = Path(namespace["sourceRoot"]["path"])
     sys.path.insert(0, str(source / "src"))
     sys.path.insert(0, str(source / "services/creator_workbench"))
+    from plotloom import codex_exec_profile
+    codex_exec_profile.NODE_OPENSSL_CONFIG = case / "provider-free-host/openssl.cnf"
     from codex_exec_supervisor_environment import CodexExecSupervisorEnvironmentMixin
     from codex_exec_supervisor_validation import CodexExecSupervisorValidationMixin
 

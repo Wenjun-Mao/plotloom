@@ -9,6 +9,7 @@ import pytest
 from tests.cli_handoff_fixtures import ROOT,builder,current_test_qa,exclusive,private_directory
 from tests.paid_outline_fixtures import paid_source, rebind_allocation  # noqa: F401
 from tests.paid_outline_processes import owned_processes
+from tests.codex_exec_platform_fixtures import provider_free_host_runtime
 from tests.qualification_pair_test_support import pair_controls  # noqa: F401
 from tests.qualification_pair_test_support import historical_case, preservation_case, current_arm_case, write_json, load
 
@@ -30,6 +31,7 @@ def prepare_case(root,paid_source,owner):
     exclusive(root/'fake-codex',fake.encode())
     (root/'fake-codex').chmod(0o700)
     exclusive(root/'functional/result.json',builder.canonical(dict(syntheticEvidence=True,qualification=False)))
+    provider_free_host_runtime(root/'provider-free-host',paid_source)
     env=os.environ|dict(CODEX_HOME=str(root/'auth-home'),PYTHONDONTWRITEBYTECODE='1')
     result=owner.run([sys.executable,'-B',str(FIXTURE),'prepare','--root',str(root),'--source',str(paid_source)],
         env=env,capture_output=True,text=True,timeout=45)

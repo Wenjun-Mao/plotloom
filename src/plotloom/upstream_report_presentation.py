@@ -76,6 +76,8 @@ def static_art_report(report: str) -> str:
 
 STATIC_STORYBOARD_REPORT_STYLE = """<style data-plotloom-static-storyboard-report>
 .expo,.copy,.shmore,.lightbox{display:none!important}
+.kpi{min-width:0}
+.kpi .d{white-space:normal;overflow:visible;overflow-wrap:anywhere}
 .shots.clip{max-height:none!important;overflow:visible!important}
 .shots.clip::after{display:none!important}
 .pp{display:block!important;max-height:none!important;overflow:visible!important}

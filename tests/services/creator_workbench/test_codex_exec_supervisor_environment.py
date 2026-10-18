@@ -19,6 +19,36 @@ from codex_exec_supervisor_test_support import _prepared_text_job
 from plotloom.codex_exec_resources import codex_exec_source_resources
 
 
+def test_provider_free_worker_keeps_its_explicit_configuration_in_a_new_interpreter(supervisor):
+    from plotloom.codex_exec_profile import NODE_OPENSSL_CONFIG
+
+    observed = subprocess.run(
+        [sys.executable, "-c", "from plotloom.codex_exec_profile import NODE_OPENSSL_CONFIG; print(NODE_OPENSSL_CONFIG)"],
+        env=supervisor._worker_environment(), capture_output=True, text=True, check=True, timeout=5,
+    )
+    assert observed.stdout.strip() == str(NODE_OPENSSL_CONFIG)
+    assert NODE_OPENSSL_CONFIG.read_text().startswith("# Provider-free fixture;")
+
+
+def test_process_identity_does_not_depend_on_command_display_width(supervisor, monkeypatch):
+    process = subprocess.Popen(
+        [sys.executable, "-c", "import sys; sys.stdin.read()", "owned-long-command-" * 40],
+        stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+    try:
+        with monkeypatch.context() as columns:
+            columns.setenv("COLUMNS", "40")
+            narrow = supervisor._process_identity(process.pid)
+            columns.setenv("COLUMNS", "4096")
+            wide = supervisor._process_identity(process.pid)
+        assert narrow == wide
+        assert narrow[0] == process.pid
+    finally:
+        process.communicate(timeout=5)
+    assert process.returncode == 0
+
+
 @pytest.mark.parametrize("domain", ["text", "image"])
 def test_cli_invocation_uses_only_frozen_instructions(supervisor, tmp_path, domain):
     from codex_exec_supervisor_test_support import _write_fake_cli

@@ -68,6 +68,17 @@ def test_version_warning_is_not_an_execution_failure_or_profile_output(observed_
     assert "private warning must not enter profile" not in profile.model_dump_json()
 
 
+@pytest.mark.parametrize("defect", ["missing", "symlink"])
+def test_fixture_configuration_keeps_the_production_regular_file_guard(observed_cli, monkeypatch, tmp_path, defect):
+    module, executable, source, _observation = observed_cli
+    config = tmp_path / "unavailable-openssl.cnf"
+    if defect == "symlink":
+        config.symlink_to(module.NODE_OPENSSL_CONFIG)
+    monkeypatch.setattr(module, "NODE_OPENSSL_CONFIG", config)
+    with pytest.raises(RuntimeError, match="pinned Node validator OpenSSL configuration"):
+        module.build_codex_exec_profile(executable, source_root=source)
+
+
 @pytest.mark.parametrize("boundary", ["source", "toolchain"])
 def test_absent_version_metadata_does_not_bypass_identity_checks(observed_cli, monkeypatch, boundary):
     module, executable, source, observation = observed_cli

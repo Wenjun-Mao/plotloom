@@ -36,7 +36,7 @@ def _probe(command):
 
 
 def process_identity(pid):
-    code, text = _probe(["/bin/ps", "-p", str(pid), "-o", "pid=,ppid=,pgid=,lstart=,command="])
+    code, text = _probe(["/bin/ps", "-ww", "-p", str(pid), "-o", "pid=,ppid=,pgid=,lstart=,command="])
     if code == 1 and not text.strip():
         return None
     if code != 0:

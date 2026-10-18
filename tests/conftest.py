@@ -4,6 +4,10 @@ from pathlib import Path
 
 import pytest
 
+from tests.codex_exec_platform_fixtures import (
+    codex_exec_test_platform as _codex_exec_test_platform,  # noqa: F401
+)
+
 from tests.graph_authoring_fixtures import (
     AcceptedSourceProjectSeed,
     build_accepted_source_project_seed,

@@ -94,6 +94,17 @@ closes the dialog without restoring focus into a hidden workflow. Guard placemen
 desktop geometry, long-content reading, no writes, archive hashes and isolation
 in the existing report regressions.
 
+### Static Storyboard summary sizing (2026-10-18)
+
+Ubuntu Chromium reproduced the dialog overflow at an inner width of 1195px:
+the five KPI tracks expanded to 1221px because description cells used nowrap
+intrinsic minima, extending the document to 1253px. The static presentation
+allows KPI items to shrink and descriptions to wrap, with visible overflow and
+breakable long tokens. It preserves the renderer's column breakpoints and all
+description text; no clipping, hidden content, archive rewrite or CSP permission
+is added. Existing dialog/inline desktop regressions retain exact horizontal
+bounds and now check that KPI descriptions have no clipped scroll area.
+
 ## Demonstrated Cast report instance
 
 Actual F2 Copy, Expand and Search actions were inert under the same empty
