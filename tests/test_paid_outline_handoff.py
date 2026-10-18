@@ -142,6 +142,13 @@ def test_registered_paid_entry_reaches_one_receipt_and_validated_delivery_then_h
     assert result["syntheticEvidence"] is True and result["qualification"] is False
     assert result["outcome"]["status"] == "RECEIVER_ACCEPTED", json.dumps(result, indent=2)
     assert result["actualFixtureChildTerminal"]["code"] == 0, json.dumps(result, indent=2)
+    for action in ("prepare", "outer", "inner"):
+        observations = list((case["root"] / "receipts").glob(action + "-runtime-*.json"))
+        assert len(observations) == 1
+        runtime = json.loads(observations[0].read_bytes())
+        assert runtime["executable"] == case["qa"]["entrypoint"]
+        assert Path(runtime["plotloomImport"]) == case["source"] / "src/plotloom/codex_exec_profile.py"
+        assert Path(runtime["pytestImport"]).is_relative_to(Path(case["qa"]["prefix"]))
     paid = json.loads((case["root"] / "phase/paid-result.json").read_bytes())
     assert paid["outcome"] == "RECEIPT_AND_VALIDATED_DELIVERY" and paid["held"] is True, paid
     assert paid["canonicalAdoption"] is False and paid["imageAdmissions"] == 0 and paid["retryAuthorized"] is False

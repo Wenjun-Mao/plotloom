@@ -1,16 +1,20 @@
-name: Hosted Python contract diagnostic
-
-permissions:
-  contents: read
+name: CI
 
 on:
   workflow_dispatch:
+    inputs:
+      browser_grep:
+        description: "Browser test-name regex (.* is the full release gate; any filter is diagnostic only)"
+        required: true
+        default: ".*"
+        type: string
 
 jobs:
-  diagnose:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
     steps:
+      # The retained-runtime inventory compares fixed historical commits.
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
@@ -21,103 +25,106 @@ jobs:
           enable-cache: true
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12.15"
+          python-version: "3.12"
       - uses: actions/setup-node@v4
         with:
-          node-version: "22.23.3"
-      - name: Install the checked Python dependencies and media tools
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            docs/prompt-pipeline-lab/package-lock.json
+
+      - name: Provision owned copied test interpreter and frozen dependencies
+        run: python scripts/testing/provision_test_venv.py
+      - name: Check API unused imports
+        run: uv run ruff check src/plotloom/api --select F401
+      - name: Install P2 media probe tools
         run: |
-          uv sync --all-groups --frozen
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends ffmpeg
+          ffmpeg -version
+          ffprobe -version
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+      - name: Verify archived prompt reader
+        run: |
+          npm --prefix docs/prompt-pipeline-lab ci
+          npm --prefix docs/prompt-pipeline-lab run verify
+      - name: Frontend unit and type contracts
+        run: |
+          npm --prefix frontend test
+          npm --prefix frontend run typecheck
+      - name: Build production frontend
+        run: npm --prefix frontend run build
+      - name: Verify checked production bundle
+        run: git diff --exit-code -- src/plotloom/static
+      - name: Python and distribution contracts
+        # The full serial suite exceeded the old job budget while still advancing.
+        # Bound this step separately and retain time for wheel/smoke qualification.
+        timeout-minutes: 45
+        run: .venv/bin/python -m pytest -q --durations=20
+      - name: Build wheel
+        run: uv build --wheel
+      - name: Smoke installed wheel
+        run: uv run python scripts/smoke_installed_wheel.py dist
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          submodules: recursive
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Provision owned copied test interpreter and frozen dependencies
+        run: python scripts/testing/provision_test_venv.py
+      - name: Install browser fixture dependencies
+        run: |
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends ffmpeg
           npm --prefix frontend ci
-          npm --prefix docs/prompt-pipeline-lab ci
-      - name: Observe interpreter startup with and without inherited loader configuration
-        id: preflight
-        run: |
-          uv run python - <<'PY'
-          import json, os, platform, shutil, stat, subprocess, sys
-          from pathlib import Path
-          import plotloom, tests
-          root = Path.cwd()
-          output = root / ".local/hosted-python-diagnostic"
-          output.mkdir(parents=True, exist_ok=True)
-          clean = {key: value for key, value in os.environ.items() if not key.startswith(("LD_", "DYLD_"))}
-          result = subprocess.run([sys.executable, "-c", "import sys; print(sys.version.split()[0])"], env=clean, capture_output=True, text=True)
-          info = (root / "scripts/autopilot/handoff/capsule.mjs").lstat()
-          mask = os.umask(0o022)
-          os.umask(mask)
-          facts = {"diagnosticOnly": True, "sourceHead": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(), "python": sys.version.split()[0], "executable": sys.executable, "prefix": sys.prefix, "machine": platform.machine(), "uid": os.getuid(), "umask": oct(mask), "plotloomImport": plotloom.__file__, "testsImport": tests.__file__, "pytestShebang": (root / ".venv/bin/pytest").read_text().splitlines()[0], "sourceOwner": info.st_uid, "sourceMode": oct(stat.S_IMODE(info.st_mode)), "sourceLinks": info.st_nlink, "loaderConfigured": bool(os.environ.get("LD_LIBRARY_PATH")), "withoutLoaderExit": result.returncode, "withoutLoaderStderr": result.stderr[:500]}
-          base = "2b3c8d6650122adf0b503c36fa42f48206bd740e"
-          facts["productBase"] = base
-          facts["workflowOnlyDiff"] = subprocess.check_output(["git", "diff", "--name-only", base, "HEAD"], text=True).splitlines()
-          facts["dependencyHead"] = subprocess.check_output(["git", "-C", "third_party/shuohao-skills", "rev-parse", "HEAD"], text=True).strip()
-          facts["node"] = subprocess.check_output(["node", "--version"], text=True).strip()
-          facts["osRelease"] = dict(line.split("=", 1) for line in Path("/etc/os-release").read_text().splitlines() if "=" in line)
-          facts["preflightChecks"] = "pending"
-          (output / "preflight.json").write_text(json.dumps(facts, indent=2) + "\n")
-          assert facts["workflowOnlyDiff"] == [".github/workflows/ci.yml"]
-          assert subprocess.check_output(["git", "rev-parse", "HEAD^"], text=True).strip() == base
-          assert not subprocess.check_output(["git", "diff", "--name-only", "HEAD"], text=True).strip()
-          assert facts["dependencyHead"] == "4f9b2128c82adf623f594ba714c97d0afcfc16a2"
-          assert facts["osRelease"]["ID"].strip('"') == "ubuntu" and facts["osRelease"]["VERSION_ID"].strip('"') == "24.04"
-          assert facts["machine"] == "x86_64" and sys.version_info[:3] == (3, 12, 15) and facts["node"] == "v22.23.3"
-          assert stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid() and info.st_nlink == 1 and not info.st_mode & 0o022
-          assert mask == 0o022
-          assert Path(plotloom.__file__) == root / "src/plotloom/__init__.py" and Path(tests.__file__) == root / "tests/__init__.py"
-          assert Path(sys.prefix) == root / ".venv" and Path(shutil.which("pytest")) == root / ".venv/bin/pytest"
-          assert Path(facts["pytestShebang"][2:]).resolve() == Path(sys.executable).resolve()
-          assert next((root / ".venv").glob("lib/python*/site-packages/plotloom.pth")).read_text().strip() == str(root / "src")
-          assert not any(os.environ.get(key) for key in ("PYTHONPATH", "PYTEST_ADDOPTS", "UV_PROJECT_ENVIRONMENT", "UV_PYTHON", "PYTHONDONTWRITEBYTECODE"))
-          facts["preflightChecks"] = "passed"
-          (output / "preflight.json").write_text(json.dumps(facts, indent=2) + "\n")
-          print(json.dumps(facts, sort_keys=True))
-          PY
-      - name: Exact native Node capsule case
-        if: ${{ !cancelled() && steps.preflight.outcome == 'success' }}
-        run: |
-          mkdir -p .local/hosted-python-diagnostic
-          uv run pytest -x -vv --tb=long tests/test_cli_handoff_capsule.py::test_actual_node_capsule_contracts --junitxml=.local/hosted-python-diagnostic/capsule.xml
-      - name: Exact native paid-entry case
-        if: ${{ !cancelled() && steps.preflight.outcome == 'success' }}
-        run: |
-          mkdir -p .local/hosted-python-diagnostic
-          uv run pytest -x -vv --tb=long tests/test_paid_outline_handoff.py::test_registered_paid_entry_reaches_one_receipt_and_validated_delivery_then_hold --junitxml=.local/hosted-python-diagnostic/paid-entry.xml
-      - name: Retain only the two test-owned fixture log sets
+      - name: Install Playwright Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Verify browser shard allocation and selected case coverage
+        working-directory: frontend
+        env:
+          BROWSER_GREP: ${{ inputs.browser_grep }}
+        run: node scripts/check_browser_shard_manifest.mjs
+      - name: Browser regression contracts
+        # Keep one real fixture stack per runner; distribute whole specs by duration.
+        # Playwright must finalize reports before the step/job cancellation budget.
+        timeout-minutes: 45
+        env:
+          BROWSER_GREP: ${{ inputs.browser_grep }}
+          BROWSER_SHARD: ${{ matrix.shard }}
+        run: npm --prefix frontend run test:e2e -- --workers=1 --grep="${BROWSER_GREP}" --global-timeout=2400000 --pass-with-no-tests
+      - name: Upload Playwright test results
         if: ${{ !cancelled() }}
-        run: |
-          uv run python - <<'PY'
-          import getpass, json, os, shutil, stat, tempfile
-          from pathlib import Path
-          base = Path(tempfile.gettempdir()) / ("pytest-of-" + getpass.getuser())
-          output = Path(".local/hosted-python-diagnostic/fixture-logs")
-          selections = []
-          for marker in base.glob("pytest-*/capsule-source*/owner.json"):
-              if json.loads(marker.read_text()).get("evidenceClass") == "synthetic_unit_only":
-                  selections.extend(marker.parent / "receipts" / name for name in ("node-tap.log", "node-stderr.log", "node-result.json"))
-          for marker in base.glob("pytest-*/test_registered_paid_entry_*/fixture-owner.json"):
-              if json.loads(marker.read_text()).get("syntheticEvidence") is True:
-                  selections.extend((marker.parent / "receipts").glob("*.log"))
-                  selections.extend(marker.parent / name for name in ("capsule-result-success.json", "process-settlement.json", "phase/driver.log"))
-                  selections.extend(marker.parent.rglob("*.stderr"))
-                  selections.extend(marker.parent.rglob("*.stdout"))
-          copied = []
-          for source in selections:
-              if not source.exists():
-                  continue
-              info = source.lstat()
-              assert stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid() and info.st_nlink == 1, source
-              relative = source.relative_to(base)
-              destination = output / relative
-              destination.parent.mkdir(parents=True, exist_ok=True)
-              shutil.copyfile(source, destination)
-              copied.append(str(relative))
-          print(json.dumps({"diagnosticOnly": True, "retainedFixtureLogs": copied}, sort_keys=True))
-          PY
-      - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
         with:
-          name: hosted-python-diagnostic-evidence
-          path: .local/hosted-python-diagnostic
-          include-hidden-files: true
+          name: playwright-test-results-${{ matrix.shard }}
+          path: frontend/test-results
+          retention-days: 7
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.shard }}
+          path: frontend/playwright-report
           retention-days: 7

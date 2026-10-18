@@ -117,3 +117,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0193 Frozen batch video authority](0193-batch-video-authority.md)
 - [0194 Explicit platform resources in provider-free host tests](0194-provider-free-host-platform-resources.md)
 - [0195 Process command identity is independent of display width](0195-command-identity-display-width.md)
+- [0196 Owned copied interpreter for hosted tests](0196-owned-copied-hosted-test-interpreter.md)

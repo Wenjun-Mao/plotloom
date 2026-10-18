@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import { B, Capsule, dispatch, fixture, faultIO, raw, sha, stable, exclusive } from './cli_handoff_fixtures.mjs';
+import { B, QA, Capsule, dispatch, fixture, faultIO, raw, sha, stable, exclusive } from './cli_handoff_fixtures.mjs';
 
 test('actual capsule source includes one fixed file import and no executable free loader', () => {
   const text = Function.prototype.toString.call(Capsule);
@@ -90,6 +90,26 @@ test('runtime contamination refuses before exclusive intent', async () => {
 
 test('source controls drift refuses without changing immutable source', async () => {
   const c = await fixture(); assert.match((await c.call('prepare', {}, faultIO(c, 'controls'))).reason, /controls hash/);
+});
+
+for (const fault of ['mode', 'hash']) test('QA binary remains refused on ' + fault + ' drift', async () => {
+  const c = await fixture(), io = { ...fs };
+  const physical = Object.entries(QA.identities).find(([, identity]) => identity.kind === 'regular')[0];
+  if (fault === 'mode') io.lstat = async file => {
+    const s = await fs.lstat(file);
+    return file === physical ? Object.assign(Object.create(Object.getPrototypeOf(s)), s, { mode: s.mode | 0o022 }) : s;
+  };
+  else io.open = async (...args) => {
+    const fd = await fs.open(...args);
+    if (args[0] !== physical) return fd;
+    return { close: () => fd.close(), stat: () => fd.stat(), readFile: async () => {
+      const content = await fd.readFile(); content[0] ^= 1; return content;
+    } };
+  };
+  const result = await c.call('prepare', {}, { fs: io });
+  assert.equal(result.status, 'HELD');
+  assert.match(result.reason, fault === 'mode' ? /unsafe regular file/ : /QA binary\/config drift/);
+  assert.deepEqual(await fs.readdir(c.root), ['phase.json']);
 });
 
 test('legitimate fractional filesystem timestamps retain full stat representation', async () => {

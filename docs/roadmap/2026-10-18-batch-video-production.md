@@ -459,3 +459,26 @@ inspection/action; the source worker must not signal/reset it concurrently.
 No Codex/Safari/app-wide shutdown, active other-chat interruption, guard bypass,
 history rewrite or UNKNOWN release is included. Actual helper absence and fresh
 native project preflight remain required before any deletion/activation.
+
+### Owned copied hosted test runtime (local checkpoint)
+
+The manager approved the narrow provisioning follow-up after diagnostic
+39172239738: a fresh owned copy-based project test venv, populated from the
+existing frozen lock, with genuine before/after runtime facts and explicit
+Python pytest invocation. Keep capsule/QA admission and source/cache modes
+unchanged. Local Linux feasibility passed through frozen sync and subsequent
+uv use, including the actual Node capsule and paid-entry proof cases.
+
+Deliver the reusable setup step in both ordinary hosted jobs, ADR 0196,
+focused success/refusal and unchanged-admission regressions, and a stable local
+diff/evidence checkpoint for manager review. No additional hosted dispatch,
+release/full run, push, activation, owner-data deletion or live process action
+is authorized by this follow-up. The original serial hosted runtime budget is
+an unresolved qualification concern; do not change it or parallelism here.
+
+The [local checkpoint](../verification/2026-10-18-owned-test-runtime.md) records
+successful copy-based feasibility, 29 final Linux cases and independent review.
+Hosted 3.12.15/x64 and the serial-suite budget remain unqualified; changes remain
+locally scoped. Manager review and an independent 29-case retest passed; coherent
+local commits and a reused-worktree hosted diagnostic draft are approved.
+Remote writes, dispatch, full runs and activation remain held for review.

@@ -11,6 +11,7 @@ import pytest
 from tests.cli_handoff_fixtures import (
     ROOT,
     builder,
+    current_test_qa,
     exclusive,
     private_directory,
 )
@@ -72,23 +73,25 @@ def test_missing_or_stale_bundle_is_refused(tmp_path):
     for name in builder.INPUT_FILES:
         exclusive(source / name, (builder.SOURCE / name).read_bytes())
     bundle = private_directory(tmp_path / "bundle")
-    builder.seal_bundle(bundle, source=source)
-    builder.verify_bundle(bundle, source=source)
+    qa = current_test_qa()
+    builder.seal_bundle(bundle, source=source, qa_bytes=qa)
+    builder.verify_bundle(bundle, source=source, qa_bytes=qa)
     (source / "node_helper.mjs").write_bytes((source / "node_helper.mjs").read_bytes() + b"\n// changed current source\n")
     with pytest.raises(RuntimeError, match="bundle input differs from its actual owner source"):
-        builder.verify_bundle(bundle, source=source)
+        builder.verify_bundle(bundle, source=source, qa_bytes=qa)
 
 
 def test_bundle_refuses_overwrite_and_unsafe_binding_path(tmp_path):
     tmp_path.chmod(0o700)
     bundle = private_directory(tmp_path / "bundle")
-    builder.seal_bundle(bundle)
+    qa = current_test_qa()
+    builder.seal_bundle(bundle, qa_bytes=qa)
     with pytest.raises(RuntimeError, match="fresh and empty"):
-        builder.seal_bundle(bundle)
+        builder.seal_bundle(bundle, qa_bytes=qa)
     linked = tmp_path / "linked"
     linked.symlink_to(bundle, target_is_directory=True)
     with pytest.raises(RuntimeError, match="physical absolute"):
-        builder.verify_bundle(linked)
+        builder.verify_bundle(linked, qa_bytes=qa)
 
 
 def test_capsule_native_owners_include_its_current_support_closure():

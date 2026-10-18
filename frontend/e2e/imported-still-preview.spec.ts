@@ -1,19 +1,13 @@
 import { navigateToSecondaryTool, openMediaPreparation, openMediaKeyframes } from "./workbench-controls";
 import { expect, test } from "./fixture";
 import { json } from "./f5a-fixture";
-import { demoProject } from "../src/demo";
 import { reviewedFixtureSource, saveFixtureTargetIntent, reviewFixtureTarget } from "./fixtures/reviewed-frame-reuse";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const developmentStillPaths = ["01-arrival.png", "02-keys.png", "03-pressure.png", "04-establishing.png"]
-  .map((name) => path.join(repositoryRoot, "docs/verification/supporting/p0-generated", name));
+import { captureRestartEvidence, createCanonicalProject, createReviewedPreviewProject, developmentStillPaths } from "./imported-still-preview-fixtures";
 
 test.describe("P0 imported still preview journey", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("persists an explicit reviewed intent, refreshes applicability, and deletes its owned media", async ({ page, request, workbench }, testInfo) => {
+  test("imports four candidates and independently reviews three shots before preview playback", async ({ page, request, workbench }) => {
     const projectId = await createCanonicalProject(request, workbench.apiOrigin);
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
     await navigateToSecondaryTool(page, "分镜工作台");
@@ -87,6 +81,17 @@ test.describe("P0 imported still preview journey", () => {
       expect.objectContaining({ shotId: "shot_02", compatibilityNote: "The retained fixture still is explicitly reviewed for the second shot." }),
       expect.objectContaining({ shotId: "shot_p0_03", compatibilityNote: "The retained fixture still is explicitly reviewed for the third shot." }),
     ]));
+  });
+
+  test("retains imported bytes and reviewed receipts across a real restart before explicit replacement", async ({ page, request, workbench }, testInfo) => {
+    const { projectId } = await createReviewedPreviewProject(request, workbench.apiOrigin);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
+    await navigateToSecondaryTool(page, "分镜工作台");
+    await openMediaPreparation(page);
+    await openMediaKeyframes(page);
+    await expect(page.getByTestId("still-animatic")).toBeVisible();
+    const cards = page.getByLabel("候选图像比较").locator(".media-candidate");
+    const beforeRestart = await captureRestartEvidence(request, workbench.apiOrigin, projectId);
     // This terminates the owned FastAPI process and starts a new one with the
     // same SQLite database and ArtifactStore directory; it is intentionally
     // not a tab, navigation, or in-process state check.
@@ -101,6 +106,8 @@ test.describe("P0 imported still preview journey", () => {
     expect(afterRestart.workbench.assets).toEqual(beforeRestart.workbench.assets);
     expect(afterRestart.workbench.visualIntents).toEqual(beforeRestart.workbench.visualIntents);
     expect(afterRestart.workbench.reviewedKeyframes).toEqual(beforeRestart.workbench.reviewedKeyframes);
+    expect(afterRestart.workbench.characterReferences).toEqual(beforeRestart.workbench.characterReferences);
+    expect(afterRestart.workbench.samePersonReviews).toEqual(beforeRestart.workbench.samePersonReviews);
     expect(afterRestart.originalBytes).toEqual(beforeRestart.originalBytes);
     const firstFrame = beforeRestart.preview.manifest.frames[0];
     const renderedStill = page.getByAltText(`Shot ${firstFrame.shotId} reviewed still`);
@@ -120,7 +127,16 @@ test.describe("P0 imported still preview journey", () => {
     await page.getByTestId("create-still-preview").click();
     await expect(page.getByText("当前可用", { exact: true }).first()).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath("p0-imported-still-preview-1440x900.png"), animations: "disabled" });
+  });
 
+  test("invalidates replaced reviewed media on a board edit, reapproves explicitly and deletes its owned project", async ({ page, request, workbench }) => {
+    const { projectId, replacementAssetId } = await createReviewedPreviewProject(request, workbench.apiOrigin, true);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
+    await navigateToSecondaryTool(page, "分镜工作台");
+    await openMediaPreparation(page);
+    await openMediaKeyframes(page);
+    const cards = page.getByLabel("候选图像比较").locator(".media-candidate");
+    await expect(page.getByText("当前可用", { exact: true }).first()).toBeVisible();
     // A real authored-board edit removes the approval; the workbench must
     // repaint and block a reviewed selection until the normal reapproval.
     await page.getByRole("button", { name: "编辑镜头细节", exact: true }).click();
@@ -162,6 +178,7 @@ test.describe("P0 imported still preview journey", () => {
     const media = await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/visual-workbench`));
     expect(media.selectionRevision).toBe(reapprovedSelection.selectionRevision);
     const reapprovedRequest = reapprovedResponse.request().postDataJSON();
+    expect(reapprovedRequest.assetId).toBe(replacementAssetId);
     expect(media.reviewedKeyframes.find((binding: { id: string }) => binding.id === reapprovedSelection.id)).toMatchObject({
       id: reapprovedSelection.id, selectionRevision: reapprovedSelection.selectionRevision,
       assetId: reapprovedRequest.assetId, shotId: reapprovedRequest.shotId, sceneId: reapprovedRequest.sceneId,
@@ -187,76 +204,3 @@ test.describe("P0 imported still preview journey", () => {
     expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}`)).status()).toBe(404);
   });
 });
-
-async function createCanonicalProject(request: import("@playwright/test").APIRequestContext, apiOrigin: string): Promise<string> {
-  const storyboard = structuredClone(demoProject.storyboard);
-  const sceneBeats = structuredClone(demoProject.sceneBeats);
-  const first = storyboard.shots.find((shot) => shot.id === "shot_01")!;
-  storyboard.shots.push({
-    ...first, id: "shot_p0_03", order: 3, title: "P0 静止余波", durationUnits: 2000, cueIds: [],
-    audioPlan: { events: first.audioPlan.events.map((event) => ({ ...event, durationUnits: 2000 })) },
-  });
-  storyboard.shotBeatLinks.push({ shotId: "shot_p0_03", beatId: "b1", role: "supporting", coverageWeight: 1 });
-  sceneBeats.scenes = sceneBeats.scenes.map((scene) => scene.id === "scene_arrival"
-    ? { ...scene, durationBudgetUnits: 12000 } : scene);
-  const response = await request.post(`${apiOrigin}/api/v2/projects`, {
-    headers: { "Idempotency-Key": `p0-still-${Date.now()}` },
-    data: {
-      brief: demoProject.brief,
-      initialStages: [
-        { stage: "story_bible", payload: demoProject.storyBible },
-        { stage: "story_graph", payload: demoProject.storyGraph },
-        { stage: "scene_beats", payload: sceneBeats },
-        { stage: "storyboard", payload: storyboard },
-      ],
-    },
-  });
-  expect(response.ok(), await response.text()).toBeTruthy();
-  return (await response.json() as { id: string }).id;
-}
-
-type RestartEvidence = {
-  workbench: {
-    assets: Array<{ id: string; originalHash: string; provenance: unknown }>;
-    visualIntents: unknown[];
-    reviewedKeyframes: unknown[];
-  };
-  preview: {
-    id: string;
-    manifestHash: string;
-    state: string;
-    manifest: { frames: Array<{ assetId: string; shotId: string; visualIntentId: string | null; visualIntentRevision: number | null }> };
-  };
-  originalBytes: Record<string, string>;
-};
-
-async function captureRestartEvidence(
-  request: import("@playwright/test").APIRequestContext,
-  apiOrigin: string,
-  projectId: string,
-): Promise<RestartEvidence> {
-  const response = await request.get(`${apiOrigin}/api/v2/projects/${projectId}/visual-workbench`);
-  expect(response.ok(), await response.text()).toBeTruthy();
-  const workbench = await response.json() as {
-    assets: RestartEvidence["workbench"]["assets"];
-    visualIntents: unknown[];
-    reviewedKeyframes: unknown[];
-    previews: RestartEvidence["preview"][];
-  };
-  const preview = workbench.previews.find((candidate) => candidate.state === "current");
-  expect(preview).toBeDefined();
-  const originalBytes = Object.fromEntries(await Promise.all(workbench.assets.map(async (asset) => {
-    const original = await request.get(`${apiOrigin}/api/v2/projects/${projectId}/managed-assets/${asset.id}/original`);
-    expect(original.ok(), await original.text()).toBeTruthy();
-    return [asset.id, (await original.body()).toString("base64")];
-  })));
-  return {
-    workbench: {
-      assets: workbench.assets,
-      visualIntents: workbench.visualIntents,
-      reviewedKeyframes: workbench.reviewedKeyframes,
-    },
-    preview: preview!,
-    originalBytes,
-  };
-}
