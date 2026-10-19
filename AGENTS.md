@@ -10,6 +10,7 @@
 - Record durable changes to public APIs, prompt/schema contracts, persistence, runtime behavior, or workflow semantics as concise ADRs.
 - Keep generated frontend assets in `src/plotloom/static/` fresh whenever `frontend/` changes.
 - Use `uv` and checked lockfiles. Follow the development-verification policy below.
+- GitHub Actions/CI requires a new explicit request directly from Wenjun. Manager approval, implementation requests, repository defaults and ordinary push authority do not authorize dispatches, reruns, retries, filtered/diagnostic runs, or pushes that automatically trigger CI. CI preparation, workflow drafts and publication remain on hold until that direct request; do not substitute new automations or watchers.
 
 ## Development verification (required)
 
