@@ -84,7 +84,7 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
       {!backend?.enabled && <p>H3 后端尚未配置或不可用；可继续使用手动制作查看已有任务。</p>}</>}
     {batch && !setupMode && <><h3>{statusLabel}</h3>
       {batch.execution.reviewAttribution?.kind === "agent_operated_qa" && <p role="status">{humanReviewLabel({ reviewer: "", attribution: batch.execution.reviewAttribution })} · 一次性测试批次</p>}
-      <p>{batch.manifest.scopeShotIds.length} 个唯一镜头 · 保留 {batch.manifest.kept.length} 个已选视频 · {batch.manifest.targets.filter(item => item.mode === "reuse").length} 个复用候选 · {batch.manifest.newJobs} 个待派发任务 · 请求 {batch.manifest.requestedSeconds} 源秒</p>
+      <p>{batch.manifest.scopeShotIds.length} 个唯一镜头 · 保留 {batch.manifest.kept.length} 个已选视频 · {batch.manifest.targets.filter(item => item.mode === "reuse").length} 个复用候选 · 计划新作业 {batch.manifest.newJobs} 项 · 请求 {batch.manifest.requestedSeconds} 源秒</p>
       <p>规格 {batch.manifest.setup.profileId} · 原生音频 · 比例处理 {batch.manifest.setup.aspectPolicy} · 上限 {batch.manifest.setup.maxJobs} 项 / {batch.manifest.setup.maxRequestedSeconds} 秒 · 最多同时 1 项</p>
       {batch.execution.error && <p role="alert">{batch.execution.error}</p>}
       {batch.manifest.blockers.map((item, index) => <p role="alert" key={index}>{item.shotId} · {item.message}</p>)}

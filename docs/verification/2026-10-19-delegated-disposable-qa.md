@@ -172,3 +172,21 @@ wall times above are measured. No infrastructure repair, live provider generatio
 live review writes, activation, full suite, hosted CI or push occurred here.
 Full local qualification, activation and the bounded live E2E remain separate
 manager-owned steps; hosted CI/push are held.
+
+## Frozen planned-count wording correction
+
+The manager's live pause after one submitted job exposed a presentation mismatch:
+`manifest.newJobs` is the frozen planned inventory, but the panel described it as
+pending dispatch. The label now reads `计划新作业 {n} 项`. No counters, reads,
+backend contracts, provider behavior or budgets change; prior backend evidence
+is retained. Running/paused component regressions include an already submitted
+job and preserve the existing progress display and single current-batch read.
+
+`verify.py focused --vitest tests/delegated-qa-attribution.test.ts` passes all
+five cases (0.820s); frontend type checking and `git diff --check` pass. Two
+deterministic builds match across seven files, recorded in
+`.local/batch-video/planned-count-assets.json`. New `workbench.js` SHA-256:
+`72d87c325fc2f0ae3a5bcac06ecd6cec08fa51b3d93bc990abea7767d3dbd826`.
+Independent read-only review reports no findings in the source/test diff. This
+is a scoped presentation checkpoint, not a new release qualification. No full
+suite, package sweep, live/provider actions, activation, queues, CI or push ran.

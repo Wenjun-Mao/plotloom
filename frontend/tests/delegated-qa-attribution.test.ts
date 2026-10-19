@@ -54,3 +54,27 @@ it("attributes an approved QA batch heading and saved status to the agent", asyn
     await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks();
   }
 });
+
+it.each(["running", "paused"])("labels frozen planned work truthfully while %s with a submitted job", async state => {
+  const batch = { id: "qa-batch", projectId: "project", revision: 4,
+    controlRevision: 3, state, manifestHash: "a".repeat(64),
+    execution: { reviewAttribution: attribution, authorizedManifestHash: "a".repeat(64),
+      jobs: { SH01: "already-submitted-job" }, segments: {} },
+    progress: { total: 2, ready: 0, failed: 0, blocked: 0 },
+    manifest: { scopeShotIds: ["SH01", "SH02"], kept: [], targets: [], blockers: [], newJobs: 2, requestedSeconds: 10,
+      setup: { profileId: "test-profile", aspectPolicy: "cover_center_crop", maxJobs: 2, maxRequestedSeconds: 10 } } };
+  vi.spyOn(batchApi, "current").mockResolvedValue(batch);
+  vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({ enabled: false } as never);
+  const host = document.createElement("div"); document.body.append(host);
+  const root = createRoot(host);
+  try {
+    await act(async () => root.render(createElement(VideoBatchPanel, { projectId: "project", disabled: false, dirty: false })));
+    expect(host.querySelector("h3")?.textContent).toBe(state === "paused" ? "已暂停新派发" : "正在制作全部缺失视频");
+    expect(host.textContent).toContain("计划新作业 2 项");
+    expect(host.textContent).not.toContain("待派发任务");
+    expect(host.textContent).toContain("播放提案就绪 0/2");
+    expect(batchApi.current).toHaveBeenCalledTimes(1);
+  } finally {
+    await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks();
+  }
+});
