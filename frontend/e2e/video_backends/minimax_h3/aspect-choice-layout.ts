@@ -14,11 +14,24 @@ export async function inspectAspectChoiceLayout(page: Page, info: TestInfo) {
   for (const size of [{ width: 1700, height: 900 }, { width: 1280, height: 768 }, { width: 1280, height: 460 }]) {
     await page.setViewportSize(size);
     await notice.scrollIntoViewIfNeeded();
-    // Preserve the pre-fix pixels even if a geometry assertion fails.
+    // Viewport intersection alone can leave the notice behind sticky chrome.
+    const stickyBottom = await notice.evaluate(element => {
+      const visibleStickyBottom = () => Math.max(0, ...Array.from(
+        document.querySelectorAll<HTMLElement>(".topbar, .recommended-workflow-guide"), header => {
+          const rect = header.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0 && rect.top < window.innerHeight && rect.bottom > 0
+            ? Math.min(window.innerHeight, rect.bottom) : 0;
+        },
+      ));
+      window.scrollBy({ top: element.getBoundingClientRect().top - visibleStickyBottom() - 16, behavior: "instant" });
+      return visibleStickyBottom();
+    });
+    // Preserve the inspected pixels even if a geometry assertion fails.
     await page.screenshot({ path: info.outputPath(`h3-aspect-options-${size.width}x${size.height}.png`) });
     const bounds = await notice.boundingBox();
     expect(bounds).not.toBeNull();
     expect(bounds!.y).toBeGreaterThanOrEqual(58);
+    expect(bounds!.y).toBeGreaterThanOrEqual(stickyBottom);
     expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(size.height);
     let previousBottom = 0;
     for (let index = 0; index < 3; index += 1) {

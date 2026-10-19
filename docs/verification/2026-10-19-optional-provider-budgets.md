@@ -156,3 +156,64 @@ This correction changes no frontend or assets; prior deterministic-build/UI
 evidence remains unchanged. Full qualification and activation are still held for
 the manager's exact-finding re-review. Requested settings remain
 `gpt-6.1-sol / medium`, effective unverified; no additional authority is exercised.
+
+## Single final full attempt and viewport-helper correction
+
+After independent stable review resolved the missing-frozen-member finding, the
+manager authorized exactly one established `verify.py full` on clean product
+revision `43cc4b62cb026e85031a4e4e66067223496fef41`. That attempt remains **FAILED**:
+exit 1 after 1,698.657 s. It passed all 3,535 Python cases (workers 1,703/1,832),
+1,444 frontend cases, locked dependencies/tool probes, archived prompt reader,
+type checking, deterministic bundle/parity and browser allocation. The unfiltered
+browser suite passed 338 cases and failed one after 550.859 s. Wheel build and
+installed-wheel smoke were not reached, so that attempt produced no package hash.
+
+Failure: `e2e/video_backends/minimax_h3/h3-video-pilot.spec.ts:12`, “H3 browser path
+freezes a selected no-stretch catalog profile.” At `aspect-choice-layout.ts:21`,
+the notice top was 46.171875 px against the required minimum 58 px. The retained
+pixels show occlusion by the topbar (bottom 58) and workflow guide (bottom about
+124). The root causal review and independent read-only review identified helper
+viewport setup: `scrollIntoViewIfNeeded()` establishes viewport intersection,
+not visibility below sticky chrome. The H3 notice CSS/grid and sticky runtime
+were unchanged by the budget implementation. This helper has one consumer, the
+failed H3 journey; the existing section-map browser helper already measures the
+same `.topbar, .recommended-workflow-guide` boundary.
+
+The authorized correction changes only the aspect-layout test helper: after
+viewport intersection, immediately scroll the notice below the measured visible
+sticky boundary and assert the entire notice stays below the actual boundary and
+inside the viewport. The original 58 px guard, three radio choices, label widths,
+radio sizes, ordering, no overflow, real radio interaction and source-read
+enabled/disabled assertions remain. No product CSS/runtime, viewport, wait,
+retry or assertion tolerance changed. This is routine helper correction, not a
+new architectural contract.
+
+Complete original output, pre-run source/dependency fingerprints, outcome JSON
+and first-failure text use the exact `43cc4b62cb026e85031a4e4e66067223496fef41-`
+prefix in the ignored evidence folder. The original screenshot, video, error
+context and trace are preserved under that prefix's `browser-failure/` directory;
+subsequent focused artifacts do not overwrite them. The original full-log SHA-256
+is `ebae86fe2a495380cc290fb2fe70b196a2b9b065aff17f2b5299d177c095685f`.
+
+The single authorized focused journey passed with:
+
+```text
+uv run --locked --no-sync python scripts/verify.py focused --playwright e2e/video_backends/minimax_h3/h3-video-pilot.spec.ts
+```
+
+The file contains only the exact affected case at line 12; the established wrapper
+accepts file selectors rather than `:line` selectors. One case passed in 11.3 s
+(13.664 s focused wrapper, including browser-fixture type checking). The worker
+inspected all 1700×900, 1280×768 and 1280×460 captures: the whole notice and its
+three radio choices are visible below the topbar/workflow guide, including the
+short desktop. The original failure evidence remains separate. New log and
+captures use the same exact revision prefix plus `sticky-helper-focused`.
+This journey uses the existing synthetic provider transport; it does not claim
+real-provider E2E or owner creative acceptance.
+
+The correction diff is helper plus this receipt only. Product source, dependencies,
+build tooling and checked static assets are identical to `43cc4b62`. The manager
+authorized reuse of unchanged 3,535-Python/1,444-frontend/338-browser and build/parity
+evidence, this completed H3 journey, and only the two previously unreached wheel
+commands. Qualification is composite; the original full attempt remains failed
+and is not described as a fresh green full run. No broad suite was repeated.
