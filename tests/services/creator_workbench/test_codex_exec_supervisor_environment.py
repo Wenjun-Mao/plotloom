@@ -166,6 +166,35 @@ def test_changed_python_resources_cannot_construct_a_child_environment(superviso
                                         source_resources=stale, profile=profile)
 
 
+def test_image_admission_rejects_a_stale_instruction_pin_before_reservation(supervisor, tmp_path):
+    from uuid import uuid4
+
+    from codex_exec_supervisor_test_support import _attempt, _write_fake_cli
+
+    from plotloom.codex_exec_contracts import CodexExecAttempt
+    from plotloom.codex_exec_runtime import package_tree_hash
+
+    profile = _write_fake_cli(supervisor, "raise SystemExit(0)\n")
+    revision = subprocess.run(["git", "-C", str(supervisor.source_root), "rev-parse", "HEAD"],
+                             check=True, capture_output=True, text=True).stdout.strip()
+    job = tmp_path / "image-job"
+    (job / "package").mkdir(parents=True)
+    request = {"packageVersion": 8, "executorBackend": "codex_exec", "executionContract": "codex_exec.v1",
+        "jobId": "ij_" + uuid4().hex, "requestHash": "a" * 64,
+        "specialistPreflight": {"version": "p1.5-pin.v2", "skillVersion": "plotloom-image-specialist.v4",
+            "executionContract": "codex_exec.v1", "codeRevision": revision, "skillHash": "0" * 64}}
+    (job / "package/request.json").write_text(json.dumps(request))
+    attempt = CodexExecAttempt.model_validate(_attempt().model_dump(mode="python") | {
+        "domain": "image", "reserved_image_outputs": 1, "image_budget_state": "reserved",
+        "job_id": request["jobId"], "plotloom_code_revision": revision,
+        "profile_hash": profile.profile_hash,
+        "package_hash": package_tree_hash(job, max_total_bytes=profile.max_output_bytes),
+    })
+    with pytest.raises(CodexExecSupervisorError, match="source resources do not match"):
+        supervisor._verify_attempt_package(attempt, job, profile)
+    assert supervisor._row(attempt.attempt_id) is None
+
+
 def test_runtime_drift_after_a_successful_renderer_cannot_create_validation_evidence(
     supervisor, tmp_path, monkeypatch,
 ):

@@ -9,11 +9,16 @@ from .codex_exec_runtime import frozen_package_snapshot
 from .exceptions import InvalidTransitionError
 
 
-def prepared_exec_inputs(registry, view, checkpoint, *, domain, package_path):
+def prepared_exec_inputs(registry, view, checkpoint, *, domain, package_path, allow_admission=True):
     evidence = CheckpointEvidence.model_validate(checkpoint["evidence"])
-    profile = CodexExecProfile.model_validate(registry.codex_exec_profile())
-    if profile != view.policy.executor_binding:
-        raise InvalidTransitionError("Codex Exec profile changed after the launch was frozen.")
+    if not allow_admission and view.policy.executor_binding.contract_version == "plotloom.codex-exec.v8":
+        # Receipt-only reconciliation uses the admitted contract. A newer host
+        # profile neither rewrites old evidence nor grants new dispatch rights.
+        profile = CodexExecProfile.model_validate(view.policy.executor_binding)
+    else:
+        profile = CodexExecProfile.model_validate(registry.codex_exec_profile())
+        if profile != view.policy.executor_binding:
+            raise InvalidTransitionError("Codex Exec profile changed after the launch was frozen.")
     if (profile.contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}
             and not view.policy.code_revision):
         raise InvalidTransitionError("Codex Exec launch omits its frozen Plotloom source revision.")
@@ -46,10 +51,11 @@ def new_reserved_attempt(view, checkpoint, domain, inputs):
 
 
 def assert_prepared_attempt(attempt, view, checkpoint, domain, inputs):
-    evidence, _profile, package_hash, validation_hash = inputs
+    evidence, profile, package_hash, validation_hash = inputs
     if (attempt.job_id != evidence.job_id or attempt.request_hash != evidence.request_hash
             or attempt.package_hash != package_hash or attempt.domain != domain
             or attempt.operation_key != checkpoint["operationKey"]
+            or attempt.profile_hash != profile.profile_hash
             or attempt.plotloom_code_revision != view.policy.code_revision
             or attempt.validation_plan_hash != validation_hash):
         raise InvalidTransitionError("retained CLI attempt differs from its frozen package or stage")

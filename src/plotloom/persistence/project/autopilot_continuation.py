@@ -45,7 +45,7 @@ def continuation_preview(owner, session, project_id):
         attempt = session.scalar(select(AutopilotExecAttemptRow).where(
             AutopilotExecAttemptRow.run_id == run.id,
             AutopilotExecAttemptRow.operation_key == checkpoint.operation_key))
-        if attempt is not None and attempt.state in {"failed", "settled"} and attempt.snapshot.get("terminalResult") in {"failure", "not_started"}:
+        if attempt is not None and attempt.state in {"failed", "settled"} and attempt.snapshot.get("terminalResult") in {"failure", "not_started", "no_remote_dispatch"}:
             continue
         blockers.append(f"原任务 {checkpoint.evidence.get('jobId', checkpoint.operation_key)} 尚未完成采用；"
                         "请保留并核对原交付/终止证据，不会重复发送。")

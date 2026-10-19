@@ -32,13 +32,16 @@ def test_image_prompt_reserves_delivery_tree_for_trusted_host_copy(tmp_path):
 
     assert "Do not write image files or completion markers" in prompt
     assert "trusted host copies its exact completed session output" in prompt
-    assert IMAGE_PROMPT_VERSION.endswith("v4")
+    assert IMAGE_PROMPT_VERSION.endswith("v5")
     assert prompt.startswith(IMAGE_PROMPT_VERSION)
     assert "one direct top-level awaited expression" in prompt
     assert "Do not put it in a branch" in prompt
     assert "Write only the requested candidate JSON" not in prompt
     assert "view_image" in prompt
     assert "referenced_image_paths" in prompt
+    assert "manual specialist-chat pin" in prompt
+    assert "Do not run those commands" in prompt
+    assert "without claiming host publication or completion" in prompt
 
 
 def test_prompt_rejects_an_unowned_domain(tmp_path):

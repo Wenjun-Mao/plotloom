@@ -91,6 +91,57 @@ def test_unknown_original_job_blocks_continue_without_new_dispatch(tmp_path, mon
         service.close()
 
 
+def test_no_dispatch_recovery_reconciles_after_profile_change_without_replaying_owner_work(
+    tmp_path, monkeypatch, compact_two_cut_text_prefix,
+):
+    from uuid import uuid4
+    from plotloom.codex_exec_contracts import CodexExecHostStatus, transition_exec_attempt
+    from plotloom.image_commands import image_context
+    storage, registry, service, view, images, _text = compact_safety_image_environment(
+        tmp_path, monkeypatch, compact_two_cut_text_prefix, auto_deliver=False)
+    try:
+        sent, checkpoint = reach(storage, service, view, "character-reference", "sent")
+        stopped = service.control(view.project_id, RunControlRequest(expected_revision=sent.revision, action="cancel"))
+        host = registry._codex_exec_test_host
+        original_images = list(images)
+        attempt_id = checkpoint["evidence"]["executorAttemptId"]
+        unknown = transition_exec_attempt(host.statuses[attempt_id].attempt, state="outcome_unknown")
+        recovered = transition_exec_attempt(unknown, state="settled", session_id=uuid4(),
+            terminal_result="no_remote_dispatch", remote_tool_state="not_applicable",
+            image_budget_state="released", evidence_hash="f" * 64)
+        host.statuses[attempt_id] = CodexExecHostStatus(state="settled", attempt=recovered)
+        host.pending.discard(attempt_id)
+        changed = stopped.policy.executor_binding.model_validate(
+            stopped.policy.executor_binding.model_dump(mode="python") | {"instruction_hash": "f" * 64})
+        monkeypatch.setattr(registry, "codex_exec_profile", lambda: changed)
+        for method in ("codex_exec_admit", "codex_exec_resume"):
+            monkeypatch.setattr(registry, method, lambda *_args: pytest.fail("receipt reconciliation dispatched"))
+        failures = []
+        advance = service.image_controller.advance
+        def observed_advance(*args):
+            try:
+                return advance(*args)
+            except Exception as error:
+                failures.append(str(error))
+                raise
+        monkeypatch.setattr(service.image_controller, "advance", observed_advance)
+        service.step(view.project_id)
+        assert not failures, failures
+        with closing(storage.projects.open(view.project_id)) as store:
+            retained = store.repository.autopilot.current(view.project_id)
+            assert retained.state == "cancelled" and retained.policy == stopped.policy
+            target = next(item for item in retained.checkpoints if item["id"] == checkpoint["id"])
+            assert target["state"] == "failed", retained.blocker
+            settled, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(view.id, checkpoint["operationKey"])
+            assert settled == recovered and receipt is None and settled.process_exit_code is None
+            assert image_context(store, "character-reference", checkpoint["evidence"]["jobId"])["state"] == "cancelled"
+            preview = store.repository.autopilot.continuation_context(view.project_id)
+            assert checkpoint["evidence"]["jobId"] not in " ".join(preview["blockers"])
+        assert images == original_images
+    finally:
+        service.close()
+
+
 @pytest.mark.parametrize("defect", ["evidence_hash", "origin", "frame"])
 def test_inherited_provenance_cannot_be_rebound(tmp_path, awaiting_handoff_seed, defect):
     from tests.autopilot_handoff_seed_fixtures import copy_awaiting_handoff_seed

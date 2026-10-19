@@ -60,9 +60,11 @@ class CodexExecSupervisorProcessMixin(
         from plotloom.codex_exec_telemetry import read_cli_session
 
         if source_resources is None:
+            from plotloom.codex_exec_resources import codex_exec_image_resources, codex_exec_source_resources
             if attempt.domain == "text":
-                from plotloom.codex_exec_resources import codex_exec_source_resources
                 source_resources = codex_exec_source_resources(self.source_root, package_request)
+            else:
+                source_resources = codex_exec_image_resources(self.source_root, package_request)
 
         try:
             exact_profile = self.profile()
@@ -263,6 +265,7 @@ class CodexExecSupervisorProcessMixin(
                     if process.poll() is None:
                         time.sleep(0.2)
                 exit_code = process.wait()
+                self._record_cli_exit(attempt, process.pid, group_id, birth_identity, exit_code)
                 if not self._wait_for_process_group_exit(group_id):
                     current = self._load(self._row(attempt.attempt_id)).attempt
                     if current is not None and current.state not in {"completed", "failed", "settled", "outcome_unknown"}:
@@ -305,6 +308,7 @@ class CodexExecSupervisorProcessMixin(
             self._mark_unknown(current or attempt)
             return
         try:
+            session = None
             if package_tree_hash(job_root, max_total_bytes=profile.max_output_bytes) != attempt.package_hash:
                 raise CodexExecRuntimeError("Codex Exec frozen package changed during the process")
             stream = read_exec_events(stdout_path, max_event_bytes=profile.max_event_bytes, max_total_bytes=profile.max_output_bytes)
@@ -319,6 +323,10 @@ class CodexExecSupervisorProcessMixin(
             if attempt.domain == "text" and (session.image_calls or session.image_events or session.reference_views):
                 self._mark_unknown(current, session_id=stream.session_id)
                 return
+            if attempt.domain == "image" and not session.image_calls and not session.image_events:
+                from plotloom.codex_exec_recovery import prove_no_remote_dispatch
+                prove_no_remote_dispatch(stdout_path, session_path, stream.session_id,
+                                         job_root=job_root, source_root=self.source_root)
             if exit_code != 0 or stream.terminal_event != "turn.completed" or stream.diagnostics:
                 self._finish_failure(
                     current, exit_code, stream.session_id, session, stdout_path, stderr_path,
@@ -421,7 +429,7 @@ class CodexExecSupervisorProcessMixin(
         except BaseException:
             current = self._load(self._row(attempt.attempt_id)).attempt
             if current is not None and current.state not in {"completed", "failed", "settled", "outcome_unknown"}:
-                self._mark_unknown(current)
+                self._mark_unknown(current, session_id=session.session_id if session is not None else None)
             raise
 
     def _codex_home(self, environment):

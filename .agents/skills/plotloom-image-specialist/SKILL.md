@@ -9,7 +9,7 @@ Use this skill only for a single Plotloom package path explicitly supplied by th
 
 ## Scope and authority
 
-- Read `request.json`, every provided reference image, and `completion-manifest.example.json` before generating.
+- Read `request.json` and every provided reference image before generating. For a manual specialist-chat package, also read `completion-manifest.example.json`.
 - A P1.5 shot package may include `character_identity:<characterId>` references. View every such reference before calling ImageGen. Treat the role-to-character mapping as mandatory: preserve durable facial/build/anchor identity, while the frozen shot controls state, clothing, composition, action, and other shot-specific facts.
 - When a `character_identity` mapping includes `acceptedCast`, its cast revision,
   hash, and appearance/image direction are frozen identity facts. Apply them
@@ -26,7 +26,22 @@ Use this skill only for a single Plotloom package path explicitly supplied by th
 - A character-reference proposal is exploratory. It has no storyboard Approval, Shot, or authority to select a reference; deliver candidates only.
 - Use the built-in ImageGen tool. Do not use external image APIs, an API key, browser scraping, or a substitute renderer.
 
-## Required delivery procedure
+## Codex Exec package v8 procedure
+
+When `packageVersion` is `8`, `executorBackend` is `codex_exec`, and
+`executionContract` is `codex_exec.v1`, the trusted host owns preflight,
+executor identity, output copying, validation, manifest publication and staging
+cleanup. Read this pinned skill and the frozen package, then follow the exact
+reference-view and single ImageGen call forms in the host assignment. The creative
+and reference requirements above still apply. Stop on missing or conflicting
+inputs; do not substitute another package or provider.
+
+Do not run the manual procedure below, expect a completion template, write an
+executor pin or draft manifest, copy output files, invoke a publisher, or delete
+staging files. Report the ImageGen outcome; host publication and human acceptance
+are separate facts.
+
+## Manual specialist-chat delivery procedure
 
 1. Before ImageGen, run the pin command emitted in `COPY_ASSIGNMENT.txt` from the assigned Plotloom checkout. It validates the configured native task UUID, package binding, P1.5 preflight, schema/package, execution contract, and skill versions; it rejects uncommitted pinned execution code/skill and writes `delivery/executor-pin.json` once with the exact checkout revision, this skill's hash, and `nativeTaskId`. For a configured dispatch, `CODEX_THREAD_ID` must equal the UUID in `nativeTaskBinding.taskId`. A manual copy uses `nativeTaskBinding.mode = current_task`, and binds to the `CODEX_THREAD_ID` running this preflight. Do not generate if preflight fails or if the package pin already exists.
 2. Confirm ImageGen is available. If it is unavailable, the package is unreadable, references are missing/tampered, or the request conflicts with these instructions, stop and report the blocking evidence to the coordinator. Do not create a partial completion receipt.

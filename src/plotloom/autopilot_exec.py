@@ -68,7 +68,8 @@ def reconcile_codex_exec(
     on_settlement=None,
 ):
     """Reserve one exact package, dispatch its immutable ID once, and poll only that ID."""
-    inputs = prepared_exec_inputs(registry, view, checkpoint, domain=domain, package_path=package_path)
+    inputs = prepared_exec_inputs(registry, view, checkpoint, domain=domain, package_path=package_path,
+                                  allow_admission=allow_admission)
     evidence, profile, _package_hash, _validation_hash = inputs
     operation_key = checkpoint["operationKey"]
     machine_scope = operation_scope or (OperationScope.IMAGE if domain == "image" else OperationScope.TEXT)

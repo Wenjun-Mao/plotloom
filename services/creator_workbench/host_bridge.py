@@ -209,7 +209,7 @@ def handler_for(bridge: QueueBridge):
                 except Exception:
                     self.reply(503, {"error": "codex_exec_admission_unavailable"})
                 return
-            control = next((name for name in ("cancel", "suspend", "resume") if self.path.startswith(f"/exec-{name}/")), None)
+            control = next((name for name in ("cancel", "suspend", "resume", "recover-no-remote-dispatch") if self.path.startswith(f"/exec-{name}/")), None)
             if control is not None:
                 try:
                     attempt_id = UUID(self.path.removeprefix(f"/exec-{control}/"))
@@ -223,7 +223,7 @@ def handler_for(bridge: QueueBridge):
                     attempt = payload["attempt"]
                     if not isinstance(attempt, dict) or str(UUID(str(attempt.get("attemptId")))) != str(attempt_id):
                         raise ValueError("cancel route and attempt identity differ")
-                    status = getattr(bridge.exec_supervisor(), control)(attempt)
+                    status = getattr(bridge.exec_supervisor(), control.replace("-", "_"))(attempt)
                     self.reply(200, status.model_dump(mode="json", by_alias=True))
                 except (TypeError, ValueError):
                     self.reply(400, {"error": f"invalid_codex_exec_{control}_request"})

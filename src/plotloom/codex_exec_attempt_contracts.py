@@ -53,7 +53,7 @@ class CodexExecAttempt(CamelModel):
     process_group_id: int | None = Field(default=None, ge=1)
     process_birth_identity: str | None = Field(default=None, min_length=1, max_length=160)
     process_exit_code: int | None = None
-    terminal_result: Literal["success", "failure", "not_started"] | None = None
+    terminal_result: Literal["success", "failure", "not_started", "no_remote_dispatch"] | None = None
     remote_tool_state: Literal["not_applicable", "completed", "failed"] | None = None
     evidence_hash: str | None = Field(default=None, pattern=HASH)
     output_hash: str | None = Field(default=None, pattern=HASH)
@@ -128,6 +128,12 @@ class CodexExecAttempt(CamelModel):
         if self.terminal_result == "failure":
             if any(value is None for value in process_facts) or self.process_exit_code is None:
                 raise ValueError("failed work requires exact process ownership and an exit code")
+        if self.terminal_result == "no_remote_dispatch":
+            if (self.domain != "image" or self.state != "settled" or self.session_id is None
+                    or any(value is None for value in process_facts) or self.process_exit_code is not None
+                    or self.remote_tool_state != "not_applicable"
+                    or self.output_hash is not None or self.remote_output_hash is not None):
+                raise ValueError("no-remote-dispatch settlement requires exact image process/session proof without an exit claim")
         if self.state == "failed" and self.terminal_result not in {"failure", "not_started"}:
             raise ValueError("failed attempts require proof of failure or that work never started")
         if self.terminal_result == "success":
@@ -192,6 +198,14 @@ def transition_exec_attempt(attempt: CodexExecAttempt, **changes) -> CodexExecAt
         for field in _ATTEMPT_TERMINAL_FIELDS
     ):
         raise ValueError("terminal attempt evidence cannot be rewritten")
-    if candidate.state != current.state and candidate.state not in _ATTEMPT_TRANSITIONS[current.state]:
+    coalesced_no_dispatch = (
+        current.state == "running" and candidate.state == "settled"
+        and candidate.terminal_result == "no_remote_dispatch"
+        and all(getattr(candidate, field) == getattr(current, field)
+                for field in ("process_id", "process_group_id", "process_birth_identity"))
+        and current.session_id in {None, candidate.session_id}
+    )
+    if (candidate.state != current.state and candidate.state not in _ATTEMPT_TRANSITIONS[current.state]
+            and not coalesced_no_dispatch):
         raise ValueError("attempt lifecycle transition is not allowed")
     return candidate

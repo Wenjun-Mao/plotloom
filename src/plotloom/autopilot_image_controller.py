@@ -214,7 +214,7 @@ class AutopilotImageController:
             domain="image", package_path=paths["packagePath"], command_factory=self.command,
             before_spawn=before_spawn,
         )
-        if attempt.state in {"failed", "settled"} and attempt.terminal_result in {"failure", "not_started"}:
+        if attempt.state in {"failed", "settled"} and attempt.terminal_result in {"failure", "not_started", "no_remote_dispatch"}:
             raise ImageJobError("codex_exec_attempt_failed", "Codex Exec image attempt failed; preserve the exact attempt for review.")
         if attempt.state == "outcome_unknown":
             raise ImageJobError("codex_exec_outcome_unknown", "Codex Exec outcome is being reconciled; do not send another attempt.")
@@ -288,12 +288,14 @@ class AutopilotImageController:
             context = image_context(store, evidence.owner, evidence.job_id)
             paths = image_package(store, evidence.owner, evidence.job_id)
             def settle_stopped_proposal(attempt):
-                if attempt.terminal_result != "not_started" or view.state not in {"cancelled", "taken_over", "stale"}:
+                if attempt.terminal_result not in {"not_started", "no_remote_dispatch"} or view.state not in {"cancelled", "taken_over", "stale"}:
                     return
                 if context["state"] in {"prepared", "exported"}:
                     name = IMAGE_METHODS[evidence.owner][0]
-                    getattr(store.media, f"cancel_{name}")(view.project_id, evidence.job_id,
-                        "原运行已停止，主机证明此冻结任务未启动。")
+                    reason = ("原运行已停止，主机证明未调用远程图像生成。"
+                              if attempt.terminal_result == "no_remote_dispatch"
+                              else "原运行已停止，主机证明此冻结任务未启动。")
+                    getattr(store.media, f"cancel_{name}")(view.project_id, evidence.job_id, reason)
             attempt, receipt, profile = reconcile_codex_exec(
                 store, self.registry, view, claim, checkpoint,
                 domain="image", package_path=paths["packagePath"], command_factory=self.command,

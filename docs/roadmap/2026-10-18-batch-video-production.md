@@ -9,6 +9,30 @@ explicit actions; implementation approval does not perform them.
 
 ## Current implementation checkpoint
 
+### Active instruction-access repair and smallest real journey
+
+The owner paused run `31854798-9ec5-4d90-b6b6-b85cca2bf510` after an image
+worker could not read its pinned skill. The retained source owner repairs the
+exact instruction and host-delivery contract (ADR 0197), with focused regressions
+and an early actual sandbox read that makes no provider call. The manager alone
+owns deployment, owner-run recovery and live process/ledger operations; preserve
+all old receipts, frozen policies and both UNKNOWN reservations.
+
+Local implementation and scoped checks are complete; independent review found
+no remaining actionable issue after the documented corrections. See the
+[instruction/recovery checkpoint](../verification/2026-10-18-image-instruction-recovery.md)
+for exact evidence, failures and installation/recovery preconditions.
+
+The next real journey uses the separate, current isolated project
+`fd2608aa-dac9-4559-b216-31c78e365f8a`, up to two clips
+and ten seconds total, through real ImageGen, actual owner material approval,
+batch H3 production and output readback. The manager prepares that fixture and
+owns settlement/cleanup. Keep the owner story paused and separate. No fabricated
+human approval, live generation before manager capacity coordination, CI or
+CI-triggering publication. Success requires real outputs and persisted readback;
+permission probes and simulated tests establish narrower facts only. Exact time
+breakdowns are unavailable until recorded by the execution owner.
+
 The delegated source owner has implemented steps 1–4 in the retained checkout
 `/Users/wjmao/.codex/worktrees/b30f/plotloom`. Independent stable review findings
 were addressed at native proposal, retained prediction, foreground intent and

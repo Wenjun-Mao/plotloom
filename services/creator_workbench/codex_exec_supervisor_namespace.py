@@ -62,7 +62,8 @@ class CodexExecSupervisorNamespaceMixin:
                         raise CodexExecSupervisorError('qualification ledger cannot be rebound after binding loss')
                     # Binding is allowed only before any identity has entered a
                     # current empty ledger. Never convert an occupied/legacy pool.
-                    for table in ("exec_attempts", "exec_queue", "exec_slot", "exec_validation_process"):
+                    for table in ("exec_attempts", "exec_queue", "exec_slot", "exec_validation_process",
+                                  "exec_process_exits", "exec_recovery_evidence"):
                         if not self._namespace_table_exists(connection, table) or connection.execute(
                                 f"SELECT 1 FROM {table} LIMIT 1").fetchone() is not None:
                             raise CodexExecSupervisorError("namespace requires a fresh empty ledger")
@@ -194,7 +195,7 @@ class CodexExecSupervisorNamespaceMixin:
         expected = self._namespace.attempt
         for row in connection.execute("SELECT * FROM exec_attempts"):
             self._namespace_assert_ledger_row(connection, row, expected)
-        for table in ("exec_queue", "exec_slot", "exec_validation_process"):
+        for table in ("exec_queue", "exec_slot", "exec_validation_process", "exec_process_exits", "exec_recovery_evidence"):
             for row in connection.execute(f"SELECT * FROM {table}"):
                 if row["attempt_id"] != str(expected.attempt_id):
                     raise CodexExecSupervisorError("foreign namespace queue, slot or validator")

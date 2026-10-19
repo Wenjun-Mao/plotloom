@@ -325,3 +325,24 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
 def codex_exec_source_read_paths(source_root: Path, package_request: dict) -> tuple[Path, ...]:
     """Compatibility projection for callers that need only the filesystem roots."""
     return codex_exec_source_resources(source_root, package_request).read_paths
+
+
+def codex_exec_image_resources(source_root: Path, package_request: dict) -> CodexExecSourceResources:
+    """Grant only the image skill whose bytes and revision the package froze."""
+    root = source_root.expanduser().resolve(strict=True)
+    pin = package_request.get("specialistPreflight")
+    if (
+        package_request.get("packageVersion") != 8
+        or package_request.get("executorBackend") != "codex_exec"
+        or package_request.get("executionContract") != "codex_exec.v1"
+        or not isinstance(pin, dict)
+        or pin.get("version") != "p1.5-pin.v2"
+        or pin.get("skillVersion") != "plotloom-image-specialist.v4"
+        or pin.get("executionContract") != "codex_exec.v1"
+        or pin.get("codeRevision") != _git_value(root, "rev-parse", "HEAD")
+    ):
+        raise CodexExecResourceError("Codex Exec image instructions require the current frozen source contract")
+    skill = _source_path(root, ".agents/skills/plotloom-image-specialist/SKILL.md")
+    if not skill.is_file() or _sha256_file(skill) != pin.get("skillHash"):
+        raise CodexExecResourceError("frozen Plotloom image instructions no longer match the package pin")
+    return CodexExecSourceResources((skill,), ())

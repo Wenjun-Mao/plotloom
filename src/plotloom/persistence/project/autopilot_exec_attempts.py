@@ -247,7 +247,7 @@ class AutopilotExecPersistence:
             receipt_hash = updated.evidence_hash if updated.state in {"completed", "failed", "settled"} else None
             if (checkpoint_state in {"prepared", "sent", "outcome_unknown"}
                     and updated.state in {"failed", "settled"}
-                    and updated.terminal_result in {"failure", "not_started"}):
+                    and updated.terminal_result in {"failure", "not_started", "no_remote_dispatch"}):
                 checkpoint_state = "failed"
             elif checkpoint_state == "sent" and updated.state == "outcome_unknown":
                 checkpoint_state = "outcome_unknown"

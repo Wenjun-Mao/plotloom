@@ -438,7 +438,7 @@ def _spawn_intent_attempt():
     )
 
 
-@pytest.mark.parametrize("control", ["cancel", "suspend", "resume"])
+@pytest.mark.parametrize("control", ["cancel", "suspend", "resume", "recover-no-remote-dispatch"])
 def test_control_endpoint_passes_the_exact_attempt_snapshot_to_the_supervisor(bridge, monkeypatch, control):
     attempt = _spawn_intent_attempt()
     cancelled = transition_exec_attempt(
@@ -455,7 +455,7 @@ def test_control_endpoint_passes_the_exact_attempt_snapshot_to_the_supervisor(br
             observed.append(CodexExecAttempt.model_validate(snapshot))
             return CodexExecHostStatus(state="settled", attempt=cancelled)
 
-    setattr(Supervisor, control, Supervisor.cancel)
+    setattr(Supervisor, control.replace("-", "_"), Supervisor.cancel)
     bridge.exec_supervisor = lambda: Supervisor()
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(bridge))
     thread = Thread(target=server.serve_forever, daemon=True)

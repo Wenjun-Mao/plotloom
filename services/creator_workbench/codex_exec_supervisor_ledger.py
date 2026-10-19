@@ -71,6 +71,15 @@ class CodexExecSupervisorLedgerMixin:
                     process_birth_identity TEXT,
                     updated_at REAL NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS exec_process_exits (
+                    attempt_id TEXT PRIMARY KEY REFERENCES exec_attempts(attempt_id),
+                    evidence_json TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS exec_recovery_evidence (
+                    attempt_id TEXT PRIMARY KEY REFERENCES exec_attempts(attempt_id),
+                    original_status_json TEXT NOT NULL,
+                    proof_json TEXT NOT NULL
+                );
             """)
             self._initialize_pool(connection)
             self._namespace_finish_initialization(connection)

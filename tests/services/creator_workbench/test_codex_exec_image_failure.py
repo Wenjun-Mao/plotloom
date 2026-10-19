@@ -30,6 +30,15 @@ def _execute_failed_image(supervisor, tmp_path, monkeypatch, mode):
     (job / 'delivery').mkdir()
     request = {'packageVersion': 8, 'executorBackend': 'codex_exec', 'executionContract': 'codex_exec.v1',
                'jobId': job_id, 'requestHash': 'a' * 64, 'references': []}
+    import subprocess
+    from hashlib import sha256
+    request['specialistPreflight'] = {
+        'version': 'p1.5-pin.v2', 'skillVersion': 'plotloom-image-specialist.v4',
+        'executionContract': 'codex_exec.v1',
+        'codeRevision': subprocess.run(['git', '-C', str(supervisor.source_root), 'rev-parse', 'HEAD'],
+            check=True, capture_output=True, text=True).stdout.strip(),
+        'skillHash': sha256((supervisor.source_root / '.agents/skills/plotloom-image-specialist/SKILL.md').read_bytes()).hexdigest(),
+    }
     (job / 'package/request.json').write_text(json.dumps(request))
     (job / 'package/COPY_ASSIGNMENT.txt').write_text('Synthetic immutable assignment; no generation.')
     attempt = CodexExecAttempt(attemptId=uuid4(), runId=uuid4(), projectId=uuid4(), jobId=job_id,
@@ -63,6 +72,12 @@ def _execute_failed_image(supervisor, tmp_path, monkeypatch, mode):
             if mode == 'duplicate-terminal':
                 rows.append({'type': 'event_msg', 'ordinal': 69, 'payload': {'item': event}})
         (folder / f'rollout-synthetic-{session_id}.jsonl').write_text(''.join(json.dumps(x) + '\n' for x in rows))
+        if mode == 'no-remote-call':
+            from tests.codex_exec_recovery_fixtures import write_readonly_turn
+            write_readonly_turn(job, supervisor.source_root, private,
+                folder / f'rollout-synthetic-{session_id}.jsonl', session_id)
+            (private / 'stdout.jsonl').unlink()
+            (private / 'stderr.log').unlink()
     observations, parser_calls = [], []
     def group_exists(group_id):
         assert group_id == NATIVE_PID
@@ -91,6 +106,10 @@ def _execute_failed_image(supervisor, tmp_path, monkeypatch, mode):
             return 0
     def launch(command, *args, **kwargs):
         if len(command) > 1 and command[0] == str(supervisor.executable) and command[1] == 'exec':
+            filesystem = next(value for value in command if '.filesystem=' in value)
+            skill = supervisor.source_root / '.agents/skills/plotloom-image-specialist/SKILL.md'
+            assert f'{json.dumps(str(skill))}="read"' in filesystem
+            assert f'{json.dumps(str(supervisor.source_root))}=' not in filesystem
             return SimulatedCLI(kwargs['stdout'])
         return real_popen(command, *args, **kwargs)
     monkeypatch.setattr(process_owner.subprocess, 'Popen', launch)
@@ -116,6 +135,10 @@ def test_bound_failed_image_settles_only_after_strict_group_exit(supervisor, tmp
     assert result.receipt is None
     with closing(supervisor._connect()) as connection:
         assert connection.execute('SELECT * FROM exec_slot WHERE attempt_id=?', (str(attempt.attempt_id),)).fetchone() is None
+        witness = json.loads(connection.execute('SELECT evidence_json FROM exec_process_exits WHERE attempt_id=?',
+            (str(attempt.attempt_id),)).fetchone()[0])
+        assert witness['processExitCode'] == 0 and witness['processId'] == NATIVE_PID
+        assert witness['processGroupId'] == NATIVE_PID
 
 
 @pytest.mark.parametrize('mode', ['missing-session', 'missing-terminal', 'duplicate-terminal', 'group-not-exited'])
@@ -131,3 +154,17 @@ def test_missing_ambiguous_or_unsettled_image_proof_keeps_unknown_capacity(super
         assert parsed == []
     with closing(supervisor._connect()) as connection:
         assert connection.execute('SELECT * FROM exec_slot WHERE attempt_id=?', (str(attempt.attempt_id),)).fetchone()
+
+
+def test_live_waiter_with_complete_no_dispatch_proof_records_genuine_failure(supervisor, tmp_path, monkeypatch):
+    attempt, result, session, groups, parsed = _execute_failed_image(supervisor, tmp_path, monkeypatch, 'no-remote-call')
+    assert groups == [NATIVE_PID] and parsed and set(parsed) == {session}
+    assert result.state == 'failed' and result.attempt.terminal_result == 'failure'
+    assert result.attempt.remote_tool_state == 'not_applicable'
+    assert result.attempt.process_exit_code == 0 and result.attempt.session_id == session
+    assert result.attempt.image_budget_state == 'released' and result.receipt is None
+    with closing(supervisor._connect()) as connection:
+        assert connection.execute('SELECT * FROM exec_slot WHERE attempt_id=?', (str(attempt.attempt_id),)).fetchone() is None
+        witness = json.loads(connection.execute('SELECT evidence_json FROM exec_process_exits WHERE attempt_id=?',
+            (str(attempt.attempt_id),)).fetchone()[0])
+        assert witness['processExitCode'] == 0

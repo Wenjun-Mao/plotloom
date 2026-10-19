@@ -278,6 +278,28 @@ def test_attempt_lifecycle_uses_validated_immutable_snapshots():
         transition_exec_attempt(running.model_copy(update={"process_id": -1}), state="running")
 
 
+@pytest.mark.parametrize("defect", [None, "exit-claim", "changed-process", "conflicting-session", "failed-state", "output-claim"])
+def test_coalesced_no_dispatch_settlement_preserves_truthful_native_identity(defect):
+    running = CodexExecAttempt(attemptId=uuid4(), runId=uuid4(), projectId=uuid4(), jobId="ij_" + "a" * 24,
+        operationKey="image:fixture", domain="image", requestHash=HASH, packageHash=HASH, profileHash=HASH,
+        reservedImageOutputs=1, imageBudgetState="reserved", state="running", processId=123,
+        processGroupId=123, processBirthIdentity="native-start-123")
+    changes = dict(state="settled", terminal_result="no_remote_dispatch", session_id=uuid4(),
+                   remote_tool_state="not_applicable", image_budget_state="released", evidence_hash=HASH)
+    if defect == "exit-claim": changes["process_exit_code"] = 0
+    elif defect == "changed-process": changes["process_birth_identity"] = "another-native-start"
+    elif defect == "conflicting-session": running = transition_exec_attempt(running, session_id=uuid4())
+    elif defect == "failed-state": changes["state"] = "failed"
+    elif defect == "output-claim": changes["output_hash"] = HASH
+    if defect is None:
+        settled = transition_exec_attempt(running, **changes)
+        assert settled.terminal_result == "no_remote_dispatch" and settled.process_exit_code is None
+        assert running.state == "running" and running.image_budget_state == "reserved"
+    else:
+        with pytest.raises(ValueError):
+            transition_exec_attempt(running, **changes)
+
+
 def test_terminal_attempt_cannot_rewrite_its_evidence_while_settling():
     attempt = CodexExecAttempt(
         attemptId=uuid4(), runId=uuid4(), projectId=uuid4(), jobId="ch_" + "a" * 24,

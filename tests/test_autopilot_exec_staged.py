@@ -172,6 +172,23 @@ def test_shared_revision_check_preserves_original_version_condition(tmp_path, mo
             owner.prepared_exec_inputs(registry, view, checkpoint, domain="image", package_path=package)
 
 
+def test_receipt_only_current_contract_keeps_frozen_profile_when_host_changes(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from plotloom import autopilot_exec_reservation as owner
+    from tests.codex_exec_fixtures import PROFILE
+    changed = PROFILE.model_validate(PROFILE.model_dump(mode="python") | {"instruction_hash": "f" * 64})
+    view = SimpleNamespace(policy=SimpleNamespace(executor_binding=PROFILE, code_revision="a" * 40))
+    registry = SimpleNamespace(codex_exec_profile=lambda: changed)
+    package = tmp_path / "package"
+    package.mkdir()
+    monkeypatch.setattr(owner, "frozen_package_snapshot", lambda *_args, **_kwargs: ("a" * 64, b"{}"))
+    checkpoint = {"evidence": {"owner": "image", "subjectId": "fixture", "jobId": "ij_" + "a" * 24, "requestHash": "b" * 64}}
+    assert owner.prepared_exec_inputs(registry, view, checkpoint, domain="image", package_path=package,
+                                     allow_admission=False)[1] == PROFILE
+    with pytest.raises(InvalidTransitionError, match="profile changed"):
+        owner.prepared_exec_inputs(registry, view, checkpoint, domain="image", package_path=package)
+
+
 def test_observe_missing_project_identity_cannot_create_attempt(tmp_path, monkeypatch):
     with prepared(tmp_path, monkeypatch) as (_storage, registry, service, store, view, _checkpoint, attempt, _kwargs, calls):
         with pytest.raises(InvalidTransitionError, match="existing"):

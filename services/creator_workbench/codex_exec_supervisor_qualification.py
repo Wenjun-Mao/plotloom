@@ -224,7 +224,7 @@ class CodexExecSupervisorQualificationMixin:
                 raise CodexExecSupervisorError("qualification ledger run differs from registered role")
             self._qualification_check_role(connection,expected)
             self._namespace_assert_ledger_row(connection, row, expected, project_home=Path(project.home.path))
-        for table in ("exec_queue", "exec_slot", "exec_validation_process"):
+        for table in ("exec_queue", "exec_slot", "exec_validation_process", "exec_process_exits", "exec_recovery_evidence"):
             if connection.execute(f"SELECT 1 FROM {table} x LEFT JOIN exec_attempts a ON a.attempt_id=x.attempt_id "
                     "WHERE a.attempt_id IS NULL LIMIT 1").fetchone():
                 raise CodexExecSupervisorError("foreign qualification queue/slot/validator")
