@@ -536,7 +536,12 @@ Linux checkout, independent stable review and a coherent local commit.
 
 The [checkpoint](../verification/2026-10-18-owned-test-runtime.md) records final
 108-case successes on each platform and retained runtime/absence observations.
-Stop for manager review at the local commit. No origin push, new full-equivalent
-gate or hosted dispatch, installation, production/guard/QA/CI concurrency or
-budget change, activation, provider/live process, owner-data or cleanup action
-is included; native execution and product acceptance remain separate.
+Manager review verified the six source and 14 evidence hashes and independently
+retested the exact 108 cases; independent static review found no actionable issue.
+Normal fast-forward publication and exactly one ordinary unfiltered `ci.yml`
+dispatch on the published SHA are now approved, after executable parity/remote
+ancestry checks. Reuse unchanged local evidence; require both native worker
+proofs, all browser unions/artifacts, owned-runtime preflights and wheel/smoke.
+Stop on failure with preserved evidence and a scoped proposal. No retry, full
+local rerun, product/guard/QA/CI budget/concurrency change, activation, provider/
+live process, owner-data or cleanup action is included; acceptance stays separate.

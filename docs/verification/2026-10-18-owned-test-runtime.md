@@ -384,3 +384,16 @@ concurrency change, origin push, new full/hosted run, activation, provider/live
 process, owner-data mutation or cleanup occurred. Hosted x64/3.12.15, complete
 release qualification and product acceptance remain unproven; return the local
 commit and evidence for manager review before further publication/dispatch.
+
+Manager review of clean `d7ca6903b7f70c3d60f8cfaa2dd8ec03a0d04292` verified all
+six source and 14 evidence hashes/sizes plus genuine per-stage observations.
+An independent exact nine-file retest passed **108 cases / 18.40s**, runner
+**25.378s**, one existing warning; `manager-manual-composition-retest.log`.
+Attended independent GPT-6.1 Sol / High review (effective settings unverified)
+found no actionable issue. Production/dependencies/CI/native admission remain
+unchanged. The manager approves normal fast-forward publication after exact
+executable parity/remote ancestry checks, then exactly one ordinary unfiltered
+`ci.yml` dispatch on published main with `browser_grep='.*'`. Reuse unchanged
+local evidence; no redundant local full run. Require both native worker proofs,
+all four browser unions/artifacts, owned-runtime preflights and wheel/smoke.
+Preserve failure without retry; activation and live actions remain held.
