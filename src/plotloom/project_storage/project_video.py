@@ -102,6 +102,15 @@ class ProjectVideoRepository:
             raise InvalidTransitionError("video job has no valid frozen requested duration")
         resource = str(provider["adapterId"])
         identity = self.dispatch_identity(video_job_id)
+        from ..delegated_qa import project_scope
+        from ..delegated_qa_contracts import AgentQaAttribution
+        from ..delegated_qa_video import assert_dispatch
+        from .delegated_qa_grants import require_runtime_grant
+        scope = project_scope(project_id)
+        if scope:
+            require_runtime_grant(self.store, self._application, AgentQaAttribution(scope_id=scope.id))
+            with self._dispatch.read() as session:
+                assert_dispatch(session, project_id, session.get(VideoJobRow, video_job_id))
         # This commits in the application file first. If the process stops
         # before the project transaction, the deterministic identity makes a
         # subsequent attempt idempotent and the reservation remains cautious.
@@ -128,6 +137,7 @@ class ProjectVideoRepository:
                 raise InvalidTransitionError(
                     "video job frozen inputs are stale; prepare a new attempt"
                 )
+            assert_dispatch(session, project_id, current)
             session.add(
                 ProjectVideoDispatchRow(
                     video_job_id=video_job_id,

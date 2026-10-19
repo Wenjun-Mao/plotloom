@@ -62,6 +62,7 @@ class ReviewedKeyframePersistence:
         visual_intent_id: str,
         visual_intent_revision: int,
         expected_presentation_revision: int = 0,
+        attribution=None,
         bulk_basis=None,
     ) -> dict[str, Any]:
         """Append an immutable reviewed binding under one lifecycle writer lease."""
@@ -100,6 +101,15 @@ class ReviewedKeyframePersistence:
             )
             if latest_intent is None or latest_intent.id != intent.id:
                 raise InvalidTransitionError("reviewed keyframe must bind the current visual intent revision")
+            from ...delegated_qa import binding_attribution, require_qa_write
+            from ...delegated_qa_contracts import AgentQaAttribution
+            if attribution is not None:
+                attribution = AgentQaAttribution.model_validate(attribution).model_dump(mode="json", by_alias=True)
+            actor = binding_attribution(project_id, approval, intent.intent, asset_id=asset_id, shot_id=shot_id)
+            if actor != attribution:
+                raise InvalidTransitionError("reviewed selection requires its explicit matching QA attribution")
+            if actor:
+                require_qa_write(session, project_id, actor, asset_id=asset_id, shot_id=shot_id)
             storyboard = self._canonical._load_stage_payload(session, project_id, StageName.STORYBOARD)
             shot = next((item for item in storyboard.shots if item.id == shot_id), None)
             if shot is None or shot.scene_id != scene_id:
@@ -130,6 +140,7 @@ class ReviewedKeyframePersistence:
                 "sceneId": scene_id, "selectionRevision": state.revision,
                 "storyboardRevision": storyboard_revision, "visualIntentId": intent.id,
                 "visualIntentRevision": intent.revision,
+                **({"attribution": actor} if actor else {}),
             }
 
     def create_still_preview(

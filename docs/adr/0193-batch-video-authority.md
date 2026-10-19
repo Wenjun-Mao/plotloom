@@ -18,6 +18,10 @@ binds lineage/timing/profile/backend/seeds, compiles prompts, validates manifest
 claims dispatch and validates media/proposals. One typed batch endorsement is
 consumed by shared H3 preparation/dispatch readers, not fabricated per-shot notes.
 
+ADR 0198 adds an explicitly owner-delegated disposable-QA actor at those review
+owners. It records agent-operated QA rather than human review and requires its
+separate exact scope/runtime grant and actual inspection observations.
+
 The original English endorsement proves immutable source/direction/prompt facts;
 its originating batch need not remain running. Fresh dispatch separately requires
 the current explicitly started batch that links the exact job, its installation

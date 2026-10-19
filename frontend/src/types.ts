@@ -1,4 +1,5 @@
 import type { AcceptedReviewState } from "./accepted-review-state";
+import type { HumanReviewAttribution } from "./human-review-attribution";
 import type { ReviewContextDiagnostic } from "./review-context-types";
 import type { SamePersonReviewsResponse } from "./same-person-review-types";
 import type { ArtRenderContract, CastRenderContract } from "./features/render-style-contract";
@@ -389,7 +390,7 @@ export interface VideoJob {
   current: boolean;
   selected: boolean;
   selectionRevision: number;
-  reviews: Array<{ id: string; reviewer: string; decision: "select" | "reject" | "reopen"; note: string; createdAt: string }>;
+  reviews: Array<{ id: string; reviewer: string; attribution?: HumanReviewAttribution; decision: "select" | "reject" | "reopen"; note: string; createdAt: string }>;
   providerPredictionId: string | null;
   outputHash: string | null;
   observed: {
@@ -403,6 +404,7 @@ export interface VideoJob {
 }
 
 export interface VideoSegment {
+  attribution?: HumanReviewAttribution;
   id: string;
   videoJobId: string;
   shotId: string;

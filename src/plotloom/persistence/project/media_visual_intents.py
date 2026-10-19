@@ -41,6 +41,11 @@ class VisualIntentPersistence:
             asset = session.get(ManagedAssetRow, asset_id)
             if asset is None or asset.project_id != project_id:
                 raise NotFoundError(f"managed asset not found: {asset_id}")
+            if intent.get("attribution") is not None:
+                if intent.get("role") != "shot_keyframe":
+                    raise InvalidTransitionError("QA scope permits only the granted shot keyframes")
+                from ...delegated_qa import require_qa_write
+                require_qa_write(session, project_id, intent["attribution"], asset_id=asset_id, shot_id=target_shot_id)
             if consumed_draft is not None:
                 entity_id, draft_revision, draft_payload = consumed_draft
                 self._drafts._consume_exact_authoring_draft_in_session(

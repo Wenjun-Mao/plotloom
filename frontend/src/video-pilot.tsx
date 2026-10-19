@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { humanReviewLabel } from "./human-review-attribution";
 import type { ManagedAsset, ReviewedKeyframe, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBackend, VideoJob, VideoPilotBudget } from "./types";
 import { plotloomApi } from "./api";
 import type { H3ReviewedDirections, VideoJobPrepareBody } from "./api";
@@ -450,7 +451,7 @@ export function VideoPilotPanel({ videoReadVersion, projectId, projectRevision, 
       <details className="video-technical-history"><summary>审核历史与技术详情</summary>
         <small>选择版本 {job.selectionRevision} · 原片编号 {job.id}</small>
         <pre>{JSON.stringify(frozenVideoSnapshot(job)?.request ?? job.snapshot, null, 2)}</pre>
-        {job.reviews.map((review) => <small key={review.id}>审阅：{review.decision === "select" ? "选择" : review.decision === "reopen" ? "重新开放审阅" : "拒绝"}{review.reviewer ? ` · ${review.reviewer}` : ""}{review.note ? ` · ${review.note}` : ""}</small>)}
+        {job.reviews.map((review) => <small key={review.id}>审阅：{review.decision === "select" ? "选择" : review.decision === "reopen" ? "重新开放审阅" : "拒绝"} · {humanReviewLabel(review)}{review.note ? ` · ${review.note}` : ""}</small>)}
       </details>
       {job.state === "ingested" && projectId && <ReviewedVideoPlayer kind="原片" style={verifiedVideoGeometry(job.observed)}
         src={plotloomApi.videoJobMediaUrl(projectId, job.id)} testId={`video-job-player-${job.id}`} />}

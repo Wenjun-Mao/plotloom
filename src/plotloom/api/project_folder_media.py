@@ -22,6 +22,7 @@ from ..managed_media import (
 from ..persistence import stable_hash
 from ..shot_presentation import ShotPresentationRequest
 from .models import ProjectFolderVisualIntentRequest
+from ..project_storage.delegated_qa_grants import qa_command
 
 
 def register_project_folder_media_routes(
@@ -236,7 +237,7 @@ def register_project_folder_media_routes(
             mode="json", by_alias=True, exclude={"shot_id", "consumed_draft"}
         )
         draft_payload = {"assetId": asset_id, "shotId": body.shot_id, **intent}
-        with opened_project(project_id) as store:
+        with opened_project(project_id) as store, qa_command(store, app.state.project_folder_storage.application, body.attribution):
             return store.media.create_visual_intent(
                 project_id,
                 asset_id,
@@ -256,7 +257,7 @@ def register_project_folder_media_routes(
     def select_project_reviewed_keyframe(
         project_id: str, body: ReviewedSelectionRequest
     ) -> dict[str, Any]:
-        with opened_project(project_id) as store:
+        with opened_project(project_id) as store, qa_command(store, app.state.project_folder_storage.application, body.attribution):
             return store.media.select_reviewed_keyframe(
                 project_id, **body.model_dump(mode="python", by_alias=False)
             )

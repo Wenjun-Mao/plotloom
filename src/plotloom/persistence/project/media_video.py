@@ -206,9 +206,12 @@ class VideoJobPersistence(VideoJobPreparation):
                 select(VideoReviewRow).where(VideoReviewRow.video_job_id.in_([row.id for row in rows]))
                 .order_by(VideoReviewRow.created_at.asc(), VideoReviewRow.id.asc())
             ):
+                from ...delegated_qa import attribution_for_reviewer
+                actor = attribution_for_reviewer(project_id, review.reviewer)
                 reviews_by_job.setdefault(review.video_job_id, []).append({
                     "id": review.id, "reviewer": review.reviewer, "decision": review.decision,
                     "note": review.note, "createdAt": _stored_utc(review.created_at).isoformat(),
+                    **({"attribution": actor} if actor else {}),
                 })
             selections = {
                 row.shot_id: row
@@ -247,6 +250,18 @@ class VideoJobPersistence(VideoJobPreparation):
                 raise NotFoundError("video job not found")
             if job.state != "ingested" or not self._currentness.video_job_current_in_session(session, job):
                 raise InvalidTransitionError("only a current locally ingested video candidate can be reviewed")
+            from ...delegated_qa import direction_attribution, require_qa_write, reviewer_for, reject_reserved_reviewer
+            from ...delegated_qa_contracts import AgentQaAttribution
+            actor = direction_attribution(job.snapshot)
+            if isinstance(reviewer, AgentQaAttribution):
+                require_qa_write(session, project_id, reviewer)
+                if actor != reviewer.model_dump(mode="json", by_alias=True) or decision != "reject" or not note.strip():
+                    raise InvalidTransitionError("QA rejection needs the exact actor and an actual observation")
+                reviewer = reviewer_for(reviewer)
+            else:
+                reject_reserved_reviewer(reviewer)
+                if actor:
+                    raise InvalidTransitionError("agent QA review cannot be attributed as human review")
             shot_id = self._shot_id(job)
             selection = session.get(
                 VideoCandidateSelectionRow, {"project_id": project_id, "shot_id": shot_id}
@@ -274,7 +289,7 @@ class VideoJobPersistence(VideoJobPreparation):
                 selection.selected_video_job_id = None
                 selection.revision += 1
                 selection.updated_at = utc_now()
-            return {"id": review.id, "videoJobId": job.id, "reviewer": reviewer, "decision": decision, "note": note, "createdAt": _stored_utc(review.created_at).isoformat(), "selectionRevision": selection.revision if selection is not None else actual_revision}
+            return {"id": review.id, "videoJobId": job.id, "reviewer": reviewer, "decision": decision, "note": note, "createdAt": _stored_utc(review.created_at).isoformat(), "selectionRevision": selection.revision if selection is not None else actual_revision, **({"attribution": actor} if actor else {})}
 
     def reopen_video_job_review(
         self, project_id: str, video_job_id: str, *, reviewer: str, reason: str,

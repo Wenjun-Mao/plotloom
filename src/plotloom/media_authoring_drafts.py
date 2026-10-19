@@ -4,9 +4,11 @@ from typing import Literal
 from pydantic import Field, field_validator, model_validator
 
 from .domain_base import CamelModel
+from .delegated_qa_contracts import AgentQaAttribution
 
 
 class VisualIntentDraftPayload(CamelModel):
+    attribution: AgentQaAttribution | None = Field(default=None, exclude_if=lambda value: value is None)
     asset_id: str = Field(min_length=1, max_length=36)
     shot_id: str = Field(min_length=1, max_length=100)
     role: Literal["protagonist_reference", "location_reference", "shot_keyframe"]

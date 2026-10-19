@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { humanReviewLabel } from "../../human-review-attribution";
 import { Button, Field, Panel } from "../../components";
 import { plotloomApi } from "../../api";
 import type { VideoBackend } from "../../types";
@@ -14,6 +15,8 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
   projectId?: string; disabled: boolean; dirty: boolean; onChanged?: () => Promise<void>; onStory?: () => void;
 }) {
   const [batch, setBatch] = useState<Batch | null>(null); const [backend, setBackend] = useState<VideoBackend | null>(null);
+  const statusLabel = batch?.state === "approved" && batch.execution.reviewAttribution?.kind === "agent_operated_qa"
+    ? "全部视频已保存代理 QA 确认" : batch ? labels[batch.state] || batch.state : "";
   const [setupMode, setSetupMode] = useState(false);
   const readIdentity = useRef<string | undefined>(undefined);
   const [profile, setProfile] = useState(""); const [aspect, setAspect] = useState("reject_mismatch");
@@ -79,7 +82,8 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
     </div><p>默认串行，每个缺失镜头最多尝试一次。此处只准备清单；不会发送 H3 作业。无可靠货币估价，以下按任务及请求秒数计量。</p>
       <Button variant="primary" disabled={locked || !backend?.enabled || !profile} onClick={() => void execute("正在核对全部路线与已有任务", "setup", { profileId: profile, aspectPolicy: aspect, maxJobs, maxRequestedSeconds: maxSeconds })}>批量生成缺失视频</Button>
       {!backend?.enabled && <p>H3 后端尚未配置或不可用；可继续使用手动制作查看已有任务。</p>}</>}
-    {batch && !setupMode && <><h3>{labels[batch.state] || batch.state}</h3>
+    {batch && !setupMode && <><h3>{statusLabel}</h3>
+      {batch.execution.reviewAttribution?.kind === "agent_operated_qa" && <p role="status">{humanReviewLabel({ reviewer: "", attribution: batch.execution.reviewAttribution })} · 一次性测试批次</p>}
       <p>{batch.manifest.scopeShotIds.length} 个唯一镜头 · 保留 {batch.manifest.kept.length} 个已选视频 · {batch.manifest.targets.filter(item => item.mode === "reuse").length} 个复用候选 · {batch.manifest.newJobs} 个待派发任务 · 请求 {batch.manifest.requestedSeconds} 源秒</p>
       <p>规格 {batch.manifest.setup.profileId} · 原生音频 · 比例处理 {batch.manifest.setup.aspectPolicy} · 上限 {batch.manifest.setup.maxJobs} 项 / {batch.manifest.setup.maxRequestedSeconds} 秒 · 最多同时 1 项</p>
       {batch.execution.error && <p role="alert">{batch.execution.error}</p>}
@@ -99,7 +103,7 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
       {edited && <Button disabled={locked} onClick={() => void execute("正在保存英文方向并重新编译完整清单", "directions", { expectedRevision: batch.revision,
         draft: { version: "video-directions.draft.v1", targets: batch.manifest.targets.filter(item => item.mode === "generate").map(item => ({ shotId: item.shotId, sourceHash: item.sourceHash, fields: edits[item.shotId] || item.directions?.fields || [] })) } })}>保存英文方向并更新提示词</Button>}
       <section id="video-batch-next-action" aria-label="视频制作下一步">
-      <p role="status">{labels[batch.state] || batch.state}{batch.progress && ` · 播放提案就绪 ${batch.progress.ready}/${batch.progress.total} · 失败 ${batch.progress.failed} · 不确定或阻碍 ${batch.progress.blocked}`}</p><div className="button-row">
+      <p role="status">{statusLabel}{batch.progress && ` · 播放提案就绪 ${batch.progress.ready}/${batch.progress.total} · 失败 ${batch.progress.failed} · 不确定或阻碍 ${batch.progress.blocked}`}</p><div className="button-row">
         {["cancelled", "approved"].includes(batch.state) && <Button disabled={controlLocked} onClick={() => setSetupMode(true)}>准备新的缺失视频清单</Button>}
         {batch.state === "setup" && <Button disabled={locked || !!batch.manifest.blockers.length} onClick={() => void execute("正在准备完整英文方向任务", "draft", { expectedRevision: batch.revision })}>用助手准备全部英文方向</Button>}
         {batch.state === "ready" && <Button variant="primary" disabled={locked || edited} onClick={() => void execute("正在冻结已审阅清单并开始制作", "start", { expectedRevision: batch.revision, manifestHash: batch.manifestHash, basis: "whole-batch-english.v1" }, true)}>开始批量制作</Button>}
@@ -109,7 +113,7 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
         {batch.state === "awaiting_review" && <Button variant="primary" disabled={locked} onClick={() => setReview(true)}>审阅全部视频</Button>}
         {batch.state === "approved" && <Button variant="primary" onClick={onStory}>已保存 · 查看故事播放</Button>}
         <Button variant="quiet" onClick={() => { const target = document.getElementById("video-batch-next-action"); if (target) revealWorkspaceTarget(target); }}>查看结果</Button>
-      </div></section><p>暂停与取消保留已派发作业及结果；不代表远程取消。不确定发送不会重试。每个新视频仍需最终整包人工确认才用于故事。</p>
+      </div></section><p>暂停与取消保留已派发作业及结果；不代表远程取消。不确定发送不会重试。每个新视频须完成最终整包音画审阅与确认才用于故事。</p>
     </>}
     {review && batch && projectId && <VideoBatchReview onConfirmStart={completion.arm} projectId={projectId} batch={batch} disabled={disabled || dirty || !ready} onClose={() => { completion.clear(); setReview(false); }}
       onSaved={async () => { setReview(false); setBusy("已保存，正在刷新制作状态");

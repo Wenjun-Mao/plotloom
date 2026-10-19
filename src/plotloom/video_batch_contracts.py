@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import Field
 from .domain import CamelModel
 from .video_contracts import H3DirectionField
+from .delegated_qa_contracts import AgentQaAttribution, QaAvInspection
 
 class BatchSetup(CamelModel):
     profile_id: str = Field(min_length=3, max_length=63)
@@ -20,6 +21,7 @@ class BatchDirectionsDraft(CamelModel):
     targets: list[BatchDirectionsTarget] = Field(max_length=256)
 
 class BatchStart(CamelModel):
+    attribution: AgentQaAttribution | None = None
     expected_revision: int = Field(strict=True, ge=1)
     manifest_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     basis: Literal["whole-batch-english.v1"]
@@ -30,6 +32,8 @@ class BatchControl(CamelModel):
     action: Literal["pause", "resume", "cancel"]
 
 class BatchConfirmation(CamelModel):
+    attribution: AgentQaAttribution | None = None
+    inspection: QaAvInspection | None = None
     expected_revision: int = Field(strict=True, ge=1)
     review_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     basis: Literal["whole-pack-video-native-audio.v1"]

@@ -8,6 +8,7 @@ from .video_batch_directions import prepare_directions, advance_directions
 from .video_batch_inventory import inventory, source_binding, validate_manifest
 from .video_batch_review import confirm_pack, review_projection
 from .project_storage.proof_scope import scoped_proofs
+from .project_storage.delegated_qa_grants import qa_command
 
 
 class VideoBatchService:
@@ -69,12 +70,16 @@ class VideoBatchService:
 
     @scoped_proofs
     def start(self, project_id, request):
-        with closing(self.storage.projects.open(project_id)) as store:
+        with closing(self.storage.projects.open(project_id)) as store, qa_command(store, self.storage.application, request.attribution):
             owner = store.repository.video_batches
             view = owner.current(project_id)
             if view is None:
                 raise InvalidTransitionError("batch setup is missing")
+            from .delegated_qa_video import assert_manifest_actor
+            actor = assert_manifest_actor(store, view["manifest"], request.attribution)
             if view["execution"].get("authorizedManifestHash") == request.manifest_hash:
+                if view["execution"].get("reviewAttribution") != actor:
+                    raise InvalidTransitionError("retained English endorsement attribution differs")
                 return view
             if view["state"] != "ready" or view["manifestHash"] != request.manifest_hash:
                 raise InvalidTransitionError("review the current complete English manifest first")
@@ -86,6 +91,7 @@ class VideoBatchService:
                 validate_manifest(store, self.require_video(), row.manifest)
                 row.state = "running"
                 row.execution = row.execution | {"authorizedManifestHash": row.manifest_hash,
+                    **({"reviewAttribution": actor} if actor else {}),
                     "jobs": {target["shotId"]: target["jobId"] for target in row.manifest["targets"] if target["jobId"]},
                     "segments": {}, "error": None}
             with store.repository.manual_command():
@@ -148,7 +154,7 @@ class VideoBatchService:
 
     @scoped_proofs
     def confirm(self, project_id, request):
-        with closing(self.storage.projects.open(project_id)) as store:
+        with closing(self.storage.projects.open(project_id)) as store, qa_command(store, self.storage.application, request.attribution):
             store.require_recovery_acknowledged()
             view = store.repository.video_batches.current(project_id)
             if not view:
@@ -216,6 +222,8 @@ class VideoBatchService:
                     with store.repository._read() as session:
                         assert_work_inventory(session, project_id, current["manifest"], current["execution"]["jobs"])
                     basis = {"version": "whole-batch-english.v1", "batchId": view["id"], "manifestHash": view["manifestHash"], "shotId": shot_id}
+                    if view["execution"].get("reviewAttribution"):
+                        basis["attribution"] = view["execution"]["reviewAttribution"]
                     directions = target["directions"] | {"reviewBasis": basis,
                         "promptSha256": sha256(target["compiledPrompt"].encode()).hexdigest()}
                     args = target["args"] | {"idempotency_key": f"batch-{view['id']}-{shot_id}"}

@@ -3,6 +3,7 @@
 from ...autopilot_contracts import OperationScope
 from ...exceptions import InvalidTransitionError
 from ...human_confirmation_contracts import UnnamedCreatorConfirmation
+from ...delegated_qa import reject_reserved_reviewer
 
 
 def stored_reviewer(access, reviewer: str | UnnamedCreatorConfirmation) -> str:
@@ -12,6 +13,7 @@ def stored_reviewer(access, reviewer: str | UnnamedCreatorConfirmation) -> str:
             raise InvalidTransitionError("unnamed creator confirmation requires human handoff authority")
         return ""
     value = reviewer.strip()
+    reject_reserved_reviewer(value)
     if not value:
         raise ValueError("manual reviewer must not be blank")
     return value

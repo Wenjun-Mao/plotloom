@@ -1,5 +1,21 @@
 # Plotloom roadmap entrypoint
 
+## Delegated disposable-QA vertical slice
+
+The owner's October 19 grant authorizes agent-operated QA decisions for the exact
+disposable `326a5137-1851-4b5c-8ab2-b600ec7bda23` fixture, never personal review
+by the owner. [ADR 0198](../adr/0198-delegated-disposable-qa-authority.md) defines
+the source-owned board/assets/profile scope and runtime incarnation grant. The
+small observable journey is two already imported ImageGen originals → exact
+reviewed material → one serial H3 batch (at most two submissions / ten requested
+seconds) → actual native AV inspection → selected three-second windows and
+six-second story playback. The manager owns live inspection, execution and
+settlement; the retained worker owns source, focused checks and independent review.
+No autopilot run or human handoff is fabricated. Real stories, other providers,
+budget changes, UNKNOWN clearing, CI/push and full qualification are excluded
+from this source step. [Source evidence and operator payloads](../verification/2026-10-19-delegated-disposable-qa.md)
+keep local contract evidence distinct from activation, live E2E and acceptance.
+
 ## Explicit storyboard confirmation without naming paperwork
 
 The owner's direct October 19 correction removes the mandatory reviewer-label

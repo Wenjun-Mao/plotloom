@@ -260,6 +260,7 @@ def _default_text_profile_snapshot(
 
 
 def _approval_decision_view(decision: ApprovalDecision) -> ApprovalDecisionView:
+    from ..delegated_qa import attribution_for_reviewer
     return ApprovalDecisionView(
         id=decision.id,
         project_id=decision.project_id,
@@ -272,7 +273,7 @@ def _approval_decision_view(decision: ApprovalDecision) -> ApprovalDecisionView:
         gate_set_version=decision.gate_set_version,
         decision=decision.decision,
         reviewer=decision.reviewer,
-        attribution={"kind": "unnamed_creator"} if decision.reviewer == "" else None,
+        attribution=attribution_for_reviewer(decision.project_id, decision.reviewer) or ({"kind": "unnamed_creator"} if decision.reviewer == "" else None),
         note=decision.note,
         created_at=decision.created_at,
     )

@@ -8,6 +8,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import Response
+from ..exceptions import InvalidTransitionError
 
 from ..project_storage.application_store import ApplicationStore
 from ..project_storage.project_handle import ProjectStore
@@ -165,11 +166,14 @@ def register_project_folder_video_routes(
     def review_video_job(
         project_id: str, video_job_id: str, body: VideoReviewRequest
     ) -> dict[str, Any]:
-        with opened_project(project_id) as store:
+        from ..project_storage.delegated_qa_grants import qa_command
+        with opened_project(project_id) as store, qa_command(store, app.state.project_folder_storage.application, body.attribution):
+            if body.attribution and body.reviewer:
+                raise InvalidTransitionError("QA attribution cannot also claim a human reviewer")
             return _local_repository(store).review_video_job(
                 project_id,
                 video_job_id,
-                reviewer=body.reviewer,
+                reviewer=body.attribution or body.reviewer,
                 decision=body.decision,
                 note=body.note,
                 expected_selection_revision=body.expected_selection_revision,

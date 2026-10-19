@@ -168,7 +168,13 @@ class ProjectApprovalPersistence:
         subject_id: str,
     ) -> ApprovalDecision:
         normalized_decision = decision.strip().lower()
-        normalized_reviewer = stored_storyboard_reviewer(self._access, reviewer)
+        from ...delegated_qa_contracts import AgentQaAttribution
+        from ...delegated_qa import require_qa_write, reviewer_for
+        if isinstance(reviewer, AgentQaAttribution):
+            require_qa_write(session, project_id, reviewer, board_hash=revision.content_hash)
+            normalized_reviewer = reviewer_for(reviewer)
+        else:
+            normalized_reviewer = stored_storyboard_reviewer(self._access, reviewer)
         normalized_gate_set_version = gate_set_version.strip()
         if normalized_decision not in {"approve", "revoke"}:
             raise ValueError("approval decision must be approve or revoke")

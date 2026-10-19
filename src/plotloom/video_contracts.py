@@ -10,6 +10,7 @@ from typing import Literal
 from pydantic import Field, field_validator
 
 from .domain import CamelModel
+from .delegated_qa_contracts import AgentQaAttribution
 
 
 class H3DirectionField(CamelModel):
@@ -68,6 +69,7 @@ class VideoEndFrameDecisionRequest(CamelModel):
     aspect_policy: Literal["reject_mismatch", "contain_pad", "cover_center_crop"] | None = None
 
 class VideoReviewRequest(CamelModel):
+    attribution: AgentQaAttribution | None = None
     reviewer: str = Field(default="", max_length=160)
     decision: Literal["select", "reject"]
     note: str = Field(default="", max_length=2_000)

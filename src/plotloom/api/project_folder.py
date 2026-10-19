@@ -716,7 +716,8 @@ def create_project_folder_authoring_app(
     def decide_project_storyboard_approval(
         project_id: str, body: StoryboardApprovalRequest
     ) -> ApprovalClosureView:
-        with opened_project(project_id) as store:
+        from ..project_storage.delegated_qa_grants import qa_command
+        with opened_project(project_id) as store, qa_command(store, storage.application, body.attribution):
             decision = store.authoring.decide_storyboard_approval(
                 project_id,
                 expected_revision=body.expected_revision,

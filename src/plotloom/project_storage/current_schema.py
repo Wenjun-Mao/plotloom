@@ -68,6 +68,8 @@ def assert_current_review_bindings(connection: sqlite3.Connection, *, asset_home
         assert_autopilot_contracts(connection, asset_home=asset_home, continuation=continuation)
     from .video_batch_validation import assert_video_batch_contracts
     assert_video_batch_contracts(connection)
+    from .delegated_qa_validation import assert_delegated_qa_contracts
+    assert_delegated_qa_contracts(connection)
     assert_review_binding_shapes(connection)
 
 

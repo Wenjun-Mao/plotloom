@@ -17,6 +17,7 @@ from pydantic import Field, field_validator, model_validator
 
 from .artifacts import ArtifactStore
 from .domain import CamelModel
+from .delegated_qa_contracts import AgentQaAttribution
 
 SUPPORTED_MEDIA_TYPES = {"JPEG": "image/jpeg", "PNG": "image/png"}
 
@@ -62,6 +63,7 @@ class ImportDeclaration(CamelModel):
 
 
 class VisualIntentInput(CamelModel):
+    attribution: AgentQaAttribution | None = Field(default=None, exclude_if=lambda value: value is None)
     role: Literal["protagonist_reference", "location_reference", "shot_keyframe"]
     identity_intent: str | None = Field(default=None, max_length=2_000)
     composition_intent: str | None = Field(default=None, max_length=2_000)
@@ -100,6 +102,7 @@ class VisualIntentInput(CamelModel):
 
 
 class ReviewedSelectionRequest(CamelModel):
+    attribution: AgentQaAttribution | None = Field(default=None, exclude_if=lambda value: value is None)
     asset_id: str = Field(min_length=1, max_length=36)
     shot_id: str = Field(min_length=1, max_length=100)
     scene_id: str = Field(min_length=1, max_length=100)

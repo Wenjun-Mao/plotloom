@@ -246,6 +246,8 @@ class VideoJobPreparation:
                     raise InvalidTransitionError("H3 final prompt changed or was not previewed; review it before preparation")
             elif preview_only or reviewed_directions is not None:
                 raise InvalidTransitionError("reviewed prompt directions require a current H3 profile")
+            from ...delegated_qa_video import assert_preparation_actor
+            assert_preparation_actor(session, project_id, snapshot)
             fingerprint = stable_hash({"snapshot": snapshot, "idempotencyKey": idempotency_key})
             existing = session.scalar(select(VideoJobRow).where(VideoJobRow.project_id == project_id, VideoJobRow.idempotency_key == idempotency_key))
             if existing is not None:

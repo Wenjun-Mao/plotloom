@@ -7,7 +7,15 @@ from .persistence.schema import VideoBatchRow
 
 def valid_direction_endorsement(package):
     basis = package.get("reviewBasis")
-    return bool(isinstance(basis, dict) and set(basis) == {"version", "batchId", "manifestHash", "shotId"}
+    keys = {"version", "batchId", "manifestHash", "shotId"}
+    if isinstance(basis, dict) and "attribution" in basis:
+        from .delegated_qa_contracts import AgentQaAttribution
+        try:
+            AgentQaAttribution.model_validate(basis["attribution"])
+        except ValueError:
+            return False
+        keys.add("attribution")
+    return bool(isinstance(basis, dict) and set(basis) == keys
         and basis.get("version") == "whole-batch-english.v1"
         and all(isinstance(basis.get(key), str) and basis[key] for key in ("batchId", "shotId"))
         and isinstance(basis.get("manifestHash"), str) and re.fullmatch(r"[a-f0-9]{64}", basis["manifestHash"]))
@@ -26,6 +34,8 @@ def assert_direction_basis(session, snapshot):
             or row.manifest_hash != basis["manifestHash"]
             or row.execution.get("authorizedManifestHash") != row.manifest_hash):
         raise InvalidTransitionError("batch English endorsement has no exact retained authorization")
+    if basis.get("attribution") != row.execution.get("reviewAttribution"):
+        raise InvalidTransitionError("batch English attribution changed")
     targets = [item for item in row.manifest["targets"] if item["shotId"] == basis["shotId"]]
     if len(targets) != 1:
         raise InvalidTransitionError("batch endorsement target is not in the manifest")

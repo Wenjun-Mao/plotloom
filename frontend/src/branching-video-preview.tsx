@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { SceneBeatPlan, StoryEdge, StoryGraph, StoryNode, Storyboard, VideoJob } from "./types";
 import { plotloomApi } from "./api";
 import { Button } from "./components";
+import { humanReviewLabel } from "./human-review-attribution";
 import { useBridgeChoiceRead } from "./useBridgeChoiceRead";
 import { shotLabel, storyShotLabel } from "./shot-label";
 import { nodeFootageGaps } from "./node-footage";
@@ -254,6 +255,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
       <ul>{returnShotIds.map((shotId) => <li key={shotId}><a href={`?${new URLSearchParams({ project: projectId, stage: "storyboard", entity: `shot:${shotId}` }).toString()}#shot-workbench`}>返回镜头 {storyShotLabel(shotId, storyboard, sceneBeats, graph)} 审核片段</a></li>)}</ul>
     </div>}
     {!missingMedia.length && current && <>
+      {current.playbackSegment?.attribution?.kind === "agent_operated_qa" && <small role="status">{humanReviewLabel({ reviewer: "", attribution: current.playbackSegment.attribution })} · 一次性测试素材</small>}
       <video
         key={mediaIdentity}
         controls

@@ -164,6 +164,18 @@ class VideoSegmentPersistence:
             job = session.get(VideoJobRow, segment.video_job_id)
             if job is None or job.state != "ingested" or not self._currentness.video_job_current_in_session(session, job):
                 raise InvalidTransitionError("video segment source is stale")
+            from ...delegated_qa import direction_attribution, require_qa_write, reviewer_for, reject_reserved_reviewer
+            from ...delegated_qa_contracts import AgentQaAttribution
+            actor = direction_attribution(job.snapshot)
+            if isinstance(reviewer, AgentQaAttribution):
+                require_qa_write(session, project_id, reviewer)
+                if actor != reviewer.model_dump(mode="json", by_alias=True) or not session.info.get("pending_video_pack_receipt"):
+                    raise InvalidTransitionError("QA selection requires the exact final audiovisual receipt")
+                reviewer = reviewer_for(reviewer)
+            else:
+                reject_reserved_reviewer(reviewer)
+                if actor:
+                    raise InvalidTransitionError("agent QA selection cannot be attributed as human review")
             if not self._valid_metadata(segment, job) or segment.derivative_hash != expected_derivative_hash:
                 raise InvalidTransitionError("video segment evidence changed")
             selection = self._selection(session, project_id, segment.shot_id)
@@ -194,7 +206,7 @@ class VideoSegmentPersistence:
                 id=new_id(), video_job_id=job.id, reviewer=reviewer,
                 decision="select", note=note, created_at=now,
             ))
-            return self._projection(segment, current=True, selected=True, preview_eligible=True)
+            return self._projection(segment, current=True, selected=True, preview_eligible=True) | ({"attribution": actor} if actor else {})
 
     def reopen_rejected_h3_review(
         self, project_id: str, video_job_id: str, *, reviewer: str, reason: str,
@@ -202,6 +214,8 @@ class VideoSegmentPersistence:
     ) -> dict[str, Any]:
         """Append explicit reconsideration while preserving current shot playback."""
         reviewer, reason = reviewer.strip(), reason.strip()
+        from ...delegated_qa import reject_reserved_reviewer
+        reject_reserved_reviewer(reviewer)
         if not reviewer or not reason:
             raise InvalidTransitionError("reopening a rejected H3 take requires a reviewer and reason")
 
@@ -210,6 +224,9 @@ class VideoSegmentPersistence:
             if job is None or job.project_id != project_id:
                 raise NotFoundError("video job not found")
             snapshot = job.snapshot
+            from ...delegated_qa import direction_attribution
+            if direction_attribution(snapshot):
+                raise InvalidTransitionError("QA rejection cannot be reopened through a human review path")
             provider = snapshot.get("provider") if isinstance(snapshot, dict) else None
             if (
                 job.state != "ingested"
@@ -365,6 +382,12 @@ class VideoSegmentPersistence:
                     and self._valid_metadata(row, job)
                     and _segment_confirmation_valid(session, row)
                 ),
-            )
+            ) | self._receipt_attribution(session, row)
             for row in rows
         ]
+
+    @staticmethod
+    def _receipt_attribution(session, row):
+        from ..schema import VideoBatchReceiptRow
+        receipt = session.get(VideoBatchReceiptRow, row.confirmation_receipt_id) if row.confirmation_receipt_id else None
+        return {"attribution": receipt.receipt["attribution"]} if receipt and _segment_confirmation_valid(session, row) else {}

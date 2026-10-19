@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import Field, field_validator, model_validator
+from ..delegated_qa_contracts import AgentQaAttribution
 from ..human_confirmation_contracts import UnnamedCreatorConfirmation
 
 from ..domain import (
@@ -159,7 +160,7 @@ class StoryboardApprovalRequest(CamelModel):
     expected_revision: int = Field(ge=1)
     content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     decision: Literal["approve", "revoke"]
-    attribution: UnnamedCreatorConfirmation
+    attribution: UnnamedCreatorConfirmation | AgentQaAttribution
     gate_set_version: str = Field(min_length=1, max_length=128)
 
     @field_validator("gate_set_version")
@@ -183,7 +184,7 @@ class ApprovalDecisionView(CamelModel):
     gate_set_version: str
     decision: Literal["approve", "revoke"]
     reviewer: str
-    attribution: UnnamedCreatorConfirmation | None = Field(default=None, exclude_if=lambda value: value is None)
+    attribution: UnnamedCreatorConfirmation | AgentQaAttribution | None = Field(default=None, exclude_if=lambda value: value is None)
     note: str | None
     created_at: datetime
 

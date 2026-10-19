@@ -123,6 +123,16 @@ class KeyframeAdmission:
                 approval = self.approval_is_active_in_session(session, binding.approval_id)
             except (InvalidTransitionError, NotFoundError):
                 return False
+        from ...delegated_qa import binding_attribution
+        try:
+            # Image adaptation consumes a narrowed ImageAuthorityBinding. Actor
+            # facts belong to its exact retained approval, not that projection.
+            attributed_approval = session.get(ApprovalDecisionRow, binding.approval_id)
+            if attributed_approval is None:
+                return False
+            binding_attribution(project_id, attributed_approval, intent.intent, asset_id=binding.asset_id, shot_id=binding.shot_id)
+        except (InvalidTransitionError, ValueError):
+            return False
         return (
             approval.project_id == project_id
             and binding.approval_id == approval.id
@@ -154,6 +164,9 @@ class KeyframeAdmission:
             ]
             from .bulk_handoff_basis import receipt_basis
             for item in result:
+                intent = session.get(VisualIntentRow, item["visualIntentId"])
+                if intent.intent.get("attribution"):
+                    item["attribution"] = intent.intent["attribution"]
                 basis = receipt_basis(session, project_id, item["id"])
                 if basis is not None:
                     item["confirmationBasis"] = basis

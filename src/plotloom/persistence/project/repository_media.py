@@ -98,6 +98,7 @@ class ProjectMediaRepository:
         expected_selection_revision: int, storyboard_revision: int, approval_id: str,
         compatibility_note: str, visual_intent_id: str, visual_intent_revision: int,
         expected_presentation_revision: int = 0,
+        attribution=None,
     ) -> JsonObject:
         return self._keyframes.select_reviewed_keyframe(
             project_id, asset_id=asset_id, shot_id=shot_id, scene_id=scene_id,
@@ -106,6 +107,7 @@ class ProjectMediaRepository:
             compatibility_note=compatibility_note, visual_intent_id=visual_intent_id,
             visual_intent_revision=visual_intent_revision,
             expected_presentation_revision=expected_presentation_revision,
+            attribution=attribution,
         )
 
     def create_still_preview(
