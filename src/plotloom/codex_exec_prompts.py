@@ -1,8 +1,10 @@
 """Fixed, versioned instructions for one frozen Codex Exec assignment."""
 from pathlib import Path
 
+from .autopilot_image_guidance import IMAGE_CONTENT_OWNERSHIP_INSTRUCTION
+
 PROMPT_VERSION = "plotloom.codex-exec-assignment.v5"
-IMAGE_PROMPT_VERSION = "plotloom.codex-exec-assignment.v5"
+IMAGE_PROMPT_VERSION = "plotloom.codex-exec-assignment.v6"
 
 
 def assignment_prompt(*, job_id: str, package_path: Path, delivery_path: Path, domain: str) -> str:
@@ -60,6 +62,7 @@ def assignment_prompt(*, job_id: str, package_path: Path, delivery_path: Path, d
         + delivery_authority
         + image_call_contract
         + reference_view_contract
+        + (IMAGE_CONTENT_OWNERSHIP_INSTRUCTION if domain == "image" else "")
         + source_runtime_contract
         + "Do not edit package files, project canon, approvals, selections, settings, or user data. "
         "Use only the built-in Codex tools enabled by this invocation. Do not start another job, "

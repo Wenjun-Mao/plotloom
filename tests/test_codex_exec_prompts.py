@@ -1,6 +1,11 @@
 import pytest
 
-from plotloom.codex_exec_prompts import IMAGE_PROMPT_VERSION, PROMPT_VERSION, assignment_prompt
+from plotloom.autopilot_image_guidance import IMAGE_CONTENT_OWNERSHIP_INSTRUCTION
+from plotloom.codex_exec_prompts import (
+    IMAGE_PROMPT_VERSION,
+    PROMPT_VERSION,
+    assignment_prompt,
+)
 
 
 def test_text_prompt_assigns_candidate_files_and_leaves_completion_to_host(tmp_path):
@@ -20,6 +25,7 @@ def test_text_prompt_assigns_candidate_files_and_leaves_completion_to_host(tmp_p
     assert "do not claim trusted validation" in prompt
     assert "Do not `cd` into" in prompt
     assert "Do not write image files" not in prompt
+    assert IMAGE_CONTENT_OWNERSHIP_INSTRUCTION not in prompt
 
 
 def test_image_prompt_reserves_delivery_tree_for_trusted_host_copy(tmp_path):
@@ -32,8 +38,9 @@ def test_image_prompt_reserves_delivery_tree_for_trusted_host_copy(tmp_path):
 
     assert "Do not write image files or completion markers" in prompt
     assert "trusted host copies its exact completed session output" in prompt
-    assert IMAGE_PROMPT_VERSION.endswith("v5")
+    assert IMAGE_PROMPT_VERSION.endswith("v6")
     assert prompt.startswith(IMAGE_PROMPT_VERSION)
+    assert IMAGE_CONTENT_OWNERSHIP_INSTRUCTION in prompt
     assert "one direct top-level awaited expression" in prompt
     assert "Do not put it in a branch" in prompt
     assert "Write only the requested candidate JSON" not in prompt

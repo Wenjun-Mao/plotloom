@@ -123,3 +123,43 @@ bindings and navigation between Art and Characters without generation.
 Accepted style captions use the existing revision/hash-bound adoption label;
 an AI-adopted style remains labelled AI-adopted after cancellation and is not
 presented as a new human confirmation.
+
+## Downstream automatic image content ownership
+
+The native S01 study in the October 19 QA stopped before ImageGen: accepted Art
+consistently required an empty table/environment with the flower as a separate
+prop, while automatic image preparation appended the complete global Brief
+direction as an unrestricted overlay. The Brief's flower mention was therefore
+misrepresented as a requirement for every reference. This run's accepted Cast/Art
+had already translated that same Brief; this is a downstream receiving-contract
+gap, not a reason to reinterpret its accepted stage contracts.
+
+New automatic character, art-reference and shot assignments share
+`plotloom.autopilot.image-content-ownership.v1` in the downstream image-guidance
+receiving prompt (native image assignment v6). The raw global direction is
+preserved verbatim in the existing request fields as rendering-treatment
+context. The frozen accepted style authority remains either saved-Brief or an
+explicit preset; do not claim preset-authoritative stages translated the saved
+Brief as their style authority. An absent global direction retains that frozen
+authority; empty saved-Brief direction permits story-informed judgment without
+inventing a preset. The accepted Cast character or Art subject owns a reference's
+included and excluded entities; the canonical shot owns its visible content, action and
+composition. Reference identity/appearance does not transfer a study's framing
+or entity exclusions into a shot. Conflicts within the actual content owner, or
+an incompatible rendering treatment, still require refusal and evidence.
+
+Do not classify/remove words, special-case any subject, silently tolerate genuine
+contradictions, or invent a style interpreter. The existing raw-direction resolver
+and upstream Cast/Art receiving code and validator hashes stay unchanged. The new
+receiving text is bound into the native execution profile, outside creator-visible
+direction fields. Those fields, request hashes and package re-projection remain
+unchanged; new native invocations carry the explicit ownership rule.
+Structural/style markers remain mechanical validation; semantic/visual fidelity
+still requires review.
+
+This rule applies to automatic synthesis of global context. Manual callers
+continue supplying their explicit creator presentation/render overlays under
+their existing canonical/accepted-source constraints; those inputs are not
+silently relabelled as global Brief context. This is an intentional actor/input
+distinction, not an executor/provider exception. Retained requests, pins and
+receipts are not rewritten; new execution requires a newly frozen current policy.

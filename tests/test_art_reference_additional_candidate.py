@@ -64,6 +64,7 @@ def test_another_candidate_preserves_first_request_bytes_and_selected_reference(
         return result.json()["candidates"][0]["assetId"], directory.parent
 
     first = prepare("初次图片要求。")
+    assert first["request"]["frozenSnapshot"]["renderDirection"] == "初次图片要求。"
     first_asset, first_job = deliver(first)
     chosen = client.post(
         f"{project_url}/art-reference-decisions",
@@ -85,6 +86,7 @@ def test_another_candidate_preserves_first_request_bytes_and_selected_reference(
     }
 
     second = prepare("降低观察角度；保留已接受的环境布局。")
+    assert second["request"]["frozenSnapshot"]["renderDirection"] == "降低观察角度；保留已接受的环境布局。"
     assert second["id"] != first["id"]
     assert second["requestHash"] != first["requestHash"]
     assert second["state"] == "prepared"

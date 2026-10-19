@@ -22,11 +22,11 @@ paused at revision 123, with eight text/two image adoptions and P01 failed.
 Local implementation, independent review and one final local full gate are
 complete: 3,365 Python / 1,415 frontend / 338 browser cases, all downstream
 bundle/parity/wheel gates passed in 1,649.439 seconds. Qualified executable
-revision is `081d56d4`; later closeout changes are documentation only. See the
+revision is `081d56d4`; its immediate closeout `210974c0` changed documentation only. See the
 [instruction/recovery checkpoint](../verification/2026-10-18-image-instruction-recovery.md)
 for exact fingerprints, retained failures, manager activation and native proof.
 
-The active native QA is `f03a5e3d-6a75-4f5c-b29a-21420ce9a7b6`, run
+The retained native QA is `f03a5e3d-6a75-4f5c-b29a-21420ce9a7b6`, run
 `702a6a7e-f87d-45ed-ae12-b07b436120da`: a fresh normal pre-video flow using the
 six-second/two-shot 2D Brief, `styleAuthority=brief`, maximum 16 jobs/eight images.
 H3 remains capped at two submissions/ten requested source seconds. A prior native
@@ -36,6 +36,18 @@ six-image inventory; its delivered-unadopted candidate is retained. The earlier
 manual QA draft `fd2608aa-dac9-4559-b216-31c78e365f8a` is unused and its separate
 storyboard-approval request was withdrawn. No policy edit, synthetic run/adoption
 or new adapter was used. The manager owns live testing, settlement and cleanup.
+
+On October 19 the manager paused this QA at revision 51 after S01 refused before
+ImageGen: raw global sunflower direction appeared to contradict its accepted
+empty environment study and separate prop. A
+[source-only receiving-contract candidate](../verification/2026-10-19-automatic-image-content-ownership.md)
+now separates global rendering context from accepted reference/canonical-shot
+content in native image assignment v6, with raw fields and upstream hashes
+unchanged. Its 41 focused checks and independent review pass; affected downstream
+qualification and activation remain pending. The retained no-dispatch proof is
+unsupported, so UNKNOWN remains untouched. No recovery/capacity changes or replay
+were made. Separate manual still-life E2E versus holding native E2E awaits owner
+direction; actual storyboard, material and AV reviews remain required.
 
 Native generation/publication is now demonstrated; actual whole-pack human
 material approval, H3 output/readback, clip/audio review and final acceptance

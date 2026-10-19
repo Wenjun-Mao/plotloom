@@ -32,6 +32,7 @@ DISABLED_CLI_FEATURES = (
     "tool_call_mcp_elicitation",
 )
 INSTRUCTION_FILES = (
+    "src/plotloom/autopilot_image_guidance.py",
     ".agents/skills/plotloom-video-directions-specialist/SKILL.md",
     "docs/creative-workflow/native-video-directions.md",
     "src/plotloom/outline_preparation.py",

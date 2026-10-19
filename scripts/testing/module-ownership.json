@@ -66,6 +66,7 @@
           "tests/test_autopilot_compact_text_seed.py",
           "tests/test_autopilot_geometry_publication.py",
           "tests/test_autopilot_brief_style.py",
+          "tests/test_autopilot_image_guidance.py",
           "tests/test_autopilot_activity.py",
           "tests/test_autopilot_early_references.py",
           "tests/test_autopilot_early_reference_limits.py",

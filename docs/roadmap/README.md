@@ -26,10 +26,14 @@ full gate passed: 3,365 Python / 1,415 frontend / 338 browser cases plus all
 downstream gates, in 1,649.439 seconds. See the
 [instruction/recovery and qualification record](../verification/2026-10-18-image-instruction-recovery.md).
 The first native QA produced a genuine ImageGen receipt and published output;
-current native QA `f03a5e3d-6a75-4f5c-b29a-21420ce9a7b6` continues a fresh
-six-second/two-shot flow under caps of 16 jobs/eight images and at most two H3
-submissions/ten requested source seconds. Human material approval, H3 output and
-final audio/video acceptance remain pending. Earlier incompatible-project
+current native QA `f03a5e3d-6a75-4f5c-b29a-21420ce9a7b6` is paused at revision
+51 after S01's global-direction/content-owner conflict. A source-only
+[receiving-contract candidate](../verification/2026-10-19-automatic-image-content-ownership.md)
+preserves raw fields and accepted upstream authority; 41 focused cases and
+independent review pass. Downstream qualification/activation remain pending;
+unsupported no-dispatch proof keeps S01 UNKNOWN. No limits or uncertain jobs are
+changed. Human material approval, H3 output and final audio/video acceptance
+remain pending. Earlier incompatible-project
 deletions remain recorded in the
 [initial activation closeout](../verification/2026-10-18-batch-video-publication-and-activation.md#completed-activation-october-18-2201-edt).
 Hosted qualification remains failed and GitHub CI is held pending Wenjun's direct
