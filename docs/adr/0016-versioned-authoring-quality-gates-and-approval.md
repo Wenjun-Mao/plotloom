@@ -67,6 +67,20 @@ of the same transaction that installs a successful storyboard revision.
 
 ### Approval and M2 production boundary
 
+**2026-10-19 amendment — explicit unnamed storyboard confirmation:** the manual
+approve/revoke action requires exact current revision/hash/gate-set bindings and
+typed `attribution: {kind: "unnamed_creator"}`, with no reviewer-name or note
+form. No confirmation is inferred from valid data, a technical QA operator or
+an earlier action. The storyboard decision owner admits this type only through
+human command scope (ordinary manual action or the existing whole-pack handoff);
+machine scopes remain refused. Persistence uses the existing exact empty-name
+encoding and readback labels it unnamed creator confirmation. Existing named
+decisions/notes remain unchanged and truthfully readable; new public writes no
+longer accept their retired name/note fields. Manual unnamed storyboard facts
+need no autopilot receipt; linked whole-pack approvals still require their exact
+handoff proof, and unnamed identity reviews retain their handoff-only contract.
+This removes naming paperwork, not human action or production admission checks.
+
 An approval is append-only and binds the canonical storyboard subject, exact
 entity revision, content hash, canonical input revisions, and considered
 gate-set version. It is active only while that exact READY head and all frozen

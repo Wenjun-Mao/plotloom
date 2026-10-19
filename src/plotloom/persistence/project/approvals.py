@@ -32,7 +32,7 @@ from ..schema import (
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
 from .access import ProjectPersistenceAccess
 from ...human_confirmation_contracts import UnnamedCreatorConfirmation
-from .human_attribution import stored_reviewer
+from .human_attribution import stored_storyboard_reviewer
 
 @dataclass(frozen=True)
 class ApprovalDecision:
@@ -168,7 +168,7 @@ class ProjectApprovalPersistence:
         subject_id: str,
     ) -> ApprovalDecision:
         normalized_decision = decision.strip().lower()
-        normalized_reviewer = stored_reviewer(self._access, reviewer)
+        normalized_reviewer = stored_storyboard_reviewer(self._access, reviewer)
         normalized_gate_set_version = gate_set_version.strip()
         if normalized_decision not in {"approve", "revoke"}:
             raise ValueError("approval decision must be approve or revoke")

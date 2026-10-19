@@ -159,20 +159,15 @@ class StoryboardApprovalRequest(CamelModel):
     expected_revision: int = Field(ge=1)
     content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     decision: Literal["approve", "revoke"]
-    reviewer: str = Field(
-        min_length=1,
-        max_length=256,
-        description="User-supplied local-workbench label; not an authenticated identity.",
-    )
+    attribution: UnnamedCreatorConfirmation
     gate_set_version: str = Field(min_length=1, max_length=128)
-    note: str | None = Field(default=None, max_length=4_000)
 
-    @field_validator("reviewer", "gate_set_version")
+    @field_validator("gate_set_version")
     @classmethod
     def reject_blank_review_fields(cls, value: str) -> str:
         normalized = value.strip()
         if not normalized:
-            raise ValueError("reviewer and gateSetVersion must not be blank")
+            raise ValueError("gateSetVersion must not be blank")
         return normalized
 
 

@@ -54,7 +54,6 @@ async function createAndApprove(page: Page, request: APIRequestContext, workbenc
   expect(created.ok(), await created.text()).toBeTruthy();
   const projectId = (await created.json() as { id: string }).id;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard&entity=shot%3Ashot_01#shot-keyframe-review`);
-  await page.getByLabel("审核人标签").fill("Synthetic fixture setup");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await expect(page.getByTestId("video-pilot-panel")).toBeVisible();
   await openMediaPreparation(page);
@@ -245,8 +244,8 @@ test("retains separate exercise and ready-to-use synthetic segment walkthrough p
   await expect(storyboardDisclosure).not.toHaveAttribute("open", "");
   await page.getByRole("button", { name: "查看分镜批准" }).click();
   await expect(storyboardDisclosure).toHaveAttribute("open", "");
-  await expect(page.locator("details.approval-actions")).toHaveAttribute("open", "");
-  await expect(page.getByLabel("审核人标签")).toBeVisible();
+  await expect(page.locator(".approval-actions")).toBeVisible();
+  await expect(page.getByRole("button", { name: "批准当前分镜" })).toBeVisible();
   await storyboardDisclosure.locator(":scope > summary").click();
   await page.getByRole("button", { name: "编辑镜头细节" }).click();
   await expect(storyboardDisclosure).toHaveAttribute("open", "");

@@ -722,9 +722,8 @@ def create_project_folder_authoring_app(
                 expected_revision=body.expected_revision,
                 expected_content_hash=body.content_hash,
                 decision=body.decision,
-                reviewer=body.reviewer,
+                reviewer=body.attribution,
                 gate_set_version=body.gate_set_version,
-                note=body.note,
             )
             return _approval_closure_view(
                 store.authoring.get_approval_closure(decision.id)

@@ -213,7 +213,7 @@ def _approved_keyframe(
             "expectedRevision": board.revision,
             "contentHash": board.content_hash,
             "decision": "approve",
-            "reviewer": "project-video fixture",
+            "attribution": {"kind": "unnamed_creator"},
             "gateSetVersion": "storyboard.v2",
         },
     ).json()["decision"]

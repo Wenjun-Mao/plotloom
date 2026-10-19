@@ -27,6 +27,7 @@
           "tests/test_outline_report_metadata.py",
           "tests/test_outline_report_receiving.py",
           "tests/test_project_storage_authoring_control_contracts.py",
+          "tests/test_storyboard_creator_confirmation.py",
           "tests/test_project_storage_source_outline.py",
           "tests/test_project_storage_source_outline_api.py",
           "tests/test_project_storage_work_unit_contracts.py",
@@ -240,6 +241,7 @@
           "frontend/tests/shot-presentation.test.ts",
           "frontend/tests/storyboard-editor.test.ts",
           "frontend/tests/storyboard-shot-route.test.ts",
+          "frontend/tests/storyboard-creator-confirmation.test.ts",
           "frontend/tests/storyboard-workflow-observation.test.ts",
           "frontend/tests/visual-intent-drafts.test.ts",
           "frontend/tests/workspace-production-read.test.ts"

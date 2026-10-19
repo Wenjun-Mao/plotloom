@@ -143,7 +143,7 @@ def assert_autopilot_contracts(connection, *, asset_home=None, continuation=True
                 asset_home=asset_home, validation_plan_for_request=_retained_checkpoint_validation_plan, continuation=False))
         from .handoff_validation import assert_handoff
         receipts = {}
-        unnamed_approvals, unnamed_reviews = set(), set()
+        unnamed_reviews = set()
         source_intents = set()
         for identifier, run_id, project, approval, raw, digest in connection.execute("SELECT id,run_id,project_id,approval_id,receipt,receipt_hash FROM v2_autopilot_handoffs"):
             if runs.get(run_id, (None,))[0] != project:
@@ -154,12 +154,15 @@ def assert_autopilot_contracts(connection, *, asset_home=None, continuation=True
                     if "sourceEndorsement" in observation.intent.model_dump(mode="json", by_alias=True))
             receipts[identifier] = (run_id, digest, receipt.bundle_hash, receipt.material_closure)
             if receipt.version in {"pre-video.handoff.v2", "pre-video.handoff.v3"}:
-                if receipt.approval_origin == "created":
-                    unnamed_approvals.add(receipt.approval_id)
                 unnamed_reviews.update(fact["samePersonReviewId"] for fact in receipt.bindings if "samePersonReviewId" in fact)
-        # An empty reviewer is an explicit no-name encoding only for validated
-        # creator confirmation facts; it cannot legitimize an orphan/manual row.
-        for table, admitted in (("v2_approval_decisions", unnamed_approvals), ("v2_same_person_reviews", unnamed_reviews)):
+        # Storyboard decisions also admit explicit unnamed manual clicks. Their
+        # write owner enforces human scope and exact canonical gates. Handoff
+        # receipts above still validate their exact linked approval; identity
+        # reviews retain their narrower receipt-only unnamed contract.
+        for (reviewer,) in connection.execute("SELECT reviewer FROM v2_approval_decisions WHERE trim(reviewer)=''"):
+            if reviewer != "":
+                raise ValueError("unnamed storyboard confirmation must use its exact encoding")
+        for table, admitted in (("v2_same_person_reviews", unnamed_reviews),):
             for identifier, reviewer in connection.execute(f'SELECT id,reviewer FROM "{table}" WHERE trim(reviewer)=\'\''):
                 if reviewer != "" or identifier not in admitted:
                     raise ValueError("unnamed human fact lacks exact creator confirmation evidence")

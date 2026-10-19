@@ -37,12 +37,9 @@ test.describe("P1 self-contained specialist image brief", () => {
     await navigateToSecondaryTool(page, "分镜工作台");
     await openMediaPreparation(page);
     await openMediaKeyframes(page);
-    await page
-      .getByLabel("审核人标签")
-      .fill("P1 self-contained browser reviewer");
     await page.getByRole("button", { name: "批准当前分镜" }).click();
     await expect(
-      page.getByText("当前批准：P1 self-contained browser reviewer", {
+      page.getByText("当前批准：创作者确认（未署名）", {
         exact: true,
       }),
     ).toBeVisible();

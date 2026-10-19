@@ -73,7 +73,6 @@ async function prepareSelectedPair(
   await expect(guide.getByRole("button", { name: "检查交互式播放", exact: true })).toHaveCount(0);
   await openMediaPreparation(page);
   await openMediaKeyframes(page);
-  await page.getByLabel("审核人标签").fill("P2 H3 browser reviewer");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await expect(guide).toContainText("当前镜头缺少可用的审核关键帧");
   await page.getByLabel("来源声明").fill("P2 local fake fixture");

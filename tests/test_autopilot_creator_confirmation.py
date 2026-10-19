@@ -9,7 +9,6 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy import select
 
-from plotloom.api.contracts import StoryboardApprovalRequest
 from plotloom.api.models import _approval_decision_view
 from plotloom.autopilot_contracts import OperationScope
 from plotloom.autopilot_handoff_contracts import (
@@ -72,11 +71,10 @@ def test_unnamed_attribution_requires_exact_handoff_scope(scope):
 
 
 @pytest.mark.parametrize("reviewer", [None, "", " \t"])
-def test_manual_approval_and_identity_requests_keep_their_named_review_contract(reviewer):
-    board = {"expectedRevision": 1, "contentHash": "a" * 64, "decision": "approve", "gateSetVersion": "storyboard.v2"}
+def test_manual_identity_requests_keep_their_named_review_contract(reviewer):
     identity = {"bindingId": "fixture", "expectedReviewRevision": 0, "notes": "Actual manual frame observation.",
         "comparisons": [{"characterId": "hero", "judgment": "pass", "identityNotes": "Visible face matches reference.", "stateNotes": "Visible wardrobe and action inspected."}]}
-    for model, raw in ((StoryboardApprovalRequest, board), (SamePersonReviewRequest, identity)):
+    for model, raw in ((SamePersonReviewRequest, identity),):
         if reviewer is not None:
             raw["reviewer"] = reviewer
         with pytest.raises(ValidationError):
@@ -197,7 +195,7 @@ def test_retained_named_v1_receipt_bytes_hash_and_recovery_stay_exact(tmp_path, 
         service.close()
 
 
-@pytest.mark.parametrize("table", ["v2_approval_decisions", "v2_same_person_reviews"])
+@pytest.mark.parametrize("table", ["v2_same_person_reviews"])
 def test_ordinary_validation_refuses_unnamed_fact_without_its_receipt(tmp_path, awaiting_handoff_seed, table):
     storage, view, retained_image_job_ids = copy_awaiting_handoff_seed(awaiting_handoff_seed, tmp_path / "handoff-copy")
     complete = view

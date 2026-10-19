@@ -19,7 +19,7 @@ export async function createReviewedPreviewProject(request: APIRequestContext, a
   const board = await json(request.get(`${base}/storyboard-review`));
   const approval = await json(request.post(`${base}/storyboard-approval`, { data: {
     expectedRevision: board.head.revision, contentHash: board.head.contentHash,
-    decision: "approve", reviewer: "P0 native prerequisite fixture", gateSetVersion: board.gateEvaluation.gateSetVersion,
+    decision: "approve", attribution: { kind: "unnamed_creator" }, gateSetVersion: board.gateEvaluation.gateSetVersion,
   } }));
   const approvalId: string = approval.decision.id;
   for (const filename of developmentStillPaths) {

@@ -87,7 +87,6 @@ test("repairs exactly one late scene-beats shard through the real browser and pu
 
   await page.reload();
   await navigateToStage(page, "05 分镜工作台");
-  await page.getByLabel("审核人标签").fill("Exact repair browser reviewer");
   const approvalResponse = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/storyboard-approval`);
   await expect(page.getByRole("button", { name: "批准当前分镜" })).toBeEnabled();
@@ -96,11 +95,11 @@ test("repairs exactly one late scene-beats shard through the real browser and pu
 
   await page.reload();
   await page.getByRole("button", { name: "查看分镜批准", exact: true }).click();
-  await expect(page.getByText("当前批准：Exact repair browser reviewer", { exact: true })).toBeVisible();
+  await expect(page.getByText("当前批准：创作者确认（未署名）", { exact: true })).toBeVisible();
   const persistedRepair = await json<{ parentRunId: string | null; kind: string }>(await request.get(`${workbench.apiOrigin}/api/v2/runs/${repairRun.id}`));
   expect(persistedRepair).toMatchObject({ parentRunId: sourceRun.id, kind: "repair" });
   const review = await json<{ activeApproval: { reviewer: string; decision: string } | null }>(await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/storyboard-review`));
-  expect(review.activeApproval).toMatchObject({ reviewer: "Exact repair browser reviewer", decision: "approve" });
+  expect(review.activeApproval).toMatchObject({ reviewer: "", attribution: { kind: "unnamed_creator" }, decision: "approve" });
 });
 
 async function configurePublicNoAuthProfile(request: APIRequestContext, apiOrigin: string, providerOrigin: string): Promise<void> {

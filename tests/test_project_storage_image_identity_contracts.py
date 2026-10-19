@@ -160,7 +160,7 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
                 "expectedRevision": storyboard["head"]["revision"],
                 "contentHash": storyboard["head"]["contentHash"],
                 "decision": "approve",
-                "reviewer": "identity fixture",
+                "attribution": {"kind": "unnamed_creator"},
                 "gateSetVersion": "storyboard.v2",
             },
         )

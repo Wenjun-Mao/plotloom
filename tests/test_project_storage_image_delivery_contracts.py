@@ -299,7 +299,7 @@ def test_image_delivery_rejects_cross_project_and_symlinked_browser_output_paths
                 "expectedRevision": other_storyboard["head"]["revision"],
                 "contentHash": other_storyboard["head"]["contentHash"],
                 "decision": "approve",
-                "reviewer": "foreign approval fixture",
+                "attribution": {"kind": "unnamed_creator"},
                 "gateSetVersion": "storyboard.v2",
             },
         )

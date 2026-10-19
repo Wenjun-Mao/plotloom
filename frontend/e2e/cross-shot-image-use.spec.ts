@@ -10,9 +10,8 @@ test(`explicit cross-shot ${nativeSource ? "native" : "imported"} pixels and sce
   await navigateToSecondaryTool(page, "分镜工作台");
   await openMediaPreparation(page);
   await openMediaKeyframes(page);
-  await page.getByLabel("审核人标签").fill("Cross-shot fixture reviewer");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
-  await expect(page.getByText("当前批准：Cross-shot fixture reviewer", { exact: true })).toBeVisible();
+  await expect(page.getByText("当前批准：创作者确认（未署名）", { exact: true })).toBeVisible();
   await page.getByTestId("managed-image-upload").setInputFiles(retainedStill);
   const referenceAssetId = await page.getByTestId("reference-primary-asset").locator("option").nth(1).getAttribute("value");
   expect(referenceAssetId).toBeTruthy();

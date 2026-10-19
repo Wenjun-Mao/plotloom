@@ -26,7 +26,6 @@ for (const [width, height] of [[1280, 768], [1280, 460], [1700, 900]]) {
     expect(created.ok(), await created.text()).toBeTruthy();
     const projectId = (await created.json() as { id: string }).id;
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard&entity=shot%3Ashot_01#shot-keyframe-review`);
-    await page.getByLabel("审核人标签").fill("Synthetic read-state fixture");
     await page.getByRole("button", { name: "批准当前分镜" }).click();
     await openMediaPreparation(page);
     await page.getByLabel("来源声明").fill("Synthetic offline read-state fixture; not creative acceptance.");

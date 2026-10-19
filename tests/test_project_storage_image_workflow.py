@@ -40,7 +40,7 @@ def _approve(client: TestClient, project_id: str, storage: ProjectFolderStorage)
             "expectedRevision": board.revision,
             "contentHash": board.content_hash,
             "decision": "approve",
-            "reviewer": "offline fixture",
+            "attribution": {"kind": "unnamed_creator"},
             "gateSetVersion": "storyboard.v2",
         },
     )

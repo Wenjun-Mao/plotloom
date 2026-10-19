@@ -190,7 +190,7 @@ def test_storyboard_approval_is_gate_bound_append_only_and_stales_with_its_input
         "expectedRevision": review_body["head"]["revision"],
         "contentHash": review_body["head"]["contentHash"],
         "decision": "approve",
-        "reviewer": "current storage fixture",
+        "attribution": {"kind": "unnamed_creator"},
         "gateSetVersion": "storyboard.v2",
     }
     wrong_hash = client.post(
@@ -212,7 +212,7 @@ def test_storyboard_approval_is_gate_bound_append_only_and_stales_with_its_input
 
     revoked = client.post(
         f"/api/v2/projects/{project_id}/storyboard-approval",
-        json={**request, "decision": "revoke", "note": "Recheck the authored cut."},
+        json={**request, "decision": "revoke"},
     )
     assert revoked.status_code == 201
     assert revoked.json()["active"] is False

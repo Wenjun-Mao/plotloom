@@ -25,7 +25,6 @@ test("shipped H3 UI reviews an end frame and selects a seven-and-half-second pla
   expect(created.ok(), await created.text()).toBeTruthy();
   const projectId = (await created.json() as { id: string }).id;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard&entity=shot%3Ashot_01#shot-keyframe-review`);
-  await page.getByLabel("审核人标签").fill("Synthetic browser fixture");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await openMediaPreparation(page);
   await page.getByLabel("来源声明").fill("Synthetic offline image fixture; not creative approval.");

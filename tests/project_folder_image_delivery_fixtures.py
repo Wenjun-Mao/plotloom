@@ -76,7 +76,7 @@ def ready_exported_job(tmp_path: Path) -> tuple[TestClient, str, dict, Path]:
             "expectedRevision": storyboard["head"]["revision"],
             "contentHash": storyboard["head"]["contentHash"],
             "decision": "approve",
-            "reviewer": "offline delivery fixture",
+            "attribution": {"kind": "unnamed_creator"},
             "gateSetVersion": "storyboard.v2",
         },
     )

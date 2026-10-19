@@ -16,7 +16,7 @@ import type {
   ValidationIssue,
 } from "../types";
 import { plotloomApi } from "../api";
-import { humanReviewLabel } from "../human-review-attribution";
+import { StoryboardApprovalControls } from "./storyboard/StoryboardApprovalControls";
 import type { ProjectDraftQuiescence } from "../features/authoring/projectDraftQuiescence";
 import { deriveRoutes, groupStoryboard } from "../model";
 import { shotLabel } from "../shot-label";
@@ -157,8 +157,13 @@ export function StoryboardPage({
   const [routeId, setRouteId] = useState("");
   const [selectedShotId, setSelectedShotId] = useState(value.shots[0]?.id ?? "");
   const [reviewError, setReviewError] = useState("");
-  const [reviewer, setReviewer] = useState("");
-  const [reviewNote, setReviewNote] = useState("");
+  const [approvalPending, setApprovalPending] = useState(false);
+  const approvalInFlight = useRef(false);
+  const approvalProject = useRef(projectId);
+  useEffect(() => {
+    approvalProject.current = projectId;
+    return () => { approvalProject.current = undefined; };
+  }, [projectId]);
   const [localError, setLocalError] = useState("");
   const [newLinkBeatId, setNewLinkBeatId] = useState("");
   const [newLinkRole, setNewLinkRole] = useState<ShotBeatLink["role"]>("supporting");
@@ -167,11 +172,10 @@ export function StoryboardPage({
   const [issueFocus, setIssueFocus] = useState<StoryboardIssueTarget | null>(null);
   const lastIssueSignature = useRef<string | undefined>(undefined);
   const storyboardDetails = useRef<HTMLDetailsElement>(null);
-  const approvalActions = useRef<HTMLDetailsElement>(null);
   const enteredUnapprovedEditing = useRef(false);
   const reviewProjectId = useRef(projectId);
   const issueSignature = JSON.stringify(issues);
-  const actionsLocked = saving || readOnly;
+  const actionsLocked = saving || readOnly || approvalPending;
 
   useEffect(() => {
     if (!actionsLocked) return;
@@ -188,12 +192,10 @@ export function StoryboardPage({
     if (!review.activeApproval) {
       enteredUnapprovedEditing.current = true;
       if (storyboardDetails.current) storyboardDetails.current.open = true;
-      if (approvalActions.current) approvalActions.current.open = true;
     } else if (!enteredUnapprovedEditing.current) {
       // Reopening an already-approved board starts at media review. A creator
       // who just approved an open edit session does not lose their draft view.
       if (storyboardDetails.current) storyboardDetails.current.open = false;
-      if (approvalActions.current) approvalActions.current.open = false;
     }
   }, [projectId, Boolean(review), review?.activeApproval?.id, review?.gateEvaluation?.gateSetVersion]);
 
@@ -361,22 +363,25 @@ export function StoryboardPage({
     }
   };
   const decide = async (decision: ApprovalDecision["decision"]) => {
-    if (actionsLocked || !projectId || !contentHash || revision === undefined || !review?.gateEvaluation || !reviewer.trim()) return;
+    if (actionsLocked || approvalInFlight.current || !projectId || !contentHash || revision === undefined || !review?.gateEvaluation) return;
+    if (decision === "approve" && (stale || !requiredGatesPass || JSON.stringify(storyboard) !== JSON.stringify(value) || review.activeApproval)) return;
+    if (decision === "revoke" && !review.activeApproval) return;
+    approvalInFlight.current = true;
+    setApprovalPending(true);
     setReviewError("");
     try {
       await plotloomApi.decideStoryboardApproval(projectId, {
-        expectedRevision: revision,
-        contentHash,
-        decision,
-        reviewer,
+        expectedRevision: revision, contentHash, decision,
+        attribution: { kind: "unnamed_creator" },
         gateSetVersion: review.gateEvaluation.gateSetVersion,
-        note: reviewNote.trim() || undefined,
       });
       const nextReview = await plotloomApi.getStoryboardReview(projectId);
-      onReviewChange?.(nextReview);
-      setReviewNote("");
+      if (approvalProject.current === projectId) onReviewChange?.(nextReview);
     } catch (error) {
-      setReviewError(error instanceof Error ? error.message : "批准决定未保存");
+      if (approvalProject.current === projectId) setReviewError(error instanceof Error ? error.message : "批准决定未保存");
+    } finally {
+      approvalInFlight.current = false;
+      setApprovalPending(false);
     }
   };
   const navigateGate = (path: Array<string | number>) => {
@@ -411,7 +416,6 @@ export function StoryboardPage({
     <VideoBatchPanel onChanged={async () => { setVideoReadVersion(value => value + 1); }} projectId={projectId} disabled={actionsLocked} dirty={JSON.stringify(storyboard) !== JSON.stringify(value)} onStory={() => { const target = document.getElementById("shot-story-preview"); if (target) revealWorkspaceTarget(target); }} />
     <ManagedMediaWorkbench videoReadVersion={videoReadVersion} projectId={projectId} projectRevision={projectRevision} lifecycleRevision={lifecycleRevision} lifecycleStatus={lifecycleStatus} storyboard={storyboard} bible={bible} graph={graph} sceneBeats={sceneBeats} routeId={route?.id} storyboardRevision={revision} mediaDraftsEnabled={mediaDraftsEnabled} draftQuiescence={mediaDraftQuiescence} selectedShot={selectedShot} review={review} draftChanged={JSON.stringify(storyboard) !== JSON.stringify(value)} readOnly={actionsLocked} onSelectShot={selectShot} onEditShot={revealStoryboardEditor} onReturnToBridge={onReturnToBridge} onReview={() => {
       if (storyboardDetails.current) storyboardDetails.current.open = true;
-      if (approvalActions.current) approvalActions.current.open = true;
       requestAnimationFrame(() => {
         const panel = document.getElementById("storyboard-review");
         panel?.scrollIntoView({ block: "start" });
@@ -483,17 +487,9 @@ export function StoryboardPage({
       </Panel>
 
       <Panel className="shot-inspector review-inspector" id="storyboard-review" tabIndex={-1}>
-        <div className="section-title"><span>覆盖检查与分镜批准</span><strong>{review?.activeApproval ? "已批准" : "等待批准"}</strong></div>
-        {reviewError && <div className="notice warning" role="alert">{reviewError}</div>}
-        {!review?.gateEvaluation && <div className="notice"><strong>尚无检查结果</strong><span>保存有效分镜后，会生成检查结果。</span></div>}
-        {review?.activeApproval && <div className="notice"><strong>当前批准：{humanReviewLabel(review.activeApproval)}</strong><span>版本 {review.activeApproval.subjectRevision} · {review.activeApproval.createdAt}</span></div>}
-        {review?.decisions.length ? <details><summary>批准记录 · {review.decisions.length}</summary>{review.decisions.map((closure) => <div className="approval-history" key={closure.decision.id}><strong>{closure.decision.decision === "approve" ? "批准" : "撤销批准"} · {humanReviewLabel(closure.decision)}</strong><small>{closure.active ? "当前生效" : closure.staleReasons.join("；")}</small></div>)}</details> : null}
-        <details className="approval-actions" ref={approvalActions}><summary>批准或撤销分镜 · 需填写本地审核人标签</summary>
-          <small>这是对当前分镜版本的独立批准决定，不是播放片段的可选审核记录。</small>
-          <Field label="审核人标签" hint="此标签用于批准记录，必须填写；它不是已认证身份。"><input value={reviewer} onChange={(event) => setReviewer(event.target.value)} /></Field>
-          <Field label="评审备注（可选）"><textarea rows={3} value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} /></Field>
-          <div className="button-row"><Button variant="primary" disabled={!reviewer.trim() || stale || !requiredGatesPass || Boolean(review?.activeApproval)} onClick={() => void decide("approve")}>批准当前分镜</Button><Button variant="quiet" disabled={!reviewer.trim() || !review?.activeApproval} onClick={() => void decide("revoke")}>撤销批准</Button></div>
-        </details>
+        <StoryboardApprovalControls review={review} error={reviewError} pending={approvalPending}
+          locked={actionsLocked || !projectId || !contentHash || revision === undefined || !review?.gateEvaluation} canApprove={!stale && requiredGatesPass && Boolean(contentHash) && revision !== undefined && JSON.stringify(storyboard) === JSON.stringify(value)}
+          onDecide={decision => void decide(decision)} />
         <details open={coverage.some((item) => item.primaryShotIds.length !== 1)}><summary>节拍覆盖详情 · {coverage.length} 项</summary><div className="coverage-summary">{coverage.map((item) => <div key={item.beatId}><span>{item.beatId}</span><Badge tone={item.primaryShotIds.length === 1 ? "ok" : "danger"}>主要覆盖 {item.primaryShotIds.length}</Badge><small>辅助覆盖 {item.supportingShotIds.length}</small></div>)}</div></details>
         {review?.gateEvaluation && <details open={!requiredGatesPass}><summary>质量检查详情 · {review.gateEvaluation.results.length} 项 · {requiredGatesPass ? "必需检查已通过" : "必需检查未通过"}</summary><div className="gate-list">{review.gateEvaluation.results.map((gate) => <button key={gate.id} className={`gate-row ${gate.status}`} onClick={() => navigateGate(gate.entityPath)}><GateStatusBadge status={gate.status} /><span><strong>{gate.gateId}</strong><small>{gate.reason}{gate.entityPath.length ? ` · ${gate.entityPath.join(" › ")}` : ""}</small></span></button>)}</div></details>}
       </Panel>

@@ -165,7 +165,6 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
   await navigateToSecondaryTool(page, "分镜工作台");
   await openMediaPreparation(page);
   await openMediaKeyframes(page);
-  await page.getByLabel("审核人标签").fill("snapshot fixture reviewer");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await page.getByLabel("来源声明").fill("Offline reviewed still retained by the portable snapshot.");
   await page.getByTestId("managed-image-upload").setInputFiles(retainedStill);

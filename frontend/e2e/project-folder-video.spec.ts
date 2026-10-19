@@ -18,7 +18,6 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
   page.on("dialog", async dialog => { nativeDialogs.push(dialog.type()); await dialog.dismiss(); });
   const projectId = await createStoryboardProject(request, workbench.apiOrigin);
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
-  await page.getByLabel("审核人标签").fill("direct video fixture reviewer");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await page.locator("details.workbench-support > summary").filter({ hasText: "准备与参考" }).click();
   await page.locator("details.workbench-support > summary").filter({ hasText: "关键帧与静帧预览" }).click();

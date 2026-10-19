@@ -21,7 +21,6 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
 
   await openMediaPreparation(page);
   await openMediaKeyframes(page);
-  await page.getByLabel("审核人标签").fill("H3 browser reviewer");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await page.getByLabel("来源声明").fill("H3 browser fixture");
   await page.getByTestId("managed-image-upload").setInputFiles(still);

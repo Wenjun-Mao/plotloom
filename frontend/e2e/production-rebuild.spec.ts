@@ -17,9 +17,8 @@ test("same project recovers a stale rebuild target, requires fresh reviews and p
   page.on("pageerror", error => errors.push(error.message));
   await page.setViewportSize({ width: 1700, height: 900 });
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=storyboard&entity=shot%3A${first.shotId}`);
-  await page.getByLabel("审核人标签").fill("Original rebuild fixture review");
   await page.getByRole("button", { name: "批准当前分镜", exact: true }).click();
-  await expect(page.getByText("当前批准：Original rebuild fixture review", { exact: true })).toBeVisible();
+  await expect(page.getByText("当前批准：创作者确认（未署名）", { exact: true })).toBeVisible();
   const originalReview = await json(request.get(`${root}/storyboard-review`));
   expect(originalReview.activeApproval.subjectRevision).toBe(1);
 
@@ -93,9 +92,8 @@ test("same project recovers a stale rebuild target, requires fresh reviews and p
 
   await panel.getByRole("button", { name: "继续：打开第一个镜头", exact: true }).click();
   await expect(page.getByTestId("shot-preparation-summary")).toContainText("无当前批准（历史决定不适用）");
-  await page.getByLabel("审核人标签").fill("Fresh rebuild review");
   await page.getByRole("button", { name: "批准当前分镜", exact: true }).click();
-  await expect(page.getByText("当前批准：Fresh rebuild review", { exact: true })).toBeVisible();
+  await expect(page.getByText("当前批准：创作者确认（未署名）", { exact: true })).toBeVisible();
   await page.reload();
   expect((await json(request.get(`${root}/storyboard-review`))).activeApproval.subjectRevision).toBe(3);
   expect((await json(request.get(endpoint))).installation).toEqual(accepted.installation);

@@ -14,9 +14,8 @@ test.describe("P0 imported still preview journey", () => {
     await openMediaPreparation(page);
     await openMediaKeyframes(page);
 
-    await page.getByLabel("审核人标签").fill("P0 file-SQLite browser reviewer");
     await page.getByRole("button", { name: "批准当前分镜" }).click();
-    await expect(page.getByText("当前批准：P0 file-SQLite browser reviewer", { exact: true })).toBeVisible();
+    await expect(page.getByText("当前批准：创作者确认（未署名）", { exact: true })).toBeVisible();
 
     // Four independent provenance records make the comparison surface real;
     // the production contract itself has no fixed import-count limit.
@@ -155,9 +154,8 @@ test.describe("P0 imported still preview journey", () => {
     await openMediaKeyframes(page);
     await expect(page.getByTestId("select-reviewed-keyframe")).toBeDisabled();
     await expect(page.getByText("请先批准当前分镜；导入、比较和意图细化仍可继续。", { exact: true })).toBeVisible();
-    await page.getByLabel("审核人标签").fill("P0 reapproval reviewer");
     await page.getByRole("button", { name: "批准当前分镜" }).click();
-    await expect(page.getByText("当前批准：P0 reapproval reviewer", { exact: true })).toBeVisible();
+    await expect(page.getByText("当前批准：创作者确认（未署名）", { exact: true })).toBeVisible();
     await expect(page.getByText("尚缺 3 个审核关键帧", { exact: false })).toBeVisible();
     await openMediaPreparation(page);
     await cards.nth(1).getByTestId(/^keep-candidate-/).click();

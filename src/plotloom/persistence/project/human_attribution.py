@@ -1,4 +1,4 @@
-"""Narrow shared-owner encoding; unnamed facts require handoff authority."""
+"""Truthful creator attribution at explicit human command owners."""
 
 from ...autopilot_contracts import OperationScope
 from ...exceptions import InvalidTransitionError
@@ -19,3 +19,13 @@ def stored_reviewer(access, reviewer: str | UnnamedCreatorConfirmation) -> str:
 
 def attribution_readback(reviewer: str) -> dict:
     return {"attribution": {"kind": "unnamed_creator"}} if reviewer == "" else {}
+
+
+def stored_storyboard_reviewer(access, reviewer: str | UnnamedCreatorConfirmation) -> str:
+    """Manual board clicks and whole-pack handoff may confirm without a name."""
+    from .autopilot_authority import require_human_command
+
+    require_human_command(access)
+    if isinstance(reviewer, UnnamedCreatorConfirmation):
+        return ""
+    return stored_reviewer(access, reviewer)

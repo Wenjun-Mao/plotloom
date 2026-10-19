@@ -1,5 +1,15 @@
 # Plotloom roadmap entrypoint
 
+## Explicit storyboard confirmation without naming paperwork
+
+The owner's direct October 19 correction removes the mandatory reviewer-label
+box. The [scoped source checkpoint](../verification/2026-10-19-storyboard-creator-confirmation.md)
+uses the existing unnamed creator type for one explicit approve/revoke click,
+preserves current revision/hash/gates and truthful named history, and adds no
+automatic approval. Focused backend/UI/browser checks, final deterministic assets,
+desktop pixel inspection and independent review pass. Activation, the manager's
+real imported-frame/H3 journey and final cross-layer qualification remain separate.
+
 ## Approved batch video production and completion navigation
 
 The owner selected generation of all missing clips followed by one final review,

@@ -101,13 +101,13 @@ test.describe("M1-B0 query navigation shell", () => {
     try {
       await page.reload();
       await expect(page.getByTestId("workspace-hydrating")).toBeVisible();
-      await expect(page.getByLabel("审核人标签")).not.toBeVisible();
+      await expect(page.getByRole("button", { name: "批准当前分镜" })).not.toBeVisible();
     } finally {
       releaseProjectResponse?.();
     }
     await expect(page.getByTestId("workspace-hydrating")).not.toBeVisible();
     await expect(page.getByRole("heading", { name: "分镜工作台" })).toBeVisible();
-    await expect(page.getByLabel("审核人标签")).toBeVisible();
+    await expect(page.getByRole("button", { name: "批准当前分镜" })).toBeVisible();
   });
 });
 

@@ -240,7 +240,7 @@ export class PlotloomApiClient {
 
   decideStoryboardApproval(projectId: string, body: {
     expectedRevision: number; contentHash: string; decision: "approve" | "revoke";
-    reviewer: string; gateSetVersion: string; note?: string;
+    attribution: { kind: "unnamed_creator" }; gateSetVersion: string;
   }): Promise<ApprovalClosure> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-approval`, {
       method: "POST", body: JSON.stringify(body),

@@ -35,7 +35,6 @@ test("a saved aspect-ratio change withdraws dependent review and clip eligibilit
   await expect(guide).toContainText("前往分镜审核");
   await openMediaPreparation(page);
   await openMediaKeyframes(page);
-  await page.getByLabel("审核人标签").fill("aspect-ratio fixture reviewer");
   await page.getByRole("button", { name: "批准当前分镜", exact: true }).click();
   await expect(guide).toContainText("当前镜头缺少可用的审核关键帧");
   await page.getByLabel("来源声明").fill("Aspect-ratio currentness fixture; reviewed local still.");

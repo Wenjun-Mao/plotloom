@@ -501,7 +501,7 @@ def test_production_runtime_composes_the_typed_h3_video_path(tmp_path: Path) -> 
                 "expectedRevision": board.revision,
                 "contentHash": board.content_hash,
                 "decision": "approve",
-                "reviewer": "runtime H3 fixture",
+                "attribution": {"kind": "unnamed_creator"},
                 "gateSetVersion": "storyboard.v2",
             },
         )

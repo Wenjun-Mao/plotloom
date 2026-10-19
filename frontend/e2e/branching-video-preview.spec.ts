@@ -159,7 +159,6 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
   await openMediaPreparation(page);
   await openMediaKeyframes(page);
-  await page.getByLabel("审核人标签").fill("Step 5 browser reviewer");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await page.getByLabel("来源声明").fill("Step 5 local fixture");
   await page.getByTestId("managed-image-upload").setInputFiles(still);

@@ -198,7 +198,6 @@ test.describe("project-folder Close", () => {
   test("drains a queued visual-intent draft before Close and restores it after Open and restart", async ({ page, request, workbench }) => {
     const projectId = await createStoryboardProject(request, workbench.apiOrigin, "Close media draft fixture");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
-    await page.getByLabel("审核人标签").fill("close-media reviewer");
     await page.getByRole("button", { name: "批准当前分镜" }).click();
     await page.getByText("准备与参考 · 图片、角色、导入", { exact: true }).click();
     await page.getByLabel("来源声明").fill("Close/reopen durable media-draft fixture.");

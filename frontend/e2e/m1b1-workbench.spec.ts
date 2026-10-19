@@ -153,13 +153,19 @@ test.describe("M1-B1 canonical workbench journey", () => {
 
     await navigateToStage(page, "05 分镜工作台");
     await expect(page.getByRole("textbox", { name: "动作", exact: true })).toHaveValue(action);
-    await page.getByLabel("审核人标签").fill("E2E local workbench reviewer");
     const approval = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/storyboard-approval`);
     await expect(page.getByRole("button", { name: "批准当前分镜" })).toBeEnabled();
     await page.getByRole("button", { name: "批准当前分镜" }).click();
     expect((await approval).status()).toBe(201);
-    await expect(page.getByText("当前批准：E2E local workbench reviewer", { exact: true })).toBeVisible();
+    await expect(page.getByText("当前批准：创作者确认（未署名）", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("审核人标签")).toHaveCount(0);
+    await expect(page.getByLabel("评审备注（可选）")).toHaveCount(0);
+    await page.getByRole("button", { name: "撤销批准", exact: true }).click();
+    await expect(page.getByRole("button", { name: "批准当前分镜", exact: true })).toBeEnabled();
+    await page.getByRole("button", { name: "批准当前分镜", exact: true }).click();
+    await expect(page.getByText("当前批准：创作者确认（未署名）", { exact: true })).toBeVisible();
+    await page.locator("#storyboard-review").screenshot({ path: test.info().outputPath("unnamed-storyboard-confirmation.png") });
 
     const review = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/storyboard-review`);
     expect(review.ok()).toBeTruthy();
@@ -170,10 +176,10 @@ test.describe("M1-B1 canonical workbench journey", () => {
     };
     expect(reviewBody.gateEvaluation).not.toBeNull();
     expect(reviewBody.gateEvaluation!.results.every((gate) => !gate.required || gate.status === "pass")).toBeTruthy();
-    expect(reviewBody.activeApproval).toMatchObject({ reviewer: "E2E local workbench reviewer", decision: "approve", subjectRevision: 2 });
+    expect(reviewBody.activeApproval).toMatchObject({ reviewer: "", attribution: { kind: "unnamed_creator" }, decision: "approve", subjectRevision: 2 });
     expect(reviewBody.decisions).toContainEqual(expect.objectContaining({
       active: true,
-      decision: expect.objectContaining({ decision: "approve", reviewer: "E2E local workbench reviewer" }),
+      decision: expect.objectContaining({ decision: "approve", reviewer: "", attribution: { kind: "unnamed_creator" } }),
     }));
 
     await navigateToStage(page, "02 故事圣经");
@@ -189,7 +195,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
     await expect(page.getByLabel("固定标识（ID）")).toHaveValue("char_ruanxing");
     const staleReview = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/storyboard-review`)).json();
     expect(staleReview.activeApproval).toBeNull();
-    expect(staleReview.decisions).toContainEqual(expect.objectContaining({ decision: expect.objectContaining({ reviewer: "E2E local workbench reviewer" }) }));
+    expect(staleReview.decisions).toContainEqual(expect.objectContaining({ decision: expect.objectContaining({ reviewer: "", attribution: { kind: "unnamed_creator" } }) }));
 
     const stages = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/stages`)).json();
     const graph = stages.stages.find((item: { head: { stage: string } }) => item.head.stage === "story_graph");
