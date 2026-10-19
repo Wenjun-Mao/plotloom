@@ -5,6 +5,7 @@ from __future__ import annotations
 import sqlite3
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import ValidationError
 from sqlalchemy import create_engine
@@ -52,15 +53,26 @@ def assert_current_schema(connection: sqlite3.Connection) -> None:
         )
 
 
-def assert_current_review_bindings(connection: sqlite3.Connection, *, asset_home: Path | None = None, continuation: bool = True) -> None:
+def assert_current_review_bindings(
+    connection: sqlite3.Connection,
+    *,
+    asset_home: Path | None = None,
+    continuation: bool = True,
+    batch_layout: Literal["current", "prior_without_video_batches"] = "current",
+) -> None:
     """Reject unsupported JSON contracts before a folder can be mutated.
 
     SQL layout alone cannot establish the version of a persisted review binding.
     Validate retained revisions as well as candidates: history/report reads also
     consume these contracts. Never infer new authority from obsolete fields.
-    Only an exact frozen prior-layout owner may disable continuation validation;
-    current runtime paths never infer feature support from table absence.
+    Only an exact frozen prior-layout owner may disable continuation validation
+    and pass its known batch-table capability. Current runtime paths never infer
+    feature support from table absence.
     """
+    if batch_layout not in {"current", "prior_without_video_batches"}:
+        raise ValueError("unsupported delegated QA batch layout")
+    if batch_layout == "prior_without_video_batches" and continuation:
+        raise ValueError("prior delegated QA batch layout cannot enable continuation")
     from .autopilot_validation import assert_autopilot_contracts
     from .cross_shot_validation import assert_cross_shot_contracts
     assert_cross_shot_contracts(connection, asset_home=asset_home, continuation=continuation)
@@ -69,7 +81,7 @@ def assert_current_review_bindings(connection: sqlite3.Connection, *, asset_home
     from .video_batch_validation import assert_video_batch_contracts
     assert_video_batch_contracts(connection)
     from .delegated_qa_validation import assert_delegated_qa_contracts
-    assert_delegated_qa_contracts(connection)
+    assert_delegated_qa_contracts(connection, batch_layout=batch_layout)
     assert_review_binding_shapes(connection)
 
 

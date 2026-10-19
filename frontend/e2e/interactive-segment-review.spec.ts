@@ -245,7 +245,7 @@ test("retains separate exercise and ready-to-use synthetic segment walkthrough p
   await page.getByRole("button", { name: "查看分镜批准" }).click();
   await expect(storyboardDisclosure).toHaveAttribute("open", "");
   await expect(page.locator(".approval-actions")).toBeVisible();
-  await expect(page.getByRole("button", { name: "批准当前分镜" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "撤销批准" })).toBeVisible();
   await storyboardDisclosure.locator(":scope > summary").click();
   await page.getByRole("button", { name: "编辑镜头细节" }).click();
   await expect(storyboardDisclosure).toHaveAttribute("open", "");

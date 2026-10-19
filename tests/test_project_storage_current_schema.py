@@ -45,6 +45,7 @@ def _project(tmp_path: Path):
         "v2_video_segments",
         "v2_video_end_frame_decisions",
         "v2_creative_handoff_execution_pins",
+        "v2_video_batches",
         "publication_phase",
     ],
 )

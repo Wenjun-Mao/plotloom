@@ -86,7 +86,11 @@ def logical_inventory(connection, objects):
 def assert_prior_database(connection, project_id, *, layout="prior"):
     if layout not in PRIOR_LAYOUTS or schema_objects(connection) != prior_schema_objects(layout):
         raise ProjectStorageCorruptionError("explicit upgrade requires the exact immediate-prior layout")
-    assert_current_review_bindings(connection, continuation=False)
+    assert_current_review_bindings(
+        connection,
+        continuation=False,
+        batch_layout="prior_without_video_batches",
+    )
     assert_integrity_identity(connection, project_id)
 
 

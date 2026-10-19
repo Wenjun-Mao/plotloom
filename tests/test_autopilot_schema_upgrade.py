@@ -8,6 +8,8 @@ from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import ProjectFolderStorage, ProjectStorageCorruptionError
+from plotloom.project_storage.format import _read_json, parse_project_manifest
+from plotloom.project_storage.recovery_validation import assert_database_contract
 from plotloom.project_storage.schema_upgrade import inventory_layouts, logical_inventory, prior_schema_objects, upgrade_project
 from plotloom.specialist_settings import SpecialistRegistry
 from tests.autopilot_fixtures import make_prior_layout
@@ -37,7 +39,7 @@ def test_immediate_prior_upgrade_preserves_cancelled_run_and_all_material_bytes(
         assert store.repository.autopilot.current(view.project_id).state == "cancelled"
 
 
-def prior_fixture(tmp_path, *, closed=False):
+def prior_fixture(tmp_path, *, closed=False, layout="prior"):
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     with closing(storage.projects.create(FIXED_CHINESE_BRIEF)) as store:
         ProjectPipelineExecutor(FixtureResolver()).execute(store, profile=fixture_profile())
@@ -51,8 +53,15 @@ def prior_fixture(tmp_path, *, closed=False):
         store.media.cancel_image_job(project_id, result["job"]["id"], "never sent fixture")
     if closed:
         storage.projects.close_project(project_id)
-    make_prior_layout(home)
+    make_prior_layout(home, layout)
     return storage, project_id, home
+
+
+def test_pre_continuation_recovery_admits_exact_prior_layout_without_batch_table(tmp_path):
+    _storage, project_id, home = prior_fixture(tmp_path, layout="pre_continuation")
+    manifest = parse_project_manifest(_read_json(home / "project.json"))
+    assert manifest.project_id == project_id
+    assert_database_contract(home / "project.sqlite3", manifest, allow_previous=True)
 
 
 @pytest.mark.parametrize("closed", [False, True])

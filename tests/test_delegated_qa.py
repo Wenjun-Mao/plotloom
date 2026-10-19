@@ -321,3 +321,51 @@ def test_retained_qa_links_cannot_hide_missing_or_forged_snapshot_attribution(tm
             (json.dumps(snapshot), stable_hash(snapshot), job["id"]))
     with pytest.raises(ProjectStorageCorruptionError):
         storage.projects.open(project)
+
+
+def test_retained_qa_job_without_its_batch_link_is_rejected(tmp_path, monkeypatch):
+    storage, _client, service, _provider, project, view, actor = qa_environment(tmp_path, monkeypatch)
+    qa_start(service, project, view, actor)
+    service.step(project)
+    with closing(storage.projects.open(project)) as store:
+        job, = service.video.jobs(store)
+        path = store.database_path
+    from plotloom.project_storage.delegated_qa_validation import (
+        assert_delegated_qa_contracts,
+    )
+    with sqlite3.connect(path) as connection:
+        batch_id, raw = next(
+            (identifier, execution)
+            for identifier, execution in connection.execute(
+                "SELECT id,execution FROM v2_video_batches WHERE project_id=?", (project,)
+            )
+            if "reviewAttribution" in json.loads(execution)
+        )
+        execution = json.loads(raw)
+        assert job["id"] in execution["jobs"].values()
+        execution["jobs"] = {
+            shot: job_id for shot, job_id in execution["jobs"].items() if job_id != job["id"]
+        }
+        connection.execute(
+            "UPDATE v2_video_batches SET execution=? WHERE id=?",
+            (json.dumps(execution), batch_id),
+        )
+        with pytest.raises(ProjectStorageCorruptionError, match="delegated QA evidence"):
+            assert_delegated_qa_contracts(connection)
+
+
+def test_exact_prior_layout_rejects_retained_qa_evidence_without_batch_links(tmp_path, monkeypatch):
+    storage, _client, service, _provider, project, view, actor = qa_environment(tmp_path, monkeypatch)
+    qa_start(service, project, view, actor)
+    service.step(project)
+    with closing(storage.projects.open(project)) as store:
+        home, path = store.home, store.database_path
+    from plotloom.project_storage.schema_upgrade import assert_prior_database
+    from tests.autopilot_continuation_layout_fixtures import retain_pre_continuation_layout
+    retain_pre_continuation_layout(home)
+    with sqlite3.connect(path) as connection:
+        assert connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_video_batches'"
+        ).fetchone() is None
+        with pytest.raises(ProjectStorageCorruptionError, match="delegated QA evidence"):
+            assert_prior_database(connection, project, layout="pre_continuation")

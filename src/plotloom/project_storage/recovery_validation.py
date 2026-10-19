@@ -82,7 +82,12 @@ def assert_database_contract(path: Path, manifest: ProjectManifest, *, allow_pre
                 assert_prior_database(connection, manifest.project_id, layout=layout)
             else:
                 assert_current_schema(connection)
-            assert_current_review_bindings(connection, asset_home=asset_home, continuation=not previous)
+            assert_current_review_bindings(
+                connection,
+                asset_home=asset_home,
+                continuation=not previous,
+                batch_layout="prior_without_video_batches" if previous else "current",
+            )
             integrity = [row[0] for row in connection.execute("PRAGMA integrity_check")]
             foreign_keys = list(connection.execute("PRAGMA foreign_key_check"))
             project_rows = list(connection.execute("SELECT id FROM v2_projects"))

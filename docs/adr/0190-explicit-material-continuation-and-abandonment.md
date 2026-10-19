@@ -84,6 +84,11 @@ disable the independent current-project directory.
 Exact prior-layout validation context must survive nested geometry, reviewed
 source, cross-shot, frame and retained-handoff validation. Current mutation/session
 entrypoints remain strict-current; table absence never selects a validation mode.
+After the exact frozen prior schema is verified, retained-QA validation may skip
+only the `v2_video_batches` scan that the prior layout cannot support. The rest
+of its approval, intent, material, job and review checks remain active, and QA
+attribution still requires its batch link; a missing batch table in a current
+layout remains corruption.
 Geometry derivatives retain one canonical checkpoint owned by the preparation's
 recorded origin run. Continuation copies are accepted only through exact adopted
 predecessor links with identical evidence; every matching copy is validated, not

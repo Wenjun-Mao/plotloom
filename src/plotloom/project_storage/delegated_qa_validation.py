@@ -1,5 +1,6 @@
 """Portable QA evidence admission; retained facts never create runtime grants."""
 import json
+from typing import Literal
 
 from ..delegated_qa import (
     attribution_for_reviewer,
@@ -12,8 +13,14 @@ from ..exceptions import InvalidTransitionError
 from .format import ProjectStorageCorruptionError
 
 
-def assert_delegated_qa_contracts(connection):
+def assert_delegated_qa_contracts(
+    connection,
+    *,
+    batch_layout: Literal["current", "prior_without_video_batches"] = "current",
+):
     try:
+        if batch_layout not in {"current", "prior_without_video_batches"}:
+            raise ValueError("unsupported delegated QA batch layout")
         approvals = {}
         for identifier, project, digest, reviewer in connection.execute(
                 "SELECT id,project_id,content_hash,reviewer FROM v2_approval_decisions"):
@@ -47,17 +54,18 @@ def assert_delegated_qa_contracts(connection):
                         item.shot_id == shot and item.asset_id == asset for item in scope.materials):
                     raise ValueError("QA reviewed binding exceeds its exact shot scope")
         qa_jobs = {}
-        for project, raw in connection.execute("SELECT project_id,execution FROM v2_video_batches"):
-            execution = json.loads(raw)
-            if "reviewAttribution" not in execution:
-                continue
-            actor = execution["reviewAttribution"]
-            require_scope(project, actor)
-            for job_id in execution["jobs"].values():
-                expected = (project, actor)
-                if job_id in qa_jobs and qa_jobs[job_id] != expected:
-                    raise ValueError("QA job has conflicting batch attribution")
-                qa_jobs[job_id] = expected
+        if batch_layout == "current":
+            for project, raw in connection.execute("SELECT project_id,execution FROM v2_video_batches"):
+                execution = json.loads(raw)
+                if "reviewAttribution" not in execution:
+                    continue
+                actor = execution["reviewAttribution"]
+                require_scope(project, actor)
+                for job_id in execution["jobs"].values():
+                    expected = (project, actor)
+                    if job_id in qa_jobs and qa_jobs[job_id] != expected:
+                        raise ValueError("QA job has conflicting batch attribution")
+                    qa_jobs[job_id] = expected
         jobs = {}
         for identifier, project, raw in connection.execute("SELECT id,project_id,snapshot FROM v2_video_jobs"):
             snapshot = json.loads(raw)
