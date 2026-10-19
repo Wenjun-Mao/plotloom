@@ -7,6 +7,7 @@ from pathlib import Path
 
 from tests.cli_handoff_fixtures import ROOT, exclusive
 from tests.paid_outline_cli_runtime import assert_qa_runtime
+from tests.paid_outline_diagnostics import cli_failure_context
 
 
 def without_ambient_python(case):
@@ -38,16 +39,16 @@ def assert_cli_observations(case, *, sandbox_count):
         (case["root"] / "receipts").glob("cli-startup-runtime-*.json")]
     sandbox = [json.loads(path.read_bytes()) for path in
         (case["root"] / "receipts").glob("cli-sandbox-runtime-*.json")]
-    assert startup
+    assert startup, cli_failure_context(case, startup, sandbox, sandbox_count)
     by_pid = {item["pid"]: item for item in startup}
-    assert len(by_pid) == len(startup)
+    assert len(by_pid) == len(startup), cli_failure_context(case, startup, sandbox, sandbox_count)
     for facts in startup:
         assert_qa_runtime(case["qa"], facts)
         assert Path(facts["wrapper"]) == case["executable"]
         assert Path(facts["runtimeSupportImport"]) == ROOT / "tests/paid_outline_cli_runtime.py"
     sandbox_pids = {item["pid"] for item in sandbox}
-    assert sandbox_pids == {item["pid"] for item in startup if item["invocation"] == "sandbox"}
-    assert len(sandbox_pids) == len(sandbox) == sandbox_count
+    assert sandbox_pids == {item["pid"] for item in startup if item["invocation"] == "sandbox"}, cli_failure_context(case, startup, sandbox, sandbox_count)
+    assert len(sandbox_pids) == len(sandbox) == sandbox_count, cli_failure_context(case, startup, sandbox, sandbox_count)
     expected = {
         "plotloom.config": case["source"] / "src/plotloom/config.py",
         "plotloom.codex_exec_profile": case["source"] / "src/plotloom/codex_exec_profile.py",

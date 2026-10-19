@@ -94,3 +94,22 @@ missing-params/no-receipt/no-retry assertions, production filters/guards and QA
 defaults/pins remain intact. Duplicate refusal after a terminal first outcome
 does not itself prove successful first delivery. Preserve the failed hosted
 diagnostic unchanged; local correction does not establish hosted acceptance.
+
+## Passive synthetic failure diagnostics
+
+Hosted run 39182416805 hid its actual sandbox count and already-written outcome
+behind an early observation assertion; settlement wrote a report but raised only
+a generic error. One exact arm64/3.12.3 case passed and did not reproduce the
+x64/3.12.15 full-suite failure. Its underlying cause remains unproven.
+
+Attach bounded, allowlisted context lazily to the original count/PID assertions
+and failed-settlement raises. Preserve their predicates/order and every existing
+ownership probe, signal, wait and timeout. Read only the known synthetic outcome
+files; summarize numeric identities and fixed outcome/error categories from the
+existing report. Omit arbitrary error/command text, environments, auth contents
+and database dumps. Missing, malformed, unsafe or unreadable diagnostic files
+must never replace the original failure. This repairs diagnostic loss only;
+changing counts, polling or lifecycle behavior is unjustified by current facts.
+Pure privacy/bounds/failure-preservation tests and existing negative ownership
+contracts guard this boundary. Hosted preparation/publication is held by the
+explicit-user-only GitHub CI gate in AGENTS.md; no hosted success is implied.

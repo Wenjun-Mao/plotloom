@@ -15,6 +15,7 @@ from hashlib import sha256
 from pathlib import Path
 from threading import Event, RLock, Thread
 
+from tests.paid_outline_diagnostics import settlement_failure_context
 from tests.paid_outline_process_guard import (
     prepare_guard,
     release_guard,
@@ -253,7 +254,7 @@ class OwnedTestProcesses:
     def settle(self):
         if self._report is not None:
             if self._report["remaining"] or self._report["errors"]:
-                raise RuntimeError("owned test process settlement failed; evidence retained")
+                raise RuntimeError("owned test process settlement failed; evidence retained: " + settlement_failure_context(self._report))
             return self._report
         self._stop.set()
         self._observer.join(timeout=3)
@@ -316,7 +317,7 @@ class OwnedTestProcesses:
             os.fsync(stream.fileno())
         self._report = report
         if live or self.errors:
-            raise RuntimeError("owned test process settlement failed; evidence retained")
+            raise RuntimeError("owned test process settlement failed; evidence retained: " + settlement_failure_context(report))
         return report
 
     def _live(self):

@@ -545,3 +545,15 @@ proofs, all browser unions/artifacts, owned-runtime preflights and wheel/smoke.
 Stop on failure with preserved evidence and a scoped proposal. No retry, full
 local rerun, product/guard/QA/CI budget/concurrency change, activation, provider/
 live process, owner-data or cleanup action is included; acceptance stays separate.
+
+### Passive paid-fixture diagnostics; GitHub CI held
+
+The failed hosted paid case was not reproduced by one exact existing-Linux run.
+Approve only bounded failure context at the original synthetic assertions and
+settlement raises, pure diagnostic/privacy regressions and affected local negative
+contracts; retain predicates, cleanup and production behavior. Deliver a reviewed
+local commit and the [checkpoint](../verification/2026-10-18-paid-fixture-diagnostics.md).
+Wenjun's explicit correction now holds CI preparation, workflow drafts and
+publication pending his direct request. Preserve the existing diagnostic draft
+without advancing it. Stop at local review; no paid success rerun, full/load test,
+dispatch, push, product fix, activation, live or owner-data action is included.

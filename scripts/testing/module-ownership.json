@@ -560,6 +560,7 @@
           "tests/test_cli_handoff_capsule.py",
           "tests/test_cli_handoff_receiver.py",
           "tests/test_paid_outline_cli_runtime.py",
+          "tests/test_paid_outline_diagnostics.py",
           "tests/test_paid_outline_handoff.py",
           "tests/test_paid_outline_processes.py",
           "tests/test_qualification_pair_contracts.py",
@@ -802,6 +803,14 @@
     {
       "suite": "pytest",
       "path": "tests/paid_outline_cli_checks.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/paid_outline_diagnostics.py",
       "kind": "shared-fixture-or-helper",
       "consumers": [
         "shared-provider-dispatch"
