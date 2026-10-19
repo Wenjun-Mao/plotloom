@@ -19,12 +19,21 @@ the manager to verify and gracefully stop only the exact idle CUA helper
 identified as PID 90191, conditional on ownership, inactivity and no uncertain
 impact on other work. Guard bypass and broader app/process shutdown remain
 excluded; this approval is separate from source qualification and activation.
-The same installation is now locally activated at `93441fc1` (October 18,
-22:01 EDT), after supported exact incompatible-project deletion. Settings and
-UNKNOWN accounting are preserved; the catalog is empty for a fresh compatible
-project. See the [activation closeout](../verification/2026-10-18-batch-video-publication-and-activation.md#completed-activation-october-18-2201-edt).
+The same installation is now at `081d56d4`. The manager completed audited P01
+no-dispatch recovery while preserving the paused owner story, unrelated old
+UNKNOWN reservation, protected files and 15 disabled queues. One final local
+full gate passed: 3,365 Python / 1,415 frontend / 338 browser cases plus all
+downstream gates, in 1,649.439 seconds. See the
+[instruction/recovery and qualification record](../verification/2026-10-18-image-instruction-recovery.md).
+The first native QA produced a genuine ImageGen receipt and published output;
+current native QA `f03a5e3d-6a75-4f5c-b29a-21420ce9a7b6` continues a fresh
+six-second/two-shot flow under caps of 16 jobs/eight images and at most two H3
+submissions/ten requested source seconds. Human material approval, H3 output and
+final audio/video acceptance remain pending. Earlier incompatible-project
+deletions remain recorded in the
+[initial activation closeout](../verification/2026-10-18-batch-video-publication-and-activation.md#completed-activation-october-18-2201-edt).
 Hosted qualification remains failed and GitHub CI is held pending Wenjun's direct
-request. No owner-story generation or creative approval occurred.
+request; local qualification and real native image proof do not replace it.
 
 ## Approved whole-pack gallery approval
 

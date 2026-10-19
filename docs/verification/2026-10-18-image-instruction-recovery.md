@@ -2,9 +2,10 @@
 
 Local source checkpoint on `main`, based on `b1e0bf98`; implementation is defined
 by the commit containing this record and [ADR 0197](../adr/0197-codex-exec-image-instruction-access.md).
-No push, CI, full release gate, deployment, live settlement or provider call was
-performed by the source owner. Prior hosted failures remain failed. The manager
-owns installation and live operations.
+At the initial implementation checkpoint, no push, CI, full release gate,
+deployment, live settlement or provider call had been performed by the source
+owner. Subsequent manager activation and the single final local gate are recorded
+below. Prior hosted failures remain failed. The manager owns live operations.
 
 ## Observed root cause and exact evidence
 
@@ -120,7 +121,8 @@ plus proof in `exec_recovery_evidence`. Only this attempt's slot/queue entry is
 removed; the operation never drains queues. Verify original stdout/rollout/package,
 protected files, disabled queues and unrelated old UNKNOWN
 `06e80972-9dde-41ff-be71-b477c1477465` remain unchanged. No live execution of this
-operation is claimed here.
+operation was claimed by that implementation checkpoint; the manager's subsequent
+execution is recorded below.
 
 Inactive current-v8 project reconciliation uses its admitted frozen profile and
 records the failed checkpoint without dispatch. A paused run stays paused.
@@ -132,13 +134,96 @@ eligibility or authorize cancellation, deletion or creative acceptance.
 
 ## Small real E2E handoff
 
-The manager's isolated authored QA project is
-`fd2608aa-dac9-4559-b216-31c78e365f8a`, with two shots and at most ten source
-seconds. Existing manual image send uses specialist-chat authority; there is no
-supported authored-project-to-native-Codex-Exec image path without a genuine
-autopilot run. Use actual manual ImageGen delivery for the H3 journey and retain
-native sandbox permission proof as separate evidence. Human storyboard/material
-approval, real provider outputs and persisted batch readback remain required.
-No synthetic run, receipt, approval or new adapter was added. The owner story
-remains separate. Product/infrastructure/coordination timing breakdowns and cost
-deltas are unavailable; the check/probe durations above are the recorded scope.
+The active supported native QA project is
+`f03a5e3d-6a75-4f5c-b29a-21420ce9a7b6`, run
+`702a6a7e-f87d-45ed-ae12-b07b436120da`, on installed `081d56d4`.
+It uses a six-second/two-shot 2D 林禾/sunflower Brief, normal fresh pre-video
+admission, `styleAuthority=brief`, `maxJobs=16` and `maxImages=8`. H3 remains
+bounded to two submissions/ten requested source seconds. Machine adoption and
+provisional selection are genuine native authority, not fabricated human facts.
+Actual whole-pack material approval is required before H3 Start; real clip/audio
+review and final whole-pack acceptance remain required afterward. This record
+does not claim those milestones or completed H3 E2E.
+
+The earlier authored manual draft `fd2608aa-dac9-4559-b216-31c78e365f8a` is unused
+with no provider jobs; its standalone storyboard-approval request was withdrawn.
+The first native QA `e03aca22-d335-47c9-ac06-5d92af0ce9a9` produced the genuine
+image milestone below, then hit its frozen five-image cap because its inventory
+required six images. The manager canceled it through native control at revision
+34 → 35, retaining all checkpoints and the delivered, unadopted C01 candidate.
+No policy edit, invented adoption or continuation shim was used; current native
+continuation cannot inherit that delivered-but-unadopted success. A fresh bounded
+fixture provides current authority. See ignored manager evidence
+`.local/batch-video/native-small-e2e-cap8-start.json` (SHA-256
+`1e446cab8602d98955ef1b97e50e3fa03edf596b4506590b052d25fa24ffa464`).
+The owner story remains paused and separate. Product/infrastructure/coordination
+timing breakdowns and cost deltas are unavailable; recorded gate durations follow.
+
+## Manager activation, recovery and actual ImageGen milestone
+
+Manager evidence checked October 18, 2026, 23:22 EDT records the same installation
+clean at detached `081d56d4`, with the application container healthy. The actual
+installed-source sandbox reads the exact 8,946-byte skill with SHA-256
+`76c6097e2736396762c1133ba9f3dd08bc14968fa0be5a2a42f7f97b9f907d64`;
+unrelated `AGENTS.md` remains denied.
+
+The exact P01 recovery returned HTTP 200, `settled/no_remote_dispatch`,
+`processExitCode=null`, released budget and no successful receipt/output.
+Its retained proof hash is
+`29a4d8ec302e316ad7ed2017d4b61d18336659a8c4f9341524f9d3b000a32b95`.
+All five protected-file hashes/modes/UIDs and all 15 disabled queue entries match
+the manager baseline; no validators remain. The unrelated old UNKNOWN row hash
+stays `364e43b268bd231a1c721c53c1af5df5cdbe56f969e7324759f3e48e95b9180b`.
+The owner run is paused at revision 123, with eight text/two image adoptions and
+P01's failed checkpoint. Recovery did not cancel, continue or resume that run.
+Evidence: `.local/batch-video/image-instruction-live-recovery.json`, SHA-256
+`7b12a6f57de39f92423938f6afc4f00ed05c9af96ab7e06dcd1edadd3e412023`.
+
+The manager's first real native QA image completed on the same installed source:
+attempt `0164f1bc-d4ba-4c2b-a239-459bf3aefa4f`, job
+`ij_16a23080408649d6bd6168c1c1487506`, session
+`01a15239-a28d-7161-9053-a9114761cc02`. The genuine waiter recorded exit 0;
+the exact ImageGen call/event, host receipt and schema-5 completion agree on one
+1,546,699-byte output with SHA-256
+`86a47626d5e16d42be42880696fecd7e9c534c3a8f8ecedc4898d56e7a231563`.
+Remote state is completed and its image budget consumed. This establishes the
+repaired native worker → real ImageGen → trusted publication path; it does not
+establish creative acceptance or H3 production. Evidence:
+`.local/batch-video/native-small-e2e-first-image.json`, SHA-256
+`6ad0f95451c8b7cd7e395e89fe7174ac21e11c38b03ca7ccdfcc4c9bf05411d0`.
+
+## Final single local full qualification
+
+One sole executor ran exactly
+`uv run --locked --no-sync python scripts/verify.py full` on clean
+`081d56d4b69eba24205b26b2100c4c47a7dbe533`. Executable inputs stayed unchanged
+through completion, including checked generated assets. Exit 0; elapsed
+**1,649.439 seconds (27m 29.439s)**. Runtime was macOS 27.0.1 arm64 / Python
+3.12.13, separate from the earlier failed hosted Linux/x64 qualification.
+
+| Gate | Result | Recorded seconds |
+| --- | --- | ---: |
+| Frontend units | 1,415 passed / 162 files | 6.493 |
+| Frontend types | passed | 4.114 |
+| Python native suite | 3,365 passed / 289 files | 1,050.831 |
+| Deterministic bundle / checked parity | passed / passed | 1.400 / 0.021 |
+| Unfiltered browser coverage / suite | passed / 338 passed | 1.879 / 579.448 |
+| Wheel build / installed-wheel smoke | passed / passed | 0.123 / 4.319 |
+
+Lock, ffmpeg/ffprobe, API-import and archived-reader steps also passed. Worker 1
+completed 1,844 cases in 1,027.44s, fingerprint
+`3525fc3fcffe91c273c87ac7e1138f5157df214dfb72933493563a9d93102f31`;
+worker 2 completed 1,521 in 941.04s, fingerprint
+`46c48df840f157fa2e9773ddf9d4a52608d46065e443f2faee645e449d05985f`.
+Their native union fingerprint is
+`f5ae62559852ed400497f3821a7f15193958b6701d76ae38ea51ea148581316a`.
+Existing Starlette/jsdom diagnostics did not fail their gates.
+
+The raw log is `.local/batch-video/final-local-081d56d4.log`, SHA-256
+`1d1f27340a61a5439cbef842c094f7ef83002302a0a5b8da1376883421895070`;
+stage/runtime evidence is `.local/batch-video/final-local-081d56d4-summary.json`.
+No retries, separate repeated selections, CI, pushes, live provider calls or live
+operations were performed by this qualification executor. This later checkpoint
+changes documentation only, so the qualified executable revision remains
+`081d56d4`. Hosted run `39182416805` remains failed; no hosted replacement or
+human material/AV acceptance is claimed.

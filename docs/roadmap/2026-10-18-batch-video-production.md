@@ -1,6 +1,6 @@
 # Batch video production and workflow completion
 
-Status: locally activated at `93441fc1` on October 18, 2026, 22:01 EDT.
+Status: locally activated and fully locally qualified at `081d56d4` on October 18, 2026.
 GitHub CI remains held pending a new explicit request directly from Wenjun.
 The owner requested execution through Relay direct and gives
 standing approval for separate Relay worker chats, recorded in `AGENTS.md`.
@@ -9,29 +9,39 @@ explicit actions; implementation approval does not perform them.
 
 ## Current implementation checkpoint
 
-### Active instruction-access repair and smallest real journey
+### Instruction-access recovery and smallest real journey
 
 The owner paused run `31854798-9ec5-4d90-b6b6-b85cca2bf510` after an image
-worker could not read its pinned skill. The retained source owner repairs the
-exact instruction and host-delivery contract (ADR 0197), with focused regressions
-and an early actual sandbox read that makes no provider call. The manager alone
-owns deployment, owner-run recovery and live process/ledger operations; preserve
-all old receipts, frozen policies and both UNKNOWN reservations.
+worker could not read its pinned skill. The retained source owner repaired the
+exact instruction and host-delivery contract (ADR 0197). The manager activated
+`081d56d4`, executed the audited P01 no-dispatch settlement with a null exit code,
+and preserved the original UNKNOWN evidence, unrelated old UNKNOWN reservation,
+five protected files and all 15 disabled queue entries. The owner run remains
+paused at revision 123, with eight text/two image adoptions and P01 failed.
 
-Local implementation and scoped checks are complete; independent review found
-no remaining actionable issue after the documented corrections. See the
+Local implementation, independent review and one final local full gate are
+complete: 3,365 Python / 1,415 frontend / 338 browser cases, all downstream
+bundle/parity/wheel gates passed in 1,649.439 seconds. Qualified executable
+revision is `081d56d4`; later closeout changes are documentation only. See the
 [instruction/recovery checkpoint](../verification/2026-10-18-image-instruction-recovery.md)
-for exact evidence, failures and installation/recovery preconditions.
+for exact fingerprints, retained failures, manager activation and native proof.
 
-The next real journey uses the separate, current isolated project
-`fd2608aa-dac9-4559-b216-31c78e365f8a`, up to two clips
-and ten seconds total, through real ImageGen, actual owner material approval,
-batch H3 production and output readback. The manager prepares that fixture and
-owns settlement/cleanup. Keep the owner story paused and separate. No fabricated
-human approval, live generation before manager capacity coordination, CI or
-CI-triggering publication. Success requires real outputs and persisted readback;
-permission probes and simulated tests establish narrower facts only. Exact time
-breakdowns are unavailable until recorded by the execution owner.
+The active native QA is `f03a5e3d-6a75-4f5c-b29a-21420ce9a7b6`, run
+`702a6a7e-f87d-45ed-ae12-b07b436120da`: a fresh normal pre-video flow using the
+six-second/two-shot 2D Brief, `styleAuthority=brief`, maximum 16 jobs/eight images.
+H3 remains capped at two submissions/ten requested source seconds. A prior native
+QA produced one genuine ImageGen output and trusted receipt/publication, then
+was canceled natively when its frozen five-image cap proved smaller than the
+six-image inventory; its delivered-unadopted candidate is retained. The earlier
+manual QA draft `fd2608aa-dac9-4559-b216-31c78e365f8a` is unused and its separate
+storyboard-approval request was withdrawn. No policy edit, synthetic run/adoption
+or new adapter was used. The manager owns live testing, settlement and cleanup.
+
+Native generation/publication is now demonstrated; actual whole-pack human
+material approval, H3 output/readback, clip/audio review and final acceptance
+remain pending. Keep the owner story paused and separate. CI and CI-triggering
+publication remain held. Product/infrastructure/coordination timing breakdowns
+and cost deltas remain unavailable; the full gate's measured execution is above.
 
 The delegated source owner has implemented steps 1–4 in the retained checkout
 `/Users/wjmao/.codex/worktrees/b30f/plotloom`. Independent stable review findings
@@ -55,7 +65,8 @@ home. No system-service signal, guard bypass, migration or backup was used.
 All host accounting/UNKNOWN capacity and protected settings/credentials remain
 unchanged. New-build health, eight batch API routes, asset parity and the actual
 batch UI were checked; the temporary blank smoke project was then removed.
-The final catalog is empty, so the owner must create a new compatible project.
+The catalog was empty at that earlier activation checkpoint; the owner story
+and isolated QA projects above now have separate current authority.
 Latest hosted run `39182416805` remains failed; local activation is separate from
 hosted qualification and creative acceptance. See the
 [activation record](../verification/2026-10-18-batch-video-publication-and-activation.md#completed-activation-october-18-2201-edt)
