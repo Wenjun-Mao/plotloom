@@ -66,22 +66,26 @@ def reviewer_for(attribution):
     return REVIEWER_PREFIX + attribution.scope_id
 
 
-def direction_attribution(snapshot):
-    """Observe an optional endorsement without making it dispatch authority."""
-    package = snapshot.get("reviewedDirections")
-    if package is None:
+def _observed_qa_attribution(container):
+    if not isinstance(container, dict) or "attribution" not in container:
         return None
-    if not isinstance(package, dict):
-        raise TypeError("retained reviewed directions must be an object or absent")
-    basis = package.get("reviewBasis")
-    if basis is None:
-        return None
-    if not isinstance(basis, dict):
-        raise TypeError("retained review basis must be an object or absent")
-    actor = basis.get("attribution")
-    if actor is not None and AgentQaAttribution.model_validate(actor).model_dump(mode="json", by_alias=True) != actor:
+    actor = container["attribution"]
+    if AgentQaAttribution.model_validate(actor).model_dump(mode="json", by_alias=True) != actor:
         raise ValueError("retained QA attribution must be canonical")
     return actor
+
+
+def direction_attribution(snapshot):
+    """Observe QA markers; ordinary invalid shapes stay with the video reader."""
+    package = snapshot.get("reviewedDirections") if isinstance(snapshot, dict) else None
+    basis = package.get("reviewBasis") if isinstance(package, dict) else None
+    return _observed_qa_attribution(basis)
+
+
+def keyframe_attribution(snapshot):
+    frame = snapshot.get("keyframe") if isinstance(snapshot, dict) else None
+    intent = frame.get("intent") if isinstance(frame, dict) else None
+    return _observed_qa_attribution(intent)
 
 
 def raw_connection(session):

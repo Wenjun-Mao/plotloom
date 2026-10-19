@@ -597,7 +597,7 @@
       ]
     },
     "tests/test_project_storage_image_delivery_contracts.py::test_image_delivery_rejects_cross_project_and_symlinked_browser_output_paths": {
-      "source_sha256": "ac233ada18c8dafffe78722af10da99c1574a82bbbc2e0d70eaa17b6ac08a563",
+      "source_sha256": "5e1ad13f3a191b27ce91314f67df118e0577bb7dbf99f96253572250714cbfc9",
       "assertions": [
         "attempted_path_authority.status_code == 422",
         "other_approval.status_code == 201",
@@ -937,7 +937,7 @@
       ]
     },
     "tests/test_project_storage_authoring_control_contracts.py::test_storyboard_approval_is_gate_bound_append_only_and_stales_with_its_inputs": {
-      "source_sha256": "8b2aa3d11ce74c202058947c04b62603902c19794d5f1f5615581c5d32d14680",
+      "source_sha256": "e6b375a4406e646b84d44e869c30d65edabd9a62c7fa0b5bc77aeda051a5a314",
       "assertions": [
         "review.status_code == 200",
         "review_body['gateEvaluation']['gateSetVersion'] == 'storyboard.v2'",
@@ -1174,7 +1174,7 @@
       ]
     },
     "tests/test_project_storage_image_identity_contracts.py::test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacement": {
-      "source_sha256": "7e9c454753f1c3c1d72311204b44471b5762d2061bdbe5ee20f2d05699f1b6c8",
+      "source_sha256": "869f484504669c18093d540f2c9123b58f602ddc428019e1ec6c51b8e14bd0da",
       "assertions": [
         "approval.status_code == 201",
         "missing.status_code == 422",

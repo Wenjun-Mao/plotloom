@@ -19,6 +19,9 @@ from .persistence.schema import (
 
 
 def assert_snapshot(scope, snapshot):
+    if not isinstance(snapshot, dict) or any(not isinstance(snapshot.get(key), dict)
+            for key in ("shot", "keyframe", "request", "provider")):
+        raise InvalidTransitionError("QA frozen video source shape is invalid")
     material = next((item for item in scope.materials if item.shot_id == snapshot["shot"]["id"]), None)
     frame, request, provider = snapshot["keyframe"], snapshot["request"], snapshot["provider"]
     if (material is None or frame["assetId"] != material.asset_id or frame["originalHash"] != material.original_hash

@@ -1,6 +1,8 @@
 """Closed defaults, explicit actors and nonportable authority for disposable QA."""
 # ruff: noqa: F811 -- Imported pytest fixtures are injected by argument name.
+import json
 import shutil
+import sqlite3
 from contextlib import closing
 from copy import deepcopy
 from pathlib import Path
@@ -32,17 +34,28 @@ def test_real_scope_has_only_the_authorized_two_ten_second_envelope():
     assert (scope.max_submissions, scope.max_requested_seconds) == (2, 10)
 
 
-@pytest.mark.parametrize("snapshot", [{}, {"reviewedDirections": None}, {"reviewedDirections": {}}, {"reviewedDirections": {"reviewBasis": None}}])
+@pytest.mark.parametrize("snapshot", [None, [], {}, {"reviewedDirections": None}, {"reviewedDirections": []},
+    {"reviewedDirections": {}}, {"reviewedDirections": {"reviewBasis": None}}, {"reviewedDirections": {"reviewBasis": []}}])
 def test_optional_directions_observation_does_not_invent_qa(snapshot):
     from plotloom.delegated_qa import direction_attribution
     assert direction_attribution(snapshot) is None
 
 
-@pytest.mark.parametrize("snapshot", [{"reviewedDirections": []}, {"reviewedDirections": {"reviewBasis": []}}])
-def test_invalid_directions_observation_has_a_named_refusal(snapshot):
-    from plotloom.delegated_qa import direction_attribution
-    with pytest.raises(TypeError, match="must be an object or absent"):
-        direction_attribution(snapshot)
+@pytest.mark.parametrize("snapshot", [None, [], {}, {"keyframe": None}, {"keyframe": []},
+    {"keyframe": {"intent": None}}, {"keyframe": {"intent": []}}])
+def test_optional_keyframe_observation_does_not_own_ordinary_shape(snapshot):
+    from plotloom.delegated_qa import keyframe_attribution
+    assert keyframe_attribution(snapshot) is None
+
+
+@pytest.mark.parametrize("marker", [None, [], {}, {"kind": "agent_operated_qa"},
+    {"kind": "unnamed_creator"}, {"kind": "agent_operated_qa", "scope_id": "noncanonical"}])
+def test_present_qa_marker_is_strict_even_when_malformed(marker):
+    from plotloom.delegated_qa import direction_attribution, keyframe_attribution
+    with pytest.raises(ValueError):
+        direction_attribution({"reviewedDirections": {"reviewBasis": {"attribution": marker}}})
+    with pytest.raises(ValueError):
+        keyframe_attribution({"keyframe": {"intent": {"attribution": marker}}})
 
 
 def test_ordinary_project_cannot_claim_qa_or_reserved_name(board):
@@ -281,3 +294,30 @@ def test_qa_api_consumes_exact_material_draft_and_rejects_stale_draft(tmp_path, 
         "visualIntentRevision": saved.json()["revision"], "attribution": actor.model_dump(mode="json", by_alias=True)})
     assert selected.status_code == 201, selected.text
     assert selected.json()["attribution"]["kind"] == "agent_operated_qa"
+
+
+@pytest.mark.parametrize("corruption", ["null", "list", "frame", "intent", "provider", "strip_actors", "wrong_scope"])
+def test_retained_qa_links_cannot_hide_missing_or_forged_snapshot_attribution(tmp_path, monkeypatch, corruption):
+    storage, _client, service, _provider, project, view, actor = qa_environment(tmp_path, monkeypatch)
+    qa_start(service, project, view, actor)
+    service.step(project)  # Prepare and link only; no provider call.
+    with closing(storage.projects.open(project)) as store:
+        job, = service.video.jobs(store)
+        path = store.database_path
+    snapshot = deepcopy(job["snapshot"])
+    if corruption == "null": snapshot = None
+    elif corruption == "list": snapshot = []
+    elif corruption == "frame": snapshot["keyframe"] = None
+    elif corruption == "intent": snapshot["keyframe"]["intent"] = []
+    elif corruption == "provider": snapshot["provider"] = None
+    elif corruption == "strip_actors":
+        snapshot["keyframe"]["intent"].pop("attribution")
+        snapshot["reviewedDirections"]["reviewBasis"].pop("attribution")
+    else:
+        snapshot["keyframe"]["intent"]["attribution"]["scopeId"] = "forged-scope"
+    from plotloom.persistence.codec import stable_hash
+    with sqlite3.connect(path) as connection:
+        connection.execute("UPDATE v2_video_jobs SET snapshot=?,snapshot_hash=? WHERE id=?",
+            (json.dumps(snapshot), stable_hash(snapshot), job["id"]))
+    with pytest.raises(ProjectStorageCorruptionError):
+        storage.projects.open(project)

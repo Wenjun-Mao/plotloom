@@ -48,6 +48,15 @@ Copies, snapshots and exports retain truthful QA facts. Portable evidence
 admission validates logical scope and lineage without requiring a runtime grant;
 copies/restores cannot silently acquire write or fresh-dispatch authority.
 
+The optional attribution observer does not own ordinary retained-video shape or
+currentness. Non-object ordinary snapshots and malformed ordinary metadata remain
+available to the video reader as invalid diagnostic evidence; observing no QA
+marker grants no authority. An explicit attribution key is validated even when
+its value is null. Retained QA approval, batch-job and review links also identify
+QA evidence, so deleting or corrupting its snapshot markers cannot turn it into
+ordinary evidence. Genuine QA evidence still requires exact matching actors and
+frozen scope; production dispatch and selection admission remain strict.
+
 ## Alternatives and guardrails
 
 Reject invented human names, fabricated human handoffs, implicit QA from labels,

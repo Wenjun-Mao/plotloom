@@ -62,7 +62,9 @@ def assert_video_batch_contracts(connection):
                 raise ValueError("batch execution links changed")
             for shot_id, job_id in execution["jobs"].items():
                 job = connection.execute("SELECT project_id,snapshot FROM v2_video_jobs WHERE id=?", (job_id,)).fetchone()
-                if job is None or job[0] != project_id or json.loads(job[1]).get("shot", {}).get("id") != shot_id:
+                snapshot = json.loads(job[1]) if job is not None else None
+                shot = snapshot.get("shot") if isinstance(snapshot, dict) else None
+                if job is None or job[0] != project_id or not isinstance(shot, dict) or shot.get("id") != shot_id:
                     raise ValueError("batch job lineage changed")
         from .video_batch_evidence import retained_batch_drafts
         retained_batch_drafts(connection)
