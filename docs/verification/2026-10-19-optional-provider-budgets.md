@@ -111,3 +111,48 @@ policy wrapper 13.192 s, final focused wrapper 18.058 s, quick 14.186 s, affecte
 browser wrapper 69.419 s, targeted pixel case run 6.5 s. Some checks overlapped;
 product/infrastructure/coordination wall times and usage/cost deltas are
 unavailable. Paid provider spend for this assignment is zero (no live calls).
+
+## Independent-review correction: explicit frozen budget members
+
+The manager's stable review of `f1f86c80` found that changing a frozen policy's
+omitted-member defaults from finite to null could silently widen an unchanged,
+matching-hash raw payload. The analogous batch reader used the request model's
+defaults for frozen setup. Raw hashing proves bytes, not omitted-field authority;
+the fix belongs at frozen admission rather than a runtime budget workaround.
+
+`LaunchPolicy` now requires both nullable caps for every supported version;
+`LaunchRequest` still defaults omissions to null, and the existing builder freezes
+both explicitly. The portable batch reader requires both canonical budget keys
+before decoding setup; new `BatchSetup` requests still default to null and the
+existing inventory builder serializes both. Ambiguous omissions fail through the
+existing corruption contract with a missing-field cause. No compatibility
+defaults, migration, retained-data rewrite or finite-scope change was added.
+Four synthetic policy builders now state their null authority explicitly.
+ADR 0200 distinguishes new-request defaults from explicit frozen authority.
+
+New regressions cover omission of either/both frozen members with a matching raw
+hash, all policy versions 1–4, unchanged explicit finite/null admission and hashes,
+portable batch refusal and no evidence rewrite. `tests/test_provider_budgets.py`
+passes 94 cases through `verify.py focused --pytest tests/test_provider_budgets.py`
+(19.395 s wrapper). A second `verify.py focused` run passed 118 cases with these
+explicit selections (53.441 s wrapper):
+
+```text
+--pytest tests/test_autopilot_policy_decoding.py
+--pytest tests/test_autopilot_profile_bindings.py
+--pytest tests/test_autopilot_authority.py
+--pytest tests/test_autopilot_view_checkpoints.py
+--pytest tests/test_delegated_qa.py
+--pytest tests/test_video_batch.py
+```
+
+Both use `uv run --locked --no-sync python scripts/verify.py focused` in retained
+R. Logs remain in the same ignored local evidence folder, under
+`correction-budget-focused.log` and `correction-admission-focused.log`.
+`git diff --check` also passed. Existing Starlette deprecation warnings were
+non-failing; neither correction selection failed.
+
+This correction changes no frontend or assets; prior deterministic-build/UI
+evidence remains unchanged. Full qualification and activation are still held for
+the manager's exact-finding re-review. Requested settings remain
+`gpt-6.1-sol / medium`, effective unverified; no additional authority is exercised.

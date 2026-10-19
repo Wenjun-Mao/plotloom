@@ -55,7 +55,7 @@ def view_context(monkeypatch):
     engine = create_engine("sqlite://")
     for model in (AutopilotCheckpointRow, AutopilotExecAttemptRow, AutopilotFrameRow):
         model.__table__.create(engine)
-    policy = LaunchPolicy(version="plotloom.pre-video.v4", render_style="live-action",
+    policy = LaunchPolicy(version="plotloom.pre-video.v4", max_images=None, max_jobs=None, render_style="live-action",
         art_render_style="live-action", image_width=1280, image_height=720,
         code_revision="a" * 40, executor_binding=PROFILE, execution_pins={},
         brief=FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=False))

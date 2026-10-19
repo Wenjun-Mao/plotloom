@@ -46,7 +46,7 @@ def seed_text_graph(connection, *, version):
     for table, columns in SCHEMA.items():
         connection.execute(f"CREATE TABLE {table} ({columns})")
     profile = versioned_profile(version)
-    policy = LaunchPolicy(version="plotloom.pre-video.v4", render_style="live-action",
+    policy = LaunchPolicy(version="plotloom.pre-video.v4", max_images=None, max_jobs=None, render_style="live-action",
         art_render_style="live-action", code_revision="d" * 40, image_width=1280,
         image_height=720, executor_binding=profile, execution_pins={"outline": UPSTREAM_PIN},
         brief=FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=False))

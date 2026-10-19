@@ -20,6 +20,8 @@ def assert_video_batch_contracts(connection):
             if (revision < 1 or state not in STATES or manifest.get("version") != "video-batch.manifest.v1"
                     or manifest.get("projectId") != project_id or stable_hash(manifest) != digest):
                 raise ValueError("batch identity or current format changed")
+            if not {"maxJobs", "maxRequestedSeconds"}.issubset(manifest["setup"]):
+                raise ValueError("frozen batch setup requires explicit maxJobs and maxRequestedSeconds; null means unlimited")
             setup = BatchSetup.model_validate(manifest["setup"])
             ids = [target["shotId"] for target in manifest["targets"]] + [fact["shotId"] for fact in manifest["kept"]]
             blocker_ids = [item["shotId"] for item in manifest["blockers"] if item["shotId"]]

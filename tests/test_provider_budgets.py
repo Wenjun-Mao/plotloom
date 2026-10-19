@@ -1,6 +1,8 @@
 """Nullable aggregate policy preserves finite authority and safe admission."""
 from contextlib import closing
 from dataclasses import asdict, replace
+import json
+import sqlite3
 
 import pytest
 from pydantic import ValidationError
@@ -10,8 +12,83 @@ from plotloom.delegated_qa import SCOPES
 from plotloom.persistence.codec import stable_hash
 from plotloom.provider_budgets import budget_within_authority, exceeds_budget
 from plotloom.video_batch_contracts import BatchControl, BatchSetup
+from tests.autopilot_profile_fixtures import SCHEMA, insert
+from tests.codex_exec_fixtures import PROFILE
 from tests.test_autopilot_brief_style import _policy
 from tests.video_batch_fixtures import batch_environment
+
+
+def frozen_policy(version):
+    value = _policy(authority="preset").model_dump(mode="json", by_alias=True)
+    value["version"] = f"plotloom.pre-video.v{version}"
+    if version == 1:
+        value["geometryPreparation"] = None
+    if version == 4:
+        value.pop("specialistBindings")
+        value["executorBinding"] = PROFILE.model_dump(mode="json", by_alias=True)
+    return LaunchPolicy.model_validate(value).model_dump(mode="json", by_alias=True)
+
+
+def policy_database(connection, policy):
+    # Existing portable-admission fixture schema, with no jobs or provider work.
+    for table, columns in SCHEMA.items():
+        connection.execute(f"CREATE TABLE {table} ({columns})")
+    insert(connection, "v2_autopilot_runs", id="frozen-run", project_id="test-project",
+        policy=json.dumps(policy), policy_hash=stable_hash(policy),
+        brief_hash=stable_hash(policy["brief"]), state="paused")
+
+
+@pytest.mark.parametrize("version", [1, 2, 3, 4])
+@pytest.mark.parametrize("missing", [("maxImages",), ("maxJobs",), ("maxImages", "maxJobs")])
+def test_frozen_policy_rejects_missing_caps_even_with_matching_raw_hash(version, missing):
+    from plotloom.project_storage.autopilot_validation import assert_autopilot_contracts
+    from plotloom.project_storage.format import ProjectStorageCorruptionError
+    policy = frozen_policy(version)
+    for key in missing:
+        policy.pop(key)
+    with pytest.raises(ValidationError) as direct:
+        LaunchPolicy.model_validate(policy)
+    assert {item["loc"][0] for item in direct.value.errors()} == set(missing)
+    with closing(sqlite3.connect(":memory:")) as connection:
+        policy_database(connection, policy)
+        before = connection.execute("SELECT policy,policy_hash FROM v2_autopilot_runs").fetchone()
+        with pytest.raises(ProjectStorageCorruptionError, match="persisted autopilot authority") as corrupt:
+            assert_autopilot_contracts(connection)
+        assert isinstance(corrupt.value.__cause__, ValidationError)
+        assert connection.execute("SELECT policy,policy_hash FROM v2_autopilot_runs").fetchone() == before
+
+
+@pytest.mark.parametrize("version", [1, 2, 3, 4])
+@pytest.mark.parametrize("caps", [(None, None), (80, 96)])
+def test_frozen_explicit_policy_caps_admit_without_changing_hash(version, caps):
+    from plotloom.project_storage.autopilot_validation import assert_autopilot_contracts
+    policy = frozen_policy(version) | {"maxImages": caps[0], "maxJobs": caps[1]}
+    assert LaunchPolicy.model_validate(policy).model_dump(mode="json", by_alias=True) == policy
+    with closing(sqlite3.connect(":memory:")) as connection:
+        policy_database(connection, policy)
+        before = connection.execute("SELECT policy,policy_hash FROM v2_autopilot_runs").fetchone()
+        assert_autopilot_contracts(connection)
+        assert connection.execute("SELECT policy,policy_hash FROM v2_autopilot_runs").fetchone() == before
+
+
+@pytest.mark.parametrize("missing", [("maxJobs",), ("maxRequestedSeconds",), ("maxJobs", "maxRequestedSeconds")])
+def test_frozen_batch_rejects_missing_caps_even_with_matching_raw_hash(tmp_path, missing):
+    from plotloom.project_storage.video_batch_validation import assert_video_batch_contracts
+    from plotloom.project_storage.format import ProjectStorageCorruptionError
+    storage, client, service, provider, project, view = batch_environment(tmp_path)
+    with closing(storage.projects.open(project)) as store, store.repository.engine.begin() as session:
+        connection = session.connection.driver_connection
+        manifest = view["manifest"]
+        for key in missing:
+            manifest["setup"].pop(key)
+        connection.execute("UPDATE v2_video_batches SET manifest=?,manifest_hash=? WHERE id=?",
+            (json.dumps(manifest), stable_hash(manifest), view["id"]))
+        before = connection.execute("SELECT manifest,manifest_hash FROM v2_video_batches").fetchone()
+        with pytest.raises(ProjectStorageCorruptionError, match="unsupported or corrupt") as corrupt:
+            assert_video_batch_contracts(connection)
+        assert "requires explicit maxJobs and maxRequestedSeconds" in str(corrupt.value.__cause__)
+        assert connection.execute("SELECT manifest,manifest_hash FROM v2_video_batches").fetchone() == before
+    assert not provider.submits
 
 
 @pytest.mark.parametrize("model,base,fields", [

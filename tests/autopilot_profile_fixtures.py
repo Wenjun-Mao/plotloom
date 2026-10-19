@@ -57,7 +57,7 @@ def insert(connection, table, **values):
 def seed_profile_graph(connection, *, run_id=RUN_ID, project_id=PROJECT_ID, profile=PROFILE):
     for table, columns in SCHEMA.items():
         connection.execute(f"CREATE TABLE IF NOT EXISTS {table} ({columns})")
-    policy = LaunchPolicy(version="plotloom.pre-video.v4", render_style="live-action",
+    policy = LaunchPolicy(version="plotloom.pre-video.v4", max_images=None, max_jobs=None, render_style="live-action",
         art_render_style="live-action", code_revision="d" * 40, image_width=1280,
         image_height=720, executor_binding=profile, execution_pins={"outline": PIN},
         brief=FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=False))

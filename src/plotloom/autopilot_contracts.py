@@ -50,8 +50,9 @@ class LaunchPolicy(CamelModel):
     style_authority: Literal["preset", "brief"] | None = Field(default="preset", exclude_if=lambda value: value is None)
     render_style: CastRenderStyle | None = None
     art_render_style: ArtRenderStyle | None = None
-    max_images: int | None = Field(default=None, strict=True, ge=1)
-    max_jobs: int | None = Field(default=None, strict=True, ge=9)
+    # Frozen authority must state both caps; omission cannot acquire unlimited work.
+    max_images: int | None = Field(strict=True, ge=1)
+    max_jobs: int | None = Field(strict=True, ge=9)
     early_reference_limit: int | None = Field(default=None, ge=0, le=4, strict=True, exclude_if=lambda value: value is None)
     image_width: int = Field(ge=64, le=4096)
     image_height: int = Field(ge=64, le=4096)

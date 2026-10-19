@@ -12,8 +12,9 @@ that faulty model and still stop otherwise authorized work.
 
 ## Decision
 
-New launch requests, frozen launch policies and batch setups use null (Python
-None) for unlimited aggregate limits by default. Optional finite limits are
+New launch and batch setup requests default omitted aggregate limits to null
+(Python None), meaning unlimited. Builders freeze both budget members explicitly
+in launch policies and batch manifests. Optional finite limits are
 strict integers with existing lower bounds (images/batch jobs 1, autopilot jobs
 9, requested seconds 5), without artificial aggregate upper ceilings. Omission
 in a new request uses null; invalid, blank, zero, boolean, string, fractional or
@@ -21,6 +22,15 @@ nonfinite values never mean unlimited. The UI offers explicit Unlimited and
 finite modes, validates finite text before submission, freezes the actual choice
 and reads it back with truthful summaries. A new setup/project resets to unlimited;
 continuation explicitly carries the chosen existing policy and retains accounting.
+
+Frozen authority has no omitted-budget default. Every retained launch policy
+version requires explicit `maxImages` and `maxJobs`; portable batch admission
+requires explicit `maxJobs` and `maxRequestedSeconds` in frozen setup. Explicit
+null means unlimited, while missing either member is unsupported/corrupt evidence
+and fails admission through the existing corruption contract. Hashing raw JSON
+alone cannot prove an omitted member's intended authority: previously it could
+have meant a finite request default. Reject that ambiguity rather than widening
+authority, supplying compatibility defaults, migrating or rewriting evidence.
 
 Trusted admission compares consumption only against a finite cap. Finite
 preflight, reservation, cumulative dispatch and portable validation use the same
