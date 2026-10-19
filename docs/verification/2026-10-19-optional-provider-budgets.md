@@ -10,6 +10,14 @@ the scoped candidate commit; no installation or publication is implied.
 Native dispatch requested `gpt-6.1-sol / medium`, as confirmed by the manager;
 effective settings remain unverified. No code-writing subworkers were created.
 
+Current local status: composite qualification is complete for unchanged product
+source `43cc4b62cb026e85031a4e4e66067223496fef41`, with test-helper/package revision
+`e3e76a858bce962da6e1fcf611a01fdf73b9367a`. The original full attempt remains
+failed; the exact corrected H3 journey and the two unreached packaging steps
+subsequently passed under explicit manager authorization. Activation is not done;
+hosted CI was not requested/run and is not a release blocker. The manager retains
+final stable helper/evidence review and any later installation decision.
+
 ## Change and safety boundary
 
 [ADR 0200](../adr/0200-optional-aggregate-provider-budgets.md) records the owning
@@ -217,3 +225,48 @@ authorized reuse of unchanged 3,535-Python/1,444-frontend/338-browser and build/
 evidence, this completed H3 journey, and only the two previously unreached wheel
 commands. Qualification is composite; the original full attempt remains failed
 and is not described as a fresh green full run. No broad suite was repeated.
+
+## Composite qualification and exact package closeout
+
+The helper/receipt correction is committed on local main as
+`e3e76a858bce962da6e1fcf611a01fdf73b9367a`. Before packaging, clean state and the
+entire diff from `43cc4b62` were checked: only the helper and this receipt differ.
+The `src` tree is still `9ce776a6be4b2f444270922505f9ae0f95580d69`; the frontend
+source tree is still `572fe22aaa26951da094f8313aa1384badfbffeb`. Dependency,
+verification-tooling and static asset identity were unchanged. Thus the original
+3,535 Python / 1,444 frontend / 338 unaffected browser passes and build/parity
+evidence apply unchanged; the one corrected browser case completes the prior
+339-case inventory through scoped evidence reuse, not a second unfiltered run.
+
+Only the two unreached suffix commands were then executed, in order, with
+`/usr/bin/time -p` retaining their timings:
+
+```text
+uv build --wheel --out-dir .local/batch-video/optional-provider-budgets/e3e76a858bce962da6e1fcf611a01fdf73b9367a-wheel
+uv run --locked --no-sync python scripts/smoke_installed_wheel.py .local/batch-video/optional-provider-budgets/e3e76a858bce962da6e1fcf611a01fdf73b9367a-wheel
+```
+
+Both passed (exit 0): wheel build 0.11 s, installed-wheel smoke 4.03 s. The wheel
+is retained in that fresh ignored directory as `plotloom-0.1.0-py3-none-any.whl`,
+1,529,731 bytes, SHA-256
+`8cb5853d3a2b978cb437b1cfd3fdcc351aa062cf7e7165e6fc2b6b882f15c763`.
+The build emitted the existing current-uv-versus-build-system-range warning;
+it was non-failing, and no tool/dependency provisioning or upgrade was performed.
+Installed-wheel smoke uses its existing isolated temporary installation; it does
+not install or activate the owner's running application.
+
+Exact HEAD/source/dependency fingerprints, package outcome/hash, complete build
+and installed-wheel logs use the `e3e76a858bce962da6e1fcf611a01fdf73b9367a-` prefix
+beside the retained original failure and focused captures. Both pre- and
+post-packaging identity checks passed with clean tracked state. This closeout is
+documentation-only and does not invalidate that executable evidence.
+
+Review closure: independent stable review resolved the frozen-member P2 before
+the full attempt; root and independent causal review agreed on the sticky-helper
+owner after its failure. The implemented helper matches that bounded correction
+and its complete journey/captures pass. Final stable helper/evidence review stays
+with the manager. Composite local qualification does not claim a fresh green full
+gate, hosted CI, real-provider E2E, creative acceptance or activation. No full,
+unfiltered Python/frontend/browser suite, or build/parity gate was repeated.
+No live provider/grant/queue/owner-data operation, deployment/service change, push
+or CI was performed. Requested `gpt-6.1-sol / medium`; effective unverified.
