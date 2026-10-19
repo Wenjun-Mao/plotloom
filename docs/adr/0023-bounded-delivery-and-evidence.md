@@ -81,6 +81,44 @@ general review or another full pipeline run requires an explicit causal reason.
 Unknown submission outcomes continue to follow existing recovery policy and
 must not be blindly replayed.
 
+### October 18, 2026: small real E2E before qualification detours
+
+The batch-video retrospective found that the corrected feature checkpoint was
+ready around 12:42 EDT, but activation completed at 22:01. Much of the later
+work repaired test/runtime portability; expensive hosted failures had poor
+diagnostic context, and a historical-process revocation investigation preceded
+discovery of the supported ordinary idle-deletion path. Real H3 E2E remained
+unexercised because no current, already owner-reviewed fixture was available.
+Elapsed windows include waiting/coordination and are not active-work percentages.
+
+Prioritize one small authorized real user journey before broad qualification:
+establish its fixture, schema, review/dispatch authority, runtime and finite
+resource limits early; run focused safety checks, then prove real output/readback
+before scaling. Resolve the fixture transition before a breaking reset. If an
+external prerequisite is missing, report it at the outset rather than hiding it
+behind test totals. Never synthesize human approval or weaken dispatch guards.
+
+Preflight expensive execution environments with existing bounded probes, retain
+useful private failure context, and reuse unchanged evidence. Classify failures
+by their owner and distinguish product blockers from separate infrastructure
+work. Return to the product outcome after a bounded infrastructure repair; a
+material scope expansion requires user direction. Use the least-powerful
+applicable native lifecycle operation, not a guard bypass. One qualification
+executor and risk-targeted independent review replace routine duplicated runs.
+
+GitHub CI is off unless Wenjun directly makes a new explicit request, including
+for diagnostics/retries or pushes that trigger CI. Implementation, manager or
+ordinary publication approval does not imply CI authority. Do not prepare or
+publish CI changes, dispatch runs, create substitute watchers, disable workflows
+or add skip markers to work around that boundary. A held/failed hosted gate
+stays unqualified; it need not stop independent authorized local/E2E work.
+
+Rejected alternatives: weakening final release coverage to show progress;
+repairing every infrastructure failure before attempting a product slice;
+removing useful independent review; and introducing another tracking/provisioning
+framework. Root `AGENTS.md` carries the operational rules. This changes delivery
+sequencing and reporting, not production admission or creative-acceptance policy.
+
 ## Rejected alternatives
 
 - **Only switch the primary model.** This leaves the measured multiplication of
