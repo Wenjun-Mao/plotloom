@@ -43,8 +43,9 @@ empty environment study and separate prop. A
 [source-only receiving-contract candidate](../verification/2026-10-19-automatic-image-content-ownership.md)
 now separates global rendering context from accepted reference/canonical-shot
 content in native image assignment v6, with raw fields and upstream hashes
-unchanged. Its 41 focused checks and independent review pass; affected downstream
-qualification and activation remain pending. The retained no-dispatch proof is
+unchanged. On `04219ba2`, its 41 focused checks, 65 bounded affected downstream
+checks, one wheel/install smoke and independent review pass. This is scoped
+qualification; new full qualification and activation remain pending. The retained no-dispatch proof is
 unsupported, so UNKNOWN remains untouched. No recovery/capacity changes or replay
 were made. Separate manual still-life E2E versus holding native E2E awaits owner
 direction; actual storyboard, material and AV reviews remain required.

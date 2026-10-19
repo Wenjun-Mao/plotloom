@@ -1,7 +1,8 @@
 # Automatic image content ownership checkpoint
 
-Source candidate based on clean `210974c0`; the commit containing this record
-defines the exact candidate. Installed/full-qualified source remains `081d56d4`.
+Source candidate `04219ba296a77e457f6fe4d7988e67df75a73e3c`, based on clean
+`210974c0`; this later documentation checkpoint leaves its executable inputs
+unchanged. Installed/full-qualified source remains `081d56d4`.
 This checkpoint changes native receiving instructions, not creator data or live
 execution. See [ADR 0163](../adr/0163-autopilot-brief-style-authority.md#downstream-automatic-image-content-ownership).
 
@@ -68,15 +69,51 @@ revision-1 bindings and pass native retained-contract admission. Ignored evidenc
 `.local/batch-video/image-content-ownership-retained-read-evidence.json`.
 This is read/admission evidence, not authority to replay frozen execution pins.
 
+## Authorized affected downstream qualification
+
+The manager reviewed `04219ba2` without findings and authorized this bounded
+selection plus one wheel/install smoke. The earlier 41 cases were reused without
+rerun. The sole source owner executed `uv run --locked --no-sync python
+scripts/verify.py focused`, passing each exact selector below via `--pytest`:
+
+| Exact selector | Cases | Additional information |
+| --- | ---: | --- |
+| `tests/test_image_package_publication.py` | 4 | Immutable original packages survive interruption/concurrent publication without changing retained bytes. |
+| `tests/test_codex_exec_stage_routing.py` | 5 | Frozen saved-Brief commands still validate/render through their neutral adapters; explicit preset routes keep their existing adapters and allowlists. |
+| `tests/test_codex_exec_contracts.py` | 33 | Shared immutable profile, capability and attempt/terminal contracts continue to constrain native consumers. |
+| `tests/test_codex_exec_receipts.py` | 15 | Exact session, arguments, reference-view order, output inventory and process evidence remain required for receipts. |
+| `tests/test_codex_exec_duplicate_reference_roles.py` | 7 | Distinct frozen reference roles survive telemetry, trusted image publication and ingestion; identical image bytes do not waive identities or order. |
+| `tests/test_codex_exec_delivery.py::test_cli_creative_delivery_requires_exact_project_receipt_and_inventory` | 1 | A shared-profile text delivery consumer still rejects a missing exact project attempt or altered receipt profile. |
+
+All **65 cases passed** in 1.14s (runner 6.047s), with one existing Starlette
+deprecation warning. These are local fixture/consumer checks, not provider runs
+or a replay of the retained UNKNOWN. No code finding or source repair resulted.
+
+One wheel build and one established installed-wheel smoke passed, both exit 0:
+
+```sh
+uv build --wheel --out-dir .local/batch-video/ownership-04219ba2-wheel
+uv run --locked --no-sync python scripts/smoke_installed_wheel.py .local/batch-video/ownership-04219ba2-wheel
+```
+
+The build emitted the existing-toolchain warning that current uv 0.13.1 is outside
+the declared `uv_build>=0.12.6,<0.13.0` build requirement, then built successfully.
+The smoke installed into an isolated temporary environment and probed startup,
+project-folder and shipped runtime behavior outside the source checkout; it did
+not change the live installation. Archive inspection also verified exact source
+bytes for `autopilot_image_guidance.py`, `codex_exec_prompts.py` and
+`codex_exec_profile.py`. Wheel SHA-256:
+`c89c9af7dbf6ed27b7103d841741384f80481683e51ac4b041f3dab2d2242669`.
+
 ## Qualification boundary and next action
 
 The single full gate on `081d56d4` remains historical evidence for its exact
 inputs. Unchanged frontend/types/browser/build and upstream/backend evidence can
-be reused within their unchanged scope; this candidate is **not** newly full
-qualified. Before activation, proposed affected downstream checks are image
-package/publication, CLI routing/contracts/receipt consumers and installed-wheel
-smoke for the added instruction module. Review that scope before expensive
-requalification; no repeat full was run by this source owner.
+be reused within their unchanged scope. Together with the reused 41 cases, the
+65 downstream cases and wheel smoke provide scoped qualification of `04219ba2`;
+this candidate is **not** newly full qualified. A new expensive final full gate
+is held until the real vertical-slice outcome and owner-authorized route are
+clearer. No unrelated frontend/browser/backend sweep or repeat full was run.
 
 No deployment, restart, recovery/control/queue mutation, real generation, CI or
 push occurred. Semantic/visual fidelity, human material approval, H3 output and

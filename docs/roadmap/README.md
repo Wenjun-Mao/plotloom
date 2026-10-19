@@ -29,8 +29,9 @@ The first native QA produced a genuine ImageGen receipt and published output;
 current native QA `f03a5e3d-6a75-4f5c-b29a-21420ce9a7b6` is paused at revision
 51 after S01's global-direction/content-owner conflict. A source-only
 [receiving-contract candidate](../verification/2026-10-19-automatic-image-content-ownership.md)
-preserves raw fields and accepted upstream authority; 41 focused cases and
-independent review pass. Downstream qualification/activation remain pending;
+preserves raw fields and accepted upstream authority. On `04219ba2`, 41 focused
+cases, 65 bounded downstream cases, wheel/install smoke and independent review
+pass. New full qualification and activation remain pending;
 unsupported no-dispatch proof keeps S01 UNKNOWN. No limits or uncertain jobs are
 changed. Human material approval, H3 output and final audio/video acceptance
 remain pending. Earlier incompatible-project
