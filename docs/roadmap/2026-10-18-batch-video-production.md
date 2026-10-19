@@ -516,3 +516,27 @@ method preparation, not authority for a full run, hosted dispatch, main push or
 activation. Return both commits and remaining qualification gaps for manager
 review; a redundant affected-family hosted rerun is not required before this
 local preparation.
+
+### Manual F4→F5 composition boundary correction
+
+The one authorized ordinary run 39177704205 finished failed: 3,297 Python cases
+passed and the manual composition case failed before validation on a correctly
+missing operator-runtime receipt. Only one worker has successful completion
+proof; all 338 unfiltered browser cases passed. Packaging gates were skipped.
+Keep this failed result and its native audit unchanged.
+
+The manager approved a local test-only correction: manual receiving owns real
+source-plan validate/render/exchange/admit/accept, while separate Codex tests own
+checked-runtime/sandbox admission. Deliver a small genuine locked-runtime helper,
+actual raw/physical interpreter/import observations, private credential-free
+execution, immutable inputs and parent configuration, and preserved Linux
+receipt absence. Amend ADR 0179 and the existing checkpoint; run exact then
+affected receiving/dialogue/resource/environment checks on Mac and the existing
+Linux checkout, independent stable review and a coherent local commit.
+
+The [checkpoint](../verification/2026-10-18-owned-test-runtime.md) records final
+108-case successes on each platform and retained runtime/absence observations.
+Stop for manager review at the local commit. No origin push, new full-equivalent
+gate or hosted dispatch, installation, production/guard/QA/CI concurrency or
+budget change, activation, provider/live process, owner-data or cleanup action
+is included; native execution and product acceptance remain separate.

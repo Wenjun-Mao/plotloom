@@ -1865,6 +1865,14 @@
       "consumers": [
         "verification-tooling"
       ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/script_dialogue_runtime.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "project-lifecycle"
+      ]
     }
   ]
 }

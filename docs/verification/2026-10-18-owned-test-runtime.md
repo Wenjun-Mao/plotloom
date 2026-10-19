@@ -304,3 +304,83 @@ Activation, provider/live process actions, owner-data mutation, guard bypass and
 worktree/branch cleanup remain held. The conditional CUA-helper permission is
 unchanged. Actual hosted outcome is a separate execution record, not implied
 by this authorization or local review.
+
+## Ordinary hosted outcome and manual-composition correction
+
+Normal fast-forward publication reached `d5ac52a517f1f8d55c1a08d7dc5e210025daa7ac`.
+The one authorized ordinary [run 39177704205](https://github.com/Wenjun-Mao/plotloom/actions/runs/39177704205)
+finished naturally with **failure**, without retry/cancellation/restart. The
+Python step took **37m25s**, within its unchanged 45-minute bound. Native
+collection was 3,298 cases / 285 files, split into two 1,649-case workers:
+worker 2 **1,649 passed**, complete proof; worker 1 **1,648 passed / one failed**,
+incomplete proof. Overall **3,297 passed / one failed** is not qualification.
+Wheel build and installed-wheel smoke were skipped. Frontend/type/build/asset
+checks passed; all four unfiltered browser shards passed **338 first-attempt
+cases**, exact disjoint coverage of 95 specs, no skipped/flaky/unexpected cases.
+
+Evidence under `.local/batch-video/ordinary-hosted-39177704205-*` retains actual
+run/job metadata, complete logs, browser coverage proof and eight artifact
+archives with 1,076 extracted file hashes; every archive hash matches GitHub's
+digest. `python-audit.json` preserves worker 1's missing successful proof. Seven
+synthetic credential-fixture IDs were masked in GitHub's printed collection;
+raw logs remain unchanged. One exact-revision local native collect-only run
+matched the hosted 3,298-case global fingerprint and both deterministic worker
+collection hashes. This audit does not convert the failed worker into success.
+`evidence-summary.json` and `artifact-manifest.json` are the compact entrypoints.
+
+The sole failure was the manual F4→F5 composition helper calling Codex resource
+admission before actual validation. That path correctly requires the operator's
+checked-Python receipt, absent in fresh CI; the manual receiving test had
+accidentally claimed sandbox-runtime ownership. The manager approved the smaller
+test-boundary correction after this diagnosis, with no new full gate or hosted
+dispatch. ADR 0179 now distinguishes manual composition from host admission.
+
+`tests/script_dialogue_runtime.py` proves actual uv-selected raw/physical Python,
+prefix, patch version, source import and genuine pytest import before running
+the unchanged source-owned plan/expanded argv. Physical uv/Node, private cwd,
+temp/cache, explicit source/Node and closed credential-free offline/no-download/
+no-sync environment remain test-owned. Parent environment and source/runtime
+configuration are checked unchanged. Real validate/render execution, immutable
+request/input/candidate hashes, report stdout, exchange pins and both final
+manual admit/accept assertions remain. A refusal-only inspector trap prevents
+accidental operator admission; production and separate host tests are unchanged.
+
+Before changing Linux test bytes, read-only preflight found its operator receipt
+absent; the old exact case reproduced **one failure / 1.14s**. During development
+an imported fixture alias caused one setup error, including an intermediate
+**85 passed / one error** family run. Restoring pytest's fixture registration
+name resolved that error; no product assertion was weakened. Logs remain
+`linux-ci/manual-composition-{receipt-preflight.json,before.log,after.log}` and
+`manual-composition-contracts-mac.log`. The repaired exact case then passed on
+both platforms; final evidence below supersedes those intermediate successes.
+
+Final `verify.py focused` selected the nine exact files:
+`test_script_dialogue_composition.py`, `test_script_receiving.py`,
+`test_script_dialogue_compatibility.py`, `test_codex_exec_resources.py`,
+`test_codex_exec_validation.py`, `test_codex_exec_python_environment.py`,
+`test_verification_module_ownership.py` and the creator-workbench
+`test_codex_exec_supervisor_{environment,validation_lifecycle}.py` pair.
+Mac: **108 passed / 20.87s**, runner **31.905s**; existing non-root Linux copied
+checkout: **108 passed / 18.51s**, runner **29.190s**. Each emitted one existing
+Starlette deprecation warning. Logs: `manual-composition-final-mac.log` and
+`linux-ci/manual-composition-final-linux.log`.
+
+Actual per-stage observations and matching hashes of all three executable test/
+ownership inputs are retained in `manual-composition-observations-mac.json` and
+`linux-ci/manual-composition-observations-linux.json`. Mac used CPython 3.12.13 /
+Node 24.18.0; Linux UID 65534 used its existing copied CPython 3.12.3 / Node
+22.23.3. Both stages executed validate/render successfully. Linux receipt absence
+remained absent, including an independent postcheck; the existing Mac receipt
+remained unchanged. No operator receipt was created, removed or repaired.
+
+Native ownership audit passed with the unchanged 3,298-case fingerprint
+`d8495d92700390190c961d07cd83fd320132604d3c42e08f64d91083c5ff1bb1`;
+`manual-composition-native-ownership.log` retains the unfiltered collection.
+Targeted Ruff and whitespace checks pass. Stable independent read-only review
+requested GPT-6.1 Sol / High (effective settings unverified) found no actionable
+issue and executed no tests. This local correction uses the existing Linux
+checkout/runtime; no distribution install, dependency/production/CI budget or
+concurrency change, origin push, new full/hosted run, activation, provider/live
+process, owner-data mutation or cleanup occurred. Hosted x64/3.12.15, complete
+release qualification and product acceptance remain unproven; return the local
+commit and evidence for manager review before further publication/dispatch.

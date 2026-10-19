@@ -74,3 +74,25 @@ CAS pause, late original receipt-only collection and strict incomplete settlemen
 Both failed allocations remain frozen; another paid pair requires separate review
 and a fresh finite release. Source and fixture success are not native generation,
 full release qualification or product acceptance.
+
+## Provider-free composition test ownership
+
+Hosted run 39177704205 failed its otherwise complete Python run because the
+manual F4→F5 composition helper asked Codex host resource admission for an
+operator-checkout environment receipt. Fresh CI correctly has no such receipt;
+its locked pytest environment is a separate contract. The helper's manual
+package exchange, direct-command limitation and final admit/accept assertions
+own receiving composition, not Codex checked-runtime or sandbox admission.
+
+Use the genuine locked pytest engine and explicit physical uv/Node tools in a
+small test-owned manual runtime context. Keep the exact source-owned plans and
+expanded validate/render commands, real execution, private cwd/temp/cache,
+offline/no-download/no-sync selection, pinned Node, immutable package/candidate
+hashes and report-only stdout. Observe uv's actual raw/physical interpreter,
+prefix and source import before validators; check parent environment/source
+configuration unchanged. Refuse accidental operator-runtime inspection and prove
+receipt absence is preserved on the existing owned Linux checkout. Do not create
+a receipt, install a distribution or substitute the test venv as a production
+checked environment. Dedicated resources/environment/sandbox tests retain that
+admission ownership. This explicit boundary corrects the composition helper's
+former checked-runtime claim; manual success does not qualify native execution.
