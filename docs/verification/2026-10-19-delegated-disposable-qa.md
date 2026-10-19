@@ -168,10 +168,11 @@ ending-frame shape. These were corrected at their contract owners before final
 qualification. No assertions, dispatch safety or required coverage were weakened.
 
 Source/review/coordination timing was not separately instrumented; only check
-wall times above are measured. No infrastructure repair, live provider generation,
-live review writes, activation, full suite, hosted CI or push occurred here.
-Full local qualification, activation and the bounded live E2E remain separate
-manager-owned steps; hosted CI/push are held.
+wall times above are measured. At this earlier QA-contract checkpoint, no
+infrastructure repair, live provider generation, live review writes, activation,
+full suite, hosted CI or push had occurred here. The October 19 closeout below
+supersedes that checkpoint's activation and qualification status; CI/push remain
+held.
 
 ## Frozen planned-count wording correction
 
@@ -190,3 +191,110 @@ deterministic builds match across seven files, recorded in
 Independent read-only review reports no findings in the source/test diff. This
 is a scoped presentation checkpoint, not a new release qualification. No full
 suite, package sweep, live/provider actions, activation, queues, CI or push ran.
+
+## October 19 correction, composite qualification, and activation closeout
+
+Executable source is committed on local `main` at
+`14e7bce5798cef2779b5232098f94311974a2710`, after
+`446db168cdbf7866f384e87048c955e3a0c0c622`. The checkout is clean and unpushed.
+An independent stable review found no correctness or security findings in the
+correction. The exact-prior validator now receives an explicit
+`prior_without_video_batches` capability only after the frozen schema is checked;
+all ordinary QA, approval, intent, material, job and review checks remain active.
+Current-schema admission still rejects a missing `v2_video_batches` table. ADR
+0190 records this boundary.
+
+The local result is composite scoped evidence, not a passing full gate:
+
+- The one authorized full run at `bb65510af17b7d9943f8a08969e26f0d7c91b8a8`
+  remains failed: 3,412 Python passed and two failed; 1,428 frontend cases and
+  the earlier type/early gates passed. Its failures were the retained-runtime
+  inventory freshness assertion and ordinary retained-video diagnostic owner.
+  Both corrected areas passed their affected focused checks; the full run was not
+  repeated.
+- On `446db168`, deterministic production build, checked static parity, and
+  unfiltered browser-shard coverage passed (95 specs, 338 cases, no gaps or
+  overlap). The unfiltered browser suite then failed: 335 passed and three
+  failed in 554.812 seconds. Two prior-layout abandonment journeys exposed the
+  new QA observer's unconditional query of a table absent from the exact frozen
+  schema. The third test expected an approval button after its fixture had
+  already approved the storyboard. The first two failures were fixed at the
+  exact-prior admission boundary; only the stale test control assertion changed.
+  The original run and failure artifacts remain preserved; the 338-case suite
+  was not rerun.
+- The approved four-file focused Python union passed 113 tests in 67.79 seconds
+  (runner 76.077 seconds). The delegated-QA file was rerun after an import-only
+  formatting change: 44 passed in 30.64 seconds (runner 34.068 seconds).
+- The two approved Playwright files passed all 13 tests in 64.724 seconds,
+  including the three previously failing journeys. Their run also passed
+  `typecheck:e2e`. This focused result does not replace the failed unfiltered
+  browser-suite result.
+- The final candidate's wheel build and installed-wheel smoke passed in 4.493
+  seconds. The retained wheel is 1,528,200 bytes with SHA-256
+  `a00510f7514005b0ccb3605ef65d8626e29ded24cb5cb283e07e7783577bb957`.
+  `uv build` warned that host uv 0.13.1 is outside the configured `uv-build`
+  requirement range; both package commands exited successfully.
+
+The final candidate was activated by the manager on the existing installation.
+The app stopped/switched/restarted through supported operations, and the new
+container was healthy with the unchanged served bundle `72d87c…`. The original
+runtime QA grant remained bound to the same installation; it was not rebound.
+The approved batch stayed at revision 16 with the same two selected jobs,
+predictions, typed QA actors and derivative hashes. A browser reload followed by
+deliberate playback advanced from the first clip at 0.186508 seconds with
+`paused=false` to the second clip at 3 seconds with `ended=true` and
+`readyState=4`; playback stopped on its final frame without a media error.
+
+Both playback downloads match the selected derivative hashes. The five protected
+files still match baseline; the historical UNKNOWN row hash and both UNKNOWN
+exit-null outcomes are unchanged. Native totals remain 101 completed, two
+UNKNOWN, 16 queued and one settled, with zero enabled queues or validators. The
+owner story and native QA remain paused at revisions 128 and 56 respectively;
+the only operational delta was one application-start claim. During this final
+activation/playback recheck there were no new generations, reviews, provider
+calls, CI runs or pushes.
+
+The bounded provider journey used the disposable project
+`326a5137-1851-4b5c-8ab2-b600ec7bda23`, within its two-submission / ten-requested-
+source-second grant. Both imported-frame H3 outputs were ingested and atomically
+selected by the typed delegated QA receipt. Root inspected all 72 frames in each
+of the two proposals (144 frames total) and decoded/analyzed the native AAC
+signal; no listening or perceptual audio certification is claimed. Imported
+ImageGen frames through H3 to browser playback is established technical E2E.
+Native automatic-image E2E remains separate and UNKNOWN is untouched; owner
+creative acceptance remains separate.
+
+Retained evidence and complete logs:
+
+- Original full outcome, fingerprints and log:
+  `.local/batch-video/final-full-bb65510a-outcome.json`,
+  `.local/batch-video/final-full-bb65510a-fingerprints.json`,
+  `.local/batch-video/final-local-full-bb65510a.log`.
+- Initial suffix fingerprints/log and preserved browser-failure traces:
+  `.local/batch-video/suffix-446db168-inputs.json`,
+  `.local/batch-video/suffix-446db168.log`,
+  `.local/batch-video/full-suffix-first-failure-artifacts-446db168.json`,
+  `.local/batch-video/full-suffix-first-failures-446db168/test-results/`.
+- Focused logs:
+  `.local/batch-video/causal-fix-focused-python-446db168.log`,
+  `.local/batch-video/causal-fix-focused-browser-446db168.log`,
+  `.local/batch-video/causal-fix-final-qa-focused-446db168.log`.
+- Final packaging fingerprint, complete log, result and wheel:
+  `.local/batch-video/wheel-suffix-14e7bce5-inputs.json`,
+  `.local/batch-video/wheel-suffix-14e7bce5.log`,
+  `.local/batch-video/wheel-suffix-14e7bce5-result.json`,
+  `.local/batch-video/wheel-suffix-14e7bce5/plotloom-0.1.0-py3-none-any.whl`.
+- Final root-owned activation and playback evidence:
+  `.local/batch-video/delegated-qa-final-activation-14e7bce5.json`,
+  `.local/batch-video/delegated-qa-final-av-inspection.json`,
+  `.local/batch-video/delegated-qa-final-confirmation.json`,
+  `.local/batch-video/delegated-qa-playback-closeout.json`,
+  `.local/batch-video/live-delegated-qa-story-complete-14e7bce5.png`.
+
+`git diff --check` and targeted Ruff checks passed. The Ruff command excluded
+`I001` and `RUF059`, which were confirmed in the baseline files; no other
+targeted Ruff findings remained. No second full run, unfiltered browser rerun,
+hosted CI, push or product acceptance is claimed. Product/infrastructure/
+coordination time and cost were not separately measured; only the runner times
+above are retained. Older checkpoint statements in this file describe their
+original dates and are superseded only where this closeout states newer evidence.

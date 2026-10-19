@@ -1,13 +1,36 @@
 # Batch video production and workflow completion
 
-Status: locally activated and fully locally qualified at `081d56d4` on October 18, 2026.
-GitHub CI remains held pending a new explicit request directly from Wenjun.
+Status (October 19, 2026): executable source is committed on local `main` at
+`14e7bce5798cef2779b5232098f94311974a2710` and activated on the existing
+installation. Local qualification is composite scoped evidence, not a passing
+full gate. The authorized full run at `bb65510af17b7d9943f8a08969e26f0d7c91b8a8`
+failed two Python tests after 3,412 passed; the later unfiltered 338-case browser
+suite at `446db168cdbf7866f384e87048c955e3a0c0c622` failed three tests after 335
+passed. The exact affected Python and browser selections passed after the fixes,
+and the `14e7bce` wheel build and installed-wheel smoke passed. Neither failed
+full suite was rerun. See the [delegated QA closeout](../verification/2026-10-19-delegated-disposable-qa.md#october-19-correction-composite-qualification-and-activation-closeout)
+for retained logs, fingerprints, artifacts and the wheel hash.
+
+The same installation was restarted and the approved two-clip disposable story
+completed playback after reload, reaching the second clip's final frame without
+a media error. Root inspected all 72 frames in each of the two proposals and
+decoded/analyzed the native AAC signal; no listening or perceptual audio
+certification is claimed.
+Imported ImageGen frames through H3 to browser playback is technical E2E. Native
+automatic-image E2E and owner creative acceptance remain separate; the owner
+story and native QA are paused. Hosted CI/Actions and push were not run. Any
+October 18 CI or publication permission recorded below is historical and
+superseded: current `AGENTS.md` requires a new direct request from Wenjun.
+
 The owner requested execution through Relay direct and gives
 standing approval for separate Relay worker chats, recorded in `AGENTS.md`.
 Actual owner-story generation and human material/video approval remain separate
 explicit actions; implementation approval does not perform them.
 
-## Current implementation checkpoint
+## Historical implementation checkpoint (October 18)
+
+The following checkpoint records its original October 18 state. Where it differs
+from the October 19 status above, the newer closeout is authoritative.
 
 ### Instruction-access recovery and smallest real journey
 
@@ -80,8 +103,9 @@ unchanged. New-build health, eight batch API routes, asset parity and the actual
 batch UI were checked; the temporary blank smoke project was then removed.
 The catalog was empty at that earlier activation checkpoint; the owner story
 and isolated QA projects above now have separate current authority.
-Latest hosted run `39182416805` remains failed; local activation is separate from
-hosted qualification and creative acceptance. See the
+The hosted run `39182416805` was recorded as failed in the October 18 checkpoint;
+the October 19 closeout did not run or recheck hosted CI. Local activation is
+separate from hosted qualification and creative acceptance. See the
 [activation record](../verification/2026-10-18-batch-video-publication-and-activation.md#completed-activation-october-18-2201-edt)
 for exact targets, irreversible deletions, preservation evidence and remaining gaps.
 
@@ -593,13 +617,16 @@ The [checkpoint](../verification/2026-10-18-owned-test-runtime.md) records final
 108-case successes on each platform and retained runtime/absence observations.
 Manager review verified the six source and 14 evidence hashes and independently
 retested the exact 108 cases; independent static review found no actionable issue.
-Normal fast-forward publication and exactly one ordinary unfiltered `ci.yml`
-dispatch on the published SHA are now approved, after executable parity/remote
-ancestry checks. Reuse unchanged local evidence; require both native worker
-proofs, all browser unions/artifacts, owned-runtime preflights and wheel/smoke.
-Stop on failure with preserved evidence and a scoped proposal. No retry, full
-local rerun, product/guard/QA/CI budget/concurrency change, activation, provider/
-live process, owner-data or cleanup action is included; acceptance stays separate.
+That October 18 checkpoint recorded approval for normal fast-forward publication
+and one ordinary unfiltered `ci.yml` dispatch after executable parity and remote
+ancestry checks. This permission is historical and superseded by the direct-
+Wenjun request rule in the current `AGENTS.md`; it grants no present push or CI
+authority, and the October 19 closeout performed neither. The original scoped
+plan required both native worker proofs, all browser unions/artifacts,
+owned-runtime preflights and wheel/smoke, stopping on failure and preserving
+evidence. It did not include retries, a full local rerun, product/guard/QA/CI
+budget/concurrency changes, activation, provider/live process, owner-data or
+cleanup actions; acceptance stayed separate.
 
 ### Passive paid-fixture diagnostics; GitHub CI held
 
