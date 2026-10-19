@@ -1,7 +1,8 @@
 # Batch video production and workflow completion
 
-Status: approved for implementation and the consolidated delivery permissions
-below, 2026-10-18. The owner requested execution through Relay direct and gives
+Status: locally activated at `93441fc1` on October 18, 2026, 22:01 EDT.
+GitHub CI remains held pending a new explicit request directly from Wenjun.
+The owner requested execution through Relay direct and gives
 standing approval for separate Relay worker chats, recorded in `AGENTS.md`.
 Actual owner-story generation and human material/video approval remain separate
 explicit actions; implementation approval does not perform them.
@@ -21,14 +22,20 @@ proof-boundary coverage. Their affected checks pass; see
 and reuse of unaffected full evidence.
 See `docs/verification/2026-10-18-batch-video-production.md` for exact evidence,
 retained failures, measured latency and the live-provider/hosted-CI gaps.
-The manager closed correction review and authorized delivery. Source is published
-at `00773e65`; unfiltered hosted CI was dispatched. One exact incompatible
-cancelled development home was permanently removed through native revocation and
-erasure, with UNKNOWN host facts/reservations preserved. Activation remains
-pending because the other home's native revocation guard cannot prove absence
-of a reused PID/group; the old `7b90bbc7` installation remains healthy. See
-`docs/verification/2026-10-18-batch-video-publication-and-activation.md` for exact
-targets, irreversible deletion, preserved settings, CI state and stopping evidence.
+The manager closed correction review and completed activation of the same
+installation at `93441fc1`; the two latest follow-up commits remain local.
+Both exact incompatible development homes have been permanently removed through
+their supported native paths: earlier explicit revocation/erasure for the
+cancelled home, then ordinary idle permanent deletion for the all-completed A99
+home. No system-service signal, guard bypass, migration or backup was used.
+All host accounting/UNKNOWN capacity and protected settings/credentials remain
+unchanged. New-build health, eight batch API routes, asset parity and the actual
+batch UI were checked; the temporary blank smoke project was then removed.
+The final catalog is empty, so the owner must create a new compatible project.
+Latest hosted run `39182416805` remains failed; local activation is separate from
+hosted qualification and creative acceptance. See the
+[activation record](../verification/2026-10-18-batch-video-publication-and-activation.md#completed-activation-october-18-2201-edt)
+for exact targets, irreversible deletions, preservation evidence and remaining gaps.
 
 ## Outcome and settled choices
 

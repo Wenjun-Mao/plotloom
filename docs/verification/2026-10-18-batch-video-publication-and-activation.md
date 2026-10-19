@@ -1,6 +1,10 @@
 # Batch-video publication and activation attempt, 2026-10-18
 
-Status: source published; activation blocked by the existing native process-group
+Current status: locally activated at `93441fc1` on October 18, 2026, 22:01 EDT.
+See [completed activation](#completed-activation-october-18-2201-edt). Hosted
+qualification remains failed and GitHub CI is held pending Wenjun's direct request.
+
+Initial attempt status: source published; activation blocked by the existing native process-group
 revocation guard. The old installation remains running and healthy. This is not
 an activation, restart, provider-smoke or creative-acceptance receipt.
 
@@ -141,3 +145,96 @@ session provenance and a later UTC ledger update do not provide conclusive
 retrospective proof. No guard change or activation occurred. It also records the
 subsequent hosted CI failure, superseding the in-progress snapshot above without
 changing that historical evidence.
+
+## Completed activation: October 18, 22:01 EDT
+
+The manager completed same-installation activation at
+`2026-10-19T02:01:05Z` (October 18, **22:01:05 EDT**). The deployment checkout
+`/Users/wjmao/projects/HU/plotloom` is clean and detached at
+`93441fc1a2e268959377bb2f18a642b54ce63c73`. This installed revision includes two
+local follow-up commits; no further source publication or GitHub CI occurred.
+The closeout writer verified the retained records and screenshot read-only;
+the live deletion, activation and post-start checks were manager-owned.
+
+### Exact incompatible-data removal
+
+The manager permanently removed **最后一朵花3**, project
+`a99d5422-61fd-4768-89f4-118e82bbed75`, at the exact home:
+
+`/Users/wjmao/projects/HU/plotloom/.local/creator-walkthrough/outputs/20261018T011358571296Z__a99d5422-61fd-4768-89f4-118e82bbed75`
+
+The old build's ordinary native `permanent-delete` route returned **HTTP 204**
+after exact title/revision checks, an exclusive project lease, empty close/native
+specialist blockers, 55 completed host receipts/manifests and no active queue or
+validator. This supported idle-deletion path is distinct from explicit
+abandonment/revocation; see [ADR 0190](../adr/0190-explicit-material-continuation-and-abandonment.md).
+No guard was bypassed or weakened. No backup, migration, isolation, recovery copy
+or manual erasure was introduced. The deletion is unrecoverable.
+
+The old PID/group 90191 was already absent. Later historical numeric identities
+80342 and 87175 belonged to macOS system services and were not signalled. Their
+presence did not require changing the ordinary idle-deletion contract.
+
+### Installation and usability checks
+
+The manager stopped only the workbench through supported `manage.py stop`,
+switched P to the exact revision above, reloaded only
+`com.plotloom.creator-codex-bridge` with `launchctl kickstart -k`, and ran supported
+`manage.py start`. The explicit bridge reload was needed because unchanged
+`host_bridge.py`/plist hashing could otherwise retain already imported helper
+modules. Docker rebuilt and force-recreated its container, then reported healthy.
+
+- New container: `076a982f3ea7329f008cc337249b469cae6a847eceb683be17ed090b36441483`.
+- New owned bridge PID: `1221`; authenticated bridge-health succeeded.
+- Manager-observed `/healthz`: HTTP 200 at localhost:8841,
+  `https://plotloom.tail6040ad.ts.net` and
+  `https://wenjuns-macbook-pro.tail6040ad.ts.net:8443`.
+- OpenAPI exposes eight batch routes: GET base/review and POST
+  setup/draft/directions/start/control/confirm. Served `workbench.js`, the
+  `CreatorWorkflowNavigation` chunk and both CSS assets match installed source bytes.
+- Specialist settings/readiness and the existing enabled/default H3 backend
+  configuration are readable. No provider request was dispatched.
+
+The manager created one temporary blank project,
+`14aa3c1f-af4c-4b31-8b35-bbac7fec2f62`, titled
+**Activation smoke check — no generation**, saved its brief, navigated to
+Storyboard and inspected the actual **批量制作视频** panel. The screenshot retains
+the visible H3 setup controls and missing-storyboard prerequisite. This proves
+installed UI availability, not a generated or approved batch. The temporary
+project was then permanently deleted through the native route, HTTP 204.
+Final project and pending-deletion catalogs are empty; the owner must start a
+new compatible project. No story generation or creative approval occurred.
+
+### Preserved authority and retained evidence
+
+Before/after comparisons prove all five protected credential/settings files
+unchanged in bytes, modes and owners, and **every host table hash unchanged**.
+The ledger retains 79 attempts (78 completed, one UNKNOWN), zero queue/validator
+rows and the original image slot for
+`06e80972-9dde-41ff-be71-b477c1477465`. No remote uncertainty was cleared.
+Every prior application table is unchanged except the removed project's creation
+reservation (one row to zero); the new `video_batch_grants` table is empty.
+
+Evidence remains under `.local/batch-video/`:
+
+| File | Evidence |
+| --- | --- |
+| `activation-resume-before.json` | Pre-action revision, protected-file and table hashes |
+| `activation-resume-after.json` | Installed revision and exact preservation comparisons |
+| `activation-resume-delete-a99.log` | Exact incompatible-project deletion HTTP 204 |
+| `activation-resume-stop.log` | Workbench-only stop |
+| `activation-resume-start.log` | Docker build/recreation, healthy startup and bridge health |
+| `activation-resume-batch-ui.png` | Actual new-build batch panel in the temporary blank project |
+| `activation-resume-smoke-cleanup.log` | Temporary-project deletion HTTP 204 |
+
+The before/after JSON SHA-256 values are respectively
+`7fa61ca30a5a376c08473f93fe27ffc7d0ee96081db92137dcb95d9fcaef63db` and
+`cc36c00b8ad745423f7e16eb79d0af7a88e849a54621fd2201d7806dfc1e4a47`.
+
+Activation does not qualify the failed hosted suite. Latest ordinary run
+[39182416805](https://github.com/Wenjun-Mao/plotloom/actions/runs/39182416805)
+remains **failed**: 3,297 Python passed, one failed and one teardown error;
+338 browser cases passed; wheel and installed-wheel smoke were skipped. The
+paid-fixture cause remains unproven. No new full gate, hosted CI, provider smoke
+or creative acceptance is claimed. GitHub CI preparation, dispatch and publication
+remain held under the explicit-user-only gate; this closeout is documentation only.

@@ -19,6 +19,12 @@ the manager to verify and gracefully stop only the exact idle CUA helper
 identified as PID 90191, conditional on ownership, inactivity and no uncertain
 impact on other work. Guard bypass and broader app/process shutdown remain
 excluded; this approval is separate from source qualification and activation.
+The same installation is now locally activated at `93441fc1` (October 18,
+22:01 EDT), after supported exact incompatible-project deletion. Settings and
+UNKNOWN accounting are preserved; the catalog is empty for a fresh compatible
+project. See the [activation closeout](../verification/2026-10-18-batch-video-publication-and-activation.md#completed-activation-october-18-2201-edt).
+Hosted qualification remains failed and GitHub CI is held pending Wenjun's direct
+request. No owner-story generation or creative approval occurred.
 
 ## Approved whole-pack gallery approval
 
