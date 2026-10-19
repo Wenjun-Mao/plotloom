@@ -2,6 +2,30 @@
 
 Status: accepted implementation decision, 2026-10-19
 
+## Prospective provider-budget policy amendment · 2026-10-19
+
+The owner requests unlimited provider budgets by default unless he specifies a
+finite cap. This applies prospectively within already-authorized development/test
+work using Codex ImageGen and the owner's H3 gateway. It does not authorize new
+providers, real-story changes or endless experimentation/retries. Use the
+smallest useful test and retain a finite task outcome.
+
+This preference is not yet implemented as an uncapped runtime contract. Normal
+image/autopilot and video-batch limits, and the initial QA grant below, are still
+numeric. The proposed implementation must express unlimited explicitly (nullable
+aggregate limits, not an arbitrary large integer), preserve explicit finite
+overrides and freeze the chosen policy in new runs/manifests and prospective QA
+authority. Existing finite grants and their evidence must not be rewritten or
+silently widened; the completed initial two-submission/ten-second grant remains
+historical and enforced as authored.
+
+An unlimited aggregate budget does not remove exact project/material/provider
+scope, runtime-incarnation grants, usage accounting, per-request duration/shape
+contracts, concurrency limits, idempotency, pause/cancel controls or UNKNOWN and
+unsettled-dispatch protection. Provider/account quotas remain external limits.
+No runtime, live grant, ledger, dispatch or provider setting changes accompany
+this documentation amendment.
+
 ## Problem
 
 The owner explicitly delegated disposable-QA material inspection, test acceptance

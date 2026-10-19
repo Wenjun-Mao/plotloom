@@ -1,5 +1,11 @@
 # Batch video production and workflow completion
 
+Release-policy update (October 19, 2026): [ADR 0199](../adr/0199-local-release-qualification.md)
+removes hosted CI as a stable/general-availability release requirement. GitHub
+Actions still requires Wenjun's new explicit request. Older mandatory-hosted
+wording below is historical; failed results remain failed, while applicable
+local qualification, exact-package and product acceptance checks remain.
+
 Status (October 19, 2026): executable source is committed on local `main` at
 `14e7bce5798cef2779b5232098f94311974a2710` and activated on the existing
 installation. Local qualification is composite scoped evidence, not a passing

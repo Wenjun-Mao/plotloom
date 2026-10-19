@@ -357,7 +357,8 @@ Choose `contract` for affected backend/frontend unit and integration contracts,
 `browser` for affected user journeys, and `complete` when all of one or more
 owners' test suites and their declared shared gates should run. A module result
 is scoped development evidence. It does not qualify the full local release
-candidate or replace required unfiltered hosted CI.
+candidate. Hosted CI is optional, not a stable/general-availability release
+prerequisite; see [ADR 0199](adr/0199-local-release-qualification.md).
 
 `full` runs the complete Python, frontend, archived-reader and unfiltered
 browser suites; application type contracts; scoped lint and lock checks; the
@@ -442,9 +443,12 @@ selected tests during edits. If the diff changes one of the contracts or
 dependencies above, broadens into a cross-layer runtime/refactor, or leaves
 impact uncertain, run the complete unfiltered `full` gate instead.
 
-Required hosted CI remains unfiltered and separate from this local result.
-Report it as pending until it passes; local frontend qualification is not full
-local release qualification or product acceptance. Reuse evidence for
+Hosted CI is optional and separate from this local result. It requires Wenjun's
+new explicit request; an unrequested run is not a pending release blocker.
+If complete hosted qualification is explicitly requested, retain its unfiltered
+coverage and report the actual outcome. Historical failures stay failed, and
+concrete unresolved defects still need resolution. Local frontend qualification
+is not full local release qualification or product acceptance. Reuse evidence for
 unchanged source/dependency inputs. After diagnosing a failed step, rerun that
 step and its affected downstream checks; invalidate earlier evidence only when
 the inputs it covers changed. Do not repeat expensive unaffected integration

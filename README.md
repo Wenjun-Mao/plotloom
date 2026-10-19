@@ -124,9 +124,13 @@ uv run --locked --no-sync python scripts/verify.py full
 改动的所有者映射到显式测试选择。`module` 从已审查的所有权表展开 `contract`、
 `browser` 或 `complete` 选择，并先检查完整原生测试集合的唯一归属；`--show`
 只显示选择计划。模块结果仍是局部开发证据。`full` 运行完整本地套件，拒绝会缩小选择的
-环境过滤器；它也不代表产品或创意接受。手动 CI 默认以 `browser_grep=.*`
-执行完整发布检查；浏览器测试在四个独立 runner 上各用一个 worker 并保留报告。
-其他正则只用于诊断，不能替代完整发布验收。见
+环境过滤器；它也不代表产品或创意接受。稳定／正式发布不要求 GitHub Actions
+或其他托管 CI；仍须完成适用的本地验证、实际发布包安装与受支持工作流验收。
+托管 CI 仅在 Wenjun 新的明确请求后运行，未请求不算发布阻塞项；历史失败不会
+因此变为通过，尚未解决的实际缺陷仍须处理。见
+[ADR 0199](docs/adr/0199-local-release-qualification.md)。如明确请求完整托管验证，
+手动 CI 默认的 `browser_grep=.*` 覆盖完整浏览器集合；其他正则只算诊断，不能
+声称完整托管验证通过。运行边界见
 [ADR 0109](docs/adr/0109-bounded-browser-ci-evidence.md)。
 
 对已保存文本 profile 的真实四阶段验收与 secret-free 回执，见
