@@ -33,6 +33,36 @@ standing approval for separate Relay worker chats, recorded in `AGENTS.md`.
 Actual owner-story generation and human material/video approval remain separate
 explicit actions; implementation approval does not perform them.
 
+## Approved prospective aggregate-budget implementation (October 19)
+
+Wenjun agreed to unlimited-by-default aggregate budgets for new already-authorized
+Codex ImageGen/H3 development/test work, with explicit optional finite caps.
+Root cause: numeric-only aggregate budget fields conflated expenditure policy
+with provider capability and structural safety. Change the owning launch, frozen
+policy, batch setup, admission/controller, persistence and UI contracts together.
+Author/operator owns the chosen cap; trusted code validates, freezes and enforces
+it; models neither choose nor widen it. No prompt/response ownership changes.
+
+Smallest observable journey: create one temporary current-format project through
+existing test fixture helpers, use the local UI and real API to prepare a missing
+video manifest with null limits, reload/read its persisted hash and caps, then
+repeat with explicit finite caps and prove preflight refusal. Stop before English
+authorization or provider dispatch. Test transport is local; no provider output or
+creative acceptance is claimed. Test fixture teardown owns temporary data; no live
+project, grant binding, queue, installation or service is touched. Provider spend
+is zero and the journey has finite steps despite uncapped aggregate policy.
+
+First checkpoint: focused contract/regression tests, provider-free local
+UI/API/persistence evidence, deterministic checked frontend assets and a coherent
+commit on retained main. Stop for the manager's independent stable review before
+full qualification. Explicit finite exhaustion, failed/UNKNOWN accounting and
+unsettled fencing remain regression requirements. Existing frozen policy,
+manifest and grant values/hashes stay exact; the completed QA fixture stays 2/10.
+No new source-owned live scope, enrollment framework, provider, compatibility
+layer, migration, activation, publication or GitHub CI is authorized here.
+The [first source checkpoint](../verification/2026-10-19-optional-provider-budgets.md)
+records implementation, scoped checks and the manager-review stopping point.
+
 ## Historical implementation checkpoint (October 18)
 
 The following checkpoint records its original October 18 state. Where it differs

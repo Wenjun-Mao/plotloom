@@ -307,7 +307,8 @@
           "tests/test_video_batch_adoption.py",
           "tests/test_video_batch_review.py",
           "tests/test_video_batch_realistic_pack.py",
-          "tests/test_delegated_qa.py"
+          "tests/test_delegated_qa.py",
+          "tests/test_provider_budgets.py"
         ],
         "vitest": [
           "frontend/tests/art-reference-preparation.test.ts",
@@ -365,7 +366,8 @@
           "frontend/tests/video-end-frame.test.ts",
           "frontend/tests/video-pilot-playback.test.ts",
           "frontend/tests/video-segment-reopen-wording.test.ts",
-          "frontend/tests/delegated-qa-attribution.test.ts"
+          "frontend/tests/delegated-qa-attribution.test.ts",
+          "frontend/tests/provider-budgets.test.ts"
         ],
         "playwright": [
           "frontend/e2e/archived-play-guidance.spec.ts",

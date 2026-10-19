@@ -1,6 +1,7 @@
 """Serial native initial images and separately authorized local geometry."""
 from sqlalchemy import select
 
+from .provider_budgets import exceeds_budget
 from .autopilot_brief_style import image_style_guidance
 from .autopilot_contracts import (
     POLICY_VERSION,
@@ -108,7 +109,7 @@ class AutopilotImageController:
     def prepare(self, store, view, claim, subject, inventory, key, *, initial_result=None):
         require_job_capacity(view)
         image_count = max(view.lifetime_images, sum(item["evidence"]["owner"] in IMAGE_METHODS for item in view.checkpoints))
-        if image_count >= view.policy.max_images:
+        if exceeds_budget(image_count + 1, view.policy.max_images):
             raise InvalidTransitionError("达到冻结图片上限；不能新增适配，请接管已保留的素材。")
         with self.command(store, view, claim, OperationScope.IMAGE):
             frozen_brief = ProjectBrief.model_validate(view.policy.brief)

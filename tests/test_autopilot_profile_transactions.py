@@ -64,7 +64,7 @@ def test_policy_drift_matches_public_observations_without_forcing_visibility(
             original = writer.execute("SELECT policy FROM v2_autopilot_runs WHERE id=?", (graph.run_id,)).fetchone()[0]
             value = json.loads(original)
             if change == "unrelated":
-                value["maxJobs"] += 1
+                value["maxJobs"] = 97
             elif change == "invalid-profile":
                 value["executorBinding"]["model"] = "sk-proj-privatecredential"
             changed = "{" if change == "malformed-json" else json.dumps(value)

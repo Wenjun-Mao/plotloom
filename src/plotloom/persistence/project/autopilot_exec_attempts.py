@@ -1,6 +1,7 @@
 """Immutable CLI job reservations and receipt settlement in the run owner."""
 from sqlalchemy import and_, func, or_, select
 
+from ...provider_budgets import exceeds_budget
 from ...autopilot_contracts import CheckpointEvidence, LaunchPolicy, OperationScope
 from ...codex_exec_contracts import (
     CodexExecAttempt,
@@ -99,7 +100,7 @@ class AutopilotExecPersistence:
                     AutopilotExecAttemptRow.domain == "image",
                     AutopilotExecAttemptRow.image_budget_state.in_({"reserved", "consumed"}),
                 )) or 0
-                if reserved + attempt.reserved_image_outputs > policy.max_images:
+                if exceeds_budget(reserved + attempt.reserved_image_outputs, policy.max_images):
                     raise InvalidTransitionError("CLI image reservation exceeds the frozen run image budget")
             pending = session.scalar(select(AutopilotExecAttemptRow.id).join(
                 AutopilotCheckpointRow,

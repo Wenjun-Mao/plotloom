@@ -21,8 +21,14 @@ class DelegatedQaScope:
     storyboard_hash: str
     materials: tuple[QaMaterial, ...]
     profile_id: str
-    max_submissions: int
-    max_requested_seconds: int
+    max_submissions: int | None = None
+    max_requested_seconds: int | None = None
+
+    def __post_init__(self):
+        for name, minimum in (("max_submissions", 1), ("max_requested_seconds", 5)):
+            value = getattr(self, name)
+            if value is not None and (type(value) is not int or value < minimum):
+                raise ValueError(f"{name} must be null or an integer >= {minimum}")
 
 
 # This immutable fixture grant is intentionally narrow. Extending it requires a

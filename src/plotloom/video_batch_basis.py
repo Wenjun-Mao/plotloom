@@ -1,5 +1,6 @@
 """Shared exact batch-direction authority at preparation and dispatch readers."""
 import re
+from .provider_budgets import exceeds_budget
 from .exceptions import InvalidTransitionError
 from .persistence.codec import stable_hash
 from .persistence.schema import VideoBatchRow
@@ -96,5 +97,5 @@ def assert_batch_dispatch_scope(session, project_id, video_job_id):
         raise InvalidTransitionError("adopted batch prompt differs from the displayed manifest")
     additional = 0 if video_job_id in spent else 1
     seconds = sum(jobs[identifier].requested_seconds for identifier in spent) + (candidate.requested_seconds if additional else 0)
-    if len(spent) + additional > manifest["setup"]["maxJobs"] or seconds > manifest["setup"]["maxRequestedSeconds"]:
+    if exceeds_budget(len(spent) + additional, manifest["setup"]["maxJobs"]) or exceeds_budget(seconds, manifest["setup"]["maxRequestedSeconds"]):
         raise InvalidTransitionError("batch dispatch cap is exhausted")

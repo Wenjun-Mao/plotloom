@@ -3,6 +3,7 @@ from typing import Literal
 
 from pydantic import Field, model_validator
 
+from .provider_budgets import exceeds_budget
 from .autopilot_contracts import ProvisionalFrame
 from .contract_hash import stable_hash
 from .domain import CamelModel, StageName
@@ -88,7 +89,7 @@ def initial_inventory(store, policy, *, enforce_limits=True):
         inventory = MaterialInventory(entity_revision_id=head.entity_revision_id, storyboard_revision=head.revision,
             storyboard_hash=head.content_hash, production_hash=production_closure(session, store.manifest.project_id),
             cast_revision=cast.revision, art_revision=art.revision, subjects=subjects, route_count=len(routes))
-    if enforce_limits and (len(subjects) > policy.max_images or len(subjects) + 8 > policy.max_jobs):
+    if enforce_limits and (exceeds_budget(len(subjects), policy.max_images) or exceeds_budget(len(subjects) + 8, policy.max_jobs)):
         raise InvalidTransitionError("完整素材包超过冻结图片或任务上限；停止新增任务，已保留参考候选供你接管检查范围。")
     return inventory
 

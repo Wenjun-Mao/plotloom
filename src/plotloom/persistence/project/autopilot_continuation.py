@@ -1,6 +1,7 @@
 """New future authority with exact, validated historical material origins."""
 from sqlalchemy import select
 
+from ...provider_budgets import exceeds_budget
 from ...autopilot_contracts import POLICY_VERSION, CheckpointEvidence, LaunchPolicy
 from ...domain import new_id, utc_now
 from ...exceptions import InvalidTransitionError, RevisionConflictError
@@ -78,7 +79,7 @@ class AutopilotContinuationPersistence:
                 raise InvalidTransitionError("；".join(context["blockers"]))
             if policy.version != POLICY_VERSION or policy.brief != project.brief:
                 raise InvalidTransitionError("继续必须绑定当前已保存简报和新的冻结执行权限。")
-            if policy.max_jobs <= context["lifetimeJobs"] or policy.max_images < context["lifetimeImages"]:
+            if exceeds_budget(context["lifetimeJobs"] + 1, policy.max_jobs) or exceeds_budget(context["lifetimeImages"], policy.max_images):
                 raise InvalidTransitionError("新的项目总上限必须涵盖原任务和剩余素材。")
             previous_policy = LaunchPolicy.model_validate(parent.policy)
             if (policy.image_width, policy.image_height, policy.effective_style_authority,

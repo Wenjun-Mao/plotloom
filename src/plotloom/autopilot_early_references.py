@@ -3,6 +3,7 @@ from typing import Literal
 
 from pydantic import Field
 
+from .provider_budgets import exceeds_budget
 from .autopilot_contracts import POLICY_VERSION
 from .autopilot_materials import MaterialSubject, cast_reference_subjects
 from .domain import CamelModel, StageName
@@ -46,7 +47,7 @@ def discover_early_references(store, view):
         reachable = {node for route in complete_routes(graph) for node in route}
         filmed = sum(node.id in reachable and node.footage_mode == "footage" for node in graph.nodes)
     lower_bound = len(cast_subjects) + len(art_subjects) + filmed
-    if lower_bound > view.policy.max_images or lower_bound + 8 > view.policy.max_jobs:
+    if exceeds_budget(lower_bound, view.policy.max_images) or exceeds_budget(lower_bound + 8, view.policy.max_jobs):
         raise InvalidTransitionError("已知必需参考与拍摄素材超过冻结上限；停止新增任务，保留已有候选供你接管。")
     eligible = cast_subjects[:2] + art_subjects + cast_subjects[2:] if art is not None else cast_subjects[:2]
     return EarlyReferenceDiscovery(cast_revision=cast.revision, cast_hash=cast.content_hash,

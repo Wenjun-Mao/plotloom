@@ -1,6 +1,7 @@
 """QA-specific fences at the existing batch, dispatch and receipt owners."""
 from sqlalchemy import select
 
+from .provider_budgets import exceeds_budget, budget_within_authority
 from .delegated_qa import (
     attribution_for_reviewer,
     binding_attribution,
@@ -58,8 +59,8 @@ def assert_manifest_actor(store, manifest, attribution):
         if actor:
             scope = require_qa_write(session, store.manifest.project_id, actor)
             if (manifest["setup"]["profileId"] != scope.profile_id
-                    or manifest["setup"]["maxJobs"] > scope.max_submissions
-                    or manifest["setup"]["maxRequestedSeconds"] > scope.max_requested_seconds
+                    or not budget_within_authority(manifest["setup"]["maxJobs"], scope.max_submissions)
+                    or not budget_within_authority(manifest["setup"]["maxRequestedSeconds"], scope.max_requested_seconds)
                     or manifest["scopeShotIds"] != sorted(item.shot_id for item in scope.materials)):
                 raise InvalidTransitionError("QA batch exceeds the granted profile, shots or caps")
             for target in manifest["targets"]:
@@ -85,7 +86,7 @@ def assert_dispatch(session, project_id, job):
         ProjectVideoDispatchRow.video_job_id == VideoJobRow.id).where(VideoJobRow.project_id == project_id)).all()
     counted = {item.id: item for item in claimed}
     counted[job.id] = job
-    if len(counted) > scope.max_submissions or sum(item.requested_seconds for item in counted.values()) > scope.max_requested_seconds:
+    if exceeds_budget(len(counted), scope.max_submissions) or exceeds_budget(sum(item.requested_seconds for item in counted.values()), scope.max_requested_seconds):
         raise InvalidTransitionError("cumulative QA submission or requested-seconds cap exhausted")
     if any(item.id != job.id and item.state in {"dispatching", "submitted", "retrieve_needed", "outcome_unknown"} for item in claimed):
         raise InvalidTransitionError("unsettled QA dispatch blocks another submission")

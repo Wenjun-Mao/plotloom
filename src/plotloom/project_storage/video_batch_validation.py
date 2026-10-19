@@ -1,5 +1,6 @@
 """Current-format batch evidence admission; no dispatch or inferred approval."""
 import json
+from ..provider_budgets import exceeds_budget, budget_within_authority
 from ..exceptions import InvalidTransitionError
 from ..persistence.codec import stable_hash
 from ..video_batch_contracts import BatchSetup, BatchDirectionsTarget
@@ -44,14 +45,14 @@ def assert_video_batch_contracts(connection):
                     if compile_i2va_prompt(target["snapshot"], target["directions"], draft=True) != target["compiledPrompt"]:
                         raise ValueError("batch compiled prompt changed")
             if execution.get("authorizedManifestHash") is not None and (execution["authorizedManifestHash"] != digest or manifest["blockers"]
-                    or manifest["newJobs"] > setup.max_jobs or manifest["requestedSeconds"] > setup.max_requested_seconds):
+                    or exceeds_budget(manifest["newJobs"], setup.max_jobs) or exceeds_budget(manifest["requestedSeconds"], setup.max_requested_seconds)):
                 raise ValueError("batch authorization or limits changed")
             if execution.get("reviewAttribution"):
                 from ..delegated_qa import require_scope
                 from ..delegated_qa_video import assert_snapshot
                 scope = require_scope(project_id, execution["reviewAttribution"])
-                if (not execution.get("authorizedManifestHash") or setup.max_jobs > scope.max_submissions
-                        or setup.max_requested_seconds > scope.max_requested_seconds or setup.profile_id != scope.profile_id
+                if (not execution.get("authorizedManifestHash") or not budget_within_authority(setup.max_jobs, scope.max_submissions)
+                        or not budget_within_authority(setup.max_requested_seconds, scope.max_requested_seconds) or setup.profile_id != scope.profile_id
                         or manifest["scopeShotIds"] != sorted(item.shot_id for item in scope.materials)):
                     raise ValueError("QA batch scope changed")
                 for target in manifest["targets"]:

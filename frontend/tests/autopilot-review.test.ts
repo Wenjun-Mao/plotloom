@@ -234,7 +234,7 @@ it("submits explicit Brief authority by default and blocks a duplicate slow Star
   expect(pending.getAttribute("aria-busy")).toBe("true");
   expect(pending.querySelector(".autopilot-activity-indicator")).not.toBeNull();
   expect(start).toHaveBeenCalledOnce();
-  expect(start.mock.calls[0][1]).toMatchObject({ styleAuthority: "brief", maxImages: 80, maxJobs: 96 });
+  expect(start.mock.calls[0][1]).toMatchObject({ styleAuthority: "brief", maxImages: null, maxJobs: null });
   await act(async () => release(fixtureRun));
 });
 it("does not offer another Start while a rejected or unknown Start is being reconciled", async () => {

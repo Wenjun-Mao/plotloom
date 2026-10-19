@@ -13,7 +13,7 @@ from plotloom.video_batch_contracts import BatchControl, BatchSetup, BatchStart
 from tests.video_batch_fixtures import batch_environment, ready_batch
 
 
-def qa_environment(tmp_path, monkeypatch):
+def qa_environment(tmp_path, monkeypatch, *, limits="finite"):
     storage, client, service, provider, project, old = batch_environment(tmp_path)
     targets = old["manifest"]["targets"]
     with closing(storage.projects.open(project)) as store:
@@ -21,7 +21,8 @@ def qa_environment(tmp_path, monkeypatch):
         scope = DelegatedQaScope(id="synthetic-test-scope", project_id=project, storyboard_hash=head.content_hash,
             materials=tuple(QaMaterial(item["shotId"], item["snapshot"]["keyframe"]["assetId"],
                 item["snapshot"]["keyframe"]["originalHash"]) for item in targets),
-            profile_id=old["manifest"]["setup"]["profileId"], max_submissions=len(targets), max_requested_seconds=5*len(targets))
+            profile_id=old["manifest"]["setup"]["profileId"], max_submissions=len(targets) if limits == "finite" else limits[0],
+            max_requested_seconds=5*len(targets) if limits == "finite" else limits[1])
         monkeypatch.setattr(delegated_qa, "SCOPES", (scope,))
         bind_original_qa_scope(store, storage.application)
         actor = AgentQaAttribution(scope_id=scope.id)

@@ -5,6 +5,7 @@ import { plotloomApi } from "../../api";
 import type { VideoBackend } from "../../types";
 import { useCompletionReveal, revealWorkspaceTarget } from "../../app/workspace/completionReveal";
 import { MiniMaxH3ProfileField, MiniMaxH3QualityField, h3Profiles } from "../../video-backends/minimax-h3";
+import { AggregateBudget, budgetSummary, parseBudget, type BudgetInput } from "../../components/AggregateBudget";
 import { batchApi } from "./api";
 import type { Batch, Direction } from "./contracts";
 import { VideoBatchReview } from "./VideoBatchReview";
@@ -20,7 +21,9 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
   const [setupMode, setSetupMode] = useState(false);
   const readIdentity = useRef<string | undefined>(undefined);
   const [profile, setProfile] = useState(""); const [aspect, setAspect] = useState("reject_mismatch");
-  const [maxJobs, setMaxJobs] = useState(64); const [maxSeconds, setMaxSeconds] = useState(512);
+  const [maxJobs, setMaxJobs] = useState<BudgetInput>(null); const [maxSeconds, setMaxSeconds] = useState<BudgetInput>(null);
+  const jobLimit = parseBudget(maxJobs, 1); const secondsLimit = parseBudget(maxSeconds, 5);
+  function resetBudgets() { setMaxJobs(null); setMaxSeconds(null); }
   const [error, setError] = useState(""); const [busy, setBusy] = useState(""); const [review, setReview] = useState(false);
   const [ready, setReady] = useState(false); const [epoch, setEpoch] = useState(0);
   const [edits, setEdits] = useState<Record<string, Direction[]>>({}); const command = useRef(false);
@@ -34,7 +37,7 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
     previous.current = batch?.state;
   }, [batch?.state]);
   useEffect(() => {
-    if (readIdentity.current !== projectId) { readIdentity.current = projectId; setBatch(null); setReady(false); setReview(false); setEdits({}); setSetupMode(false); }
+    if (readIdentity.current !== projectId) { readIdentity.current = projectId; setBatch(null); setReady(false); setReview(false); setEdits({}); setSetupMode(false); resetBudgets(); }
     if (!projectId) return;
     const abort = new AbortController(); let timer: ReturnType<typeof setTimeout>;
     const refresh = async () => {
@@ -77,15 +80,15 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
       <MiniMaxH3ProfileField profiles={h3Profiles(backend)} value={profile} onChange={setProfile} disabled={locked} />
       <Field label="输入首尾帧的比例处理"><select value={aspect} disabled={locked} onChange={event => setAspect(event.target.value)}>
         <option value="reject_mismatch">比例不符则阻止</option><option value="contain_pad">明确允许网关填边</option><option value="cover_center_crop">明确允许网关居中裁剪</option></select></Field>
-      <Field label="最多新视频任务"><input type="number" min={1} max={64} value={maxJobs} disabled={locked} onChange={event => setMaxJobs(Number(event.target.value))} /></Field>
-      <Field label="最多请求源秒数"><input type="number" min={5} max={512} value={maxSeconds} disabled={locked} onChange={event => setMaxSeconds(Number(event.target.value))} /></Field>
-    </div><p>默认串行，每个缺失镜头最多尝试一次。此处只准备清单；不会发送 H3 作业。无可靠货币估价，以下按任务及请求秒数计量。</p>
-      <Button variant="primary" disabled={locked || !backend?.enabled || !profile} onClick={() => void execute("正在核对全部路线与已有任务", "setup", { profileId: profile, aspectPolicy: aspect, maxJobs, maxRequestedSeconds: maxSeconds })}>批量生成缺失视频</Button>
+      <AggregateBudget label="最多新视频任务" value={maxJobs} minimum={1} disabled={locked} onChange={setMaxJobs} />
+      <AggregateBudget label="最多请求源秒数" value={maxSeconds} minimum={5} disabled={locked} onChange={setMaxSeconds} />
+    </div><p>总预算默认不限；可分别设置任务与源秒上限。默认串行，每个缺失镜头最多尝试一次。此处只准备清单；不会发送 H3 作业。无可靠货币估价，以下按任务及请求秒数计量。</p>
+      <Button variant="primary" disabled={locked || !backend?.enabled || !profile || jobLimit === undefined || secondsLimit === undefined} onClick={() => { if (jobLimit !== undefined && secondsLimit !== undefined) void execute("正在核对全部路线与已有任务", "setup", { profileId: profile, aspectPolicy: aspect, maxJobs: jobLimit, maxRequestedSeconds: secondsLimit }); }}>批量生成缺失视频</Button>
       {!backend?.enabled && <p>H3 后端尚未配置或不可用；可继续使用手动制作查看已有任务。</p>}</>}
     {batch && !setupMode && <><h3>{statusLabel}</h3>
       {batch.execution.reviewAttribution?.kind === "agent_operated_qa" && <p role="status">{humanReviewLabel({ reviewer: "", attribution: batch.execution.reviewAttribution })} · 一次性测试批次</p>}
       <p>{batch.manifest.scopeShotIds.length} 个唯一镜头 · 保留 {batch.manifest.kept.length} 个已选视频 · {batch.manifest.targets.filter(item => item.mode === "reuse").length} 个复用候选 · 计划新作业 {batch.manifest.newJobs} 项 · 请求 {batch.manifest.requestedSeconds} 源秒</p>
-      <p>规格 {batch.manifest.setup.profileId} · 原生音频 · 比例处理 {batch.manifest.setup.aspectPolicy} · 上限 {batch.manifest.setup.maxJobs} 项 / {batch.manifest.setup.maxRequestedSeconds} 秒 · 最多同时 1 项</p>
+      <p>规格 {batch.manifest.setup.profileId} · 原生音频 · 比例处理 {batch.manifest.setup.aspectPolicy} · 任务上限 {budgetSummary(batch.manifest.setup.maxJobs, "项")} / 源秒上限 {budgetSummary(batch.manifest.setup.maxRequestedSeconds, "秒")} · 最多同时 1 项</p>
       {batch.execution.error && <p role="alert">{batch.execution.error}</p>}
       {batch.manifest.blockers.map((item, index) => <p role="alert" key={index}>{item.shotId} · {item.message}</p>)}
       <details><summary>审阅全部英文方向、源时长与编译提示词</summary>
@@ -104,7 +107,7 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
         draft: { version: "video-directions.draft.v1", targets: batch.manifest.targets.filter(item => item.mode === "generate").map(item => ({ shotId: item.shotId, sourceHash: item.sourceHash, fields: edits[item.shotId] || item.directions?.fields || [] })) } })}>保存英文方向并更新提示词</Button>}
       <section id="video-batch-next-action" aria-label="视频制作下一步">
       <p role="status">{statusLabel}{batch.progress && ` · 播放提案就绪 ${batch.progress.ready}/${batch.progress.total} · 失败 ${batch.progress.failed} · 不确定或阻碍 ${batch.progress.blocked}`}</p><div className="button-row">
-        {["cancelled", "approved"].includes(batch.state) && <Button disabled={controlLocked} onClick={() => setSetupMode(true)}>准备新的缺失视频清单</Button>}
+        {["cancelled", "approved"].includes(batch.state) && <Button disabled={controlLocked} onClick={() => { resetBudgets(); setSetupMode(true); }}>准备新的缺失视频清单</Button>}
         {batch.state === "setup" && <Button disabled={locked || !!batch.manifest.blockers.length} onClick={() => void execute("正在准备完整英文方向任务", "draft", { expectedRevision: batch.revision })}>用助手准备全部英文方向</Button>}
         {batch.state === "ready" && <Button variant="primary" disabled={locked || edited} onClick={() => void execute("正在冻结已审阅清单并开始制作", "start", { expectedRevision: batch.revision, manifestHash: batch.manifestHash, basis: "whole-batch-english.v1" }, true)}>开始批量制作</Button>}
         {["running", "drafting"].includes(batch.state) && <Button disabled={controlLocked} onClick={() => void execute("正在暂停新派发", "control", { batchId: batch.id, expectedControlRevision: batch.controlRevision, action: "pause" })}>暂停新派发</Button>}

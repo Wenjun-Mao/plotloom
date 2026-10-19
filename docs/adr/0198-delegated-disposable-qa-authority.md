@@ -10,21 +10,22 @@ work using Codex ImageGen and the owner's H3 gateway. It does not authorize new
 providers, real-story changes or endless experimentation/retries. Use the
 smallest useful test and retain a finite task outcome.
 
-This preference is not yet implemented as an uncapped runtime contract. Normal
-image/autopilot and video-batch limits, and the initial QA grant below, are still
-numeric. The proposed implementation must express unlimited explicitly (nullable
-aggregate limits, not an arbitrary large integer), preserve explicit finite
-overrides and freeze the chosen policy in new runs/manifests and prospective QA
-authority. Existing finite grants and their evidence must not be rewritten or
-silently widened; the completed initial two-submission/ten-second grant remains
+The source contract implements this preference with nullable aggregate limits
+(see [ADR 0200](0200-optional-aggregate-provider-budgets.md)). New launch policies
+and batch manifests freeze null for unlimited by default, or explicit finite
+integer caps. Prospective source-owned QA scopes can independently leave either
+aggregate cap null. A finite QA scope refuses a null or larger batch cap; an
+uncapped scope still requires its exact project/material/profile/runtime grant.
+No new live QA scope is added by this implementation. Existing finite grants and
+their evidence must not be rewritten or silently widened; the completed initial two-submission/ten-second grant remains
 historical and enforced as authored.
 
 An unlimited aggregate budget does not remove exact project/material/provider
 scope, runtime-incarnation grants, usage accounting, per-request duration/shape
 contracts, concurrency limits, idempotency, pause/cancel controls or UNKNOWN and
 unsettled-dispatch protection. Provider/account quotas remain external limits.
-No runtime, live grant, ledger, dispatch or provider setting changes accompany
-this documentation amendment.
+This source change does not bind a live grant, alter a ledger/provider setting,
+dispatch work or change retained runtime data; activation is separate.
 
 ## Problem
 

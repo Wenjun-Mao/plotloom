@@ -1,6 +1,6 @@
 """Missing-only all-route inventory and exact source/settings preflight."""
-from hashlib import sha256
 from secrets import randbits
+from .provider_budgets import exceeds_budget
 from .domain import StageName
 from .exceptions import InvalidTransitionError
 from .persistence.codec import stable_hash
@@ -99,7 +99,7 @@ def inventory(store, video, setup):
             blockers.append({"shotId": shot.id, "message": str(error)})
     new_targets = [item for item in targets if item["mode"] in {"generate", "prepared"}]
     seconds = sum(item["requestedSeconds"] for item in new_targets)
-    if len(new_targets) > setup.max_jobs or seconds > setup.max_requested_seconds:
+    if exceeds_budget(len(new_targets), setup.max_jobs) or exceeds_budget(seconds, setup.max_requested_seconds):
         blockers.append({"shotId": "", "message": "完整清单超过本次任务或请求秒数上限；未发送视频任务。"})
     return {"version": "video-batch.manifest.v1", "projectId": project_id, "sourceBinding": source_binding(store),
         "setup": setup.model_dump(mode="json", by_alias=True), "scopeShotIds": sorted(seen), "kept": kept,
@@ -141,5 +141,5 @@ def validate_manifest(store, video, manifest, *, compiled=True, links=None):
     if manifest["newJobs"] != len(planned) or manifest["requestedSeconds"] != sum(target["requestedSeconds"] for target in planned):
         raise InvalidTransitionError("frozen batch workload counts differ from its exact targets")
     setup = manifest["setup"]
-    if manifest["newJobs"] > setup["maxJobs"] or manifest["requestedSeconds"] > setup["maxRequestedSeconds"]:
+    if exceeds_budget(manifest["newJobs"], setup["maxJobs"]) or exceeds_budget(manifest["requestedSeconds"], setup["maxRequestedSeconds"]):
         raise InvalidTransitionError("batch workload exceeds frozen limits")

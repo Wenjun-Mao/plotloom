@@ -66,7 +66,9 @@ test("one saved-Brief Start freezes explicit styles and ceilings without videos"
   await page.getByRole("button", { name: "自动准备素材", exact: true }).click();
   await expect(page.getByText("由 Codex 执行文字与图片任务", { exact: false })).toBeVisible();
   await expect(page.getByText("2D 动画；水彩；低饱和", { exact: true })).toBeVisible();
-  await page.getByLabel("最多图片数").fill("40"); await page.getByLabel("最多任务数").fill("56");
+  await page.getByLabel("最多图片数预算").selectOption("finite");
+  await page.getByLabel("最多任务数预算").selectOption("finite");
+  await page.getByLabel("最多图片数", { exact: true }).fill("40"); await page.getByLabel("最多任务数", { exact: true }).fill("56");
   await page.getByRole("button", { name: "开始准备已保存简报的素材" }).click();
   await expect(page.getByRole("button", { name: "暂停", exact: true })).toBeVisible();
   const writes = JSON.parse(await page.locator("#fixture-writes").textContent() || "[]");

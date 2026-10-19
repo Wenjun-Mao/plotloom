@@ -6,7 +6,7 @@ export type Target = { shotId: string; title: string; mode: "generate" | "prepar
   authoredDurationUnits: number; requestedSeconds: number; requestedFrames: number; selectionRevision: number };
 export type Batch = { id: string; projectId: string; revision: number; controlRevision: number; state: string; manifestHash: string;
   manifest: { scopeShotIds: string[]; kept: { shotId: string; jobId: string }[]; targets: Target[]; blockers: { shotId: string; message: string }[];
-    setup: { profileId: string; aspectPolicy: string; maxJobs: number; maxRequestedSeconds: number }; newJobs: number; requestedSeconds: number };
+    setup: { profileId: string; aspectPolicy: string; maxJobs: number | null; maxRequestedSeconds: number | null }; newJobs: number; requestedSeconds: number };
   execution: { error?: string; authorizedManifestHash?: string; reviewAttribution?: HumanReviewAttribution; draft?: unknown }; progress?: { total: number; ready: number; failed: number; blocked: number } };
 export type Review = { batchId: string; reviewHash: string; ready: boolean; readyCount: number; blockedCount: number;
   kept: { shotId: string; jobId: string }[]; errors: { shotId: string; message: string }[];

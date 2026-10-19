@@ -13,13 +13,13 @@ export type AutopilotRun = {
   frames?: Array<{ shotId: string; geometryPreparation?: GeometryPreparation }>;
   phase: string; blocker: { code: string; message: string } | null;
   materialCurrent?: boolean; activities?: AutopilotActivity[];
-  policy: { version?: string; geometryPreparation?: { recipeVersion: string }; styleAuthority?: "preset" | "brief"; renderStyle?: ArtRenderStyle | null; artRenderStyle?: ArtRenderStyle | null; maxImages: number; maxJobs: number;
+  policy: { version?: string; geometryPreparation?: { recipeVersion: string }; styleAuthority?: "preset" | "brief"; renderStyle?: ArtRenderStyle | null; artRenderStyle?: ArtRenderStyle | null; maxImages: number | null; maxJobs: number | null;
     executorBinding?: { backend: "codex_exec"; model: string; reasoningEffort: string; maxProcesses: number; maxTextProcesses?: number; maxImageProcesses?: number } };
   checkpoints: Array<{ operationKey: string; state: string; evidence: { owner: string; jobId?: string; result: Record<string, unknown> } }>;
   bundle: { inventory: { subjects: Array<{ owner: string; id: string; subjectType?: "scene" | "prop" | null }> }; frames: unknown[]; references: unknown[] } | null;
   handoff: { receiptId: string } | null;
 };
-export type Launch = { expectedBriefRevision: number; styleAuthority: "brief" | "preset"; renderStyle?: ArtRenderStyle; artRenderStyle?: ArtRenderStyle; maxImages: number; maxJobs: number };
+export type Launch = { expectedBriefRevision: number; styleAuthority: "brief" | "preset"; renderStyle?: ArtRenderStyle; artRenderStyle?: ArtRenderStyle; maxImages: number | null; maxJobs: number | null };
 export type ReviewFrame = { targetUse?: VisualIntent["intent"]["targetUse"]; geometryPreparation?: GeometryPreparation; shotId: string; sceneId: string; title: string; sceneName: string; direction: string; assetId: string; originalHash: string; description: string; characterIds: string[]; origin: string };
 export type IntentContext = { kind: "storyboard" | "reviewed_intent"; sourceId: string; revision: number; contentHash: string; shotId: string; intent: Omit<VisualIntent["intent"], "targetUse"> };
 export type GalleryFrame = ReviewFrame & { intentContext: IntentContext };

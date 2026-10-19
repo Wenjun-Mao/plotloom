@@ -1,6 +1,7 @@
 """Validate persisted machine provenance without reinterpreting human history."""
 import json
 
+from ..provider_budgets import exceeds_budget
 from ..autopilot_contracts import (
     CheckpointEvidence,
     LaunchPolicy,
@@ -106,7 +107,7 @@ def assert_autopilot_contracts(connection, *, asset_home=None, continuation=True
                 if attempt.domain == "image" and attempt.image_budget_state in {"reserved", "consumed"}:
                     budget_totals[run_id] = budget_totals.get(run_id, 0) + attempt.reserved_image_outputs
             for run_id, reserved in budget_totals.items():
-                if reserved > run_policies[run_id].max_images:
+                if exceeds_budget(reserved, run_policies[run_id].max_images):
                     raise ValueError("project CLI image reservations exceed the frozen run budget")
         for run_id, project, scope, checkpoint, raw in connection.execute("SELECT run_id,project_id,scope,checkpoint_id,decision FROM v2_autopilot_decisions"):
             parsed = MachineDecision.model_validate_json(raw)

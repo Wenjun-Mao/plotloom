@@ -2,6 +2,7 @@
 from hashlib import sha256
 from pathlib import Path
 
+from .provider_budgets import exceeds_budget
 from .art_style import freeze_art_style
 from .autopilot_contracts import POLICY_VERSION, PREVIOUS_POLICY_VERSION, LaunchPolicy
 from .cast_style import freeze_cast_style
@@ -86,5 +87,5 @@ def assert_frozen_pins(store, policy):
 
 def require_job_capacity(view):
     counted = max(view.lifetime_jobs, sum(item["evidence"].get("jobId") is not None for item in view.checkpoints))
-    if counted >= view.policy.max_jobs:
+    if exceeds_budget(counted + 1, view.policy.max_jobs):
         raise InvalidTransitionError("已达到冻结任务上限；请接管检查已保留的素材。")

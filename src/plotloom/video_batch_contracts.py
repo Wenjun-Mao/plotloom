@@ -8,8 +8,8 @@ from .delegated_qa_contracts import AgentQaAttribution, QaAvInspection
 class BatchSetup(CamelModel):
     profile_id: str = Field(min_length=3, max_length=63)
     aspect_policy: Literal["reject_mismatch", "contain_pad", "cover_center_crop"] = "reject_mismatch"
-    max_jobs: int = Field(default=64, strict=True, ge=1, le=256)
-    max_requested_seconds: int = Field(default=512, strict=True, ge=5, le=2048)
+    max_jobs: int | None = Field(default=None, strict=True, ge=1)
+    max_requested_seconds: int | None = Field(default=None, strict=True, ge=5)
 
 class BatchDirectionsTarget(CamelModel):
     shot_id: str = Field(min_length=1, max_length=100)
