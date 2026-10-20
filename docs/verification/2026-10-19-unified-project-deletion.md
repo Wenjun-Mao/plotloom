@@ -100,7 +100,60 @@ Running-worker tests use recorded production project state plus a provider-free
 host-response seam; they do not establish a real OS worker termination outcome.
 Actual owner projects and every live UNKNOWN reservation remain untouched.
 
-The effective inherited worker model/settings are unverified. No paid usage was
+The requested native worker settings were explicitly Sol/Medium; the effective
+model/settings are unverified. No paid usage was
 incurred by these provider-free fixtures; product/infrastructure/coordination time
 breakdowns are unavailable. Per-run durations remain in verification output; no
 aggregate timing or acceptance percentage is inferred.
+
+## Inspectable source-checkpoint evidence
+
+Commands below ran from the retained checkout. No filesystem logs were created
+for these focused runs; their complete command/result captures remain in the
+native worker conversation. Run session IDs are trace pointers, not file paths.
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest tests/test_project_deletion_preparation.py \
+  --pytest tests/test_direct_project_deletion.py
+# Session 84980: 22 Python passed.
+
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest tests/test_project_deletion_preparation.py \
+  --pytest tests/test_autopilot_image_safety.py::test_stop_after_reference_ingestion_preserves_terminal_owner_and_prevents_selection \
+  --pytest tests/test_autopilot_exec_pool.py::test_known_queued_image_cancel_releases_proposal_and_project_lifecycle \
+  --vitest tests/project-lifecycle-command.test.ts
+# Session 53745: 16 Python + 8 unit passed before the final UNKNOWN addition.
+
+uv run --locked --no-sync python scripts/verify.py focused \
+  --playwright e2e/project-direct-delete.spec.ts \
+  --playwright e2e/project-unified-delete.spec.ts
+# Session 19651: 16 browser passed.
+
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest tests/test_project_abandonment.py::test_partial_erasure_retry_survives_lost_manifest_and_application_reopen \
+  --playwright e2e/project-direct-delete.spec.ts
+# Session 50652: 2 Python + 11 browser passed, including scope-bearing pending retry.
+```
+
+Retained screenshots are checkout-relative under `output/playwright/`:
+`unified-delete-idle.png`, `unified-delete-scope_changed.png`,
+`unified-delete-stop_lost_ack.png`, `unified-delete-delete_lost_ack.png`,
+`prior-abandonment-entry.png`, `prior-abandonment-consent.png`,
+`prior-abandonment-pending.png`, `abandonment-consent.png`, `pending-deletion.png`.
+`frontend/test-results/.last-run.json` is the latest browser completion marker;
+the next run may replace it. Existing `prior-catalog-bootstrap-failure2` artifacts
+are not evidence from this assignment.
+
+Two final `npm --prefix frontend run build:deterministic` runs had equal seven-file
+trees captured with `rg --files src/plotloom/static | sort | xargs shasum -a 256`.
+No manifest file was saved. Final source-checkpoint `workbench.js` SHA-256:
+`b4955ef338bf9291f798efe2f20549098145b51d6dbd39302167befea0803c59`.
+
+Independent source review at `c93df16b` found no actionable correctness, security
+or UX findings. Root also inspected the retained idle/partial-stop/lost-ACK pixels.
+The minimal follow-up removes a trailing blank line at the new deletion hook EOF
+and corrects this evidence wording; executable behavior is unchanged. Root assigns
+one final unfiltered established full run to this same source worker, with fresh
+filesystem logs/fingerprints on the exact qualification candidate. Its result will
+be recorded separately; earlier focused selections are not complete backend proof.

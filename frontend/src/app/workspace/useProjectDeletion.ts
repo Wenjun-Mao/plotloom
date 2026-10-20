@@ -179,4 +179,3 @@ export function useProjectDeletion({ session, mediaDraftQuiescence, reviewDraftS
   };
   return { requestDeletion, abandonPrior, retryDeletion, deletingProjectId, deletionFeedback: feedback };
 }
-
