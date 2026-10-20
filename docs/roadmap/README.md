@@ -17,6 +17,12 @@ Existing projects, service/deployment state, provider calls, UNKNOWN/reservation
 clearing, push, GitHub CI and broad qualification are excluded. Prior-layout and
 pending acknowledged erasure retain their supported explicit consent paths.
 
+The source correction at `bdbaf800` passed exact-finding review and the subsequently
+approved frontend/package follow-through, composed with the unchanged backend's
+full gate at `dcd6f115`. [The closeout](../verification/2026-10-19-unified-project-deletion.md#composite-local-qualification-closeout)
+retains actual logs, strict-route fixture evidence and the controller-quiescence
+limitation. No activation, live deletion, push or hosted CI was performed.
+
 ## Delegated disposable-QA vertical slice
 
 The owner's October 19 grant authorizes agent-operated QA decisions for the exact

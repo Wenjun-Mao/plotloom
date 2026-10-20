@@ -261,3 +261,46 @@ one revoke/erase, original attempt evidence unchanged and 404/200 post-restart
 target/neighbor responses. Checked frontend assets were regenerated after the
 projection correction. Exact-finding re-review and frontend/package follow-through
 are pending; the earlier full result is not relabelled as a full pass on this fix.
+
+## Composite local qualification closeout
+
+Exact-P1 closure review passed on `bdbaf800f7a7f16695091d5f6797cd6a6bff4743`;
+root inspected the actual consent JSON, paused pixels and strict-route logs. The
+subsequently authorized frontend/package follow-through passed on that clean SHA:
+
+- Established `verify.py quick`: 1,447 frontend cases across 165 files, both
+  TypeScript checks, lock check and API import lint; exit 0, 12.343 seconds.
+- Two `npm --prefix frontend run build:deterministic` invocations: identical
+  seven-file SHA-256 trees, unchanged checked assets; every exit 0.
+- `verify.py focused --playwright e2e/project-direct-delete.spec.ts --playwright
+  e2e/project-lifecycle-errors.spec.ts`: all 16 affected browser cases passed,
+  exit 0, 57.172 seconds. The latest seven unified cases and their exact strict
+  request/status proof are reused rather than rerun again.
+- `uv build --wheel --out-dir <evidence>/wheel` followed by the established
+  `uv run --locked --no-sync python scripts/smoke_installed_wheel.py <evidence>/wheel`:
+  both exited 0. The isolated installed-package probe passed.
+
+Here `<evidence>` is the actual checkout-relative directory
+`.local/unified-project-deletion/bdbaf800f7a7f16695091d5f6797cd6a6bff4743/final-frontend-package/`.
+It retains exact command files; complete `quick.log`, `build-1.log`, `build-2.log`,
+`browser.log`, `wheel-build.log`, `installed-wheel-smoke.log`; per-stage outcome
+files; source/tree identity; before/after clean Git status; dependency/tool hashes;
+and static before/after/two-build manifests. A separate Git boundary check proves
+production backend, strict schemas, dependencies and build tools are unchanged
+from full-qualified `dcd6f115`; only frontend consent projection and its generated
+bundle change product behavior. No final scoped gate failed.
+
+Unlike the earlier full runner's temporary wheel, this authorized scoped build
+retains `wheel/plotloom-0.1.0-py3-none-any.whl` under that evidence directory.
+Its measured SHA-256 is
+`d4e2d530d164481f8ced21e05bb6f38a05bd0035a42bfb50e2d272918418eea4`;
+`wheel.sha256` records the exact path and digest.
+
+The qualified result is explicitly composite: frozen full on `dcd6f115` plus
+exact-finding closure and scoped frontend/package qualification on `bdbaf800`.
+It is not a new full result on the correction. This closeout changes documentation
+only; no second full/backend sweep, publication, deployment, activation, real
+provider operation, live-project deletion or human product/creative acceptance is
+claimed. The controller-quiescent strict-route fixture and real background-enabled
+409 remain distinct evidence; a supported stop does not guarantee immediate
+erasure. Earlier failed runs remain failed, with their retained artifacts.
