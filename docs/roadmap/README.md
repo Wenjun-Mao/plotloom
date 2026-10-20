@@ -23,6 +23,12 @@ full gate at `dcd6f115`. [The closeout](../verification/2026-10-19-unified-proje
 retains actual logs, strict-route fixture evidence and the controller-quiescence
 limitation. No activation, live deletion, push or hosted CI was performed.
 
+A subsequent [installed-wheel desktop journey](../verification/2026-10-19-unified-project-deletion.md#installed-wheel-runtime-acceptance)
+passed idle erase and paused no-dispatch local-authority stop→ordinary erase with
+the shipped background controller enabled, then restart 404/404/200 readback and
+clean process/lease settlement. Initial state was explicitly library-seeded; this
+does not establish launch, provider/worker termination or UNKNOWN-host erasure.
+
 ## Delegated disposable-QA vertical slice
 
 The owner's October 19 grant authorizes agent-operated QA decisions for the exact

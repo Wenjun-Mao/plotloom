@@ -304,3 +304,45 @@ provider operation, live-project deletion or human product/creative acceptance i
 claimed. The controller-quiescent strict-route fixture and real background-enabled
 409 remain distinct evidence; a supported stop does not guarantee immediate
 erasure. Earlier failed runs remain failed, with their retained artifacts.
+
+## Installed-wheel runtime acceptance
+
+The separately authorized CLI-first desktop journey ran the retained `d4e2d530…`
+wheel on source checkpoint `01b8dcfdb0c9477baeeebd4b9a1ea1ea3e8ec5b4`, in an
+isolated venv/cwd/application/outputs envelope. The shipped console, host and
+background controller were unmodified: no leader-lease suppression, HTTP mutation
+fulfillment or host override. Sanitized settings had no credentials/native binding,
+loopback provider endpoints and H3 disabled. Initial state was library-seeded,
+explicitly synthetic no-dispatch provenance: one idle target, one paused-before-
+first-dispatch target and one neighbor. No resume or provider dispatch was attempted.
+
+The normal controller held its real lease and persisted a claim, advancing the
+paused run from revision 2 to 3 with zero checkpoints/Exec attempts. Both actual UI
+confirmations succeeded on their first deletion attempt: idle ordinary erase 204;
+paused exact-run stop 200 (`cancelled`, unchanged scope, fresh `ordinary` preview),
+then erase 204. There were exactly three mutation requests. Inspected 1440×1000
+consent/success pixels show the distinct truthful flows. Restart readback was
+target 404 / target 404 / neighbor 200, with only the neighbor home retained.
+Both owned consoles shut down gracefully, the browser closed, both process IDs
+disappeared, port 18887 closed and the controller lease was released.
+
+Evidence is retained in checkout-relative
+`.local/unified-project-deletion/01b8dcfdb0c9477baeeebd4b9a1ea1ea3e8ec5b4-installed-runtime-KetdCn/`:
+`commands.txt`, `isolated-command.sh`, `seed.json`, `identity.json`,
+`controller-before.json`, `runtime-first.log`, `runtime-restart.log`,
+`restart-readback.json`, `shutdown-{first,final}.json`, `outcome.json`,
+`artifact-manifest.sha256`, `browser/*{http,body,ack}.txt`, desktop PNGs and the
+existing CLI `.playwright-cli/traces/` action/network/resources. The retained
+evidence checker asserts exact consent members/scope, statuses/counts, readback,
+package identity and settlement. Wheel member, installed file and independently
+served `/v2/workbench.js` probe share SHA-256
+`28c6eee0ec0c4a0c4947ee9515e75c169efc0fa00726fe9699618462c354910b`.
+Browser access logs record the asset GET 200, but the trace started after loading;
+no captured browser-response digest is claimed. Navigation-aborted GETs and two
+before-journey setup/probe mistakes remain recorded, separate from mutation success.
+
+This adds normal-background installed-runtime evidence for local authority stop
+with no dispatched work. It does not prove UI launch, provider/worker termination,
+UNKNOWN host erasure or contention resolution; earlier controller-quiescent strict
+host-route and real 409 evidence retain their stated limits. No new source behavior,
+test suite/full rerun, activation, publication or live-project operation occurred.
