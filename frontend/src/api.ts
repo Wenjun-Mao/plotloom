@@ -209,7 +209,9 @@ export class PlotloomApiClient {
 
   abandonAndDeleteProject(projectId: string, preview: { expectedLifecycleRevision: number; expectedProjectRevision: number; confirmationTitle: string; previewHash: string; scopeHash?: string }): Promise<void> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/abandon-and-delete`, {
-      method: "POST", body: JSON.stringify({ ...preview, acknowledgeUnknownRemote: true }),
+      method: "POST", body: JSON.stringify({ expectedLifecycleRevision: preview.expectedLifecycleRevision,
+        expectedProjectRevision: preview.expectedProjectRevision, confirmationTitle: preview.confirmationTitle,
+        previewHash: preview.previewHash, scopeHash: preview.scopeHash, acknowledgeUnknownRemote: true }),
     });
   }
 

@@ -87,6 +87,22 @@ describe("PlotloomApiClient", () => {
     expect(JSON.parse(String(calls[3][1].body))).toEqual({ expectedLifecycleRevision: 7, expectedProjectRevision: 3, confirmationTitle: "Moon City" });
   });
 
+  it("projects full runtime deletion previews to the strict six-field abandonment consent", async () => {
+    const fetcher = vi.fn(async (_url: unknown, _init?: RequestInit) => new Response(null, { status: 204 }));
+    const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
+    const preview: Awaited<ReturnType<PlotloomApiClient["deletionPreview"]>> = {
+      projectId: "exact-project", mode: "abandon", run: null, expectedProjectRevision: 3,
+      expectedLifecycleRevision: 7, confirmationTitle: "明确删除", previewHash: "a".repeat(64),
+      scopeHash: "b".repeat(64), blockers: [], unknownAttemptIds: ["retained-unknown"], stopWarnings: ["retained-local-fact"],
+    };
+    await client.abandonAndDeleteProject(preview.projectId, { ...preview, previewHash: preview.previewHash! });
+    expect(fetcher).toHaveBeenCalledOnce();
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      expectedProjectRevision: 3, expectedLifecycleRevision: 7, confirmationTitle: "明确删除",
+      previewHash: preview.previewHash, scopeHash: preview.scopeHash, acknowledgeUnknownRemote: true,
+    });
+  });
+
   it("creates and reads a server-owned snapshot without sending a browser path", async () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({
       operationId: "snapshot-1", snapshotId: "snapshot-1", projectId: "p1", status: "complete",

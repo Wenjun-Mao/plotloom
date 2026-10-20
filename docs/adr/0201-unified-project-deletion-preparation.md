@@ -50,6 +50,12 @@ Partitioning at those owners removes duplicate requests within one command. No
 unknown remote cancellation, process signalling exception, broader revocation,
 UNKNOWN clearing or reservation release is introduced.
 
+The abandonment transport projects only the six declared consent members:
+project/lifecycle revisions, exact title, preview hash, optional scope hash and
+explicit UNKNOWN acknowledgement. A structural TypeScript type does not strip
+runtime preview members; observational project/mode/run/blocker fields must never
+be spread into the strict command body. The server continues to reject extras.
+
 An admitted draft that settles after preview changes the consented material
 scope. Final deletion refuses that old consent, preserves the newer local typing,
 and resumes its existing queues. After those edits settle, a new preview and

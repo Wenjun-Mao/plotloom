@@ -23,6 +23,7 @@ def main():
     parser.add_argument("--application", type=Path, required=True)
     parser.add_argument("--fault", action="store_true")
     parser.add_argument("--refresh-title", action="store_true")
+    parser.add_argument("--current-state", choices=("cancelled", "paused"))
     args = parser.parse_args()
     args.outputs = args.outputs.resolve()
     args.application = args.application.resolve()
@@ -44,19 +45,22 @@ def main():
         storage, _registry, service, view, _images, _text = compact_safety_image_environment(root / "copy", patch, seed, auto_deliver=False)
         try:
             sent, _checkpoint = reach(storage, service, view, "character-reference", "sent")
-            service.control(view.project_id, RunControlRequest(expected_revision=sent.revision, action="cancel"))
+            service.control(view.project_id, RunControlRequest(expected_revision=sent.revision,
+                action="pause" if args.current_state == "paused" else "cancel"))
             with closing(storage.projects.open(view.project_id)) as store:
                 home, project = store.home, store.project()
                 with store.repository.engine.connect() as connection:
                     attempts = [json.loads(row[0]) for row in connection.exec_driver_sql("SELECT snapshot FROM v2_autopilot_exec_attempts ORDER BY id")]
         finally:
             service.close()
-    retain_pre_continuation_layout(home)
+    if args.current_state is None:
+        retain_pre_continuation_layout(home)
     destination = args.outputs / home.name
     shutil.move(str(home), destination)
     fixture = {"projectId": project.id, "title": project.brief.title, "home": str(destination),
         "attempts": attempts, "previewHash": "a" * 64, "revoked": False, "calls": [],
-        "fault": args.fault, "faultConsumed": False, "blocked": False}
+        "fault": args.fault, "faultConsumed": False, "blocked": False,
+        "currentState": args.current_state, "cancelAttemptIds": [], "eraseCount": 0}
     (args.application / "prior-abandonment-fixture.json").write_text(json.dumps(fixture, ensure_ascii=False), encoding="utf-8")
     print(json.dumps({"projectId": project.id, "title": project.brief.title, "home": str(destination)}))
 

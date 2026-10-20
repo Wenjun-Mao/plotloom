@@ -157,3 +157,107 @@ and corrects this evidence wording; executable behavior is unchanged. Root assig
 one final unfiltered established full run to this same source worker, with fresh
 filesystem logs/fingerprints on the exact qualification candidate. Its result will
 be recorded separately; earlier focused selections are not complete backend proof.
+
+## Frozen full qualification and subsequent transport correction
+
+Exactly one unfiltered `uv run --locked --no-sync python scripts/verify.py full`
+ran on clean `dcd6f115688f8626b72189aedf56bbf3d274567c`. All 14 gates passed:
+3,548 Python, 1,446 frontend unit and 344 browser cases; type contracts,
+deterministic build/parity, allocation, wheel build and installed-wheel smoke.
+Runner elapsed: 1,807.808 seconds; exit 0. Shell capture: 1,808 seconds.
+
+Actual local artifacts are under
+`.local/unified-project-deletion/dcd6f115688f8626b72189aedf56bbf3d274567c/`:
+`full.log`, `command.txt`, `start.txt`, `outcome.txt`, `source-sha.txt`,
+`source-tree.txt`, `git-status-before.txt`, `git-status-after.txt`,
+`dependency-tool-fingerprints.sha256`, `static-before.sha256`,
+`static-after.sha256`, `runtime-and-filter-preflight.txt`, `inventory-preflight.txt`.
+`full.log` SHA-256 is
+`780c637550e71c0be25486ec73f4847526b9b59150a735360423207286dd852d`.
+Before/after tracked status is clean; static trees match. Native owner discovery
+and retained assertion-replacement checks passed before dispatch. The established
+runner removed its temporary wheel directory at exit: build/smoke evidence is in
+the log; no surviving wheel or wheel hash is claimed.
+
+During that frozen run, root and independent re-review found a P1 transport seam
+missed by the earlier no-findings review: current-project abandonment passed a full
+preview object to the API client, which spread observational members into a strict
+`ProjectAbandonDeleteRequest` and would receive 422. Browser mutation mocks accepted
+arbitrary bodies; backend tests selected only consent keys. The full pass therefore
+remains exact-candidate software evidence, not evidence that this seam worked.
+
+The only production correction explicitly whitelists the existing six command
+members in `abandonAndDeleteProject`. Strict server admission, backend control,
+persistence, host ownership and UNKNOWN/reservation semantics are unchanged. A new
+API regression passes a full runtime preview (including mode/run/blockers/UNKNOWN
+IDs/warnings) and checks exact serialized consent rather than relying on TS types.
+
+Two current-layout cases reuse the existing disposable project/host fixture:
+already cancelled -> abandon; paused -> genuine manual stop -> fresh preview ->
+abandon. The final mutation is the actual strict API, with no POST fulfillment.
+They check exact six-member request keys, 204, one stop where applicable, one host
+revoke and one home erasure, unchanged original attempt evidence, target-home
+absence and neighbor readback after restart. No OS termination outcome is attested.
+
+The first background-enabled paused attempt returned genuine final 409
+`project_busy: another local writer is active` after stop ACK; the already-cancelled
+case passed. The exact historical holder was not proven; the controller's immediate
+wake and retained cancelled-run reconciliation provide a plausible contender.
+That contention is not fixed or hidden by the serialization correction. Its first
+trace/video/screenshot/context are retained under
+`.local/unified-project-deletion/serialization-correction-first-attempt/project-unified-delete-cur-f6de3--API-and-exact-home-erasure/`.
+
+Root approved an explicitly controller-quiescent execution envelope for the strict
+transport happy-path cases. The fixture holds the existing leader `flock` on its
+own application root's `.autopilot-controller.lock` before runtime startup and
+through shutdown. The real background owner cannot acquire leadership, while
+manual control and exclusive project erasure retain every product admission guard.
+The lifespan finally unlocks/closes the descriptor after the runtime shuts down;
+process exit also closes it. Fixture evidence records the exact lock path/held
+state. This neither overrides a lock guard nor models production contention as
+resolved. Existing blocked/lost-ACK checks remain, and stopping never guarantees
+immediate erasure.
+
+Corrective focused command:
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --vitest tests/api.test.ts \
+  --playwright e2e/project-unified-delete.spec.ts
+```
+
+The first execution passed 26 API cases and six browser cases, with the genuine
+409 paused case retained as failed. Only the test-owned leader-lease envelope
+changed for the next attempt. Final corrective results and source SHA are reported
+with the scoped checkpoint; broad frontend/package follow-through and exact-finding
+re-review remain root-owned. No second full run is started by this correction.
+
+The first leader-lease attempt failed before mutation because Python records the
+canonical `/private/var/...` path while Node's temporary root used `/var/...`.
+The assertion now applies `realpath` before exact equality; no alias-tolerance or
+admission change was added. Those two preflight failures remain retained under
+`.local/unified-project-deletion/serialization-correction-path-preflight/`.
+After that fixture-only correction all seven browser cases passed, including both
+real current-layout paths. Standard per-case `strict-deletion-evidence` JSON
+attachments retain actual command member sets/statuses, exact leader path/held
+state, stop/cancel/revoke/erase counts, original attempt identities/states and
+post-restart target/neighbor readback. Requested attachment capture reruns the same
+seven-case file, rather than adding a new recorder or broad qualification.
+
+Final corrective evidence: 26 API unit cases passed; the final seven-case browser
+run passed in 37.237 seconds, including both genuine controller-quiescent strict
+routes and all retained blocked/lost-ACK cases. Its complete log is
+`.local/unified-project-deletion/serialization-correction-final-focused-browser.log`.
+Successful proof JSON and consent pixels remain at
+`output/playwright/unified-delete-current-cancelled-evidence.json`,
+`output/playwright/unified-delete-current-paused-evidence.json`,
+`output/playwright/unified-delete-current-cancelled.png` and
+`output/playwright/unified-delete-current-paused.png`.
+These files are also attached by path to their Playwright cases: body-only
+attachments were not retained by the list reporter, so final capture writes the
+small ignored JSON files explicitly. Both final responses are 204; the paused
+case has one stop/host cancellation, the stopped case has zero; each has exactly
+one revoke/erase, original attempt evidence unchanged and 404/200 post-restart
+target/neighbor responses. Checked frontend assets were regenerated after the
+projection correction. Exact-finding re-review and frontend/package follow-through
+are pending; the earlier full result is not relabelled as a full pass on this fix.
