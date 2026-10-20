@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { plotloomApi } from "../../api";
 import { Button } from "../../components";
+import type { DeletionFeedback } from "./useProjectDeletion";
 
 export type PriorAbandonmentCandidate = Awaited<ReturnType<typeof plotloomApi.priorAbandonmentCandidates>>[number];
 
-export function PriorProjectAbandonments({ refreshKey, disabled, onAbandon }: {
+export function PriorProjectAbandonments({ refreshKey, disabled, onAbandon, feedback, commandProjectId, commandMessage }: {
   refreshKey: unknown; disabled: boolean; onAbandon?: (candidate: PriorAbandonmentCandidate) => Promise<void>;
+  feedback?: DeletionFeedback; commandProjectId?: string; commandMessage?: string;
 }) {
   const [items, setItems] = useState<PriorAbandonmentCandidate[]>([]);
   const [error, setError] = useState("");
@@ -21,6 +23,8 @@ export function PriorProjectAbandonments({ refreshKey, disabled, onAbandon }: {
       {items.map(item => <article key={item.projectId} data-prior-project-id={item.projectId}>
         <strong>{item.title || "未命名项目"}</strong><p>项目 r{item.projectRevision} · 生命周期 r{item.lifecycleRevision}</p>
         <Button variant="danger" disabled={disabled || !onAbandon} onClick={() => void onAbandon?.(item)}>核对放弃删除「{item.title}」</Button>
+        {commandProjectId === item.projectId && commandMessage && <p role="status">{commandMessage}</p>}
+        {feedback?.id === item.projectId && <p role={feedback.error ? "alert" : "status"}>{feedback.message}</p>}
       </article>)}
     </section>}</>;
 }

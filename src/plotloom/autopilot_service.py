@@ -50,16 +50,19 @@ class AutopilotService:
         self._wake.set()
         return result
 
-    def control(self, project_id, request):
+    def control(self, project_id, request, *, expected_run_id=None, guard=None):
         with closing(self.storage.projects.open(project_id)) as store:
-            view = store.repository.autopilot.current(project_id)
-            if view is None:
-                raise InvalidTransitionError("项目没有自动素材运行。")
-            if request.action == "resume":
-                assert_frozen_execution(store, self.registry, view.policy)
             with store.repository.manual_command():
+                view = store.repository.autopilot.current(project_id)
+                if view is None:
+                    raise InvalidTransitionError("项目没有自动素材运行。")
+                if guard is not None:
+                    guard(store)
+                if request.action == "resume":
+                    assert_frozen_execution(store, self.registry, view.policy)
                 store.repository.autopilot.control(project_id,
-                    expected_revision=request.expected_revision, action=request.action)
+                    expected_revision=request.expected_revision, action=request.action,
+                    expected_run_id=expected_run_id)
                 if request.action == "pause":
                     suspend_pending_codex_exec(store, self.registry, view)
                 if request.action in {"cancel", "takeover"}:

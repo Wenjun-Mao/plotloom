@@ -133,3 +133,29 @@ it("late archive settlement releases ownership without publishing stale UI", asy
     await act(async () => h.owner.mutate(h.target, "restore")); expect(h.restore).toHaveBeenCalledOnce();
   } finally { held.resolve(); await h.dispose(); }
 });
+
+it.each([false, true])("deletion preparation serializes commands and ignores a superseded response: %s", async changed => {
+  const h = await harness(), held = deferred(); let command!: Promise<void>;
+  const preview = vi.spyOn(plotloomApi, "deletionPreview").mockImplementation(async () => {
+    await held.promise;
+    return { projectId: h.project.id!, confirmationTitle: h.project.brief.title, expectedProjectRevision: 1,
+      expectedLifecycleRevision: 1, scopeHash: "a".repeat(64), mode: "blocked", run: null,
+      blockers: ["手动图片任务 exact-manual-job 仍可发布，请先取消或交付。"], unknownAttemptIds: [] };
+  });
+  const stop = vi.spyOn(plotloomApi, "stopForDeletion");
+  const erase = vi.spyOn(plotloomApi, "permanentlyDeleteProject");
+  try {
+    await act(async () => {
+      command = h.owner.mutate(h.target, "delete");
+      await h.owner.mutate(h.target, "archive"); await h.owner.createSnapshot();
+    });
+    expect(h.owner.commandMessage).toContain("正在核对删除条件");
+    expect(h.archive).not.toHaveBeenCalled(); expect(h.snapshot).not.toHaveBeenCalled();
+    if (changed) h.changeEpoch();
+    await act(async () => { held.resolve(); await command; });
+    expect(preview).toHaveBeenCalledOnce(); expect(stop).not.toHaveBeenCalled(); expect(erase).not.toHaveBeenCalled();
+    expect(h.owner.commandMessage).toBe("");
+    if (changed) expect(h.owner.deletionFeedback).toBeUndefined();
+    else expect(h.owner.deletionFeedback).toMatchObject({ id: h.project.id, error: true, message: expect.stringContaining("exact-manual-job") });
+  } finally { held.resolve(); await h.dispose(); }
+});

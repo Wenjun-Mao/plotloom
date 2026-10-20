@@ -1,6 +1,8 @@
 # 0190 — Explicit material continuation and project abandonment
 
 Status: accepted; implementation `dd3033d6` locally qualified, 2026-10-18.
+The unified current-project deletion preparation and exact local-stop admission
+are defined by [ADR 0201](0201-unified-project-deletion-preparation.md).
 See the [verification record](../verification/2026-10-17-material-continuation-and-abandonment.md)
 for full-baseline and scoped corrective evidence. Same-installation activation
 completed on `99964f70`; hosted CI and human creative acceptance remain separate.

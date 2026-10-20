@@ -1,5 +1,22 @@
 # Plotloom roadmap entrypoint
 
+## Approved unified project deletion
+
+The owner approved one **删除项目…** directory entry and one explicit confirmation
+flow: direct idle erasure, supported exact automatic-run stop followed by guarded
+deletion, or a project-specific blocker. [ADR 0201](../adr/0201-unified-project-deletion-preparation.md)
+binds the owning contracts. The smallest real journey creates two disposable local
+projects, previews and confirms deletion of the idle target through the actual UI
+and API, verifies only its home disappears, restarts the fixture backend, and reads
+the surviving neighbor. No provider dispatch or cost is involved; the test fixture
+owns its isolated roots and cleanup. Focused safety checks precede this journey.
+
+The source worker owns implementation, focused checks, deterministic checked assets
+and this first stable local `main` checkpoint, then stops for independent review.
+Existing projects, service/deployment state, provider calls, UNKNOWN/reservation
+clearing, push, GitHub CI and broad qualification are excluded. Prior-layout and
+pending acknowledged erasure retain their supported explicit consent paths.
+
 ## Delegated disposable-QA vertical slice
 
 The owner's October 19 grant authorizes agent-operated QA decisions for the exact

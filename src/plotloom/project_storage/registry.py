@@ -436,6 +436,7 @@ class ProjectDirectoryRegistry:
         expected_project_revision: int,
         expected_lifecycle_revision: int,
         confirmation_title: str,
+        scope_hash: str | None = None,
     ) -> None:
         permanently_delete_home(
             self._exclusive_store(project_id),
@@ -444,6 +445,7 @@ class ProjectDirectoryRegistry:
             expected_project_revision=expected_project_revision,
             expected_lifecycle_revision=expected_lifecycle_revision,
             confirmation_title=confirmation_title,
+            scope_hash=scope_hash,
         )
 
     def _project_home(self, project_id: str) -> ProjectHome:

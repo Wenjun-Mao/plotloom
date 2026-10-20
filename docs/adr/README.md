@@ -121,3 +121,4 @@ rewritten to match current code. The full decision corpus is this directory.
 - [0198 Explicit delegated disposable-QA decisions](0198-delegated-disposable-qa-authority.md)
 - [0199 Local release qualification without mandatory hosted CI](0199-local-release-qualification.md)
 - [0200 Optional aggregate provider budgets](0200-optional-aggregate-provider-budgets.md)
+- [0201 One prepared project deletion flow](0201-unified-project-deletion-preparation.md)

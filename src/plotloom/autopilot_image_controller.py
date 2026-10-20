@@ -319,6 +319,8 @@ class AutopilotImageController:
     def cancel_pending(self, store, view):
         for checkpoint in view.checkpoints:
             evidence = checkpoint["evidence"]
+            if evidence["owner"] not in IMAGE_METHODS:
+                continue
             if (view.policy.version == POLICY_VERSION and evidence.get("executorAttemptId")
                     and checkpoint["state"] not in {"delivered", "adopted"}):
                 cancel_codex_exec(store, self.registry, view.id, checkpoint)

@@ -14,7 +14,7 @@ test("prior metadata load failure leaves the current directory usable", async ({
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${current.id}&stage=brief`);
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
   await expect(page.getByRole("alert")).toContainText("旧版项目删除入口读取失败");
-  await expect(row(page, current.id).getByRole("button", { name: "永久删除", exact: true })).toBeEnabled();
+  await expect(row(page, current.id).getByRole("button", { name: "删除项目…", exact: true })).toBeEnabled();
   await expect(row(page, current.id).getByRole("button", { name: "复制简报与规范内容" })).toBeEnabled();
 });
 
@@ -103,10 +103,10 @@ const row = (page: Page, id: string) => page.locator(`.directory-item[data-proje
 test("abandonment requires exact server preview, title and uncertainty checkbox; pending deletion survives refresh", async ({ page, request, workbench }) => {
   const target = await create(request, workbench.apiOrigin, "明确放弃项目");
   const preview = { projectId: target.id, expectedLifecycleRevision: 1, expectedProjectRevision: 1,
-    confirmationTitle: target.brief.title, previewHash: "a".repeat(64), eligible: true, blockers: [], unknownAttemptIds: ["unknown-exact-attempt"] };
+    confirmationTitle: target.brief.title, previewHash: "a".repeat(64), scopeHash: "b".repeat(64), mode: "abandon", run: null, eligible: true, blockers: [], unknownAttemptIds: ["unknown-exact-attempt"] };
   let pending: unknown[] = [];
   await page.route("**/api/v2/project-deletions", route => route.fulfill({ json: pending }));
-  await page.route(`**/api/v2/projects/${target.id}/abandonment-preview`, route => route.fulfill({ json: preview }));
+  await page.route(`**/api/v2/projects/${target.id}/deletion-preview`, route => route.fulfill({ json: preview }));
   const bodies: Record<string, unknown>[] = [];
   await page.route(`**/api/v2/projects/${target.id}/abandon-and-delete`, route => {
     bodies.push(route.request().postDataJSON());
@@ -115,11 +115,11 @@ test("abandonment requires exact server preview, title and uncertainty checkbox;
   });
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${target.id}&stage=brief`);
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-  await row(page, target.id).getByRole("button", { name: "放弃任务并永久删除", exact: true }).click();
-  const dialog = page.getByRole("alertdialog", { name: "放弃任务并永久删除项目" });
+  await row(page, target.id).getByRole("button", { name: "删除项目…", exact: true }).click();
+  const dialog = page.getByRole("alertdialog", { name: "永久删除项目" });
   await expect(dialog).toContainText("unknown-exact-attempt");
-  await dialog.getByLabel("输入完整片名以确认放弃和删除").fill(target.brief.title);
-  const commit = dialog.getByRole("button", { name: "确认放弃任务并永久删除项目" });
+  await dialog.getByLabel("输入完整片名以确认删除").fill(target.brief.title);
+  const commit = dialog.getByRole("button", { name: "确认永久删除项目" });
   await expect(commit).toBeDisabled();
   await dialog.getByRole("checkbox").check();
   await page.screenshot({ path: "../output/playwright/abandonment-consent.png" });
@@ -134,8 +134,15 @@ test("abandonment requires exact server preview, title and uncertainty checkbox;
   await expect(retryAction).toBeEnabled();
   await page.screenshot({ path: "../output/playwright/pending-deletion.png" });
   await retryAction.click();
-  await expect(page.getByRole("alertdialog", { name: "重试永久删除项目" })).toBeVisible();
+  const retryConsent = page.getByRole("alertdialog", { name: "重试永久删除项目" });
+  await expect(retryConsent).toBeVisible();
   expect(bodies).toHaveLength(1);
+  await retryConsent.getByLabel("输入完整片名以确认重试删除").fill(target.brief.title);
+  await retryConsent.getByRole("checkbox").check();
+  await retryConsent.getByRole("button", { name: "确认重试永久删除项目" }).click();
+  await expect.poll(() => bodies.length).toBe(2);
+  expect(bodies[1]).toMatchObject({ scopeHash: preview.scopeHash, previewHash: preview.previewHash });
+  await expect(retry.locator(`[data-pending-project-id="${target.id}"]`).getByRole("alert")).toContainText("项目删除尚未完成");
 });
 
 test("unacknowledged pending deletion rechecks the latest preview before fresh explicit consent", async ({ page, request, workbench }) => {
@@ -177,7 +184,7 @@ async function create(request: APIRequestContext, origin: string, title: string)
   expect(response.status()).toBe(201); return await response.json();
 }
 async function confirm(page: Page, id: string, title: string) {
-  await row(page, id).getByRole("button", { name: "永久删除", exact: true }).click();
+  await row(page, id).getByRole("button", { name: "删除项目…", exact: true }).click();
   const dialog = page.getByRole("alertdialog", { name: "永久删除项目" });
   await dialog.getByLabel("输入完整片名以确认删除").fill(title);
   await dialog.getByRole("button", { name: "确认永久删除项目" }).click();
@@ -214,14 +221,12 @@ test("busy deletion retains partial source input and does not cancel a prepared 
   const before = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${target.id}/source-outline`)).json();
   await page.getByLabel("故事内容").fill("这段尚未确认的编辑必须保留。");
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-  const deletion = page.waitForResponse(response => response.url().endsWith(`/api/v2/projects/${target.id}/permanent-delete`) && response.request().method() === "POST");
-  await confirm(page, target.id, target.brief.title);
-  const refused = await deletion;
-  expect(refused.status()).toBe(409);
-  expect((await refused.json()).code).toBe("project_busy");
-  await expect(page.getByRole("alert")).toContainText("项目仍有读取、写入或后台任务占用");
-  await expect(page.getByRole("alert")).toContainText("等待占用结束后重试");
-  await expect(page.getByRole("alert")).not.toContainText("版本冲突");
+  let destructiveRequests = 0;
+  page.on("request", request => { if (/\/(permanent-delete|stop-for-deletion|abandon-and-delete)$/.test(request.url())) destructiveRequests++; });
+  await row(page, target.id).getByRole("button", { name: "删除项目…", exact: true }).click();
+  await expect(row(page, target.id).getByRole("alert")).toContainText("手动文字候选任务");
+  await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  expect(destructiveRequests).toBe(0);
   await expect(page.getByLabel("故事内容")).toHaveValue("这段尚未确认的编辑必须保留。");
   const after = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${target.id}/source-outline`)).json();
   expect(after.candidate).toEqual(before.candidate);
@@ -233,17 +238,17 @@ test("stale Brief confirmation cannot erase another client's save", async ({ pag
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${target.id}&stage=brief`);
   await expect(page.getByLabel("片名")).toHaveValue(target.brief.title);
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-  await row(page, target.id).getByRole("button", { name: "永久删除", exact: true }).click();
+  await row(page, target.id).getByRole("button", { name: "删除项目…", exact: true }).click();
   const changed = await request.patch(`${workbench.apiOrigin}/api/v2/projects/${target.id}`, { data: { expectedRevision: target.revision, brief: { ...target.brief, synopsis: "另一标签页已修改" } } });
   expect(changed.ok()).toBeTruthy();
   await page.getByRole("alertdialog").getByLabel("输入完整片名以确认删除").fill(target.brief.title);
   await page.getByRole("button", { name: "确认永久删除项目" }).click();
-  await expect(page.getByRole("alert")).toContainText("revision");
+  await expect(row(page, target.id).getByRole("alert")).toContainText("项目内容或任务范围已改变");
   const retained = await request.get(`${workbench.apiOrigin}/api/v2/projects/${target.id}`);
   expect((await retained.json()).brief.synopsis).toBe("另一标签页已修改");
 });
 
-test("deletion waits for an admitted draft but never sends newer typing", async ({ page, request, workbench }) => {
+test("a late admitted draft refuses old consent, preserves newer typing and permits a fresh explicit delete", async ({ page, request, workbench }) => {
   const target = await create(request, workbench.apiOrigin, "删除传输中草稿");
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${target.id}&stage=brief`);
   let release!: () => void, started!: () => void; let writes = 0;
@@ -261,9 +266,19 @@ test("deletion waits for an admitted draft but never sends newer typing", async 
     await expect(page.getByRole("status").filter({ hasText: "正在处理" })).toBeVisible();
     release();
     await expect(page.getByRole("alertdialog")).not.toBeVisible();
+    await expect(row(page, target.id).getByRole("alert")).toContainText("项目内容或任务范围已改变");
+    await expect(page.getByLabel("片名")).toHaveValue("不要再发送的新草稿");
+    expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${target.id}`)).status()).toBe(200);
+    // The refused operation resumes its existing draft queues. Let that exact
+    // newer input settle before taking a fresh preview and explicit consent.
+    await expect.poll(async () => {
+      const drafts = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${target.id}/authoring-drafts`)).json();
+      return drafts.find((draft: { editorScope: string }) => draft.editorScope === "brief")?.payload.title;
+    }).toBe("不要再发送的新草稿");
+    await confirm(page, target.id, target.brief.title);
     await expect(row(page, target.id)).toHaveCount(0);
     await expect(page.getByLabel("片名")).toHaveValue("");
-    expect(writes).toBe(1);
+    expect(writes).toBe(2);
     expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${target.id}`)).status()).toBe(404);
   } finally { release(); }
 });

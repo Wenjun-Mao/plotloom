@@ -75,6 +75,7 @@ class ProjectDuplicateRequest(LifecycleRequest):
 class ProjectPermanentDeleteRequest(LifecycleRequest):
     expected_project_revision: int = Field(ge=1)
     confirmation_title: str = Field(min_length=1, max_length=200)
+    scope_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
 
     @field_validator("confirmation_title")
     @classmethod
@@ -87,6 +88,12 @@ class ProjectPermanentDeleteRequest(LifecycleRequest):
 class ProjectAbandonDeleteRequest(ProjectPermanentDeleteRequest):
     preview_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     acknowledge_unknown_remote: bool = False
+
+
+class ProjectDeletionStopRequest(ProjectPermanentDeleteRequest):
+    scope_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    expected_run_id: str = Field(min_length=1)
+    expected_run_revision: int = Field(ge=1)
 
 
 class ProjectListResponse(CamelModel):

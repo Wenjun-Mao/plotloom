@@ -517,6 +517,7 @@ def create_project_folder_authoring_app(
             expected_project_revision=body.expected_project_revision,
             expected_lifecycle_revision=body.expected_lifecycle_revision,
             confirmation_title=body.confirmation_title,
+            scope_hash=body.scope_hash,
         )
 
     @app.post(

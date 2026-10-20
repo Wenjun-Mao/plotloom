@@ -51,7 +51,8 @@ def test_abandonment_deletes_only_exact_stuck_project_without_requiring_upgrade(
         service.close()
 
 
-def test_partial_erasure_retry_survives_lost_manifest_and_application_reopen(tmp_path, monkeypatch, compact_two_cut_text_prefix):
+@pytest.mark.parametrize("scoped", [False, True])
+def test_partial_erasure_retry_survives_lost_manifest_and_application_reopen(tmp_path, monkeypatch, compact_two_cut_text_prefix, scoped):
     storage, _registry, service, view, _calls, _text = compact_safety_image_environment(tmp_path, monkeypatch, compact_two_cut_text_prefix, auto_deliver=False)
     try:
         sent, _checkpoint = reach(storage, service, view, "character-reference", "sent")
@@ -69,6 +70,8 @@ def test_partial_erasure_retry_survives_lost_manifest_and_application_reopen(tmp
         path = f"/api/v2/projects/{view.project_id}"
         context = client.get(path + "/abandonment-preview").json()
         consent = {key: context[key] for key in ("expectedProjectRevision", "expectedLifecycleRevision", "confirmationTitle", "previewHash")}
+        if scoped:
+            consent["scopeHash"] = context["scopeHash"]
         consent["acknowledgeUnknownRemote"] = True
         import shutil
         original = shutil.rmtree
@@ -87,6 +90,8 @@ def test_partial_erasure_retry_survives_lost_manifest_and_application_reopen(tmp
         retry_client = TestClient(other_app)
         pending = retry_client.get("/api/v2/project-deletions").json()
         assert len(pending) == 1 and pending[0]["revoked"] and pending[0]["confirmationTitle"] == consent["confirmationTitle"]
+        if scoped:
+            assert pending[0]["scopeHash"] == consent["scopeHash"]
         assert retry_client.post(path + "/abandon-and-delete", json=consent | {"previewHash": "0" * 64}).status_code == 409
         assert home.exists() and reopened.application.abandonment.current(view.project_id)["revocation_json"] is not None
         assert retry_client.post(path + "/abandon-and-delete", json=consent).status_code == 204

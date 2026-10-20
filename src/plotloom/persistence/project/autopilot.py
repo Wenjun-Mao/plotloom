@@ -96,11 +96,13 @@ class AutopilotPersistence(AutopilotContinuationPersistence, AutopilotExecPersis
             frames=[ProvisionalFrame.model_validate(item.frame) for item in frames],
             bundle=row.bundle, bundle_hash=row.bundle_hash, handoff=row.handoff, created_at=row.created_at, updated_at=row.updated_at)
 
-    def control(self, project_id, *, expected_revision, action):
+    def control(self, project_id, *, expected_revision, action, expected_run_id=None):
         with self.access.leases.lifecycle_write() as session:
             row = self.row(session, project_id)
             if row is None:
                 raise InvalidTransitionError("project has no admitted autopilot run")
+            if expected_run_id is not None and row.id != expected_run_id:
+                raise InvalidTransitionError("自动运行已替换，请重新核对删除项目。")
             if row.revision != expected_revision:
                 raise RevisionConflictError("autopilot", expected_revision, row.revision)
             if action == "resume":

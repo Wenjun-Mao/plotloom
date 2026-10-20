@@ -92,11 +92,13 @@ class ProjectFolderLifecycleService:
         expected_project_revision: int,
         expected_lifecycle_revision: int,
         confirmation_title: str,
+        scope_hash: str | None = None,
     ) -> None:
         self._registry.permanently_delete_project(
             project_id,
             expected_project_revision=expected_project_revision,
             expected_lifecycle_revision=expected_lifecycle_revision,
             confirmation_title=confirmation_title,
+            scope_hash=scope_hash,
         )
         self._application.project_lifecycle.forget_project(project_id)

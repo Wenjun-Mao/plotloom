@@ -2,6 +2,10 @@
 
 Status: Accepted, 2026-10-04.
 
+The current directory entry and prepared stop/abandonment choices are superseded
+by [ADR 0201](0201-unified-project-deletion-preparation.md); the exact-home eraser,
+ordinary CAS and confinement guarantees below remain authoritative.
+
 ## Problem and evidence
 
 The directory exposes permanent deletion only after Archive; a closed project

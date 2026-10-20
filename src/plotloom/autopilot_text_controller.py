@@ -285,6 +285,8 @@ class AutopilotTextController:
             "script": store.cancel_script_candidate, "storyboard": store.cancel_storyboard_review_candidate}
         for checkpoint in view.checkpoints:
             evidence = CheckpointEvidence.model_validate(checkpoint["evidence"])
+            if evidence.owner not in {*methods, *self.bridge_services}:
+                continue
             if not evidence.job_id or checkpoint["state"] == "adopted":
                 continue
             if evidence.executor_attempt_id is not None:

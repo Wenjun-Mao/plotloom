@@ -4,10 +4,12 @@ import type { ProjectListItem } from "../../types";
 import type { LifecycleAction } from "./useProjectLifecycle";
 import { PendingProjectDeletions, type PendingProjectDeletion } from "./PendingProjectDeletions";
 import { PriorProjectAbandonments, type PriorAbandonmentCandidate } from "./PriorProjectAbandonments";
+import type { DeletionFeedback } from "./useProjectDeletion";
 
-export function ProjectDirectoryDialog({ projects, currentProjectId, showArchived, error, readError = "", onRetry, notice, commandMessage, loading, busy = false, hasMore, onLoadMore, onArchived, onBlank, onSample, onOpen, onAction, onRetryDeletion, onAbandonPrior, explicitProjectClose, onClose }: {
+export function ProjectDirectoryDialog({ projects, currentProjectId, showArchived, error, readError = "", onRetry, notice, commandMessage, commandProjectId, deletionFeedback, loading, busy = false, hasMore, onLoadMore, onArchived, onBlank, onSample, onOpen, onAction, onRetryDeletion, onAbandonPrior, explicitProjectClose, onClose }: {
   projects: ProjectListItem[]; currentProjectId?: string; showArchived: boolean; error: string; notice?: string; loading: boolean; busy?: boolean; hasMore: boolean;
   readError?: string; onRetry?: () => void; commandMessage?: string;
+  commandProjectId?: string; deletionFeedback?: DeletionFeedback;
   onLoadMore: () => void; onArchived: (show: boolean) => void; onBlank: () => void; onSample: () => void;
   onOpen: (project: ProjectListItem) => void; onAction: (project: ProjectListItem, action: LifecycleAction) => Promise<void>;
   explicitProjectClose: boolean; onClose: () => void;
@@ -23,11 +25,12 @@ export function ProjectDirectoryDialog({ projects, currentProjectId, showArchive
         <div className="directory-onboarding"><Button variant="primary" disabled={busy} onClick={onBlank}>新建空白项目</Button><Button disabled={busy} onClick={onSample}>打开示例项目</Button><label><input type="checkbox" disabled={busy} checked={showArchived} onChange={event => onArchived(event.target.checked)} /> 显示归档项目</label></div>
         <p className="action-prerequisite">关闭项目不会删除内容；下次可重新打开。归档用于收起项目。永久删除会移除该项目及其媒体，无法撤销。</p>
         {loading && <p className="action-prerequisite" role="status">正在读取项目目录，请稍候。</p>}
-        {commandMessage && <p className="action-prerequisite" role="status">{commandMessage}</p>}
+        {commandMessage && !projects.some(item => item.id === commandProjectId) && <p className="action-prerequisite" role="status">{commandMessage}</p>}
+        {deletionFeedback?.location === "directory" && !projects.some(item => item.id === deletionFeedback.id) && <article data-project-id={deletionFeedback.id}><strong>{deletionFeedback.title}</strong><p role={deletionFeedback.error ? "alert" : "status"}>{deletionFeedback.message}</p></article>}
         {notice && <div className="notice" role="status">{notice}</div>}
         {error && <ErrorNotice message={error} />}
-        <PendingProjectDeletions refreshKey={projects} disabled={busy || loading} onRetry={onRetryDeletion} />
-        <PriorProjectAbandonments refreshKey={projects} disabled={busy || loading} onAbandon={onAbandonPrior} />
+        <PendingProjectDeletions refreshKey={projects} disabled={busy || loading} onRetry={onRetryDeletion} feedback={deletionFeedback?.location === "pending" ? deletionFeedback : undefined} commandProjectId={commandProjectId} commandMessage={commandMessage} />
+        <PriorProjectAbandonments refreshKey={projects} disabled={busy || loading} onAbandon={onAbandonPrior} feedback={deletionFeedback?.location === "prior" ? deletionFeedback : undefined} commandProjectId={commandProjectId} commandMessage={commandMessage} />
         {readError && <div className="notice warning" role="alert"><p>{readError}</p><p>{projects.length ? "当前显示上次读取的项目；重新读取成功前，列表中的项目操作暂不可用。仍可新建空白项目或打开示例项目。" : "项目目录尚未读入，请重新读取。"}</p><Button disabled={loading || busy} onClick={onRetry}>重新读取项目目录</Button></div>}
         {!readError && !loading && !projects.length && <div className="empty-state"><strong>还没有可用项目</strong><p>从空白项目开始，或先浏览教学示例。</p></div>}
         <div className="directory-list">{projects.map(item => {
@@ -41,9 +44,10 @@ export function ProjectDirectoryDialog({ projects, currentProjectId, showArchive
                 <Button variant="quiet" disabled={rowBusy} onClick={() => void onAction(item, "archive")}>归档</Button>
                 {explicitProjectClose && <><Button variant="quiet" disabled={rowBusy} onClick={() => void onAction(item, "close")}>保存并关闭项目</Button><Button variant="danger" disabled={rowBusy} onClick={() => void onAction(item, "force_close")}>退出工作区</Button></>}
               </>}
-              <Button variant="danger" disabled={rowBusy} onClick={() => void onAction(item, "delete")}>永久删除</Button>
-              <Button variant="danger" disabled={rowBusy} onClick={() => void onAction(item, "abandon_delete")}>放弃任务并永久删除</Button>
+              <Button variant="danger" disabled={rowBusy} onClick={() => void onAction(item, "delete")}>删除项目…</Button>
             </div>
+            {commandProjectId === item.id && commandMessage && <p role="status">{commandMessage}</p>}
+            {deletionFeedback?.location === "directory" && deletionFeedback.id === item.id && <p role={deletionFeedback.error ? "alert" : "status"}>{deletionFeedback.message}</p>}
           </article>;
         })}</div>
         {hasMore && <div className="directory-more"><Button disabled={rowBusy} onClick={onLoadMore}>{loading ? "正在加载…" : "加载更多项目"}</Button></div>}

@@ -63,7 +63,7 @@ for (const action of ["archive", "restore"] as const) {
       await page.getByLabel("显示归档项目").uncheck();
       await page.getByLabel("显示归档项目").check();
       await expect(previousError).toBeVisible();
-      for (const title of ["复制简报与规范内容", "永久删除"] as const) {
+      for (const title of ["复制简报与规范内容", "删除项目…"] as const) {
         await row(page, target.id).getByRole("button", { name: title, exact: true }).click();
         await page.getByRole("alertdialog").getByRole("button", { name: "取消", exact: true }).click();
         await expect(previousError).toBeVisible();
@@ -135,7 +135,7 @@ test("only a confirmed delete retry clears its previous error and erases its dis
   });
   const consent = page.getByRole("alertdialog", { name: "永久删除项目" });
   const openConsent = async () => {
-    await row(page, target.id).getByRole("button", { name: "永久删除", exact: true }).click();
+    await row(page, target.id).getByRole("button", { name: "删除项目…", exact: true }).click();
     await expect(consent).toBeVisible();
   };
   const confirm = async () => {
@@ -143,7 +143,7 @@ test("only a confirmed delete retry clears its previous error and erases its dis
     await consent.getByRole("button", { name: "确认永久删除项目", exact: true }).click();
   };
   await openConsent(); await confirm();
-  const previousError = page.getByRole("alert").filter({ hasText: busyMessage });
+  const previousError = row(page, target.id).getByRole("alert").filter({ hasText: "held project" });
   await expect(previousError).toBeVisible();
   await captureDirectory(page, info, "delete-refused");
   await openConsent();

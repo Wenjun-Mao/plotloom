@@ -37,7 +37,7 @@ export function messageFrom(error: unknown): string {
   if (error instanceof ApiError && error.status === 409) {
     const code = (error.details as { code?: unknown } | undefined)?.code;
     if (code === "revision_conflict") return `项目版本冲突：${error.message}。请刷新后再合并修改。`;
-    if (code === "project_busy") return "项目仍有读取、写入或后台任务占用；操作未完成。请等待占用结束后重试。";
+    if (code === "project_busy") return `项目仍有读取、写入或后台任务占用；操作未完成。具体原因：${error.message}`;
   }
   return error instanceof Error ? error.message : "未知错误";
 }

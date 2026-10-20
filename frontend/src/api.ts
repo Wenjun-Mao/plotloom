@@ -185,23 +185,35 @@ export class PlotloomApiClient {
     });
   }
 
-  permanentlyDeleteProject(projectId: string, expectedLifecycleRevision: number, expectedProjectRevision: number, confirmationTitle: string): Promise<void> {
+  permanentlyDeleteProject(projectId: string, expectedLifecycleRevision: number, expectedProjectRevision: number, confirmationTitle: string, scopeHash?: string): Promise<void> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/permanent-delete`, {
-      method: "POST", body: JSON.stringify({ expectedLifecycleRevision, expectedProjectRevision, confirmationTitle }),
+      method: "POST", body: JSON.stringify({ expectedLifecycleRevision, expectedProjectRevision, confirmationTitle, scopeHash }),
     });
   }
 
-  abandonmentPreview(projectId: string): Promise<{ projectId: string; expectedLifecycleRevision: number; expectedProjectRevision: number; confirmationTitle: string; previewHash: string; eligible: boolean; blockers: string[]; unknownAttemptIds: string[] }> {
+  abandonmentPreview(projectId: string): Promise<{ projectId: string; expectedLifecycleRevision: number; expectedProjectRevision: number; confirmationTitle: string; previewHash: string; scopeHash?: string; eligible: boolean; blockers: string[]; unknownAttemptIds: string[] }> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/abandonment-preview`);
   }
 
-  abandonAndDeleteProject(projectId: string, preview: { expectedLifecycleRevision: number; expectedProjectRevision: number; confirmationTitle: string; previewHash: string }): Promise<void> {
+  deletionPreview(projectId: string): Promise<{ projectId: string; expectedLifecycleRevision: number; expectedProjectRevision: number; confirmationTitle: string; scopeHash: string; previewHash?: string; mode: "ordinary" | "stop" | "abandon" | "blocked"; run: { id: string; revision: number; state: string } | null; blockers: string[]; stopWarnings?: string[]; unknownAttemptIds: string[] }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/deletion-preview`);
+  }
+
+  stopForDeletion(projectId: string, preview: Awaited<ReturnType<PlotloomApiClient["deletionPreview"]>>): Promise<{ runId: string; state: string; deletionPreview: Awaited<ReturnType<PlotloomApiClient["deletionPreview"]>> | null; blocker?: string }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/stop-for-deletion`, {
+      method: "POST", body: JSON.stringify({ expectedProjectRevision: preview.expectedProjectRevision,
+        expectedLifecycleRevision: preview.expectedLifecycleRevision, confirmationTitle: preview.confirmationTitle,
+        scopeHash: preview.scopeHash, expectedRunId: preview.run?.id, expectedRunRevision: preview.run?.revision }),
+    });
+  }
+
+  abandonAndDeleteProject(projectId: string, preview: { expectedLifecycleRevision: number; expectedProjectRevision: number; confirmationTitle: string; previewHash: string; scopeHash?: string }): Promise<void> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/abandon-and-delete`, {
       method: "POST", body: JSON.stringify({ ...preview, acknowledgeUnknownRemote: true }),
     });
   }
 
-  pendingProjectDeletions(): Promise<Array<{ projectId: string; expectedLifecycleRevision: number; expectedProjectRevision: number; confirmationTitle: string; previewHash: string; revoked: boolean }>> {
+  pendingProjectDeletions(): Promise<Array<{ projectId: string; expectedLifecycleRevision: number; expectedProjectRevision: number; confirmationTitle: string; previewHash: string; scopeHash?: string; revoked: boolean }>> {
     return this.request("/project-deletions");
   }
 

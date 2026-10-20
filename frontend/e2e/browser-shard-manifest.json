@@ -8,6 +8,7 @@
     "synopsis-proposal.spec.ts",
     "project-lifecycle-errors.spec.ts",
     "project-direct-delete.spec.ts",
+    "project-unified-delete.spec.ts",
     "first-save.spec.ts",
     "production-bridge-review-refresh.spec.ts",
     "storyboard-static-report.spec.ts",

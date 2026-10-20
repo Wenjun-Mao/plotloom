@@ -18,7 +18,7 @@ from .schema_upgrade import (
 from .snapshot_files import _safe_regular
 
 
-def _context(registry, project_id, native):
+def _context(registry, project_id, native, *, preparing_stop=False):
     home = registry._project_home(project_id)
     manifest = home.manifest
     _safe_regular(home.path / manifest.database_path, label="abandonment project database")
@@ -39,17 +39,22 @@ def _context(registry, project_id, native):
         attempts = [CodexExecAttempt.model_validate_json(row[0]) for row in snapshots]
         jobs = {attempt.job_id for attempt in attempts}
         blockers = []
-        for run_id, state in connection.execute("SELECT id,state FROM v2_autopilot_runs WHERE project_id=? AND state NOT IN ('cancelled','taken_over','stale','handed_off')", (project_id,)):
-            blockers.append(f"{run_id}: 自动运行仍为 {state}，请先明确取消或接管，再核对放弃删除。")
-        if not attempts:
+        runs = list(connection.execute("SELECT id,state,revision FROM v2_autopilot_runs WHERE project_id=? AND state NOT IN ('cancelled','taken_over','stale','handed_off')", (project_id,)))
+        for run_id, state, _revision in runs:
+            if not preparing_stop:
+                blockers.append(f"{run_id}: 自动运行仍为 {state}，请先明确取消或接管，再核对放弃删除。")
+        if not attempts and not preparing_stop:
             blockers.append("没有可明确放弃的 Codex Exec 自动素材任务；请使用普通永久删除。")
         for table, column, terminal in (
             ("v2_generation_runs", "status", "'succeeded','failed','cancelled','quarantined'"),
             ("v2_media_tasks", "status", "'succeeded','failed','cancelled'"),
             ("v2_video_jobs", "state", "'ingested','cancelled','failed'"),
         ):
-            if connection.execute(f"SELECT 1 FROM {table} WHERE project_id=? AND {column} NOT IN ({terminal}) LIMIT 1", (project_id,)).fetchone():
-                blockers.append(f"{table}: 其他工作仍未结束，不能通过自动素材放弃绕过。")
+            label = {"v2_generation_runs": "文字生成", "v2_media_tasks": "媒体处理", "v2_video_jobs": "视频生成"}[table]
+            for job, state in connection.execute(f"SELECT id,{column} FROM {table} WHERE project_id=? AND {column} NOT IN ({terminal})", (project_id,)):
+                blockers.append(f"{label}任务 {job} 仍为 {state}；请先在对应任务中核对并结束，不能通过自动素材删除绕过。")
+        if layout == "current" and connection.execute("SELECT 1 FROM v2_video_batches WHERE project_id=? AND state IN ('drafting','running') LIMIT 1", (project_id,)).fetchone():
+            blockers.append("视频批次仍在准备或运行；请先在视频任务中结束该批次。")
         for table, key, column, states in (
             ("v2_image_jobs", "id", "state", "'prepared','exported'"),
             ("v2_character_reference_proposals", "id", "state", "'prepared','exported'"),
@@ -60,29 +65,51 @@ def _context(registry, project_id, native):
         ):
             for (job,) in connection.execute(f"SELECT {key} FROM {table} WHERE project_id=? AND {column} IN ({states})", (project_id,)):
                 if job not in jobs:
-                    blockers.append(f"{job}: 非当前 Codex Exec 自动任务仍可发布，不能放弃删除。")
+                    label = {"v2_image_jobs": "手动图片", "v2_character_reference_proposals": "角色参考图",
+                        "v2_art_reference_proposals": "美术参考图", "v2_production_bridge_intent_jobs": "制作交接"}.get(table, "手动文字候选")
+                    blockers.append(f"{label}任务 {job} 仍可发布；请先在对应任务中取消或完成交付，不能通过自动素材删除绕过。")
         if registry._native_ownership is not None:
             blockers.extend(registry._native_ownership(project_id, jobs))
         packet = AbandonmentPacket(project_id=project_id, project_home=str(home.path), attempts=attempts)
-        host = native.codex_exec_abandonment(packet)
-        blockers.extend(host.blockers)
+        if preparing_stop and not attempts:
+            from ..project_abandonment_contracts import AbandonmentPreview
+            host = AbandonmentPreview(project_id=project_id, preview_hash=stable_hash([]),
+                eligible=True, blockers=[], unknown_attempt_ids=[], revoked=False)
+        else:
+            host = native.codex_exec_abandonment(packet)
+        if host.project_id != project_id:
+            raise InvalidTransitionError("主机预览项目身份不同；保留项目，请重新核对原任务。")
+        stop_blockers = list(blockers)
+        host_blockers = list(host.blockers)
+        if not host.eligible and not host_blockers:
+            host_blockers.append("主机尚未确认本地任务全部结束；请核对原任务后重新删除。")
+        blockers.extend(host_blockers)
         digest = stable_hash({"projectId": project_id, "revision": revision, "lifecycleRevision": lifecycle,
             "brief": json.loads(brief), "hostPreview": host.preview_hash})
         return home, packet, {"projectId": project_id, "expectedProjectRevision": revision,
             "expectedLifecycleRevision": lifecycle, "confirmationTitle": json.loads(brief)["title"],
             "previewHash": digest, "hostPreviewHash": host.preview_hash, "eligible": not blockers,
             "blockers": blockers, "unknownAttemptIds": host.unknown_attempt_ids,
-            "remoteOutcomes": "preserved", "revoked": host.revoked}
+            "stopBlockers": stop_blockers, "hostBlockers": host_blockers,
+            "remoteOutcomes": "preserved", "revoked": host.revoked,
+            "activeRuns": [{"id": row[0], "state": row[1], "revision": row[2]} for row in runs],
+            "attemptIds": [attempt.attempt_id for attempt in attempts], "layout": layout}
 
 
 def preview_abandonment(registry, project_id, native):
     home = registry._project_home(project_id)
-    with closing(ProjectAccessLease.acquire(home.path, mode="shared")):
-        return _context(registry, project_id, native)[2]
+    with closing(ProjectAccessLease.acquire(home.path, mode="shared", create=False, passive=True)):
+        context = _context(registry, project_id, native)[2]
+        if context["layout"] == "current":
+            from .deletion_preparation import deletion_scope
+            from .project_handle import ProjectStore
+            with closing(ProjectStore(home.path, home.manifest, create_schema=False, read_only=True)) as store:
+                context["scopeHash"] = deletion_scope(store)
+        return context
 
 
 def abandon_and_delete(registry, application, project_id, request, native):
-    consent = request.model_dump(mode="json", by_alias=True)
+    consent = request.model_dump(mode="json", by_alias=True, exclude_none=True)
     existing = application.abandonment.current(project_id)
     if existing is not None and existing["revocation_json"] is not None:
         from .abandonment_ledger import resume_revoked_erasure
@@ -91,6 +118,13 @@ def abandon_and_delete(registry, application, project_id, request, native):
     lease = ProjectAccessLease.acquire(home.path, mode="exclusive")
     try:
         home, packet, context = _context(registry, project_id, native)
+        if request.scope_hash is not None:
+            from .deletion_preparation import assert_deletion_scope
+            from .project_handle import ProjectStore
+            # The erasure owner already holds the exclusive lease. This passive
+            # handle neither reacquires nor releases that lease, and cannot write.
+            with closing(ProjectStore(home.path, home.manifest, create_schema=False, read_only=True)) as store:
+                assert_deletion_scope(store, request)
         for owner, expected, actual in (
             ("project", request.expected_project_revision, context["expectedProjectRevision"]),
             ("project-lifecycle", request.expected_lifecycle_revision, context["expectedLifecycleRevision"]),
