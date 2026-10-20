@@ -140,6 +140,11 @@ reviewed and versioned here with Plotloom.
 
 ## Runtime layout
 
+The separate [private read-only dashboard](docs/gateway-dashboard.md) provides
+operational job/queue views and retained-media playback through Tailscale HTTPS.
+Its independent container/entrypoint never initializes the generation store or
+starts dispatch workers; the existing API and retention contract are unchanged.
+
 The gateway package keeps one responsibility per module:
 
 - `api.py` owns FastAPI routing and authentication;

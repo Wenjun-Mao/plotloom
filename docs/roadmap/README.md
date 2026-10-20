@@ -77,6 +77,12 @@ recorded separately; Plotloom integration/director contact/merge/push remain hel
 
 ## Specialist H3 runtime qualification
 
+The [private generation gateway dashboard plan](2026-10-20-generation-gateway-dashboard-plan.md)
+proposes a read-only Spark viewer for operational state and retained media through
+Tailscale HTTPS, with owner-selected Tailscale-only access and no extra browser login.
+It is ready for implementation approval, not implementation, activation, generation
+authority or a change to the integration hold.
+
 The separate [ComfyUI 0.38 qualification](2026-09-30-h3-comfy038-runtime-qualification.md)
 used five calls, followed by a separately approved corrected landscape pair.
 [Maintenance adoption](../verification/2026-09-30-h3-comfy038-maintenance-adoption.md)

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Spark · 生成网关</title>
+    <link rel="icon" href="/dashboard/assets/favicon.svg" />
+    <link rel="stylesheet" href="/dashboard/assets/dashboard.css" />
+    <script src="/dashboard/assets/dashboard.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="eyebrow">SPARK / GENERATION GATEWAY</p>
+        <h1>生成任务 <span class="chip">只读</span></h1>
+      </div>
+      <div class="refresh">
+        <span id="observed">正在读取…</span
+        ><button id="refresh" type="button">刷新</button>
+      </div>
+    </header>
+    <main>
+      <p id="error" class="notice" role="alert" hidden></p>
+      <section class="metrics" aria-label="服务与队列状态">
+        <article>
+          <h2>网关健康检查</h2>
+          <strong id="health">正在读取</strong>
+          <p id="health-time">数据库与服务分别检查</p>
+        </article>
+        <article>
+          <h2>共享生成通道</h2>
+          <strong id="active">—</strong>
+          <p id="lane-note">H3 · Qwen Image · Voice Lab</p>
+        </article>
+        <article>
+          <h2>等待队列</h2>
+          <strong id="queued">—</strong>
+          <p id="database">数据库正在读取</p>
+        </article>
+      </section>
+      <section class="queue-panel">
+        <div class="section-title">
+          <h2>当前 FIFO 队列</h2>
+          <span id="queue-summary"></span>
+        </div>
+        <ol id="queue">
+          <li>正在读取…</li>
+        </ol>
+      </section>
+      <div class="workspace">
+        <section class="jobs-panel">
+          <div class="section-title">
+            <h2>任务记录</h2>
+            <span>视频保留 72 小时 · 记录按现有 30 天规则清理</span>
+          </div>
+          <form id="filters" role="search">
+            <label
+              >任务 ID<input
+                id="search"
+                name="search"
+                placeholder="h3_… / img_…"
+                autocomplete="off"
+            /></label>
+            <label
+              >服务<select id="backend">
+                <option value="">全部</option>
+                <option value="h3_video">H3 视频</option>
+                <option value="qwen_image">Qwen 图像</option>
+              </select></label
+            >
+            <label
+              >状态<select id="status">
+                <option value="">全部</option>
+                <option value="queued">排队</option>
+                <option value="submitting">正在提交</option>
+                <option value="submitted">已提交</option>
+                <option value="running">生成中</option>
+                <option value="transfer_pending">输出转存中</option>
+                <option value="succeeded">已完成</option>
+                <option value="failed">失败</option>
+                <option value="cancelled">已取消</option>
+                <option value="outcome_unknown">结果未知</option>
+              </select></label
+            >
+            <button type="submit">查询</button>
+          </form>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>任务 / 创建时间</th>
+                  <th>状态</th>
+                  <th>设置</th>
+                  <th>生成耗时</th>
+                  <th>输出</th>
+                </tr>
+              </thead>
+              <tbody id="jobs"></tbody>
+            </table>
+          </div>
+          <p id="empty" hidden>没有匹配的任务。</p>
+          <nav class="pagination" aria-label="记录分页">
+            <button id="previous" type="button" disabled>上一页</button
+            ><span id="page">第 1 页 · 每页 50 条</span
+            ><button id="next" type="button" disabled>下一页</button>
+          </nav>
+        </section>
+        <aside class="detail-panel" aria-label="任务详情">
+          <h2>任务详情</h2>
+          <p id="detail-empty">选择一条任务，查看设置与输出。</p>
+          <div id="detail" hidden>
+            <code id="detail-id"></code
+            ><button type="button" id="copy">复制任务 ID</button>
+            <p id="detail-error" class="notice" hidden></p>
+            <div id="preview"></div>
+            <p id="output-note"></p>
+            <a id="download" class="button" hidden>下载原始文件</a>
+            <dl id="detail-fields"></dl>
+            <details>
+              <summary>冻结执行设置</summary>
+              <pre id="frozen"></pre>
+            </details>
+            <button type="button" id="prompt-toggle">查看提示词</button>
+            <pre id="prompt" hidden></pre>
+          </div>
+        </aside>
+      </div>
+      <footer>
+        生成耗时为后端提交至完成观测的时间，不是 GPU 纯计算时间。时长按冻结帧数
+        ÷ 帧率显示。
+      </footer>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,27 @@
+services:
+  dashboard:
+    build:
+      context: ../..
+      dockerfile: services/minimax_h3_gateway/dashboard.Dockerfile
+    image: plotloom-h3-dashboard:20261020
+    container_name: plotloom-h3-dashboard
+    network_mode: host
+    restart: unless-stopped
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      H3_DASHBOARD_DATA_DIR: /data
+    volumes:
+      - type: bind
+        source: /home/wjmao/services/plotloom-h3-gateway/data
+        target: /data
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8091/dashboard/', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
