@@ -80,7 +80,7 @@ tailscale serve status --json
 ```
 
 HTTPS 路径的实际已验证配置、部署 release 位置和镜像 digest 记录在
-[本次验收记录](../../../docs/verification/2026-10-20-generation-gateway-dashboard.md)。
+[生成控制台验收记录](../../../docs/verification/2026-10-21-h3-dashboard-generation.md)。
 使用后台持久 Serve 配置；不要启用 Funnel，也不要把 `/v1` 生成接口或整个
 输出目录通过 Serve 发布。仅保留 `/dashboard/` 入口、资源及单一受保护提交接口。
 HTTPS 管理员配置步骤仍与前次相同；未通过实际 HTTPS 验证前不能宣称已上线。

@@ -1,6 +1,9 @@
 # H3 dashboard generation console
 
-Status: owner approved; implementation in progress. Baseline `deebca11`.
+Status: implemented at `30c3df75`; deployed on Spark loopback. Administrator HTTPS
+activation/final acceptance pending. Baseline `deebca11`.
+
+Evidence: [verification receipt](../verification/2026-10-21-h3-dashboard-generation.md).
 
 ## Approved deliverable
 
