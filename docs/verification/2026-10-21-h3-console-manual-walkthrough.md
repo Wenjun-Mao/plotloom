@@ -1,6 +1,9 @@
 # H3 console manual walkthrough — 2026-10-21
 
 Result: **core workflow passed; two reproducible UI defects remain open.**
+Follow-up: both findings were subsequently corrected and deployed at `ef8417ba`;
+see the [fix verification](2026-10-21-h3-console-ui-state-fixes.md). The original
+observations/reproductions below are preserved, not current unresolved blockers.
 Source baseline `81baa43c`, deployed dashboard image
 `sha256:eef52ef944757d8143de5ebd20c08475bd2c147531e07dbe119ee43a251f39ca`.
 Real headed Chrome through normal-TLS Tailscale URL

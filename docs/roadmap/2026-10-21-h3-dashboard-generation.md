@@ -5,9 +5,10 @@ Status: delivered at `30c3df75`; deployed on Spark and private HTTPS verified
 
 Evidence: [verification receipt](../verification/2026-10-21-h3-dashboard-generation.md).
 Later [owner-requested manual walkthrough](../verification/2026-10-21-h3-console-manual-walkthrough.md)
-completed one live canary and core UI journeys, and identified two open client-side
+completed one live canary and core UI journeys, and identified two client-side
 defects: repeated pagination while loading and poll-erased playback errors.
-They are recorded for a separately authorized correction, not silently waived.
+Both were separately authorized, [corrected and deployed](../verification/2026-10-21-h3-console-ui-state-fixes.md)
+at `ef8417ba`, with unit and real-browser regression evidence; neither was waived.
 
 ## Approved deliverable
 
