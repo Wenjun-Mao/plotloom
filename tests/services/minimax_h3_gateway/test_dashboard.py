@@ -128,10 +128,10 @@ def test_new_commits_are_visible_in_delete_and_wal_modes(installation):
         writer.execute("PRAGMA journal_mode=WAL")
         writer.execute("UPDATE jobs SET seed=91")
         writer.commit()
-        assert client.get(f"/dashboard/api/jobs/{JOB}").json()["seed"] == 91
+        assert client.get(f"/dashboard/api/jobs/{JOB}").json()["seed"] == "91"
         writer.execute("UPDATE jobs SET seed=92")
         writer.commit()
-        assert client.get(f"/dashboard/api/jobs/{JOB}").json()["seed"] == 92
+        assert client.get(f"/dashboard/api/jobs/{JOB}").json()["seed"] == "92"
 
 
 def test_missing_database_or_schema_does_not_create_or_initialize(tmp_path):

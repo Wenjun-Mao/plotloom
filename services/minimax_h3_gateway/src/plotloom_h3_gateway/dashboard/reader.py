@@ -188,7 +188,7 @@ class DashboardReader:
             "id": row["id"], "backend": row["backend"], "status": row["status"],
             "inputMode": "image_voice" if row["h3_contract"] == "ref2va" else row["input_mode"],
             "quality": row["quality"] if video else None, "resolution": row["resolution"],
-            "aspectPolicy": row["aspect_policy"], "seed": row["seed"],
+            "aspectPolicy": row["aspect_policy"], "seed": str(row["seed"]),
             "requestedDurationSeconds": row["requested_duration_seconds"] if video else None,
             "expectedDurationSeconds": row["frame_count"] / row["fps"] if video and row["fps"] else None,
             "frameCount": row["frame_count"] if video else None, "fps": row["fps"] if video else None,

@@ -54,6 +54,7 @@ function resetDetail() {
   $("prompt").hidden = true;
   text("prompt-toggle", "查看提示词");
   $("download").hidden = true;
+  $("reuse-settings").hidden = true;
   $("detail-error").hidden = true;
   $("detail").hidden = !selected;
   $("detail-empty").hidden = Boolean(selected);
@@ -234,6 +235,30 @@ function renderDetail(j) {
     dl.append(dt, dd);
   }
   text("frozen", JSON.stringify(j.frozenSettings, null, 2));
+  $("reuse-settings").hidden =
+    j.backend !== "h3_video" || j.inputMode !== "image";
+  $("reuse-settings").onclick = async () => {
+    const id = j.id;
+    $("reuse-settings").disabled = true;
+    try {
+      const data = await get(
+        `/dashboard/api/jobs/${encodeURIComponent(id)}/prompt`,
+      );
+      if (id === selected)
+        window.dispatchEvent(
+          new CustomEvent("dashboard:reuse", {
+            detail: { ...j, prompt: data.prompt },
+          }),
+        );
+    } catch (error) {
+      if (id === selected) {
+        $("detail-error").hidden = false;
+        text("detail-error", `复用设置失败：${error.message}`);
+      }
+    } finally {
+      $("reuse-settings").disabled = false;
+    }
+  };
   const key = `${j.id}:${j.output}`;
   if (key !== mediaKey) {
     $("preview").replaceChildren();
@@ -371,6 +396,14 @@ document.addEventListener("visibilitychange", () => {
   clearTimeout(timer);
   if (!document.hidden) invalidate();
 });
+window.addEventListener("dashboard:submitted", (event) => {
+  query = { search: "", backend: "", status: "" };
+  for (const key of ["search", "backend", "status"]) $(key).value = "";
+  cursor = "";
+  history = [];
+  selectJob(event.detail);
+});
+window.addEventListener("dashboard:refresh", invalidate);
 window.addEventListener("popstate", () => {
   selected = new URL(location.href).searchParams.get("job") || "";
   resetDetail();

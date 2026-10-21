@@ -6,13 +6,15 @@
     <title>Spark · 生成网关</title>
     <link rel="icon" href="/dashboard/assets/favicon.svg" />
     <link rel="stylesheet" href="/dashboard/assets/dashboard.css" />
+    <link rel="stylesheet" href="/dashboard/assets/generation.css" />
     <script src="/dashboard/assets/dashboard.js" defer></script>
+    <script src="/dashboard/assets/generation.js" defer></script>
   </head>
   <body>
     <header>
       <div>
         <p class="eyebrow">SPARK / GENERATION GATEWAY</p>
-        <h1>生成任务 <span class="chip">只读</span></h1>
+        <h1>生成任务 <span class="chip">H3 视频</span></h1>
       </div>
       <div class="refresh">
         <span id="observed">正在读取…</span
@@ -21,6 +23,129 @@
     </header>
     <main>
       <p id="error" class="notice" role="alert" hidden></p>
+      <section class="generation-panel" aria-labelledby="generation-title">
+        <details id="generation-panel" open>
+          <summary id="generation-title">生成 H3 视频</summary>
+          <form id="generation-form">
+            <fieldset id="generation-fields" disabled>
+              <div class="generation-grid">
+                <label
+                  >图片来源<select id="source-mode">
+                    <option value="upload">上传图片</option>
+                    <option value="url">图片下载链接</option>
+                  </select></label
+                >
+                <label
+                  >分辨率<select id="generate-resolution" required>
+                    <optgroup label="竖屏">
+                      <option>576x1024</option>
+                      <option>608x1088</option>
+                      <option>704x1280</option>
+                    </optgroup>
+                    <optgroup label="横屏">
+                      <option>832x480</option>
+                      <option>960x544</option>
+                      <option>1280x704</option>
+                    </optgroup>
+                  </select></label
+                >
+                <label
+                  >质量<select id="generate-quality">
+                    <option value="1">1 · V1.2 Turbo-4（默认）</option>
+                    <option value="2">2 · V1.0 Turbo-4</option>
+                    <option value="3">3 · V1.0 Turbo-8</option>
+                    <option value="8">8 · Base-20</option>
+                  </select></label
+                >
+                <label
+                  >时长（秒）<input
+                    id="generate-duration"
+                    type="number"
+                    min="5"
+                    max="15"
+                    step="1"
+                    value="5"
+                    required
+                /></label>
+              </div>
+              <div id="upload-inputs" class="generation-grid">
+                <label
+                  >首帧图片<input
+                    id="start-file"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    required
+                /></label>
+                <label
+                  >尾帧图片（可选）<input
+                    id="end-file"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                /></label>
+              </div>
+              <div id="url-inputs" class="generation-grid" hidden>
+                <label
+                  >首帧下载链接<input
+                    id="start-url"
+                    type="url"
+                    placeholder="https://…"
+                    disabled
+                /></label>
+                <label
+                  >尾帧下载链接（可选）<input
+                    id="end-url"
+                    type="url"
+                    placeholder="https://…"
+                    disabled
+                /></label>
+              </div>
+              <label
+                >提示词<textarea
+                  id="generate-prompt"
+                  rows="4"
+                  maxlength="8000"
+                  required
+                  placeholder="描述动作、镜头、对白与声音…"
+                ></textarea>
+              </label>
+              <details class="advanced-generation">
+                <summary>高级设置</summary>
+                <div class="generation-grid">
+                  <label
+                    >Seed（留空随机）<input
+                      id="generate-seed"
+                      inputmode="numeric"
+                      pattern="[0-9]+"
+                      placeholder="随机"
+                  /></label>
+                  <label
+                    >图片宽高比策略<select id="generate-aspect">
+                      <option value="reject_mismatch">
+                        不匹配时拒绝（不裁剪）
+                      </option>
+                      <option value="cover_center_crop">居中裁剪铺满</option>
+                      <option value="contain_pad">完整保留，空白处补黑</option>
+                    </select></label
+                  >
+                </div>
+              </details>
+              <p class="generation-hint">
+                图片每张不超过 20 MiB；宽高比策略同时用于首尾帧。输出时长按 H3
+                帧数取整，可能略长于请求值。
+              </p>
+              <button id="generate-submit" type="submit">提交生成</button>
+            </fieldset>
+          </form>
+          <p
+            id="generation-message"
+            class="notice"
+            role="status"
+            aria-live="polite"
+          >
+            正在检查提交配置…
+          </p>
+        </details>
+      </section>
       <section class="metrics" aria-label="服务与队列状态">
         <article>
           <h2>网关健康检查</h2>
@@ -121,6 +246,9 @@
               <pre id="frozen"></pre>
             </details>
             <button type="button" id="prompt-toggle">查看提示词</button>
+            <button type="button" id="reuse-settings" hidden>
+              复用设置到生成表单
+            </button>
             <pre id="prompt" hidden></pre>
           </div>
         </aside>

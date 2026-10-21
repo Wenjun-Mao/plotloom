@@ -1,0 +1,66 @@
+.generation-panel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  background: #101923;
+  margin-bottom: 20px;
+}
+.generation-panel summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.generation-panel fieldset {
+  border: 0;
+  padding: 0;
+  margin: 18px 0 0;
+  min-width: 0;
+}
+.generation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.generation-panel textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #3a4a5b;
+  border-radius: 7px;
+  background: #14202c;
+  color: inherit;
+  font: inherit;
+  padding: 12px;
+}
+.generation-panel textarea:focus {
+  outline: 2px solid var(--accent);
+}
+.generation-panel input[type="file"] {
+  overflow: hidden;
+}
+.advanced-generation {
+  margin-top: 18px;
+}
+.advanced-generation .generation-grid {
+  margin-top: 16px;
+}
+.generation-hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+#generate-submit {
+  background: var(--accent);
+  color: #18202a;
+  font-weight: 600;
+}
+#generation-message {
+  overflow-wrap: anywhere;
+  margin-bottom: 0;
+}
+[hidden] {
+  display: none !important;
+}
+@media (max-width: 640px) {
+  .generation-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

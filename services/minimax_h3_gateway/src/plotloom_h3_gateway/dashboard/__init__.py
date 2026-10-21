@@ -1,1 +1,1 @@
-"""Read-only operational viewer; never constructs a generation application."""
+"""Operational console with delegated H3 admission; never constructs workers."""

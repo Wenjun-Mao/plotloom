@@ -83,6 +83,10 @@ Tailscale HTTPS, with owner-selected Tailscale-only access and no extra browser 
 Implementation and Spark loopback checks are complete; a native administrator
 permission gate still blocks HTTPS activation/final acceptance. It does not change
 generation authority or the integration hold; see the linked verification receipt.
+The owner subsequently approved [single H3 image submission](2026-10-21-h3-dashboard-generation.md)
+through a fixed-target server-side boundary; ADR 0100 records that extension.
+Database/media remain read-only, while allowed tailnet users gain H3 creation.
+Other generation modes, management controls and broader integration remain excluded.
 
 The separate [ComfyUI 0.38 qualification](2026-09-30-h3-comfy038-runtime-qualification.md)
 used five calls, followed by a separately approved corrected landscape pair.

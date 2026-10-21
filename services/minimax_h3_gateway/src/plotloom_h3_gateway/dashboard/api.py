@@ -1,18 +1,21 @@
-"""Read-only browser surface, reachable externally only through Tailscale Serve."""
+"""Private browser console; only H3 admission is forwarded to the gateway."""
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .health import HealthProbe
 from .media import media_response
 from .reader import DashboardReader, ReadError
+from .submission import SubmissionError, validated_body
 
 STATIC = Path(__file__).parent / "static"
 
 
-def create_dashboard(data_root: Path, *, health=None, hosts=None):
+def create_dashboard(data_root: Path, *, health=None, hosts=None, submission=None):
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     reader = DashboardReader(data_root)
     probe = health or HealthProbe()
@@ -42,6 +45,29 @@ def create_dashboard(data_root: Path, *, health=None, hosts=None):
     async def read_error(request, error):
         return JSONResponse({"error": error.code}, status_code=error.status)
 
+    @app.exception_handler(SubmissionError)
+    async def submit_error(request, error):
+        return JSONResponse({"error": error.code}, status_code=error.status)
+
+    @app.get("/dashboard/api/generation")
+    def generation():
+        return {"enabled": submission is not None}
+
+    @app.post("/dashboard/api/generation", status_code=202)
+    async def generate(request: Request):
+        # Compare against exact browser origins, not untrusted forwarded headers.
+        allowed = {"https://gx10-1523.tail6040ad.ts.net", "http://127.0.0.1:8091",
+                   "http://localhost:8091"}
+        origin = request.headers.get("origin")
+        if (origin not in allowed or urlsplit(origin).netloc != request.headers.get("host")
+                or request.headers.get("x-dashboard-request") != "1"
+                or request.headers.get("sec-fetch-site") not in {None, "same-origin"}):
+            raise SubmissionError("submission_origin_refused", 403)
+        if submission is None:
+            raise SubmissionError("submission_not_configured", 503)
+        raw, content_type = await validated_body(request)
+        return await run_in_threadpool(submission.submit, raw, content_type)
+
     @app.get("/dashboard")
     def redirect():
         return RedirectResponse("/dashboard/", status_code=307)
@@ -52,7 +78,8 @@ def create_dashboard(data_root: Path, *, health=None, hosts=None):
 
     @app.get("/dashboard/assets/{name}")
     def asset(name: str):
-        types = {"dashboard.js": "text/javascript", "dashboard.css": "text/css", "favicon.svg": "image/svg+xml"}
+        types = {"dashboard.js": "text/javascript", "dashboard.css": "text/css", "favicon.svg": "image/svg+xml",
+                 "generation.js": "text/javascript", "generation.css": "text/css"}
         if name not in types:
             raise ReadError("not_found", 404)
         return FileResponse(STATIC / name, media_type=types[name])
