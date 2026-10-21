@@ -32,20 +32,20 @@ const text = (id, value) => {
   $(id).textContent = String(value ?? "—");
 };
 let selected = new URL(location.href).searchParams.get("job") || "";
-let cursor = "",
-  history = [],
-  nextCursor = null,
-  epoch = 0,
+const pages = new DashboardPages();
+const preview = new DashboardPreview(
+  $("preview"),
+  $("output-note"),
+  outputNames,
+);
+let epoch = 0,
   inflight = false,
   pending = false;
 let controller = null,
   timer = null,
-  mediaKey = "",
   delay = 5000;
-let query = { search: "", backend: "", status: "" };
 function resetDetail() {
-  mediaKey = "";
-  $("preview").replaceChildren();
+  preview.reset();
   $("detail-fields").replaceChildren();
   text("detail-id", selected);
   text("frozen", "");
@@ -82,7 +82,13 @@ function invalidate() {
   controller?.abort();
   pending = true;
   clearTimeout(timer);
+  renderPagination();
   refresh();
+}
+function renderPagination() {
+  $("previous").disabled = !pages.canPrevious;
+  $("next").disabled = !pages.canNext;
+  text("page", `第 ${pages.current.history.length + 1} 页 · 每页 50 条`);
 }
 function renderOverview(o) {
   text("observed", `最近读取 ${date(o.observedAt)}`);
@@ -137,7 +143,6 @@ function renderOverview(o) {
 function renderJobs(data) {
   const body = $("jobs");
   body.replaceChildren();
-  nextCursor = data.nextCursor;
   for (const j of data.jobs) {
     const row = document.createElement("tr");
     const values = [
@@ -179,9 +184,7 @@ function renderJobs(data) {
     body.append(row);
   }
   $("empty").hidden = Boolean(data.jobs.length);
-  $("previous").disabled = !history.length;
-  $("next").disabled = !nextCursor;
-  text("page", `第 ${history.length + 1} 页 · 每页 50 条`);
+  renderPagination();
 }
 function renderDetail(j) {
   $("detail-empty").hidden = true;
@@ -259,27 +262,7 @@ function renderDetail(j) {
       $("reuse-settings").disabled = false;
     }
   };
-  const key = `${j.id}:${j.output}`;
-  if (key !== mediaKey) {
-    $("preview").replaceChildren();
-    mediaKey = key;
-    if (j.output === "available") {
-      const media = document.createElement(
-        j.backend === "h3_video" ? "video" : "img",
-      );
-      media.src = `/dashboard/media/${encodeURIComponent(j.id)}`;
-      if (media instanceof HTMLVideoElement) {
-        media.controls = true;
-        media.preload = "metadata";
-        media.playsInline = true;
-      } else media.alt = "生成图像原始输出";
-      media.addEventListener("error", () =>
-        text("output-note", "浏览器无法读取或播放此输出；可下载原始文件检查。"),
-      );
-      $("preview").append(media);
-    }
-  }
-  text("output-note", outputNames[j.output] || j.output);
+  preview.render(j);
   $("download").hidden = j.output !== "available";
   $("download").href =
     `/dashboard/media/${encodeURIComponent(j.id)}?download=true`;
@@ -293,12 +276,13 @@ async function refresh() {
   inflight = true;
   pending = false;
   const own = epoch,
-    id = selected;
+    id = selected,
+    page = pages.request;
   controller = new AbortController();
   const timeout = setTimeout(() => controller?.abort(), 12000);
   const signal = controller.signal;
   try {
-    const params = new URLSearchParams({ ...query, cursor });
+    const params = new URLSearchParams({ ...page.query, cursor: page.cursor });
     const [overview, jobs, detail] = await Promise.all([
       get("/dashboard/api/overview", signal),
       get(`/dashboard/api/jobs?${params}`, signal),
@@ -309,6 +293,7 @@ async function refresh() {
         : null,
     ]);
     if (own !== epoch) return;
+    if (!pages.accept(page, jobs.nextCursor)) return;
     renderOverview(overview);
     renderJobs(jobs);
     if (detail?.detailError) {
@@ -316,8 +301,7 @@ async function refresh() {
       $("detail-empty").hidden = true;
       $("detail-error").hidden = false;
       text("detail-error", `无法读取所选任务：${detail.detailError}`);
-      $("preview").replaceChildren();
-      mediaKey = "";
+      preview.reset();
       $("download").hidden = true;
     } else if (detail) renderDetail(detail);
     else {
@@ -328,6 +312,8 @@ async function refresh() {
     delay = 5000;
   } catch (e) {
     if (own === epoch) {
+      pages.reject(page);
+      renderPagination();
       text(
         "error",
         `读取失败，当前显示可能已过时：${e.name === "AbortError" ? "请求超时" : e.message}`,
@@ -343,28 +329,19 @@ async function refresh() {
 }
 $("filters").addEventListener("submit", (e) => {
   e.preventDefault();
-  query = {
+  pages.reset({
     search: $("search").value.trim(),
     backend: $("backend").value,
     status: $("status").value,
-  };
-  cursor = "";
-  history = [];
+  });
   invalidate();
 });
 $("refresh").onclick = invalidate;
 $("next").onclick = () => {
-  if (nextCursor) {
-    history.push(cursor);
-    cursor = nextCursor;
-    invalidate();
-  }
+  if (pages.next()) invalidate();
 };
 $("previous").onclick = () => {
-  if (history.length) {
-    cursor = history.pop();
-    invalidate();
-  }
+  if (pages.previous()) invalidate();
 };
 $("copy").onclick = async () => {
   try {
@@ -397,10 +374,8 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) invalidate();
 });
 window.addEventListener("dashboard:submitted", (event) => {
-  query = { search: "", backend: "", status: "" };
+  pages.reset({ search: "", backend: "", status: "" });
   for (const key of ["search", "backend", "status"]) $(key).value = "";
-  cursor = "";
-  history = [];
   selectJob(event.detail);
 });
 window.addEventListener("dashboard:refresh", invalidate);

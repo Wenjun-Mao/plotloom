@@ -10,6 +10,7 @@ function harness() {
       this.textContent = "";
       this.hidden = false;
       this.classList = { toggle() {} };
+      this.events = new Map();
     }
     replaceChildren(...children) {
       this.children = children;
@@ -17,7 +18,12 @@ function harness() {
     append(...children) {
       this.children.push(...children);
     }
-    addEventListener() {}
+    addEventListener(name, fn) {
+      this.events.set(name, fn);
+    }
+    fire(name) {
+      this.events.get(name)?.();
+    }
   }
   class Video extends Element {}
   const elements = new Map();
@@ -49,6 +55,13 @@ function harness() {
       throw Error("must not fetch while hidden");
     },
   });
+  vm.runInContext(
+    readFileSync(
+      "services/minimax_h3_gateway/src/plotloom_h3_gateway/dashboard/static/view-state.js",
+      "utf8",
+    ),
+    context,
+  );
   vm.runInContext(
     readFileSync(
       "services/minimax_h3_gateway/src/plotloom_h3_gateway/dashboard/static/dashboard.js",
@@ -95,4 +108,103 @@ test("same-output polling retains the exact existing video element and source", 
   assert.equal(document.getElementById("preview").children[0], video);
   assert.equal(video.currentTime, 2.5);
   assert.match(video.src, /\/dashboard\/media\/h3_/);
+});
+
+test("repeated navigation only commits once after the target response arrives", () => {
+  const { context } = harness();
+  vm.runInContext(
+    `
+    pages.accept(pages.request, "second");
+    if (!pages.next() || pages.next() || pages.previous()) throw Error("pending transition admitted twice");
+    if (pages.current.history.length !== 0) throw Error("page advanced before rows");
+    pages.accept(pages.request, "third");
+    if (pages.current.cursor !== "second" || pages.current.history.length !== 1) throw Error("wrong accepted page");
+    if (!pages.previous() || pages.previous() || pages.next()) throw Error("duplicate back transition");
+    pages.accept(pages.request, "second");
+    if (pages.current.cursor !== "" || pages.current.history.length) throw Error("back did not restore first page");
+  `,
+    context,
+  );
+});
+
+test("failed and superseded transitions preserve committed pagination and query", () => {
+  const { context } = harness();
+  vm.runInContext(
+    `
+    pages.accept(pages.request, "second");
+    pages.next();
+    const failed = pages.request;
+    pages.reject(failed);
+    if (pages.current.cursor !== "" || pages.current.history.length || !pages.canNext) throw Error("failed page committed");
+    pages.reset({search:"new",backend:"h3_video",status:""});
+    if (pages.accept(failed,"other") || pages.canNext) throw Error("stale navigation accepted");
+    pages.accept(pages.request,null);
+    if (pages.current.query.search !== "new" || pages.current.history.length) throw Error("filter did not reset page");
+  `,
+    context,
+  );
+});
+
+test("native playback error survives polling without removing a valid download", () => {
+  const { context, document } = harness();
+  context.job = {
+    id: "h3_" + "a".repeat(32),
+    backend: "h3_video",
+    inputMode: "image",
+    output: "available",
+  };
+  vm.runInContext("renderDetail(job)", context);
+  const video = document.getElementById("preview").children[0];
+  video.fire("error");
+  const warning = document.getElementById("output-note").textContent;
+  vm.runInContext("renderDetail(job)", context);
+  assert.match(warning, /浏览器无法/);
+  assert.equal(document.getElementById("output-note").textContent, warning);
+  assert.equal(document.getElementById("preview").children[0], video);
+  assert.equal(document.getElementById("download").hidden, false);
+  video.fire("loadeddata");
+  assert.equal(document.getElementById("output-note").textContent, "可查看");
+});
+
+test("new source and expiry clear old failure; removed-source events cannot poison selection", () => {
+  const { context, document } = harness();
+  context.job = {
+    id: "h3_" + "a".repeat(32),
+    backend: "h3_video",
+    output: "available",
+  };
+  vm.runInContext("renderDetail(job)", context);
+  const removed = document.getElementById("preview").children[0];
+  removed.fire("error");
+  context.job = { ...context.job, id: "h3_" + "b".repeat(32) };
+  vm.runInContext("renderDetail(job)", context);
+  removed.fire("error");
+  assert.equal(document.getElementById("output-note").textContent, "可查看");
+  context.job.output = "expired";
+  vm.runInContext("renderDetail(job)", context);
+  assert.equal(
+    document.getElementById("output-note").textContent,
+    "输出已过期",
+  );
+  assert.equal(document.getElementById("download").hidden, true);
+});
+
+test("image load recovery clears its own error without recreating the preview", () => {
+  const { context, document } = harness();
+  context.job = {
+    id: "img_" + "b".repeat(32),
+    backend: "qwen_image",
+    output: "available",
+  };
+  vm.runInContext("renderDetail(job)", context);
+  const image = document.getElementById("preview").children[0];
+  image.fire("error");
+  vm.runInContext("renderDetail(job)", context);
+  assert.match(
+    document.getElementById("output-note").textContent,
+    /浏览器无法/,
+  );
+  image.fire("load");
+  assert.equal(document.getElementById("output-note").textContent, "可查看");
+  assert.equal(document.getElementById("preview").children[0], image);
 });
