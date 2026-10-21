@@ -4,6 +4,10 @@ Status: delivered at `30c3df75`; deployed on Spark and private HTTPS verified
 2026-10-21 after owner activation. Baseline `deebca11`.
 
 Evidence: [verification receipt](../verification/2026-10-21-h3-dashboard-generation.md).
+Later [owner-requested manual walkthrough](../verification/2026-10-21-h3-console-manual-walkthrough.md)
+completed one live canary and core UI journeys, and identified two open client-side
+defects: repeated pagination while loading and poll-erased playback errors.
+They are recorded for a separately authorized correction, not silently waived.
 
 ## Approved deliverable
 
