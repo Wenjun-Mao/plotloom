@@ -1,18 +1,20 @@
 # Private generation gateway dashboard
 
-Status: **IMPLEMENTED; SPARK LOOPBACK VERIFIED — native admin permission blocks HTTPS activation and final acceptance.**
+Status: **DELIVERED; PRIVATE HTTPS VERIFIED 2026-10-21.** H3 creation is the separate
+owner-approved [console extension](2026-10-21-h3-dashboard-generation.md).
 Date: 2026-10-20, America/Toronto.
 
 ## Outcome and scope
 
 Give the owner and colleagues a small, Chinese-language, read-only Spark dashboard
 for gateway health, shared FIFO occupancy, recent H3/Qwen jobs and retained outputs.
-The proposed address is **https://gx10-1523.tail6040ad.ts.net/dashboard/**.
-This is a planned address, not an already deployed dashboard.
+The live address is **https://gx10-1523.tail6040ad.ts.net/dashboard/**.
 
-Progress: [verification and native HTTPS gate](../verification/2026-10-20-generation-gateway-dashboard.md).
-The independent dashboard is deployed on loopback; the external HTTPS handler is
-not active. Preserve this distinction until its native permission gate is resolved.
+Progress: [initial verification and native HTTPS gate](../verification/2026-10-20-generation-gateway-dashboard.md),
+then [HTTPS closeout](../verification/2026-10-21-h3-dashboard-generation.md#private-https-closeout--2026-10-21).
+The owner activated the supported private handler; final routing/media/access
+verification passed. The original read-only scope below remains historical;
+ADR0100 separately records the later H3 creation boundary.
 
 Reuse current SQLite records and gateway-managed media. Do not add a database,
 generation controls, cancellation/deletion/retry actions, new retention rules,

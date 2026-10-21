@@ -1,7 +1,7 @@
 # H3 dashboard generation console
 
-Status: implemented at `30c3df75`; deployed on Spark loopback. Administrator HTTPS
-activation/final acceptance pending. Baseline `deebca11`.
+Status: delivered at `30c3df75`; deployed on Spark and private HTTPS verified
+2026-10-21 after owner activation. Baseline `deebca11`.
 
 Evidence: [verification receipt](../verification/2026-10-21-h3-dashboard-generation.md).
 

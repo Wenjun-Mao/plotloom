@@ -1,6 +1,6 @@
 # H3 dashboard generation console — 2026-10-21
 
-Status: **IMPLEMENTED AND DEPLOYED ON SPARK LOOPBACK; PRIVATE HTTPS ACTIVATION PENDING ADMINISTRATOR.**
+Status: **DELIVERED; SPARK PRIVATE HTTPS VERIFIED ON 2026-10-21 AFTER OWNER ACTIVATION.**
 
 Owner approved the [single-image-generation console plan](../roadmap/2026-10-21-h3-dashboard-generation.md)
 with “Good. Go”. Source implementation: `30c3df75`, retained specialist branch
@@ -82,16 +82,16 @@ Generation services retain exact identities/start times:
 - Comfy `8542065d40cb5226eb50ecfbd838565e264fe8c2b02c0efe604d1af68b68354e`,
   started2026-10-06T21:33:47.591783543Z.
 
-## Remaining native HTTPS gate and rollback
+## Initial native HTTPS gate and rollback
 
-Fresh Serve status is still `{}`; noninteractive administrator access unavailable.
-**Do not advertise the HTTPS URL as live.** An administrator on Spark must run:
+At the initial deployment Serve status was `{}` and noninteractive administrator
+access unavailable. The URL was not advertised as live. Owner subsequently ran:
 
 ```sh
 sudo tailscale serve --bg --https=443 --set-path=/dashboard http://127.0.0.1:8091/dashboard
 ```
 
-Then verify normal TLS, exact prefix routing, native media and same-origin POST on
+Verification results are recorded below for
 `https://gx10-1523.tail6040ad.ts.net/dashboard/`. No permission widening, Funnel,
 alternative publication, global Serve reset or generation-service restart was used.
 
@@ -101,5 +101,33 @@ file/image tag20261020. Leave the unused dedicated key protected; do not delete 
 alter gateway data. If the new Serve handler is actually installed and must be
 rolled back, remove only that exact handler as documented in the prior receipt.
 
-Implementation and local verification are not private-HTTPS acceptance or new
-model-quality acceptance. Usage/cost telemetry was unavailable. No merge/push/CI.
+## Private HTTPS closeout — 2026-10-21
+
+Owner used the native sudo command above. Fresh Serve configuration contains only
+HTTPS443 and `/dashboard` → `http://127.0.0.1:8091/dashboard`; no Funnel and no `/v1`
+handler. This is the installed v1.102.4 prefix mapping, not a path-strip assumption.
+Container IDs, images and start times remain unchanged from the deployment above.
+Dashboard remains healthy/unless-stopped; shared lane and Comfy queues observed idle.
+
+From the Mac, with **normal certificate verification**:
+
+- `/dashboard`307redirect to `/dashboard/`; page, scripts, CSS, JSON/config200;
+  generation API route outside `/dashboard`404.
+- Missing-origin POST403; correct browser same-origin/custom-header empty request422
+  `request_invalid`. This verifies access/routing without admitting a generation job.
+- Retained job `h3_7975b0fcecc14cdf9ce9c6bcd41ebe55` output HEAD/GET Range206;
+  unsatisfiable range416; original attachment download4930200bytes, SHA256
+  `89a64b849533d030bf73cff51c13334fb7b034b7b521045bf7996c2180b20771`,
+  equal to its existing database record. No media was transcoded or regenerated.
+- Real headed Chrome: native seek to8seconds and playback advancement, same video
+  node retained across a polling interval, enabled generation form, same-origin
+  rejection test above, actual MP4 download, selected job surviving reload, phone
+  layout without horizontal overflow. No TLS-ignore, muted substitute or fake ended.
+- [HTTPS desktop](supporting/h3-console-https-desktop-20261021.png) and
+  [HTTPS phone](supporting/h3-console-https-phone-20261021.png) inspected.
+
+The approved console/access slice is delivered. Successful model generation was
+not repeated for this closeout: local actual-admission/fixture verification and
+prior live gateway rejection evidence remain separately labelled. This is neither
+new model-quality/creative acceptance nor a diagnosis of the colleague's reported
+timeline issue. Usage/cost telemetry unavailable. No merge/push/CI or director contact.

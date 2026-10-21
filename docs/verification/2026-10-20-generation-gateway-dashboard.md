@@ -1,6 +1,9 @@
 # Generation gateway dashboard — 2026-10-20
 
-Status: **IMPLEMENTED; SPARK LOOPBACK VERIFIED; HTTPS ACTIVATION BLOCKED ON NATIVE ADMIN PERMISSION.**
+Status: **HISTORICAL LOOPBACK VERIFICATION; HTTPS GATE RESOLVED 2026-10-21.**
+See [private HTTPS closeout](2026-10-21-h3-dashboard-generation.md#private-https-closeout--2026-10-21).
+The initial refusal and pending checks below are preserved as original evidence,
+not current blockers. H3 creation is the separately approved ADR0100 extension.
 
 Owner approved the [plan](../roadmap/2026-10-20-generation-gateway-dashboard-plan.md)
 and selected Tailscale-only access. Source owner is the retained H3 specialist
