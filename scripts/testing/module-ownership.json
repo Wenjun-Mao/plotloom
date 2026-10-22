@@ -310,6 +310,7 @@
           "tests/test_video_batch_review.py",
           "tests/test_video_batch_realistic_pack.py",
           "tests/test_delegated_qa.py",
+          "tests/test_finished_example_qa_scopes.py",
           "tests/test_provider_budgets.py"
         ],
         "vitest": [

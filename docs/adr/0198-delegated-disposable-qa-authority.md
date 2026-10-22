@@ -17,7 +17,8 @@ imported SH01/SH02 asset IDs with original SHA-256 hashes in `delegated_qa.SCOPE
 The manager supplied these identities from actual project-creation and ImageGen
 import receipts retained under `.local/finished-examples-20261022/`; bootstrap
 files and image descriptions alone are not grant evidence. Each board contains
-two six-second shots. All use the existing H3 quality-8 portrait 576×1024 profile,
+two three-second shots (six seconds total). All use the existing H3 quality-8
+portrait 576×1024 profile,
 native audio and `cover_center_crop`. Both aggregate caps are null under the
 prospective policy; the finite outcome remains three completed example projects.
 The initial `disposable-qa-20261019` grant stays byte-for-byte equivalent in fields,

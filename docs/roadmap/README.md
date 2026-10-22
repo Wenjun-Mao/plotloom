@@ -9,7 +9,7 @@ two-submission/ten-second grant remains unchanged. The smallest real journey is
 one two-shot example: import actual ImageGen originals, bind the verified runtime
 incarnation, review materials, run serial H3 quality-8 portrait video, inspect
 native audiovisual outputs, select clips and read back finished playback before
-continuing to the other styles. Each board has two six-second shots.
+continuing to the other styles. Each board has two three-second shots (six seconds total).
 
 The sole source writer adds immutable grants, focused regression checks and this
 decision record, then commits locally and stops for independent review. Root
