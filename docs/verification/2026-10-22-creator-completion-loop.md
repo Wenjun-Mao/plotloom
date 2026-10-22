@@ -1,8 +1,9 @@
 # Creator completion loop: implementation and acceptance evidence
 
-Status: bounded native UI journey completed on deployed `b78bc6c9`; reviewed
-corrective code `6a44b8eb` completed composite local qualification. Original full
-failure is retained; no full retry. Final quiet activation is manager-owned.
+Status: bounded native UI journey completed on `b78bc6c9`; composite-qualified
+corrective build `b21505a0` activated with exact preservation and ending playback.
+Reviewed product bytes match `6a44b8eb`. Original full/browser failures remain
+retained; no broad retry. Functional delegated QA is not owner creative acceptance.
 Generic checkpoint: `da1f9bc0`; capacity checkpoint: `f1a93485`.
 Baseline: retained checkout `1edae591`; approved scope is the
 [creator completion plan](../roadmap/2026-10-22-creator-completion-loop.md).
@@ -95,10 +96,8 @@ The exact read-only observation is retained in the
 [native image capacity note](../../.local/creator-completion-20261022/native-image-capacity-observation.md).
 The owner explicitly authorized the bounded recovery below. No live retirement
 has been performed by this worker; UNKNOWN outcomes and reservations are intact.
-The manager owns actual material inspection, the two-take/one-replacement UI loop,
-native-audio limitations, ending playback/reopen, preservation checks, final full
-local qualification and exact tested-package activation. Synthetic checks and
-independent code review do not establish those outcomes or creative acceptance.
+Manager-owned live inspection/playback and final activation are recorded below;
+synthetic checks or code review alone establish neither nor creative acceptance.
 
 ## Authorized local-capacity extension
 
@@ -393,3 +392,19 @@ production-file hashes, wheel hash, failed browser log and fixture correction.
 Vite chunk-size and uv/uv-build version-range advisories were non-failing; no gate
 was bypassed. This closes local software qualification through explicit evidence
 reuse plus corrected/downstream checks, not a fresh full-pass or GA claim.
+
+## Final quiet activation and readback
+
+The manager activated clean installed P detached at `b21505a0d6410d248857c921b6e65161d3fb1884`
+through supported stop/start, verifying the old bridge/listener absent first.
+Container `181d239fb9e2` started 17:29:46 UTC healthy; owned bridge PID 66847 runs.
+Three health routes returned 200/ok; public JS and all three corrected product
+hashes match qualified bytes. Settings are readable/busy false; active/queue/validator
+counts are zero. Source-worker comparison confirms before-corrections and
+[after-final snapshots](../../.local/creator-completion-20261022/after-final-activation.json)
+are exactly equal: all four projects, settings, host and historical UNKNOWN rows.
+[Final readback](../../.local/creator-completion-20261022/after-qualification-readback.json)
+matches all seven reopened media/decision arrays. Fresh browser reload/playback
+reached the replacement ending at 3/3 seconds with last-frame hold and explicit QA
+attribution; see [post-activation ending](../../.local/creator-completion-20261022/native-post-activation-ending.png).
+No new paid call, approval, CI or push occurred. Audio/crop/creative limits above remain.
