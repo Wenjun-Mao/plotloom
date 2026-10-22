@@ -17,7 +17,8 @@ def _current(storage, view):
         return store.repository.autopilot.current(view.project_id)
 
 
-def test_launch_requires_usable_cli_login_before_creating_frozen_run(tmp_path, monkeypatch):
+@pytest.mark.parametrize("readiness_state", ["not_authenticated", "unavailable"])
+def test_launch_requires_usable_cli_login_before_creating_frozen_run(tmp_path, monkeypatch, readiness_state):
     from plotloom.autopilot_contracts import LaunchRequest
     from plotloom.autopilot_service import AutopilotService
     from plotloom.conformance import FIXED_CHINESE_BRIEF
@@ -37,7 +38,7 @@ def test_launch_requires_usable_cli_login_before_creating_frozen_run(tmp_path, m
         project_id = store.manifest.project_id
     registry, _settings = configured(storage.application.root)
     install_profile(registry)
-    registry.codex_exec_readiness = lambda: CodexExecReadiness(state="not_authenticated")
+    registry.codex_exec_readiness = lambda: CodexExecReadiness(state=readiness_state)
     monkeypatch.setattr(CreativeHandoffExchange, "current_execution_pin", lambda *_: PIN)
     service = AutopilotService(storage, registry)
     request = LaunchRequest(

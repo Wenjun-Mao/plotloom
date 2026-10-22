@@ -12,6 +12,7 @@ from plotloom.autopilot_contracts import RunControlRequest
 from plotloom.autopilot_materials import initial_inventory
 from plotloom.exceptions import InvalidTransitionError
 from tests.autopilot_controller_fixtures import environment
+from tests.autopilot_seed_fixtures import run_facts
 
 
 @pytest.mark.parametrize("enforce_limits", [True, False])
@@ -100,7 +101,7 @@ def test_early_review_and_handoff_refuse_across_real_text_stages_without_mutatio
                 in rejection.text
             )
             with closing(storage.projects.open(view.project_id)) as store:
-                assert store.repository.autopilot.current(view.project_id) == current
+                assert run_facts(store.repository.autopilot.current(view.project_id)) == run_facts(current)
                 with store.repository.engine.connect() as connection:
                     for table in [
                         "v2_approval_decisions",
@@ -136,7 +137,7 @@ def test_early_review_and_handoff_refuse_across_real_text_stages_without_mutatio
         )
         assert _tree(home) == before and tuple(calls) == sent
         with closing(storage.projects.open(view.project_id)) as store:
-            assert store.repository.autopilot.current(view.project_id) == stopped
+            assert run_facts(store.repository.autopilot.current(view.project_id)) == run_facts(stopped)
     finally:
         client.close()
         service.close()

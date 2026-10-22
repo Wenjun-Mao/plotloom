@@ -20,6 +20,7 @@ from tests.autopilot_installed_text_core import (
 from tests.autopilot_seed_fixtures import (
     copy_closed_autopilot_seed,
     freeze_closed_autopilot_seed,
+    run_facts,
 )
 
 
@@ -61,7 +62,7 @@ def copy_installed_text_prefix(seed, destination, monkeypatch) -> InstalledTextC
             checked, policy_text, records = assert_installed_text_boundary(store, registry)
             if (str(checked.id), policy_text, records) != (seed.run_id, seed.policy_text, seed.text_records):
                 raise ValueError("installed-text prefix immutable history changed")
-            assert checked == before
+            assert run_facts(checked) == run_facts(before)
         return claim_installed_text_copy(storage, registry, service, host, before)
     except BaseException:
         service.close()

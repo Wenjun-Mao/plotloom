@@ -6,6 +6,19 @@ Planning baseline: retained R `1edae591`, installed executable P
 `6b1cf196`. This is one new bounded milestone, not a reopening of completed
 October 10 lifecycle acceptance or the three October 22 example projects.
 
+Authorized capacity extension: the native journey exposed two historical UNKNOWN
+image holds on deleted, permanently revoked projects, exhausting local capacity.
+The owner explicitly approved exact operator-invoked local-slot retirement with
+fresh positive process/home absence and an atomic immutable receipt; UNKNOWN,
+spending reservations and original evidence remain unchanged. Read-only readiness
+and a narrow pre-text launch refusal expose this historical full-lane condition;
+ordinary busy scheduling is unchanged. See [ADR 0174](../adr/0174-bounded-fair-codex-exec-pool.md)
+and the [operator guide](../../services/creator_workbench/codex-exec-capacity-recovery.md).
+The current native fixture's eight text stages were adopted under the old source;
+its run was explicitly cancelled and native continuation became eligible. Quiet
+activation and same-project Continue must freeze fresh source authority and reuse
+the completed text. Live recovery, exact successor QA grant and E2E are pending.
+
 ## Outcome and scope
 
 One creator can create, revise and finish a small story through the normal UI:

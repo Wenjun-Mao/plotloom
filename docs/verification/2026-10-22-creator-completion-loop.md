@@ -1,6 +1,7 @@
 # Creator completion loop: implementation and acceptance evidence
 
-Status: generic implementation checkpoint; live acceptance and final local
+Status: generic checkpoint `da1f9bc0` plus reviewed capacity-recovery candidate;
+live acceptance and final local
 qualification remain manager-owned and are not complete in this record.
 Baseline: retained checkout `1edae591`; approved scope is the
 [creator completion plan](../roadmap/2026-10-22-creator-completion-loop.md).
@@ -86,16 +87,82 @@ No provider submissions, original-runtime grant binding, installation, activatio
 owner-story edits, GitHub Actions or push were performed by this source worker.
 No new full gate has run. Exact live native scope fields arrive only after the
 manager's original native bundle exists; there is no placeholder/wildcard grant.
-The manager reports that both configured native image slots are held by historic
-UNKNOWN attempts, so new native images remain queued. This source work changes
-neither capacity nor UNKNOWN/dispatch accounting. The live prerequisite remains
-unresolved pending the manager's supported capacity/authority decision.
+Both native image slots were held by historical UNKNOWN attempts on deleted,
+permanently revoked projects, so the initial native images could not start.
 The exact read-only observation is retained in the
 [native image capacity note](../../.local/creator-completion-20261022/native-image-capacity-observation.md).
-The user subsequently authorized designing an explicit safe capacity-recovery
-path; that follow-on is separate from this generic tested checkpoint and has not
-changed UNKNOWN outcomes, reservations or runtime capacity.
+The owner explicitly authorized the bounded recovery below. No live retirement
+has been performed by this worker; UNKNOWN outcomes and reservations are intact.
 The manager owns actual material inspection, the two-take/one-replacement UI loop,
 native-audio limitations, ending playback/reopen, preservation checks, final full
 local qualification and exact tested-package activation. Synthetic checks and
 independent code review do not establish those outcomes or creative acceptance.
+
+## Authorized local-capacity extension
+
+Root cause: local process occupancy and remote outcome/spending uncertainty shared
+one lifetime. Existing abandonment intentionally retained UNKNOWN slots, but the
+two deleted/revoked historical attempts could never progress and prevented new
+images. This is not an authentication or ImageGen retry problem. The supported
+fix splits only local occupancy through one explicit, exact operator operation;
+it never certifies the remote outcome or releases spending reservations.
+
+The candidate adds typed authenticated CLI/bridge preview and commit, fresh
+positive original-home/worker/CLI/separate-validator absence, exact installation
+and retained-row CAS under publication fence, and atomic immutable recovery
+receipt plus exact slot deletion. Missing/reused/permission/spawn uncertainty
+refuses; exact lost-ack/restart readback is idempotent, restored slots refuse.
+All original UNKNOWN/status/process/session/budget/receipt bytes, revocation and
+disabled queue remain. No automatic retirement, dispatch, retry, cap increase,
+new namespace or no-dispatch-parser change. The
+[operator guide](../../services/creator_workbench/codex-exec-capacity-recovery.md)
+provides the precise supported container CLI preview/consent commands.
+
+Read-only readiness now reports actual persisted local limits/holds separately
+from login/runtime health. Only image capacity exhausted exclusively by revoked
+UNKNOWN holds refuses fresh material launch before any text dispatch. Ordinary
+busy/running/unrevoked-UNKNOWN/queued behavior remains unchanged. Independent
+review found one readiness regression: an unavailable auth/runtime response tried
+to construct a supervisor. The readiness owner now returns the original typed
+unavailable diagnostic first; auth-home/runtime cases guard this boundary.
+
+Historical evidence is deliberately limited:
+
+- `06e80972…`: 25,133-byte stdout, empty stderr and a reported pinned-skill sandbox
+  denial are observed. No `turn.completed` or recorded process exit code exists;
+  exact terminal cause and no-ImageGen/no-dispatch are not proven.
+- `3405616d…`: the agent refused the sunflower-overlay versus empty-S01 content
+  conflict before ImageGen in its final text; `turn.completed` and genuine exit 0
+  were retained. The historical raw `rg`/unbound configuration census cannot
+  certify no dispatch, so the attempt remains UNKNOWN.
+
+The separate [instruction-access](2026-10-18-image-instruction-recovery.md) and
+[content-ownership](2026-10-19-automatic-image-content-ownership.md) repairs were
+already installed. Local retirement does not rewrite their historical evidence.
+
+The manager completed all eight text adoptions in the current fixture, cancelled
+the old run through the UI, and obtained native `not_started` evidence for its
+three never-spawned images. Continuation preview is eligible. New source changes
+frozen executor identity: quiet activation and explicit same-project Continue
+must freeze fresh authority and inherit completed text through exact origins,
+not rebind/replay the cancelled run. Exact successor QA scope waits for actual
+native materials. Live recovery, native UI completion and activation remain
+manager-owned and unproven here.
+
+Capacity checks use synthetic host/process facts, not live process proof. Earlier
+focused capacity/pool/abandonment union passed 52 cases; source bridge passed 36.
+Final focused union passed 90 cases in 63.93 seconds: all 32 capacity cases plus
+transport, authentication, profile, continuation, installed-text seed and review
+readiness. The transport/pool/abandonment/auth-launch union then passed 40 cases in
+7.58 seconds, including the four unavailable readiness cases and both unauthenticated
+launch states. Independent bounded review and exact-fix re-review report no
+remaining actionable finding. Targeted new-module Ruff and `git diff --check`
+pass. Frontend bytes are unchanged from the deterministic generic checkpoint.
+The post-capacity `verify.py quick` also passed in 13.48 seconds: dependency lock,
+API import guard, 167 frontend files / 1,473 tests and both TypeScript checks.
+Follow-on continuation/seed checks exposed test equality over response-only
+`timing.observed_at`: the test helper excludes only this observation field while
+retaining all durable timing/authority facts. Initial reruns retained three then
+two missed equality assertions; no production currentness rule was relaxed.
+One attempted focused selector used nonexistent pool/abandonment filenames and
+was refused before execution; established actual selectors were then used.

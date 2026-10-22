@@ -10,6 +10,7 @@ from pathlib import Path
 from codex_exec_supervisor_admission import CodexExecSupervisorAdmissionMixin
 from codex_exec_supervisor_abandonment import CodexExecSupervisorAbandonmentMixin
 from codex_exec_supervisor_control import CodexExecSupervisorControlMixin
+from codex_exec_supervisor_capacity import CodexExecSupervisorCapacityMixin
 from codex_exec_supervisor_errors import CodexExecSupervisorError
 from codex_exec_supervisor_job import CodexExecSupervisorJobMixin
 from codex_exec_supervisor_ledger import CodexExecSupervisorLedgerMixin
@@ -31,6 +32,7 @@ from plotloom.codex_exec_auth import (
 
 
 class CodexExecSupervisor(
+    CodexExecSupervisorCapacityMixin,
     CodexExecSupervisorRecoveryMixin,
     CodexExecSupervisorAbandonmentMixin,
     CodexExecSupervisorQualificationMixin,

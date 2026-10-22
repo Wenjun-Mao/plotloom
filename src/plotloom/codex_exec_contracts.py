@@ -11,6 +11,7 @@ from pydantic import Field, model_validator
 from .codex_exec_constants import HASH
 from .codex_exec_constants import JOB_ID as JOB_ID
 from .domain import CamelModel, contains_secret_setting, contains_secret_value
+from .codex_exec_capacity_contracts import LocalCapacityReadiness
 
 ExecCapability = Literal[
     "exec_json_events_v1",
@@ -212,6 +213,7 @@ class CodexExecReadiness(CamelModel):
     """Dynamic local runtime/login readiness, separate from the frozen profile."""
 
     state: Literal["ready", "not_authenticated", "unavailable"]
+    local_capacity: LocalCapacityReadiness | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @property
     def ready(self) -> bool:

@@ -3,6 +3,46 @@
 Status: accepted for the approved bounded implementation, 2026-10-14.
 Native concurrency and final release qualification remain required.
 
+## Explicit local-capacity retirement amendment · 2026-10-22
+
+The owner authorized a safe explicit recovery path after two UNKNOWN attempts on
+deleted, permanently revoked projects exhausted local image slots. Remote outcome
+uncertainty and spending reservations do not establish that a local worker still
+exists. The original default remains: UNKNOWN retains capacity. A separate trusted
+operator command may retire one exact local image slot only after fresh preview,
+permanent project publication revocation, positive absence of its exact deleted
+home, and positive absence of recorded worker, CLI and any separate validator PID
+and whole process group. Missing identities, reused IDs, permission failures,
+validator spawn intent, a symlink/replacement home and any ambiguity refuse.
+
+Retirement uses the existing project publication fence and one ledger transaction
+to recheck installation/project/attempt/status/slot/revocation CAS and process/home
+absence, insert one immutable hashed recovery receipt, and delete only that exact
+`exec_slot` row. The receipt binds retained original facts, process proofs, limits,
+operator reason and observation/commit times. The attempt/status bytes, UNKNOWN,
+image-budget state/reserved outputs, spending holds, process/session evidence,
+receipts/manifests, revocation and disabled queue remain unchanged. No remote
+settlement, retry, publication, queue drain, namespace replacement or limit change
+occurs. An exact acknowledged-or-lost-ack repeat returns the original receipt;
+changed facts or a restored slot refuse. Ordinary scheduling remains unchanged
+and may use the retired local capacity only through its existing dispatch owner.
+
+Authenticated bridge preview/retire operations and the existing one-shot native
+CLI expose this administrative action; ordinary status reads never retire slots.
+This explicitly narrows the earlier blanket rule that UNKNOWN local slots can
+only be released by terminal settlement; remote uncertainty remains unresolved.
+Focused adversarial/atomicity/restart/lost-ack checks and the manager's actual
+positive process proofs are required before the live command. No retrospective
+birth/session proof, telemetry-parser relaxation or time-based release is added.
+
+Read-only readiness separates authentication/runtime health from `localCapacity`:
+actual persisted limits, local holds, revoked UNKNOWN image holds and retired
+UNKNOWN holds. Fresh automatic-material launch refuses before text dispatch only
+when the image limit is exhausted exclusively by publication-revoked UNKNOWN
+holds, with an actionable preview diagnostic. Ordinary busy/running, unrevoked
+UNKNOWN and queued behavior is unchanged. This prevention neither auto-retires
+nor claims full generation readiness from bridge health.
+
 ## Problem and evidence
 
 The accepted `8ee80e9b` serial proof adopted eight real text deliveries and two

@@ -13,7 +13,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "command",
-        choices=["queue", "bridge-health", "exec-profile", "exec-readiness", "exec-admit", "exec-status", "exec-cancel", "exec-suspend", "exec-resume", "exec-abandonment-preview", "exec-project-revoke"],
+        choices=["queue", "bridge-health", "exec-profile", "exec-readiness", "exec-admit", "exec-status", "exec-cancel", "exec-suspend", "exec-resume", "exec-abandonment-preview", "exec-project-revoke", "exec-capacity-retirement-preview", "exec-capacity-retire"],
     )
     parser.add_argument("--thread")
     parser.add_argument("--message")
@@ -34,14 +34,20 @@ def main(argv=None):
     token = Path(os.environ["PLOTLOOM_CODEX_BRIDGE_TOKEN_FILE"]).read_text().strip()
     url = os.environ["PLOTLOOM_CODEX_BRIDGE_URL"].rstrip("/")
     payload = None
-    if args.command in {"exec-abandonment-preview", "exec-project-revoke"}:
+    if args.command in {"exec-capacity-retirement-preview", "exec-capacity-retire"}:
+        try:
+            from plotloom.codex_exec_capacity_contracts import CapacityRetirementRequest
+            payload = CapacityRetirementRequest.model_validate_json(args.packet_json).model_dump(mode="json", by_alias=True)
+        except (TypeError, ValueError):
+            parser.error("--packet-json must bind one exact local capacity retirement")
+    elif args.command in {"exec-abandonment-preview", "exec-project-revoke"}:
         try:
             from plotloom.project_abandonment_contracts import AbandonmentPacket
             payload = AbandonmentPacket.model_validate_json(args.packet_json).model_dump(mode="json", by_alias=True)
         except (TypeError, ValueError):
             parser.error("--packet-json must bind one exact project abandonment")
     elif args.packet_json:
-        parser.error("packet arguments are only valid for project abandonment")
+        parser.error("packet arguments are only valid for project abandonment or local capacity retirement")
     elif args.command == "queue":
         payload = {"thread": args.thread, "message": args.message}
     elif args.command == "exec-admit":
@@ -68,6 +74,8 @@ def main(argv=None):
             "exec-status": f"/exec-status/{args.attempt_id}" if args.attempt_id else "",
             "exec-abandonment-preview": "/exec-abandonment-preview",
             "exec-project-revoke": "/exec-project-revoke",
+            "exec-capacity-retirement-preview": "/exec-capacity-retirement-preview",
+            "exec-capacity-retire": "/exec-capacity-retire",
         }[args.command]
     request = Request(
         url + endpoint,
@@ -87,6 +95,15 @@ def main(argv=None):
         return 1
     if args.command == "bridge-health":
         print("Native Codex bridge is available.")
+        return 0
+    if args.command in {"exec-capacity-retirement-preview", "exec-capacity-retire"}:
+        try:
+            from plotloom.codex_exec_capacity_contracts import CapacityRetirementPreview
+            context = CapacityRetirementPreview.model_validate(result)
+        except (TypeError, ValueError):
+            print("Local capacity retirement acknowledgement is invalid.", file=sys.stderr)
+            return 1
+        print(context.model_dump_json(by_alias=True))
         return 0
     if args.command in {"exec-abandonment-preview", "exec-project-revoke"}:
         try:

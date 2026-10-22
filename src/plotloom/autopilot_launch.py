@@ -47,7 +47,11 @@ def freeze_launch_policy(store, registry, request):
     code_revision = pins["bridge-intent"]["upstreamRevision"]
     if pins["bridge-presentation"]["upstreamRevision"] != code_revision:
         raise InvalidTransitionError("原生文字执行版本不一致。")
-    registry.require_codex_exec_readiness()
+    readiness = registry.require_codex_exec_readiness()
+    if readiness.local_capacity is not None and readiness.local_capacity.image_lane_blocked:
+        raise InvalidTransitionError("本地图像容量已全部被已撤销项目的 UNKNOWN 记录占用，无法自动推进。"
+            "请管理员先检查 exec-capacity-retirement-preview 的明确本地容量恢复预览；"
+            "UNKNOWN 与费用预留仍保留，不会重试旧任务，也不会先发送文字任务。")
     profile = registry.codex_exec_profile()
     pins["image"] = image_execution_pin(code_revision, executor_backend="codex_exec")
     width, height = GEOMETRY[brief.aspect_ratio]

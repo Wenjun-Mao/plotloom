@@ -29,6 +29,7 @@ from tests.autopilot_seed_fixtures import (
     copy_closed_autopilot_seed,
     freeze_closed_autopilot_seed,
     seed_files,
+    run_facts,
 )
 from tests.test_autopilot_image_safety import reach
 from tests.test_autopilot_installed_text_seed import _identity
@@ -142,7 +143,7 @@ def test_two_copies_fresh_claim_hosts_receipts_and_isolation(
             assert not copied.text_calls and not copied.image_calls and not host.statuses and not host.pending
             assert host.admissions == 0 and not copied.registry.view()["busy"]
             times = {"created_at", "updated_at"}
-            assert copied.claim_view.model_dump(exclude=times) == copied.view.model_dump(exclude=times)
+            assert run_facts(copied.claim_view, exclude=times) == run_facts(copied.view, exclude=times)
         for relative, _digest in seed.project.files:
             paths = [root / relative for root in (seed.project.root, *roots)]
             assert len({(path.stat().st_dev, path.stat().st_ino) for path in paths}) == 3
@@ -171,7 +172,7 @@ def test_two_copies_fresh_claim_hosts_receipts_and_isolation(
             with pytest.raises(RuntimeError, match="rollback"), store.repository.engine.begin() as connection:
                 connection.exec_driver_sql("UPDATE v2_autopilot_runs SET revision=revision+1")
                 raise RuntimeError("rollback")
-            assert store.repository.autopilot.current(seed.project.project_id) == before
+            assert run_facts(store.repository.autopilot.current(seed.project.project_id)) == run_facts(before)
             database = store.database_path
         with closing(sqlite3.connect(database)) as connection, connection:
             connection.execute("UPDATE v2_autopilot_runs SET policy_hash=?", ("0" * 64,))

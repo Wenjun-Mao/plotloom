@@ -91,6 +91,12 @@ See [ADR 0095](../../docs/adr/0095-persistent-creator-workbench.md).
 
 ## Native specialist bridge
 
+For a full image lane held by historical UNKNOWN work on revoked/deleted
+projects, use the [explicit local-capacity recovery guide](codex-exec-capacity-recovery.md).
+It separates local occupancy from remote uncertainty, provides the supported
+authenticated preview/commit commands, and preserves UNKNOWN and spending holds.
+Bridge health and login readiness do not establish generation availability.
+
 The persistent server explicitly binds the installation registry to the image's
 `/usr/local/bin/codex` bridge shim for automatic Codex Exec preparation. Compose
 supplies the protected bridge URL/token-file environment. Starting the server

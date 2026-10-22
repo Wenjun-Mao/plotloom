@@ -80,6 +80,11 @@ class CodexExecSupervisorLedgerMixin:
                     original_status_json TEXT NOT NULL,
                     proof_json TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS exec_capacity_retirements (
+                    attempt_id TEXT PRIMARY KEY REFERENCES exec_attempts(attempt_id),
+                    receipt_json TEXT NOT NULL,
+                    receipt_hash TEXT NOT NULL
+                );
             """)
             self._initialize_pool(connection)
             self._namespace_finish_initialization(connection)

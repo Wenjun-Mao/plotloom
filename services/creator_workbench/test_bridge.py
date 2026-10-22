@@ -111,7 +111,10 @@ def test_readiness_uses_existing_file_store_without_exposing_cli_output(tmp_path
         private_root=private_root,
     )
 
-    assert bridge.exec_readiness() == {"state": "ready"}
+    readiness = bridge.exec_readiness()
+    assert readiness["state"] == "ready"
+    assert readiness["localCapacity"]["limits"]["maxImageProcesses"] == 2
+    assert readiness["localCapacity"]["heldImage"] == 0 and not readiness["localCapacity"]["imageLaneBlocked"]
     login_command = next(command for command, _options in commands if command[-2:] == ["login", "status"])
     assert login_command == [
         str(executable), "--config", 'cli_auth_credentials_store="file"', "login", "status",

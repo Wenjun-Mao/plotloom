@@ -16,6 +16,7 @@ from tests.autopilot_seed_fixtures import (
     copy_closed_autopilot_seed,
     freeze_closed_autopilot_seed,
     seed_files,
+    run_facts,
 )
 
 
@@ -38,8 +39,8 @@ def test_two_copies_keep_text_history_but_claim_and_continue_independently(
     try:
         right = copy_installed_text_prefix(seed, roots[1], monkeypatch)
         for copied in (left, right):
-            assert copied.claim_view.model_dump(exclude={"created_at", "updated_at"}) == copied.view.model_dump(
-                exclude={"created_at", "updated_at"})
+            assert run_facts(copied.claim_view, exclude=("created_at", "updated_at")) == run_facts(
+                copied.view, exclude=("created_at", "updated_at"))
         assert left.view.id == right.view.id == seed.run_id
         assert left.registry is not right.registry and left.service is not right.service
         assert left.registry._codex_exec_test_host is not right.registry._codex_exec_test_host
@@ -88,7 +89,7 @@ def test_two_copies_keep_text_history_but_claim_and_continue_independently(
             with pytest.raises(RuntimeError, match="rollback"), store.repository.engine.begin() as connection:
                 connection.exec_driver_sql("UPDATE v2_autopilot_runs SET revision=revision+1")
                 raise RuntimeError("rollback")
-            assert store.repository.autopilot.current(seed.project.project_id) == before
+            assert run_facts(store.repository.autopilot.current(seed.project.project_id)) == run_facts(before)
             database = store.database_path
         with closing(sqlite3.connect(database)) as connection, connection:
             connection.execute("UPDATE v2_autopilot_runs SET policy_hash=?", ("0" * 64,))

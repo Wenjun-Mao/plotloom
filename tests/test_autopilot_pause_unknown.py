@@ -9,6 +9,7 @@ from plotloom.autopilot_exec_staged import admit_reserved_codex_exec_once
 from plotloom.codex_exec_contracts import CodexExecHostStatus, transition_exec_attempt
 from plotloom.exceptions import InvalidTransitionError
 from tests.test_autopilot_exec_staged import prepared
+from tests.autopilot_seed_fixtures import run_facts
 
 
 @contextmanager
@@ -80,5 +81,5 @@ def test_pause_unknown_unacknowledged_fence_rolls_back_project_control(tmp_path,
         with pytest.raises((InvalidTransitionError, OSError)):
             service.control(view.project_id, RunControlRequest(expected_revision=view.revision, action="pause"))
         retained = store.repository.autopilot.current(view.project_id)
-        assert retained == view and requests == [unknown] and not calls
+        assert run_facts(retained) == run_facts(view) and requests == [unknown] and not calls
         assert store.repository.autopilot.exec_attempt_evidence_for_operation(view.id, "outline") == (unknown, None)

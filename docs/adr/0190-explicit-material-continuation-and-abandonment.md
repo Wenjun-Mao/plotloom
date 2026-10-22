@@ -7,6 +7,27 @@ See the [verification record](../verification/2026-10-17-material-continuation-a
 for full-baseline and scoped corrective evidence. Same-installation activation
 completed on `99964f70`; hosted CI and human creative acceptance remain separate.
 
+## Local-capacity recovery and frozen-source continuation · 2026-10-22
+
+[ADR 0174's explicit retirement amendment](0174-bounded-fair-codex-exec-pool.md)
+allows an operator to retire only a positively quiescent local image slot on an
+already revoked, deleted project. Abandonment itself continues retaining all
+UNKNOWN outcomes, spending reservations and slots. Its historical revocation
+receipt is not rewritten, and retirement does not mean remote work never ran.
+
+Installing source changes alters the frozen executor profile. Do not rebind old
+policies or run old queued packages under a new profile. For the creator QA
+project, first finish/adopt in-flight text under its original source, then use
+native cancellation to settle positively unstarted queued image attempts and
+reconcile their owning proposals/checkpoints. Require the existing continuation
+preview to be eligible before switching source. After quiet activation, explicit
+same-project continuation freezes new authority and inherits completed text and
+other adopted material through exact origin links, preserving all original rows
+and lifetime caps. Delivered-but-unadopted or UNKNOWN predecessor work still
+blocks. No fresh project or repeated completed text is needed when those existing
+continuation prerequisites hold. The final native QA grant binds the actual new
+successor run and complete bundle once generated.
+
 ## Problem
 
 Cancellation withdraws automatic authority. One run per project and Brief-only

@@ -73,7 +73,9 @@ class QueueBridge:
             environment=os.environ.copy(),
             forbidden_roots=(self.source_root, self.outputs_root, self.private_root),
         )
-        return readiness.model_dump(mode="json", by_alias=True)
+        if readiness.state == "unavailable":
+            return readiness.model_dump(mode="json", by_alias=True)
+        return readiness.model_copy(update={"local_capacity": self.exec_supervisor().local_capacity_readiness()}).model_dump(mode="json", by_alias=True)
 
     def queue(self, payload):
         if not isinstance(payload, dict) or set(payload) != {"thread", "message"}:
@@ -178,6 +180,21 @@ def handler_for(bridge: QueueBridge):
 
         def do_POST(self):
             if not self.authenticated():
+                return
+            if self.path in {"/exec-capacity-retirement-preview", "/exec-capacity-retire"}:
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 1 <= length <= 1048576:
+                        raise ValueError("invalid capacity retirement request size")
+                    self.connection.settimeout(5)
+                    packet = json.loads(self.rfile.read(length))
+                    supervisor = bridge.exec_supervisor()
+                    action = (supervisor.capacity_retirement_preview if self.path == "/exec-capacity-retirement-preview"
+                              else supervisor.retire_local_capacity)
+                    result = action(packet)
+                    self.reply(200, result.model_dump(mode="json", by_alias=True))
+                except Exception:
+                    self.reply(409, {"error": "local_capacity_retirement_not_acknowledged"})
                 return
             if self.path in {"/exec-abandonment-preview", "/exec-project-revoke"}:
                 try:

@@ -10,6 +10,11 @@ import stat
 from plotloom.project_storage import ProjectFolderStorage
 
 
+def run_facts(view, *, exclude=()):
+    """Compare retained run facts, including timing facts, not each GET's clock."""
+    return view.model_dump(exclude={**{name: True for name in exclude}, "timing": {"observed_at"}})
+
+
 def seed_files(root):
     """Hash every regular file; a seed must not hide mutable or external state."""
     if not stat.S_ISDIR(root.lstat().st_mode):

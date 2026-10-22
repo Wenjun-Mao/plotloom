@@ -109,7 +109,8 @@ def claim_installed_text_copy(storage, registry, service, host, before):
         # returns naive UTC. Keep both actual views and compare their same
         # persisted meaning without changing production timestamp behavior.
         times = {"created_at", "updated_at"}
-        assert claimed.model_dump(exclude=times) == current.model_dump(exclude=times)
+        from tests.autopilot_seed_fixtures import run_facts
+        assert run_facts(claimed, exclude=times) == run_facts(current, exclude=times)
         for field in times:
             assert getattr(claimed, field).replace(tzinfo=UTC) == getattr(current, field).replace(tzinfo=UTC)
         assert current.id == before.id and current.revision > before.revision
