@@ -163,7 +163,10 @@ def test_retained_named_v1_receipt_bytes_hash_and_recovery_stay_exact(tmp_path, 
             raw = _install_synthetic_retained_v1(store, result)
             identifier = result.handoff["receiptId"]
             before = _retained_bytes(store, identifier)
-            assert stable_hash(parse_handoff_receipt(raw).model_dump(mode="json", by_alias=True)) == before[1]
+            parsed = parse_handoff_receipt(raw)
+            assert "attribution" not in type(parsed.observation).model_fields
+            assert callable(parsed.observation.attribution)  # v1 validator, not actor data
+            assert stable_hash(parsed.model_dump(mode="json", by_alias=True)) == before[1]
             approval = store.repository._approvals.list_approval_decisions(view.project_id)[0]
             projection = _approval_decision_view(approval).model_dump(mode="json", by_alias=True)
             assert projection["reviewer"] == "Historical fixture human" and "attribution" not in projection

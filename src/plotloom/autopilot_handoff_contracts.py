@@ -193,7 +193,11 @@ _receipt_reader = TypeAdapter(Annotated[QaMaterialHandoffReceipt | BulkHumanHand
 
 def parse_handoff_receipt(raw) -> QaMaterialHandoffReceipt | BulkHumanHandoffReceipt | HumanHandoffReceipt | LegacyHumanHandoffReceipt:
     receipt = _receipt_reader.validate_python(raw)
-    actor = getattr(receipt.observation, "attribution", None)
+    # The retained v1 observation has an `attribution` validator method, not
+    # an actor field. Discriminate the typed receipt before reading actor data.
+    if isinstance(receipt, LegacyHumanHandoffReceipt):
+        return receipt
+    actor = receipt.observation.attribution
     if isinstance(receipt, QaMaterialHandoffReceipt):
         if actor != receipt.attribution:
             raise ValueError("QA handoff observation attribution differs")

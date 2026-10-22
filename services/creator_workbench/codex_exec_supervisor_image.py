@@ -121,8 +121,8 @@ class CodexExecSupervisorImageMixin:
             expected_hashes.append(item["sha256"])
         if tuple(reference_paths) != tuple(expected_paths):
             raise CodexExecSupervisorError("ImageGen references differ from the exact frozen package bytes")
-        if len(expected_hashes) != len(set(expected_hashes)):
-            raise CodexExecSupervisorError("Codex Exec frozen image references must have distinct byte hashes")
+        # Identical pixels can serve distinct frozen roles/paths. Preserve the
+        # ordered inventory; exact per-entry views remain independently required.
         return tuple(expected_hashes)
 
     @staticmethod

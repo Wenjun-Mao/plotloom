@@ -1,8 +1,8 @@
 # Creator completion loop: implementation and acceptance evidence
 
-Status: generic checkpoint `da1f9bc0` plus reviewed capacity-recovery candidate;
-live acceptance and final local
-qualification remain manager-owned and are not complete in this record.
+Status: bounded native UI journey completed on deployed `b78bc6c9`; final local
+qualification failed at Python contracts. Corrective qualification remains open.
+Generic checkpoint: `da1f9bc0`; capacity checkpoint: `f1a93485`.
 Baseline: retained checkout `1edae591`; approved scope is the
 [creator completion plan](../roadmap/2026-10-22-creator-completion-loop.md).
 
@@ -85,8 +85,9 @@ API-import gate passes. No lint rule or assertion was suppressed.
 
 No provider submissions, original-runtime grant binding, installation, activation,
 owner-story edits, GitHub Actions or push were performed by this source worker.
-No new full gate has run. Exact live native scope fields arrive only after the
-manager's original native bundle exists; there is no placeholder/wildcard grant.
+At the generic checkpoint no full gate had run and native scope fields awaited
+the actual bundle. Subsequent exact grant, live journey and failed final gate are
+recorded below; no placeholder/wildcard grant was used.
 Both native image slots were held by historical UNKNOWN attempts on deleted,
 permanently revoked projects, so the initial native images could not start.
 The exact read-only observation is retained in the
@@ -227,3 +228,142 @@ currentness/actor/runtime/portable guards, original finite grant and all three
 existing examples. No new test failed in this exact-grant checkpoint. The usual
 Starlette/httpx deprecation advisory remains non-failing. No broader/full gate,
 activation, binding or provider action was performed by this source worker.
+
+## Completed bounded native UI journey
+
+The manager completed the real UI journey on installed `b78bc6c9555bc3949a2a66c1bcfd04d81f723839`:
+saved Brief → eight native text adoptions → three native references/two prepared
+frames → attributed atomic material handoff → initial two-clip H3 batch → one
+selective ending replacement → final whole-pack QA → story ending → Save and
+Close → reopen → the same ending again. The smallest supported fixture uses one
+nonhuman wooden toy robot, no dialogue/branching, and two three-second shots;
+the native character contract required a nonempty cast, not an empty-cast bypass.
+
+Final batch `5216df34-2caa-4542-b25f-9df81fc1d8ca` has two selected three-second
+windows. Exactly three H3 submissions requested 15 source seconds: two initial
+five-second sources and one new ending source. Opening job
+`vj_6eddc5b7f1c4421aac765df247e8e2ef`, segment
+`7fe2153b-b27a-43c2-b936-e48e42ae849e` and original/derivative bytes are unchanged;
+the original ending remains retained and unselected. Replacement segment is
+`4f93f842-2573-4c32-b896-6855e0b464e8`. No new UNKNOWN occurred.
+
+The ending was rejected for an explicit creative QA variation, not a fabricated
+technical fault. The manager reviewed/edited fresh English action and soundscape,
+then explicitly started one new source. Both actual final preview videos played
+three seconds to `ended=true` without media error. Final AV receipt
+`35b4e43e-4acf-4ce7-b3ce-4e9cd87a5e8b`, confirmed at 16:25:53 UTC, records
+`agent_operated_qa` / `creator-completion-native-20261022`, not the owner's review.
+Story playback advanced from opening to replacement ending, held its last frame,
+and repeated after UI save-close/reopen. See the retained
+[journey notes](../../.local/creator-completion-20261022/ui-journey-notes.md),
+[ending](../../.local/creator-completion-20261022/native-story-ending.png) and
+[reopened ending](../../.local/creator-completion-20261022/native-reopened-ending.png).
+
+Independent source-worker readback comparison confirms after-confirm/reopened
+jobs, dispatches, selections, segments, reviews, receipts and batches are exactly
+equal: three jobs/dispatches/segments, two selections, three reviews, one receipt.
+Both historical UNKNOWN full-row hashes remain unchanged. Manager preservation
+checks retain all three old examples and protected files; final snapshot has no
+active host attempt, enabled queue entry or validator. Evidence:
+`after-confirm-readback.json`, `reopened-readback.json` and
+`before-final-activation.json` under the retained journey directory.
+
+Interventions/limits: initial `reject_mismatch` setup violated the existing QA
+`cover_center_crop` policy and was refused before jobs; UI cancel/reprepare fixed
+operator setup without contract expansion or provider retry. The manager edited
+draft soundscape to match the authored faint ambience. Technical waveform/spectrum,
+decoding and playback inspection is not perceptual listening certification or
+semantic proof of no speech/music. Close-up feet are outside the crop; exact
+one-second remake timing was not established. This is functional delegated QA,
+not creative perfection, human creative acceptance or general availability.
+Operator-effort versus provider-wait totals were not continuously measured.
+
+## One final full qualification: retained failure
+
+On clean frozen `b78bc6c9`, the sole unfiltered command
+`uv run --locked --no-sync python scripts/verify.py full` started 16:33:04 UTC and
+failed at Python contracts after 1,208.514 seconds. All 3,701 native cases were
+accounted: 3,603 passed, 21 failed, 77 setup errors. Worker reports remain intact;
+no automatic full retry occurred. Dependency lock, ffmpeg/ffprobe, API import
+guard, archived prompt reader, 1,473 frontend tests and frontend typecheck passed.
+Deterministic bundle/parity, unfiltered browser and wheel/installed-wheel steps
+were not reached, not skipped-as-pass.
+
+Exact [log](../../.local/creator-completion-20261022/final-full-b78bc6c9.log)
+SHA-256: `722abf8bd5e2237f0f2ecc36dc69fc94e02a9259d93661113b233477efddf5fe`.
+[Fingerprints](../../.local/creator-completion-20261022/final-full-b78bc6c9-fingerprints.json)
+retain source/dependency/host identity: input
+`00a743e736cbf87c08018c2226e89a497525aa218de1283b5cf4dc20186c927b`,
+native inventory `904e4ac52f88a7aac5697d1b04648e44d296291bdce0456ca8f4c4d73f02383e`;
+macOS 27.0.1 arm64, Python 3.12.13, uv 0.13.1, Node 24.18.0, npm 11.16.0.
+This Mac envelope is distinct from the deployed Linux container.
+
+First causal report: the actual paid-outline operator composition validated
+readiness but returned `None`; test/qualification shims also returned `None` from
+the now-consumed typed readiness method, causing launch `local_capacity`
+dereference failures, including repeated shared-fixture errors. Other failures
+identify a precise receipt method/field collision: legacy v1's `attribution`
+validator classmethod was read as actor data by `getattr`, rejecting retained
+named-human receipts. Other failures were isolated view fixtures missing newly
+queried timing tables and
+remaining equality assertions comparing response-only `timing.observed_at`.
+These failures remain failed; narrow corrections need separate evidence. No
+integration edits or expensive reruns were made before reporting their causes.
+
+## Prospective duplicate-reference host consistency repair
+
+A separate prevention audit demonstrated an avoidable UNKNOWN path, not a cause
+claim for this fixture or historical attempts. The host's post-generation matcher
+required unique reference SHA values although native admission/delivery support
+distinct ordered roles/paths with identical bytes. A smallest host-path test
+first reproduced the refusal; its log is retained as
+`duplicate-role-host-reproduction.log`. Remove only that extra hash-uniqueness
+rule, retaining the complete ordered reference inventory and exact view evidence.
+The synthetic real `_run` regression produces a completed receipt/manifest and
+consumed image budget, while wrong path/view order stays UNKNOWN/reserved.
+An initial expanded test fixture reused a view event ID for generation; the
+strict parser correctly refused it. Distinct fixture event IDs fixed that test
+setup; no production telemetry tolerance was added. Initial focused union passed
+18 host/failure/publication/ingestion cases; a further 102 affected delivery,
+receipt, runtime, telemetry and profile cases passed. This repair does not settle or retry
+old UNKNOWN, change local caps, or claim that uncertainty can be eliminated.
+
+## Corrective qualification in progress
+
+The owner explicitly authorized the bounded UNKNOWN consistency repair and the
+four diagnosed qualification corrections. Production remains strict: the real
+paid-outline registry returns its already-validated typed readiness, matching
+SpecialistRegistry; test shims do likewise. No `None` fallback is added. Receipt
+parsing discriminates typed v1 before reading current observation actor fields;
+eight schema-only tests preserve all four receipt roundtrips, v2/v3 QA-smuggling
+refusal and exact v4 actor matching. Existing retained-v1 integration checks also
+pin the validator-method collision and unchanged historical bytes/recovery.
+
+The isolated view fixture now includes both timing tables and explicitly expects
+the added adopted-decision select and its exact bind values. Parse/derivation,
+failure priority and cache counts remain asserted. Nine view cases pass. The
+durable-fact helper omits only `timing.observed_at`; creation/terminal/milestone,
+run revision, all authority/material fields and exact retained rows stay compared.
+The first corrected owning-file run exposed the old exact query-count expectations
+and an additional duplicate HTTP response equality in text-retry; these are the
+same response-projection test-contract issue, not a runtime fallback. Narrow
+updated file checks are recorded separately from that intermediate run. Its
+216-case selection ended 205 passed / 11 failed (518.92 seconds); the exact
+remaining nine view cases passed in 0.13 seconds and two API retry cases passed
+in 46.63 seconds. All 98 original failed/error IDs are selected, 87 passed in the
+owning run and the other 11 passed those corrected whole-file reruns. No original
+case is missing and no unexpected residual family remains. The ignored
+[reconciliation](../../.local/creator-completion-20261022/qualification-failure-reconciliation.json)
+and `corrected-full-families-focused.log` retain this composite accounting;
+neither the original full nor intermediate failed run is rewritten as passing.
+
+Native test ownership discovery initially refused five new Python files not yet
+mapped by the existing manifest. Exact current module owners and the shared
+duplicate-role helper dependency are now registered; frontend timing belongs to
+shared presentation. No runner, tier or filter changed. Read-only native discovery
+passed the final 3,713 Python cases / 306 files (inventory SHA-256
+`2b1af69d5005b224643afbab371f5a7e5b0f207b67c37f64c45c1b4199435686`),
+1,473 frontend cases / 167 files and 351 browser cases / 97 files, including the
+eight new receipt-actor unit cases. The original
+full gate remains failed. Corrective file checks and previously unrun downstream
+gates form composite local qualification, never a rewritten full-pass claim.

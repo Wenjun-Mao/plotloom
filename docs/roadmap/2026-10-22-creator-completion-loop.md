@@ -1,7 +1,9 @@
 # Creator completion loop: native creation, selective revision and timing
 
-Status: implementation approved and underway, 2026-10-22. The owner approved
-the bounded implementation, real UI E2E and activation via Relay Direct.
+Status: bounded native UI E2E completed on deployed `b78bc6c9`, 2026-10-22;
+the one final local full gate failed at Python contracts, so qualification is
+not complete. The owner approved implementation, real UI E2E and activation via
+Relay Direct; no hosted CI or publication was requested.
 Planning baseline: retained R `1edae591`, installed executable P
 `6b1cf196`. This is one new bounded milestone, not a reopening of completed
 October 10 lifecycle acceptance or the three October 22 example projects.
@@ -20,8 +22,16 @@ activation and same-project Continue freeze fresh source authority and reuse
 the completed text. The manager activated `f1a93485`, recovered both exact local
 holds with unchanged UNKNOWN/reservations, and continued the same project. Its
 successor produced three references and two shot frames. The exact source QA
-scope now binds that actual review bundle; runtime binding, material handoff and
-the remaining video/replacement/playback UI journey are still pending.
+scope binds that actual review bundle. The manager activated/bound it, completed
+the attributed material handoff and native H3 journey, replaced only the ending,
+confirmed both three-second windows, and played the ending before and after
+save-close/reopen. Three H3 submissions requested 15 source seconds; the opening
+and all prior evidence/examples remain unchanged. See the
+[verification record](../verification/2026-10-22-creator-completion-loop.md) for
+actual receipts, interventions, listening/creative limitations and the failed
+full qualification. A prospective same-bytes/different-role host consistency fix
+is separately authorized to prevent one demonstrated avoidable UNKNOWN path;
+it neither establishes historical causes nor settles old UNKNOWN outcomes.
 
 ## Outcome and scope
 

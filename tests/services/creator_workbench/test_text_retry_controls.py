@@ -23,6 +23,7 @@ from plotloom.text_correction_contracts import (
     logical_checkpoint,
 )
 from tests.autopilot_controller_fixtures import candidate
+from tests.autopilot_seed_fixtures import run_facts
 from tests.services.creator_workbench.test_text_content_correction import (
     _failed_outline_fixture,
 )
@@ -138,7 +139,7 @@ def test_duplicate_after_manual_edit_never_rebases_or_creates_work(tmp_path, mon
         with pytest.raises(InvalidTransitionError):
             service.retry_text(run.project_id, grant)
         after = current(storage, run)
-        assert after == before and after.state == "taken_over"
+        assert run_facts(after) == run_facts(before) and after.state == "taken_over"
         with pytest.raises(InvalidTransitionError):
             service.retry_text(run.project_id, grant.model_copy(update={"command_id": uuid4()}))
         with closing(storage.projects.open(run.project_id)) as store, store.repository._read() as session:

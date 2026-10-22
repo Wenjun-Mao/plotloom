@@ -15,10 +15,11 @@ class OutlineExecRegistry:
     def codex_exec_profile(self):
         return CodexExecProfile.model_validate(self.bridge.exec_profile())
 
-    def require_codex_exec_readiness(self):
+    def require_codex_exec_readiness(self) -> CodexExecReadiness:
         readiness = CodexExecReadiness.model_validate(self.bridge.exec_readiness())
         if readiness.state != "ready":
             raise ImageJobError("codex_exec_unavailable", "The frozen Codex Exec host is not ready.")
+        return readiness
 
     def codex_exec_admit(self, attempt):
         return self.bridge.exec_supervisor().admit(attempt)

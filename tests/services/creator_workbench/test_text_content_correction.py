@@ -82,7 +82,7 @@ def _journey_environment(supervisor, tmp_path, monkeypatch, *, exhaust=False, co
     from plotloom.codex_exec_contracts import CodexExecReadiness
     registry.codex_exec_profile = lambda: profile
     registry.codex_exec_readiness = lambda: CodexExecReadiness(state="ready")
-    registry.require_codex_exec_readiness = lambda: None
+    registry.require_codex_exec_readiness = lambda: CodexExecReadiness(state='ready')
     host = FakeCodexExecHost(storage, registry, candidate_factory=candidate)
     registry.codex_exec_admit = lambda attempt: supervisor.admit(attempt) if attempt.operation_key.startswith("art") else host.admit(attempt)
     registry.codex_exec_status = lambda identifier: host.status(identifier) if str(identifier) in host.statuses else supervisor.status(identifier)

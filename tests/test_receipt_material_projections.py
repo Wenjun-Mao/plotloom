@@ -186,6 +186,7 @@ def test_command_segments_and_subsequent_commands_project_fresh_rows(store, monk
 
 def test_ordinary_command_never_uses_receipt_projection_and_receipt_noop_keeps_revision(store, monkeypatch):
     from tests.autopilot_fixtures import authority, exact_source, start_run
+    from tests.autopilot_seed_fixtures import run_facts
     run = start_run(store)
     original = closure._receipt_material_closures
     monkeypatch.setattr(closure, "_receipt_material_closures", lambda *_args, **_kwargs: pytest.fail("ordinary command used receipt projection"))
@@ -196,7 +197,7 @@ def test_ordinary_command_never_uses_receipt_projection_and_receipt_noop_keeps_r
     with store.repository.autopilot_command(authority(run, OperationScope.EVIDENCE)):
         pass
     after = store.repository.autopilot.current(store.manifest.project_id)
-    assert after == before
+    assert run_facts(after) == run_facts(before)
 
 
 def test_pending_protected_command_write_refuses_before_extras_and_rolls_back(store, monkeypatch):

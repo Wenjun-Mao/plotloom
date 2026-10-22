@@ -316,6 +316,15 @@ revision and version; this change does not recertify it for another binary.
     therefore did not qualify model-visible pixels or production behavior.
 
     New Codex Exec image packages use package version 8 and manifest schema 5.
+    Ordered role/path identity, not unique SHA-256, distinguishes references.
+    Identical source bytes can legitimately serve two distinct frozen roles and
+    paths; retain both views and both ordered ImageGen arguments. A 2026-10-22
+    host-path regression exposed an extra post-generation unique-hash check that
+    admission and delivery did not require. Remove only that inconsistent check;
+    exact path/order, per-view call/event/content evidence and receipt/publication
+    checks remain. Otherwise a supported completed generation could become
+    UNKNOWN during host finalization. This is a prospective consistency repair,
+    not evidence that any retained historical UNKNOWN had this cause.
     Every entry in the frozen package reference inventory must be viewed once,
     in package order, before the ImageGen call. The current input roles are
     `character_identity:<characterId>`, `parent_output`, and `source_keyframe`;

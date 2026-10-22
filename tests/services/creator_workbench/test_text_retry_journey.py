@@ -9,8 +9,9 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from plotloom.api.project_folder_autopilot import register_autopilot_routes
-from plotloom.autopilot_contracts import RunControlRequest
+from plotloom.autopilot_contracts import RunControlRequest, RunView
 from plotloom.text_correction_contracts import logical_checkpoint
+from tests.autopilot_seed_fixtures import run_facts
 from tests.services.creator_workbench.test_text_content_correction import (
     _journey_environment,
 )
@@ -62,7 +63,8 @@ def test_actual_api_one_more_correction_preserves_quota_and_adopts(supervisor, t
         assert response.status_code == 200, response.text
         after = response.json()
         assert after["state"] == "running"
-        assert client.post(base + "/text-retry", json=grant).json() == after
+        duplicate = client.post(base + "/text-retry", json=grant).json()
+        assert run_facts(RunView.model_validate(duplicate)) == run_facts(RunView.model_validate(after))
         # A different click using the old failure CAS cannot acquire another job.
         from plotloom.exceptions import RevisionConflictError
         with pytest.raises(RevisionConflictError):

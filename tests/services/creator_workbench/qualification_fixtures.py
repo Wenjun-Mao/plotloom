@@ -12,6 +12,7 @@ from codex_exec_supervisor_test_support import _write_fake_cli
 from plotloom.autopilot_contracts import LaunchRequest,OperationScope
 from plotloom.autopilot_exec_staged import reserve_prepared_codex_exec
 from plotloom.autopilot_service import AutopilotService
+from plotloom.codex_exec_contracts import CodexExecReadiness
 from plotloom.codex_exec_pool_contracts import CodexExecPoolLimits
 from plotloom.codex_exec_qualification_contracts import CodexExecQualificationBinding, QualificationProject
 from plotloom.conformance import FIXED_CHINESE_BRIEF
@@ -71,7 +72,7 @@ def finite(supervisor, tmp_path, monkeypatch):
     starts = []
     monkeypatch.setattr(host, '_start_worker', starts.append)
     registry = SimpleNamespace(codex_exec_profile=host.profile,
-        require_codex_exec_readiness=lambda: None, codex_exec_admit=host.admit,
+        require_codex_exec_readiness=lambda: CodexExecReadiness(state='ready'), codex_exec_admit=host.admit,
         codex_exec_status=host.status, codex_exec_suspend=host.suspend)
     service = AutopilotService(storage, registry)
     assert service.acquire_controller()

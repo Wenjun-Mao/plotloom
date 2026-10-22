@@ -4,6 +4,7 @@ import json
 import os
 from contextlib import closing
 from datetime import UTC, datetime
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -15,7 +16,7 @@ from plotloom.codex_exec_runtime import package_tree_hash
 NATIVE_PID = 54321
 
 
-def _execute_failed_image(supervisor, tmp_path, monkeypatch, mode):
+def _execute_image(supervisor, tmp_path, monkeypatch, mode):
     import codex_exec_supervisor_process as process_owner
 
     import plotloom.codex_exec_telemetry as telemetry_owner
@@ -39,12 +40,25 @@ def _execute_failed_image(supervisor, tmp_path, monkeypatch, mode):
             check=True, capture_output=True, text=True).stdout.strip(),
         'skillHash': sha256((supervisor.source_root / '.agents/skills/plotloom-image-specialist/SKILL.md').read_bytes()).hexdigest(),
     }
+    same_bytes = mode.startswith('same-bytes')
+    if same_bytes:
+        from tests.project_folder_image_delivery_fixtures import png
+        content = png((20, 30, 40), width=3, height=2)
+        references = job / 'package' / 'references'
+        references.mkdir()
+        request['references'] = [
+            {'role': role, 'filename': f'references/{name}.png', 'sha256': sha256(content).hexdigest()}
+            for role, name in [('character_identity:C01', 'identity'), ('parent_output', 'continuity')]]
+        for item in request['references']:
+            (job / 'package' / item['filename']).write_bytes(content)
     (job / 'package/request.json').write_text(json.dumps(request))
     (job / 'package/COPY_ASSIGNMENT.txt').write_text('Synthetic immutable assignment; no generation.')
     attempt = CodexExecAttempt(attemptId=uuid4(), runId=uuid4(), projectId=uuid4(), jobId=job_id,
         operationKey='image:synthetic', domain='image', requestHash=request['requestHash'],
         packageHash=package_tree_hash(job, max_total_bytes=profile.max_output_bytes),
         profileHash=profile.profile_hash, reservedImageOutputs=1, imageBudgetState='reserved', state='spawn_intent')
+    if same_bytes:
+        attempt = attempt.model_copy(update={'plotloom_code_revision': request['specialistPreflight']['codeRevision']})
     _insert_attempt_row(supervisor, attempt, attempt)
     private = supervisor.private_root / 'attempts' / str(attempt.attempt_id)
     private.mkdir(parents=True)
@@ -72,6 +86,26 @@ def _execute_failed_image(supervisor, tmp_path, monkeypatch, mode):
             if mode == 'duplicate-terminal':
                 rows.append({'type': 'event_msg', 'ordinal': 69, 'payload': {'item': event}})
         (folder / f'rollout-synthetic-{session_id}.jsonl').write_text(''.join(json.dumps(x) + '\n' for x in rows))
+        if same_bytes:
+            from tests.test_codex_exec_telemetry import (
+                _extension, _image_call, _image_view_event, _inline_image_output, _view_call,
+            )
+            saved = supervisor.codex_home / 'generated_images' / str(session_id) / 'frame.png'
+            saved.parent.mkdir(parents=True)
+            saved.write_bytes(content)
+            paths = [str(job / 'package' / item['filename']) for item in request['references']]
+            attached = list(reversed(paths)) if mode == 'same-bytes-wrong-path-order' else paths
+            viewed = list(reversed(paths)) if mode == 'same-bytes-wrong-view-order' else paths
+            records = []
+            for index, path in enumerate(viewed):
+                records.extend([_view_call(path, f'view-{index}', ordinal=index * 3 + 1),
+                    _image_view_event(Path(path).as_uri(), event_id=f'view-event-{index}', ordinal=index * 3 + 2),
+                    _inline_image_output(f'view-{index}', ordinal=index * 3 + 3)])
+            event = json.loads(_extension('completed', event_id='generation-event', ordinal=8))
+            event['payload']['item']['savedPath'] = str(saved)
+            records.extend([_image_call(references=tuple(attached), ordinal=7), (json.dumps(event) + '\n').encode()])
+            header = {'type': 'session_meta', 'ordinal': 0, 'payload': {'id': str(session_id)}}
+            (folder / f'rollout-synthetic-{session_id}.jsonl').write_bytes((json.dumps(header) + '\n').encode() + b''.join(records))
         if mode == 'no-remote-call':
             from tests.codex_exec_recovery_fixtures import write_readonly_turn
             write_readonly_turn(job, supervisor.source_root, private,
@@ -120,7 +154,7 @@ def _execute_failed_image(supervisor, tmp_path, monkeypatch, mode):
 
 @pytest.mark.parametrize('mode', ['failed-null', 'failed-absent'])
 def test_bound_failed_image_settles_only_after_strict_group_exit(supervisor, tmp_path, monkeypatch, mode):
-    attempt, result, session, groups, parsed = _execute_failed_image(supervisor, tmp_path, monkeypatch, mode)
+    attempt, result, session, groups, parsed = _execute_image(supervisor, tmp_path, monkeypatch, mode)
     assert groups == [NATIVE_PID]
     assert parsed == [session]
     assert result.state == 'failed'
@@ -143,7 +177,7 @@ def test_bound_failed_image_settles_only_after_strict_group_exit(supervisor, tmp
 
 @pytest.mark.parametrize('mode', ['missing-session', 'missing-terminal', 'duplicate-terminal', 'group-not-exited'])
 def test_missing_ambiguous_or_unsettled_image_proof_keeps_unknown_capacity(supervisor, tmp_path, monkeypatch, mode):
-    attempt, result, _session, groups, parsed = _execute_failed_image(supervisor, tmp_path, monkeypatch, mode)
+    attempt, result, _session, groups, parsed = _execute_image(supervisor, tmp_path, monkeypatch, mode)
     assert groups == [NATIVE_PID]
     assert result.state == 'outcome_unknown'
     assert result.attempt.image_budget_state == 'reserved'
@@ -157,7 +191,7 @@ def test_missing_ambiguous_or_unsettled_image_proof_keeps_unknown_capacity(super
 
 
 def test_live_waiter_with_complete_no_dispatch_proof_records_genuine_failure(supervisor, tmp_path, monkeypatch):
-    attempt, result, session, groups, parsed = _execute_failed_image(supervisor, tmp_path, monkeypatch, 'no-remote-call')
+    attempt, result, session, groups, parsed = _execute_image(supervisor, tmp_path, monkeypatch, 'no-remote-call')
     assert groups == [NATIVE_PID] and parsed and set(parsed) == {session}
     assert result.state == 'failed' and result.attempt.terminal_result == 'failure'
     assert result.attempt.remote_tool_state == 'not_applicable'

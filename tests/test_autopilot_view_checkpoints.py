@@ -21,10 +21,13 @@ from plotloom.persistence.codec import stable_hash
 from plotloom.persistence.project import autopilot
 from plotloom.persistence.schema import (
     AutopilotCheckpointRow,
+    AutopilotDecisionRow,
     AutopilotExecAttemptRow,
     AutopilotFrameRow,
+    AutopilotHandoffRow,
 )
 from tests.codex_exec_fixtures import PROFILE
+from tests.autopilot_seed_fixtures import run_facts
 
 RUN = "11111111-1111-4111-8111-111111111111"
 PROJECT = "22222222-2222-4222-8222-222222222222"
@@ -50,10 +53,11 @@ def geometry_payload():
 
 @pytest.fixture
 def view_context(monkeypatch):
-    # Only the three queried tables are needed here; real storage/authority owners
+    # Activity/timing query these five tables; real storage/authority owners
     # below this boundary are covered by the separately selected integration files.
     engine = create_engine("sqlite://")
-    for model in (AutopilotCheckpointRow, AutopilotExecAttemptRow, AutopilotFrameRow):
+    for model in (AutopilotCheckpointRow, AutopilotExecAttemptRow, AutopilotFrameRow,
+                  AutopilotDecisionRow, AutopilotHandoffRow):
         model.__table__.create(engine)
     policy = LaunchPolicy(version="plotloom.pre-video.v4", max_images=None, max_jobs=None, render_style="live-action",
         art_render_style="live-action", image_width=1280, image_height=720,
@@ -147,7 +151,8 @@ def render(context):
 PREFIX = ["select:v2_autopilot_checkpoints", "select:v2_autopilot_frames", "closure", "policy"]
 # SQL orders by created_at and operation_key, rather than fixture insertion order.
 PROJECTION = ["parse:geometry", "dump:geometry", "parse:outline", "dump:outline", "parse:no-job", "dump:no-job"]
-SUCCESS = PREFIX + PROJECTION + ["select:v2_autopilot_checkpoints", "select:v2_autopilot_exec_attempts", "attempt", "activities", "frame"]
+SUCCESS = PREFIX + PROJECTION + ["select:v2_autopilot_checkpoints", "select:v2_autopilot_decisions",
+    "select:v2_autopilot_exec_attempts", "attempt", "activities", "frame"]
 
 
 def test_each_loaded_checkpoint_parses_once_and_keeps_canonical_output(view_context, monkeypatch):
@@ -158,8 +163,10 @@ def test_each_loaded_checkpoint_parses_once_and_keeps_canonical_output(view_cont
     observe(context, monkeypatch)
     view = render(context)
     assert context.events == SUCCESS
-    assert len(context.queries) == 4
-    assert [query[1] for query in context.queries] == [{"run_id_1": RUN}, {"run_id_1": RUN}, {"project_id_1": PROJECT}, {"run_id_1": RUN}]
+    assert len(context.queries) == 5
+    assert [query[1] for query in context.queries] == [
+        {"run_id_1": RUN}, {"run_id_1": RUN}, {"project_id_1": PROJECT},
+        {"run_id_1": RUN, "state_1": "adopted"}, {"run_id_1": RUN}]
     assert view.predecessor_run_id is None and view.lifetime_jobs == 2 and view.lifetime_images == 0
     canonical = lambda value: json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     assert canonical(view.checkpoints) == canonical(expected)
@@ -220,7 +227,7 @@ def test_successive_views_reparse_changed_evidence_and_fresh_attempt_status(view
     context.events.clear()
     second = render(context)
     assert context.events == [event.replace(":outline", ":changed") for event in SUCCESS]
-    assert context.queries[4:] == first_queries
+    assert context.queries[5:] == first_queries
     assert first.activities[0].state == "queued" and first.activities[0].subject_id == "outline"
     assert second.activities[0].state == "generating" and second.activities[0].subject_id == "changed"
     assert first.checkpoints[1]["evidence"]["subjectId"] == "outline"
@@ -241,8 +248,8 @@ def test_reentrant_view_has_independent_derivations(view_context, monkeypatch):
 
     monkeypatch.setattr(CheckpointEvidence, "model_dump", dump)
     outer = render(context)
-    assert outer == nested[0]
+    assert run_facts(outer) == run_facts(nested[0])
     assert outer is not nested[0]
     assert context.events.count("parse:geometry") == context.events.count("parse:outline") == 2
     assert context.events.count("parse:no-job") == context.events.count("attempt") == 2
-    assert len(context.queries) == 8
+    assert len(context.queries) == 10

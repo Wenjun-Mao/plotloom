@@ -15,6 +15,33 @@ before sending text and points to `exec-capacity-retirement-preview`. Ordinary
 busy/running/unrevoked-UNKNOWN/queued scheduling is unchanged. Readiness is not a
 provider or creative E2E claim; it never retires, retries or dispatches work.
 
+## Minimize avoidable UNKNOWN; triage the exact attempt
+
+Before launching, use the supported source/runtime/profile and login readiness
+checks, inspect `localCapacity`, and resolve a fully historical blocked lane.
+Use the current pinned skill/read permissions and authored content ownership
+repairs linked below; do not introduce contradictory scene/character instructions
+or assume generic bridge health proves generation readiness. Preserve the frozen
+request, original package and ordered references throughout execution. Identical
+pixels in different reference roles/paths remain separate required views; never
+deduplicate them or their ImageGen arguments.
+
+Retain the exact stdout/stderr, CLI session/terminal event, genuine process-exit
+witness, validation report and delivery receipt. A typed validation/content
+failure with supported terminal evidence is an ordinary failure, not UNKNOWN.
+UNKNOWN means required dispatch/outcome evidence is incomplete or inconsistent;
+silence, timeout, cancellation, process death and exit 0 alone do not settle it.
+Inspect/reconcile the exact existing attempt and its retained receipt first.
+Do not submit fresh work to replace uncertainty or manufacture no-dispatch from
+a transcript fragment. Escalate missing evidence rather than weakening the reader.
+
+The current host matcher retains ordered role/path/hash identity consistently
+with admission and delivery, including identical bytes in distinct roles. This
+prevents one demonstrated avoidable finalization failure; it does not eliminate
+external crashes/ambiguous outcomes, prove the cause of historical attempts, or
+authorize their retry. Explicit retirement below changes only proven-dead local
+occupancy and leaves remote uncertainty/reservations intact.
+
 ## Eligibility and guarantees
 
 This is an explicit administrator operation for one exact UNKNOWN image attempt

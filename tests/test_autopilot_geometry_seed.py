@@ -9,7 +9,7 @@ import pytest
 from plotloom.project_storage import ProjectStorageCorruptionError, ProjectStorageConfinementError
 from plotloom.project_storage.operational_state import ProjectAccessLease
 from tests.autopilot_geometry_fixtures import copy_geometry_frame_seed
-from tests.autopilot_seed_fixtures import seed_files
+from tests.autopilot_seed_fixtures import run_facts, seed_files
 
 
 def _attempts(storage, project):
@@ -26,7 +26,7 @@ def test_copies_keep_exact_attempts_and_read_assets_without_original_seed(
     seed = geometry_frame_seed
     left, view = copy_geometry_frame_seed(seed, tmp_path / "left")
     right, other = copy_geometry_frame_seed(seed, tmp_path / "right")
-    assert view.model_dump() == other.model_dump()
+    assert run_facts(view) == run_facts(other)
     assert _attempts(left, view.project_id) == _attempts(right, view.project_id)
     assert all(receipt is not None for _identifier, _snapshot, receipt in _attempts(left, view.project_id))
     for relative, _digest in seed.files:

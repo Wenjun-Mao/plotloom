@@ -61,6 +61,14 @@ was possible. Scope creation is not media inspection or creative acceptance.
 Focused native tests cover exact-bundle refusal, actor fallback, atomic identity
 review, retained attribution and portable copies without runtime grants.
 
+Receipt actor validation discriminates the typed receipt version before reading
+observation data. Retained v1's `attribution` name is a validator method, not an
+actor field; generic attribute probing falsely rejected that existing historical
+contract during full qualification. Preserve v1 bytes/read-only support, refuse
+QA observation actors in current creator v2/v3, and require identical top-level
+and observation actors in QA v4. This fixes the method/field collision without
+new compatibility, actor fallback or a weaker receipt reader.
+
 ## Finished-example scope addition · 2026-10-22
 
 The owner requested a few finished example projects in different styles, with

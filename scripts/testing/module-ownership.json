@@ -58,9 +58,12 @@
           "tests/test_image_package_publication.py",
           "tests/test_autopilot_handoff.py",
           "tests/test_bulk_material_handoff.py",
+          "tests/test_native_material_qa.py",
+          "tests/test_workflow_timing.py",
           "tests/test_bulk_material_realistic_pack.py",
           "tests/test_autopilot_handoff_seed.py",
           "tests/test_autopilot_creator_confirmation.py",
+          "tests/test_handoff_receipt_attribution.py",
           "tests/test_autopilot_geometry.py",
           "tests/test_autopilot_geometry_seed.py",
           "tests/test_autopilot_installed_text_seed.py",
@@ -552,6 +555,9 @@
           "tests/services/creator_workbench/test_codex_exec_supervisor_environment.py",
           "tests/services/creator_workbench/test_project_abandonment.py",
           "tests/services/creator_workbench/test_codex_exec_image_failure.py",
+          "tests/services/creator_workbench/test_codex_exec_duplicate_reference_roles.py",
+          "tests/services/creator_workbench/test_codex_exec_capacity_retirement.py",
+          "tests/services/creator_workbench/test_exec_capacity_transport.py",
           "tests/services/creator_workbench/test_codex_exec_recovery.py",
           "tests/services/creator_workbench/test_codex_exec_supervisor_pool.py",
           "tests/services/creator_workbench/test_codex_exec_supervisor_namespace.py",
@@ -681,6 +687,7 @@
           "tests/test_style_contract_cache.py"
         ],
         "vitest": [
+          "frontend/tests/workflow-timing.test.ts",
           "frontend/tests/appearance-mode.test.ts",
           "frontend/tests/appearance-zoom.test.ts",
           "frontend/tests/confirmation.test.ts",
@@ -700,6 +707,12 @@
     }
   },
   "support_dependencies": [
+    {
+      "suite": "pytest",
+      "path": "tests/test_codex_exec_duplicate_reference_roles.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["shared-provider-dispatch"]
+    },
     {
       "suite": "pytest",
       "path": "tests/f5_dialogue_timing_fixtures.py",

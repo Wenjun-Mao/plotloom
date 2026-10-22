@@ -12,7 +12,7 @@ from tests.autopilot_handoff_seed_fixtures import (
     assert_no_human_facts,
     copy_awaiting_handoff_seed,
 )
-from tests.autopilot_seed_fixtures import seed_files
+from tests.autopilot_seed_fixtures import run_facts, seed_files
 from tests.test_autopilot_handoff import observation
 
 
@@ -29,7 +29,7 @@ def test_valid_copy_handoff_grants_video_only_in_that_copy_without_seed_access(
     seed = awaiting_handoff_seed
     left, view, calls = copy_awaiting_handoff_seed(seed, tmp_path / "left")
     sibling, other, _calls = copy_awaiting_handoff_seed(seed, tmp_path / "sibling")
-    assert view.model_dump() == other.model_dump()
+    assert run_facts(view) == run_facts(other)
     with closing(sibling.projects.open(view.project_id)) as store:
         retained_attempts = _attempts(store)
         assert len(retained_attempts) == 16 and all(row.receipt for row in retained_attempts)
@@ -66,13 +66,13 @@ def test_valid_copy_handoff_grants_video_only_in_that_copy_without_seed_access(
         with closing(sibling.projects.open(view.project_id)) as store:
             assert_no_human_facts(store)
             current = store.repository.autopilot.current(view.project_id)
-            assert current.model_dump() == other.model_dump()
+            assert run_facts(current) == run_facts(other)
             assert _attempts(store) == retained_attempts
     finally:
         unavailable.rename(seed.project.root)
     assert seed_files(seed.project.root) == seed.project.files
     untouched, current, _calls = copy_awaiting_handoff_seed(seed, tmp_path / "still-machine-only")
-    assert current.model_dump() == view.model_dump()
+    assert run_facts(current) == run_facts(view)
     with closing(untouched.projects.open(view.project_id)) as store:
         assert_no_human_facts(store)
     assert seed_files(seed.project.root) == seed.project.files
@@ -178,7 +178,7 @@ def test_human_operations_keep_retained_work_and_sibling_isolated_without_source
                 assert service._thread is None and service._descriptor is None
             with closing(sibling.projects.open(other.project_id)) as store:
                 assert_no_human_facts(store)
-                assert store.repository.autopilot.current(other.project_id) == other
+                assert run_facts(store.repository.autopilot.current(other.project_id)) == run_facts(other)
                 assert _attempts(store) == retained_attempts
             assert seed_files(sibling_root) == sibling_files
     finally:
