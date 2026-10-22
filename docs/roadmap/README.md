@@ -1,5 +1,19 @@
 # Plotloom roadmap entrypoint
 
+## Approved bounded text content correction
+
+[ADR 0202](../adr/0202-bounded-text-content-correction.md) owns the approved
+automatic-preparation gap fix: one new linked correction job after an exact typed
+text content rejection, retaining all original failure evidence and frozen
+authority. The sole source worker implements in retained R, then focused checks
+and a disposable controller/host journey with a fake CLI only at the provider
+boundary, real validation/rendering, persistence, adoption and readback. The
+fixture owns isolated roots and cleanup; no providers or live projects are used.
+The first checkpoint stops after focused proof, quick/module checks and a coherent
+local `main` commit for independent review. Final full qualification is separately
+assigned once stable. Activation, push, GitHub CI, budget changes, UNKNOWN clearing,
+image/video retries and human creative acceptance are excluded.
+
 ## Approved unified project deletion
 
 The owner approved one **删除项目…** directory entry and one explicit confirmation

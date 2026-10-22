@@ -151,10 +151,43 @@ class CodexExecSupervisorValidationMixin(CodexExecSupervisorValidationProcessMix
             stderr_hash, stderr_size = _hash_file(stderr_path, max_bytes=50_000_000)
             duration_ms = max(0, int((time.monotonic() - started) * 1000))
             if exit_code != 0:
-                raise self._validation_failure(
+                failure = self._validation_failure(
                     f"validation_step_failed_{step.step_id}", plan.plan_hash,
                     (stdout_path, stderr_path), argv_hash=argv_hash, exit_code=exit_code,
                 )
+                if (step.step_id == "validate" and exit_code == 42
+                        and plan.stage in {"outline", "characters", "art"}
+                        and package_request.get("contentValidationContract") == "plotloom.typed-content-result.v1"
+                        and profile.text_correction_limit == 1):
+                    # Recheck all immutable authority before promoting this source API's
+                    # normal result. Neither stderr nor arbitrary exits grant correction.
+                    self._require_validation_not_cancelled(attempt, plan.plan_hash)
+                    if (package_tree_hash(job_root, max_total_bytes=profile.max_output_bytes) != attempt.package_hash
+                            or self.profile().profile_hash != profile.profile_hash
+                            or codex_exec_source_resources(self.source_root, package_request) != source_resources
+                            or scan_regular_tree(job_root, "delivery", max_total_bytes=profile.max_output_bytes) != initial):
+                        raise self._validation_failure("validation_rejection_authority_changed", plan.plan_hash)
+                    from plotloom.text_correction_contracts import (
+                        TextContentIssue,
+                        TextContentRejection,
+                    )
+                    try:
+                        result = json.loads(self._read_regular(stdout_path, max_bytes=64_000))
+                        if (set(result) != {"contract", "candidateHash", "issues"}
+                                or result["contract"] != "plotloom.typed-content-result.v1"
+                                or result["candidateHash"] != candidate_before.sha256):
+                            raise ValueError("typed content result mismatch")
+                        failure.content_rejection = TextContentRejection(
+                            source_attempt_id=attempt.attempt_id, run_id=attempt.run_id, stage=plan.stage,
+                            job_id=attempt.job_id, candidate_hash=candidate_before.sha256,
+                            validation_evidence_hash=failure.evidence_hash, request_hash=attempt.request_hash,
+                            package_hash=attempt.package_hash, plan_hash=plan.plan_hash,
+                            profile_hash=profile.profile_hash, source_revision=attempt.plotloom_code_revision,
+                            issues=tuple(TextContentIssue.model_validate(issue) for issue in result["issues"]),
+                        )
+                    except (ValueError, TypeError, KeyError):
+                        raise self._validation_failure("validation_rejection_packet_invalid", plan.plan_hash) from None
+                raise failure
             if package_tree_hash(job_root, max_total_bytes=profile.max_output_bytes) != attempt.package_hash:
                 raise self._validation_failure("validation_package_changed", plan.plan_hash)
             self._require_validation_not_cancelled(attempt, plan.plan_hash)

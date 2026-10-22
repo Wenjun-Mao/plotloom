@@ -8,9 +8,10 @@ class CodexExecSupervisorError(ValueError):
 class CodexExecValidationFailure(CodexExecSupervisorError):
     """Known failed trusted validation with a private hash for its captured evidence."""
 
-    def __init__(self, message: str, evidence_hash: str):
+    def __init__(self, message: str, evidence_hash: str, *, content_rejection=None):
         super().__init__(message)
         self.evidence_hash = evidence_hash
+        self.content_rejection = content_rejection
 
 
 class CodexExecValidationOwnershipUnknown(CodexExecSupervisorError):

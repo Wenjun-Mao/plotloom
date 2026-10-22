@@ -116,6 +116,7 @@ class CodexExecProfile(CamelModel):
     api_fallback: Literal[False] = False
     external_mcp_servers: Literal[False] = False
     nested_dispatch: Literal[False] = False
+    text_correction_limit: int | None = Field(default=None, strict=True, ge=1, le=1, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def supported_capability_set(self):

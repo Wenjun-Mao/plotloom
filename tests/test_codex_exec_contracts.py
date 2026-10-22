@@ -13,6 +13,12 @@ from plotloom.codex_exec_contracts import (
     transition_exec_attempt,
 )
 
+
+def test_all_attempt_state_fields_have_shared_host_and_project_projection():
+    from plotloom.codex_exec_attempt_contracts import ATTEMPT_OBSERVED_FIELDS, _ATTEMPT_IDENTITY_FIELDS
+    assert set(CodexExecAttempt.model_fields) == set(ATTEMPT_OBSERVED_FIELDS) | set(_ATTEMPT_IDENTITY_FIELDS)
+    assert not set(ATTEMPT_OBSERVED_FIELDS) & set(_ATTEMPT_IDENTITY_FIELDS)
+
 HASH = "a" * 64
 
 

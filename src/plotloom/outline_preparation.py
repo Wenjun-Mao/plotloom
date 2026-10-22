@@ -17,6 +17,7 @@ def outline_request(store, *, job_id=None):
         raise InvalidTransitionError("save an accepted source before preparing an outline candidate")
     return CreativeHandoffRequest(job_id=job_id or f"ch_{uuid4().hex}", project_id=store.manifest.project_id,
         section_id="story", stage="outline",
+        content_validation_contract="plotloom.typed-content-result.v1",
         expected_stage_revision=state.accepted_outline.revision if state.accepted_outline else 0,
         source=state.source.material.model_dump(mode="json", by_alias=True),
         input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(store.project().brief),

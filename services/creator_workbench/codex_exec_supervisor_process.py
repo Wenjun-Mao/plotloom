@@ -348,6 +348,7 @@ class CodexExecSupervisorProcessMixin(
                         current, exit_code, stream.session_id, session, stdout_path, stderr_path,
                         max_output_bytes=profile.max_output_bytes,
                         extra_evidence_hash=error.evidence_hash,
+                        content_rejection=error.content_rejection,
                     )
                     return
                 outputs = scan_regular_tree(job_root, "delivery", max_total_bytes=profile.max_output_bytes)

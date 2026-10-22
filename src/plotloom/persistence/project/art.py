@@ -141,6 +141,7 @@ class ProjectArtPersistence:
                 )
             request = CreativeHandoffRequest(
                 job_id=job_id, project_id=project_id, section_id="shared-art", stage="art",
+                content_validation_contract="plotloom.typed-content-result.v1",
                 expected_stage_revision=head.revision, source=source,
                 input_artifacts={"outline.json": outline, "section-map.json": mapping, "cast.json": cast, "art-style-contract.json": contract},
                 creative_brief=(

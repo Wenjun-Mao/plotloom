@@ -291,6 +291,8 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
             plan = replace(plan, python_project=True, validator_paths=("scripts/script_receiving.py",))
     validator_paths = saved_brief_route.source_paths if saved_brief_route else plan.validator_paths
     relative_paths = [plan.upstream_read_path, *validator_paths]
+    if stage in {"outline", "characters", "art"} and package_request.get("contentValidationContract") is not None:
+        relative_paths.append("scripts/text-content-validation.mjs")
     if stage == "storyboard":
         relative_paths.append("scripts/storyboard-dialogue-timing.mjs")
         if saved_brief_route is None:

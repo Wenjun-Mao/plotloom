@@ -1,18 +1,39 @@
 """One bounded reconciliation step; durable checkpoints own all continuation."""
 from sqlalchemy import select
 
-from .autopilot_contracts import CheckpointEvidence, CommandAuthority, OperationScope, POLICY_VERSION
-from .autopilot_launch import assert_frozen_execution, assert_frozen_pins, require_job_capacity
+from .autopilot_contracts import (
+    POLICY_VERSION,
+    CheckpointEvidence,
+    CommandAuthority,
+    OperationScope,
+)
 from .autopilot_exec import cancel_codex_exec, reconcile_codex_exec
-from .autopilot_text_stages import TEXT_STAGES, adopt_brief_source, prepare_text, native_checkpoint_evidence, adopt_text
-from .creative_commands import CREATIVE_METHODS, read_creative_delivery, send_creative_candidate, current_creative_candidate
+from .autopilot_launch import (
+    assert_frozen_execution,
+    assert_frozen_pins,
+    require_job_capacity,
+)
+from .autopilot_text_stages import (
+    TEXT_STAGES,
+    adopt_brief_source,
+    adopt_text,
+    native_checkpoint_evidence,
+    prepare_text,
+)
+from .creative_commands import (
+    CREATIVE_METHODS,
+    current_creative_candidate,
+    read_creative_delivery,
+    send_creative_candidate,
+)
+from .domain import StageName
 from .exceptions import InvalidTransitionError
 from .image_job_contracts import ImageJobError
-from .domain import StageName
 from .native_bridge_intent_service import NativeBridgeIntentService
 from .native_bridge_presentation_service import NativeBridgePresentationService
-from .persistence.schema import ProductionBridgeRevisionRow, AutopilotCheckpointRow
+from .persistence.schema import AutopilotCheckpointRow, ProductionBridgeRevisionRow
 from .production_bridge_contracts import ProductionBridgeAcceptRequest
+from .text_correction_contracts import logical_checkpoint
 
 
 class AutopilotTextController:
@@ -42,7 +63,7 @@ class AutopilotTextController:
                 store.repository.autopilot.progress("outline")
             return False
         for stage in TEXT_STAGES:
-            checkpoint = self.checkpoint(view, stage)
+            checkpoint = logical_checkpoint(view, stage)
             if checkpoint is None:
                 require_job_capacity(view)
                 with self.command(store, view, claim, OperationScope.TEXT):
@@ -72,7 +93,7 @@ class AutopilotTextController:
                 store.repository.autopilot.progress("bridge-intent")
             return False
         for stage, service in self.bridge_services.items():
-            checkpoint = self.checkpoint(view, stage)
+            checkpoint = logical_checkpoint(view, stage)
             if checkpoint is None:
                 require_job_capacity(view)
                 with self.command(store, view, claim, OperationScope.INSTALL):
@@ -213,13 +234,17 @@ class AutopilotTextController:
             operation_scope=OperationScope.INSTALL if bridge else OperationScope.TEXT,
         )
         if attempt.state in {"failed", "settled"} and attempt.terminal_result in {"failure", "not_started"}:
+            if (view.policy.text_correction_limit == 1 and attempt.content_rejection is not None
+                    and request.text_correction is None and checkpoint["operationKey"] == stage):
+                self.prepare_correction(store, view, claim, request, attempt)
+                return
             raise InvalidTransitionError("Codex Exec text attempt reached a terminal failure; preserve this attempt for review.")
         if attempt.state == "outcome_unknown":
             raise ImageJobError("codex_exec_outcome_unknown", "Codex Exec outcome is being reconciled; do not send another attempt.")
         if attempt.state == "cancel_requested":
             return
         current = store.repository.autopilot.current(view.project_id)
-        current_checkpoint = self.checkpoint(current, stage)
+        current_checkpoint = self.checkpoint(current, checkpoint["operationKey"])
         current_evidence = CheckpointEvidence.model_validate(current_checkpoint["evidence"])
         delivery = self.validated_delivery(store, view, stage, request)
         if delivery is None:
@@ -229,7 +254,7 @@ class AutopilotTextController:
                 service._admit(store, request, delivery)
             else:
                 getattr(store, CREATIVE_METHODS[stage][2])(delivery)
-            store.repository.autopilot.checkpoint(stage, state="delivered",
+            store.repository.autopilot.checkpoint(checkpoint["operationKey"], state="delivered",
                 expected_revision=current_checkpoint["revision"],
                 evidence=current_evidence.model_copy(update={"delivery_hash": delivery.manifest_hash}))
 
@@ -264,7 +289,7 @@ class AutopilotTextController:
                 if candidate.status == "prepared":
                     getattr(store, CREATIVE_METHODS[stage][2])(delivery)
                 result_facts = adopt_text(store, stage, evidence.job_id)
-            recorded = store.repository.autopilot.checkpoint(stage, state="adopted", expected_revision=checkpoint["revision"],
+            recorded = store.repository.autopilot.checkpoint(checkpoint["operationKey"], state="adopted", expected_revision=checkpoint["revision"],
                 evidence=evidence.model_copy(update={"result": evidence.result | result_facts}))
             if not bridge:
                 store.repository.autopilot.decide(recorded, subject=result_facts, rationale="通过当前来源/完整性门槛后采用冻结原生第一稿；待最终人类素材审阅。")
@@ -287,7 +312,7 @@ class AutopilotTextController:
             evidence = CheckpointEvidence.model_validate(checkpoint["evidence"])
             if evidence.owner not in {*methods, *self.bridge_services}:
                 continue
-            if not evidence.job_id or checkpoint["state"] == "adopted":
+            if not evidence.job_id or checkpoint["state"] in {"adopted", "failed"}:
                 continue
             if evidence.executor_attempt_id is not None:
                 cancel_codex_exec(store, self.registry, view.id, checkpoint)
@@ -365,7 +390,7 @@ class AutopilotTextController:
             if delivery is None:
                 continue
             current = store.repository.autopilot.current(view.project_id)
-            current_checkpoint = self.checkpoint(current, evidence.owner)
+            current_checkpoint = self.checkpoint(current, checkpoint["operationKey"])
             current_evidence = CheckpointEvidence.model_validate(current_checkpoint["evidence"])
             with self.command(store, view, claim, OperationScope.EVIDENCE):
                 if service:
@@ -380,7 +405,7 @@ class AutopilotTextController:
                         service._admit(store, request, delivery)
                 else:
                     store.repository.creative_terminal.retain_run_receipt(view.project_id, delivery)
-                store.repository.autopilot.checkpoint(evidence.owner, state="delivered",
+                store.repository.autopilot.checkpoint(checkpoint["operationKey"], state="delivered",
                     expected_revision=current_checkpoint["revision"],
                     evidence=current_evidence.model_copy(update={"delivery_hash": delivery.manifest_hash}))
 
@@ -388,7 +413,8 @@ class AutopilotTextController:
         """All receipt/adoption states share the launch execution boundary."""
         service = self.bridge_services.get(stage)
         if view.policy.version == POLICY_VERSION:
-            attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(view.id, stage)
+            checkpoint = logical_checkpoint(view, stage)
+            attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(view.id, checkpoint["operationKey"])
             if attempt is None or attempt.state not in {"completed", "settled"} or receipt is None:
                 return None
             profile = self.registry.codex_exec_profile()
@@ -405,3 +431,21 @@ class AutopilotTextController:
             if expected_hash is not None and delivery.manifest_hash != expected_hash:
                 raise InvalidTransitionError("retained native receipt differs from checkpoint evidence")
         return delivery
+
+    def prepare_correction(self, store, view, claim, request, attempt):
+        from .codex_exec_files import read_confined_regular_file
+        from .creative_handoff_contracts import CREATIVE_CANDIDATE_FILENAMES
+        rejection = attempt.content_rejection
+        rejection.assert_attempt(attempt)
+        root = store.creative_handoff_exchange().root / "jobs" / request.job_id
+        prior = read_confined_regular_file(root, "delivery/" + CREATIVE_CANDIDATE_FILENAMES[request.stage], max_bytes=500_000)
+        with self.command(store, view, claim, OperationScope.TEXT):
+            assert_frozen_execution(store, self.registry, view.policy)
+            latest = logical_checkpoint(store.repository.autopilot.current(view.project_id), request.stage)
+            existing = latest is not None and latest["operationKey"] != request.stage
+            if not existing:
+                require_job_capacity(view)
+            if not existing and current_creative_candidate(store, request.stage, request.job_id, require_fresh=True).status != "prepared":
+                raise InvalidTransitionError("rejected text candidate is no longer current")
+            corrective = store.repository.autopilot.prepare_text_correction(request, rejection, prior.decode("utf-8"))
+        self.publish_prepared_package(store, view, corrective, view.policy.execution_pins[request.stage])

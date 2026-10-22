@@ -46,7 +46,7 @@ class CodexExecSupervisorTerminalMixin:
 
     def _finish_failure(
         self, attempt, exit_code, session_id, session, stdout_path, stderr_path,
-        *, remote_state=None, max_output_bytes=500_000_000, extra_evidence_hash=None,
+        *, remote_state=None, max_output_bytes=500_000_000, extra_evidence_hash=None, content_rejection=None,
     ):
         from plotloom.codex_exec_contracts import transition_exec_attempt
         current = self._load(self._row(attempt.attempt_id)).attempt
@@ -100,6 +100,7 @@ class CodexExecSupervisorTerminalMixin:
             "evidence_hash": evidence,
             "output_hash": None,
             "remote_output_hash": remote_output_hash,
+            "content_rejection": content_rejection,
             "image_budget_state": (
                 "consumed" if attempt.domain == "image" and remote == "completed"
                 else "released" if attempt.domain == "image" else "none"

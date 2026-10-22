@@ -240,11 +240,10 @@ class ProjectSourceOutlinePersistence:
 
     @staticmethod
     def _assert_no_prepared_publication(session: Any, project_id: str) -> None:
-        prepared = session.scalar(select(SourceOutlineCandidateRow.job_id).where(
-            SourceOutlineCandidateRow.project_id == project_id,
-            SourceOutlineCandidateRow.status == "prepared",
-        ).limit(1))
-        if prepared is not None:
+        from .autopilot_text_correction import has_publishable_candidates
+        session.flush()
+        if has_publishable_candidates(session.connection().connection.driver_connection,
+                project_id, SourceOutlineCandidateRow.__tablename__):
             raise InvalidTransitionError(
                 "cancel the prepared outline specialist publication before changing review state"
             )

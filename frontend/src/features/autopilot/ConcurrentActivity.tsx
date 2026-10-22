@@ -14,8 +14,11 @@ const states: Record<AutopilotActivity["state"], string> = {
 };
 
 export function activityLabel(activity: AutopilotActivity, run: AutopilotRun) {
-  if (["waiting", "queued"].includes(activity.state) && run.state === "paused") return "已暂停，保留原任务";
-  return states[activity.state];
+  const label = ["waiting", "queued"].includes(activity.state) && run.state === "paused"
+    ? "已暂停，保留原任务" : states[activity.state];
+  const corrective = activity.domain === "text" && ["outline", "characters", "art"].includes(activity.owner)
+    && activity.operationKey === `${activity.owner}:correction:1`;
+  return corrective ? `${label} · 自动修正 1/1` : label;
 }
 
 export function ConcurrentActivity({ run }: { run: AutopilotRun }) {

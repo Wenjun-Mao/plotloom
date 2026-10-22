@@ -160,11 +160,8 @@ class CodexExecSupervisorLedgerMixin:
                 return current
 
             changes = {}
-            for field in (
-                "session_id", "process_id", "process_group_id", "process_birth_identity",
-                "process_exit_code", "terminal_result", "remote_tool_state", "evidence_hash",
-                "output_hash", "remote_output_hash",
-            ):
+            from plotloom.codex_exec_attempt_contracts import ATTEMPT_PROOF_FIELDS
+            for field in ATTEMPT_PROOF_FIELDS:
                 supplied = getattr(attempt, field)
                 observed = getattr(current, field)
                 if supplied is None:

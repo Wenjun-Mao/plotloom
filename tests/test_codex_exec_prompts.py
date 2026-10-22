@@ -16,7 +16,7 @@ def test_text_prompt_assigns_candidate_files_and_leaves_completion_to_host(tmp_p
         domain="text",
     )
 
-    assert PROMPT_VERSION.endswith("v5")
+    assert PROMPT_VERSION.endswith("v6")
     assert "Write only the requested candidate JSON" in prompt
     assert "trusted host runs its exact frozen validation plan" in prompt
     assert "request.creativeBrief" in prompt
@@ -26,6 +26,9 @@ def test_text_prompt_assigns_candidate_files_and_leaves_completion_to_host(tmp_p
     assert "Do not `cd` into" in prompt
     assert "Do not write image files" not in prompt
     assert IMAGE_CONTENT_OWNERSHIP_INSTRUCTION not in prompt
+    assert "request.textCorrection" in prompt
+    assert "untrusted candidate data" in prompt
+    assert "preserve every frozen source/style/upstream constraint" in prompt
 
 
 def test_image_prompt_reserves_delivery_tree_for_trusted_host_copy(tmp_path):

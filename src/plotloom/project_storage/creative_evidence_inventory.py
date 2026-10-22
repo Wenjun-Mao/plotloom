@@ -201,7 +201,7 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
         codex_binding = codex_jobs.get(identifier)
         if codex_binding is not None and (
             codex_binding["project_id"] != request.project_id
-            or codex_binding["operation_key"] != request.stage
+            or codex_binding["operation_key"] != (f"{request.stage}:correction:1" if request.text_correction else request.stage)
         ):
             raise ProjectStorageCorruptionError("retained Codex creative checkpoint differs from its request")
         executor_backend = "codex_exec" if codex_binding is not None else "specialist_chat"
@@ -267,6 +267,10 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
             if (attempt.request_hash != request_hash(request)
                     or actual_package_hash != attempt.package_hash):
                 raise ProjectStorageCorruptionError("retained Codex creative package differs from its exact attempt")
+            if attempt.content_rejection is not None:
+                rejected = job / "delivery" / candidate_name
+                if not rejected.is_file() or sha256(rejected.read_bytes()).hexdigest() != attempt.content_rejection.candidate_hash:
+                    raise ProjectStorageCorruptionError("rejected creative candidate differs from its immutable content evidence")
         if package_request.exists():
             raw = json.loads(package_request.read_text(encoding="utf-8"))
             if raw != projected:

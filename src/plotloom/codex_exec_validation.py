@@ -245,6 +245,10 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
         render = ("node", (base, "render", cand, "--html"))
         route = "upstream"
 
+    # Only APIs with an explicit normal-return content rejection are eligible.
+    # Render remains the same source-owned command and every thrown failure stays terminal.
+    if stage in {"outline", "characters", "art"} and request.content_validation_contract is not None:
+        validate = ("node", (f"{source}/scripts/text-content-validation.mjs", cand, request_path))
     steps = tuple(CodexExecValidationStep(
         stepId=step_id, program=program,
         argv=argv,

@@ -197,26 +197,25 @@ def source_outline_publication_blockers(store: object) -> list[str]:
     repository = store.repository  # type: ignore[attr-defined]
     project_id = store.manifest.project_id  # type: ignore[attr-defined]
     with repository.engine.connect() as connection:
-        prepared = connection.exec_driver_sql(
-            "SELECT 1 FROM v2_source_outline_candidates "
-            "WHERE project_id = ? AND status = 'prepared' LIMIT 1",
-            (project_id,),
-        ).first()
-    return ["source_outline_publication_active"] if prepared is not None else []
+        from ..persistence.project.autopilot_text_correction import has_publishable_candidates
+        prepared = has_publishable_candidates(connection.connection.driver_connection, project_id, "v2_source_outline_candidates")
+    return ["source_outline_publication_active"] if prepared else []
 
 def cast_publication_blockers(store: object) -> list[str]:
     repository = store.repository  # type: ignore[attr-defined]
     project_id = store.manifest.project_id  # type: ignore[attr-defined]
     with repository.engine.connect() as connection:
-        prepared = connection.exec_driver_sql("SELECT 1 FROM v2_cast_candidates WHERE project_id = ? AND status = 'prepared' LIMIT 1", (project_id,)).first()
-    return ["cast_publication_active"] if prepared is not None else []
+        from ..persistence.project.autopilot_text_correction import has_publishable_candidates
+        prepared = has_publishable_candidates(connection.connection.driver_connection, project_id, "v2_cast_candidates")
+    return ["cast_publication_active"] if prepared else []
 
 def art_publication_blockers(store: object) -> list[str]:
     repository = store.repository  # type: ignore[attr-defined]
     project_id = store.manifest.project_id  # type: ignore[attr-defined]
     with repository.engine.connect() as connection:
-        prepared = connection.exec_driver_sql("SELECT 1 FROM v2_art_candidates WHERE project_id = ? AND status = 'prepared' LIMIT 1", (project_id,)).first()
-    return ["art_publication_active"] if prepared is not None else []
+        from ..persistence.project.autopilot_text_correction import has_publishable_candidates
+        prepared = has_publishable_candidates(connection.connection.driver_connection, project_id, "v2_art_candidates")
+    return ["art_publication_active"] if prepared else []
 
 def script_publication_blockers(store: object) -> list[str]:
     repository = store.repository  # type: ignore[attr-defined]

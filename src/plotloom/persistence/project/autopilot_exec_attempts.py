@@ -1,7 +1,6 @@
 """Immutable CLI job reservations and receipt settlement in the run owner."""
 from sqlalchemy import and_, func, or_, select
 
-from ...provider_budgets import exceeds_budget
 from ...autopilot_contracts import CheckpointEvidence, LaunchPolicy, OperationScope
 from ...codex_exec_contracts import (
     CodexExecAttempt,
@@ -11,6 +10,7 @@ from ...codex_exec_contracts import (
 )
 from ...domain import utc_now
 from ...exceptions import InvalidTransitionError
+from ...provider_budgets import exceeds_budget
 from ..schema import AutopilotCheckpointRow, AutopilotExecAttemptRow
 
 
@@ -102,7 +102,7 @@ class AutopilotExecPersistence:
                 )) or 0
                 if exceeds_budget(reserved + attempt.reserved_image_outputs, policy.max_images):
                     raise InvalidTransitionError("CLI image reservation exceeds the frozen run image budget")
-            pending = session.scalar(select(AutopilotExecAttemptRow.id).join(
+            pending_rows = session.execute(select(AutopilotExecAttemptRow, AutopilotCheckpointRow).join(
                 AutopilotCheckpointRow,
                 and_(AutopilotCheckpointRow.run_id == AutopilotExecAttemptRow.run_id,
                      AutopilotCheckpointRow.operation_key == AutopilotExecAttemptRow.operation_key),
@@ -110,8 +110,10 @@ class AutopilotExecPersistence:
                 AutopilotExecAttemptRow.run_id == run.id,
                 AutopilotExecAttemptRow.domain == "text",
                 AutopilotCheckpointRow.state != "adopted",
-            ).limit(1))
-            if attempt.domain == "text" and pending is not None:
+            )).all()
+            from .autopilot_text_correction import superseded_text_failure
+            pending = [row for row, checkpoint_row in pending_rows if not superseded_text_failure(session, run, row, checkpoint_row)]
+            if attempt.domain == "text" and pending:
                 raise InvalidTransitionError("dependent text execution cannot pass an unadopted text attempt")
 
             checkpoint_evidence = CheckpointEvidence.model_validate(

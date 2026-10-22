@@ -61,6 +61,7 @@ class LaunchPolicy(CamelModel):
     executor_binding: ExecutorBinding | None = Field(default=None, exclude_if=lambda value: value is None)
     execution_pins: dict[str, dict[str, str]]
     brief: dict[str, Any]
+    text_correction_limit: int | None = Field(default=None, strict=True, ge=1, le=1, exclude_if=lambda value: value is None)
 
     @model_validator(mode="before")
     @classmethod
@@ -81,6 +82,10 @@ class LaunchPolicy(CamelModel):
 
     @model_validator(mode="after")
     def validate_frozen_authority(self):
+        if self.text_correction_limit is not None and (self.version != POLICY_VERSION
+                or not isinstance(self.executor_binding, CodexExecProfile)
+                or self.executor_binding.text_correction_limit != self.text_correction_limit):
+            raise ValueError("text correction requires matching frozen CLI authority")
         if self.early_reference_limit is not None and (
             self.version != POLICY_VERSION or self.executor_binding is None
             or self.executor_binding.contract_version != "plotloom.codex-exec.v8"

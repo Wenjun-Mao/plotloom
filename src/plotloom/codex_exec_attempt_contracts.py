@@ -8,6 +8,7 @@ from pydantic import Field, model_validator
 
 from .codex_exec_constants import HASH, JOB_ID
 from .domain import CamelModel
+from .text_correction_contracts import TextContentRejection
 
 
 class CodexExecAttempt(CamelModel):
@@ -58,9 +59,12 @@ class CodexExecAttempt(CamelModel):
     evidence_hash: str | None = Field(default=None, pattern=HASH)
     output_hash: str | None = Field(default=None, pattern=HASH)
     remote_output_hash: str | None = Field(default=None, pattern=HASH)
+    content_rejection: TextContentRejection | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def owned_process_and_terminal_facts(self):
+        if self.content_rejection is not None:
+            self.content_rejection.assert_attempt(self)
         if self.domain == "text" and self.reserved_image_outputs != 0:
             raise ValueError("text attempts cannot reserve image output capacity")
         if self.domain == "image" and self.reserved_image_outputs < 1:
@@ -176,11 +180,13 @@ _ATTEMPT_TRANSITIONS = {
     "failed": {"settled"},
     "settled": set(),
 }
-_ATTEMPT_MUTABLE_FIELDS = {
-    "state", "session_id", "process_id", "process_group_id", "process_birth_identity",
+ATTEMPT_PROOF_FIELDS = (
+    "session_id", "process_id", "process_group_id", "process_birth_identity",
     "process_exit_code", "terminal_result", "remote_tool_state", "evidence_hash",
-    "output_hash", "remote_output_hash", "image_budget_state",
-}
+    "output_hash", "remote_output_hash", "content_rejection",
+)
+ATTEMPT_OBSERVED_FIELDS = ("state", *ATTEMPT_PROOF_FIELDS, "image_budget_state")
+_ATTEMPT_MUTABLE_FIELDS = set(ATTEMPT_OBSERVED_FIELDS)
 _ATTEMPT_TERMINAL_FIELDS = _ATTEMPT_MUTABLE_FIELDS - {"state"}
 
 

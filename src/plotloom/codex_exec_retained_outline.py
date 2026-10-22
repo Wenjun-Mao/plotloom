@@ -40,6 +40,8 @@ def retained_outline_package_projection(request, execution_pin, *, source_revisi
             {"stepId": "render", "program": "node", "argv": [script, "render", "{candidate}", "--html"], "stdoutIsReport": True},
         ],
     }
+    if request.content_validation_contract is not None:
+        plan["steps"][0]["argv"] = ["{source}/scripts/text-content-validation.mjs", "{candidate}", "{package}/request.json"]
     expected_plan = CodexExecTextValidationPlan.model_validate(plan)
     return request.model_dump(mode="json", by_alias=True) | {
         "packageVersion": 4,

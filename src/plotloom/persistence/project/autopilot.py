@@ -25,13 +25,14 @@ from ..schema import (
 )
 from .autopilot_activity import _project_checkpoints, run_activities
 from .autopilot_closure import material_closure
+from .autopilot_continuation import AutopilotContinuationPersistence, project_job_counts
 from .autopilot_exec_attempts import AutopilotExecPersistence
 from .autopilot_freshness import assert_fresh
-from .autopilot_continuation import AutopilotContinuationPersistence, project_job_counts
 from .autopilot_lineage import current_run_row
+from .autopilot_text_correction import AutopilotTextCorrectionPersistence
 
 
-class AutopilotPersistence(AutopilotContinuationPersistence, AutopilotExecPersistence):
+class AutopilotPersistence(AutopilotContinuationPersistence, AutopilotExecPersistence, AutopilotTextCorrectionPersistence):
     def __init__(self, access, *, claim_write: Callable[[], ContextManager[Session]]):
         self.access = access
         self._claim_write = claim_write

@@ -19,7 +19,7 @@ export function useAdoptionLabel() {
   const owner = useAutopilot();
   return (operation: string, revision?: number, hash?: string) => {
     if (owner && !owner.ready) return "已采用 · 来源待核实";
-    if (owner?.run?.checkpoints.some(item => item.operationKey === operation && item.state === "adopted"
+    if (owner?.run?.checkpoints.some(item => item.evidence.owner === operation && item.state === "adopted"
       && item.evidence.result.revision === revision && item.evidence.result.contentHash === hash)) return "AI 已采用";
     if (owner?.run && !["taken_over", "cancelled", "stale", "handed_off"].includes(owner.run.state)) return "已采用 · 来源待核实";
     return "已确认";

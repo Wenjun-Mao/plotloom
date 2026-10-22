@@ -14,6 +14,7 @@ from uuid import UUID
 from pydantic import Field, field_validator, model_validator
 
 from .domain import CamelModel, contains_secret_setting, contains_secret_value
+from .text_correction_contracts import TextCorrection
 
 
 CREATIVE_STAGES = ("outline", "branches", "characters", "art", "script", "storyboard", "bridge-intent", "bridge-presentation", "video-directions")
@@ -54,6 +55,8 @@ class CreativeHandoffRequest(CamelModel):
     source: dict[str, Any]
     input_artifacts: dict[str, Any] = Field(default_factory=dict)
     creative_brief: str = Field(min_length=1, max_length=20_000)
+    text_correction: TextCorrection | None = Field(default=None, exclude_if=lambda value: value is None)
+    content_validation_contract: Literal["plotloom.typed-content-result.v1"] | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @field_validator("source")
     @classmethod

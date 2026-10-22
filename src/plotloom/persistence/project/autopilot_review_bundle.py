@@ -91,7 +91,8 @@ def current_review_bundle(store, session, run):
     checkpoints = repository.autopilot.view_in_session(session, run).checkpoints
     reports = []
     for checkpoint in checkpoints:
-        owner, evidence = checkpoint["operationKey"], checkpoint["evidence"]
+        evidence = checkpoint["evidence"]
+        owner = evidence["owner"]
         if owner in report_owners and evidence.get("jobId") and checkpoint["state"] == "adopted":
             middle = f'{report_owners[owner]}/' + ("" if owner == "branches" else "candidates/")
             reports.append({"name": report_names[owner], "url": f'/api/v2/projects/{project_id}/{middle}{evidence["jobId"]}/report'})

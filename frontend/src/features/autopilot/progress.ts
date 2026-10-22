@@ -25,7 +25,8 @@ function inventorySubjects(run: AutopilotRun): MaterialSubject[] | null {
 /** One definition for the detailed and sticky run summaries. */
 export function projectAutopilotProgress(run: AutopilotRun) {
   const textStages = ["outline", "branches", "characters", "art", "script", "storyboard", "bridge-intent", "bridge-presentation"];
-  const textAdopted = run.checkpoints.filter(item => textStages.includes(item.operationKey) && item.state === "adopted").length;
+  const textAdopted = new Set(run.checkpoints.filter(item => textStages.includes(item.evidence.owner) && item.state === "adopted")
+    .map(item => item.evidence.owner)).size;
   const subjects = inventorySubjects(run);
   const references = new Set((subjects ?? [])
     .filter(item => item.owner !== "image")

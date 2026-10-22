@@ -5,14 +5,11 @@ from .autopilot_exec_reservation import (
     new_reserved_attempt,
     prepared_exec_inputs,
 )
+from .codex_exec_attempt_contracts import ATTEMPT_OBSERVED_FIELDS
 from .exceptions import InvalidTransitionError
 from .image_job_contracts import ImageJobError
 
-_RECONCILED_FIELDS = (
-    "state", "session_id", "process_id", "process_group_id", "process_birth_identity",
-    "process_exit_code", "terminal_result", "remote_tool_state", "evidence_hash",
-    "output_hash", "remote_output_hash", "image_budget_state",
-)
+_RECONCILED_FIELDS = ATTEMPT_OBSERVED_FIELDS
 
 
 def cancel_codex_exec(store, registry, run_id, checkpoint):
