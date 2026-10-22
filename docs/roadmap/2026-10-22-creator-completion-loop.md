@@ -1,8 +1,10 @@
 # Creator completion loop: native creation, selective revision and timing
 
 Status: bounded native UI E2E completed on deployed `b78bc6c9`, 2026-10-22;
-the one final local full gate failed at Python contracts, so qualification is
-not complete. The owner approved implementation, real UI E2E and activation via
+reviewed corrective code `6a44b8eb` completed composite local qualification using
+corrected/affected checks and previously unrun downstream gates. The original
+failed full and browser runs remain retained; neither was broadly retried.
+Final quiet activation/readback is manager-owned. The owner approved implementation, real UI E2E and activation via
 Relay Direct; no hosted CI or publication was requested.
 Planning baseline: retained R `1edae591`, installed executable P
 `6b1cf196`. This is one new bounded milestone, not a reopening of completed

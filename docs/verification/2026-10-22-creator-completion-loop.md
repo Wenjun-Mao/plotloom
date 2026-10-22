@@ -1,7 +1,8 @@
 # Creator completion loop: implementation and acceptance evidence
 
-Status: bounded native UI journey completed on deployed `b78bc6c9`; final local
-qualification failed at Python contracts. Corrective qualification remains open.
+Status: bounded native UI journey completed on deployed `b78bc6c9`; reviewed
+corrective code `6a44b8eb` completed composite local qualification. Original full
+failure is retained; no full retry. Final quiet activation is manager-owned.
 Generic checkpoint: `da1f9bc0`; capacity checkpoint: `f1a93485`.
 Baseline: retained checkout `1edae591`; approved scope is the
 [creator completion plan](../roadmap/2026-10-22-creator-completion-loop.md).
@@ -328,7 +329,7 @@ setup; no production telemetry tolerance was added. Initial focused union passed
 receipt, runtime, telemetry and profile cases passed. This repair does not settle or retry
 old UNKNOWN, change local caps, or claim that uncertainty can be eliminated.
 
-## Corrective qualification in progress
+## Corrective composite local qualification
 
 The owner explicitly authorized the bounded UNKNOWN consistency repair and the
 four diagnosed qualification corrections. Production remains strict: the real
@@ -367,3 +368,28 @@ passed the final 3,713 Python cases / 306 files (inventory SHA-256
 eight new receipt-actor unit cases. The original
 full gate remains failed. Corrective file checks and previously unrun downstream
 gates form composite local qualification, never a rewritten full-pass claim.
+
+The frozen reviewed `6a44b8ebb28db63fdaa38c115b7b0f6289cf5de4` passed the previously
+unrun deterministic bundle/root tracked parity, 97-spec/351-case exact browser
+allocation, wheel build and isolated installed-wheel smoke. Workbench JS remains
+`4e509e09dd8c93c178c3070a2b26546af5364e9a7fba974d1c894b4d887d7fa8`;
+wheel SHA-256 is `d75db1c83c1fcf3889353a9a7952e293dc91e13d206b0c0fb7d5d844470e5332`.
+
+The unfiltered browser run ended 339 passed / 12 failed (reported 12.0 minutes),
+all in `autopilot-review.spec.ts`. The isolated Vite harness omitted the new
+read-only QA-context owner, so the correct production guard kept confirmation
+disabled. All 12 screenshot/video/trace/error-context directories were retained
+under `browser-failures-6a44b8eb/` before rerun. Add only an explicit ordinary
+fixture context (`eligible:false`, `required:false`, `attribution:null`); no
+production fallback. This HTML has one consuming spec. Its entire 20 cases then
+passed (50.6 seconds; focused wrapper 53.441 seconds), including all 12 failures;
+browser-fixture typecheck passed. Independent narrow review found no issue.
+
+Product/package/static bytes are unchanged from `6a44b8eb`; reuse those passes and
+unchanged original-full passing inputs. No full/browser-full retry or CI occurred.
+Exact logs and [fingerprints](../../.local/creator-completion-20261022/final-tail-6a44b8eb-fingerprints.json)
+retain final input `780631c0973767030b8faafab359baeb9c9eff83a13402ee54fbb3c6d36858dc`,
+production-file hashes, wheel hash, failed browser log and fixture correction.
+Vite chunk-size and uv/uv-build version-range advisories were non-failing; no gate
+was bypassed. This closes local software qualification through explicit evidence
+reuse plus corrected/downstream checks, not a fresh full-pass or GA claim.
