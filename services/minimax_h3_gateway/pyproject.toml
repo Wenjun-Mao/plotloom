@@ -1,0 +1,42 @@
+[project]
+name = "plotloom-h3-gateway"
+version = "0.1.0"
+description = "Independent CPU control gateway and dashboard for Spark media services"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.141.1",
+    "pydantic==2.13.5",
+    "python-multipart==0.0.32",
+    "requests==2.34.2",
+    "uvicorn[standard]==0.52.4",
+]
+
+[project.optional-dependencies]
+gateway = ["pillow==11.3.0"]
+
+[dependency-groups]
+test = ["httpx==0.28.1", "pytest>=8,<10", "ruff==0.16.8"]
+
+[project.scripts]
+plotloom-h3-gateway = "plotloom_h3_gateway.__main__:main"
+plotloom-h3-dashboard = "plotloom_h3_gateway.dashboard.__main__:main"
+
+[build-system]
+requires = ["uv_build==0.12.6"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "plotloom_h3_gateway"
+
+[tool.uv]
+# Preserve the serving gateway's 2026-10-22 dependency closure at first lock.
+# Future upgrades are explicit service changes, independent of Plotloom's lock.
+constraint-dependencies = [
+    "annotated-doc==0.0.5", "annotated-types==0.8.0", "anyio==4.15.1",
+    "certifi==2026.7.22", "charset-normalizer==3.5.1", "click==8.5.0",
+    "h11==0.16.0", "httptools==0.8.0", "idna==3.20",
+    "pydantic-core==2.46.5", "python-dotenv==1.2.3", "pyyaml==6.0.3",
+    "starlette==1.6.0", "typing-inspection==0.4.4", "typing-extensions==4.16.0",
+    "urllib3==2.8.0", "uvloop==0.22.1", "watchfiles==1.2.0", "websockets==17.1",
+]

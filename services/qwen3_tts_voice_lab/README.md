@@ -6,6 +6,7 @@ Projects are independent workspaces, not authenticated user accounts.
 
 - [Author workflow and pipeline](docs/audio-pipeline-report.md)
 - [Reproduction, licenses and operations](docs/reproduction-and-operations.md)
+- [Cross-service ownership and selective releases](../../docs/operations/media-services.md)
 - [Engine decision](../../docs/adr/0094-voice-lab-independent-engines-and-delivery.md)
 - [Published takes and shared admission](../../docs/roadmap/2026-09-30-voice-takes-h3-plan.md)
 - [Take API client guide](docs/voice-takes-client-guide.md)
@@ -78,6 +79,8 @@ one-second timestamped memory/pressure/process samples for an explicitly
 authorized operator window. It generates nothing and does not allocate a CUDA
 context. See the [measurement limits and original failure analysis](../../docs/verification/2026-09-30-reference-strategies-and-memory.md)
 before interpreting MemAvailable, RSS or Torch allocation as GPU headroom.
+
+Run these commands inside `services/qwen3_tts_voice_lab/`, not the repository root:
 
 ```sh
 uv sync --locked --group test

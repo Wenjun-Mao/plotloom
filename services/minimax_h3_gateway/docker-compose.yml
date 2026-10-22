@@ -1,8 +1,9 @@
 services:
   gateway:
     build:
-      context: ../..
-      dockerfile: services/minimax_h3_gateway/Dockerfile
+      context: .
+      dockerfile: Dockerfile
+    image: plotloom-h3-gateway:20261022-service-boundaries
     container_name: plotloom-h3-gateway
     env_file: .env
     network_mode: host

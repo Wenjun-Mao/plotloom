@@ -17,8 +17,8 @@ sets are intentionally separate:
   [Chinese client guide](../../docs/operations/qwen-image-gateway-client-guide.md),
   and [reproducible Spark setup](docs/qwen-image-spark-setup.md).
 
-The [operations index](../../docs/operations/README.md) explains the only
-shared operational boundary: the durable, one-active-inference FIFO.
+The [media-service ownership and release guide](../../docs/operations/media-services.md)
+maps independent packages/deployments and the durable, one-active-inference FIFO.
 
 For the underlying Spark/ComfyUI engine rather than the gateway API, use the
 [reproducible H3 setup guide](docs/h3-reproducible-setup.md), the
@@ -138,10 +138,63 @@ Plotloom production contract. Until such an extraction is explicitly approved,
 gateway source changes, profile changes, and their operator documentation are
 reviewed and versioned here with Plotloom.
 
+## Independent package, checks and images
+
+The gateway and dashboard share this service's `pyproject.toml` and `uv.lock`,
+not Plotloom's root environment. The installed package has two CPU entrypoints:
+`plotloom-h3-gateway` and `plotloom-h3-dashboard`. Install the `gateway` extra
+for image preprocessing (Pillow); the dashboard does not need it. Neither role
+installs model inference frameworks. Voice Lab retains its own environment.
+
+From the repository root:
+
+```sh
+uv sync --project services/minimax_h3_gateway --locked --extra gateway --group test --no-editable
+uv run --project services/minimax_h3_gateway --locked --extra gateway --group test --no-editable pytest -q tests/services/minimax_h3_gateway tests/test_media_service_boundaries.py
+node --test tests/services/minimax_h3_gateway/test_dashboard*_ui.mjs
+sh services/minimax_h3_gateway/tools/packaging/verify_install.sh
+```
+
+The last command builds a wheel and exercises both console entrypoints in fresh
+role-specific environments, from a temporary working directory with no source
+`PYTHONPATH`. It verifies packaged workflow/static files and viewer non-mutation;
+it generates nothing. Local port8091 must be free; alternatively run the same
+`tools/packaging/smoke.py` inside each isolated image below. Temporary smoke
+environments are printed and retained for diagnosis. Root Plotloom's test run
+can still use the explicit service-source fixture; that is not artifact proof.
+
+From **this service directory**, build either image independently:
+
+```sh
+docker build -f Dockerfile -t plotloom-h3-gateway:20261022-service-boundaries .
+docker build -f dashboard.Dockerfile -t plotloom-h3-dashboard:20261022-service-boundaries .
+docker run --rm --network none --entrypoint python \
+  --mount type=bind,src="$PWD/tools/packaging",dst=/proof,readonly \
+  plotloom-h3-gateway:20261022-service-boundaries -I /proof/smoke.py gateway
+docker run --rm --network none --entrypoint python \
+  --mount type=bind,src="$PWD/tools/packaging",dst=/proof,readonly \
+  plotloom-h3-dashboard:20261022-service-boundaries -I /proof/smoke.py dashboard
+```
+
+Both build contexts contain only this subtree. `.dockerignore` admits package
+source and build metadata, not models, outputs, private configuration or tooling.
+Images install the package non-editably; workflow JSON and dashboard assets ship
+in the wheel. Gateway Python3.12.14 and dashboard Python3.12.15 retain their
+respective pre-cutover patch versions. The initial service lock preserves the
+serving gateway dependency closure. Dashboard converges AnyIO4.14.2→4.15.1,
+IDNA3.19→3.20 and urllib3 2.7.0→2.8.0 on that existing gateway closure; unrelated
+Plotloom template/database dependencies are removed. This is an explicit,
+tested packaging reconciliation, not a general dependency update.
+
+Deployment is separate from building. Do not replace a serving artifact during
+active, queued or uncertain work, or during a director-reserved generation window.
+Use the existing mounts, secrets and deployment configuration; do not start a
+second gateway worker. See the release/rollback procedure in the ownership guide.
+
 ## Runtime layout
 
-The separate [private read-only dashboard](docs/gateway-dashboard.md) provides
-operational job/queue views and retained-media playback through Tailscale HTTPS.
+The separate [private dashboard](docs/gateway-dashboard.md) provides operational
+job/queue views, retained-media playback and protected H3 submission through Tailscale HTTPS.
 Its independent container/entrypoint never initializes the generation store or
 starts dispatch workers; the existing API and retention contract are unchanged.
 

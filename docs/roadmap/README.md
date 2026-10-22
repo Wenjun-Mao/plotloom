@@ -52,6 +52,16 @@ proven retirements. It does not authorize broad cleanup or contract redesign.
 
 Technical plans, ADRs, and receipts remain supporting references; they do not independently expand current scope.
 
+## Specialist media-service maintenance
+
+The owner agreed to keep the media services in Plotloom. The proposed
+[approved boundary-strengthening plan](2026-10-22-media-service-boundaries.md) addresses
+service-owned dependencies, isolated artifacts, contract guards and selective
+deployment without changing generation behavior. The [service decision](../adr/media-services-monorepo-boundaries.md)
+records the ownership boundary; numbering awaits integration with newer main.
+Director write/runtime coordination is authorized; integration, merge and push
+remain held. Serving restarts wait for the director's live E2E quiet window.
+
 ## Specialist Voice Lab
 
 The retained H3/voice specialist checkout has an owner-approved

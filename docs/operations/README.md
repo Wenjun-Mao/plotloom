@@ -4,6 +4,11 @@ Spark runs two private generation backends behind one typed gateway. The
 backends have separate runtime, API, and qualification contracts; the durable
 gateway FIFO is the only intentionally shared runtime boundary.
 
+For package ownership, independent builds, affected tests and safe selective
+deployment, start with [Media-service maintenance](media-services.md). It also
+documents Voice Lab's participation in the shared lane and the dashboard's private
+read-only SQLite contract, without combining their distinct storage lifetimes.
+
 ## Choose the correct document set
 
 | Need | MiniMax-H3 video | Qwen-Image-2.1 image |
@@ -21,10 +26,11 @@ unauthenticated readiness endpoint; job creation, status, cancellation, and
 downloads require the team bearer value. Keep the direct ComfyUI and SGLang
 services loopback-only.
 
-One durable SQLite FIFO serializes backend inference: at most one H3 ComfyUI
-or Qwen SGLang request runs at a time. It is intentionally an unlimited queue;
+One durable SQLite FIFO serializes managed inference: at most one H3 ComfyUI,
+Qwen SGLang or Voice Lab generation runs at a time. It is intentionally an unlimited queue;
 source download, input decoding, and managed-output transfer do not hold the
-GPU lane. See [ADR 0072](../adr/0072-shared-qwen-image-and-h3-generation-lane.md).
+GPU lane. See [ADR 0072](../adr/0072-shared-qwen-image-and-h3-generation-lane.md)
+and its Voice Lab extension in [ADR 0097](../adr/0097-published-voice-performance-takes-and-shared-admission.md).
 
 Both backends retain their gateway-managed delivery for 72 hours, and retain
 the job record plus transient gateway input for at most 30 days. Import a

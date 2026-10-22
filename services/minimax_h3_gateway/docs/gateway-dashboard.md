@@ -97,7 +97,11 @@ HTTPS 路径的实际已验证配置、部署 release 位置和镜像 digest 记
 
 部署前等待共享通道、队列和 ComfyUI 队列都空闲；不强行停止同事的任务。
 只启动/重启看板，不重启网关、ComfyUI、Qwen 或 Voice Lab。
-镜像从仓库 `uv.lock` 安装锁定依赖。只读目录必须包含实际数据库及可能的
+镜像从本网关模块自己的 `pyproject.toml` / `uv.lock` 安装锁定包，不依赖
+Plotloom 根目录环境。构建上下文仅为 `services/minimax_h3_gateway/`。
+它和网关共享包版本，但仍分别构建、部署、重启；不加载模型或启动派发线程。
+维护与回滚边界见[服务维护指南](../../../docs/operations/media-services.md)。
+只读目录必须包含实际数据库及可能的
 `-wal`/`-shm` 文件；不要复制运行中的单个数据库或使用 `immutable=1`。
 
 回滚只停止看板容器并关闭本次增加的 `/dashboard` Serve handler：
@@ -112,9 +116,9 @@ docker compose -p plotloom-h3-dashboard -f services/minimax_h3_gateway/dashboard
 ## 验证入口
 
 ```sh
-uv run --locked pytest -q tests/services/minimax_h3_gateway
+uv run --project services/minimax_h3_gateway --locked --extra gateway --group test --no-editable pytest -q tests/services/minimax_h3_gateway
 node --test tests/services/minimax_h3_gateway/test_dashboard*_ui.mjs
-uv run --locked ruff check services/minimax_h3_gateway/src/plotloom_h3_gateway/dashboard tests/services/minimax_h3_gateway/test_dashboard*.py
+uv run --project services/minimax_h3_gateway --locked --group test ruff check services/minimax_h3_gateway/src/plotloom_h3_gateway/dashboard tests/services/minimax_h3_gateway/test_dashboard*.py
 ```
 
 用保留文件或测试夹具验证真实浏览器播放、拖动、下载、刷新和状态轮询。
