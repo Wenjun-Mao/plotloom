@@ -38,6 +38,13 @@ const preview = new DashboardPreview(
   $("output-note"),
   outputNames,
 );
+const jobList = new DashboardJobList($("jobs"), selectJob, (j) => ({
+  created: date(j.createdAt),
+  status: statusNames[j.status] || j.status,
+  settings: `${backendName(j.backend)}${j.quality == null ? "" : " · Q" + j.quality} · ${j.resolution}${j.requestedDurationSeconds ? " · " + j.requestedDurationSeconds + "秒" : ""}`,
+  elapsed: duration(j.generationElapsedMs),
+  output: outputNames[j.output] || j.output,
+}));
 let epoch = 0,
   inflight = false,
   pending = false;
@@ -74,8 +81,14 @@ function selectJob(id) {
   }
   const url = new URL(location.href);
   url.searchParams.set("job", id);
-  window.history.pushState(null, "", url);
+  if (location.href !== url.href) window.history.pushState(null, "", url);
+  jobList.highlight(selected);
+  revealDetail();
   invalidate();
+}
+function revealDetail() {
+  $("detail-panel").scrollIntoView({ block: "start" });
+  $("detail-title").focus({ preventScroll: true });
 }
 function invalidate() {
   epoch++;
@@ -141,48 +154,7 @@ function renderOverview(o) {
   );
 }
 function renderJobs(data) {
-  const body = $("jobs");
-  body.replaceChildren();
-  for (const j of data.jobs) {
-    const row = document.createElement("tr");
-    const values = [
-      "",
-      statusNames[j.status] || j.status,
-      `${backendName(j.backend)}${j.quality == null ? "" : " · Q" + j.quality} · ${j.resolution}${j.requestedDurationSeconds ? " · " + j.requestedDurationSeconds + "秒" : ""}`,
-      duration(j.generationElapsedMs),
-      outputNames[j.output] || j.output,
-    ];
-    for (let i = 0; i < values.length; i++) {
-      const cell = document.createElement("td");
-      cell.textContent = values[i];
-      if (i === 0) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.textContent = j.id;
-        b.onclick = () => selectJob(j.id);
-        b.classList.toggle("selected", j.id === selected);
-        cell.append(b);
-        const small = document.createElement("small");
-        small.textContent = date(j.createdAt);
-        cell.append(small);
-        cell.classList.toggle("current", j.id === selected);
-      }
-      if (i === 1) {
-        const badge = document.createElement("span");
-        badge.textContent = values[i];
-        badge.className =
-          "badge" +
-          (j.status === "succeeded"
-            ? " good"
-            : ["failed", "outcome_unknown"].includes(j.status)
-              ? " bad"
-              : "");
-        cell.replaceChildren(badge);
-      }
-      row.append(cell);
-    }
-    body.append(row);
-  }
+  jobList.render(data.jobs, selected);
   $("empty").hidden = Boolean(data.jobs.length);
   renderPagination();
 }
@@ -352,6 +324,7 @@ $("copy").onclick = async () => {
     text("copy", "复制失败，请选中 ID 手动复制");
   }
 };
+$("return-to-list").onclick = () => jobList.returnTo(selected);
 $("prompt-toggle").onclick = async () => {
   if (!$("prompt").hidden) {
     $("prompt").hidden = true;
@@ -382,6 +355,9 @@ window.addEventListener("dashboard:refresh", invalidate);
 window.addEventListener("popstate", () => {
   selected = new URL(location.href).searchParams.get("job") || "";
   resetDetail();
+  jobList.highlight(selected);
+  if (selected) revealDetail();
   invalidate();
 });
+if (selected) revealDetail();
 refresh();

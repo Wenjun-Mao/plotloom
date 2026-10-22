@@ -71,7 +71,10 @@ def test_all_routes_are_read_only_and_do_not_publish_api(installation):
     assert client.get("/dashboard", follow_redirects=False).headers["location"] == "/dashboard/"
     html = client.get("/dashboard/").text
     assert html.index("view-state.js") < html.index("dashboard.js")
+    assert html.index("job-list.js") < html.index("dashboard.js")
     assert client.get("/dashboard/assets/view-state.js").status_code == 200
+    assert client.get("/dashboard/assets/job-list.js").status_code == 200
+    assert client.get("/dashboard/assets/job-list.css").status_code == 200
     assert client.get("/dashboard/api/jobs", headers={"Host": "attacker.invalid"}).status_code == 400
     assert client.get(f"/dashboard/media/{JOB}", headers={"Sec-Fetch-Site": "cross-site"}).status_code == 403
 

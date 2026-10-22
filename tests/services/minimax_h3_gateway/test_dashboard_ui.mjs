@@ -11,6 +11,10 @@ function harness() {
       this.hidden = false;
       this.classList = { toggle() {} };
       this.events = new Map();
+      this.dataset = {};
+      this.attributes = new Map();
+      this.focusCount = 0;
+      this.scrollCount = 0;
     }
     replaceChildren(...children) {
       this.children = children;
@@ -23,6 +27,15 @@ function harness() {
     }
     fire(name) {
       this.events.get(name)?.();
+    }
+    setAttribute(name, value) {
+      this.attributes.set(name, value);
+    }
+    focus() {
+      this.focusCount++;
+    }
+    scrollIntoView() {
+      this.scrollCount++;
     }
   }
   class Video extends Element {}
@@ -55,6 +68,13 @@ function harness() {
       throw Error("must not fetch while hidden");
     },
   });
+  vm.runInContext(
+    readFileSync(
+      "services/minimax_h3_gateway/src/plotloom_h3_gateway/dashboard/static/job-list.js",
+      "utf8",
+    ),
+    context,
+  );
   vm.runInContext(
     readFileSync(
       "services/minimax_h3_gateway/src/plotloom_h3_gateway/dashboard/static/view-state.js",
@@ -207,4 +227,58 @@ test("image load recovery clears its own error without recreating the preview", 
   image.fire("load");
   assert.equal(document.getElementById("output-note").textContent, "可查看");
   assert.equal(document.getElementById("preview").children[0], image);
+});
+
+test("rows expose direct downloads only for available media and details for every job", () => {
+  const { context, document } = harness();
+  context.jobs = ["available", "expired", "missing", "unavailable", "not_ready"].map(
+    (output, index) => ({ id: `h3_${index}`, output }),
+  );
+  vm.runInContext("renderJobs({jobs})", context);
+  const rows = document.getElementById("jobs").children;
+  for (let i = 0; i < rows.length; i++) {
+    const actions = rows[i].children[4].children[1];
+    const [open, download] = actions.children;
+    assert.equal(open.textContent, i === 0 ? "预览" : "详情");
+    assert.equal(download.hidden, i !== 0);
+    assert.match(download.href, new RegExp(`h3_${i}\\?download=true$`));
+    assert.match(download.attributes.get("aria-label"), new RegExp(`h3_${i}`));
+  }
+});
+
+test("explicit selection reveals details once; polling preserves row controls and focus", () => {
+  const { context, document } = harness();
+  context.jobs = [{ id: "h3_a", output: "available" }];
+  vm.runInContext("renderJobs({jobs})", context);
+  const row = document.getElementById("jobs").children[0];
+  const open = row.children[4].children[1].children[0];
+  const title = document.getElementById("detail-title");
+  const panel = document.getElementById("detail-panel");
+  const before = panel.scrollCount;
+  open.onclick();
+  assert.equal(panel.scrollCount, before + 1);
+  assert.equal(title.focusCount, panel.scrollCount);
+  vm.runInContext("renderJobs({jobs}); renderDetail(jobs[0])", context);
+  assert.equal(document.getElementById("jobs").children[0], row);
+  assert.equal(row.children[4].children[1].children[0], open);
+  assert.equal(panel.scrollCount, before + 1);
+  document.getElementById("return-to-list").onclick();
+  assert.equal(row.children[0].children[0].focusCount, 1);
+  context.jobs = [];
+  vm.runInContext("renderJobs({jobs})", context);
+  document.getElementById("return-to-list").onclick();
+  assert.equal(document.getElementById("jobs-title").focusCount, 1);
+});
+
+test("row action availability follows polling without retaining an expired download", () => {
+  const { context, document } = harness();
+  context.jobs = [{ id: "h3_a", output: "available" }];
+  vm.runInContext("renderJobs({jobs})", context);
+  const row = document.getElementById("jobs").children[0];
+  const [open, download] = row.children[4].children[1].children;
+  context.jobs[0].output = "expired";
+  vm.runInContext("renderJobs({jobs})", context);
+  assert.equal(download.hidden, true);
+  assert.equal(open.textContent, "详情");
+  assert.equal(document.getElementById("jobs").children[0], row);
 });

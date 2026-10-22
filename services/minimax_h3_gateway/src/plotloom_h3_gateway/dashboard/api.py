@@ -80,7 +80,8 @@ def create_dashboard(data_root: Path, *, health=None, hosts=None, submission=Non
     def asset(name: str):
         types = {"dashboard.js": "text/javascript", "dashboard.css": "text/css", "favicon.svg": "image/svg+xml",
                  "generation.js": "text/javascript", "generation.css": "text/css",
-                 "view-state.js": "text/javascript"}
+                 "view-state.js": "text/javascript", "job-list.js": "text/javascript",
+                 "job-list.css": "text/css"}
         if name not in types:
             raise ReadError("not_found", 404)
         return FileResponse(STATIC / name, media_type=types[name])
