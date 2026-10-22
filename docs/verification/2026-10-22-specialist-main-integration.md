@@ -75,7 +75,7 @@ tests. Exact selectors are retained in the
 | Native module ownership discovery | Passed: 3,923 Python / 1,473 Vitest / 351 Playwright cases; no test bodies executed |
 | Independently locked Voice Lab (`uv run --locked --group test pytest -q`, Lab cwd) | 80 passed, 1 existing Starlette/httpx warning |
 | Dashboard Node suites (`test_dashboard_ui.mjs`, `test_dashboard_generation_ui.mjs`) | 14 passed |
-| Changed-document local-link check | 72 Markdown files / 641 local links checked; no missing targets |
+| Changed-document local-link check | 72 Markdown files / 642 local links checked; no missing targets |
 | Diff/identity checks against pinned main and specialist | Protected product/runtime paths unchanged; patch check passes against pinned main |
 | Independent GPT-6.1 Sol / Medium stable-diff review | No material code findings; one documented command corrected to include the moved service-admission test |
 
