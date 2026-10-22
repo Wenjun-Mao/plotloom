@@ -56,6 +56,17 @@ reuse only identical whole policy text, and replace on different policy text
 even when the resulting profile values and hashes are equal. No normalized-key,
 hash-key or runtime-observation reuse is introduced.
 
+### Optional bounded correction limit review (2026-10-21)
+
+ADR 0202 adds only `text_correction_limit`: an immutable `int | None`, literal
+`default=None`, strict numeric bounds of one, and a value-only exclusion of None
+from serialization. Root and independent review compared every named AST
+dependency; no factory, validator, mutable field, ambient lookup or I/O changed.
+The final full gate correctly tripped the old fingerprint. Re-review retains the
+same lexical reuse boundary and updates the pin, not the construction mechanism.
+Null, omitted and one regressions compare fresh construction/hash results, reuse
+only exact whole TEXT, and clear prior success on invalid bool/zero/two replacement.
+
 ## Alternatives and guardrails
 
 Reject run/job-ID, normalized binding, profile-hash and global/session/connection

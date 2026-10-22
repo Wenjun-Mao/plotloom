@@ -48,7 +48,12 @@ const tools = {
     return { output, exit_code: 0 };
   }
 };
-const outcome = await Capsule(tools, packet.planText, packet.anchorText, packet.anchorSha256);
+let outcome;
+if (mode === 'prepare-only') {
+  calls.push('prepare');
+  outcome = await dispatch({ action: 'prepare', capsuleSource: Function.prototype.toString.call(Capsule),
+    planText: packet.planText, anchorText: packet.anchorText, anchorSha: packet.anchorSha256 });
+} else outcome = await Capsule(tools, packet.planText, packet.anchorText, packet.anchorSha256);
 if (complete) await complete;
 const result = { syntheticEvidence: true, qualification: false, providerAuthority: false, productionAuthority: false,
   outcome, calls, actualFixtureChildTerminal: terminal ?? null,

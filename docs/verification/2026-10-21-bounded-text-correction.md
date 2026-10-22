@@ -76,5 +76,41 @@ supported contract. Its nine distinct jobs under a frozen lifetime limit of nine
 leave the ninth exact rejection intact, with no corrective checkpoint, reservation
 or tenth host admission. That case and the malformed/unknown issue-code guard pass.
 
-No second module invocation or full gate is run by the source worker. The manager
-owns one final full gate after the corrective commit's exact-finding review.
+No second module invocation or full gate is run by the source worker.
+
+## Final full failure and exact causal follow-up
+
+The manager-owned full gate at `e841756e` remains **FAILED**: 3,551 passed
+(1,788 + 1,763), 15 failed, 1,289.383 seconds; downstream gates were not reached.
+`final-full-e841756e.log` retains the complete outcome. Both real-host/controller
+fixture proofs were refreshed and retained under
+`full-proof.m60eHw/{correct-and-adopt,bounded-exhaustion}.json`; the CLI provider
+boundary remains fake and no live provider or user project was used.
+
+One failure was ADR 0184's expected AST review tripwire for the immutable optional
+correction limit. Re-review changes only its fingerprint and exact-text reuse
+regressions, not the production construction slot. The other fourteen failures
+stopped in the actual paid capsule's strict profile parser before sandbox/native
+launch: its exact field list omitted the new named member. The source-owned parser
+now aligns with the optional strict null/one schema, retaining unknown-field
+refusal, exact profile hashes and the separate paid one-admission/zero-retry grant.
+This is not a stale copied fixture and is not repaired by stripping the field.
+
+The source worker runs only the affected profile, paid handoff and native Node
+capsule owners for this follow-up. The manager owns subsequent unchanged
+downstream gates after stable-commit review; the failed full result is not relabeled.
+
+That focused selection (`full-findings-focused.log`) separately remains **FAILED**:
+79 passed, two failed, 231.905 seconds. It includes all profile guards, all nine
+actual Node optional-scalar/hash/no-intent regressions, and the native capsule
+owner (55 Node cases passed). The two failures reached successful receipt/report
+and failed-candidate settlement respectively, then asserted retired validator
+prose. The adapter intentionally emits exact success text or typed JSON stdout,
+not the old upstream success/stderr messages. Test-owned observations now assert
+that contract and bind rejection to exact candidate bytes and both native/project
+attempt identities, preserving every receipt/hash/report/no-retry predicate.
+
+Only those two changed causal cases were rerun: **two passed**, 56.577 seconds
+(`full-findings-observations.log`). The unchanged 79-case evidence and 55-case
+Node TAP are reused, not rerun or presented as a second full gate. Root and
+independent review found no remaining concrete issue in the narrow follow-up.

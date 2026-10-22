@@ -178,6 +178,33 @@ def test_optional_version_metadata_keeps_exact_text_reuse_only(monkeypatch, expl
     assert len(calls) == 2
 
 
+@pytest.mark.parametrize("value", [None, "omitted", 1])
+def test_optional_correction_limit_keeps_exact_text_reuse_and_failed_replacement_clears_slot(monkeypatch, value):
+    binding = PROFILE.model_dump(mode="json", by_alias=True)
+    binding.pop("textCorrectionLimit", None)
+    if value != "omitted":
+        binding["textCorrectionLimit"] = value
+    raw = json.dumps({"executorBinding": binding})
+    expected = CodexExecProfile.model_validate(binding)
+    calls = observe_constructions(monkeypatch)
+    slot = _ProfileConstruction()
+    first = resolve(slot, raw)
+    assert first == expected and first.profile_hash == expected.profile_hash
+    assert resolve(slot, raw) is first
+    other = binding | {"textCorrectionLimit": None if value == "omitted" else 1 if value is None else None}
+    replacement = resolve(slot, json.dumps({"executorBinding": other}))
+    assert replacement is not first
+    assert (replacement.profile_hash == first.profile_hash) is (value == "omitted")
+    assert resolve(slot, raw) is not first
+    for invalid in (True, 0, 2):
+        with pytest.raises(ValidationError):
+            resolve(slot, json.dumps({"executorBinding": binding | {"textCorrectionLimit": invalid}}))
+        fresh = resolve(slot, raw)
+        assert fresh == expected and fresh is not first
+        assert resolve(slot, raw) is fresh
+    assert len(calls) == 9  # Three valid replacements, then three failed/fresh pairs.
+
+
 def test_reuse_requires_frozen_extra_forbidden_structurally_immutable_profile():
     def immutable(annotation):
         origin, arguments = get_origin(annotation), get_args(annotation)

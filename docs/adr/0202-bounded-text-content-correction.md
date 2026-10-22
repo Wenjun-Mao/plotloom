@@ -44,6 +44,13 @@ preserve old plan bytes without rewriting or executing old frozen evidence.
 One shared lifecycle-field contract carries typed rejection through the native
 ledger and project reconciliation, preventing terminal evidence projection loss.
 
+The source-owned paid Outline capsule's strict profile parser admits only the
+named optional limit (absent/null or strict one), preserving the exact serialized
+profile hash. This is profile-schema consistency, not paid retry authority: its
+allocation still requires one initial admission, zero retries, hold-only settlement,
+no canonical adoption and no later stages. Unknown fields and other limit values
+fail before intent publication; an explicit limit never expands that capsule grant.
+
 Publication guards classify only an exact source-owned terminal content rejection
 as no longer publishable. The prepared original candidate row stays immutable;
 manual, foreign, unstarted, UNKNOWN and other failed handoffs retain their guards.

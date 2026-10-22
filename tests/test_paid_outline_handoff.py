@@ -177,7 +177,7 @@ def test_registered_paid_entry_reaches_one_receipt_and_validated_delivery_then_h
     assert all(item["exitCode"] == 0 for item in validation["steps"])
     private = Path(allocation["namespace"]["privateRoot"]["path"]) / "attempts" / allocation["namespace"]["attempt"]["attemptId"]
     validated = (private / "validation/validate.stdout").read_bytes()
-    assert "✓ 通过校验" in validated.decode()
+    assert validated == b"Valid candidate content\n"
     assert sha256(validated).hexdigest() == validation["steps"][0]["stdoutHash"]
     job = Path(allocation["projectHome"]["path"]) / "outputs/creative-handoff/jobs" / allocation["namespace"]["attempt"]["jobId"]
     report = (job / "delivery/report.html").read_bytes()
@@ -204,6 +204,8 @@ def test_late_readiness_deadline_refuses_actual_consume_and_keeps_original_reser
 
 
 def test_invalid_candidate_fails_real_node_validation_without_receipt_or_retry(paid_case):
+    from plotloom.codex_exec_contracts import CodexExecAttempt
+
     case = paid_case
     ambient_marker = without_ambient_python(case)
     output = case["root"] / "provider-output.json"
@@ -223,15 +225,25 @@ def test_invalid_candidate_fails_real_node_validation_without_receipt_or_retry(p
     with closing(sqlite3.connect(allocation["namespace"]["database"]["path"])) as connection:
         rows = connection.execute("SELECT attempt_id,status_json,receipt_json FROM exec_attempts").fetchall()
         assert len(rows) == 1 and rows[0][0] == attempt_id and rows[0][2] is None
-        assert json.loads(rows[0][1])["state"] == "failed"
+        terminal = CodexExecAttempt.model_validate_json(rows[0][1])
+        assert terminal.state == "failed"
         assert all(connection.execute("SELECT count(*) FROM " + table).fetchone()[0] == 0
             for table in ("exec_queue", "exec_slot", "exec_validation_process"))
     private = Path(allocation["namespace"]["privateRoot"]["path"]) / "attempts" / attempt_id
-    failures = list((private / "validation").glob("*.stderr"))
-    assert failures and "缺少 params" in "\n".join(item.read_text() for item in failures)
+    job = Path(allocation["projectHome"]["path"]) / "outputs/creative-handoff/jobs" / terminal.job_id
+    candidate_hash = sha256((job / "delivery/outline.json").read_bytes()).hexdigest()
+    issues = [{"code": "candidate_content_invalid", "fieldPaths": ["$"], "repairFacts": {}}]
+    assert json.loads((private / "validation/validate.stdout").read_bytes()) == {
+        "contract": "plotloom.typed-content-result.v1", "candidateHash": candidate_hash, "issues": issues}
+    assert (private / "validation/validate.stderr").read_bytes() == b""
+    rejection = terminal.content_rejection
+    assert rejection is not None and rejection.candidate_hash == candidate_hash
+    assert [issue.model_dump(mode="json", by_alias=True) for issue in rejection.issues] == issues
+    rejection.assert_attempt(terminal)
     with closing(sqlite3.connect(allocation["projectDatabase"]["path"])) as connection:
         attempts = connection.execute("SELECT snapshot FROM v2_autopilot_exec_attempts").fetchall()
         assert len(attempts) == 1 and json.loads(attempts[0][0])["attemptId"] == attempt_id
+        assert CodexExecAttempt.model_validate_json(attempts[0][0]).content_rejection == rejection
         assert connection.execute("SELECT state FROM v2_autopilot_runs").fetchone()[0] == "paused"
         assert dict(connection.execute("SELECT operation_key,state FROM v2_autopilot_checkpoints")) == {"source": "adopted", "outline": "failed"}
 
@@ -313,6 +325,31 @@ def test_js_refuses_rebound_source_or_runtime_role_substitution(paid_case, drift
     assert result["outcome"]["status"] == "HELD" and result["calls"] == ["prepare"], json.dumps(result, indent=2)
     assert result["actualFixtureChildTerminal"] is None
     assert not (case["root"] / "phase/invocation-intent.json").exists()
+
+
+@pytest.mark.parametrize("kind,value,allowed", [("omitted", None, True), ("null", None, True), ("one", 1, True),
+    ("bool", True, False), ("zero", 0, False), ("two", 2, False), ("string", "1", False),
+    ("unknown-field", 1, False), ("hash-drift", None, False)])
+def test_actual_node_paid_profile_correction_contract_is_strict(paid_case, kind, value, allowed):
+    case = paid_case
+    def substitute(allocation):
+        profile = allocation["namespace"]["profile"]
+        profile.pop("textCorrectionLimit", None)
+        if kind != "omitted":
+            profile["textCorrectionLimit"] = value
+        if kind == "unknown-field":
+            profile["unknownCorrectionPermission"] = 1
+        if kind != "hash-drift":
+            allocation["namespace"]["attempt"]["profileHash"] = sha256(json.dumps(
+                profile, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
+    rebind_allocation(case, substitute)
+    result = run_capsule(case, mode="prepare-only")
+    assert result["outcome"]["status"] == ("OK" if allowed else "HELD"), json.dumps(result, indent=2)
+    assert result["calls"] == ["prepare"] and result["actualFixtureChildTerminal"] is None
+    assert (case["root"] / "phase/invocation-intent.json").exists() is allowed
+    assert case["allocation"]["initialAdmissions"] == 1 and case["allocation"]["retries"] == 0
+    with closing(sqlite3.connect(case["allocation"]["namespace"]["database"]["path"])) as connection:
+        assert connection.execute("SELECT count(*) FROM exec_attempts").fetchone()[0] == 0
 
 
 @pytest.mark.parametrize("drift", ["run-revision", "claim", "policy", "checkpoint", "catalog",
