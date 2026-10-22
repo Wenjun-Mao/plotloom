@@ -1,6 +1,6 @@
 # Independent media-service packaging — 2026-10-22
 
-Status: **LOCALLY IMPLEMENTED AND VERIFIED; DEPLOYMENT PENDING.**
+Status: **IMPLEMENTED, VERIFIED AND DEPLOYED.** Implementation source `37828fd3`.
 Baseline `5fd5128b`, retained `codex/h3-ref2va-gateway` specialist checkout.
 The [approved plan](../roadmap/2026-10-22-media-service-boundaries.md) and
 [decision](../adr/media-services-monorepo-boundaries.md) define scope.
@@ -38,7 +38,7 @@ are absent from the dashboard artifact. No inference dependency was added.
 Service lock SHA256:
 `023b29e28d045d44610fe5425123d02403bfabe10d1fd59338607454f2fbf15c`.
 
-Final locally built Linux ARM64 image identities (both isolated smokes passed):
+Final locally built Linux ARM64 OCI index identities (both isolated smokes passed):
 
 - `plotloom-h3-dashboard:20261022-service-boundaries`:
   `sha256:e0cc6b0d0f702a19f52c50f6d50130791ab8c9f1b3a0da0a37db274c65aafc79`.
@@ -96,7 +96,7 @@ Owned fixture server and Chrome session were stopped. Scratch evidence was moved
 from `output/playwright/` to `.local/media-service-boundaries-20261022/playwright/`
 after verification, with no evidence discarded.
 
-## Coordination and pending serving acceptance
+## Coordination and serving acceptance
 
 The owner explicitly authorized coordination with `narrative-forge main`. The
 director confirmed separate retained-branch source ownership, required later
@@ -107,24 +107,97 @@ Read-only byte comparison also matched every file in the serving gateway's
 25-file package and dashboard's 21-file package against this source. The new
 common distribution includes both entrypoints; it does not change those bytes.
 
-**No Spark serving restart, deployment, model change or generation has occurred
-in this slice.** Local ARM64 execution is not a substitute for target-host smoke
-and private-HTTPS serving verification. Wait for explicit quiet-window release,
-then perform the plan's fresh gateway/Lab/shared-lane/native-queue checks before
-any replacement. Preserve uncertain work rather than replaying or clearing it.
+The local implementation checkpoint deliberately held deployment. The director
+subsequently cancelled its new native QA run with adopted text preserved and no
+H3 submission, then explicitly released the quiet window. Its historical Mac
+UNKNOWN image attempts were outside this cutover and were not touched.
 
-Observed rollback baseline (read-only inventory, not a current idle assertion):
+Fresh Spark checks found no gateway nonterminal/unknown jobs, no unfinished lane
+entries, no queued/running/unknown Lab work or unreleased grants, and no ComfyUI
+queued/running prompts. Both exact transferred ARM64 artifacts passed isolated
+`--network none` installed-package smokes on Spark before promotion.
+
+The dashboard was replaced first at **15:26:46 UTC / 11:26:46 Toronto**. A
+post-replacement assertion stopped because Mac Docker reported the OCI index ID
+while Spark reported the image config ID. The service was healthy. The exported
+`manifest.json` maps each tag to the exact config digest below, and both rootfs
+layer lists matched across hosts. The operator check was corrected at that layer;
+no service code, image bytes or validation contract was changed, and the dashboard
+was not needlessly replaced again. Isolation/mount/settings checks then passed.
+
+After a fresh idle check, the gateway was stopped, persistent state rechecked for
+racing admissions, and its original container retained for rollback. The new
+gateway started at **15:29:30 UTC / 11:29:30 Toronto**. Operator environment
+overrides were preserved privately over the new image defaults; no old source-tree
+`PYTHONPATH` was copied. Credentials never entered commands/receipts. Mounts match;
+no second worker ran against live data.
+
+### Exact deployed artifacts
+
+Release source/config/operator evidence root on Spark:
+`/home/wjmao/services/plotloom-h3-gateway/releases/media-service-boundaries-20261022-37828fd3/`.
+The service Compose files and smoke helper are under `services/minimax_h3_gateway/`.
+Dashboard Compose project remains `plotloom-h3-dashboard`; gateway remains a
+directly created container with its installed `plotloom-h3-gateway` entrypoint.
+
+| Service | Spark image config digest | Serving container |
+| --- | --- | --- |
+| Dashboard | `sha256:46236b29450af391650dc234e9e51a402caf33d221bcebb44ffd206af8239d11` | `7c4f2909182efa3a3b014f336bfe8e6f4394286ecc099bbbe54898c20c7edb24` |
+| Gateway | `sha256:16137351b8103d812a02680fe054703007529c1b0631d23b5a3ce525d5dd38c4` | `ea78201826381058704b0c478c06c90580f2d350e30e781b36332e2897e14fa9` |
+
+Both use their `:20261022-service-boundaries` tags. The preceding OCI index
+digests describe the local/export artifact, not Spark's config IDs.
+
+### Preservation and consumer checks
+
+- All gateway and Lab table row fingerprints matched before/after: 174 gateway
+  jobs, 126 lane records, 3 published voices and 2 takes, plus remaining tables.
+- File size/mtime manifests matched for 138 gateway assets/outputs and 12 Lab
+  voice/take files. This is scoped metadata evidence, not a byte-hash audit of all
+  Comfy/model/input storage. No reset, migration, copy-back or manual cleanup ran.
+- ComfyUI, embedding and playground container IDs/images/start times matched;
+  Voice Lab and SGLang systemd PIDs/start timestamps matched. Their runtimes,
+  model mounts and settings were not restarted or edited.
+- Gateway health `ok`, queued/active zero; Lab healthy/worker idle; Qwen backend
+  health HTTP 200; Comfy queue empty. Dashboard Docker health is `healthy`.
+- Authenticated gateway status and original-output GET passed for existing job
+  `h3_f28efec4ce59466f954b1660faa63187`. Both existing take metadata/audio GETs through
+  the gateway facade passed, with source-audio hashes verified.
+- Real private HTTPS preview/playback, seeking to 3 seconds, original download
+  and refresh passed. MP4 duration 5.167 seconds; no media or console errors.
+  Download SHA256 matches the stored original:
+  `9abfeb93c27893a12acf5cc9bd61eed6ffdda76b220dab398f90d95eda54b4f9`.
+  The [1440×900 serving screenshot](supporting/media-service-boundaries-spark-20261022.png)
+  was visually inspected. The owned Chrome session was closed afterward.
+- Tailnet-only `https://gx10-1523.tail6040ad.ts.net/dashboard` remains the same
+  handler to `127.0.0.1:8091/dashboard`; no Tailscale configuration changed.
+
+No inference or generation replay occurred. Exact identities, health and the
+released quiet window were reported back to `narrative-forge main`, which will
+re-preflight before its next H3 batch. Operational evidence is retained in
+`before.json`, `dashboard-activated.json`, `gateway-activated.json`, `after.json`
+and the one-off `cutover.py` at the release root (also locally under `.local/`).
+
+### Rollback references
 
 - Gateway: `plotloom-h3-gateway:vae-d-20261006`, image
   `sha256:f833c3469ea62c94c428ea5d98e0e8236fc317dd6a6721a8a4f7c7d51e6ad692`;
   directly created container, not assumed Compose-managed.
+  Original container `4020bc9e8dff13da68ca839f91e142f53e5104df60e8257f4cc22400520a42d6`
+  remains stopped as `plotloom-h3-gateway-before-packaging-20261022`, with restart
+  policy `no`. After fresh idle checks, stop/retain the candidate, restore the old
+  name and `unless-stopped` policy, then start the predecessor as the sole gateway.
+  Do not roll back/reinitialize data. Unknown or racing work blocks this procedure.
 - Dashboard: `plotloom-h3-dashboard:20261022-output-actions-2`, image
   `sha256:dbae86250c22faa321625ff39b7e1efef60e635702424ab1c7d3418e6029aa4d`;
   Compose file under
   `/home/wjmao/services/plotloom-h3-dashboard/releases/20261022-output-actions2.zLJ3ON/services/minimax_h3_gateway/`.
+  The previous image/config remain available; dashboard rollback uses that Compose
+  file/project with `up -d --no-deps --no-build dashboard`, without restarting gateway.
 - ComfyUI: `sha256:db0010004575a508b5ac67fb36ea4ab83cf1964a84e70932019749f330c64110`.
 
 Full Plotloom/frontend suites were not repeated: no authoring/frontend/build
 contract changed, and focused extraction/client checks passed. No merge, push,
-hosted CI or product integration acceptance is claimed. Completion of the full
-plan still requires coordinated deployment and its receipt update.
+hosted CI or product integration acceptance is claimed. The approved packaging
+and selective-deployment plan is complete; no new model/creative qualification
+is implied by these operational checks.

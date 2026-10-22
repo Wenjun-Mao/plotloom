@@ -1,9 +1,9 @@
 # Independently maintainable media services in Plotloom
 
-Status: implementation approved, 2026-10-22. Work proceeds in the retained
-specialist checkout; deployment is coordinated with the director's live E2E window.
-Local implementation and artifact/browser verification are complete; serving
-replacement is pending the director's explicit quiet-window confirmation.
+Status: implemented, verified and deployed, 2026-10-22, in the retained specialist
+checkout. The director explicitly released the quiet window before replacement;
+the completed serving checks were reported back before its next H3 batch.
+Implementation source: `37828fd3`. Integration, merge, push and hosted CI remain held.
 Evidence: [packaging verification](../verification/2026-10-22-media-service-boundaries.md).
 Planning baseline: `5fd5128b`, `codex/h3-ref2va-gateway`.
 Decision: [media-service boundaries](../adr/media-services-monorepo-boundaries.md).
@@ -188,3 +188,6 @@ checkout, installed Plotloom, authoring source or root locks. Reconcile shared
 documentation indexes and assign a unique ADR number at eventual integration.
 The director's live native-image/H3 UI journey blocks dashboard/gateway cutover
 until it confirms a quiet window; local packaging and offline tests may proceed.
+That window was explicitly released after the director cancelled its new native
+run without starting H3. Dashboard and gateway packaging were replaced serially;
+the receipt records preservation, serving identities and the released window.

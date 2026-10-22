@@ -80,6 +80,10 @@ Never turn an HTTP response loss into an automatic generation retry.
    image ID/digest, Python/dependency changes and Compose/systemd paths in a single
    verification receipt. Keep secret values out of those records. Image tags are
    convenient names; the recorded digest identifies the actual artifact.
+   Label the digest type: an OCI index/manifest digest is not the image config
+   digest reported by a classic Docker engine. For `docker save`/`load` transfers,
+   verify the exported `manifest.json` config mapping and the image's rootfs
+   layer identities; do not compare unlike digest types or silently trust a tag.
 3. Exercise the ARM64 image with temporary data in an isolated, network-disabled
    container, with no production mount, GPU or Docker socket. This must pass before
    promotion. Preserve the preceding serving artifact/configuration for rollback.
@@ -107,6 +111,12 @@ currently serving gateway may be a directly created container, so inspect its
 actual launch configuration instead of assuming Compose owns it. Preserve its
 environment privately and recreate from the tested package entrypoint; never
 copy environment values into a public command, log or receipt.
+
+The [October 22 packaging receipt](../verification/2026-10-22-media-service-boundaries.md)
+records the current service-only release and exact rollback references. A retained
+stopped gateway rollback container must have restart disabled to prevent a second
+dispatcher after a reboot. Restore its original restart policy only when it
+becomes the sole active gateway again, after fresh idle/uncertainty checks.
 
 The specialist's packaging slice keeps integration, merge, push and hosted CI on
 hold. Director coordination is authorized, but does not itself remove those holds.

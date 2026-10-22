@@ -54,13 +54,15 @@ Technical plans, ADRs, and receipts remain supporting references; they do not in
 
 ## Specialist media-service maintenance
 
-The owner agreed to keep the media services in Plotloom. The proposed
+The owner agreed to keep the media services in Plotloom. The
 [approved boundary-strengthening plan](2026-10-22-media-service-boundaries.md) addresses
 service-owned dependencies, isolated artifacts, contract guards and selective
 deployment without changing generation behavior. The [service decision](../adr/media-services-monorepo-boundaries.md)
 records the ownership boundary; numbering awaits integration with newer main.
 Director write/runtime coordination is authorized; integration, merge and push
-remain held. Serving restarts wait for the director's live E2E quiet window.
+remain held. The director-coordinated packaging cutover passed on October 22;
+the [receipt](../verification/2026-10-22-media-service-boundaries.md) records exact
+serving identities, preservation checks and rollback references.
 
 ## Specialist Voice Lab
 

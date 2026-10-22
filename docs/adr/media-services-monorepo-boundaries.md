@@ -3,8 +3,9 @@
 Status: repository direction and implementation approved by the owner on 2026-10-22.
 Numbering is deferred until integration, as coordinated with the Plotloom director;
 the specialist's historical ADR sequence collides with newer main. Implementation follows the
-[boundary-strengthening plan](../roadmap/2026-10-22-media-service-boundaries.md);
-no deployment or integration acceptance is implied.
+[boundary-strengthening plan](../roadmap/2026-10-22-media-service-boundaries.md).
+Deployment is recorded separately in the [verification receipt](../verification/2026-10-22-media-service-boundaries.md);
+Plotloom integration acceptance is not implied.
 
 ## Context
 
