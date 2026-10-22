@@ -170,7 +170,39 @@ The raw log records exact `uv build --wheel --out-dir` and
 
 This documentation-only closeout uses diff/consistency checks, not test reruns.
 Local software qualification does not establish provider E2E or human acceptance.
-Activation, real-story retry, live providers, image/video
-retry, publication/push, GitHub CI and human creative acceptance are unperformed.
+At local qualification closeout, activation, real-story retry, live providers,
+image/video retry, publication/push, GitHub CI and human creative acceptance were
+unperformed. Subsequent owner-requested activation is recorded below.
 Product/infrastructure/waiting/coordination time totals and cost deltas were not
 measured; no percentages or savings are inferred.
+
+## Owner-requested activation — 2026-10-22
+
+Root activated clean detached P (`/Users/wjmao/projects/HU/plotloom`) at
+`4d029cee3b6c1f0d9f2c7872717ac02e1d12d3b7`, replacing `fc0022b1` through the
+supported workbench stop, checkout switch, owned-bridge reload and start sequence.
+The deployment retains its source-mounted Docker shape; no wheel overlay,
+credential change, data reset or provider dispatch was introduced.
+
+The new container is `9684d3763193bb31d55ea7928ac45e8128ab5abe8c13dfed25c29837b5e7b5ac`,
+healthy after startup at `2026-10-22T12:38:57.544064572Z`; the reloaded owned bridge
+PID is `81018`. Localhost and both existing tailnet health routes return 200.
+All seven served static files match the qualified asset-tree hashes and installed
+source bytes. OpenAPI exposes GET `autopilot/text-failure` and POST
+`autopilot/text-retry`, with launch automatic correction default one. The actual
+tailnet UI loads the new failure panel. An old frozen run truthfully remains
+non-retryable through the new contract; no run was restarted or upgraded.
+
+The reused read-only preservation probe reports no unexpected differences:
+all four project identities, content/media, protected credential/settings files,
+application tables and host tables are preserved. Host accounting remains
+104 completed, two UNKNOWN, two settled, 16 queued and one failed; all queue
+entries remain disabled, with zero active attempts/validators and two retained
+slots. Only controller claim/revision/timestamp fields changed at startup;
+the paused, blocked and cancelled run states and frozen policies are unchanged.
+
+Exact before/after fingerprints, comparison, asset hashes and native stop/start
+logs are retained under the existing evidence home in `activation.z5qKs1/`.
+This activation does not establish real-provider generation or creative acceptance.
+Project cleanup and example generation were not performed during activation.
+No push or GitHub CI occurred.

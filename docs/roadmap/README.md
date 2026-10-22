@@ -18,7 +18,8 @@ count above one/exhaustion, zero/manual, duplicate/stale/UNKNOWN/budget controls
 restart and portable restore. Capture desktop card pixels and deterministic
 checked assets. The initial focused/quick checkpoint stopped for independent
 review; Root subsequently owned the final local software gates. Activation,
-real-story retry, provider dispatch, push and GitHub CI remain excluded.
+real-story retry, provider dispatch, push and GitHub CI were excluded from those
+qualification runs; subsequent activation is recorded separately below.
 
 The [source checkpoint record](../verification/2026-10-22-text-failure-controls.md)
 retains the actual zero/manual and multi-attempt host/API/UI proof, exact frozen
@@ -33,7 +34,15 @@ runtime code is identical across those two revisions. Bundle/parity/97-spec
 qualification, not a fresh full-green invocation: the full run (3584 Python
 passed/20 failed) and downstream browser run (346 passed/1 stale-expectation
 failure) remain recorded as failed. Local main is complete; activation, live
-providers, real-story retry, push/CI and human acceptance remain unperformed.
+providers, real-story retry, push/CI and human acceptance were unperformed at
+that source checkpoint.
+
+Owner-requested activation on October 22 is complete: P is clean at `4d029cee`,
+healthy on localhost and both tailnet routes; served assets and new routes match
+the qualified build. Four existing projects, credentials/settings and all host
+accounting/UNKNOWN reservations remain preserved. Existing frozen runs were not
+restarted or retroactively granted retry authority. See the activation section
+in the source checkpoint record above. Cleanup/example generation is separate.
 
 ## Approved bounded text content correction
 
