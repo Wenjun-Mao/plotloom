@@ -24,7 +24,7 @@ class EarlyReferenceDiscovery(CamelModel):
 def discover_early_references(store, view):
     if view.policy.version != POLICY_VERSION or not view.policy.early_reference_limit:
         return None
-    adopted = {item["operationKey"] for item in view.checkpoints if item["state"] == "adopted"}
+    adopted = {item["evidence"]["owner"] for item in view.checkpoints if item["state"] == "adopted"}
     if "characters" not in adopted:
         return None
     cast_state = store.cast_state()

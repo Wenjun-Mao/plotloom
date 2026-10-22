@@ -262,7 +262,9 @@ class ProjectCastPersistence:
             direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
             contract = freeze_cast_style(render_style, direction)
             binding = binding.model_copy(update={"render_contract": contract})
-            if session.scalar(select(CastCandidateRow.job_id).where(CastCandidateRow.project_id == project_id, CastCandidateRow.status == "prepared").limit(1)):
+            from .autopilot_text_correction import has_publishable_candidates
+            session.flush()
+            if has_publishable_candidates(session.connection().connection.driver_connection, project_id, CastCandidateRow.__tablename__):
                 raise InvalidTransitionError("cancel the prepared cast specialist publication before changing review state")
             request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="shared-cast", stage="characters", content_validation_contract="plotloom.typed-content-result.v1", expected_stage_revision=head.revision, source=source, input_artifacts={"outline.json": outline, "section-map.json": section_map}, creative_brief="Create one upstream-shaped cast.json candidate for the accepted source, outline, and installed stable section context. Shared characters are authored once; preserve established characters[].id values, and require every characters[].id to be unique and nonblank. Make section presence/context explicit. This is a candidate only, not voice evidence, media generation, or project canon.")
             request.input_artifacts[CONTRACT_FILENAME] = cast_writing_contract()

@@ -556,6 +556,7 @@
           "tests/services/creator_workbench/test_codex_exec_pool_profile.py",
           "tests/services/creator_workbench/test_codex_exec_supervisor_validation_lifecycle.py",
           "tests/services/creator_workbench/test_text_content_correction.py",
+          "tests/services/creator_workbench/test_text_correction_budget.py",
           "tests/services/creator_workbench/test_codex_exec_outline_report_metadata.py",
           "tests/services/creator_workbench/test_codex_exec_helper_reaping.py",
           "tests/services/minimax_h3_gateway/test_app.py",

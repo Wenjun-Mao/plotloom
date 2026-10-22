@@ -14,6 +14,13 @@ local `main` commit for independent review. Final full qualification is separate
 assigned once stable. Activation, push, GitHub CI, budget changes, UNKNOWN clearing,
 image/video retries and human creative acceptance are excluded.
 
+Initial source checkpoint `5bf97fc2` passed the disposable correction/adoption and
+exhaustion journeys, portable readback, focused controls and quick verification.
+The [verification record](../verification/2026-10-21-bounded-text-correction.md)
+retains independent-review corrections and the exact finite lifetime-cap proof.
+The broad module invocation was deliberately cancelled/partial to prioritize
+those findings; the manager owns the final full gate after corrective re-review.
+
 ## Approved unified project deletion
 
 The owner approved one **删除项目…** directory entry and one explicit confirmation

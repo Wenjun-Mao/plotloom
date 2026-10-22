@@ -126,7 +126,9 @@ class ProjectArtPersistence:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             head = self._head(session, project_id)
-            if session.scalar(select(ArtCandidateRow.job_id).where(ArtCandidateRow.project_id == project_id, ArtCandidateRow.status == "prepared").limit(1)):
+            from .autopilot_text_correction import has_publishable_candidates
+            session.flush()
+            if has_publishable_candidates(session.connection().connection.driver_connection, project_id, ArtCandidateRow.__tablename__):
                 raise InvalidTransitionError("cancel the prepared art specialist publication before changing review state")
             binding, source, outline, mapping, cast = self._context(session, project_id)
             direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction

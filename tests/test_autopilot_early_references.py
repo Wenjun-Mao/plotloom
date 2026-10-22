@@ -11,6 +11,34 @@ def current(storage, run):
         return store.repository.autopilot.current(run.project_id)
 
 
+@pytest.mark.parametrize("stage", ["characters", "art"])
+def test_discovery_uses_adopted_logical_owner_for_corrective_checkpoint(tmp_path, monkeypatch, stage):
+    from plotloom import autopilot_early_references
+    from plotloom.autopilot_early_references import discover_early_references
+    # This consumer test uses validated adopted owner evidence; it varies only
+    # the physical key in the read projection, never persists fabricated lineage.
+    monkeypatch.setattr(autopilot_early_references, "advance_early_references", lambda *_args: None)
+    storage, registry, service, run, _calls = environment(tmp_path, monkeypatch, early_references=True)
+    try:
+        assert service.acquire_controller()
+        for _ in range(24):
+            service.step(run.project_id)
+            view = current(storage, run)
+            if any(c["operationKey"] == "art" and c["state"] == "adopted" for c in view.checkpoints):
+                break
+        else:
+            raise AssertionError("fixture text prefix did not adopt Art")
+        assert run.policy.early_reference_limit == 4
+        checkpoints = [c | {"operationKey": f"{stage}:correction:1"} if c["operationKey"] == stage else c for c in view.checkpoints]
+        with closing(storage.projects.open(run.project_id)) as store:
+            discovery = discover_early_references(store, view.model_copy(update={"checkpoints": checkpoints}))
+            assert discovery is not None and discovery.cast_revision >= 1 and discovery.art_revision >= 1
+            assert any(subject.owner == "art-reference" for subject in discovery.subjects)
+        assert not registry._codex_exec_test_host.image_calls
+    finally:
+        service.close()
+
+
 def test_early_reference_delivery_precedes_installation_and_remains_candidate_only(tmp_path, monkeypatch):
     storage, registry, service, run, _calls = environment(tmp_path, monkeypatch, early_references=True)
     host = registry._codex_exec_test_host

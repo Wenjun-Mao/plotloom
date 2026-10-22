@@ -312,8 +312,12 @@ class AutopilotTextController:
             evidence = CheckpointEvidence.model_validate(checkpoint["evidence"])
             if evidence.owner not in {*methods, *self.bridge_services}:
                 continue
-            if not evidence.job_id or checkpoint["state"] in {"adopted", "failed"}:
+            if not evidence.job_id or checkpoint["state"] == "adopted":
                 continue
+            if checkpoint["state"] == "failed" and evidence.executor_attempt_id is not None:
+                attempt = store.repository.autopilot.exec_attempt_for_operation(view.id, checkpoint["operationKey"])
+                if attempt is not None and attempt.content_rejection is not None:
+                    continue
             if evidence.executor_attempt_id is not None:
                 cancel_codex_exec(store, self.registry, view.id, checkpoint)
                 if evidence.owner in self.bridge_services:
@@ -413,7 +417,10 @@ class AutopilotTextController:
         """All receipt/adoption states share the launch execution boundary."""
         service = self.bridge_services.get(stage)
         if view.policy.version == POLICY_VERSION:
-            checkpoint = logical_checkpoint(view, stage)
+            checkpoint = next((item for item in view.checkpoints
+                if item["evidence"].get("owner") == stage and item["evidence"].get("jobId") == request.job_id), None)
+            if checkpoint is None:
+                return None
             attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(view.id, checkpoint["operationKey"])
             if attempt is None or attempt.state not in {"completed", "settled"} or receipt is None:
                 return None
